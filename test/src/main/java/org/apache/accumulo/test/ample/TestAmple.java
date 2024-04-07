@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.ample;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -55,7 +56,6 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata.TableOptions;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
@@ -65,9 +65,13 @@ import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.collect.MoreCollectors;
 
 public class TestAmple {
+
+  private static final ConditionalWriterInterceptor EMPTY_INTERCEPTOR =
+      new ConditionalWriterInterceptor() {};
 
   private static final BiPredicate<Key,Value> INCLUDE_ALL_COLUMNS = (k, v) -> true;
 
@@ -79,23 +83,31 @@ public class TestAmple {
     return matches(column).negate();
   }
 
+  public static Ample create(ServerContext context, Map<DataLevel,String> tables,
+      Supplier<ConditionalWriterInterceptor> cwInterceptor) {
+    return new TestServerAmpleImpl(context, tables, cwInterceptor);
+  }
+
   public static Ample create(ServerContext context, Map<DataLevel,String> tables) {
-    return new TestServerAmpleImpl(context, tables);
+    return create(context, tables, () -> EMPTY_INTERCEPTOR);
   }
 
   public static class TestServerAmpleImpl extends ServerAmpleImpl {
 
     private final Map<DataLevel,String> tables;
+    private final Supplier<ConditionalWriterInterceptor> cwInterceptor;
 
-    public TestServerAmpleImpl(ServerContext context, final Map<DataLevel,String> tables) {
+    private TestServerAmpleImpl(ServerContext context, Map<DataLevel,String> tables,
+        Supplier<ConditionalWriterInterceptor> cwInterceptor) {
       super(context);
       this.tables = Map.copyOf(tables);
+      this.cwInterceptor = Objects.requireNonNull(cwInterceptor);
       Preconditions.checkArgument(tables.containsKey(DataLevel.USER));
     }
 
     @Override
     public TabletsMutator mutateTablets() {
-      return new TabletsMutatorImpl(getContext()) {
+      return new TabletsMutatorImpl(testAmpleServerContext(getContext(), this)) {
         @Override
         protected String getMetadataTableName(Ample.DataLevel dataLevel) {
           return TestServerAmpleImpl.this.getMetadataTableName(dataLevel);
@@ -105,12 +117,7 @@ public class TestAmple {
 
     @Override
     public ConditionalTabletsMutator conditionallyMutateTablets() {
-      return new ConditionalTabletsMutatorImpl(getContext()) {
-        @Override
-        protected String getMetadataTableName(Ample.DataLevel dataLevel) {
-          return TestServerAmpleImpl.this.getMetadataTableName(dataLevel);
-        }
-      };
+      return conditionallyMutateTablets(cwInterceptor.get());
     }
 
     @Override
@@ -131,7 +138,7 @@ public class TestAmple {
 
     @Override
     protected TableOptions newBuilder() {
-      return new Builder(getContext()) {
+      return new Builder(testAmpleServerContext(getContext(), this)) {
         @Override
         protected String getMetadataTable(DataLevel dataLevel) {
           return TestServerAmpleImpl.this.getMetadataTableName(dataLevel);
@@ -202,8 +209,10 @@ public class TestAmple {
       }
     }
 
-    public ConditionalTabletsMutator
+    private ConditionalTabletsMutator
         conditionallyMutateTablets(ConditionalWriterInterceptor interceptor) {
+      Objects.requireNonNull(interceptor);
+
       return new ConditionalTabletsMutatorImpl(getContext()) {
 
         @Override
@@ -216,7 +225,18 @@ public class TestAmple {
                 getContext().createConditionalWriter(getMetadataTableName(dataLevel)), interceptor);
           }
         }
+
+        @Override
+        protected String getMetadataTableName(Ample.DataLevel dataLevel) {
+          return TestServerAmpleImpl.this.getMetadataTableName(dataLevel);
+        }
       };
+    }
+
+    @Override
+    public ServerContext getContext() {
+      // TODO: we can probably cache this
+      return testAmpleServerContext(super.getContext(), this);
     }
 
     protected String getMetadataTableName(Ample.DataLevel dataLevel) {
@@ -225,16 +245,28 @@ public class TestAmple {
     }
   }
 
-  public static Manager mockWithAmple(MiniAccumuloClusterImpl cluster, TestServerAmpleImpl ample) {
-    SiteConfiguration siteConfig =
-        SiteConfiguration.empty().withOverrides(cluster.getConfig().getSiteConfig()).build();
-    Manager manager = EasyMock.mock(Manager.class);
-    EasyMock.expect(manager.getContext()).andReturn(new ServerContext(siteConfig) {
+  private static ServerContext testAmpleServerContext(ServerContext context,
+      TestServerAmpleImpl ample) {
+    SiteConfiguration siteConfig;
+    try {
+      Map<String,String> propsMap = new HashMap<>();
+      context.getSiteConfiguration().getProperties(propsMap, x -> true);
+      siteConfig = SiteConfiguration.empty().withOverrides(propsMap).build();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    return new ServerContext(siteConfig) {
       @Override
       public Ample getAmple() {
         return ample;
       }
-    }).atLeastOnce();
+    };
+  }
+
+  public static Manager mockWithAmple(ServerContext context, TestServerAmpleImpl ample) {
+    Manager manager = EasyMock.mock(Manager.class);
+    EasyMock.expect(manager.getContext()).andReturn(testAmpleServerContext(context, ample))
+        .atLeastOnce();
     EasyMock.replay(manager);
     return manager;
   }

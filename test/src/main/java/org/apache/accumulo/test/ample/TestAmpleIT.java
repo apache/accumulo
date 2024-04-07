@@ -156,8 +156,9 @@ public class TestAmpleIT extends SharedMiniClusterBase {
       TestAmple.createMetadataTable(client, metadataTable);
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(userTable));
 
-      TestServerAmpleImpl ample = (TestServerAmpleImpl) TestAmple
-          .create(getCluster().getServerContext(), Map.of(DataLevel.USER, metadataTable));
+      TestServerAmpleImpl ample =
+          (TestServerAmpleImpl) TestAmple.create(getCluster().getServerContext(),
+              Map.of(DataLevel.USER, metadataTable), () -> withStatus(ACCEPTED, UNKNOWN, 1));
       ample.createMetadataFromExisting(client, tableId);
 
       // Add a custom interceptor that will replace the result status with UNKNOWN
@@ -174,14 +175,13 @@ public class TestAmpleIT extends SharedMiniClusterBase {
       // case of when the rejection handle will return true and false so that we can test that
       // the state is correctly set to either ACCEPTED or REJECTED after the rejection handler is
       // executed.
-      try (
-          var tabletsMutator = ample.conditionallyMutateTablets(withStatus(ACCEPTED, UNKNOWN, 1))) {
+      try (var tabletsMutator = ample.conditionallyMutateTablets()) {
         var mutator = tabletsMutator.mutateTablet(new KeyExtent(tableId, null, null))
             .requireAbsentOperation();
         var fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
         var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
 
-        mutator.putOperation(TabletOperationId.from(TabletOperationType.SPLITTING, fateId));
+        mutator.putOperation(opid);
 
         // If accepted is true then we want to test the ACCEPTED case so return true if
         // the opid matches. If false we want this to fail to test REJECTED, so we return
@@ -223,7 +223,7 @@ public class TestAmpleIT extends SharedMiniClusterBase {
       ample.createMetadataFromExisting(client, tableId, not(SplitColumnFamily.UNSPLITTABLE_COLUMN));
 
       KeyExtent extent = new KeyExtent(tableId, null, null);
-      Manager manager = mockWithAmple(getCluster(), ample);
+      Manager manager = mockWithAmple(getCluster().getServerContext(), ample);
 
       FindSplits findSplits = new FindSplits(extent);
       PreSplit preSplit = (PreSplit) findSplits

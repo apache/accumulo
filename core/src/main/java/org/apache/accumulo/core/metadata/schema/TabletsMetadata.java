@@ -180,7 +180,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         } else {
           try {
             BatchScanner scanner =
-                client.createBatchScanner(level.metaTable(), Authorizations.EMPTY);
+                client.createBatchScanner(getMetadataTable(level), Authorizations.EMPTY);
 
             var ranges =
                 groupedExtents.get(level).stream().map(KeyExtent::toMetaRange).collect(toList());
