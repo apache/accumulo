@@ -61,9 +61,12 @@ import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
+import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 class CompactionDriver extends ManagerRepo {
 
@@ -300,6 +303,12 @@ class CompactionDriver extends ManagerRepo {
 
     long t2 = System.currentTimeMillis();
 
+    // The Fate operation gets a table lock that prevents the table from being deleted while this is
+    // running, so seeing zero tablets in the metadata table is unexpected.
+    Preconditions.checkState(total > 0,
+        "No tablets were seen for table %s in the compaction range %s %s", tableId,
+        new Text(startRow), new Text(endRow));
+
     log.debug(
         "{} tablet stats, total:{} complete:{} selected_now:{} selected_prev:{} selected_by_other:{} "
             + "no_files:{} none_selected:{} user_compaction_requested:{} user_compaction_waiting:{} "
@@ -314,8 +323,6 @@ class CompactionDriver extends ManagerRepo {
     }
 
     return total - complete;
-
-    // ELASTICITIY_TODO need to handle seeing zero tablets
   }
 
   @Override
