@@ -337,12 +337,6 @@ public class Tablet extends TabletBase {
     return latestMetadata.get().tabletMetadata;
   }
 
-  public void setMetadata(TabletMetadata tabletMetadata) {
-    Preconditions.checkState(refreshLock.isHeldByCurrentThread());
-    var current = latestMetadata.get();
-    latestMetadata.set(new LatestMetadata(tabletMetadata, current.refreshCount + 1));
-  }
-
   public void checkConditions(ConditionChecker checker, Authorizations authorizations,
       AtomicBoolean iFlag) throws IOException {
 
@@ -1596,13 +1590,13 @@ public class Tablet extends TabletBase {
 
     refreshLock.lock();
     try {
-      var refreshCount = latestMetadata.get().refreshCount;
+      var prevMetadata = latestMetadata.get();
       // if the tablet metadata passed in is stale, then reread it
-      if (observedRefreshCount == null || !observedRefreshCount.equals(refreshCount)) {
+      if (observedRefreshCount == null || !observedRefreshCount.equals(prevMetadata.refreshCount)) {
         if (observedRefreshCount != null) {
           log.debug(
               "Metadata read outside of refresh lock is no longer valid, rereading metadata. {} {} {}",
-              extent, observedRefreshCount, refreshCount);
+              extent, observedRefreshCount, prevMetadata.refreshCount);
         }
         // do not want to hold tablet lock while doing metadata read as this could negatively impact
         // scans
@@ -1632,25 +1626,11 @@ public class Tablet extends TabletBase {
           return false;
         }
 
-        var prevMetadata = getMetadata();
-        setMetadata(tabletMetadata);
-
         // Its expected that what is persisted should be less than equal to the time that tablet has
         // in memory.
         Preconditions.checkState(tabletMetadata.getTime().getTime() <= tabletTime.getTime(),
             "Time in metadata is ahead of tablet %s memory:%s metadata:%s", extent, tabletTime,
             tabletMetadata.getTime());
-
-        if (log.isDebugEnabled() && !prevMetadata.getFiles().equals(getMetadata().getFiles())) {
-          SetView<StoredTabletFile> removed =
-              Sets.difference(prevMetadata.getFiles(), getMetadata().getFiles());
-          SetView<StoredTabletFile> added =
-              Sets.difference(getMetadata().getFiles(), prevMetadata.getFiles());
-          log.debug("Tablet {} was refreshed because {}. Files removed: [{}] Files added: [{}]",
-              this.getExtent(), refreshPurpose,
-              removed.stream().map(StoredTabletFile::getFileName).collect(Collectors.joining(",")),
-              added.stream().map(StoredTabletFile::getFileName).collect(Collectors.joining(",")));
-        }
 
         if (refreshPurpose == RefreshPurpose.MINC_COMPLETION) {
           // Atomically replace the in memory map with the new file. Before this synch block a scan
@@ -1667,7 +1647,7 @@ public class Tablet extends TabletBase {
 
           // important to call this after updating latestMetadata and tabletMemory
           computeNumEntries();
-        } else if (!prevMetadata.getFilesMap().equals(getMetadata().getFilesMap())) {
+        } else if (!prevMetadata.tabletMetadata.getFilesMap().equals(getMetadata().getFilesMap())) {
 
           // the files changed, incrementing this will cause scans to switch data sources
           dataSourceDeletions.incrementAndGet();
@@ -1675,6 +1655,25 @@ public class Tablet extends TabletBase {
           // important to call this after updating latestMetadata
           computeNumEntries();
         }
+
+        // set this last to make it visible outside of a lock after all other changes have been made
+        // to the tablet
+        Preconditions.checkState(
+            latestMetadata.compareAndSet(prevMetadata,
+                new LatestMetadata(tabletMetadata, prevMetadata.refreshCount + 1)),
+            "A concurrency bug exists in the code, something is setting latestMetadata without holding the refreshLock.");
+      }
+
+      if (log.isDebugEnabled()
+          && !prevMetadata.tabletMetadata.getFiles().equals(getMetadata().getFiles())) {
+        SetView<StoredTabletFile> removed =
+            Sets.difference(prevMetadata.tabletMetadata.getFiles(), getMetadata().getFiles());
+        SetView<StoredTabletFile> added =
+            Sets.difference(getMetadata().getFiles(), prevMetadata.tabletMetadata.getFiles());
+        log.debug("Tablet {} was refreshed because {}. Files removed: [{}] Files added: [{}]",
+            this.getExtent(), refreshPurpose,
+            removed.stream().map(StoredTabletFile::getFileName).collect(Collectors.joining(",")),
+            added.stream().map(StoredTabletFile::getFileName).collect(Collectors.joining(",")));
       }
     } finally {
       refreshLock.unlock();
