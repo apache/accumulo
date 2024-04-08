@@ -1734,7 +1734,7 @@ public class Tablet extends TabletBase {
         throw new IOException("tablet " + extent + " is closed");
       }
 
-      Duration rpcTimeout = Duration.ofNanos(
+      Duration rpcTimeout = Duration.ofMillis(
           (long) (getTabletServer().getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)
               * 1.1));
 
