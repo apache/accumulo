@@ -96,9 +96,8 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
 
       for (Entry<KeyExtent,ConditionalResult> entry : results.entrySet()) {
         if (entry.getValue().getStatus() != Status.ACCEPTED) {
-          LOG.debug(
-              "Failed to set future location for {}, likely concurrent FATE operation or non-empty location",
-              entry.getKey());
+          LOG.debug("Likely concurrent FATE operation prevented setting future location for {}, "
+              + "Manager will retry soon.", entry.getKey());
         }
       }
 
