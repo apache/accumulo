@@ -167,7 +167,7 @@ public class CompactionCoordinatorTest {
     }
 
     @Override
-    protected Map<String,List<HostAndPort>> getRunningCompactors() {
+    protected Map<String,Set<HostAndPort>> getRunningCompactors() {
       return Map.of();
     }
 

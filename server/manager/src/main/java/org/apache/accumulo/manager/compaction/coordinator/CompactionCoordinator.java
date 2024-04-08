@@ -280,7 +280,7 @@ public class CompactionCoordinator
   }
 
   private Map<String,Set<HostAndPort>>
-      getIdleCompactors(Map<String,List<HostAndPort>> runningCompactors) {
+      getIdleCompactors(Map<String,Set<HostAndPort>> runningCompactors) {
 
     final Map<String,Set<HostAndPort>> allCompactors = new HashMap<>();
     runningCompactors
@@ -953,7 +953,7 @@ public class CompactionCoordinator
   }
 
   /* Method exists to be overridden in test to hide static method */
-  protected Map<String,List<HostAndPort>> getRunningCompactors() {
+  protected Map<String,Set<HostAndPort>> getRunningCompactors() {
     return ExternalCompactionUtil.getCompactorAddrs(this.ctx);
   }
 
@@ -1064,7 +1064,7 @@ public class CompactionCoordinator
           Sets.difference(trackedGroups, TIME_COMPACTOR_LAST_CHECKED.keySet()));
     }
 
-    final Map<String,List<HostAndPort>> runningCompactors = getRunningCompactors();
+    final Map<String,Set<HostAndPort>> runningCompactors = getRunningCompactors();
 
     final Set<CompactorGroupId> runningCompactorGroups = new HashSet<>();
     runningCompactors.keySet()
