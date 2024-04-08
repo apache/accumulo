@@ -31,7 +31,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -242,14 +241,6 @@ public class MetadataTableUtil {
     tablet.getFilesMap().forEach(sizes::put);
 
     return new Pair<>(result, sizes);
-  }
-
-  public static void removeUnusedWALEntries(ServerContext context, KeyExtent extent,
-      final Collection<LogEntry> entries, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    entries.forEach(tablet::deleteWal);
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-    tablet.mutate();
   }
 
   private static Mutation createCloneMutation(TableId srcTableId, TableId tableId,
