@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.iterators.user;
+package org.apache.accumulo.core.metadata.schema.filters;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -41,9 +41,6 @@ import com.google.common.collect.Sets;
  * A filter used by the Accumulo GC to find tablets that either have walogs or are assigned to a
  * dead tablet server.
  */
-
-// ELASTICITY_TODO Move TabletMetadataFilter and its subclasses out of public API. It use internal
-// types that are not user facing.
 public class GcWalsFilter extends TabletMetadataFilter {
 
   private Map<String,String> options = null;
