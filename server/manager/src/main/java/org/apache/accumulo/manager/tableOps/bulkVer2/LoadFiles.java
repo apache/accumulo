@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.bulk.Bulk;
@@ -289,14 +290,12 @@ class LoadFiles extends ManagerRepo {
     long finish() {
       var results = conditionalMutator.process();
 
-      boolean allDone =
-          results.values().stream().allMatch(result -> result.getStatus() == Status.ACCEPTED)
-              && skipped == 0;
-
+      AtomicBoolean seenFailure = new AtomicBoolean(false);
       results.forEach((extent, condResult) -> {
         if (condResult.getStatus() == Status.ACCEPTED) {
           loadingFiles.get(extent).forEach(file -> TabletLogger.bulkImported(extent, file));
         } else {
+          seenFailure.set(true);
           var metadata = condResult.readMetadata();
           if (metadata == null) {
             log.debug("Tablet update failed, tablet is gone {} {} {}", fateId, extent,
@@ -309,12 +308,11 @@ class LoadFiles extends ManagerRepo {
         }
       });
 
-      long sleepTime = 0;
-      if (!allDone) {
-        sleepTime = 1000;
+      if (seenFailure.get() || skipped != 0) {
+        return 1000;
+      } else {
+        return 0;
       }
-
-      return sleepTime;
     }
   }
 
