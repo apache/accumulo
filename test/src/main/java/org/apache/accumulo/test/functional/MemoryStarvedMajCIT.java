@@ -24,8 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.DoubleAdder;
 
@@ -158,10 +160,10 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
       Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx)
           .get(Constants.DEFAULT_RESOURCE_GROUP_NAME).size() == 1, 60_000);
 
-      Map<String,List<HostAndPort>> groupedCompactors =
+      Map<String,Set<HostAndPort>> groupedCompactors =
           ExternalCompactionUtil.getCompactorAddrs(ctx);
       List<HostAndPort> compactorAddresses =
-          groupedCompactors.get(Constants.DEFAULT_RESOURCE_GROUP_NAME);
+          new ArrayList<>(groupedCompactors.get(Constants.DEFAULT_RESOURCE_GROUP_NAME));
       HostAndPort compactorAddr = compactorAddresses.get(0);
 
       TableOperations to = client.tableOperations();

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.iterators.user;
+package org.apache.accumulo.core.metadata.schema.filters;
 
 import java.util.Set;
 import java.util.function.Predicate;
@@ -25,12 +25,13 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
 import com.google.common.collect.Sets;
 
-public class HasCurrentFilter extends TabletMetadataFilter {
+public class HasExternalCompactionsFilter extends TabletMetadataFilter {
 
   public static final Set<TabletMetadata.ColumnType> COLUMNS =
-      Sets.immutableEnumSet(TabletMetadata.ColumnType.LOCATION);
+      Sets.immutableEnumSet(TabletMetadata.ColumnType.ECOMP);
 
-  private final static Predicate<TabletMetadata> HAS_CURRENT = TabletMetadata::hasCurrent;
+  private final static Predicate<TabletMetadata> HAS_EXT_COMPS =
+      tabletMetadata -> !tabletMetadata.getExternalCompactions().isEmpty();
 
   @Override
   public Set<TabletMetadata.ColumnType> getColumns() {
@@ -39,6 +40,6 @@ public class HasCurrentFilter extends TabletMetadataFilter {
 
   @Override
   protected Predicate<TabletMetadata> acceptTablet() {
-    return HAS_CURRENT;
+    return HAS_EXT_COMPS;
   }
 }

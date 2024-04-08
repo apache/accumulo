@@ -238,9 +238,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       confirmCompactionCompleted(getCluster().getServerContext(), ecids,
           TCompactionState.CANCELLED);
 
-      // ELASTICITY_TODO make delete table fate op get operation ids before deleting
-      // there should be no metadata for the table, check to see if the compaction wrote anything
-      // after table delete
+      // Ensure compaction did not write anything to metadata table after delete table
       try (var scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
         scanner.setRange(MetadataSchema.TabletsSection.getRange(tid));
         assertEquals(0, scanner.stream().count());
