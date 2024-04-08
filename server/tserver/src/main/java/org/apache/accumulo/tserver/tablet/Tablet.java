@@ -39,6 +39,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -131,8 +132,23 @@ public class Tablet extends TabletBase {
 
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
 
-  private volatile TabletMetadata latestMetadata;
-  private long refreshCount = 0;
+  // This class exists so that a single volatile can reference two variables. Coordinating reads and
+  // writes of two separate volatiles that depend on each other is really tricky, putting them under
+  // a single volatile removes the tricky part. One key factor to avoiding consistency issues is
+  // that instances of this class are immutable, so that should not be changed w/o considering the
+  // implications on multithreading.
+  private static class LatestMetadata {
+    final TabletMetadata tabletMetadata;
+    // this exists to detect changes in tabletMetadata
+    final long refreshCount;
+
+    private LatestMetadata(TabletMetadata tabletMetadata, long refreshCount) {
+      this.tabletMetadata = tabletMetadata;
+      this.refreshCount = refreshCount;
+    }
+  }
+
+  private final AtomicReference<LatestMetadata> latestMetadata;
 
   @Override
   public long getDataSourceDeletions() {
@@ -231,8 +247,8 @@ public class Tablet extends TabletBase {
 
     this.tabletServer = tabletServer;
     this.tabletResources = trm;
-    this.latestMetadata = metadata;
-    this.refreshCount = RANDOM.get().nextLong();
+    this.latestMetadata =
+        new AtomicReference<>(new LatestMetadata(metadata, RANDOM.get().nextLong()));
 
     // TODO look into this.. also last could be null
     this.lastLocation = metadata.getLast();
@@ -318,13 +334,13 @@ public class Tablet extends TabletBase {
   }
 
   public TabletMetadata getMetadata() {
-    return latestMetadata;
+    return latestMetadata.get().tabletMetadata;
   }
 
   public void setMetadata(TabletMetadata tabletMetadata) {
     Preconditions.checkState(refreshLock.isHeldByCurrentThread());
-    this.latestMetadata = tabletMetadata;
-    refreshCount++;
+    var current = latestMetadata.get();
+    latestMetadata.set(new LatestMetadata(tabletMetadata, current.refreshCount + 1));
   }
 
   public void checkConditions(ConditionChecker checker, Authorizations authorizations,
@@ -1571,17 +1587,8 @@ public class Tablet extends TabletBase {
    * detect changes in tablet metadata that happen during its existence and reread tablet metadata
    * if necessary.
    */
-  public Optional<RefreshSession> startRefresh() {
-    if (refreshLock.tryLock()) {
-      try {
-        return Optional.of(new RefreshSession(refreshCount));
-      } finally {
-        refreshLock.unlock();
-      }
-    } else {
-      // a refresh is in progress, do not want to block
-      return Optional.empty();
-    }
+  public RefreshSession startRefresh() {
+    return new RefreshSession(latestMetadata.get().refreshCount);
   }
 
   private boolean refreshMetadata(RefreshPurpose refreshPurpose, Long observedRefreshCount,
@@ -1589,13 +1596,13 @@ public class Tablet extends TabletBase {
 
     refreshLock.lock();
     try {
-
+      var refreshCount = latestMetadata.get().refreshCount;
       // if the tablet metadata passed in is stale, then reread it
-      if (observedRefreshCount == null || !observedRefreshCount.equals(this.refreshCount)) {
+      if (observedRefreshCount == null || !observedRefreshCount.equals(refreshCount)) {
         if (observedRefreshCount != null) {
           log.debug(
               "Metadata read outside of refresh lock is no longer valid, rereading metadata. {} {} {}",
-              extent, observedRefreshCount, this.refreshCount);
+              extent, observedRefreshCount, refreshCount);
         }
         // do not want to hold tablet lock while doing metadata read as this could negatively impact
         // scans

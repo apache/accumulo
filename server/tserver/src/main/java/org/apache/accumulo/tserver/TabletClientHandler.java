@@ -1107,9 +1107,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       var extent = KeyExtent.fromThrift(tkextent);
       var tablet = tabletsSnapshot.get(extent);
       if (tablet != null) {
-        tablet.startRefresh().ifPresentOrElse(
-            refreshSession -> refreshSessions.put(extent, refreshSession),
-            () -> unableToRefresh.add(extent.toThrift()));
+        refreshSessions.put(extent, tablet.startRefresh());
       } else {
         unableToRefresh.add(extent.toThrift());
       }
