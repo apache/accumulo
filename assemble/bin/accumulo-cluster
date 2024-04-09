@@ -283,6 +283,8 @@ function start_here() {
   for queue in $COMPACTION_QUEUES; do
     for host in $local_hosts; do
       Q="COMPACTOR_HOSTS_${queue}"
+      var_name="NUM_COMPACTORS_${queue}"
+      NUM_COMPACTORS=${!var_name}
       for compactor in ${!Q}; do
         if echo "$compactor" | grep -q "^${host}\$"; then
           start_service "$compactor" compactor "-q" "$queue"
@@ -521,7 +523,11 @@ tserver:
 #
 tservers_per_host: 1
 sservers_per_host: 1
-compactors_per_host: 1
+
+# TODO update docs
+# compactors_per_host:
+#  - q1 : 1
+#  - q2 : 2
 
 EOF
       ;;
