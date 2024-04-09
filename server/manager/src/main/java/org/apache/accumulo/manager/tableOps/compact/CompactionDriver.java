@@ -307,7 +307,8 @@ class CompactionDriver extends ManagerRepo {
     // running, so seeing zero tablets in the metadata table is unexpected.
     Preconditions.checkState(total > 0,
         "No tablets were seen for table %s in the compaction range %s %s", tableId,
-        new Text(startRow), new Text(endRow));
+        startRow == null ? new Text() : new Text(startRow),
+        endRow == null ? new Text() : new Text(endRow));
 
     log.debug(
         "{} tablet stats, total:{} complete:{} selected_now:{} selected_prev:{} selected_by_other:{} "
