@@ -59,7 +59,6 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
-import org.apache.accumulo.server.util.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -73,8 +72,8 @@ public class UpdateTabletsTest {
         .insert();
   }
 
-  FileUtil.FileInfo newFileInfo(String start, String end) {
-    return new FileUtil.FileInfo(new Text(start), new Text(end));
+  Splitter.FileInfo newFileInfo(String start, String end) {
+    return new Splitter.FileInfo(new Text(start), new Text(end));
   }
 
   /**

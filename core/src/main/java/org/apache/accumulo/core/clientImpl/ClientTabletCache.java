@@ -20,7 +20,6 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Interner;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -311,7 +311,7 @@ public abstract class ClientTabletCache {
     private final TabletAvailability availability;
     private final boolean hostingRequested;
 
-    private final Long creationTime = System.nanoTime();
+    private final NanoTime creationTime = NanoTime.now();
 
     public CachedTablet(KeyExtent tablet_extent, String tablet_location, String session,
         TabletAvailability availability, boolean hostingRequested) {
@@ -392,8 +392,8 @@ public abstract class ClientTabletCache {
       return this.availability;
     }
 
-    public Duration getAge() {
-      return Duration.ofNanos(System.nanoTime() - creationTime);
+    public NanoTime getCreationTime() {
+      return creationTime;
     }
 
     public boolean wasHostingRequested() {

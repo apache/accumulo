@@ -37,7 +37,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.iterators.user.HasCurrentFilter;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metadata.schema.filters.HasCurrentFilter;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 import org.apache.accumulo.monitor.rest.tservers.TabletServers;

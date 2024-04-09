@@ -88,6 +88,7 @@ import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -389,15 +390,14 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     managerMessages.addLast(m);
   }
 
-  void acquireRecoveryMemory(KeyExtent extent) {
-    if (!extent.isMeta()) {
-      recoveryLock.lock();
-    }
-  }
+  private static final AutoCloseable NOOP_CLOSEABLE = () -> {};
 
-  void releaseRecoveryMemory(KeyExtent extent) {
-    if (!extent.isMeta()) {
-      recoveryLock.unlock();
+  AutoCloseable acquireRecoveryMemory(TabletMetadata tabletMetadata) {
+    if (tabletMetadata.getExtent().isMeta() || tabletMetadata.getLogs().isEmpty()) {
+      return NOOP_CLOSEABLE;
+    } else {
+      recoveryLock.lock();
+      return recoveryLock::unlock;
     }
   }
 

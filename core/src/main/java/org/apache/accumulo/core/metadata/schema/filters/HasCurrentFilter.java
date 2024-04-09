@@ -16,30 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.core.metadata.schema.filters;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.Set;
+import java.util.function.Predicate;
 
-import org.apache.accumulo.server.util.FileUtil.FileInfo;
-import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
-public class FileInfoTest {
-  private Text row1;
-  private Text row2;
-  private FileInfo info;
+import com.google.common.collect.Sets;
 
-  @BeforeEach
-  public void setUp() {
-    row1 = new Text("row1");
-    row2 = new Text("row2");
-    info = new FileInfo(row1, row2);
+public class HasCurrentFilter extends TabletMetadataFilter {
+
+  public static final Set<TabletMetadata.ColumnType> COLUMNS =
+      Sets.immutableEnumSet(TabletMetadata.ColumnType.LOCATION);
+
+  private final static Predicate<TabletMetadata> HAS_CURRENT = TabletMetadata::hasCurrent;
+
+  @Override
+  public Set<TabletMetadata.ColumnType> getColumns() {
+    return COLUMNS;
   }
 
-  @Test
-  public void testGetters() {
-    assertEquals("row1", info.getFirstRow().toString());
-    assertEquals("row2", info.getLastRow().toString());
+  @Override
+  protected Predicate<TabletMetadata> acceptTablet() {
+    return HAS_CURRENT;
   }
 }

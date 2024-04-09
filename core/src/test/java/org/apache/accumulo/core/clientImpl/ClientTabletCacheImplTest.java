@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,6 +37,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -493,19 +495,24 @@ public class ClientTabletCacheImplTest {
 
   static class TServers {
     private final Map<String,Map<KeyExtent,SortedMap<Key,Value>>> tservers = new HashMap<>();
+    private BiConsumer<CachedTablet,Text> lookupConsumer = (cachedTablet, row) -> {};
   }
 
   static class TestCachedTabletObtainer implements CachedTabletObtainer {
 
     private final Map<String,Map<KeyExtent,SortedMap<Key,Value>>> tservers;
+    private final BiConsumer<CachedTablet,Text> lookupConsumer;
 
     TestCachedTabletObtainer(TServers tservers) {
       this.tservers = tservers.tservers;
+      this.lookupConsumer = tservers.lookupConsumer;
     }
 
     @Override
     public CachedTablets lookupTablet(ClientContext context, CachedTablet src, Text row,
         Text stopRow, ClientTabletCache parent) {
+
+      lookupConsumer.accept(src, row);
 
       Map<KeyExtent,SortedMap<Key,Value>> tablets =
           tservers.get(src.getTserverLocation().orElseThrow());
@@ -1835,4 +1842,134 @@ public class ClientTabletCacheImplTest {
 
   }
 
+  /**
+   * This test ensures the cache does not query the metadata table more than is needed. This
+   * behavior is very important for performance.
+   */
+  @Test
+  public void testLookupCounts() throws Exception {
+
+    List<KeyExtent> lookups = new ArrayList<>();
+    TServers tservers = new TServers();
+    tservers.lookupConsumer = (src, row) -> lookups.add(src.getExtent());
+
+    ClientTabletCacheImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
+
+    var ke1 = createNewKeyExtent("foo", "g", null);
+    var ke2 = createNewKeyExtent("foo", "m", "g");
+    var ke3 = createNewKeyExtent("foo", "r", "m");
+    var ke4 = createNewKeyExtent("foo", null, "r");
+
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, null, null);
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke2, null, null);
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke3, null, null);
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke4, null, null);
+
+    List<Mutation> ml = new ArrayList<>();
+    for (char c = 'a'; c <= 'z'; c++) {
+      ml.add(createNewMutation("" + c, "cf1:cq1=v3", "cf1:cq2=v4"));
+    }
+    Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
+    List<Mutation> afailures = new ArrayList<>();
+    assertEquals(List.of(), lookups);
+    metaCache.binMutations(context, ml, binnedMutations, afailures);
+    assertTrue(binnedMutations.isEmpty());
+    assertEquals(ml.size(), afailures.size());
+    // since all tablets are in the same metadata table, should only see one lookup to the metadata
+    // table
+    assertEquals(List.of(ROOT_TABLE_EXTENT, METADATA_TABLE_EXTENT), lookups);
+
+    // since tablets had no locations, attempting to binMutations again should go back to the
+    // metadata table once
+    lookups.clear();
+    binnedMutations.clear();
+    afailures.clear();
+    metaCache.binMutations(context, ml, binnedMutations, afailures);
+    assertTrue(binnedMutations.isEmpty());
+    assertEquals(ml.size(), afailures.size());
+    assertEquals(List.of(METADATA_TABLE_EXTENT), lookups);
+
+    // test binning ranges
+    var range1 = createNewRange("a", "c");
+    var range2 = createNewRange("h", "o");
+    var range3 = createNewRange("x", "z");
+    var ranges = List.of(range1, range2, range3);
+
+    // binning ranges should do a single metadata lookup since location is required and what is
+    // currently cached has no location
+    BiConsumer<CachedTablet,Range> rangeConsumer =
+        (t, r) -> fail("Tablet have no locations, so should not bin");
+    lookups.clear();
+    var failures = metaCache.findTablets(context, ranges, rangeConsumer, LocationNeed.REQUIRED);
+    assertEquals(3, failures.size());
+    assertEquals(List.of(METADATA_TABLE_EXTENT), lookups);
+
+    // should do a single metadata lookup since the cached entries have no location
+    lookups.clear();
+    failures = metaCache.findTablets(context, ranges, rangeConsumer, LocationNeed.REQUIRED);
+    assertEquals(3, failures.size());
+    assertEquals(List.of(METADATA_TABLE_EXTENT), lookups);
+
+    // since location is not required and the currently cached entries have no locations the
+    // following should not do metadata lookups
+    Map<KeyExtent,List<Range>> seen = new HashMap<>();
+    rangeConsumer = (t, r) -> {
+      seen.computeIfAbsent(t.getExtent(), k -> new ArrayList<>()).add(r);
+      assertTrue(t.getTserverLocation().isEmpty());
+    };
+    lookups.clear();
+    failures = metaCache.findTablets(context, ranges, rangeConsumer, LocationNeed.NOT_REQUIRED);
+    assertEquals(List.of(), lookups);
+    assertEquals(Map.of(ke1, List.of(range1), ke2, List.of(range2), ke3, List.of(range2), ke4,
+        List.of(range3)), seen);
+    assertEquals(0, failures.size());
+
+    // set locations
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "T1", "I1");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke2, "T2", "I2");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke3, "T3", "I3");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke4, "T3", "I3");
+
+    // now that locations are set, all mutations should bin.. should only do one metadata lookup to
+    // get the locations
+    lookups.clear();
+    binnedMutations.clear();
+    afailures.clear();
+    assertEquals(List.of(), lookups);
+    metaCache.binMutations(context, ml, binnedMutations, afailures);
+    assertEquals(Set.of("T1", "T2", "T3"), binnedMutations.keySet());
+    assertEquals(7, binnedMutations.get("T1").getMutations().get(ke1).size());
+    assertEquals(6, binnedMutations.get("T2").getMutations().get(ke2).size());
+    assertEquals(5, binnedMutations.get("T3").getMutations().get(ke3).size());
+    assertEquals(8, binnedMutations.get("T3").getMutations().get(ke4).size());
+    assertEquals(0, afailures.size());
+    assertEquals(List.of(METADATA_TABLE_EXTENT), lookups);
+
+    // binning mutations again should do zero metadata lookups
+    lookups.clear();
+    binnedMutations.clear();
+    afailures.clear();
+    metaCache.binMutations(context, ml, binnedMutations, afailures);
+    assertEquals(Set.of("T1", "T2", "T3"), binnedMutations.keySet());
+    assertEquals(7, binnedMutations.get("T1").getMutations().get(ke1).size());
+    assertEquals(6, binnedMutations.get("T2").getMutations().get(ke2).size());
+    assertEquals(5, binnedMutations.get("T3").getMutations().get(ke3).size());
+    assertEquals(8, binnedMutations.get("T3").getMutations().get(ke4).size());
+    assertEquals(0, afailures.size());
+    assertEquals(List.of(), lookups);
+
+    // since the cached entries have locations there should be no metadata lookups when binning
+    // ranges
+    seen.clear();
+    rangeConsumer = (t, r) -> {
+      seen.computeIfAbsent(t.getExtent(), k -> new ArrayList<>()).add(r);
+      assertTrue(t.getTserverLocation().isPresent());
+    };
+    lookups.clear();
+    failures = metaCache.findTablets(context, ranges, rangeConsumer, LocationNeed.REQUIRED);
+    assertEquals(List.of(), lookups);
+    assertEquals(Map.of(ke1, List.of(range1), ke2, List.of(range2), ke3, List.of(range2), ke4,
+        List.of(range3)), seen);
+    assertEquals(0, failures.size());
+  }
 }
