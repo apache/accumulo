@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -79,9 +80,13 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     private final AccumuloConfiguration conf;
     private final boolean useSample;
     private final SamplerConfiguration sampleConf;
+    private final ClientContext context;
+    private final TableId tableId;
 
-    public OfflineIteratorEnvironment(Authorizations auths, AccumuloConfiguration acuTableConf,
-        boolean useSample, SamplerConfiguration samplerConf) {
+    public OfflineIteratorEnvironment(ClientContext context, TableId tableId, Authorizations auths,
+        AccumuloConfiguration acuTableConf, boolean useSample, SamplerConfiguration samplerConf) {
+      this.context = context;
+      this.tableId = tableId;
       this.authorizations = auths;
       this.conf = acuTableConf;
       this.useSample = useSample;
@@ -135,7 +140,18 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       if (sampleConf == null) {
         throw new SampleNotPresentException();
       }
-      return new OfflineIteratorEnvironment(authorizations, conf, true, sampleConf);
+      return new OfflineIteratorEnvironment(context, tableId, authorizations, conf, true,
+          sampleConf);
+    }
+
+    @Override
+    public PluginEnvironment getPluginEnv() {
+      return new ClientServiceEnvironmentImpl(context);
+    }
+
+    @Override
+    public TableId getTableId() {
+      return tableId;
     }
   }
 
@@ -311,8 +327,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     MultiIterator multiIter = new MultiIterator(readers, extent);
 
-    OfflineIteratorEnvironment iterEnv = new OfflineIteratorEnvironment(authorizations, tableCC,
-        false, samplerConfImpl == null ? null : samplerConfImpl.toSamplerConfiguration());
+    OfflineIteratorEnvironment iterEnv =
+        new OfflineIteratorEnvironment(context, tableId, authorizations, tableCC, false,
+            samplerConfImpl == null ? null : samplerConfImpl.toSamplerConfiguration());
 
     byte[] defaultSecurityLabel;
     ColumnVisibility cv =
