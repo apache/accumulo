@@ -120,10 +120,12 @@ function parse_config {
     echo "INFO: ${NUM_SSERVERS} sservers will be started per host"
   fi
 
-  if [[ -z $NUM_COMPACTORS ]]; then
-    echo "INFO: ${NUM_COMPACTORS} compactors will be started per host"
-  fi
-
+  for queue in $COMPACTION_QUEUES; do
+    var_name="NUM_COMPACTORS_${queue}"
+    if [[ -n ${!var_name} ]]; then
+      echo "INFO: ${NUM_COMPACTORS} compactors will be started per host for queue ${queue}"
+    fi
+  done
 }
 
 function control_service() {
@@ -213,6 +215,8 @@ function start_all() {
   done
 
   for queue in $COMPACTION_QUEUES; do
+    var_name="NUM_COMPACTORS_${queue}"
+    [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
     Q="COMPACTOR_HOSTS_${queue}"
     for compactor in ${!Q}; do
       start_service "$compactor" compactor "-q" "$queue"
@@ -282,9 +286,9 @@ function start_here() {
 
   for queue in $COMPACTION_QUEUES; do
     for host in $local_hosts; do
-      Q="COMPACTOR_HOSTS_${queue}"
       var_name="NUM_COMPACTORS_${queue}"
-      NUM_COMPACTORS=${!var_name}
+      [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
+      Q="COMPACTOR_HOSTS_${queue}"
       for compactor in ${!Q}; do
         if echo "$compactor" | grep -q "^${host}\$"; then
           start_service "$compactor" compactor "-q" "$queue"
@@ -356,6 +360,8 @@ function kill_all() {
   done
 
   for queue in $COMPACTION_QUEUES; do
+    var_name="NUM_COMPACTORS_${queue}"
+    [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
     Q="COMPACTOR_HOSTS_${queue}"
     for compactor in ${!Q}; do
       kill_service "$compactor" compactor "-q" "$queue"
@@ -408,6 +414,8 @@ function stop_all() {
     done
 
     for queue in $COMPACTION_QUEUES; do
+      var_name="NUM_COMPACTORS_${queue}"
+      [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
       Q="COMPACTOR_HOSTS_${queue}"
       for compactor in ${!Q}; do
         end_service $end_cmd "$compactor" compactor "-q" "$queue"
