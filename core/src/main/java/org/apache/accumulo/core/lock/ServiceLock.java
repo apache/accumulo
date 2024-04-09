@@ -32,6 +32,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -559,8 +560,14 @@ public class ServiceLock implements Watcher {
     ZooUtil.recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
 
     // Wait for the delete to happen on the server before exiting method
+    NanoTime start = NanoTime.now();
     while (zooKeeper.exists(pathToDelete, null) != null) {
       Thread.onSpinWait();
+      if (NanoTime.now().subtract(start).toSeconds() > 10) {
+        start = NanoTime.now();
+        LOG.debug("[{}] Still waiting for zookeeper to delete all at {}", vmLockPrefix,
+            pathToDelete);
+      }
     }
 
     localLw.lostLock(LockLossReason.LOCK_DELETED);
