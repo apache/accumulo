@@ -31,6 +31,10 @@ Commands:
   start-non-tservers  Starts all services except tservers
   start-tservers      Starts all tservers on cluster
   stop-tservers       Stops all tservers on cluster
+  start-compactors [queue]   Starts compactors on cluster, can optional specify a queue
+  stop-compactors [queue]   Stops compactors on cluster, can optional specify a queue
+  start-scan-servers [group] Starts scan servers on cluster, can optional specify a group
+  stop-scan-servers [group] Stops scan servers on cluster, can optional specify a group
   start-here          Starts all services on this node
   stop-here           Stops all services on this node
 EOF
@@ -531,6 +535,7 @@ function stop_here() {
         end_service $end_cmd "$host" $svc
       done
       for group in $SSERVER_GROUPS; do
+         # TODO these two lines are repeated a lot, maybe it could be moved into control service
         var_name="NUM_SSERVERS_${group}"
         [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
         G="SSERVER_HOSTS_${group}"
@@ -539,6 +544,7 @@ function stop_here() {
         done
       done
       for queue in $COMPACTION_QUEUES; do
+        # TODO these two lines are repeated a lot, maybe it could be moved into control service
         var_name="NUM_COMPACTORS_${queue}"
         [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
         Q="COMPACTOR_HOSTS_${queue}"
@@ -615,7 +621,7 @@ tservers_per_host: 1
 
 # TODO update docs
 #sservers_per_host:
-#  -default : 1
+#  - default : 1
 #compactors_per_host:
 #  - q1 : 1
 #  - q2 : 2
