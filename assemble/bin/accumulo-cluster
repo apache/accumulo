@@ -145,7 +145,7 @@ function control_service() {
     ACCUMULO_SERVICE_INSTANCE=""
     [[ $service == "tserver" && ${NUM_TSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
     [[ $service == "compactor" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
-    [[ $service == "sserver" && ${NUM_SSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
+    [[ $service == "sserver" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
 
     if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
       #
