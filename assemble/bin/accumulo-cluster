@@ -123,7 +123,7 @@ function parse_config {
   for queue in $COMPACTION_QUEUES; do
     var_name="NUM_COMPACTORS_${queue}"
     if [[ -n ${!var_name} ]]; then
-      echo "INFO: ${NUM_COMPACTORS} compactors will be started per host for queue ${queue}"
+      echo "INFO: ${!var_name} compactors will be started per host for queue ${queue}"
     fi
   done
 }
@@ -178,6 +178,8 @@ function start_compactors() {
     echo "Only starting servers for group: ${queues}"
   fi
   for queue in $queues; do
+    var_name="NUM_COMPACTORS_${queue}"
+    [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
     Q="COMPACTOR_HOSTS_${queue}"
     for compactor in ${!Q}; do
       start_service "$compactor" compactor "-q" "$queue"
@@ -193,6 +195,8 @@ function stop_compactors() {
     echo "Only stopping servers for group: ${queues}"
   fi
   for queue in $queues; do
+      var_name="NUM_COMPACTORS_${queue}"
+      [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
       Q="COMPACTOR_HOSTS_${queue}"
       for compactor in ${!Q}; do
         stop_service "$compactor" compactor "-q" "$queue"
