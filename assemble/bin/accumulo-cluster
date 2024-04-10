@@ -535,7 +535,7 @@ function stop_here() {
         end_service $end_cmd "$host" $svc
       done
       for group in $SSERVER_GROUPS; do
-         # TODO these two lines are repeated a lot, maybe it could be moved into control service
+        # TODO these two lines are repeated a lot, maybe it could be moved into control service
         var_name="NUM_SSERVERS_${group}"
         [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
         G="SSERVER_HOSTS_${group}"
