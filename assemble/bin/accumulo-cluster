@@ -197,12 +197,12 @@ function stop_compactors() {
     echo "Only stopping servers for group: ${queues}"
   fi
   for queue in $queues; do
-      var_name="NUM_COMPACTORS_${queue}"
-      [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
-      Q="COMPACTOR_HOSTS_${queue}"
-      for compactor in ${!Q}; do
-        stop_service "$compactor" compactor "-q" "$queue"
-      done
+    var_name="NUM_COMPACTORS_${queue}"
+    [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
+    Q="COMPACTOR_HOSTS_${queue}"
+    for compactor in ${!Q}; do
+      stop_service "$compactor" compactor "-q" "$queue"
+    done
   done
 }
 
