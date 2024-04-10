@@ -36,6 +36,7 @@ Commands:
   start       Starts service
   stop        Stops service
   kill        Kills service
+  list        Lists running service(s)
 
 EOF
 }
@@ -72,7 +73,6 @@ function start_service() {
   if [[ $service == "manager" ]]; then
     "${bin}/accumulo" org.apache.accumulo.manager.state.SetGoalState NORMAL
   fi
-
   outfile="${ACCUMULO_LOG_DIR}/${service}${ACCUMULO_SERVICE_INSTANCE}_${host}.out"
   errfile="${ACCUMULO_LOG_DIR}/${service}${ACCUMULO_SERVICE_INSTANCE}_${host}.err"
   rotate_log "$outfile"
@@ -96,6 +96,8 @@ function stop_service() {
     echo "Stopping $service on $host"
     kill -s TERM "$(cat "$pid_file")" 2>/dev/null
     rm -f "${pid_file}" 2>/dev/null
+  else
+    echo "Service: $service pid not found on $host"
   fi
 }
 
@@ -104,7 +106,19 @@ function kill_service() {
     echo "Killing $service on $host"
     kill -s KILL "$(cat "$pid_file")" 2>/dev/null
     rm -f "${pid_file}" 2>/dev/null
+  else
+    echo "Service: $service pid not found on $host"
   fi
+}
+
+function list_services() {
+  files=$(echo "${ACCUMULO_PID_DIR}"/*)
+  for file in $files; do
+    if [[ $file == *$service* ]]; then
+      stripped_file=${file%.pid}
+      echo "${stripped_file##*accumulo-}"
+    fi
+  done
 }
 
 function main() {
@@ -159,10 +173,13 @@ function main() {
           start_service "${@:3}"
           ;;
         stop)
-          stop_service
+          stop_service "${@:3}"
           ;;
         kill)
-          kill_service
+          kill_service "${@:3}"
+          ;;
+        list)
+          list_services
           ;;
         *)
           invalid_args "'$2' is an invalid <command>"
