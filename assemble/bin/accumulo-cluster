@@ -115,13 +115,8 @@ function parse_config {
     echo "INFO: ${NUM_TSERVERS} tservers will be started per host"
   fi
 
-  # shellcheck disable=SC2153
-  if [[ -z $NUM_SSERVERS ]]; then
-    echo "INFO: ${NUM_SSERVERS} sservers will be started per host"
-  fi
-
   for group in $SSERVER_GROUPS; do
-    var_name="$NUM_SSERVERS_${group}"
+    var_name="NUM_SSERVERS_${group}"
     if [[ -n ${!var_name} ]]; then
       echo "INFO: ${!var_name} scan servers will be started per host for group ${group}"
     fi
