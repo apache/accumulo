@@ -23,20 +23,20 @@ function print_usage {
 Usage: accumulo-cluster <command> (<argument> ...)
 
 Commands:
-  create-config       Creates cluster config
-  restart             Restarts the Accumulo cluster
-  start               Starts Accumulo cluster
-  stop                Stops Accumulo cluster
-  kill                Kills Accumulo cluster
-  start-non-tservers  Starts all services except tservers
-  start-tservers      Starts all tservers on cluster
-  stop-tservers       Stops all tservers on cluster
-  start-compactors [queue]   Starts compactors on cluster, can optional specify a queue
-  stop-compactors [queue]   Stops compactors on cluster, can optional specify a queue
-  start-scan-servers [group] Starts scan servers on cluster, can optional specify a group
-  stop-scan-servers [group] Stops scan servers on cluster, can optional specify a group
-  start-here          Starts all services on this node
-  stop-here           Stops all services on this node
+  create-config              Creates cluster config
+  restart                    Restarts the Accumulo cluster
+  start                      Starts Accumulo cluster
+  stop                       Stops Accumulo cluster
+  kill                       Kills Accumulo cluster
+  start-non-tservers         Starts all services except tservers
+  start-tservers             Starts all tservers on cluster
+  stop-tservers              Stops all tservers on cluster
+  start-compactors [queue]   Starts compactors on cluster, can optionally specify a queue
+  stop-compactors [queue]    Stops compactors on cluster, can optionally specify a queue
+  start-scan-servers [group] Starts scan servers on cluster, can optionally specify a group
+  stop-scan-servers [group]  Stops scan servers on cluster, can optionally specify a group
+  start-here                 Starts all services on this node
+  stop-here                  Stops all services on this node
 EOF
 }
 
