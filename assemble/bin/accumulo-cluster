@@ -146,10 +146,10 @@ function control_service() {
   [[ $service == "compactor" ]] && last_instance_id=${NUM_COMPACTORS:-1}
 
   for ((inst_id = 1; inst_id <= last_instance_id; inst_id++)); do
+    # Only increment the service name when more than one service is desired.
     ACCUMULO_SERVICE_INSTANCE=""
-    [[ $service == "tserver" && ${NUM_TSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
-    [[ $service == "compactor" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
-    [[ $service == "sserver" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
+    [[ last_instance_id -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}"
+    [[ $service == "compactor" || $service == "sserver" ]] && ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}_${5}"
 
     if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
       #
@@ -187,9 +187,13 @@ function start_compactors() {
     var_name="NUM_COMPACTORS_${queue}"
     [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
     Q="COMPACTOR_HOSTS_${queue}"
-    for compactor in ${!Q}; do
-      start_service "$compactor" compactor "-q" "$queue"
-    done
+    if [[ -n ${!Q} ]]; then
+      for compactor in ${!Q}; do
+        start_service "$compactor" compactor "-q" "$queue"
+      done
+    else
+      echo "\"${queue}\" is not a valid queue ...exiting"
+    fi
   done
 }
 
@@ -204,13 +208,17 @@ function stop_compactors() {
     var_name="NUM_COMPACTORS_${queue}"
     [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
     Q="COMPACTOR_HOSTS_${queue}"
-    for compactor in ${!Q}; do
-      stop_service "$compactor" compactor "-q" "$queue"
-    done
+    if [[ -n ${!Q} ]]; then
+      for compactor in ${!Q}; do
+        stop_service "$compactor" compactor "-q" "$queue"
+      done
+      else
+        echo "$queue is not a valid compaction queue ...exiting"
+    fi
   done
 }
 
-function start_scan_servers() {
+function start_sservers() {
   echo "Starting scan servers ..."
   groups=$SSERVER_GROUPS
   if [[ $# -gt 1 ]]; then
@@ -221,13 +229,17 @@ function start_scan_servers() {
     var_name="NUM_SSERVERS_${group}"
     [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
     G="SSERVER_HOSTS_${group}"
-    for sserver in ${!G}; do
-      start_service "$sserver" sserver "-g" "$group"
-    done
+    if [[ -n ${!G} ]]; then
+      for sserver in ${!G}; do
+        start_service "$sserver" sserver "-g" "$group"
+      done
+    else
+      echo "\"${group} is not a valid resource group ...exiting"
+    fi
   done
 }
 
-function stop_scan_servers() {
+function stop_sservers() {
   echo "Stopping scan servers ..."
   groups=$SSERVER_GROUPS
   if [[ $# -gt 1 ]]; then
@@ -238,9 +250,13 @@ function stop_scan_servers() {
     var_name="NUM_SSERVERS_${group}"
     [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
     G="SSERVER_HOSTS_${group}"
-    for sserver in ${!G}; do
-      stop_service "$sserver" sserver "-g" "$group"
-    done
+    if [[ -n ${!G} ]]; then
+      for sserver in ${!G}; do
+        stop_service "$sserver" sserver "-g" "$group"
+      done
+    else
+      echo "$queue is not a valid resource group ...exiting"
+    fi
   done
 }
 
@@ -675,13 +691,13 @@ EOF
       parse_config
       stop_compactors "$@"
       ;;
-    start-scan-servers)
+    start-sservers)
       parse_config
-      start_scan_servers "$@"
+      start_sservers "$@"
       ;;
-    stop-scan-servers)
+    stop-sservers)
       parse_config
-      stop_scan_servers "$@"
+      stop_sservers "$@"
       ;;
     *)
       invalid_args "'$1' is an invalid <command>"
