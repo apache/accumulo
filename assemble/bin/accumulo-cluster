@@ -120,6 +120,13 @@ function parse_config {
     echo "INFO: ${NUM_SSERVERS} sservers will be started per host"
   fi
 
+  for group in $SSERVER_GROUPS; do
+    var_name="$NUM_SSERVERS_${group}"
+    if [[ -n ${!var_name} ]]; then
+      echo "INFO: ${!var_name} scan servers will be started per host for group ${group}"
+    fi
+  done
+
   for queue in $COMPACTION_QUEUES; do
     var_name="NUM_COMPACTORS_${queue}"
     if [[ -n ${!var_name} ]]; then
@@ -210,13 +217,15 @@ function start_scan_servers() {
   if [[ $# -gt 1 ]]; then
     groups="$2"
     echo "Only starting servers for group: ${groups}"
-    for group in $groups; do
-      G="SSERVER_HOSTS_${group}"
-      for sserver in ${!G}; do
-        start_service "$sserver" sserver "-g" "$group"
-      done
-    done
   fi
+  for group in $groups; do
+    var_name="NUM_SSERVERS_${group}"
+    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
+    G="SSERVER_HOSTS_${group}"
+    for sserver in ${!G}; do
+      start_service "$sserver" sserver "-g" "$group"
+    done
+  done
 }
 
 function stop_scan_servers() {
@@ -225,13 +234,15 @@ function stop_scan_servers() {
   if [[ $# -gt 1 ]]; then
     groups="$2"
     echo "Only stopping servers for group: ${groups}"
-    for group in $groups; do
-      G="SSERVER_HOSTS_${group}"
-      for sserver in ${!G}; do
-        stop_service "$sserver" sserver "-g" "$group"
-      done
-    done
   fi
+  for group in $groups; do
+    var_name="NUM_SSERVERS_${group}"
+    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
+    G="SSERVER_HOSTS_${group}"
+    for sserver in ${!G}; do
+      stop_service "$sserver" sserver "-g" "$group"
+    done
+  done
 }
 
 function start_tservers() {
@@ -268,6 +279,8 @@ function start_all() {
   done
 
   for group in $SSERVER_GROUPS; do
+    var_name="NUM_SSERVERS_${group}"
+    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
     G="SSERVER_HOSTS_${group}"
     for sserver in ${!G}; do
       start_service "$sserver" sserver "-g" "$group"
@@ -330,6 +343,8 @@ function start_here() {
   done
 
   for group in $SSERVER_GROUPS; do
+    var_name="NUM_SSERVERS_${group}"
+    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
     for host in $local_hosts; do
       G="SSERVER_HOSTS_${group}"
       for sserver in ${!G}; do
@@ -409,6 +424,8 @@ function kill_all() {
   done
 
   for group in $SSERVER_GROUPS; do
+    var_name="NUM_SSERVERS_${group}"
+    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
     G="SSERVER_HOSTS_${group}"
     for sserver in ${!G}; do
       kill_service "$sserver" sserver "-g" "$group"
@@ -467,6 +484,8 @@ function stop_all() {
     done
 
     for group in $SSERVER_GROUPS; do
+      var_name="NUM_SSERVERS_${group}"
+      [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
       G="SSERVER_HOSTS_${group}"
       for sserver in ${!G}; do
         end_service $end_cmd "$sserver" sserver "-g" "$group"
@@ -517,12 +536,16 @@ function stop_here() {
         end_service $end_cmd "$host" $svc
       done
       for group in $SSERVER_GROUPS; do
+        var_name="NUM_SSERVERS_${group}"
+        [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
         G="SSERVER_HOSTS_${group}"
         for sserver in ${!G}; do
           end_service $end_cmd "$sserver" sserver "-g" "$group"
         done
       done
       for queue in $COMPACTION_QUEUES; do
+        var_name="NUM_COMPACTORS_${queue}"
+        [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
         Q="COMPACTOR_HOSTS_${queue}"
         for compactor in ${!Q}; do
           end_service $end_cmd "$host" compactor "-q" "$queue"
@@ -594,10 +617,11 @@ tserver:
 # compactors_per_host.
 #
 tservers_per_host: 1
-sservers_per_host: 1
 
 # TODO update docs
-# compactors_per_host:
+#sservers_per_host:
+#  -default : 1
+#compactors_per_host:
 #  - q1 : 1
 #  - q2 : 2
 
