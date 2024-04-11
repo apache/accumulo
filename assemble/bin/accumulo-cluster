@@ -212,8 +212,8 @@ function stop_compactors() {
       for compactor in ${!Q}; do
         stop_service "$compactor" compactor "-q" "$queue"
       done
-      else
-        echo "$queue is not a valid compaction queue ...exiting"
+    else
+      echo "$queue is not a valid compaction queue ...exiting"
     fi
   done
 }

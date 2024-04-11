@@ -92,52 +92,47 @@ function start_service() {
 }
 
 function control_process() {
-   kill_code=${1}
-   if [[ -f $pid_file ]]; then
-     echo "Stopping $service on $host"
-     kill -s $kill_code "$(cat "$pid_file")" 2>/dev/null
-     rm -f "${pid_file}" 2>/dev/null
-   else
-     echo "Expected $service process was not found on $host"
-   fi
+  kill_code=${1}
+  if [[ -f $pid_file ]]; then
+    echo "Stopping $service on $host"
+    kill -s "$kill_code" "$(cat "$pid_file")" 2>/dev/null
+    rm -f "${pid_file}" 2>/dev/null
+  fi
 }
 
 function stop_service() {
   if [[ -n $1 ]]; then
-    if [[ $1 == "--all" ]]; then
-      find_processes
-      for process in "${RUNNING_PROCESSES[@]}"; do
-        pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}${process}.pid"
-        control_process "TERM"
-      done
-    else
-      if [[ $1 != *"$service"* ]]; then
-        echo "$1 is not a valid $service process"
-      else
+    case $1 in
+      "--all")
+        find_processes
+        for process in "${RUNNING_PROCESSES[@]}"; do
+          pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
+          control_process "TERM"
+        done
+        ;;
+      *"$service"*)
         echo "Stopping service process: $1"
         pid_file="${ACCUMULO_PID_DIR}/accumulo-${1}.pid"
-      fi
-   fi
- fi
- control_process "TERM"
+        ;;
+    esac
+  fi
+  control_process "TERM"
 }
 
 function kill_service() {
   if [[ -n $1 ]]; then
-    if [[ $1 == "--all" ]]; then
-      find_processes
-      for process in "${RUNNING_PROCESSES[@]}"; do
-        pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}${process}.pid"
-        control_process "KILL"
-      done
-    else
-      if [[ $1 != *"$service"* ]]; then
-        echo "$1 is not a valid $service process"
-      else
-        echo "Stopping service process: $1"
+    case $1 in
+      "--all")
+        find_processes
+        for process in "${RUNNING_PROCESSES[@]}"; do
+          pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
+          control_process "KILL"
+        done
+        ;;
+      *"$service"*)
         pid_file="${ACCUMULO_PID_DIR}/accumulo-${1}.pid"
-      fi
-    fi
+        ;;
+    esac
   fi
   control_process "KILL"
 }
@@ -156,7 +151,7 @@ function list_processes() {
   find_processes
   echo "Currently running ${service} processes:"
   for process in "${RUNNING_PROCESSES[@]}"; do
-   echo "$process"
+    echo "$process"
   done
 }
 
