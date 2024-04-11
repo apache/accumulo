@@ -22,6 +22,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -32,6 +33,8 @@ public interface FileSKVIterator extends InterruptibleIterator, AutoCloseable {
   Key getLastKey() throws IOException;
 
   DataInputStream getMetaStore(String name) throws IOException, NoSuchMetaStoreException;
+
+  long estimateEntries(KeyExtent extent) throws IOException;
 
   FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig);
 

@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.iteratorsImpl.system;
 
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,6 +28,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -97,6 +99,11 @@ public class MapFileIterator implements FileSKVIterator {
   @Override
   public DataInputStream getMetaStore(String name) {
     throw new UnsupportedOperationException(MSG);
+  }
+
+  @Override
+  public long estimateEntries(KeyExtent extent) throws IOException {
+    throw new UnsupportedOperationException();
   }
 
   @Override
