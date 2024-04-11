@@ -1647,7 +1647,6 @@ public class Tablet extends TabletBase {
 
     getTabletMemory().getCommitSession().updateMaxCommittedTime(timestamp);
 
-    // ELASTICITY_TODO this needs to be persisted in the metadata table or walog
     return OptionalLong.of(timestamp);
   }
 }
