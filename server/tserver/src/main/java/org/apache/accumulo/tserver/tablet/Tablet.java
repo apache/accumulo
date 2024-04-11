@@ -1646,6 +1646,12 @@ public class Tablet extends TabletBase {
             "Time in metadata is ahead of tablet %s memory:%s metadata:%s", extent, tabletTime,
             tabletMetadata.getTime());
 
+        // must update latestMetadata before computeNumEntries() is called
+        Preconditions.checkState(
+            latestMetadata.compareAndSet(prevMetadata,
+                new LatestMetadata(tabletMetadata, prevMetadata.refreshCount + 1)),
+            "A concurrency bug exists in the code, something is setting latestMetadata without holding the refreshLock.");
+
         if (refreshPurpose == RefreshPurpose.MINC_COMPLETION) {
           // Atomically replace the in memory map with the new file. Before this synch block a scan
           // starting would see the in memory map. After this synch block it should see the file in
@@ -1668,13 +1674,6 @@ public class Tablet extends TabletBase {
           // important to call this after updating latestMetadata
           computeNumEntries();
         }
-
-        // set this last to make it visible outside of a lock after all other changes have been made
-        // to the tablet
-        Preconditions.checkState(
-            latestMetadata.compareAndSet(prevMetadata,
-                new LatestMetadata(tabletMetadata, prevMetadata.refreshCount + 1)),
-            "A concurrency bug exists in the code, something is setting latestMetadata without holding the refreshLock.");
       }
 
       if (log.isDebugEnabled()
