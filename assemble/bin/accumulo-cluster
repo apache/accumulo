@@ -28,13 +28,13 @@ Commands:
   start                      Starts Accumulo cluster
   stop                       Stops Accumulo cluster
   kill                       Kills Accumulo cluster
-  start-non-tservers         Starts all services except tservers
-  start-tservers             Starts all tservers on cluster
-  stop-tservers              Stops all tservers on cluster
-  start-compactors [queue]   Starts compactors on cluster, can optionally specify a queue
-  stop-compactors [queue]    Stops compactors on cluster, can optionally specify a queue
-  start-scan-servers [group] Starts scan servers on cluster, can optionally specify a group
-  stop-scan-servers [group]  Stops scan servers on cluster, can optionally specify a group
+  start-non-tservers         Starts all services except tservers (Deprecated)
+  start-servers [--all|--tservers|--no-tservers|--sserver [group]|--compactors [queue]]
+                             Starts various server types, can optionally specify a queue or group
+  stop-servers [--all|--tservers| --no-tservers|--sserver [group]|--compactors [queue]]
+                             Starts various server types, can optionally specify a queue or group
+  start-tservers             Starts all tservers on cluster (Deprecated)
+  stop-tservers              Stops all tservers on cluster (Deprecated)
   start-here                 Starts all services on this node
   stop-here                  Stops all services on this node
 EOF
@@ -179,8 +179,8 @@ function start_service() {
 function start_compactors() {
   echo -n "Starting compactor servers ..."
   queues=$COMPACTION_QUEUES
-  if [[ $# -gt 1 ]]; then
-    queues="$2"
+  if [[ -n $1 ]]; then
+    queues="$1"
     echo "Only starting servers for group: ${queues}"
   fi
   for queue in $queues; do
@@ -200,8 +200,8 @@ function start_compactors() {
 function stop_compactors() {
   echo "Stopping compactor servers ..."
   queues=$COMPACTION_QUEUES
-  if [[ $# -gt 1 ]]; then
-    queues="$2"
+  if [[ -n $1 ]]; then
+    queues="$1"
     echo "Only stopping servers for group: ${queues}"
   fi
   for queue in $queues; do
@@ -221,8 +221,8 @@ function stop_compactors() {
 function start_sservers() {
   echo "Starting scan servers ..."
   groups=$SSERVER_GROUPS
-  if [[ $# -gt 1 ]]; then
-    groups="$2"
+  if [[ -n $1 ]]; then
+    groups="$1"
     echo "Only starting servers for group: ${groups}"
   fi
   for group in $groups; do
@@ -242,8 +242,8 @@ function start_sservers() {
 function stop_sservers() {
   echo "Stopping scan servers ..."
   groups=$SSERVER_GROUPS
-  if [[ $# -gt 1 ]]; then
-    groups="$2"
+  if [[ -n $1 ]]; then
+    groups="$1"
     echo "Only stopping servers for group: ${groups}"
   fi
   for group in $groups; do
@@ -664,10 +664,12 @@ EOF
       kill_all
       ;;
     start-non-tservers)
+      echo "$1 is deprecated. Please use \`start-servers --no-tservers\` instead"
       parse_config
       start_all --no-tservers
       ;;
     start-tservers)
+      echo "$1 is deprecated. Please use \`start-servers --tservers\` instead"
       parse_config
       start_tservers
       ;;
@@ -676,6 +678,7 @@ EOF
       start_here
       ;;
     stop-tservers)
+      echo "$1 is deprecated. Please use \`stop-servers --tservers\` instead"
       parse_config
       stop_tservers
       ;;
@@ -683,21 +686,48 @@ EOF
       parse_config
       stop_here
       ;;
-    start-compactors)
+    start-servers)
       parse_config
-      start_compactors "$@"
+      case "$2" in
+        "--all" | "")
+          start_all
+          ;;
+        "--tservers")
+          start_tservers
+          ;;
+        "--no-tservers")
+          start_all --no-tservers
+          ;;
+        "--sserver")
+          start_sservers "${@:3}"
+          ;;
+        "--compactors")
+          start_compactors "${@:3}"
+          ;;
+        *)
+          invalid_args "'$2' is an invalid <command>"
+          ;;
+      esac
       ;;
-    stop-compactors)
+    stop-servers)
       parse_config
-      stop_compactors "$@"
-      ;;
-    start-sservers)
-      parse_config
-      start_sservers "$@"
-      ;;
-    stop-sservers)
-      parse_config
-      stop_sservers "$@"
+      case "$2" in
+        "--all" | "")
+          stop_all
+          ;;
+        "--tservers")
+          stop_tservers
+          ;;
+        "--sserver")
+          stop_sservers "${@:3}"
+          ;;
+        "--compactors")
+          stop_compactors "${@:3}"
+          ;;
+        *)
+          invalid_args "'$2' is an invalid <command>"
+          ;;
+      esac
       ;;
     *)
       invalid_args "'$1' is an invalid <command>"

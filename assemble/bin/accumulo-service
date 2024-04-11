@@ -33,10 +33,10 @@ Services:
   sserver                Accumulo scan server (experimental)
 
 Commands:
-  start                   Starts service
-  stop [--all | [<name>]] Stops service
-  kill [--all | [<name>]] Kills service
-  list                    List running processes
+  start                   Starts service(s)
+  stop [--all | [<name>]] Stops service(s)
+  kill [--all | [<name>]] Kills service(s)
+  list                    List running service(s)
 
 EOF
 }
@@ -210,10 +210,10 @@ function main() {
           start_service "${@:3}"
           ;;
         stop)
-          stop_service "${@:3}"
+          stop_service "${@:3:1}"
           ;;
         kill)
-          kill_service "${@:3}"
+          kill_service "${@:3:1}"
           ;;
         list)
           list_processes
