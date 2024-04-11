@@ -326,7 +326,8 @@ public class Tablet extends TabletBase {
 
     computeNumEntries();
 
-    getScanfileManager().removeFilesAfterScan(metadata.getScans());
+    getScanfileManager().removeFilesAfterScan(metadata.getScans(),
+        Location.future(tabletServer.getTabletSession()));
   }
 
   public TabletMetadata getMetadata() {
@@ -1614,7 +1615,8 @@ public class Tablet extends TabletBase {
     }
 
     if (refreshPurpose == RefreshPurpose.REFRESH_RPC) {
-      scanfileManager.removeFilesAfterScan(getMetadata().getScans());
+      scanfileManager.removeFilesAfterScan(getMetadata().getScans(),
+          Location.current(tabletServer.getTabletSession()));
     }
   }
 
