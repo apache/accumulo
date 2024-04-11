@@ -395,6 +395,15 @@ public enum Property {
           + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
           + "threshold is set greater than 0.",
       "1.10.0"),
+  SPLIT_PREFIX("split.", null, PropertyType.PREFIX,
+      "System wide properties related to splitting tablets.", "3.1.0"),
+  SPLIT_MAXOPEN("split.files.max", "300", PropertyType.COUNT,
+      "To find a tablets split points, all RFiles are opened and their indexes"
+          + " are read. This setting determines how many RFiles can be opened at once."
+          + " When there are more RFiles than this setting multiple passes must be"
+          + " made, which is slower. However opening too many RFiles at once can cause"
+          + " problems.",
+      "3.1.0"),
   // properties that are specific to scan server behavior
   @Experimental
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
@@ -496,6 +505,8 @@ public enum Property {
   TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "5%", PropertyType.MEMORY,
       "The amount of memory used to store write-ahead-log mutations before flushing them.",
       "1.7.0"),
+  @ReplacedBy(property = SPLIT_MAXOPEN)
+  @Deprecated(since = "3.1")
   TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN("tserver.tablet.split.midpoint.files.max", "300",
       PropertyType.COUNT,
       "To find a tablets split points, all RFiles are opened and their indexes"
