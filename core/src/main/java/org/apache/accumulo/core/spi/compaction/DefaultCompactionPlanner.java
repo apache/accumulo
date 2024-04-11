@@ -99,7 +99,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * [
  *  {"name":"small", "type": "internal", "maxSize":"100M","numThreads":3},
  *  {"name":"medium", "type": "internal", "maxSize":"500M","numThreads":3},
- *  {"name": "large", "type": "external", "queue", "Queue1"}
+ *  {"name":"large", "type":"external", "queue":"Queue1"}
  * ]}
  * </pre>
  *
