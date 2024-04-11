@@ -395,6 +395,8 @@ public enum Property {
           + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
           + "threshold is set greater than 0.",
       "1.10.0"),
+  SPLIT_PREFIX("split.", null, PropertyType.PREFIX,
+      "System wide properties related to splitting tablets.", "3.1.0"),
   SPLIT_MAXOPEN("split.files.max", "300", PropertyType.COUNT,
       "To find a tablets split points, all RFiles are opened and their indexes"
           + " are read. This setting determines how many RFiles can be opened at once."
