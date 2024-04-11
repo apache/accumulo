@@ -62,6 +62,12 @@ public class CompactionWatcher implements Runnable {
     this.config = config;
   }
 
+  @SuppressWarnings("deprecation")
+  private static long getCompactionWarnTime(AccumuloConfiguration config) {
+    return config.getTimeInMillis(
+        config.resolve(Property.COMPACTION_WARN_TIME, Property.TSERV_COMPACTION_WARN_TIME));
+  }
+
   @Override
   public void run() {
     List<CompactionInfo> runningCompactions = FileCompactor.getRunningCompactions();
@@ -98,7 +104,7 @@ public class CompactionWatcher implements Runnable {
     // remove any compaction that completed or made progress
     observedCompactions.keySet().retainAll(newKeys);
 
-    long warnTime = config.getTimeInMillis(Property.COMPACTION_WARN_TIME);
+    long warnTime = getCompactionWarnTime(config);
 
     // check for stuck compactions
     for (ObservedCompactionInfo oci : observedCompactions.values()) {
