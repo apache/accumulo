@@ -890,7 +890,8 @@ public enum Property {
       "Options for the table scan dispatcher.", "2.0.0"),
   TABLE_SCAN_MAXMEM("table.scan.max.memory", "512k", PropertyType.BYTES,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
-          + "Once this limit is reached, the buffered data is sent to the client.",
+          + "Once this limit is reached, the buffered data is sent to the client. Values lower "
+          + "than the default value are ignored for system tables.",
       "1.3.5"),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.FILENAME_EXT,
       "Change the type of file a table writes.", "1.3.5"),
