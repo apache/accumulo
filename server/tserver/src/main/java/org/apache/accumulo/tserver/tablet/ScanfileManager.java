@@ -143,7 +143,7 @@ class ScanfileManager {
     }
   }
 
-  void removeFilesAfterScan(Collection<StoredTabletFile> scanFiles) {
+  void removeFilesAfterScan(Collection<StoredTabletFile> scanFiles, Location location) {
     if (scanFiles.isEmpty()) {
       return;
     }
@@ -162,8 +162,7 @@ class ScanfileManager {
 
     if (!filesToDelete.isEmpty()) {
       log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
-      var currLoc = Location.current(tablet.getTabletServer().getTabletSession());
-      removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(), currLoc,
+      removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(), location,
           tablet.getTabletServer().getLock());
     }
   }

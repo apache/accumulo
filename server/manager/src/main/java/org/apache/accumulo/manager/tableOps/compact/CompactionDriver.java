@@ -347,8 +347,6 @@ class CompactionDriver extends ManagerRepo {
   private void cleanupTabletMetadata(FateId fateId, Manager manager) throws Exception {
     var ample = manager.getContext().getAmple();
 
-    // ELASTICITY_TODO use existing compaction logging
-
     boolean allCleanedUp = false;
 
     Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
