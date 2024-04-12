@@ -440,6 +440,14 @@ public enum Property {
       // ELASTICITY_TODO: It might be good to note that there is a priority queue per compactor
       // resource group
       "10000", PropertyType.COUNT, "The max size of the priority queue.", "4.0"),
+  SPLIT_PREFIX("split.", null, PropertyType.PREFIX,
+      "System wide properties related to splitting tablets.", "3.1.0"),
+  SPLIT_MAXOPEN("split.files.max", "300", PropertyType.COUNT,
+      "To find a tablets split points, all RFiles are opened and their indexes"
+          + " are read. This setting determines how many RFiles can be opened at once."
+          + " When there are more RFiles than this setting the tablet will be marked"
+          + " as un-splittable.",
+      "3.1.0"),
   // properties that are specific to scan server behavior
   @Experimental
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
@@ -545,14 +553,6 @@ public enum Property {
   TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "5%", PropertyType.MEMORY,
       "The amount of memory used to store write-ahead-log mutations before flushing them.",
       "1.7.0"),
-  TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN("tserver.tablet.split.midpoint.files.max", "300",
-      PropertyType.COUNT,
-      "To find a tablets split points, all RFiles are opened and their indexes"
-          + " are read. This setting determines how many RFiles can be opened at once."
-          + " When there are more RFiles than this setting multiple passes must be"
-          + " made, which is slower. However opening too many RFiles at once can cause"
-          + " problems.",
-      "1.3.5"),
   TSERV_WAL_MAX_REFERENCED("tserver.wal.max.referenced", "3", PropertyType.COUNT,
       "When a tablet server has more than this many write ahead logs, any tablet referencing older "
           + "logs over this threshold is minor compacted.  Also any tablet referencing this many "

@@ -205,7 +205,7 @@ public class SplitUtils {
 
     // ELASTICITY_TODO rename and deprecate property. This is not executing in the tablet server
     // anymore.
-    int maxFilesToOpen = tableConf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
+    int maxFilesToOpen = tableConf.getCount(Property.SPLIT_MAXOPEN);
 
     var estimatedSize = tabletMetadata.getFileSize();
     if (!needsSplit(context, tabletMetadata)) {
@@ -318,7 +318,7 @@ public class SplitUtils {
     var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
     var splitThreshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
-    int maxFilesToOpen = tableConf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
+    int maxFilesToOpen = tableConf.getCount(Property.SPLIT_MAXOPEN);
 
     var unSplittableMetadata = UnSplittableMetadata.toUnSplittable(tabletMetadata.getExtent(),
         splitThreshold, maxEndRowSize, maxFilesToOpen, tabletMetadata.getFiles());
