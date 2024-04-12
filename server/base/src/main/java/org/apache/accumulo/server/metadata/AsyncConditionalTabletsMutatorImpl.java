@@ -40,7 +40,7 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
   private long mutatedTablets = 0;
   public static final int BATCH_SIZE = 1000;
 
-  public AsyncConditionalTabletsMutatorImpl(ServerContext context,
+  AsyncConditionalTabletsMutatorImpl(ServerContext context,
       Consumer<Ample.ConditionalResult> resultsConsumer) {
     this.resultsConsumer = Objects.requireNonNull(resultsConsumer);
     this.context = context;
@@ -96,7 +96,7 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
     executor.shutdownNow();
   }
 
-  protected ConditionalTabletsMutatorImpl newBufferingMutator() {
+  ConditionalTabletsMutatorImpl newBufferingMutator() {
     return new ConditionalTabletsMutatorImpl(context);
   }
 }

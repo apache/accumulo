@@ -339,7 +339,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
   }
 
-  public ServerContext getContext() {
+  ServerContext getContext() {
     return context;
   }
 }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.ample;
+package org.apache.accumulo.server.metadata;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -55,12 +55,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata.Builder;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata.TableOptions;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
-import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
-import org.apache.accumulo.server.metadata.ServerAmpleImpl;
-import org.apache.accumulo.server.metadata.TabletsMutatorImpl;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 
@@ -125,7 +120,7 @@ public class TestAmple {
         conditionallyMutateTablets(Consumer<ConditionalResult> resultsConsumer) {
       return new AsyncConditionalTabletsMutatorImpl(getContext(), resultsConsumer) {
         @Override
-        protected ConditionalTabletsMutatorImpl newBufferingMutator() {
+        ConditionalTabletsMutatorImpl newBufferingMutator() {
           return new ConditionalTabletsMutatorImpl(getContext()) {
             @Override
             protected String getMetadataTableName(Ample.DataLevel dataLevel) {
@@ -234,7 +229,7 @@ public class TestAmple {
     }
 
     @Override
-    public ServerContext getContext() {
+    ServerContext getContext() {
       // TODO: we can probably cache this
       return testAmpleServerContext(super.getContext(), this);
     }
@@ -245,7 +240,7 @@ public class TestAmple {
     }
   }
 
-  private static ServerContext testAmpleServerContext(ServerContext context,
+  public static ServerContext testAmpleServerContext(ServerContext context,
       TestServerAmpleImpl ample) {
     SiteConfiguration siteConfig;
     try {
@@ -263,13 +258,6 @@ public class TestAmple {
     };
   }
 
-  public static Manager mockWithAmple(ServerContext context, TestServerAmpleImpl ample) {
-    Manager manager = EasyMock.mock(Manager.class);
-    EasyMock.expect(manager.getContext()).andReturn(testAmpleServerContext(context, ample))
-        .atLeastOnce();
-    EasyMock.replay(manager);
-    return manager;
-  }
 
   public static void createMetadataTable(ClientContext client, String table) throws Exception {
     final var metadataTableProps =

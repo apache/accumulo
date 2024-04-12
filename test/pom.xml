@@ -113,6 +113,12 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-server-base</artifactId>
+      <scope>compile</scope>
+      <type>test-jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-shell</artifactId>
     </dependency>
     <dependency>

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.ample;
+package org.apache.accumulo.server.metadata;
 
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;

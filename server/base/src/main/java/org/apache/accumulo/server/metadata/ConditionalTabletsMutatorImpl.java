@@ -294,7 +294,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   @Override
   public void close() {}
 
-  protected String getMetadataTableName(Ample.DataLevel dataLevel) {
+  String getMetadataTableName(Ample.DataLevel dataLevel) {
     return dataLevel.metaTable();
   }
 }
