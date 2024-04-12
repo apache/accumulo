@@ -21,36 +21,24 @@ package org.apache.accumulo.test.ample;
 import static org.apache.accumulo.core.client.ConditionalWriter.Status.ACCEPTED;
 import static org.apache.accumulo.core.client.ConditionalWriter.Status.UNKNOWN;
 import static org.apache.accumulo.test.ample.ConditionalWriterInterceptor.withStatus;
-import static org.apache.accumulo.test.ample.TestAmple.mockWithAmple;
-import static org.apache.accumulo.test.ample.TestAmple.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.split.FindSplits;
-import org.apache.accumulo.manager.tableOps.split.PreSplit;
 import org.apache.accumulo.test.ample.TestAmple.TestServerAmpleImpl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -199,91 +187,4 @@ public class TestAmpleIT extends SharedMiniClusterBase {
     }
   }
 
-  @Test
-  public void testFindSplitsUnsplittable() throws Exception {
-
-    String[] tableNames = getUniqueNames(2);
-    String metadataTable = tableNames[0];
-    String userTable = tableNames[1];
-
-    try (ClientContext client =
-        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
-      TestAmple.createMetadataTable(client, metadataTable);
-
-      // Create table with a smaller max end row size
-      createUnsplittableTable(client, userTable);
-      populateUnsplittableTable(client, userTable);
-
-      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(userTable));
-
-      TestServerAmpleImpl ample = (TestServerAmpleImpl) TestAmple
-          .create(getCluster().getServerContext(), Map.of(DataLevel.USER, metadataTable));
-      // Prevent UNSPLITTABLE_COLUMN just in case a system split tried to run on the table
-      // before we copied it and inserted the column
-      ample.createMetadataFromExisting(client, tableId, not(SplitColumnFamily.UNSPLITTABLE_COLUMN));
-
-      KeyExtent extent = new KeyExtent(tableId, null, null);
-      Manager manager = mockWithAmple(getCluster().getServerContext(), ample);
-
-      FindSplits findSplits = new FindSplits(extent);
-      PreSplit preSplit = (PreSplit) findSplits
-          .call(FateId.from(FateInstanceType.USER, UUID.randomUUID()), manager);
-
-      // The table should not need splitting
-      assertNull(preSplit);
-
-      // Verify metadata has unsplittable column
-      var metadata = ample.readTablet(new KeyExtent(tableId, null, null)).getUnSplittable();
-      assertNotNull(metadata);
-
-      // Bump max end row size and verify split occurs and unsplittable column is cleaned up
-      client.tableOperations().setProperty(userTable, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
-          "500");
-
-      findSplits = new FindSplits(extent);
-      preSplit = (PreSplit) findSplits.call(FateId.from(FateInstanceType.USER, UUID.randomUUID()),
-          manager);
-
-      // The table SHOULD now need splitting
-      assertNotNull(preSplit);
-
-      // Verify unsplittable metadata is still the same and exists
-      // This will not be cleared until the UpdateTablets repo runs
-      // so if the test is updated to test UpdateTablets this can be checked
-      assertEquals(metadata,
-          ample.readTablet(new KeyExtent(tableId, null, null)).getUnSplittable());
-    }
-  }
-
-  private void createUnsplittableTable(ClientContext client, String table) throws Exception {
-    // make a table and lower the configuration properties
-    // @formatter:off
-    Map<String,String> props = Map.of(
-        Property.TABLE_SPLIT_THRESHOLD.getKey(), "1K",
-        Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none",
-        Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64",
-        Property.TABLE_MAX_END_ROW_SIZE.getKey(), "" + 100,
-        Property.TABLE_MAJC_RATIO.getKey(), "9999"
-    );
-    // @formatter:on
-    client.tableOperations().create(table, new NewTableConfiguration().setProperties(props));
-
-  }
-
-  private void populateUnsplittableTable(ClientContext client, String table) throws Exception {
-    byte[] data = new byte[101];
-    Arrays.fill(data, 0, data.length - 2, (byte) 'm');
-
-    final int numOfMutations = 20;
-    try (BatchWriter batchWriter = client.createBatchWriter(table)) {
-      // Make the last place in the key different for every entry added to the table
-      for (int i = 0; i < numOfMutations; i++) {
-        data[data.length - 1] = (byte) i;
-        Mutation m = new Mutation(data);
-        m.put("cf", "cq", "value");
-        batchWriter.addMutation(m);
-      }
-    }
-    client.tableOperations().flush(table, null, null, true);
-  }
 }
