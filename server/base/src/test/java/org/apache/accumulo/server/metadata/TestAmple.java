@@ -57,7 +57,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
-import org.easymock.EasyMock;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -257,7 +256,6 @@ public class TestAmple {
       }
     };
   }
-
 
   public static void createMetadataTable(ClientContext client, String table) throws Exception {
     final var metadataTableProps =

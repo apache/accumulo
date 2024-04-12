@@ -142,14 +142,14 @@
         <artifactId>maven-jar-plugin</artifactId>
         <executions>
           <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
             <configuration>
               <includes>
                 <include>**/metadata/**</include>
               </includes>
             </configuration>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
           </execution>
         </executions>
       </plugin>

@@ -118,7 +118,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private final AccumuloClient _client;
     private final List<TabletMetadataFilter> tabletMetadataFilters = new ArrayList<>();
 
-    public Builder(AccumuloClient client) {
+    protected Builder(AccumuloClient client) {
       this._client = client;
     }
 

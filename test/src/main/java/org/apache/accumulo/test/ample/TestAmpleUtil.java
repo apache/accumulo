@@ -18,21 +18,21 @@
  */
 package org.apache.accumulo.test.ample;
 
+import static org.apache.accumulo.server.metadata.TestAmple.testAmpleServerContext;
+
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.TestAmple.TestServerAmpleImpl;
 import org.easymock.EasyMock;
 
-import static org.apache.accumulo.server.metadata.TestAmple.testAmpleServerContext;
-
 public class TestAmpleUtil {
 
-    public static Manager mockWithAmple(ServerContext context, TestServerAmpleImpl ample) {
-      Manager manager = EasyMock.mock(Manager.class);
-      EasyMock.expect(manager.getContext()).andReturn(testAmpleServerContext(context, ample))
-          .atLeastOnce();
-      EasyMock.replay(manager);
-      return manager;
-    }
+  public static Manager mockWithAmple(ServerContext context, TestServerAmpleImpl ample) {
+    Manager manager = EasyMock.mock(Manager.class);
+    EasyMock.expect(manager.getContext()).andReturn(testAmpleServerContext(context, ample))
+        .atLeastOnce();
+    EasyMock.replay(manager);
+    return manager;
+  }
 
 }
