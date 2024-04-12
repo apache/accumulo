@@ -203,8 +203,6 @@ public class SplitUtils {
     var threshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
 
-    // ELASTICITY_TODO rename and deprecate property. This is not executing in the tablet server
-    // anymore.
     int maxFilesToOpen = tableConf.getCount(Property.SPLIT_MAXOPEN);
 
     var estimatedSize = tabletMetadata.getFileSize();
