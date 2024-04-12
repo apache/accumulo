@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -77,9 +78,10 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       TableConfiguration acuTableConf = server.getTableConfiguration(session.threadPoolExtent);
       long maxResultsSize = acuTableConf.getAsBytes(Property.TABLE_SCAN_MAXMEM);
 
-      // Always return large root tablets
-      if (session.threadPoolExtent.tableId().equals(AccumuloTable.ROOT.tableId())) {
-        maxResultsSize = Long.MAX_VALUE;
+      // For system tables don't allow the scan memory to be less than the default
+      if (AccumuloTable.allTableIds().contains(session.threadPoolExtent.tableId())) {
+        maxResultsSize = Math.max(maxResultsSize, ConfigurationTypeHelper
+            .getFixedMemoryAsBytes(Property.TABLE_SCAN_MAXMEM.getDefaultValue()));
       }
 
       Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser()

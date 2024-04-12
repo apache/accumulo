@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -264,9 +265,10 @@ public abstract class TabletBase {
 
     long maxResultsSize = getTableConfiguration().getAsBytes(Property.TABLE_SCAN_MAXMEM);
 
-    // Always return large root tablets
-    if (getExtent().tableId().equals(AccumuloTable.ROOT.tableId())) {
-      maxResultsSize = Long.MAX_VALUE;
+    // For system tables don't allow the scan memory to be less than the default
+    if (AccumuloTable.allTableIds().contains(getExtent().tableId())) {
+      maxResultsSize = Math.max(maxResultsSize, ConfigurationTypeHelper
+          .getFixedMemoryAsBytes(Property.TABLE_SCAN_MAXMEM.getDefaultValue()));
     }
 
     Key continueKey = null;
