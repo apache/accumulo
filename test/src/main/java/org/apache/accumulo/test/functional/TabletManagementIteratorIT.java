@@ -18,8 +18,13 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.BAD_STATE;
 import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.NEEDS_LOCATION_UPDATE;
+import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.NEEDS_RECOVERY;
+import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.NEEDS_SPLITTING;
+import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.NEEDS_VOLUME_REPLACEMENT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -187,6 +192,10 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
           "Should have four tablets with hosting availability changes");
 
+      // test continue scan functionality, this test needs a table and tablet mgmt params that will
+      // return more than one tablet
+      testContinueScan(client, metaCopy1, tabletMgmtParams);
+
       // test the assigned case (no location)
       removeLocation(client, metaCopy1, t3);
       expected =
@@ -210,18 +219,15 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // Test the recovery cases
       createLogEntry(client, metaCopy5, t1);
       setTabletAvailability(client, metaCopy5, t1, TabletAvailability.UNHOSTED.name());
-      expected = Map.of(endR1,
-          Set.of(NEEDS_LOCATION_UPDATE, TabletManagement.ManagementAction.NEEDS_RECOVERY));
+      expected = Map.of(endR1, Set.of(NEEDS_LOCATION_UPDATE, NEEDS_RECOVERY));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams),
           "Only 1 of 2 tablets in table t1 should be returned");
       setTabletAvailability(client, metaCopy5, t1, TabletAvailability.ONDEMAND.name());
-      expected = Map.of(endR1,
-          Set.of(NEEDS_LOCATION_UPDATE, TabletManagement.ManagementAction.NEEDS_RECOVERY));
+      expected = Map.of(endR1, Set.of(NEEDS_LOCATION_UPDATE, NEEDS_RECOVERY));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams),
           "Only 1 of 2 tablets in table t1 should be returned");
       setTabletAvailability(client, metaCopy5, t1, TabletAvailability.HOSTED.name());
-      expected = Map.of(endR1,
-          Set.of(NEEDS_LOCATION_UPDATE, TabletManagement.ManagementAction.NEEDS_RECOVERY), prevR1,
+      expected = Map.of(endR1, Set.of(NEEDS_LOCATION_UPDATE, NEEDS_RECOVERY), prevR1,
           Set.of(NEEDS_LOCATION_UPDATE));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams),
           "2 tablets in table t1 should be returned");
@@ -248,8 +254,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // for both MERGING and SPLITTING
       setOperationId(client, metaCopy4, t4, null, TabletOperationType.MERGING);
       createLogEntry(client, metaCopy4, t4);
-      expected = Map.of(endR4,
-          Set.of(NEEDS_LOCATION_UPDATE, TabletManagement.ManagementAction.NEEDS_RECOVERY));
+      expected = Map.of(endR4, Set.of(NEEDS_LOCATION_UPDATE, NEEDS_RECOVERY));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
           "Should have a tablet needing attention because of wals");
       // Switch op to SPLITTING which should also need attention like MERGING
@@ -266,8 +271,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // test the bad tablet location state case (inconsistent metadata)
       tabletMgmtParams = createParameters(client);
       addDuplicateLocation(client, metaCopy3, t3);
-      expected = Map.of(prevR3,
-          Set.of(NEEDS_LOCATION_UPDATE, TabletManagement.ManagementAction.BAD_STATE));
+      expected = Map.of(prevR3, Set.of(NEEDS_LOCATION_UPDATE, BAD_STATE));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy3, tabletMgmtParams),
           "Should have 1 tablet that needs a metadata repair");
 
@@ -278,7 +282,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       Map<Path,Path> replacements =
           Map.of(new Path("file:/vol1/accumulo/inst_id"), new Path("file:/vol2/accumulo/inst_id"));
       tabletMgmtParams = createParameters(client, replacements);
-      expected = Map.of(prevR4, Set.of(TabletManagement.ManagementAction.NEEDS_VOLUME_REPLACEMENT));
+      expected = Map.of(prevR4, Set.of(NEEDS_VOLUME_REPLACEMENT));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
           "Should have one tablet that needs a volume replacement");
 
@@ -291,7 +295,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // Lower the split threshold for the table, should cause the files added to need attention.
       client.tableOperations().setProperty(tables[3], Property.TABLE_SPLIT_THRESHOLD.getKey(),
           "1K");
-      expected = Map.of(prevR4, Set.of(TabletManagement.ManagementAction.NEEDS_SPLITTING));
+      expected = Map.of(prevR4, Set.of(NEEDS_SPLITTING));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams),
           "Should have one tablet that needs splitting");
 
@@ -442,6 +446,29 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     }
     log.debug("Tablets in flux: {}", resultList);
     return results;
+  }
+
+  // Multiple places in the accumulo code will read a batch of keys and then take the last key and
+  // make it non inclusive to get the next batch. This test code simulates that and ensures the
+  // tablet mgmt iterator works with that.
+  private void testContinueScan(AccumuloClient client, String table,
+      TabletManagementParameters tabletMgmtParams) throws TableNotFoundException {
+    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
+      TabletManagementIterator.configureScanner(scanner, tabletMgmtParams);
+      List<Entry<Key,Value>> entries1 = new ArrayList<>();
+      scanner.forEach(e -> entries1.add(e));
+      assertTrue(entries1.size() > 1);
+
+      // Create a range that does not include the first key from the last scan.
+      var range = new Range(entries1.get(0).getKey(), false, null, true);
+      scanner.setRange(range);
+
+      // Ensure the first key excluded from the scan
+      List<Entry<Key,Value>> entries2 = new ArrayList<>();
+      scanner.forEach(e -> entries2.add(e));
+      assertEquals(entries1.size() - 1, entries2.size());
+      assertEquals(entries1.get(1).getKey(), entries2.get(0).getKey());
+    }
   }
 
   private void createTable(AccumuloClient client, String t, boolean online)
