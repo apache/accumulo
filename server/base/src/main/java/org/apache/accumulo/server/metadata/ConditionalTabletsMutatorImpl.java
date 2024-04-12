@@ -273,9 +273,6 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   private void ensureAllExtentsSeen(HashMap<KeyExtent,ConditionalWriter.Result> resultsMap,
       Set<KeyExtent> extentsSet) {
     if (!resultsMap.keySet().equals(Set.copyOf(extents.values()))) {
-      // ELASTICITY_TODO this check can trigger if someone forgets to submit, could check for
-      // that
-
       Sets.difference(resultsMap.keySet(), extentsSet)
           .forEach(extent -> log.error("Unexpected extent seen in in result {}", extent));
 
@@ -286,7 +283,11 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
         log.error("result seen {} {}", keyExtent, new Text(result.getMutation().getRow()));
       });
 
-      throw new AssertionError("Not all extents were seen, this is unexpected");
+      // There are at least two possible causes for this condition. First there is a bug in the
+      // ConditionalWriter, and it did not return a result for a mutation that was given to it.
+      // Second, Ample code was not used correctly and mutating an extent was started but never
+      // submitted.
+      throw new IllegalStateException("Not all extents were seen, this is unexpected.");
     }
   }
 

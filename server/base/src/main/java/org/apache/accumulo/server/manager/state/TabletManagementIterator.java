@@ -76,8 +76,8 @@ public class TabletManagementIterator extends SkippingIterator {
         .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
     final long maxEndRowSize = ConfigurationTypeHelper
         .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_MAX_END_ROW_SIZE.getKey()));
-    final int maxFilesToOpen = (int) ConfigurationTypeHelper.getFixedMemoryAsBytes(
-        tableConfig.get(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN.getKey()));
+    final int maxFilesToOpen = (int) ConfigurationTypeHelper
+        .getFixedMemoryAsBytes(tableConfig.get(Property.SPLIT_MAXOPEN.getKey()));
 
     // If the current computed metadata matches the current marker then we can't split,
     // so we return false. If the marker is set but doesn't match then return true

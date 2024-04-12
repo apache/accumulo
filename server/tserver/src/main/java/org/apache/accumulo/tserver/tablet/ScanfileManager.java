@@ -20,20 +20,27 @@ package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 class ScanfileManager {
   private final Logger log = LoggerFactory.getLogger(ScanfileManager.class);
@@ -51,6 +58,23 @@ class ScanfileManager {
   static void rename(VolumeManager fs, Path src, Path dst) throws IOException {
     if (!fs.rename(src, dst)) {
       throw new IOException("Rename " + src + " to " + dst + " returned false ");
+    }
+  }
+
+  static void removeScanFiles(KeyExtent extent, Set<StoredTabletFile> scanFiles,
+      ServerContext context, Location currLocation, ServiceLock zooLock) {
+    try (var mutator = context.getAmple().conditionallyMutateTablets()) {
+      var tabletMutator = mutator.mutateTablet(extent).requireLocation(currLocation);
+
+      scanFiles.forEach(tabletMutator::deleteScan);
+      tabletMutator.putZooLock(context.getZooKeeperRoot(), zooLock);
+
+      tabletMutator
+          .submit(tabletMetadata -> Collections.disjoint(scanFiles, tabletMetadata.getScans()));
+
+      var result = mutator.process().get(extent);
+      Preconditions.checkState(result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED,
+          "Failed to remove scan file entries for %s", extent);
     }
   }
 
@@ -112,14 +136,15 @@ class ScanfileManager {
         // file is in the set filesToDelete that means it was removed from filesToDeleteAfterScan
         // and would never be added back.
         log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
-        // ELASTICTIY_TODO use conditional mutation
-        MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
+
+        var currLoc = Location.current(tablet.getTabletServer().getTabletSession());
+        removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(), currLoc,
             tablet.getTabletServer().getLock());
       }
     }
   }
 
-  void removeFilesAfterScan(Collection<StoredTabletFile> scanFiles) {
+  void removeFilesAfterScan(Collection<StoredTabletFile> scanFiles, Location location) {
     if (scanFiles.isEmpty()) {
       return;
     }
@@ -137,9 +162,8 @@ class ScanfileManager {
     }
 
     if (!filesToDelete.isEmpty()) {
-      // ELASTICTIY_TODO use conditional mutation and require the tablet location
       log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
-      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
+      removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(), location,
           tablet.getTabletServer().getLock());
     }
   }

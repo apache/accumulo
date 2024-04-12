@@ -21,21 +21,27 @@ package org.apache.accumulo.server.manager.state;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public abstract class AbstractTabletStateStore implements TabletStateStore {
+
+  private static final Logger LOG = LoggerFactory.getLogger(AbstractTabletStateStore.class);
 
   private final Ample ample;
 
@@ -86,11 +92,13 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
             });
       }
 
-      var results = tabletsMutator.process();
+      Map<KeyExtent,ConditionalResult> results = tabletsMutator.process();
 
-      if (results.values().stream().anyMatch(result -> result.getStatus() != Status.ACCEPTED)) {
-        throw new DistributedStoreException(
-            "failed to set tablet location, conditional mutation failed. ");
+      for (Entry<KeyExtent,ConditionalResult> entry : results.entrySet()) {
+        if (entry.getValue().getStatus() != Status.ACCEPTED) {
+          LOG.debug("Likely concurrent FATE operation prevented setting future location for {}, "
+              + "Manager will retry soon.", entry.getKey());
+        }
       }
 
     } catch (RuntimeException ex) {
