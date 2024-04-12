@@ -45,15 +45,17 @@ public class BigRootTabletIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
-    siteConfig.put(Property.TABLE_SCAN_MAXMEM.getKey(), "1024");
+    siteConfig.put(Property.TABLE_SCAN_MAXMEM.getKey(), "512");
     cfg.setSiteConfig(siteConfig);
   }
 
   @Test
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
       c.tableOperations().addSplits(AccumuloTable.METADATA.tableName(),
           FunctionalTestUtils.splits("0 1 2 3 4 5 6 7 8 9 a".split(" ")));
+
       String[] names = getUniqueNames(10);
       for (String name : names) {
         c.tableOperations().create(name);

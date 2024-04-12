@@ -264,6 +264,11 @@ public abstract class TabletBase {
 
     long maxResultsSize = getTableConfiguration().getAsBytes(Property.TABLE_SCAN_MAXMEM);
 
+    // Always return large root tablets
+    if (getExtent().tableId().equals(AccumuloTable.ROOT.tableId())) {
+      maxResultsSize = Long.MAX_VALUE;
+    }
+
     Key continueKey = null;
     boolean skipContinueKey = false;
 

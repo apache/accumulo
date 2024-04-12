@@ -39,6 +39,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.MultiScanSession;
@@ -75,6 +76,11 @@ public class LookupTask extends ScanTask<MultiScanResult> {
 
       TableConfiguration acuTableConf = server.getTableConfiguration(session.threadPoolExtent);
       long maxResultsSize = acuTableConf.getAsBytes(Property.TABLE_SCAN_MAXMEM);
+
+      // Always return large root tablets
+      if (session.threadPoolExtent.tableId().equals(AccumuloTable.ROOT.tableId())) {
+        maxResultsSize = Long.MAX_VALUE;
+      }
 
       Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser()
           + " Start: " + session.startTime + " Table: ");
