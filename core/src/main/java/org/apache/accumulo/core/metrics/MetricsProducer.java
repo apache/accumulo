@@ -674,6 +674,9 @@ public interface MetricsProducer {
   String METRICS_TSERVER_SCAN_RESULTS_BYTES = METRICS_TSERVER_PREFIX + "scan.results.bytes";
   String METRICS_TSERVER_SCANNED_ENTRIES = METRICS_TSERVER_PREFIX + "scan.scanned.entries";
 
+  String METRICS_SSERVER_PREFIX = "accumulo.sserver.";
+  String METRICS_SSERVER_REGISTRATION_TIMER = METRICS_SSERVER_PREFIX + "registration.timer";
+
   String METRICS_THRIFT_PREFIX = "accumulo.thrift.";
   String METRICS_THRIFT_EXECUTE = METRICS_THRIFT_PREFIX + "execute";
   String METRICS_THRIFT_IDLE = METRICS_THRIFT_PREFIX + "idle";
