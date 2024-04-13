@@ -16,15 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metrics;
+package org.apache.accumulo.server.metrics;
 
-import io.micrometer.core.instrument.MeterRegistry;
+import java.util.Map;
 
-/**
- * @deprecated since 2.1.3; use {@link org.apache.accumulo.core.spi.metrics.MeterRegistryFactory}
- *             instead
- */
-@Deprecated()
-public interface MeterRegistryFactory {
-  MeterRegistry create();
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
+import org.junit.jupiter.api.Test;
+
+public class MeterRegistryEnvImplTest {
+
+  @Test
+  public void customParamsTest() {
+
+  }
+
+  public static class MeterRegistryParameter implements MeterRegistryFactory.InitParameters {
+
+    @Override
+    public Map<String,String> getOptions() {
+      return null;
+    }
+
+    @Override
+    public ServiceEnvironment getServiceEnv() {
+      return null;
+    }
+  }
 }

@@ -32,7 +32,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -154,13 +153,10 @@ public class ReplicationMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    replicationQueueTimer = registry.timer(METRICS_REPLICATION_QUEUE, MetricsUtil.getCommonTags());
-    pendingFiles = registry.gauge(METRICS_REPLICATION_PENDING_FILES, MetricsUtil.getCommonTags(),
-        new AtomicLong(0));
-    numPeers = registry.gauge(METRICS_REPLICATION_PEERS, MetricsUtil.getCommonTags(),
-        new AtomicInteger(0));
-    maxReplicationThreads = registry.gauge(METRICS_REPLICATION_THREADS, MetricsUtil.getCommonTags(),
-        new AtomicInteger(0));
+    replicationQueueTimer = registry.timer(METRICS_REPLICATION_QUEUE);
+    pendingFiles = registry.gauge(METRICS_REPLICATION_PENDING_FILES, new AtomicLong(0));
+    numPeers = registry.gauge(METRICS_REPLICATION_PEERS, new AtomicInteger(0));
+    maxReplicationThreads = registry.gauge(METRICS_REPLICATION_THREADS, new AtomicInteger(0));
 
     ScheduledExecutorService scheduler = ThreadPools.getServerThreadPools()
         .createScheduledExecutorService(1, "replicationMetricsPoller");

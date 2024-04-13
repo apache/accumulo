@@ -31,7 +31,6 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCache;
@@ -57,7 +56,6 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   private final ZooReaderWriter zrw;
   private final PropStoreWatcher propStoreWatcher;
   private final PropCacheCaffeineImpl cache;
-  private final PropStoreMetrics cacheMetrics = new PropStoreMetrics();
   private final ReadyMonitor zkReadyMon;
 
   /**
@@ -91,16 +89,13 @@ public class ZooPropStore implements PropStore, PropChangeListener {
 
     this.propStoreWatcher = requireNonNullElseGet(watcher, () -> new PropStoreWatcher(zkReadyMon));
 
-    ZooPropLoader propLoader = new ZooPropLoader(zrw, codec, this.propStoreWatcher, cacheMetrics);
+    ZooPropLoader propLoader = new ZooPropLoader(zrw, codec, this.propStoreWatcher);
 
     if (ticker == null) {
-      this.cache = new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).build();
+      this.cache = new PropCacheCaffeineImpl.Builder(propLoader).build();
     } else {
-      this.cache =
-          new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).forTests(ticker).build();
+      this.cache = new PropCacheCaffeineImpl.Builder(propLoader).forTests(ticker).build();
     }
-
-    MetricsUtil.initializeProducers(cacheMetrics);
 
     try {
       var path = ZooUtil.getRoot(instanceId);
@@ -139,10 +134,6 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       throw new IllegalStateException("Interrupted testing if node exists", ex);
     }
     return false;
-  }
-
-  public PropStoreMetrics getMetrics() {
-    return cacheMetrics;
   }
 
   @Override
