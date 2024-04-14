@@ -21,6 +21,8 @@ package org.apache.accumulo.core.metadata.schema;
 import static com.google.common.collect.MoreCollectors.onlyElement;
 
 import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -28,11 +30,19 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata.Options;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata.TableOptions;
 
+import com.google.common.base.Preconditions;
+
 public class AmpleImpl implements Ample {
   private final AccumuloClient client;
+  private final Function<DataLevel,String> tableMapper;
 
   public AmpleImpl(AccumuloClient client) {
+    this(client, DataLevel::metaTable);
+  }
+
+  public AmpleImpl(AccumuloClient client, Function<DataLevel,String> tableMapper) {
     this.client = client;
+    this.tableMapper = Objects.requireNonNull(tableMapper);
   }
 
   @Override
@@ -58,6 +68,17 @@ public class AmpleImpl implements Ample {
   }
 
   protected TableOptions newBuilder() {
-    return TabletsMetadata.builder(this.client);
+    return TabletsMetadata.builder(this.client, getTableMapper());
+  }
+
+  protected String getMetadataTableName(Ample.DataLevel dataLevel) {
+    final String metadataTable = getTableMapper().apply(dataLevel);
+    Preconditions.checkArgument(metadataTable != null,
+        "A metadata table for %s has not been registered", dataLevel);
+    return metadataTable;
+  }
+
+  protected Function<DataLevel,String> getTableMapper() {
+    return tableMapper;
   }
 }

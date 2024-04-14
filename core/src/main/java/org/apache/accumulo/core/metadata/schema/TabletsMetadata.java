@@ -117,9 +117,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private ReadConsistency readConsistency = ReadConsistency.IMMEDIATE;
     private final AccumuloClient _client;
     private final List<TabletMetadataFilter> tabletMetadataFilters = new ArrayList<>();
+    private final Function<DataLevel,String> tableMapper;
 
-    protected Builder(AccumuloClient client) {
+    Builder(AccumuloClient client, Function<DataLevel,String> tableMapper) {
       this._client = client;
+      this.tableMapper = Objects.requireNonNull(tableMapper);
     }
 
     @Override
@@ -180,7 +182,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         } else {
           try {
             BatchScanner scanner =
-                client.createBatchScanner(getMetadataTable(level), Authorizations.EMPTY);
+                client.createBatchScanner(tableMapper.apply(level), Authorizations.EMPTY);
 
             var ranges =
                 groupedExtents.get(level).stream().map(KeyExtent::toMetaRange).collect(toList());
@@ -250,14 +252,10 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     }
 
-    protected String getMetadataTable(Ample.DataLevel dataLevel) {
-      return dataLevel.metaTable();
-    }
-
     private TabletsMetadata buildNonRoot(AccumuloClient client) {
       try {
 
-        String resolvedTable = table == null ? getMetadataTable(level) : table;
+        String resolvedTable = table == null ? tableMapper.apply(level) : table;
 
         Scanner scanner =
             new IsolatedScanner(client.createScanner(resolvedTable, Authorizations.EMPTY));
@@ -657,7 +655,12 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   }
 
   public static TableOptions builder(AccumuloClient client) {
-    return new Builder(client);
+    return new Builder(client, DataLevel::metaTable);
+  }
+
+  public static TableOptions builder(AccumuloClient client,
+      Function<DataLevel,String> tableMapper) {
+    return new Builder(client, tableMapper);
   }
 
   private static TabletMetadata getRootMetadata(ClientContext ctx,

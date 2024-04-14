@@ -47,11 +47,12 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletsMutator;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata.Builder;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata.TableOptions;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -93,20 +94,17 @@ public class TestAmple {
 
     private TestServerAmpleImpl(ServerContext context, Map<DataLevel,String> tables,
         Supplier<ConditionalWriterInterceptor> cwInterceptor) {
-      super(context);
+      super(context, tables::get);
       this.tables = Map.copyOf(tables);
       this.cwInterceptor = Objects.requireNonNull(cwInterceptor);
-      Preconditions.checkArgument(tables.containsKey(DataLevel.USER));
+      Preconditions.checkArgument(!tables.containsKey(DataLevel.ROOT));
+      Preconditions.checkArgument(
+          tables.containsKey(DataLevel.USER) || tables.containsKey(DataLevel.METADATA));
     }
 
     @Override
     public TabletsMutator mutateTablets() {
-      return new TabletsMutatorImpl(testAmpleServerContext(getContext(), this)) {
-        @Override
-        protected String getMetadataTableName(Ample.DataLevel dataLevel) {
-          return TestServerAmpleImpl.this.getMetadataTableName(dataLevel);
-        }
-      };
+      return new TabletsMutatorImpl(testAmpleServerContext(getContext(), this), tables::get);
     }
 
     @Override
@@ -117,27 +115,13 @@ public class TestAmple {
     @Override
     public AsyncConditionalTabletsMutator
         conditionallyMutateTablets(Consumer<ConditionalResult> resultsConsumer) {
-      return new AsyncConditionalTabletsMutatorImpl(getContext(), resultsConsumer) {
-        @Override
-        ConditionalTabletsMutatorImpl newBufferingMutator() {
-          return new ConditionalTabletsMutatorImpl(getContext()) {
-            @Override
-            protected String getMetadataTableName(Ample.DataLevel dataLevel) {
-              return TestServerAmpleImpl.this.getMetadataTableName(dataLevel);
-            }
-          };
-        }
-      };
+      return new AsyncConditionalTabletsMutatorImpl(getContext(), getTableMapper(),
+          resultsConsumer);
     }
 
     @Override
     protected TableOptions newBuilder() {
-      return new Builder(testAmpleServerContext(getContext(), this)) {
-        @Override
-        protected String getMetadataTable(DataLevel dataLevel) {
-          return TestServerAmpleImpl.this.getMetadataTableName(dataLevel);
-        }
-      };
+      return TabletsMetadata.builder(testAmpleServerContext(getContext(), this), getTableMapper());
     }
 
     /**
@@ -207,7 +191,7 @@ public class TestAmple {
         conditionallyMutateTablets(ConditionalWriterInterceptor interceptor) {
       Objects.requireNonNull(interceptor);
 
-      return new ConditionalTabletsMutatorImpl(getContext()) {
+      return new ConditionalTabletsMutatorImpl(getContext(), tables::get) {
 
         @Override
         protected ConditionalWriter createConditionalWriter(Ample.DataLevel dataLevel)
@@ -216,13 +200,9 @@ public class TestAmple {
             return super.createConditionalWriter(dataLevel);
           } else {
             return new ConditionalWriterDelegator(
-                getContext().createConditionalWriter(getMetadataTableName(dataLevel)), interceptor);
+                getContext().createConditionalWriter(getTableMapper().apply(dataLevel)),
+                interceptor);
           }
-        }
-
-        @Override
-        protected String getMetadataTableName(Ample.DataLevel dataLevel) {
-          return TestServerAmpleImpl.this.getMetadataTableName(dataLevel);
         }
       };
     }
@@ -233,14 +213,10 @@ public class TestAmple {
       return testAmpleServerContext(super.getContext(), this);
     }
 
-    protected String getMetadataTableName(Ample.DataLevel dataLevel) {
-      return Objects.requireNonNull(tables.get(dataLevel),
-          "A test table for " + dataLevel + " has not been registered");
-    }
   }
 
   public static ServerContext testAmpleServerContext(ServerContext context,
-      TestServerAmpleImpl ample) {
+      TestAmple.TestServerAmpleImpl ample) {
     SiteConfiguration siteConfig;
     try {
       Map<String,String> propsMap = new HashMap<>();
