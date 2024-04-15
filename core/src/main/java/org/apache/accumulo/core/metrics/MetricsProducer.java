@@ -676,6 +676,7 @@ public interface MetricsProducer {
 
   String METRICS_SSERVER_PREFIX = "accumulo.sserver.";
   String METRICS_SSERVER_REGISTRATION_TIMER = METRICS_SSERVER_PREFIX + "registration.timer";
+  String METRICS_SSERVER_BUSY_COUNTER = METRICS_SSERVER_PREFIX + "busy.count";
 
   String METRICS_THRIFT_PREFIX = "accumulo.thrift.";
   String METRICS_THRIFT_EXECUTE = METRICS_THRIFT_PREFIX + "execute";

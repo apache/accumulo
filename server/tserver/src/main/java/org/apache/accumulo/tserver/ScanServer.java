@@ -77,6 +77,7 @@ import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.tabletserver.thrift.ScanServerBusyException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
@@ -919,7 +920,9 @@ public class ScanServer extends AbstractServer
           busyTimeout);
 
       return is;
-
+    } catch (ScanServerBusyException be) {
+      scanServerMetrics.incrementBusy();
+      throw be;
     } catch (AccumuloException | IOException e) {
       LOG.error("Error starting scan", e);
       throw new RuntimeException(e);
@@ -935,6 +938,9 @@ public class ScanServer extends AbstractServer
     try (ScanReservation reservation = reserveFiles(scanID)) {
       Preconditions.checkState(reservation.getFailures().isEmpty());
       return delegate.continueScan(tinfo, scanID, busyTimeout);
+    } catch (ScanServerBusyException be) {
+      scanServerMetrics.incrementBusy();
+      throw be;
     }
   }
 
@@ -980,6 +986,9 @@ public class ScanServer extends AbstractServer
 
       LOG.trace("started scan: {}", ims.getScanID());
       return ims;
+    } catch (ScanServerBusyException be) {
+      scanServerMetrics.incrementBusy();
+      throw be;
     } catch (TException e) {
       LOG.error("Error starting scan", e);
       throw e;
@@ -997,6 +1006,9 @@ public class ScanServer extends AbstractServer
     try (ScanReservation reservation = reserveFiles(scanID)) {
       Preconditions.checkState(reservation.getFailures().isEmpty());
       return delegate.continueMultiScan(tinfo, scanID, busyTimeout);
+    } catch (ScanServerBusyException be) {
+      scanServerMetrics.incrementBusy();
+      throw be;
     }
   }
 

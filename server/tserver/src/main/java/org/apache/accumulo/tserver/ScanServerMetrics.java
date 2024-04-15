@@ -21,22 +21,30 @@ package org.apache.accumulo.tserver;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
 public class ScanServerMetrics implements MetricsProducer {
 
   private Timer reservationTimer;
+  private Counter busyCounter;
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
     reservationTimer = Timer.builder(MetricsProducer.METRICS_SSERVER_REGISTRATION_TIMER)
         .description("Time to reserve a tablets files for scan").tags(MetricsUtil.getCommonTags())
         .register(registry);
+    busyCounter = Counter.builder(MetricsProducer.METRICS_SSERVER_BUSY_COUNTER)
+        .description("The number of scans where a busy timeout happened")
+        .tags(MetricsUtil.getCommonTags()).register(registry);
   }
 
   public Timer getReservationTimer() {
     return reservationTimer;
   }
 
+  public void incrementBusy() {
+    busyCounter.increment();
+  }
 }
