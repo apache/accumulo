@@ -36,7 +36,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
@@ -332,9 +331,8 @@ public interface Ample {
   interface ConditionalTabletsMutator extends AsyncConditionalTabletsMutator {
 
     /**
-     * After creating one or more conditional mutations using
-     * {@link #mutateTablet(KeyExtent)}, call this method to process them using a
-     * {@link ConditionalWriter}
+     * After creating one or more conditional mutations using {@link #mutateTablet(KeyExtent)}, call
+     * this method to process them using a {@link ConditionalWriter}
      *
      * @return The result from the {@link ConditionalWriter} of processing each tablet.
      */
