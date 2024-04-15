@@ -190,7 +190,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
       statsDMetrics.stream().filter(line -> line.startsWith("accumulo"))
           .map(TestStatsDSink::parseStatsDMetric).forEach(a -> {
             var t = a.getTags();
-            log.warn("METRICS, name: '{}' num tags: {}, tags: {}", a.getName(), t.size(), t);
+            log.trace("METRICS, name: '{}' num tags: {}, tags: {}", a.getName(), t.size(), t);
             // check hostname is always set and is valid
             assertNotEquals("0.0.0.0", a.getTags().get("host"));
             assertNotNull(a.getTags().get("instance.name"));
