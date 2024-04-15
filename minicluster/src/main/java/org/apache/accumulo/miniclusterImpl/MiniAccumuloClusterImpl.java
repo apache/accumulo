@@ -264,7 +264,17 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     File siteFile = new File(config.getConfDir(), "accumulo.properties");
     writeConfigProperties(siteFile, config.getSiteConfig());
     this.siteConfig = SiteConfiguration.fromFile(siteFile).build();
-    this.context = Suppliers.memoize(() -> new ServerContext(siteConfig));
+    this.context = Suppliers.memoize(() -> new ServerContext(siteConfig) {
+
+      @Override
+      public ServiceLock getServiceLock() {
+        // Override getServiceLock because any call to setServiceLock
+        // will set the SingletonManager.MODE to SERVER and we may not
+        // want that side-effect.
+        return miniLock;
+      }
+
+    });
 
     if (!config.useExistingInstance() && !config.useExistingZooKeepers()) {
       zooCfgFile = new File(config.getConfDir(), "zoo.cfg");
@@ -731,13 +741,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       if (!lockAcquired.get()) {
         throw new IllegalStateException("Error creating MAC entry in ZooKeeper");
       }
-    }
-
-    try {
-      this.getServerContext().setServiceLock(miniLock);
-    } catch (IllegalStateException e) {
-      // MiniAccumuloClusterImpl supports start being called more than once.
-      // Don't raise this error.
     }
 
     verifyUp(iid);
