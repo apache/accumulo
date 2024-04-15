@@ -74,7 +74,7 @@ public class SingletonManager {
   private static List<SingletonService> services;
 
   @VisibleForTesting
-  public static void reset() {
+  static void reset() {
     reservations = 0;
     mode = Mode.CLIENT;
     enabled = true;

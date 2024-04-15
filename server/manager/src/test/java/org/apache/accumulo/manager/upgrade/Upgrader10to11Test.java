@@ -57,6 +57,7 @@ class Upgrader10to11Test {
   private InstanceId instanceId = null;
   private ServerContext context = null;
   private ZooReaderWriter zrw = null;
+
   private PropStore propStore = null;
 
   @BeforeEach

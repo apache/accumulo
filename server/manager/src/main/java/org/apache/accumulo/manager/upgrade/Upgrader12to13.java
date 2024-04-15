@@ -66,7 +66,7 @@ public class Upgrader12to13 implements Upgrader {
   private static final Logger LOG = LoggerFactory.getLogger(Upgrader12to13.class);
 
   @Override
-  public void upgradeZookeeper(final ServerContext context) {
+  public void upgradeZookeeper(ServerContext context) {
     LOG.info("setting root table stored hosting availability");
     addHostingGoalToRootTable(context);
     LOG.info("Removing compact-id paths from ZooKeeper");
@@ -76,7 +76,7 @@ public class Upgrader12to13 implements Upgrader {
   }
 
   @Override
-  public void upgradeRoot(final ServerContext context) {
+  public void upgradeRoot(ServerContext context) {
     LOG.info("Creating table {}", AccumuloTable.FATE.tableName());
     createFateTable(context);
     LOG.info("Looking for partial splits");
@@ -90,7 +90,7 @@ public class Upgrader12to13 implements Upgrader {
   }
 
   @Override
-  public void upgradeMetadata(final ServerContext context) {
+  public void upgradeMetadata(ServerContext context) {
     LOG.info("Looking for partial splits");
     handlePartialSplits(context, AccumuloTable.METADATA.tableName());
     LOG.info("setting hosting availability on user tables");

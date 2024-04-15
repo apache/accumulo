@@ -70,7 +70,7 @@ public class Upgrader11to12 implements Upgrader {
       Set.of(DataFileColumnFamily.NAME, CHOPPED, ExternalCompactionColumnFamily.NAME);
 
   @Override
-  public void upgradeZookeeper(@NonNull final ServerContext context) {
+  public void upgradeZookeeper(@NonNull ServerContext context) {
     log.debug("Upgrade ZooKeeper: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var rootBase = ZooUtil.getRoot(context.getInstanceID()) + ZROOT_TABLET;
 
@@ -113,14 +113,14 @@ public class Upgrader11to12 implements Upgrader {
   }
 
   @Override
-  public void upgradeRoot(@NonNull final ServerContext context) {
+  public void upgradeRoot(@NonNull ServerContext context) {
     log.debug("Upgrade root: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var rootName = Ample.DataLevel.METADATA.metaTable();
     upgradeTabletsMetadata(context, rootName);
   }
 
   @Override
-  public void upgradeMetadata(@NonNull final ServerContext context) {
+  public void upgradeMetadata(@NonNull ServerContext context) {
     log.debug("Upgrade metadata: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var metaName = Ample.DataLevel.USER.metaTable();
     upgradeTabletsMetadata(context, metaName);
