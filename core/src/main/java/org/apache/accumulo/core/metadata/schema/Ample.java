@@ -333,7 +333,7 @@ public interface Ample {
 
     /**
      * After creating one or more conditional mutations using
-     * {@link #mutateTablet(KeyExtent, ServiceLock)}, call this method to process them using a
+     * {@link #mutateTablet(KeyExtent)}, call this method to process them using a
      * {@link ConditionalWriter}
      *
      * @return The result from the {@link ConditionalWriter} of processing each tablet.

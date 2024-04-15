@@ -49,7 +49,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.tables.TableManager;
@@ -67,10 +66,9 @@ public class Upgrader12to13 implements Upgrader {
   private static final Logger LOG = LoggerFactory.getLogger(Upgrader12to13.class);
 
   @Override
-  public void upgradeZookeeper(final Manager manager) {
-    final ServerContext context = manager.getContext();
+  public void upgradeZookeeper(final ServerContext context) {
     LOG.info("setting root table stored hosting availability");
-    addHostingGoalToRootTable(manager, context);
+    addHostingGoalToRootTable(context);
     LOG.info("Removing compact-id paths from ZooKeeper");
     removeZKCompactIdPaths(context);
     LOG.info("Removing compact columns from root tablet");
@@ -78,14 +76,13 @@ public class Upgrader12to13 implements Upgrader {
   }
 
   @Override
-  public void upgradeRoot(final Manager manager) {
-    final ServerContext context = manager.getContext();
+  public void upgradeRoot(final ServerContext context) {
     LOG.info("Creating table {}", AccumuloTable.FATE.tableName());
     createFateTable(context);
     LOG.info("Looking for partial splits");
     handlePartialSplits(context, AccumuloTable.ROOT.tableName());
     LOG.info("setting metadata table hosting availability");
-    addHostingGoalToMetadataTable(manager, context);
+    addHostingGoalToMetadataTable(context);
     LOG.info("Removing MetadataBulkLoadFilter iterator from root table");
     removeMetaDataBulkLoadFilter(context, AccumuloTable.ROOT.tableId());
     LOG.info("Removing compact columns from metadata tablets");
@@ -93,12 +90,11 @@ public class Upgrader12to13 implements Upgrader {
   }
 
   @Override
-  public void upgradeMetadata(final Manager manager) {
-    final ServerContext context = manager.getContext();
+  public void upgradeMetadata(final ServerContext context) {
     LOG.info("Looking for partial splits");
     handlePartialSplits(context, AccumuloTable.METADATA.tableName());
     LOG.info("setting hosting availability on user tables");
-    addHostingGoalToUserTables(manager, context);
+    addHostingGoalToUserTables(context);
     LOG.info("Deleting external compaction final states from user tables");
     deleteExternalCompactionFinalStates(context);
     LOG.info("Deleting external compaction from user tables");
@@ -237,8 +233,7 @@ public class Upgrader12to13 implements Upgrader {
     }
   }
 
-  private void addHostingGoalToSystemTable(Manager manager, ServerContext context,
-      TableId tableId) {
+  private void addHostingGoalToSystemTable(ServerContext context, TableId tableId) {
     try (
         TabletsMetadata tm =
             context.getAmple().readTablets().forTable(tableId).fetch(ColumnType.PREV_ROW).build();
@@ -248,15 +243,15 @@ public class Upgrader12to13 implements Upgrader {
     }
   }
 
-  private void addHostingGoalToRootTable(Manager manager, ServerContext context) {
-    addHostingGoalToSystemTable(manager, context, AccumuloTable.ROOT.tableId());
+  private void addHostingGoalToRootTable(ServerContext context) {
+    addHostingGoalToSystemTable(context, AccumuloTable.ROOT.tableId());
   }
 
-  private void addHostingGoalToMetadataTable(Manager manager, ServerContext context) {
-    addHostingGoalToSystemTable(manager, context, AccumuloTable.METADATA.tableId());
+  private void addHostingGoalToMetadataTable(ServerContext context) {
+    addHostingGoalToSystemTable(context, AccumuloTable.METADATA.tableId());
   }
 
-  private void addHostingGoalToUserTables(Manager manager, ServerContext context) {
+  private void addHostingGoalToUserTables(ServerContext context) {
     try (
         TabletsMetadata tm = context.getAmple().readTablets().forLevel(DataLevel.USER)
             .fetch(ColumnType.PREV_ROW).build();

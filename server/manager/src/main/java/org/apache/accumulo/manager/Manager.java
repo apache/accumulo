@@ -332,7 +332,7 @@ public class Manager extends AbstractServer
 
     if (oldState != newState && (newState == ManagerState.HAVE_LOCK)) {
       new PreUpgradeValidation().validate(getContext(), nextEvent);
-      upgradeCoordinator.upgradeZookeeper(this, getContext(), nextEvent);
+      upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
     }
 
     if (oldState != newState && (newState == ManagerState.NORMAL)) {
@@ -341,7 +341,7 @@ public class Manager extends AbstractServer
             + " initialized prior to the Manager finishing upgrades. Please save"
             + " all logs and file a bug.");
       }
-      upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(this, getContext(), nextEvent);
+      upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(getContext(), nextEvent);
     }
   }
 

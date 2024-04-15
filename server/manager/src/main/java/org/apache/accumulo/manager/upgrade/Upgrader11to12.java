@@ -46,7 +46,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ex
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -71,9 +70,8 @@ public class Upgrader11to12 implements Upgrader {
       Set.of(DataFileColumnFamily.NAME, CHOPPED, ExternalCompactionColumnFamily.NAME);
 
   @Override
-  public void upgradeZookeeper(@NonNull final Manager manager) {
+  public void upgradeZookeeper(@NonNull final ServerContext context) {
     log.debug("Upgrade ZooKeeper: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
-    final ServerContext context = manager.getContext();
     var rootBase = ZooUtil.getRoot(context.getInstanceID()) + ZROOT_TABLET;
 
     try {
@@ -115,18 +113,16 @@ public class Upgrader11to12 implements Upgrader {
   }
 
   @Override
-  public void upgradeRoot(@NonNull final Manager manager) {
+  public void upgradeRoot(@NonNull final ServerContext context) {
     log.debug("Upgrade root: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var rootName = Ample.DataLevel.METADATA.metaTable();
-    final ServerContext context = manager.getContext();
     upgradeTabletsMetadata(context, rootName);
   }
 
   @Override
-  public void upgradeMetadata(@NonNull final Manager manager) {
+  public void upgradeMetadata(@NonNull final ServerContext context) {
     log.debug("Upgrade metadata: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var metaName = Ample.DataLevel.USER.metaTable();
-    final ServerContext context = manager.getContext();
     upgradeTabletsMetadata(context, metaName);
   }
 

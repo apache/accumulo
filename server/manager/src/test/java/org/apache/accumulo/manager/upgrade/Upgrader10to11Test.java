@@ -41,7 +41,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStore;
@@ -58,7 +57,6 @@ class Upgrader10to11Test {
   private InstanceId instanceId = null;
   private ServerContext context = null;
   private ZooReaderWriter zrw = null;
-  private Manager manager = null;
   private PropStore propStore = null;
 
   @BeforeEach
@@ -67,9 +65,7 @@ class Upgrader10to11Test {
     context = createMock(ServerContext.class);
     zrw = createMock(ZooReaderWriter.class);
     propStore = createMock(PropStore.class);
-    manager = createMock(Manager.class);
 
-    expect(manager.getContext()).andReturn(context).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
   }
@@ -87,24 +83,24 @@ class Upgrader10to11Test {
     expect(propStore.get(TablePropKey.of(instanceId, AccumuloTable.METADATA.tableId())))
         .andReturn(new VersionedProperties()).once();
 
-    replay(context, zrw, propStore, manager);
+    replay(context, zrw, propStore);
 
     Upgrader10to11 upgrader = new Upgrader10to11();
-    upgrader.upgradeZookeeper(manager);
+    upgrader.upgradeZookeeper(context);
 
-    verify(context, zrw, manager);
+    verify(context, zrw);
   }
 
   @Test
   void upgradeZookeeperNoReplTableNode() throws Exception {
 
     expect(zrw.exists(buildRepTablePath(instanceId))).andReturn(false).once();
-    replay(context, zrw, manager);
+    replay(context, zrw);
 
     Upgrader10to11 upgrader = new Upgrader10to11();
-    upgrader.upgradeZookeeper(manager);
+    upgrader.upgradeZookeeper(context);
 
-    verify(context, zrw, manager);
+    verify(context, zrw);
   }
 
   @Test
@@ -119,13 +115,13 @@ class Upgrader10to11Test {
     expect(propStore.get(TablePropKey.of(instanceId, AccumuloTable.METADATA.tableId())))
         .andReturn(new VersionedProperties()).once();
 
-    replay(context, zrw, propStore, manager);
+    replay(context, zrw, propStore);
 
     Upgrader10to11 upgrader = new Upgrader10to11();
 
-    upgrader.upgradeZookeeper(manager);
+    upgrader.upgradeZookeeper(context);
 
-    verify(context, zrw, manager);
+    verify(context, zrw);
   }
 
   @Test
@@ -133,12 +129,12 @@ class Upgrader10to11Test {
     expect(zrw.exists(buildRepTablePath(instanceId))).andReturn(true).once();
     expect(zrw.getData(buildRepTablePath(instanceId) + ZTABLE_STATE))
         .andReturn(TableState.ONLINE.name().getBytes(UTF_8)).anyTimes();
-    replay(context, zrw, manager);
+    replay(context, zrw);
 
     Upgrader10to11 upgrader = new Upgrader10to11();
-    assertThrows(IllegalStateException.class, () -> upgrader.upgradeZookeeper(manager));
+    assertThrows(IllegalStateException.class, () -> upgrader.upgradeZookeeper(context));
 
-    verify(context, zrw, manager);
+    verify(context, zrw);
   }
 
   @Test
@@ -146,12 +142,12 @@ class Upgrader10to11Test {
     expect(zrw.exists(buildRepTablePath(instanceId))).andReturn(true).once();
     expect(zrw.getData(buildRepTablePath(instanceId) + ZTABLE_STATE))
         .andThrow(new KeeperException.NoNodeException("force no node exception")).anyTimes();
-    replay(context, zrw, manager);
+    replay(context, zrw);
 
     Upgrader10to11 upgrader = new Upgrader10to11();
-    assertThrows(IllegalStateException.class, () -> upgrader.upgradeZookeeper(manager));
+    assertThrows(IllegalStateException.class, () -> upgrader.upgradeZookeeper(context));
 
-    verify(context, zrw, manager);
+    verify(context, zrw);
   }
 
   @Test
