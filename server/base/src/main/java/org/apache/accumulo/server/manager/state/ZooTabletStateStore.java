@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -37,7 +36,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -61,8 +59,8 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
   private final DataLevel level;
   private final ServerContext ctx;
 
-  ZooTabletStateStore(Supplier<ServiceLock> lock, DataLevel level, ServerContext context) {
-    super(context, lock);
+  ZooTabletStateStore(DataLevel level, ServerContext context) {
+    super(context);
     this.ctx = context;
     this.level = level;
   }

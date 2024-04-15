@@ -733,6 +733,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
     }
 
+    try {
+      this.getServerContext().setServiceLock(miniLock);
+    } catch (IllegalStateException e) {
+      // MiniAccumuloClusterImpl supports start being called more than once.
+      // Don't raise this error.
+    }
+
     verifyUp(iid);
 
     printProcessSummary();
@@ -983,6 +990,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         log.error("Error unlocking ServiceLock for MiniAccumuloClusterImpl", e);
       }
       miniLock = null;
+      this.getServerContext().clearServiceLock();
     }
     if (zk != null) {
       zk.close();
@@ -1132,7 +1140,4 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return config.getClientPropsFile().getAbsolutePath();
   }
 
-  public ServiceLock getMiniLock() {
-    return miniLock;
-  }
 }

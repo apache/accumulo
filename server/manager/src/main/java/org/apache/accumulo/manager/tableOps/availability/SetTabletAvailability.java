@@ -114,8 +114,7 @@ public class SetTabletAvailability extends ManagerRepo {
 
         LOG.debug("Setting tablet availability to {} requested for: {} ", tabletAvailability,
             tabletExtent);
-        mutator.mutateTablet(tabletExtent, manager.getManagerLock())
-            .putTabletAvailability(tabletAvailability).mutate();
+        mutator.mutateTablet(tabletExtent).putTabletAvailability(tabletAvailability).mutate();
       }
     }
     Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.READ);

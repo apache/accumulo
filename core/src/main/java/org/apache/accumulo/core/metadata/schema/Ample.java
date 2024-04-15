@@ -195,10 +195,8 @@ public interface Ample {
    *
    * @param extent Mutates a tablet that has this table id and end row. The prev end row is not
    *        considered or checked.
-   * @param lock ServiceLock of the Accumulo server that is attempting to persist table metadata
-   *        updates.
    */
-  default TabletMutator mutateTablet(KeyExtent extent, ServiceLock lock) {
+  default TabletMutator mutateTablet(KeyExtent extent) {
     throw new UnsupportedOperationException();
   }
 
@@ -283,7 +281,7 @@ public interface Ample {
    * may not be persisted.
    */
   public interface TabletsMutator extends AutoCloseable {
-    TabletMutator mutateTablet(KeyExtent extent, ServiceLock lock);
+    TabletMutator mutateTablet(KeyExtent extent);
 
     @Override
     void close();
@@ -322,7 +320,7 @@ public interface Ample {
      * @return A fluent interface to conditional mutating a tablet. Ensure you call
      *         {@link ConditionalTabletMutator#submit(RejectionHandler)} when finished.
      */
-    OperationRequirements mutateTablet(KeyExtent extent, ServiceLock lock);
+    OperationRequirements mutateTablet(KeyExtent extent);
 
     /**
      * Closing ensures that all mutations are processed and their results are reported.

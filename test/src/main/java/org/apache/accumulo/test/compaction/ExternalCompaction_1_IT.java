@@ -370,7 +370,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
             ReferencedTabletFile.of(tmpFile), "localhost:16789", CompactionKind.SYSTEM, (short) 10,
             CompactorGroupId.of(GROUP1), false, null);
 
-        mutator.mutateTablet(tabletMeta.getExtent(), getCluster().getMiniLock())
+        mutator.mutateTablet(tabletMeta.getExtent())
             .putExternalCompaction(allCids.get(tableId).get(i), cm).mutate();
       }
     }
@@ -659,13 +659,12 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // Split file in table1 into two files each fenced off by 100 rows for a total of 200
       splitFilesIntoRanges(getCluster().getServerContext(), table1,
           Set.of(new Range(new Text(row(100)), new Text(row(199))),
-              new Range(new Text(row(300)), new Text(row(399)))),
-          getCluster().getMiniLock());
+              new Range(new Text(row(300)), new Text(row(399)))));
       assertEquals(2, countFencedFiles(getCluster().getServerContext(), table1));
 
       // Fence file in table2 to 600 rows
       splitFilesIntoRanges(getCluster().getServerContext(), table2,
-          Set.of(new Range(new Text(row(200)), new Text(row(799)))), getCluster().getMiniLock());
+          Set.of(new Range(new Text(row(200)), new Text(row(799)))));
       assertEquals(1, countFencedFiles(getCluster().getServerContext(), table2));
 
       // Verify that a subset of the data is now seen after fencing

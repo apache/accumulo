@@ -364,7 +364,7 @@ public class NullTserver {
           Constants.DEFAULT_RESOURCE_GROUP_NAME);
       miniLock = new ServiceLock(zk, path, UUID.randomUUID());
       miniLock.lock(miniLockWatcher, sld);
-
+      context.setServiceLock(miniLock);
       HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 
       TableId tableId = context.getTableId(opts.tableName);
@@ -384,8 +384,7 @@ public class NullTserver {
       }
       // point them to this server
       final ServiceLock lock = miniLock;
-      TabletStateStore store =
-          TabletStateStore.getStoreForLevel(() -> lock, DataLevel.USER, context);
+      TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
       store.setLocations(assignments);
 
       while (true) {

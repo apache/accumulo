@@ -74,7 +74,6 @@ import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
@@ -133,10 +132,7 @@ public class MergeIT extends AccumuloClusterHarness {
               "file:///accumulo/tables/1/" + tabletMeta.getDirName() + "/F" + fc++ + ".rf"));
           DataFileValue dfv1 = new DataFileValue(4200, 42);
           DataFileValue dfv2 = new DataFileValue(4200, 42);
-          mutator
-              .mutateTablet(tabletMeta.getExtent(),
-                  ((MiniAccumuloClusterImpl) getCluster()).getMiniLock())
-              .putFile(f1, dfv1).putFile(f2, dfv2).mutate();
+          mutator.mutateTablet(tabletMeta.getExtent()).putFile(f1, dfv1).putFile(f2, dfv2).mutate();
         }
       }
       c.tableOperations().online(tableName, true);
@@ -693,8 +689,7 @@ public class MergeIT extends AccumuloClusterHarness {
       try (var tabletsMutator = getServerContext().getAmple().mutateTablets()) {
         for (var extent : List.of(new KeyExtent(tableId, split, null),
             new KeyExtent(tableId, null, split))) {
-          var tablet = tabletsMutator.mutateTablet(extent,
-              ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
+          var tablet = tabletsMutator.mutateTablet(extent);
           ExternalCompactionId ecid = ExternalCompactionId.generate(UUID.randomUUID());
           FateInstanceType type = FateInstanceType.fromTableId(tableId);
           FateId fateId = FateId.from(type, UUID.randomUUID());

@@ -82,18 +82,17 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   private boolean checkPrevEndRow = true;
 
   protected ConditionalTabletMutatorImpl(Ample.ConditionalTabletsMutator parent,
-      ServerContext context, ServiceLock lock, KeyExtent extent,
-      Consumer<ConditionalMutation> mutationConsumer,
+      ServerContext context, KeyExtent extent, Consumer<ConditionalMutation> mutationConsumer,
       BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer) {
     super(new ConditionalMutation(extent.toMetaRow()));
-    Objects.requireNonNull(lock);
     this.mutation = (ConditionalMutation) super.mutation;
     this.mutationConsumer = mutationConsumer;
     this.parent = parent;
     this.rejectionHandlerConsumer = rejectionHandlerConsumer;
     this.extent = extent;
     this.context = context;
-    this.lock = lock;
+    this.lock = this.context.getServiceLock();
+    Objects.requireNonNull(this.lock, "ServiceLock not set on ServerContext");
   }
 
   @Override

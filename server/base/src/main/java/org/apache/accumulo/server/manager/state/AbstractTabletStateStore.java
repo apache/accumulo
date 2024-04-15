@@ -22,11 +22,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Supplier;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
@@ -35,6 +32,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,22 +44,16 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
   private static final Logger LOG = LoggerFactory.getLogger(AbstractTabletStateStore.class);
 
   private final Ample ample;
-  private final Supplier<ServiceLock> lock;
 
-  protected AbstractTabletStateStore(ClientContext context, Supplier<ServiceLock> lock) {
+  protected AbstractTabletStateStore(ServerContext context) {
     this.ample = context.getAmple();
-    this.lock = lock;
-  }
-
-  protected ServiceLock getLock() {
-    return lock.get();
   }
 
   @Override
   public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (Assignment assignment : assignments) {
-        var conditionalMutator = tabletsMutator.mutateTablet(assignment.tablet, lock.get())
+        var conditionalMutator = tabletsMutator.mutateTablet(assignment.tablet)
             .requireLocation(TabletMetadata.Location.future(assignment.server))
             .putLocation(TabletMetadata.Location.current(assignment.server))
             .deleteLocation(TabletMetadata.Location.future(assignment.server)).deleteSuspension();
@@ -90,7 +82,7 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
       throws DistributedStoreException {
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (Assignment assignment : assignments) {
-        tabletsMutator.mutateTablet(assignment.tablet, lock.get()).requireAbsentOperation()
+        tabletsMutator.mutateTablet(assignment.tablet).requireAbsentOperation()
             .requireAbsentLocation().deleteSuspension()
             .putLocation(TabletMetadata.Location.future(assignment.server))
             .submit(tabletMetadata -> {
@@ -139,8 +131,8 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
           continue;
         }
 
-        var tabletMutator = tabletsMutator.mutateTablet(tm.getExtent(), lock.get())
-            .requireLocation(tm.getLocation());
+        var tabletMutator =
+            tabletsMutator.mutateTablet(tm.getExtent()).requireLocation(tm.getLocation());
 
         if (tm.hasCurrent()) {
 

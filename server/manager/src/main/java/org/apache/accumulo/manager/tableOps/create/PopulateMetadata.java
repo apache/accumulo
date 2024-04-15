@@ -83,7 +83,7 @@ class PopulateMetadata extends ManagerRepo {
       for (Text split : iter) {
         var extent = new KeyExtent(tableInfo.getTableId(), split, prevSplit);
 
-        var tabletMutator = tabletsMutator.mutateTablet(extent, lock);
+        var tabletMutator = tabletsMutator.mutateTablet(extent);
 
         String dirName = (split == null) ? ServerColumnFamily.DEFAULT_TABLET_DIR_NAME
             : data.get(split).toString();

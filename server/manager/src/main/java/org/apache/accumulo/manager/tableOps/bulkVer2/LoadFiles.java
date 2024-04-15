@@ -201,8 +201,8 @@ class LoadFiles extends ManagerRepo {
         });
 
         if (!filesToLoad.isEmpty()) {
-          var tabletMutator = conditionalMutator
-              .mutateTablet(tablet.getExtent(), manager.getManagerLock()).requireAbsentOperation();
+          var tabletMutator =
+              conditionalMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
 
           if (setTime) {
             tabletMutator.requireSame(tablet, LOADED, TIME, LOCATION);

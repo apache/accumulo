@@ -18,14 +18,11 @@
  */
 package org.apache.accumulo.server.metadata;
 
-import java.util.Objects;
-
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
@@ -68,12 +65,11 @@ public class TabletsMutatorImpl implements TabletsMutator {
   }
 
   @Override
-  public Ample.TabletMutator mutateTablet(KeyExtent extent, ServiceLock lock) {
-    Objects.requireNonNull(lock);
+  public Ample.TabletMutator mutateTablet(KeyExtent extent) {
     if (extent.isRootTablet()) {
-      return new RootTabletMutatorImpl(context, lock);
+      return new RootTabletMutatorImpl(context);
     } else {
-      return new TabletMutatorImpl(context, lock, extent, getWriter(extent.tableId()));
+      return new TabletMutatorImpl(context, extent, getWriter(extent.tableId()));
     }
   }
 

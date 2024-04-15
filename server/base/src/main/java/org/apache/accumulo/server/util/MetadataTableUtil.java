@@ -137,7 +137,7 @@ public class MetadataTableUtil {
   public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(FateId fateId,
       KeyExtent extent, Map<ReferencedTabletFile,DataFileValue> estSizes, MetadataTime time,
       ServerContext context, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent, zooLock);
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putTime(time);
 
     Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>(estSizes.size());

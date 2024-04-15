@@ -22,17 +22,16 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.util.Collection;
 import java.util.List;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.server.ServerContext;
 
 import com.google.common.base.Preconditions;
 
@@ -43,17 +42,16 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
   private final Ample ample;
   private final DataLevel level;
 
-  protected MetaDataStateStore(Supplier<ServiceLock> lock, DataLevel level, ClientContext context,
-      String targetTableName) {
-    super(context, lock);
+  protected MetaDataStateStore(DataLevel level, ServerContext context, String targetTableName) {
+    super(context);
     this.level = level;
     this.context = context;
     this.ample = context.getAmple();
     this.targetTableName = targetTableName;
   }
 
-  MetaDataStateStore(Supplier<ServiceLock> lock, DataLevel level, ClientContext context) {
-    this(lock, level, context, AccumuloTable.METADATA.tableName());
+  MetaDataStateStore(DataLevel level, ServerContext context) {
+    this(level, context, AccumuloTable.METADATA.tableName());
   }
 
   @Override
@@ -73,7 +71,7 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (TabletMetadata tm : tablets) {
         if (tm.getSuspend() != null) {
-          tabletsMutator.mutateTablet(tm.getExtent(), getLock()).requireAbsentOperation()
+          tabletsMutator.mutateTablet(tm.getExtent()).requireAbsentOperation()
               .requireSame(tm, SUSPEND).deleteSuspension()
               .submit(tabletMetadata -> tabletMetadata.getSuspend() == null);
         }

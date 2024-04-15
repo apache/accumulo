@@ -108,8 +108,7 @@ public class CleanUpBulkImport extends ManagerRepo {
           if (tablet.getLoaded().values().stream()
               .anyMatch(loadedFateId -> loadedFateId.equals(fateId))) {
             var tabletMutator =
-                tabletsMutator.mutateTablet(tablet.getExtent(), manager.getManagerLock())
-                    .requireAbsentOperation();
+                tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
             tablet.getLoaded().entrySet().stream().filter(entry -> entry.getValue().equals(fateId))
                 .map(Map.Entry::getKey).forEach(tabletMutator::deleteBulkFile);
             tabletMutator.submit(tm -> false);

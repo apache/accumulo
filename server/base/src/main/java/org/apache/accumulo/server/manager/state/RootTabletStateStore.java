@@ -19,21 +19,19 @@
 package org.apache.accumulo.server.manager.state;
 
 import java.util.List;
-import java.util.function.Supplier;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.server.ServerContext;
 
 import com.google.common.base.Preconditions;
 
 class RootTabletStateStore extends MetaDataStateStore {
 
-  RootTabletStateStore(Supplier<ServiceLock> lock, DataLevel level, ClientContext context) {
-    super(lock, level, context, AccumuloTable.ROOT.tableName());
+  RootTabletStateStore(DataLevel level, ServerContext context) {
+    super(level, context, AccumuloTable.ROOT.tableName());
   }
 
   @Override

@@ -465,12 +465,9 @@ public class Manager extends AbstractServer
 
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
 
-    this.rootTabletStore =
-        TabletStateStore.getStoreForLevel(() -> getManagerLock(), DataLevel.ROOT, context);
-    this.metadataTabletStore =
-        TabletStateStore.getStoreForLevel(() -> getManagerLock(), DataLevel.METADATA, context);
-    this.userTabletStore =
-        TabletStateStore.getStoreForLevel(() -> getManagerLock(), DataLevel.USER, context);
+    this.rootTabletStore = TabletStateStore.getStoreForLevel(DataLevel.ROOT, context);
+    this.metadataTabletStore = TabletStateStore.getStoreForLevel(DataLevel.METADATA, context);
+    this.userTabletStore = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
 
     authenticationTokenKeyManager = null;
     keyDistributor = null;
@@ -947,7 +944,7 @@ public class Manager extends AbstractServer
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator = new CompactionCoordinator(context, security, this, fateRefs);
+    compactionCoordinator = new CompactionCoordinator(context, security, fateRefs);
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =
@@ -975,6 +972,7 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
+    this.getContext().setServiceLock(getManagerLock());
 
     // If UpgradeStatus is not at complete by this moment, then things are currently
     // upgrading.

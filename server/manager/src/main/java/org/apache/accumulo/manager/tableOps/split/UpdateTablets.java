@@ -189,8 +189,7 @@ public class UpdateTablets extends ManagerRepo {
           continue;
         }
 
-        var mutator =
-            tabletsMutator.mutateTablet(newExtent, manager.getManagerLock()).requireAbsentTablet();
+        var mutator = tabletsMutator.mutateTablet(newExtent).requireAbsentTablet();
 
         mutator.putOperation(opid);
         mutator.putDirName(dirNameIter.next());
@@ -228,8 +227,8 @@ public class UpdateTablets extends ManagerRepo {
     try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
       var newExtent = newTablets.last();
 
-      var mutator = tabletsMutator.mutateTablet(splitInfo.getOriginal(), manager.getManagerLock())
-          .requireOperation(opid).requireAbsentLocation().requireAbsentLogs();
+      var mutator = tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireOperation(opid)
+          .requireAbsentLocation().requireAbsentLogs();
 
       Preconditions
           .checkArgument(Objects.equals(tabletMetadata.getExtent().endRow(), newExtent.endRow()));

@@ -564,7 +564,7 @@ public class VolumeIT extends ConfigurableMacBase {
       mutator.putFile(
           StoredTabletFile.of(file.getPath(), new Range(tabletMidPoint, tm.getExtent().endRow())),
           newValue);
-    }, getCluster().getMiniLock());
+    });
   }
 
   private static Text getTabletMidPoint(Text row) {

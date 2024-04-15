@@ -87,9 +87,8 @@ class FinishTableRangeOp extends ManagerRepo {
 
       for (var tabletMeta : tablets) {
         if (opid.equals(tabletMeta.getOperationId())) {
-          tabletsMutator.mutateTablet(tabletMeta.getExtent(), manager.getManagerLock())
-              .requireOperation(opid).deleteOperation()
-              .submit(tm -> !opid.equals(tm.getOperationId()));
+          tabletsMutator.mutateTablet(tabletMeta.getExtent()).requireOperation(opid)
+              .deleteOperation().submit(tm -> !opid.equals(tm.getOperationId()));
           submitted++;
         }
         count++;

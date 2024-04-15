@@ -98,6 +98,7 @@ public class ConditionalTabletsMutatorImplTest {
     LockID lid = EasyMock.createMock(LockID.class);
     EasyMock.expect(lock.getLockID()).andReturn(lid).anyTimes();
     EasyMock.expect(lid.serialize("/some/path/")).andReturn("/some/path/1234").anyTimes();
+    EasyMock.expect(context.getServiceLock()).andReturn(lock).anyTimes();
     EasyMock.replay(context, lock, lid);
 
     // this test checks the handling of conditional mutations that return a status of unknown and
@@ -141,16 +142,16 @@ public class ConditionalTabletsMutatorImplTest {
     try (var mutator = new TestConditionalTabletsMutator(context,
         List.of(statuses1::get, statuses2::get), failedExtents)) {
 
-      mutator.mutateTablet(ke1, lock).requireAbsentOperation().putDirName("dir1")
+      mutator.mutateTablet(ke1).requireAbsentOperation().putDirName("dir1")
           .submit(tmeta -> tmeta.getDirName().equals("dir1"));
 
-      mutator.mutateTablet(ke2, lock).requireAbsentOperation().putDirName("dir3")
+      mutator.mutateTablet(ke2).requireAbsentOperation().putDirName("dir3")
           .submit(tmeta -> tmeta.getDirName().equals("dir3"));
 
-      mutator.mutateTablet(ke3, lock).requireAbsentOperation().putDirName("dir4")
+      mutator.mutateTablet(ke3).requireAbsentOperation().putDirName("dir4")
           .submit(tmeta -> tmeta.getDirName().equals("dir4"));
 
-      mutator.mutateTablet(ke4, lock).requireAbsentOperation().putDirName("dir5").submit(tmeta -> {
+      mutator.mutateTablet(ke4).requireAbsentOperation().putDirName("dir5").submit(tmeta -> {
         throw new IllegalStateException();
       });
 

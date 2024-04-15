@@ -116,8 +116,8 @@ public class CommitCompaction extends ManagerRepo {
               "File already exists in tablet %s %s", newFile, tablet2.getFiles()));
 
       try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
-        var tabletMutator = tabletsMutator.mutateTablet(getExtent(), manager.getManagerLock())
-            .requireAbsentOperation().requireCompaction(ecid).requireSame(tablet, FILES, LOCATION);
+        var tabletMutator = tabletsMutator.mutateTablet(getExtent()).requireAbsentOperation()
+            .requireCompaction(ecid).requireSame(tablet, FILES, LOCATION);
 
         if (ecm.getKind() == CompactionKind.USER || ecm.getKind() == CompactionKind.SELECTOR) {
           tabletMutator.requireSame(tablet, SELECTED, COMPACTED);

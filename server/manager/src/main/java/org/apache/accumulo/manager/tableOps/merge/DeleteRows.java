@@ -93,9 +93,8 @@ public class DeleteRows extends ManagerRepo {
 
       for (var tabletMetadata : tabletsMetadata) {
         validateTablet(tabletMetadata, fateId, opid, data.tableId);
-        var tabletMutator =
-            tabletsMutator.mutateTablet(tabletMetadata.getExtent(), manager.getManagerLock())
-                .requireOperation(opid).requireAbsentLocation();
+        var tabletMutator = tabletsMutator.mutateTablet(tabletMetadata.getExtent())
+            .requireOperation(opid).requireAbsentLocation();
 
         Set<StoredTabletFile> filesToDelete = new HashSet<>();
         Map<StoredTabletFile,DataFileValue> filesToAddMap = new HashMap<>();

@@ -46,8 +46,9 @@ public class ZooTabletStateStoreTest {
     ServerContext context = MockServerContext.get();
     Ample ample = EasyMock.createMock(Ample.class);
     expect(context.getAmple()).andReturn(ample).anyTimes();
+    expect(context.getServiceLock()).andReturn(lock).anyTimes();
     EasyMock.replay(lock, context, ample);
-    ZooTabletStateStore tstore = new ZooTabletStateStore(() -> lock, DataLevel.ROOT, context);
+    ZooTabletStateStore tstore = new ZooTabletStateStore(DataLevel.ROOT, context);
 
     String sessionId = "this is my unique session data";
     TServerInstance server =

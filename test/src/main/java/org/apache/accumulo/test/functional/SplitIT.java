@@ -67,7 +67,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.test.TestIngest;
@@ -413,8 +412,7 @@ public class SplitIT extends AccumuloClusterHarness {
       var extent = new KeyExtent(tableId, null, null);
 
       // This column is not expected to be present
-      var tabletMutator = ctx.getAmple().mutateTablet(extent,
-          ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
+      var tabletMutator = ctx.getAmple().mutateTablet(extent);
       tabletMutator.setMerged();
       tabletMutator.mutate();
 
@@ -444,8 +442,7 @@ public class SplitIT extends AccumuloClusterHarness {
       assertEquals(original, kvCopy);
 
       // remove the offending columns
-      tabletMutator = ctx.getAmple().mutateTablet(extent,
-          ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
+      tabletMutator = ctx.getAmple().mutateTablet(extent);
       tabletMutator.deleteMerged();
       tabletMutator.deleteOperation();
       tabletMutator.mutate();

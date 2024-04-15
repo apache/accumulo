@@ -45,7 +45,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
@@ -77,9 +76,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public Ample.TabletMutator mutateTablet(KeyExtent extent, ServiceLock lock) {
+  public Ample.TabletMutator mutateTablet(KeyExtent extent) {
     TabletsMutator tmi = mutateTablets();
-    Ample.TabletMutator tabletMutator = tmi.mutateTablet(extent, lock);
+    Ample.TabletMutator tabletMutator = tmi.mutateTablet(extent);
     ((TabletMutatorBase) tabletMutator).setCloseAfterMutate(tmi);
     return tabletMutator;
   }

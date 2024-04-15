@@ -34,13 +34,12 @@ class TabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
   private final ServiceLock lock;
   private final BatchWriter writer;
 
-  TabletMutatorImpl(ServerContext context, ServiceLock lock, KeyExtent extent,
-      BatchWriter batchWriter) {
+  TabletMutatorImpl(ServerContext context, KeyExtent extent, BatchWriter batchWriter) {
     super(extent);
-    Objects.requireNonNull(lock);
     this.context = context;
-    this.lock = lock;
+    this.lock = this.context.getServiceLock();
     this.writer = batchWriter;
+    Objects.requireNonNull(this.lock, "ServiceLock not set on ServerContext");
   }
 
   @Override

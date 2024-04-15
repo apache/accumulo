@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -35,7 +34,6 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.Retry;
@@ -69,9 +67,8 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   }
 
   @Override
-  public Ample.OperationRequirements mutateTablet(KeyExtent extent, ServiceLock lock) {
+  public Ample.OperationRequirements mutateTablet(KeyExtent extent) {
     Preconditions.checkState(active);
-    Objects.requireNonNull(lock);
 
     var dataLevel = Ample.DataLevel.of(extent.tableId());
 
@@ -84,7 +81,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
     Preconditions.checkState(extents.putIfAbsent(extent.toMetaRow(), extent) == null,
         "Duplicate extents not handled %s", extent);
-    return new ConditionalTabletMutatorImpl(this, context, lock, extent, mutations::add,
+    return new ConditionalTabletMutatorImpl(this, context, extent, mutations::add,
         rejectedHandlers::put);
   }
 

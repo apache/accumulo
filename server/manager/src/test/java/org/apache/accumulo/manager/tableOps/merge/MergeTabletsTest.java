@@ -416,7 +416,7 @@ public class MergeTabletsTest {
     ConditionalTabletMutatorImpl tabletMutator = EasyMock.mock(ConditionalTabletMutatorImpl.class);
 
     ServiceLock managerLock = EasyMock.mock(ServiceLock.class);
-    EasyMock.expect(manager.getManagerLock()).andReturn(managerLock).anyTimes();
+    EasyMock.expect(context.getServiceLock()).andReturn(managerLock).anyTimes();
 
     // setup reading the tablets
     EasyMock.expect(manager.getContext()).andReturn(context).atLeastOnce();
@@ -434,8 +434,7 @@ public class MergeTabletsTest {
 
     // setup writing the tablets
     EasyMock.expect(ample.conditionallyMutateTablets()).andReturn(tabletsMutator).once();
-    EasyMock.expect(tabletsMutator.mutateTablet(lastExtent, managerLock)).andReturn(tabletMutator)
-        .once();
+    EasyMock.expect(tabletsMutator.mutateTablet(lastExtent)).andReturn(tabletMutator).once();
     EasyMock.expect(tabletMutator.requireOperation(opid)).andReturn(tabletMutator).once();
     EasyMock.expect(tabletMutator.requireAbsentLocation()).andReturn(tabletMutator).once();
     EasyMock.expect(tabletMutator.requireAbsentLogs()).andReturn(tabletMutator).once();

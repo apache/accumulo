@@ -76,11 +76,11 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
     }
   }
 
-  RootTabletMutatorImpl(ServerContext context, ServiceLock lock) {
+  RootTabletMutatorImpl(ServerContext context) {
     super(RootTable.EXTENT);
-    Objects.requireNonNull(lock);
     this.context = context;
-    this.lock = lock;
+    this.lock = this.context.getServiceLock();
+    Objects.requireNonNull(this.lock, "ServiceLock not set on ServerContext");
   }
 
   @Override

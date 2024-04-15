@@ -49,7 +49,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.TestIngest;
@@ -144,8 +143,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
           final KeyExtent ke = tabletMetadata.getExtent();
 
           // Create a mutation to delete the existing file metadata entry with infinite range
-          TabletMutator mutator = ctx.getAmple().mutateTablet(ke,
-              ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
+          TabletMutator mutator = ctx.getAmple().mutateTablet(ke);
 
           // Read each of the 10 files referenced by the table, should be 1 per tablet
           for (Entry<StoredTabletFile,DataFileValue> fileEntry : tabletMetadata.getFilesMap()
@@ -224,8 +222,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
           final KeyExtent ke = tabletMetadata.getExtent();
 
           // Create a mutation to delete the existing file metadata entry with infinite range
-          TabletMutator mutator = ctx.getAmple().mutateTablet(ke,
-              ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
+          TabletMutator mutator = ctx.getAmple().mutateTablet(ke);
           mutator.deleteFile(file);
 
           // Add 3 ranges
@@ -316,8 +313,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
           final KeyExtent ke = tabletMetadata.getExtent();
 
           // Create a mutation to delete the existing file metadata entry with infinite range
-          TabletMutator mutator = ctx.getAmple().mutateTablet(ke,
-              ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
+          TabletMutator mutator = ctx.getAmple().mutateTablet(ke);
 
           // Read each of the 10 files referenced by the table, should be 1 per tablet
           for (Entry<StoredTabletFile,DataFileValue> fileEntry : tabletMetadata.getFilesMap()
@@ -400,8 +396,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
           final KeyExtent ke = tabletMetadata.getExtent();
 
           // Create a mutation to delete the existing file metadata entry with infinite range
-          TabletMutator mutator = ctx.getAmple().mutateTablet(ke,
-              ((MiniAccumuloClusterImpl) getCluster()).getMiniLock());
+          TabletMutator mutator = ctx.getAmple().mutateTablet(ke);
           mutator.deleteFile(file);
 
           // Add 3 ranges

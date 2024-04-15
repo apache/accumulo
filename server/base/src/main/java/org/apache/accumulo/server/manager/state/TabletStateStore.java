@@ -22,11 +22,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -96,43 +94,41 @@ public interface TabletStateStore {
    */
   void unsuspend(Collection<TabletMetadata> tablets) throws DistributedStoreException;
 
-  public static void unassign(Supplier<ServiceLock> lock, ServerContext context, TabletMetadata tm,
+  public static void unassign(ServerContext context, TabletMetadata tm,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
-    getStoreForTablet(lock, tm.getExtent(), context).unassign(Collections.singletonList(tm),
+    getStoreForTablet(tm.getExtent(), context).unassign(Collections.singletonList(tm),
         logsForDeadServers);
   }
 
-  public static void suspend(Supplier<ServiceLock> lock, ServerContext context, TabletMetadata tm,
+  public static void suspend(ServerContext context, TabletMetadata tm,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
-    getStoreForTablet(lock, tm.getExtent(), context).suspend(Collections.singletonList(tm),
+    getStoreForTablet(tm.getExtent(), context).suspend(Collections.singletonList(tm),
         logsForDeadServers, suspensionTimestamp);
   }
 
-  public static void setLocation(Supplier<ServiceLock> lock, ServerContext context,
-      Assignment assignment) throws DistributedStoreException {
-    getStoreForTablet(lock, assignment.tablet, context)
+  public static void setLocation(ServerContext context, Assignment assignment)
+      throws DistributedStoreException {
+    getStoreForTablet(assignment.tablet, context)
         .setLocations(Collections.singletonList(assignment));
   }
 
-  static TabletStateStore getStoreForTablet(Supplier<ServiceLock> lock, KeyExtent extent,
-      ServerContext context) {
-    return getStoreForLevel(lock, DataLevel.of(extent.tableId()), context);
+  static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context) {
+    return getStoreForLevel(DataLevel.of(extent.tableId()), context);
   }
 
-  public static TabletStateStore getStoreForLevel(Supplier<ServiceLock> lock, DataLevel level,
-      ServerContext context) {
+  public static TabletStateStore getStoreForLevel(DataLevel level, ServerContext context) {
 
     TabletStateStore tss;
     switch (level) {
       case ROOT:
-        tss = new ZooTabletStateStore(lock, level, context);
+        tss = new ZooTabletStateStore(level, context);
         break;
       case METADATA:
-        tss = new RootTabletStateStore(lock, level, context);
+        tss = new RootTabletStateStore(level, context);
         break;
       case USER:
-        tss = new MetaDataStateStore(lock, level, context);
+        tss = new MetaDataStateStore(level, context);
         break;
       default:
         throw new IllegalArgumentException("Unknown level " + level);

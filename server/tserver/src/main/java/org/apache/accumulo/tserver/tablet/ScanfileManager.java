@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -62,9 +61,9 @@ class ScanfileManager {
   }
 
   static void removeScanFiles(KeyExtent extent, Set<StoredTabletFile> scanFiles,
-      ServerContext context, Location currLocation, ServiceLock zooLock) {
+      ServerContext context, Location currLocation) {
     try (var mutator = context.getAmple().conditionallyMutateTablets()) {
-      var tabletMutator = mutator.mutateTablet(extent, zooLock).requireLocation(currLocation);
+      var tabletMutator = mutator.mutateTablet(extent).requireLocation(currLocation);
 
       scanFiles.forEach(tabletMutator::deleteScan);
 
@@ -137,8 +136,7 @@ class ScanfileManager {
         log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
 
         var currLoc = Location.current(tablet.getTabletServer().getTabletSession());
-        removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(), currLoc,
-            tablet.getTabletServer().getLock());
+        removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(), currLoc);
       }
     }
   }
@@ -162,8 +160,7 @@ class ScanfileManager {
 
     if (!filesToDelete.isEmpty()) {
       log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
-      removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(), location,
-          tablet.getTabletServer().getLock());
+      removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(), location);
     }
   }
 }

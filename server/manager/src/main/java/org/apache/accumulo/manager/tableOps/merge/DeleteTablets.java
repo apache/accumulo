@@ -88,9 +88,8 @@ public class DeleteTablets extends ManagerRepo {
       for (var tabletMeta : tabletsMetadata) {
         MergeTablets.validateTablet(tabletMeta, fateId, opid, data.tableId);
 
-        var tabletMutator =
-            tabletsMutator.mutateTablet(tabletMeta.getExtent(), manager.getManagerLock())
-                .requireOperation(opid).requireAbsentLocation().requireAbsentLogs();
+        var tabletMutator = tabletsMutator.mutateTablet(tabletMeta.getExtent())
+            .requireOperation(opid).requireAbsentLocation().requireAbsentLogs();
 
         // do not delete the last tablet
         if (Objects.equals(tabletMeta.getExtent().endRow(), lastEndRow)) {

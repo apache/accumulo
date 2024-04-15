@@ -88,7 +88,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   public void run() throws Exception {
 
     ServerContext c = getCluster().getServerContext();
-    ServiceLock zl = getCluster().getMiniLock();
+    ServiceLock zl = c.getServiceLock();
 
     // run test for a table with one tablet
     runSplitRecoveryTest(c, 0, "sp", 0, zl, nke("foo0", null, null));
@@ -132,7 +132,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       String dirName = "dir_" + i;
       String tdir =
           context.getTablesDirs().iterator().next() + "/" + extent.tableId() + "/" + dirName;
-      addTablet(extent, dirName, context, TimeType.LOGICAL, zl);
+      addTablet(extent, dirName, context, TimeType.LOGICAL);
       SortedMap<ReferencedTabletFile,DataFileValue> dataFiles = new TreeMap<>();
       dataFiles.put(new ReferencedTabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
           new DataFileValue(1000017 + i, 10000 + i));
@@ -195,8 +195,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());
     Assignment assignment = new Assignment(high, instance, null);
 
-    TabletMutator tabletMutator =
-        context.getAmple().mutateTablet(extent, getCluster().getMiniLock());
+    TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
     tabletMutator.putLocation(Location.future(assignment.server));
     tabletMutator.mutate();
 
@@ -335,9 +334,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     }
   }
 
-  public void addTablet(KeyExtent extent, String path, ServerContext context, TimeType timeType,
-      ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent, zooLock);
+  public void addTablet(KeyExtent extent, String path, ServerContext context, TimeType timeType) {
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.prevEndRow());
     tablet.putDirName(path);
     tablet.putTime(new MetadataTime(0, timeType));
@@ -350,7 +348,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       Map<FateId,? extends Collection<ReferencedTabletFile>> bulkLoadedFiles, MetadataTime time,
       long lastFlushID) {
 
-    TabletMutator tablet = context.getAmple().mutateTablet(extent, getCluster().getMiniLock());
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.prevEndRow());
     tablet.putDirName(dirName);
     tablet.putTime(time);

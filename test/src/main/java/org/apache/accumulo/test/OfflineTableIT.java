@@ -148,15 +148,13 @@ public class OfflineTableIT extends SharedMiniClusterBase {
         var cm = new CompactionMetadata(tabletMeta.getFiles(), ReferencedTabletFile.of(tmpFile),
             "localhost:16789", CompactionKind.SYSTEM, (short) 10, CompactorGroupId.of(GROUP1),
             false, null);
-        mutator.mutateTablet(tabletMeta.getExtent(), getCluster().getMiniLock())
-            .putExternalCompaction(ecid, cm).mutate();
+        mutator.mutateTablet(tabletMeta.getExtent()).putExternalCompaction(ecid, cm).mutate();
       }
 
       // test the ecomp prevents the wait for the offline() table operation from finishing
       // until the ecomp is deleted
-      testWaitForOffline(ctx, client, tableId, tableName,
-          mutator -> mutator.mutateTablet(tabletMeta.getExtent(), getCluster().getMiniLock())
-              .deleteExternalCompaction(ecid).mutate());
+      testWaitForOffline(ctx, client, tableId, tableName, mutator -> mutator
+          .mutateTablet(tabletMeta.getExtent()).deleteExternalCompaction(ecid).mutate());
     }
   }
 
@@ -172,7 +170,7 @@ public class OfflineTableIT extends SharedMiniClusterBase {
 
       // Insert a fake opid to prevent going offline
       try (var mutator = ctx.getAmple().mutateTablets()) {
-        mutator.mutateTablet(tabletMeta.getExtent(), getCluster().getMiniLock())
+        mutator.mutateTablet(tabletMeta.getExtent())
             .putOperation(TabletOperationId.from(TabletOperationType.SPLITTING,
                 FateId.from(FateInstanceType.META, UUID.randomUUID())))
             .mutate();
@@ -181,8 +179,7 @@ public class OfflineTableIT extends SharedMiniClusterBase {
       // test the opid prevents the wait for the offline() table operation from finishing
       // until the opid is deleted
       testWaitForOffline(ctx, client, tableId, tableName,
-          mutator -> mutator.mutateTablet(tabletMeta.getExtent(), getCluster().getMiniLock())
-              .deleteOperation().mutate());
+          mutator -> mutator.mutateTablet(tabletMeta.getExtent()).deleteOperation().mutate());
     }
   }
 
