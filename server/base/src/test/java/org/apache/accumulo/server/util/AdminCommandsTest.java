@@ -84,4 +84,11 @@ public class AdminCommandsTest {
     Admin.AdminOpts opts = new Admin.AdminOpts();
     assertFalse(opts.force);
   }
+
+  @Test
+  public void testFindCompactionTmpFilesCommand() {
+    Admin.FindCompactionTmpFilesCommand filesCommand = new Admin.FindCompactionTmpFilesCommand();
+    assertNull(filesCommand.tables);
+    assertFalse(filesCommand.delete);
+  }
 }
