@@ -84,12 +84,12 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
-  private static NanoTime lastCompactorCheck = NanoTime.now();
-
   private final GCStatus status =
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
+
+  private NanoTime lastCompactorCheck = NanoTime.now();
 
   SimpleGarbageCollector(ConfigOpts opts, String[] args) {
     super("gc", opts, args);
