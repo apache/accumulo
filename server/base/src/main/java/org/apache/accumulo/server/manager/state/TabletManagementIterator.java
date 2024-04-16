@@ -76,8 +76,8 @@ public class TabletManagementIterator extends SkippingIterator {
         .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
     final long maxEndRowSize = ConfigurationTypeHelper
         .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_MAX_END_ROW_SIZE.getKey()));
-    final int maxFilesToOpen = (int) ConfigurationTypeHelper.getFixedMemoryAsBytes(
-        tableConfig.get(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN.getKey()));
+    final int maxFilesToOpen = (int) ConfigurationTypeHelper
+        .getFixedMemoryAsBytes(tableConfig.get(Property.SPLIT_MAXOPEN.getKey()));
 
     // If the current computed metadata matches the current marker then we can't split,
     // so we return false. If the marker is set but doesn't match then return true
@@ -217,7 +217,11 @@ public class TabletManagementIterator extends SkippingIterator {
           // can pull this K,V pair from the results by looking at the colf.
           TabletManagement.addActions(decodedRow, actions);
         }
-        topKey = decodedRow.firstKey();
+
+        // This key is being created exactly the same way as the whole row iterator creates keys.
+        // This is important for ensuring that seek works as expected in the continue case. See
+        // WholeRowIterator seek function for details, it looks for keys w/o columns.
+        topKey = new Key(decodedRow.firstKey().getRow());
         topValue = WholeRowIterator.encodeRow(new ArrayList<>(decodedRow.keySet()),
             new ArrayList<>(decodedRow.values()));
         LOG.trace("Returning extent {} with reasons: {}", tm.getExtent(), actions);

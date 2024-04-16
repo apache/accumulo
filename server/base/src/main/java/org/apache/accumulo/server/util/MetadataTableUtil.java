@@ -31,14 +31,12 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
@@ -153,14 +151,6 @@ public class MetadataTableUtil {
     return newFiles;
   }
 
-  public static void removeScanFiles(KeyExtent extent, Set<StoredTabletFile> scanFiles,
-      ServerContext context, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    scanFiles.forEach(tablet::deleteScan);
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-    tablet.mutate();
-  }
-
   public static void deleteTable(TableId tableId, boolean insertDeletes, ServerContext context,
       ServiceLock lock) throws AccumuloException {
     try (
@@ -242,14 +232,6 @@ public class MetadataTableUtil {
     tablet.getFilesMap().forEach(sizes::put);
 
     return new Pair<>(result, sizes);
-  }
-
-  public static void removeUnusedWALEntries(ServerContext context, KeyExtent extent,
-      final Collection<LogEntry> entries, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    entries.forEach(tablet::deleteWal);
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-    tablet.mutate();
   }
 
   private static Mutation createCloneMutation(TableId srcTableId, TableId tableId,
