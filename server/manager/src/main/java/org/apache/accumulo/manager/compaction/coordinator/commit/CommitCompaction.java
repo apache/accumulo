@@ -49,6 +49,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,7 +79,7 @@ public class CommitCompaction extends ManagerRepo {
     // process died and now its running again. In this case commit should do nothing, but its
     // important to still carry on with the rest of the steps after commit. This code ignores a that
     // fact that a commit may not have happened in the current call and continues for this reason.
-    TabletMetadata tabletMetadata = commitCompaction(manager, ecid, newFile);
+    TabletMetadata tabletMetadata = commitCompaction(manager.getContext(), ecid, newFile);
 
     String loc = null;
     if (tabletMetadata != null && tabletMetadata.getLocation() != null) {
@@ -96,11 +97,11 @@ public class CommitCompaction extends ManagerRepo {
     return KeyExtent.fromThrift(commitData.textent);
   }
 
-  private TabletMetadata commitCompaction(Manager manager, ExternalCompactionId ecid,
+  private TabletMetadata commitCompaction(ServerContext ctx, ExternalCompactionId ecid,
       Optional<ReferencedTabletFile> newDatafile) {
 
-    var tablet = manager.getContext().getAmple().readTablet(getExtent(), ECOMP, SELECTED, LOCATION,
-        FILES, COMPACTED, OPID);
+    var tablet =
+        ctx.getAmple().readTablet(getExtent(), ECOMP, SELECTED, LOCATION, FILES, COMPACTED, OPID);
 
     Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
         .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(10)).backOffFactor(1.5)
@@ -115,7 +116,7 @@ public class CommitCompaction extends ManagerRepo {
           newFile -> Preconditions.checkState(!tablet2.getFiles().contains(newFile.insert()),
               "File already exists in tablet %s %s", newFile, tablet2.getFiles()));
 
-      try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+      try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
         var tabletMutator = tabletsMutator.mutateTablet(getExtent()).requireAbsentOperation()
             .requireCompaction(ecid).requireSame(tablet, FILES, LOCATION);
 

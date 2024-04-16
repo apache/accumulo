@@ -72,7 +72,7 @@ public class CleanUpBulkImport extends ManagerRepo {
 
     log.debug("{} removing the metadata table markers for loaded files in range {} {}", fateId,
         firstSplit, lastSplit);
-    removeBulkLoadEntries(manager, ample, info.tableId, fateId, firstSplit, lastSplit);
+    removeBulkLoadEntries(ample, info.tableId, fateId, firstSplit, lastSplit);
 
     Utils.unreserveHdfsDirectory(manager, info.sourceDir, fateId);
     Utils.getReadLock(manager, info.tableId, fateId).unlock();
@@ -91,8 +91,8 @@ public class CleanUpBulkImport extends ManagerRepo {
     return null;
   }
 
-  private static void removeBulkLoadEntries(Manager manager, Ample ample, TableId tableId,
-      FateId fateId, Text firstSplit, Text lastSplit) {
+  private static void removeBulkLoadEntries(Ample ample, TableId tableId, FateId fateId,
+      Text firstSplit, Text lastSplit) {
 
     Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
         .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(1)).backOffFactor(1.5)
