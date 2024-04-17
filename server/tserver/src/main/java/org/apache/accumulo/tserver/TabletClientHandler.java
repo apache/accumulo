@@ -1099,7 +1099,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     Map<KeyExtent,Tablet.RefreshSession> refreshSessions = new HashMap<>();
 
-    // Created this as synchronized list because it passed to a lambda that could possibly run in
+    // Created this as synchronized list because it's passed to a lambda that could possibly run in
     // another thread.
     List<TKeyExtent> unableToRefresh = Collections.synchronizedList(new ArrayList<>());
 
