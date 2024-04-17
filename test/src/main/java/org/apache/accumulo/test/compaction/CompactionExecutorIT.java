@@ -323,6 +323,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testTooManyDeletes() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       Map<String,

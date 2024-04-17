@@ -65,6 +65,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
+import org.apache.accumulo.core.util.compaction.DeprecatedCompactionKind;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionStats;
@@ -232,11 +233,13 @@ public class CompactableImpl implements Compactable {
 
     boolean initiateSelection(CompactionKind kind) {
 
-      Preconditions.checkArgument(kind == CompactionKind.SELECTOR || kind == CompactionKind.USER);
+      Preconditions
+          .checkArgument(kind == DeprecatedCompactionKind.SELECTOR || kind == CompactionKind.USER);
 
-      if (selectStatus == FileSelectionStatus.NOT_ACTIVE || (kind == CompactionKind.USER
-          && selectKind == CompactionKind.SELECTOR && noneRunning(CompactionKind.SELECTOR)
-          && selectStatus != FileSelectionStatus.SELECTING)) {
+      if (selectStatus == FileSelectionStatus.NOT_ACTIVE
+          || (kind == CompactionKind.USER && selectKind == DeprecatedCompactionKind.SELECTOR
+              && noneRunning(DeprecatedCompactionKind.SELECTOR)
+              && selectStatus != FileSelectionStatus.SELECTING)) {
         selectStatus = FileSelectionStatus.NEW;
         selectKind = kind;
         selectedFiles.clear();
@@ -299,6 +302,7 @@ public class CompactableImpl implements Compactable {
     /**
      * @return The set of tablet files that are candidates for compaction
      */
+    @SuppressWarnings("deprecation")
     Set<StoredTabletFile> getCandidates(Set<StoredTabletFile> currFiles, CompactionKind kind) {
 
       if (!currFiles.containsAll(allCompactingFiles)) {
@@ -411,7 +415,8 @@ public class CompactableImpl implements Compactable {
           return false;
         case SELECTED:
         case RESERVED: {
-          if (job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR) {
+          if (job.getKind() == CompactionKind.USER
+              || job.getKind() == DeprecatedCompactionKind.SELECTOR) {
             if (selectKind == job.getKind()) {
               if (!selectedFiles.containsAll(jobFiles)) {
                 log.trace("Ignoring {} compaction that does not contain selected files {} {} {}",
@@ -433,7 +438,8 @@ public class CompactableImpl implements Compactable {
         }
         case CANCELED:
         case NOT_ACTIVE: {
-          if (job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR) {
+          if (job.getKind() == CompactionKind.USER
+              || job.getKind() == DeprecatedCompactionKind.SELECTOR) {
             log.trace("Ignoring {} compaction because selectStatus is {} for {}", job.getKind(),
                 selectStatus, getExtent());
             return false;
@@ -470,16 +476,16 @@ public class CompactableImpl implements Compactable {
       Preconditions.checkArgument(!jobFiles.isEmpty());
       Preconditions.checkState(allCompactingFiles.removeAll(jobFiles));
 
-      if (successful
-          && (job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR)) {
+      if (successful && (job.getKind() == CompactionKind.USER
+          || job.getKind() == DeprecatedCompactionKind.SELECTOR)) {
         selectedCompactionCompleted(job, jobFiles, newFile);
       }
     }
 
     private void selectedCompactionCompleted(CompactionJob job, Set<StoredTabletFile> jobFiles,
         Optional<StoredTabletFile> newFile) {
-      Preconditions.checkArgument(
-          job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR);
+      Preconditions.checkArgument(job.getKind() == CompactionKind.USER
+          || job.getKind() == DeprecatedCompactionKind.SELECTOR);
       Preconditions.checkState(selectedFiles.containsAll(jobFiles));
       Preconditions.checkState((selectStatus == FileSelectionStatus.RESERVED
           || selectStatus == FileSelectionStatus.CANCELED) && selectKind == job.getKind());
@@ -536,7 +542,7 @@ public class CompactableImpl implements Compactable {
             tabletCompactionId.get().orElseThrow().getSecond());
         this.compactionConfig = tabletCompactionId.get().orElseThrow().getSecond();
         this.compactionId = tabletCompactionId.get().orElseThrow().getFirst();
-      } else if (extSelInfo.orElseThrow().selectKind == CompactionKind.SELECTOR) {
+      } else if (extSelInfo.orElseThrow().selectKind == DeprecatedCompactionKind.SELECTOR) {
         this.chelper =
             CompactableUtils.getHelper(extSelInfo.orElseThrow().selectKind, tablet, null, null);
       }
@@ -636,11 +642,11 @@ public class CompactableImpl implements Compactable {
   }
 
   private void initiateSelection(CompactionKind kind) {
-    if (kind != CompactionKind.SELECTOR) {
+    if (kind != DeprecatedCompactionKind.SELECTOR) {
       return;
     }
 
-    initiateSelection(CompactionKind.SELECTOR, null, null);
+    initiateSelection(DeprecatedCompactionKind.SELECTOR, null, null);
   }
 
   private void checkIfUserCompactionCanceled() {
@@ -721,7 +727,8 @@ public class CompactableImpl implements Compactable {
     for (Entry<ExternalCompactionId,ExternalCompactionMetadata> entry : extCompactions.entrySet()) {
       var ecMeta = entry.getValue();
 
-      if (ecMeta.getKind() != CompactionKind.USER && ecMeta.getKind() != CompactionKind.SELECTOR) {
+      if (ecMeta.getKind() != CompactionKind.USER
+          && ecMeta.getKind() != DeprecatedCompactionKind.SELECTOR) {
         continue;
       }
 
@@ -800,7 +807,7 @@ public class CompactableImpl implements Compactable {
       String reason = reasons.toString();
       extCompactions.entrySet().stream().filter(e -> {
         var kind = e.getValue().getKind();
-        return kind == CompactionKind.SELECTOR || kind == CompactionKind.USER;
+        return kind == DeprecatedCompactionKind.SELECTOR || kind == CompactionKind.USER;
       }).map(Entry::getKey).forEach(ecid -> externalCompactionsToRemove.putIfAbsent(ecid, reason));
       return Optional.empty();
     }
@@ -814,7 +821,8 @@ public class CompactableImpl implements Compactable {
 
   private void initiateSelection(CompactionKind kind, Long compactionId,
       CompactionConfig compactionConfig) {
-    Preconditions.checkArgument(kind == CompactionKind.USER || kind == CompactionKind.SELECTOR);
+    Preconditions
+        .checkArgument(kind == CompactionKind.USER || kind == DeprecatedCompactionKind.SELECTOR);
 
     var localHelper = CompactableUtils.getHelper(kind, tablet, compactionId, compactionConfig);
 
@@ -975,6 +983,7 @@ public class CompactableImpl implements Compactable {
    * that things have changed and there is no longer anything to do for the job. In this case
    * Optional.empty() is returned.
    */
+  @SuppressWarnings("deprecation")
   private Optional<CompactionInfo> reserveFilesForCompaction(CompactionServiceId service,
       CompactionJob job) {
     CompactionInfo cInfo = new CompactionInfo();
