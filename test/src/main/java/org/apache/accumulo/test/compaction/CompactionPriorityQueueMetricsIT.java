@@ -411,8 +411,11 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     thread.join();
   }
 
+  /**
+   * Test that the compaction queue is cleared when compactions no longer need to happen.
+   */
   @Test
-  public void newTest() throws Exception {
+  public void testCompactionQueueClearedWhenNotNeeded() throws Exception {
 
     // Metrics collector Thread setup
     final LinkedBlockingQueue<TestStatsDSink.Metric> queueMetrics = new LinkedBlockingQueue<>();
@@ -452,49 +455,44 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
         // Get each tablet's file sizes
         for (TabletMetadata tablet : tm) {
           long fileSize = tablet.getFiles().size();
-          log.info("Number of files in tablet {}: {}", tablet.getExtent().toString(), fileSize);
+          log.debug("Number of files in tablet {}: {}", tablet.getExtent().toString(), fileSize);
         }
       }
       verifyData(c, tableName, 0, 100 * 100 - 1, false);
     }
 
-    boolean sawMetricsQ1 = false;
-    while (!sawMetricsQ1) {
+    final int sleepMillis = 3500; // Current poll rate of the TestStatsDRegistryFactory is 3 seconds
+
+    Wait.waitFor(() -> {
       while (!queueMetrics.isEmpty()) {
         var qm = queueMetrics.take();
         if (qm.getName().contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED)
             && qm.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
           if (Integer.parseInt(qm.getValue()) > 0) {
-            sawMetricsQ1 = true;
+            return true;
           }
         }
       }
-      // Current poll rate of the TestStatsDRegistryFactory is 3 seconds
-      // If metrics are not found in the queue, sleep until the next poll.
-      UtilWaitThread.sleep(3500);
-    }
+      return false;
+    }, 60_000, sleepMillis, "did not see Q1 metrics");
 
-    int queueSize = 0;
-    boolean sawQueues = false;
-
-    // An empty queue means that the last known value is the most recent.
-    while (!queueMetrics.isEmpty()) {
-      var metric = queueMetrics.take();
-      if (metric.getName().contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH)
-          && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
-        queueSize = Integer.parseInt(metric.getValue());
-      } else if (metric.getName().contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUES)) {
-        sawQueues = true;
-      } else {
-        log.debug("{}", metric);
+    Wait.waitFor(() -> {
+      int queueSize = 0;
+      boolean sawQueues = false;
+      while (!queueMetrics.isEmpty()) {
+        var metric = queueMetrics.take();
+        if (metric.getName().contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH)
+            && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
+          queueSize = Integer.parseInt(metric.getValue());
+        } else if (metric.getName()
+            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUES)) {
+          sawQueues = true;
+        } else {
+          log.debug("{}", metric);
+        }
       }
-    }
-
-    // Multiple Queues have been created
-    assertTrue(sawQueues);
-
-    // Queue size matches the intended queue size
-    assertEquals(QUEUE1_SIZE, queueSize);
+      return queueSize == QUEUE1_SIZE && sawQueues;
+    }, 60_000, sleepMillis, "did not see the expected number of queued compactions");
 
     // change compactor settings so that compactions no longer need to run
     context.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "2000");
@@ -529,7 +527,8 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       log.info("Queue size: {} Jobs Queued: {} Jobs Dequeued: {} Jobs Rejected: {}", queueLength,
           jobsQueued, dequeued, rejected);
       return jobsQueued == 0;
-    }, 120_000, 3500, "Queue did not clear in time");
+    }, 60_000, sleepMillis,
+        "expected job queue to be cleared once compactions no longer need to happen");
   }
 
 }
