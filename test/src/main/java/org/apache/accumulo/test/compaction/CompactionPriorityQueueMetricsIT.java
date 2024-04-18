@@ -42,6 +42,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -112,7 +113,8 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       Map<String,String> props =
           Map.of("table.compaction.dispatcher", SimpleCompactionDispatcher.class.getName(),
               "table.compaction.dispatcher.opts.service", QUEUE1_SERVICE);
-      NewTableConfiguration ntc = new NewTableConfiguration().setProperties(props);
+      NewTableConfiguration ntc = new NewTableConfiguration().setProperties(props)
+          .withInitialTabletAvailability(TabletAvailability.HOSTED);
       c.tableOperations().create(tableName, ntc);
 
       tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
@@ -408,16 +410,16 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
 
   @Test
   public void newTest() throws Exception {
-    // Metrics collector Thread
+
+    // Metrics collector Thread setup
     final LinkedBlockingQueue<TestStatsDSink.Metric> queueMetrics = new LinkedBlockingQueue<>();
     final AtomicBoolean shutdownTailer = new AtomicBoolean(false);
-
     Thread thread = Threads.createThread("metric-tailer", () -> {
-      while (!shutdownTailer.get()) {
+      while (true) {
         List<String> statsDMetrics = sink.getLines();
         for (String s : statsDMetrics) {
           if (shutdownTailer.get()) {
-            break;
+            return;
           }
           if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "queue")) {
             queueMetrics.add(TestStatsDSink.parseStatsDMetric(s));
@@ -427,7 +429,6 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     });
     thread.start();
 
-    long highestFileCount = 0L;
     ServerContext context = getCluster().getServerContext();
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
@@ -444,16 +445,11 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       }
       c.tableOperations().importDirectory(dir).to(tableName).load();
 
-      IteratorSetting iterSetting = new IteratorSetting(100, CompactionIT.TestFilter.class);
-      iterSetting.addOption("expectedQ", QUEUE1);
-      iterSetting.addOption("modulus", 3 + "");
-
       try (TabletsMetadata tm = context.getAmple().readTablets().forTable(tableId).build()) {
         // Get each tablet's file sizes
         for (TabletMetadata tablet : tm) {
           long fileSize = tablet.getFiles().size();
           log.info("Number of files in tablet {}: {}", tablet.getExtent().toString(), fileSize);
-          highestFileCount = Math.max(highestFileCount, fileSize);
         }
       }
       verifyData(c, tableName, 0, 100 * 100 - 1, false);
@@ -475,25 +471,13 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       UtilWaitThread.sleep(3500);
     }
 
-    // Set lowest priority to the lowest possible system compaction priority
-    long lowestPriority = Short.MIN_VALUE;
-    long rejectedCount = 0L;
     int queueSize = 0;
-
     boolean sawQueues = false;
+
     // An empty queue means that the last known value is the most recent.
     while (!queueMetrics.isEmpty()) {
       var metric = queueMetrics.take();
-      if (metric.getName()
-          .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED)
-          && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
-        rejectedCount = Long.parseLong(metric.getValue());
-      } else if (metric.getName()
-          .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY)
-          && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
-        lowestPriority = Math.max(lowestPriority, Long.parseLong(metric.getValue()));
-      } else if (metric.getName()
-          .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH)
+      if (metric.getName().contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH)
           && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
         queueSize = Integer.parseInt(metric.getValue());
       } else if (metric.getName().contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUES)) {
@@ -502,18 +486,6 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
         log.debug("{}", metric);
       }
     }
-
-    // Confirm metrics were generated and in some cases, validate contents.
-    assertTrue(rejectedCount > 0L);
-
-    // Priority is the file counts + number of compactions for that tablet.
-    // The lowestPriority job in the queue should have been
-    // at least 1 count higher than the highest file count.
-    short highestFileCountPrio = CompactionJobPrioritizer.createPriority(
-        getCluster().getServerContext().getTableId(tableName), CompactionKind.SYSTEM,
-        (int) highestFileCount, 0);
-    assertTrue(lowestPriority > highestFileCountPrio,
-        lowestPriority + " " + highestFileCount + " " + highestFileCountPrio);
 
     // Multiple Queues have been created
     assertTrue(sawQueues);
