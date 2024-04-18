@@ -447,9 +447,6 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       IteratorSetting iterSetting = new IteratorSetting(100, CompactionIT.TestFilter.class);
       iterSetting.addOption("expectedQ", QUEUE1);
       iterSetting.addOption("modulus", 3 + "");
-      CompactionConfig config =
-          new CompactionConfig().setIterators(List.of(iterSetting)).setWait(false);
-      c.tableOperations().compact(tableName, config);
 
       try (TabletsMetadata tm = context.getAmple().readTablets().forTable(tableId).build()) {
         // Get each tablet's file sizes
@@ -513,7 +510,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     // The lowestPriority job in the queue should have been
     // at least 1 count higher than the highest file count.
     short highestFileCountPrio = CompactionJobPrioritizer.createPriority(
-        getCluster().getServerContext().getTableId(tableName), CompactionKind.USER,
+        getCluster().getServerContext().getTableId(tableName), CompactionKind.SYSTEM,
         (int) highestFileCount, 0);
     assertTrue(lowestPriority > highestFileCountPrio,
         lowestPriority + " " + highestFileCount + " " + highestFileCountPrio);
