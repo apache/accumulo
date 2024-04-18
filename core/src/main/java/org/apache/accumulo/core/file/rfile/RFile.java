@@ -1562,14 +1562,6 @@ public class RFile {
       reader.setCacheProvider(cacheProvider);
     }
 
-    /**
-     * Returns an estimate of the number of entries that overlap the given extent. This is an
-     * estimate because the extent may or may not entirely overlap with each of the index entries
-     * included in the count. Will never underestimate but may overestimate.
-     *
-     * @param extent the key extent
-     * @return the estimate
-     */
     @Override
     public long estimateEntries(KeyExtent extent) throws IOException {
       long totalEntries = 0;
@@ -1592,6 +1584,7 @@ public class RFile {
             // info about the last key, but the extent may overlap but not with the last key.
             totalEntries += indexEntry.getNumEntries();
             prevEntryOverlapped = false;
+            break;
           }
         }
       }

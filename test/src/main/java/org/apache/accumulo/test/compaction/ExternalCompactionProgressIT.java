@@ -158,15 +158,14 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       log.info("Attaching a slow iterator to table " + tableName2);
       IteratorSetting setting = new IteratorSetting(50, "Slow", SlowIterator.class);
       SlowIterator.setSleepTime(setting, 1);
-      client.tableOperations().attachIterator(tableName2, setting,
-          EnumSet.of(IteratorUtil.IteratorScope.majc));
 
       log.info("Compacting table " + tableName2);
-      client.tableOperations().compact(tableName2, new CompactionConfig().setWait(true));
+      client.tableOperations().compact(tableName2,
+          new CompactionConfig().setWait(true).setIterators(List.of(setting)));
       log.info("Finished compacting table " + tableName2);
       compactionFinished.set(true);
 
-      System.out.println("Waiting on progress checker thread");
+      log.info("Waiting on progress checker thread");
       checkerThread.join();
 
       verifyProgress();

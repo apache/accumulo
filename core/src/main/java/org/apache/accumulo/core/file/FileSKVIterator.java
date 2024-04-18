@@ -34,6 +34,14 @@ public interface FileSKVIterator extends InterruptibleIterator, AutoCloseable {
 
   DataInputStream getMetaStore(String name) throws IOException, NoSuchMetaStoreException;
 
+  /**
+   * Returns an estimate of the number of entries that overlap the given extent. This is an estimate
+   * because the extent may or may not entirely overlap with each of the index entries included in
+   * the count. Will never underestimate but may overestimate.
+   *
+   * @param extent the key extent
+   * @return the estimate
+   */
   long estimateEntries(KeyExtent extent) throws IOException;
 
   FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig);
