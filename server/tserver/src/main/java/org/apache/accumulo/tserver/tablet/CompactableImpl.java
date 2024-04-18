@@ -1025,6 +1025,7 @@ public class CompactableImpl implements Compactable {
 
     synchronized (this) {
       if (closed) {
+        log.trace("Selection of files was not initiated {} because closed", getExtent());
         return;
       }
 
@@ -1035,6 +1036,14 @@ public class CompactableImpl implements Compactable {
         log.trace("Selected compaction status changed {} {} {} {}", getExtent(),
             fileMgr.getSelectionStatus(), compactionId, compactionConfig);
       } else {
+        if (kind == CompactionKind.USER) {
+          // Only log for user compaction because this code is only called when one is initiated via
+          // the API call. For other compaction kinds the tserver will keep periodically attempting
+          // to initiate which would result in lots of logs.
+          log.trace(
+              "Selection of files was not initiated {} compactionId:{} selectStatus:{} selectedFiles:{}",
+              getExtent(), this.compactionId, fileMgr.selectStatus, fileMgr.selectedFiles.size());
+        }
         return;
       }
     }
