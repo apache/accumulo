@@ -226,10 +226,10 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
       try {
-      client.instanceOperations().waitForBalance();
-      Wait.waitFor(() -> getCountOfHostedTablets(client, tableName) == 26);
-      ingest.join();
-      assertNull(error.get());
+        client.instanceOperations().waitForBalance();
+        Wait.waitFor(() -> getCountOfHostedTablets(client, tableName) == 26);
+        ingest.join();
+        assertNull(error.get());
 
       } finally {
         client.tableOperations().delete(tableName);
