@@ -69,7 +69,7 @@ public interface MetricsInfo {
     return Collections.unmodifiableList(tags);
   }
 
-  boolean metricsEnabled();
+  boolean isMetricsEnabled();
 
   /**
    * Convenience method to set the common tags for application (process), host and port.

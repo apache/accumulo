@@ -46,10 +46,9 @@ import io.micrometer.core.instrument.logging.LoggingRegistryConfig;
  * in the Accumulo configuration. The default is 60 sec.
  *
  */
-public class SimpleLoggingMeterRegistryFactory implements MeterRegistryFactory {
+public class LoggingMeterRegistryFactory implements MeterRegistryFactory {
 
-  private static final Logger LOG =
-      LoggerFactory.getLogger(SimpleLoggingMeterRegistryFactory.class);
+  private static final Logger LOG = LoggerFactory.getLogger(LoggingMeterRegistryFactory.class);
 
   // named logger that can be configured using standard logging properties.
   private static final Logger METRICS = LoggerFactory.getLogger("org.apache.accumulo.METRICS");
@@ -66,7 +65,7 @@ public class SimpleLoggingMeterRegistryFactory implements MeterRegistryFactory {
 
   private final AtomicBoolean initCalled = new AtomicBoolean(false);
 
-  public SimpleLoggingMeterRegistryFactory() {
+  public LoggingMeterRegistryFactory() {
     // needed for classloader
   }
 

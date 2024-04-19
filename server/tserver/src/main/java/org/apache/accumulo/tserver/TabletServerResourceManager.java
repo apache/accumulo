@@ -251,7 +251,7 @@ public class TabletServerResourceManager {
   public TabletServerResourceManager(ServerContext context, TabletHostingServer tserver) {
     this.context = context;
     final AccumuloConfiguration acuConf = context.getConfiguration();
-    final boolean enableMetrics = acuConf.getBoolean(Property.GENERAL_MICROMETER_ENABLED);
+    final boolean enableMetrics = context.getMetricsInfo().isMetricsEnabled(); // acuConf.getBoolean(Property.GENERAL_MICROMETER_ENABLED);
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
     boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
     if (usingNativeMap) {

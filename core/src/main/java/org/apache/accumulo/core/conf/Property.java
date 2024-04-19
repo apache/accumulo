@@ -303,7 +303,7 @@ public enum Property {
   GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
       PropertyType.BOOLEAN, "Enables JVM metrics functionality using Micrometer.", "2.1.0"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
-      "org.apache.accumulo.core.spi.metrics.SimpleLoggingMeterRegistryFactory",
+      "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory",
       PropertyType.CLASSNAMELIST,
       "A comma separated list of one or more class names that implements"
           + " org.apache.accumulo.core.spi.metrics.MeterRegistryFactory. Prior to"

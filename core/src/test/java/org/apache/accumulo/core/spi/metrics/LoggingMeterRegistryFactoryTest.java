@@ -27,11 +27,11 @@ import org.junit.jupiter.api.Test;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
-class SimpleLoggingMeterRegistryFactoryTest {
+class LoggingMeterRegistryFactoryTest {
 
   @Test
   public void createTest() {
-    SimpleLoggingMeterRegistryFactory factory = new SimpleLoggingMeterRegistryFactory();
+    LoggingMeterRegistryFactory factory = new LoggingMeterRegistryFactory();
     factory.init(new LoggingMetricsParams());
     var reg = factory.create();
     assertInstanceOf(MeterRegistry.class, reg);

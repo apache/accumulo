@@ -33,6 +33,19 @@ import io.micrometer.core.instrument.MeterRegistry;
  * Property.GENERAL_MICROMETER_ENABLED = true
  * <p>
  * Property.GENERAL_MICROMETER_FACTORY = [implementation].class.getName()
+ * <p>
+ * Properties can be passed in the Accumulo properties files using the prefix
+ * {@code general.custom.metrics.opts} for example. to set the polling rate used in the
+ * {@link org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory} to 10 seconds use
+ *
+ * <pre>
+ *     general.custom.metrics.opts.logging.step = 10s
+ * </pre>
+ *
+ * Classes that implement custom properties will need to take care to implement unique names for
+ * each factory, if multiple factories are used.
+ *
+ * @since 2.1.3
  */
 public interface MeterRegistryFactory {
   // full form in property file is "general.custom.metrics.opts"

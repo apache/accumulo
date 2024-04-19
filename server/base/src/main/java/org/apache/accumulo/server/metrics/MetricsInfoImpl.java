@@ -85,34 +85,32 @@ public class MetricsInfoImpl implements MetricsInfo {
 
   public MetricsInfoImpl(final ServerContext context) {
     this.context = context;
-    printMetricsConfig();
     metricsEnabled = context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_ENABLED);
+    printMetricsConfig();
     commonTags = new HashMap<>();
     Tag t = MetricsInfo.instanceNameTag(context.getInstanceName());
     commonTags.put(t.getKey(), t);
   }
 
   private void printMetricsConfig() {
-    final boolean micrometerEnabled =
-        context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_ENABLED);
     final boolean jvmMetricsEnabled =
         context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED);
-    LOG.info("micrometer metrics enabled: {}", micrometerEnabled);
+    LOG.info("micrometer metrics enabled: {}", metricsEnabled);
     if (jvmMetricsEnabled) {
-      if (micrometerEnabled) {
+      if (metricsEnabled) {
         LOG.info("detailed jvm metrics enabled: {}", jvmMetricsEnabled);
       } else {
         LOG.info("requested jvm metrics, but micrometer metrics are disabled.");
       }
     }
-    if (micrometerEnabled) {
+    if (metricsEnabled) {
       LOG.info("metrics registry factories: {}",
           context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY));
     }
   }
 
   @Override
-  public boolean metricsEnabled() {
+  public boolean isMetricsEnabled() {
     return metricsEnabled;
   }
 
@@ -176,6 +174,11 @@ public class MetricsInfoImpl implements MetricsInfo {
 
   @Override
   public void addMetricsProducers(MetricsProducer... producer) {
+    if (producer.length == 0) {
+      LOG.debug(
+          "called addMetricsProducers() without providing at least one producer - this has no effect");
+      return;
+    }
     lock.lock();
     try {
       if (composite == null) {
@@ -239,7 +242,7 @@ public class MetricsInfoImpl implements MetricsInfo {
         }
       };
 
-      if (metricsEnabled()) {
+      if (isMetricsEnabled()) {
         // user specified registries
         String userRegistryFactories =
             context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY);
@@ -257,11 +260,12 @@ public class MetricsInfoImpl implements MetricsInfo {
         }
       }
 
-      Metrics.globalRegistry.add(composite);
       pendingRegistries.forEach(registry -> composite.add(registry));
 
       LOG.info("Metrics initialization. Register producers: {}", producers);
       producers.forEach(p -> p.registerMetrics(composite));
+
+      Metrics.globalRegistry.add(composite);
 
     } finally {
       lock.unlock();

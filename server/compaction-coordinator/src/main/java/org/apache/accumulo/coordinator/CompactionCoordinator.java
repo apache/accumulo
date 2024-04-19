@@ -266,8 +266,6 @@ public class CompactionCoordinator extends AbstractServer
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addServiceTags(getApplicationName(), clientAddress);
-
-    metricsInfo.addMetricsProducers();
     metricsInfo.init();
 
     // On a re-start of the coordinator it's possible that external compactions are in-progress.
