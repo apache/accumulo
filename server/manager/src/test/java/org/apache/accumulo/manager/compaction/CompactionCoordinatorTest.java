@@ -429,7 +429,8 @@ public class CompactionCoordinatorTest {
     var cid1 = ExternalCompactionId.generate(UUID.randomUUID());
     var cid2 = ExternalCompactionId.generate(UUID.randomUUID());
 
-    var selected = new SelectedFiles(Set.of(file1, file2, file3), false, fateId1);
+    var selectedWithoutComp = new SelectedFiles(Set.of(file1, file2, file3), false, fateId1);
+    var selectedWithComp = new SelectedFiles(Set.of(file1, file2, file3), false, fateId1, 1);
 
     // should not be able to compact an offline table
     var tabletOffline = TabletMetadata.builder(new KeyExtent(tableId2, null, null))
@@ -478,32 +479,47 @@ public class CompactionCoordinatorTest {
     assertTrue(canReserveCompaction(tablet6, CompactionKind.SYSTEM, Set.of(file4), context));
 
     // create a tablet with a selected set of files
-    var selTablet = TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv)
-        .putFile(file3, dfv).putFile(file4, dfv).putSelectedFiles(selected)
+    var selTabletWithComp = TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv)
+        .putFile(file3, dfv).putFile(file4, dfv).putSelectedFiles(selectedWithComp)
         .build(OPID, USER_COMPACTION_REQUESTED, ECOMP);
+    // 0 completed jobs
+    var selTabletWithoutComp = TabletMetadata.builder(extent1).putFile(file1, dfv)
+        .putFile(file2, dfv).putFile(file3, dfv).putFile(file4, dfv)
+        .putSelectedFiles(selectedWithoutComp).build(OPID, USER_COMPACTION_REQUESTED, ECOMP);
+
+    // Should be able to start if no completed and overlap
+    assertTrue(canReserveCompaction(selTabletWithoutComp, CompactionKind.SYSTEM,
+        Set.of(file1, file2), context));
+    assertTrue(canReserveCompaction(selTabletWithoutComp, CompactionKind.SYSTEM,
+        Set.of(file3, file4), context));
+
     // should not be able to start a system compaction if the set of files overlaps with the
     // selected files
-    assertFalse(
-        canReserveCompaction(selTablet, CompactionKind.SYSTEM, Set.of(file1, file2), context));
-    assertFalse(
-        canReserveCompaction(selTablet, CompactionKind.SYSTEM, Set.of(file3, file4), context));
+    assertFalse(canReserveCompaction(selTabletWithComp, CompactionKind.SYSTEM, Set.of(file1, file2),
+        context));
+    assertFalse(canReserveCompaction(selTabletWithComp, CompactionKind.SYSTEM, Set.of(file3, file4),
+        context));
     // should be able to start a system compaction on the set of files not in the selected set
-    assertTrue(canReserveCompaction(selTablet, CompactionKind.SYSTEM, Set.of(file4), context));
-    // should be able to start user compactions on files that are selected
-    assertTrue(canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file1, file2), context));
-    assertTrue(canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file2, file3), context));
     assertTrue(
-        canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file1, file2, file3), context));
+        canReserveCompaction(selTabletWithComp, CompactionKind.SYSTEM, Set.of(file4), context));
+    // should be able to start user compactions on files that are selected
+    assertTrue(canReserveCompaction(selTabletWithComp, CompactionKind.USER, Set.of(file1, file2),
+        context));
+    assertTrue(canReserveCompaction(selTabletWithComp, CompactionKind.USER, Set.of(file2, file3),
+        context));
+    assertTrue(canReserveCompaction(selTabletWithComp, CompactionKind.USER,
+        Set.of(file1, file2, file3), context));
     // should not be able to start user compactions on files that fall outside of the selected set
+    assertFalse(canReserveCompaction(selTabletWithComp, CompactionKind.USER, Set.of(file1, file4),
+        context));
     assertFalse(
-        canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file1, file4), context));
-    assertFalse(canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file4), context));
-    assertFalse(canReserveCompaction(selTablet, CompactionKind.USER,
+        canReserveCompaction(selTabletWithComp, CompactionKind.USER, Set.of(file4), context));
+    assertFalse(canReserveCompaction(selTabletWithComp, CompactionKind.USER,
         Set.of(file1, file2, file3, file4), context));
 
     // test selected files and running compaction
     var selRunningTablet = TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv)
-        .putFile(file3, dfv).putFile(file4, dfv).putSelectedFiles(selected)
+        .putFile(file3, dfv).putFile(file4, dfv).putSelectedFiles(selectedWithComp)
         .putExternalCompaction(cid2, cm2).build(OPID, USER_COMPACTION_REQUESTED);
     // should be able to compact files that are in the selected set and not in the running set
     assertTrue(

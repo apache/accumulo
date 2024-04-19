@@ -241,17 +241,27 @@ class CompactionDriver extends ManagerRepo {
             noneSelected++;
           } else {
             var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED);
+                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED, USER_COMPACTION_REQUESTED);
             var selectedFiles =
                 new SelectedFiles(filesToCompact, tablet.getFiles().equals(filesToCompact), fateId);
 
             mutator.putSelectedFiles(selectedFiles);
 
+            // We no longer need to include this marker if files are selected
+            if (tablet.getUserCompactionsRequested().contains(fateId)) {
+              mutator.deleteUserCompactionRequested(fateId);
+            }
+
             selectionsSubmitted.put(tablet.getExtent(), filesToCompact);
 
+            // TODO: Do we need to handle a race condition for the rejection handler check
+            // where a compaction could run a job and increase the count of completed jobs
+            // if the submission went through and the status is unknown? Should we
+            // only check if the fateId and files match?
             mutator.submit(tabletMetadata -> tabletMetadata.getSelectedFiles() != null
                 && tabletMetadata.getSelectedFiles().getMetadataValue()
-                    .equals(selectedFiles.getMetadataValue()));
+                    .equals(selectedFiles.getMetadataValue())
+                && !tabletMetadata.getUserCompactionsRequested().contains(fateId));
 
             if (minSelected == null || tablet.getExtent().compareTo(minSelected) < 0) {
               minSelected = tablet.getExtent();

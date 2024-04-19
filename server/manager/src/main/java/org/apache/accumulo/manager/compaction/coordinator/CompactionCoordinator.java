@@ -456,7 +456,8 @@ public class CompactionCoordinator
               tablet.getExtent(), userRequestedCompactions);
           return false;
         } else if (tablet.getSelectedFiles() != null
-            && !Collections.disjoint(jobFiles, tablet.getSelectedFiles().getFiles())) {
+            && (tablet.getSelectedFiles().getCompletedJobs() > 0
+                && !Collections.disjoint(jobFiles, tablet.getSelectedFiles().getFiles()))) {
           return false;
         }
         break;
@@ -558,6 +559,15 @@ public class CompactionCoordinator
         // must be included in the requireSame call
         var tabletMutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
             .requireSame(tabletMetadata, FILES, SELECTED, ECOMP);
+
+        if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
+          var selectedFiles = tabletMetadata.getSelectedFiles();
+          if (selectedFiles != null && (selectedFiles.getCompletedJobs() == 0
+              && !Collections.disjoint(jobFiles, selectedFiles.getFiles()))) {
+            LOG.debug("Deleting user compaction selected files for {}", extent);
+            tabletMutator.deleteSelectedFiles();
+          }
+        }
 
         tabletMutator.putExternalCompaction(externalCompactionId, ecm);
         tabletMutator.submit(tm -> tm.getExternalCompactions().containsKey(externalCompactionId));

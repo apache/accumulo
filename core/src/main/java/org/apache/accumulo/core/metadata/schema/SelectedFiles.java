@@ -44,6 +44,7 @@ public class SelectedFiles {
   private final Set<StoredTabletFile> files;
   private final boolean initiallySelectedAll;
   private final FateId fateId;
+  private final int completedJobs;
 
   private String metadataValue;
 
@@ -51,20 +52,34 @@ public class SelectedFiles {
       .registerTypeAdapter(SelectedFiles.class, new SelectedFilesTypeAdapter()).create();
 
   public SelectedFiles(Set<StoredTabletFile> files, boolean initiallySelectedAll, FateId fateId) {
+    this(files, initiallySelectedAll, fateId, 0);
+  }
+
+  public SelectedFiles(Set<StoredTabletFile> files, boolean initiallySelectedAll, FateId fateId,
+      int completedJobs) {
     Preconditions.checkArgument(files != null && !files.isEmpty());
     this.files = Set.copyOf(files);
     this.initiallySelectedAll = initiallySelectedAll;
     this.fateId = fateId;
+    this.completedJobs = completedJobs;
   }
 
   private static class SelectedFilesTypeAdapter extends TypeAdapter<SelectedFiles> {
 
+    // These fields could be moved to an enum but for now just using static Strings
+    // seems better to avoid having to construct an enum each time the string is read
+    private static final String FATE_ID = "fateId";
+    private static final String SELECTED_ALL = "selAll";
+    private static final String COMPLETED_JOBS = "compJobs";
+    private static final String FILES = "files";
+
     @Override
     public void write(JsonWriter out, SelectedFiles selectedFiles) throws IOException {
       out.beginObject();
-      out.name("fateId").value(selectedFiles.getFateId().canonical());
-      out.name("selAll").value(selectedFiles.initiallySelectedAll());
-      out.name("files").beginArray();
+      out.name(FATE_ID).value(selectedFiles.getFateId().canonical());
+      out.name(SELECTED_ALL).value(selectedFiles.initiallySelectedAll());
+      out.name(COMPLETED_JOBS).value(selectedFiles.getCompletedJobs());
+      out.name(FILES).beginArray();
       // sort the data to make serialized json comparable
       selectedFiles.getFiles().stream().map(StoredTabletFile::getMetadata).sorted()
           .forEach(file -> {
@@ -83,19 +98,23 @@ public class SelectedFiles {
     public SelectedFiles read(JsonReader in) throws IOException {
       FateId fateId = null;
       boolean selAll = false;
+      int completedJobs = 0;
       List<String> files = new ArrayList<>();
 
       in.beginObject();
       while (in.hasNext()) {
         String name = in.nextName();
         switch (name) {
-          case "fateId":
+          case FATE_ID:
             fateId = FateId.from(in.nextString());
             break;
-          case "selAll":
+          case SELECTED_ALL:
             selAll = in.nextBoolean();
             break;
-          case "files":
+          case COMPLETED_JOBS:
+            completedJobs = in.nextInt();
+            break;
+          case FILES:
             in.beginArray();
             while (in.hasNext()) {
               files.add(in.nextString());
@@ -111,7 +130,7 @@ public class SelectedFiles {
       Set<StoredTabletFile> tabletFiles =
           files.stream().map(StoredTabletFile::new).collect(Collectors.toSet());
 
-      return new SelectedFiles(tabletFiles, selAll, fateId);
+      return new SelectedFiles(tabletFiles, selAll, fateId, completedJobs);
     }
 
   }
@@ -130,6 +149,10 @@ public class SelectedFiles {
 
   public FateId getFateId() {
     return fateId;
+  }
+
+  public int getCompletedJobs() {
+    return completedJobs;
   }
 
   public String getMetadataValue() {

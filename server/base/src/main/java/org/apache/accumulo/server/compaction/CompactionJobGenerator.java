@@ -205,9 +205,11 @@ public class CompactionJobGenerator {
         // remove any files that are in active compactions
         tablet.getExternalCompactions().values().stream().flatMap(ecm -> ecm.getJobFiles().stream())
             .forEach(tmpFiles::remove);
-        // remove any files that are selected
-        if (tablet.getSelectedFiles() != null) {
-          tmpFiles.keySet().removeAll(tablet.getSelectedFiles().getFiles());
+        // remove any files that are selected and the user compaction has completed
+        // at least 1 job, otherwise we can keep the files
+        var selectedFiles = tablet.getSelectedFiles();
+        if (selectedFiles != null && selectedFiles.getCompletedJobs() > 0) {
+          tmpFiles.keySet().removeAll(selectedFiles.getFiles());
         }
         candidates = tmpFiles.entrySet().stream()
             .map(entry -> new CompactableFileImpl(entry.getKey(), entry.getValue()))
