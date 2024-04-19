@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -1025,6 +1026,7 @@ public class CompactableImpl implements Compactable {
 
     synchronized (this) {
       if (closed) {
+        log.trace("Selection of files was not initiated {} because closed", getExtent());
         return;
       }
 
@@ -1035,6 +1037,14 @@ public class CompactableImpl implements Compactable {
         log.trace("Selected compaction status changed {} {} {} {}", getExtent(),
             fileMgr.getSelectionStatus(), compactionId, compactionConfig);
       } else {
+        if (kind == CompactionKind.USER) {
+          // Only log for user compaction because this code is only called when one is initiated via
+          // the API call. For other compaction kinds the tserver will keep periodically attempting
+          // to initiate which would result in lots of logs.
+          log.trace(
+              "Selection of files was not initiated {} compactionId:{} selectStatus:{} selectedFiles:{}",
+              getExtent(), this.compactionId, fileMgr.selectStatus, fileMgr.selectedFiles.size());
+        }
         return;
       }
     }
@@ -1568,11 +1578,19 @@ public class CompactableImpl implements Compactable {
       // Wait while internal jobs are running or external compactions are committing. When
       // chopStatus is MARKING or selectStatus is SELECTING, there may be metadata table writes so
       // wait on those. Do not wait on external compactions that are running.
-      while (runningJobs.stream()
-          .anyMatch(job -> !((CompactionExecutorIdImpl) job.getExecutor()).isExternalId())
+      Predicate<CompactionJob> jobsToWaitFor =
+          job -> !((CompactionExecutorIdImpl) job.getExecutor()).isExternalId();
+      while (runningJobs.stream().anyMatch(jobsToWaitFor)
           || !externalCompactionsCommitting.isEmpty()
           || fileMgr.chopStatus == ChopSelectionStatus.MARKING
           || fileMgr.selectStatus == FileSelectionStatus.SELECTING) {
+
+        log.debug(
+            "Closing {} is waiting on {} running compactions, {} committing external compactions, chop marking {}, file selection {}",
+            getExtent(), runningJobs.stream().filter(jobsToWaitFor).count(),
+            externalCompactionsCommitting.size(), fileMgr.chopStatus == ChopSelectionStatus.MARKING,
+            fileMgr.selectStatus == FileSelectionStatus.SELECTING);
+
         try {
           wait(50);
         } catch (InterruptedException e) {
