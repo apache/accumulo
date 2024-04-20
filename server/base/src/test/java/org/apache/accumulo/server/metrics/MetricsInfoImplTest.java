@@ -29,8 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.junit.jupiter.api.Test;
 
@@ -57,21 +55,6 @@ public class MetricsInfoImplTest {
 
     verify(context, conf);
   }
-
-  MeterRegistryFactory.InitParameters emptyParameters = new MeterRegistryFactory.InitParameters() {
-
-    private final ServiceEnvironment senv = null; // new ServiceEnvironmentImpl(context);
-
-    @Override
-    public Map<String,String> getOptions() {
-      return Map.of();
-    }
-
-    @Override
-    public ServiceEnvironment getServiceEnv() {
-      return senv;
-    }
-  };
 
   @SuppressWarnings({"deprecation",
       "support for org.apache.accumulo.core.metrics.MeterRegistryFactory can be removed in 3.1"})

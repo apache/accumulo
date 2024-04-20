@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import static org.apache.accumulo.core.conf.Property.GENERAL_ARBITRARY_PROP_PREFIX;
 import static org.apache.accumulo.core.spi.metrics.MeterRegistryFactory.METRICS_PROP_SUBSTRING;
 
 import java.util.HashMap;
@@ -28,24 +29,43 @@ import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 
-public class MeterRegistryEnvImpl implements MeterRegistryFactory.InitParameters {
+/**
+ * Provides a way to pass parameters from an Accumulo configuration to the MeterRegistryFactory.
+ * Properties need have the form {@code general.custom.metrics.opts.PARAMETER_NAME = VALUE}. The
+ * prefix {@code general.custom.metrics.opts.} is stripped and the resulting Map returned by
+ * {@link #getOptions()} will be map of {@code PROPERTY_NAME, VALUE} key value pairs.
+ * <p>
+ * Other implementations can extend
+ * {@link org.apache.accumulo.core.spi.metrics.MeterRegistryFactory.InitParameters} to provide other
+ * implementations
+ */
+public class MeterRegistryEnvPropImpl implements MeterRegistryFactory.InitParameters {
 
   private final ServerContext context;
 
-  public MeterRegistryEnvImpl(final ServerContext context) {
+  public MeterRegistryEnvPropImpl(final ServerContext context) {
     this.context = context;
   }
 
+  /**
+   * Properties that match {@code general.custom.metrics.opts.PARAMETER_NAME = VALUE} with be
+   * filtered and returned with the prefix stripped.
+   *
+   * @return a map of the filtered, stripped property, value pairs.
+   */
   @Override
   public Map<String,String> getOptions() {
-    Map<String,String> options = new HashMap<>();
+    Map<String,String> filtered = new HashMap<>();
+
+    Map<String,String> options = context.getConfiguration()
+        .getAllPropertiesWithPrefixStripped(GENERAL_ARBITRARY_PROP_PREFIX);
     options.forEach((k, v) -> {
       if (k.startsWith(METRICS_PROP_SUBSTRING)) {
         String name = k.substring(METRICS_PROP_SUBSTRING.length());
-        options.put(name, v);
+        filtered.put(name, v);
       }
     });
-    return options;
+    return filtered;
   }
 
   @Override

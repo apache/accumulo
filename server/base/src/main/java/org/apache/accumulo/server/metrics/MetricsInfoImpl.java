@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.metrics;
 
-import static org.apache.accumulo.core.conf.Property.GENERAL_ARBITRARY_PROP_PREFIX;
-import static org.apache.accumulo.core.spi.metrics.MeterRegistryFactory.METRICS_PROP_SUBSTRING;
 import static org.apache.hadoop.util.StringUtils.getTrimmedStrings;
 
 import java.lang.reflect.InvocationTargetException;
@@ -33,17 +31,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -285,26 +279,8 @@ public class MetricsInfoImpl implements MetricsInfo {
               org.apache.accumulo.core.spi.metrics.MeterRegistryFactory.class);
       org.apache.accumulo.core.spi.metrics.MeterRegistryFactory factory =
           clazz.getDeclaredConstructor().newInstance();
-      AccumuloConfiguration conf = context.getConfiguration();
-      Map<String,String> opts =
-          conf.getAllPropertiesWithPrefixStripped(GENERAL_ARBITRARY_PROP_PREFIX).entrySet().stream()
-              .filter(entry -> entry.getKey().startsWith(METRICS_PROP_SUBSTRING))
-              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       org.apache.accumulo.core.spi.metrics.MeterRegistryFactory.InitParameters initParameters =
-          new org.apache.accumulo.core.spi.metrics.MeterRegistryFactory.InitParameters() {
-
-            private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
-
-            @Override
-            public Map<String,String> getOptions() {
-              return opts;
-            }
-
-            @Override
-            public ServiceEnvironment getServiceEnv() {
-              return senv;
-            }
-          };
+          new MeterRegistryEnvPropImpl(context);
       factory.init(initParameters);
       return factory.create();
     } catch (ClassCastException ex) {

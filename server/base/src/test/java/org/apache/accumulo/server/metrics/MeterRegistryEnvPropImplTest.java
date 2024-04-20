@@ -18,29 +18,33 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import java.util.Map;
 
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.server.ServerContext;
+import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
-public class MeterRegistryEnvImplTest {
+public class MeterRegistryEnvPropImplTest {
 
   @Test
   public void customParamsTest() {
+    ServerContext context = EasyMock.createMock(ServerContext.class);
+    ConfigurationCopy conf = new ConfigurationCopy();
+    conf.set("unknown", "none");
+    conf.set("general.custom.metrics.opts.sample.p1", "v1");
+    conf.set("general.custom.metrics.opts.sample.p2", "v2");
 
-  }
+    expect(context.getConfiguration()).andReturn(conf).anyTimes();
 
-  public static class MeterRegistryParameter implements MeterRegistryFactory.InitParameters {
-
-    @Override
-    public Map<String,String> getOptions() {
-      return null;
-    }
-
-    @Override
-    public ServiceEnvironment getServiceEnv() {
-      return null;
-    }
+    replay(context);
+    MeterRegistryEnvPropImpl env = new MeterRegistryEnvPropImpl(context);
+    assertEquals(Map.of("sample.p1", "v1", "sample.p2", "v2"), env.getOptions());
+    assertNotNull(env.getServiceEnv());
   }
 }

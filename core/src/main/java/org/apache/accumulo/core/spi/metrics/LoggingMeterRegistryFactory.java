@@ -73,13 +73,7 @@ public class LoggingMeterRegistryFactory implements MeterRegistryFactory {
   public synchronized void init(final InitParameters params) {
     Objects.requireNonNull(params, "InitParams not provided");
     initCalled.set(true);
-    Map<String,String> options = params.getOptions();
-    options.forEach((k, v) -> {
-      if (k.startsWith(METRICS_PROP_SUBSTRING)) {
-        String name = k.substring(METRICS_PROP_SUBSTRING.length());
-        metricsProps.put(name, v);
-      }
-    });
+    metricsProps.putAll(params.getOptions());
     LOG.info("initialized with parameters: {}", metricsProps);
   }
 
