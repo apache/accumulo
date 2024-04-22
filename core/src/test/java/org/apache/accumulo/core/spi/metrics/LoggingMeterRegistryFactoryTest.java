@@ -32,7 +32,7 @@ class LoggingMeterRegistryFactoryTest {
   @Test
   public void createTest() {
     LoggingMeterRegistryFactory factory = new LoggingMeterRegistryFactory();
-    factory.init(new LoggingMetricsParams());
+    factory.setInitParams(new LoggingMetricsParams());
     var reg = factory.create();
     assertInstanceOf(MeterRegistry.class, reg);
   }

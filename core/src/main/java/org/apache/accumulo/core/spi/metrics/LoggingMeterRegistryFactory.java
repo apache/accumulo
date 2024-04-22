@@ -21,7 +21,8 @@ package org.apache.accumulo.core.spi.metrics;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
@@ -63,25 +64,40 @@ public class LoggingMeterRegistryFactory implements MeterRegistryFactory {
     return null;
   };
 
-  private final AtomicBoolean initCalled = new AtomicBoolean(false);
+  private volatile boolean paramsSet = false;
+  private final Lock paramLock = new ReentrantLock();
 
   public LoggingMeterRegistryFactory() {
     // needed for classloader
   }
 
   @Override
-  public synchronized void init(final InitParameters params) {
+  public void setInitParams(final InitParameters params) {
     Objects.requireNonNull(params, "InitParams not provided");
-    initCalled.set(true);
-    metricsProps.putAll(params.getOptions());
-    LOG.info("initialized with parameters: {}", metricsProps);
+    paramLock.lock();
+    try {
+      if (paramsSet) {
+        throw new IllegalStateException(
+            "initial parameters called with " + params + " has already been set.");
+      }
+      metricsProps.putAll(params.getOptions());
+      paramsSet = true;
+    } finally {
+      paramLock.unlock();
+    }
+    LOG.info("initial parameters set with: {}", metricsProps);
   }
 
   @Override
-  public synchronized MeterRegistry create() {
+  public MeterRegistry create() {
     LOG.info("starting metrics registration.");
-    if (!initCalled.get()) {
-      throw new IllegalStateException("init() not called");
+    paramLock.lock();
+    try {
+      if (!paramsSet) {
+        throw new IllegalStateException("setInitParams() has not been called");
+      }
+    } finally {
+      paramLock.unlock();
     }
     return LoggingMeterRegistry.builder(lconf).loggingSink(metricConsumer).build();
   }

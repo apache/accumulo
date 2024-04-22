@@ -53,21 +53,38 @@ public interface MeterRegistryFactory {
 
   interface InitParameters {
     /**
+     * Get the configured metrics properties passed as {@code general.custom.metrics.opts} The
+     * returned map is the stripped names with {@code general.custom.metrics.opts} removed.
+     * <p>
+     * For example properties {@code general.custom.metrics.opts.prop1=abc} and
+     * {@code general.custom.metrics.opts.prop9=123} are set, then this map would contain
+     * {@code prop1=abc} and {@code prop9=123}.
      *
-     * @return The configured options. For example properties
-     *         {@code general.custom.metrics.opts.prop1=abc} and
-     *         {@code general.custom.metrics.opts.prop9=123} were set, then this map would contain
-     *         {@code prop1=abc} and {@code prop9=123}.
+     * @return a map of property name, value pairs, stripped of a prefix.
      */
     Map<String,String> getOptions();
 
+    /**
+     * Optional extension point to pass additional information though the ServiceEnvironment.
+     *
+     * @return the service environment
+     */
     ServiceEnvironment getServiceEnv();
   }
 
-  default void init(InitParameters params) {}
+  /**
+   * Set the initial parameters passed to the metrics factory to initialize the underlying metrics
+   * registry that will be created by the factory with {@link #create()}
+   *
+   * @param params the initial parameters for the MetricsRegistry
+   */
+  default void setInitParams(InitParameters params) {}
 
   /**
-   * Called on metrics initialization.
+   * Called on metrics initialization. Implementations should take care that the initial parameters
+   * have been set before instantiating a MeterRegistry. Once a MeterRegistry is initialized
+   * parameters such as common tags can be fixed and will not be updated with later additions or
+   * changes.
    *
    * @return a Micrometer registry that will be added to the metrics configuration.
    */
