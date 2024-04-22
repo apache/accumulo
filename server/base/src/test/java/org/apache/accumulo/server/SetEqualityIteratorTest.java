@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Set;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -47,6 +47,8 @@ import org.junit.jupiter.api.Test;
 
 public class SetEqualityIteratorTest {
 
+  private TabletMetadata tmOneFile;
+  private TabletMetadata tmMultipleFiles;
   private SetEqualityIterator setEqualityIterator;
   private SetEqualityIterator setEqualityIteratorNoFiles;
   private SetEqualityIterator setEqualityIteratorOneFile;
@@ -72,13 +74,13 @@ public class SetEqualityIteratorTest {
     // Create tablet metadata with one file
     StoredTabletFile singleFile =
         new ReferencedTabletFile(new Path("dfs://nn1/acc/tables/1/t-0001/sf1.rf")).insert();
-    TabletMetadata tmOneFile = TabletMetadata.builder(extent)
-        .putFile(singleFile, new DataFileValue(100, 50)).putFlushId(8).build();
+    tmOneFile = TabletMetadata.builder(extent).putFile(singleFile, new DataFileValue(100, 50))
+        .putFlushId(8).build();
 
     // Create tablet metadata with multiple files
-    TabletMetadata tmMultipleFiles = TabletMetadata.builder(extent)
-        .putFile(file1, new DataFileValue(0, 0)).putFile(file2, new DataFileValue(555, 23))
-        .putFile(file3, new DataFileValue(234, 13)).putFlushId(6).build();
+    tmMultipleFiles = TabletMetadata.builder(extent).putFile(file1, new DataFileValue(0, 0))
+        .putFile(file2, new DataFileValue(555, 23)).putFile(file3, new DataFileValue(234, 13))
+        .putFlushId(6).build();
 
     var extent2 = new KeyExtent(extent.tableId(), null, extent.endRow());
     // create another tablet metadata using extent2 w/ diff files and add it to sortedMap. This
@@ -108,11 +110,13 @@ public class SetEqualityIteratorTest {
 
     // Set the SortedMapIterator as the source for SetEqualityIterator
     setEqualityIterator = new SetEqualityIterator();
-    setEqualityIterator.init(sortedMapIterator, Collections.emptyMap(), null);
+    setEqualityIterator.init(sortedMapIterator, Map.of(SetEqualityIterator.CONCAT_VALUE, "true"),
+        null);
     setEqualityIteratorNoFiles = new SetEqualityIterator();
     setEqualityIteratorNoFiles.init(sortedMapIteratorNoFiles, Collections.emptyMap(), null);
     setEqualityIteratorOneFile = new SetEqualityIterator();
-    setEqualityIteratorOneFile.init(sortedMapIteratorOneFile, Collections.emptyMap(), null);
+    setEqualityIteratorOneFile.init(sortedMapIteratorOneFile,
+        Map.of(SetEqualityIterator.CONCAT_VALUE, "true"), null);
   }
 
   @Test
@@ -131,7 +135,7 @@ public class SetEqualityIteratorTest {
     // The iterator should produce a value that is equal to the expected value on the condition
     var condition = SetEqualityIterator.createCondition(Collections.emptySet(),
         storedTabletFile -> ((StoredTabletFile) storedTabletFile).getMetadata().getBytes(UTF_8),
-        family);
+        family, false);
     assertArrayEquals(condition.getValue().toArray(),
         setEqualityIteratorNoFiles.getTopValue().get());
   }
@@ -150,8 +154,11 @@ public class SetEqualityIteratorTest {
     // Asserting the result
     assertEquals(new Key(tabletRow, family), setEqualityIteratorOneFile.getTopKey());
     // The iterator should produce a value that is equal to the expected value on the condition
-    var condition = SetEqualityIterator.createCondition(Collections.singleton(file1),
-        storedTabletFile -> storedTabletFile.getMetadata().getBytes(UTF_8), family);
+    var condition =
+        SetEqualityIterator.createCondition(tmOneFile.getFilesMap().entrySet(), entry -> {
+          return (entry.getKey().getMetadata() + SetEqualityIterator.VALUE_SEPARATOR
+              + entry.getValue().encodeAsString()).getBytes(UTF_8);
+        }, family, true);
     assertArrayEquals(condition.getValue().toArray(),
         setEqualityIteratorOneFile.getTopValue().get());
   }
@@ -170,8 +177,11 @@ public class SetEqualityIteratorTest {
     // Asserting the result
     assertEquals(new Key(tabletRow, family), setEqualityIterator.getTopKey());
     // The iterator should produce a value that is equal to the expected value on the condition
-    var condition = SetEqualityIterator.createCondition(Set.of(file1, file2, file3),
-        storedTabletFile -> storedTabletFile.getMetadata().getBytes(UTF_8), family);
+    var condition =
+        SetEqualityIterator.createCondition(tmMultipleFiles.getFilesMap().entrySet(), entry -> {
+          return (entry.getKey().getMetadata() + SetEqualityIterator.VALUE_SEPARATOR
+              + entry.getValue().encodeAsString()).getBytes(UTF_8);
+        }, family, true);
     assertArrayEquals(condition.getValue().toArray(), setEqualityIterator.getTopValue().get());
 
   }
