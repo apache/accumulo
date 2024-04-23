@@ -25,7 +25,7 @@ import java.util.Map;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.junit.jupiter.api.Test;
 
-import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.logging.LoggingMeterRegistry;
 
 class LoggingMeterRegistryFactoryTest {
 
@@ -33,7 +33,7 @@ class LoggingMeterRegistryFactoryTest {
   public void createTest() {
     LoggingMeterRegistryFactory factory = new LoggingMeterRegistryFactory();
     var reg = factory.create(new LoggingMetricsParams());
-    assertInstanceOf(MeterRegistry.class, reg);
+    assertInstanceOf(LoggingMeterRegistry.class, reg);
   }
 
   private static class LoggingMetricsParams implements MeterRegistryFactory.InitParameters {

@@ -57,22 +57,23 @@ public class LoggingMeterRegistryFactory implements MeterRegistryFactory {
   // named logger that can be configured using standard logging properties.
   private static final Logger METRICS = LoggerFactory.getLogger("org.apache.accumulo.METRICS");
 
-  private final Consumer<String> metricConsumer = METRICS::info;
-  private final Map<String,String> metricsProps = new HashMap<>();
-  // defines the metrics update period, default is 60 seconds.
-  private final LoggingRegistryConfig lconf = c -> {
-    if (c.equals("logging.step")) {
-      return metricsProps.getOrDefault("logging.step", "60s");
-    }
-    return null;
-  };
-
   public LoggingMeterRegistryFactory() {
     // needed for classloader
   }
 
   @Override
   public MeterRegistry create(final InitParameters params) {
+    final Consumer<String> metricConsumer = METRICS::info;
+    final Map<String,String> metricsProps = new HashMap<>();
+
+    // defines the metrics update period, default is 60 seconds.
+    final LoggingRegistryConfig lconf = c -> {
+      if (c.equals("logging.step")) {
+        return metricsProps.getOrDefault("logging.step", "60s");
+      }
+      return null;
+    };
+
     LOG.info("Creating logging metrics registry with params: {}", params);
     metricsProps.putAll(params.getOptions());
     return LoggingMeterRegistry.builder(lconf).loggingSink(metricConsumer).build();
