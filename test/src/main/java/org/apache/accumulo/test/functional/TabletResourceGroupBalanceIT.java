@@ -225,20 +225,22 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
           .addTabletServerResourceGroup("GROUP2", 1);
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
-      client.instanceOperations().waitForBalance();
-      assertEquals(26, getCountOfHostedTablets(client, tableName));
-      ingest.join();
-      assertNull(error.get());
+      try {
+        client.instanceOperations().waitForBalance();
+        Wait.waitFor(() -> getCountOfHostedTablets(client, tableName) == 26);
+        ingest.join();
+        assertNull(error.get());
 
-      client.tableOperations().delete(tableName);
-      // Stop all tablet servers because there is no way to just stop
-      // the GROUP2 server yet.
-      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getCluster().getConfig().getClusterServerConfiguration().clearTServerResourceGroups();
-      getCluster().getConfig().getClusterServerConfiguration()
-          .addTabletServerResourceGroup("GROUP1", 1);
-      getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
-
+      } finally {
+        client.tableOperations().delete(tableName);
+        // Stop all tablet servers because there is no way to just stop
+        // the GROUP2 server yet.
+        getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+        getCluster().getConfig().getClusterServerConfiguration().clearTServerResourceGroups();
+        getCluster().getConfig().getClusterServerConfiguration()
+            .addTabletServerResourceGroup("GROUP1", 1);
+        getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+      }
     }
   }
 
@@ -258,7 +260,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
       client.tableOperations().create(tableName, ntc1);
 
       // wait for all tablets to be hosted
-      Wait.waitFor(() -> 26 != getCountOfHostedTablets(client, tableName));
+      Wait.waitFor(() -> 26 == getCountOfHostedTablets(client, tableName));
 
       client.instanceOperations().waitForBalance();
 

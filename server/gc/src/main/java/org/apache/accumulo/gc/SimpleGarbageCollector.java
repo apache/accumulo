@@ -23,6 +23,11 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
@@ -33,6 +38,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
@@ -45,12 +51,16 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
 import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -78,6 +88,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
+
+  private NanoTime lastCompactorCheck = NanoTime.now();
 
   SimpleGarbageCollector(ConfigOpts opts, String[] args) {
     super("gc", opts, args);
@@ -297,6 +309,25 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
         gcCycleMetrics.incrementRunCycleCount();
         long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
+
+        if (NanoTime.now().subtract(lastCompactorCheck).toMillis() > gcDelay * 3) {
+          Map<String,Set<TableId>> resourceMapping = new HashMap<>();
+          for (TableId tid : AccumuloTable.allTableIds()) {
+            TableConfiguration tconf = getContext().getTableConfiguration(tid);
+            String resourceGroup = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
+            resourceGroup =
+                resourceGroup == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : resourceGroup;
+            resourceMapping.getOrDefault(resourceGroup, new HashSet<>()).add(tid);
+          }
+          for (Entry<String,Set<TableId>> e : resourceMapping.entrySet()) {
+            if (ExternalCompactionUtil.countCompactors(e.getKey(), getContext()) == 0) {
+              log.warn("No Compactors exist in resource group {} for system table {}", e.getKey(),
+                  e.getValue());
+            }
+          }
+          lastCompactorCheck = NanoTime.now();
+        }
+
         log.debug("Sleeping for {} milliseconds", gcDelay);
         Thread.sleep(gcDelay);
       } catch (InterruptedException e) {
