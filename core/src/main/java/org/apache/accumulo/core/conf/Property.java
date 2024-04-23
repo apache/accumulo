@@ -273,6 +273,13 @@ public enum Property {
   GENERAL_SIMPLETIMER_THREADPOOL_SIZE("general.server.simpletimer.threadpool.size", "1",
       PropertyType.COUNT, "The number of threads to use for server-internal scheduled tasks.",
       "1.7.0"),
+  GENERAL_TIME_FREQUENCY_LOGGER_INTERVAL("general.logger.time.frequency.interval", "1m",
+      PropertyType.TIMEDURATION,
+      "Some classes can log items very frequently spamming the"
+          + " logs with information. These classes may use a logger that logs only one"
+          + " message per unit time. This property determines that unit time. A value of"
+          + " zero disables this logic, but could produce a lot of log messages on all logs.",
+      "2.1.3"),
   // If you update the default type, be sure to update the default used for initialization failures
   // in VolumeManagerImpl
   @Experimental

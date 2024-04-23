@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.logging;
 
-import java.time.Duration;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.Marker;
@@ -29,18 +29,37 @@ import org.slf4j.helpers.AbstractLogger;
  * Logger that wraps another Logger and only emits a log message once per the supplied duration.
  *
  */
-public class IntervalLogger extends AbstractLogger {
+public class ConditionalLogger extends AbstractLogger {
+
+  public static Logger createTimeFrequencyLogger(Logger log, Supplier<Long> intervalNanos) {
+
+    final Supplier<Boolean> condition = new Supplier<>() {
+      private volatile long last = 0L;
+
+      @Override
+      public Boolean get() {
+        if (intervalNanos.get() == 0) {
+          return false;
+        } else if (System.nanoTime() - last > intervalNanos.get()) {
+          last = System.nanoTime();
+          return true;
+        } else {
+          return false;
+        }
+      }
+    };
+
+    return new ConditionalLogger(log, condition);
+  }
 
   private static final long serialVersionUID = 1L;
 
   private final Logger delegate;
-  private final long intervalNanos;
+  private final Supplier<Boolean> condition;
 
-  private volatile long last = 0L;
-
-  public IntervalLogger(Logger log, Duration interval) {
+  private ConditionalLogger(Logger log, Supplier<Boolean> condition) {
     this.delegate = log;
-    this.intervalNanos = interval.toNanos();
+    this.condition = condition;
   }
 
   @Override
@@ -101,9 +120,8 @@ public class IntervalLogger extends AbstractLogger {
   @Override
   protected void handleNormalizedLoggingCall(Level level, Marker marker, String messagePattern,
       Object[] arguments, Throwable throwable) {
-    if (System.nanoTime() - last > intervalNanos) {
+    if (condition.get()) {
       delegate.atLevel(level).addMarker(marker).setCause(throwable).log(messagePattern, arguments);
-      last = System.nanoTime();
     }
   }
 

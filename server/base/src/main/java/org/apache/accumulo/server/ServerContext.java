@@ -30,6 +30,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.logging.ConditionalLogger;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
@@ -443,6 +445,14 @@ public class ServerContext extends ClientContext {
 
   public AuditedSecurityOperation getSecurityOperation() {
     return securityOperation.get();
+  }
+
+  public Logger createTimeFrequencyLogger(Logger log) {
+    return ConditionalLogger
+        .createTimeFrequencyLogger(log,
+            () -> Duration.ofMillis(
+                getConfiguration().getTimeInMillis(Property.GENERAL_TIME_FREQUENCY_LOGGER_INTERVAL))
+                .toNanos());
   }
 
 }
