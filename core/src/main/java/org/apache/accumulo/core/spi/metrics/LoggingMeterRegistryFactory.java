@@ -20,9 +20,6 @@ package org.apache.accumulo.core.spi.metrics;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
@@ -43,9 +40,15 @@ import io.micrometer.core.instrument.logging.LoggingRegistryConfig;
  * file using standard logging configuration properties by configuring the log4j2-service.properties
  * file.
  * <p>
- * The update frequency can be adjusted by setting {@code general.custom.metrics.opts.logging.step}
- * in the Accumulo configuration. The default is 60 sec.
+ * Properties can be passed in the Accumulo properties files using the prefix
+ * {@code general.custom.metrics.opts}
+ * <p>
+ * For example, the default polling rate is 60 sec. To modify the update frequency set
+ * {@code general.custom.metrics.opts.logging.step} in the Accumulo configuration.
  *
+ * <pre>
+ *     general.custom.metrics.opts.logging.step = 10s
+ * </pre>
  */
 public class LoggingMeterRegistryFactory implements MeterRegistryFactory {
 
@@ -64,41 +67,14 @@ public class LoggingMeterRegistryFactory implements MeterRegistryFactory {
     return null;
   };
 
-  private volatile boolean paramsSet = false;
-  private final Lock paramLock = new ReentrantLock();
-
   public LoggingMeterRegistryFactory() {
     // needed for classloader
   }
 
   @Override
-  public void setInitParams(final InitParameters params) {
-    Objects.requireNonNull(params, "InitParams not provided");
-    paramLock.lock();
-    try {
-      if (paramsSet) {
-        throw new IllegalStateException(
-            "initial parameters called with " + params + " has already been set.");
-      }
-      metricsProps.putAll(params.getOptions());
-      paramsSet = true;
-    } finally {
-      paramLock.unlock();
-    }
-    LOG.info("initial parameters set with: {}", metricsProps);
-  }
-
-  @Override
-  public MeterRegistry create() {
-    LOG.info("starting metrics registration.");
-    paramLock.lock();
-    try {
-      if (!paramsSet) {
-        throw new IllegalStateException("setInitParams() has not been called");
-      }
-    } finally {
-      paramLock.unlock();
-    }
+  public MeterRegistry create(final InitParameters params) {
+    LOG.info("Creating logging metrics registry with params: {}", params);
+    metricsProps.putAll(params.getOptions());
     return LoggingMeterRegistry.builder(lconf).loggingSink(metricConsumer).build();
   }
 }

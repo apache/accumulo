@@ -77,7 +77,7 @@ public class MetricsInfoImplTest {
     }
 
     @Override
-    public MeterRegistry create() {
+    public MeterRegistry create(final InitParameters params) {
       return new SimpleMeterRegistry();
     }
   }

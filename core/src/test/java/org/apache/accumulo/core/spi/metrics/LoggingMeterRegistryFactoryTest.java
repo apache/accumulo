@@ -32,8 +32,7 @@ class LoggingMeterRegistryFactoryTest {
   @Test
   public void createTest() {
     LoggingMeterRegistryFactory factory = new LoggingMeterRegistryFactory();
-    factory.setInitParams(new LoggingMetricsParams());
-    var reg = factory.create();
+    var reg = factory.create(new LoggingMetricsParams());
     assertInstanceOf(MeterRegistry.class, reg);
   }
 
@@ -41,8 +40,8 @@ class LoggingMeterRegistryFactoryTest {
 
     @Override
     public Map<String,String> getOptions() {
-      // note: general.custom. is expected to be stripped before passing the options.
-      return Map.of("metrics.opts.prop1", "abc", "metrics.opts.logging.step", "1s");
+      // note: general.custom.metrics.opts. is expected to be stripped before passing the options.
+      return Map.of("prop1", "abc", "logging.step", "1s");
     }
 
     @Override

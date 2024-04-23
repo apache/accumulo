@@ -33,17 +33,6 @@ import io.micrometer.core.instrument.MeterRegistry;
  * Property.GENERAL_MICROMETER_ENABLED = true
  * <p>
  * Property.GENERAL_MICROMETER_FACTORY = [implementation].class.getName()
- * <p>
- * Properties can be passed in the Accumulo properties files using the prefix
- * {@code general.custom.metrics.opts} for example. to set the polling rate used in the
- * {@link org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory} to 10 seconds use
- *
- * <pre>
- *     general.custom.metrics.opts.logging.step = 10s
- * </pre>
- *
- * Classes that implement custom properties will need to take care to implement unique names for
- * each factory, if multiple factories are used.
  *
  * @since 2.1.3
  */
@@ -73,20 +62,11 @@ public interface MeterRegistryFactory {
   }
 
   /**
-   * Set the initial parameters passed to the metrics factory to initialize the underlying metrics
-   * registry that will be created by the factory with {@link #create()}
-   *
-   * @param params the initial parameters for the MetricsRegistry
-   */
-  default void setInitParams(InitParameters params) {}
-
-  /**
-   * Called on metrics initialization. Implementations should take care that the initial parameters
-   * have been set before instantiating a MeterRegistry. Once a MeterRegistry is initialized
-   * parameters such as common tags can be fixed and will not be updated with later additions or
-   * changes.
+   * Called on metrics initialization. Implementations should note the initial parameters set when
+   * instantiating a MeterRegistry should be considered fixed. Once a MeterRegistry is initialized
+   * parameters such as common tags may not be updated with later additions or changes.
    *
    * @return a Micrometer registry that will be added to the metrics configuration.
    */
-  MeterRegistry create();
+  MeterRegistry create(final InitParameters params);
 }
