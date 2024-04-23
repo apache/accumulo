@@ -1635,7 +1635,7 @@ public class Tablet extends TabletBase {
       }
 
       synchronized (this) {
-        if (isClosed()) {
+        if (isCloseComplete()) {
           log.debug("Unable to refresh tablet {} for {} because the tablet is closed", extent,
               refreshPurpose);
           return false;
