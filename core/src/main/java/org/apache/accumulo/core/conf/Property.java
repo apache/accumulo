@@ -1832,11 +1832,28 @@ public enum Property {
 
   public static final EnumSet<Property> fixedProperties = EnumSet.of(
       // port options
-      GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT,
+      GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT, SSERV_CLIENTPORT, SSERV_PORTSEARCH,
+      COMPACTOR_PORTSEARCH, TSERV_PORTSEARCH,
 
-      // tserver cache options
+      // max message options
+      SSERV_MAX_MESSAGE_SIZE, TSERV_MAX_MESSAGE_SIZE, COMPACTOR_MAX_MESSAGE_SIZE,
+      COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE,
+
+      // block cache options
       TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
-      TSERV_SUMMARYCACHE_SIZE,
+      TSERV_SUMMARYCACHE_SIZE, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
+
+      // blocksize options
+      TSERV_DEFAULT_BLOCKSIZE, SSERV_DEFAULT_BLOCKSIZE,
+
+      // sserver specific options
+      SSERVER_SCAN_REFERENCE_EXPIRATION_TIME, SSERV_CACHED_TABLET_METADATA_EXPIRATION,
+
+      // thread options
+      TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT, SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT,
+      COMPACTION_COORDINATOR_MINTHREADS, COMPACTION_COORDINATOR_MINTHREADS_TIMEOUT,
+      MANAGER_MINTHREADS, MANAGER_MINTHREADS_TIMEOUT, COMPACTOR_MINTHREADS,
+      COMPACTOR_MINTHREADS_TIMEOUT,
 
       // others
       TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
@@ -1862,6 +1879,7 @@ public enum Property {
     // white list prefixes
     return key.startsWith(Property.TABLE_PREFIX.getKey())
         || key.startsWith(Property.TSERV_PREFIX.getKey())
+        || key.startsWith(Property.SSERV_PREFIX.getKey())
         || key.startsWith(Property.MANAGER_PREFIX.getKey())
         || key.startsWith(Property.MASTER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
