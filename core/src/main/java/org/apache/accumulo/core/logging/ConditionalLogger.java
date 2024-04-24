@@ -205,238 +205,297 @@ public class ConditionalLogger implements Logger {
     return this.delegate.isErrorEnabled(marker);
   }
 
+  @Override
   public String getName() {
     return this.delegate.getName();
   }
 
+  @Override
   public LoggingEventBuilder makeLoggingEventBuilder(Level level) {
     return this.delegate.makeLoggingEventBuilder(level);
   }
 
+  @Override
   public LoggingEventBuilder atLevel(Level level) {
     return this.delegate.atLevel(level);
   }
 
+  @Override
   public boolean isEnabledForLevel(Level level) {
     return this.delegate.isEnabledForLevel(level);
   }
 
+  @Override
   public void trace(String msg) {
     this.delegate.trace(msg);
   }
 
+  @Override
   public void trace(String format, Object arg) {
     this.delegate.trace(format, arg);
   }
 
+  @Override
   public void trace(String format, Object arg1, Object arg2) {
     this.delegate.trace(format, arg1, arg2);
   }
 
+  @Override
   public void trace(String format, Object... arguments) {
     this.delegate.trace(format, arguments);
   }
 
+  @Override
   public void trace(String msg, Throwable t) {
     this.delegate.trace(msg, t);
   }
 
+  @Override
   public LoggingEventBuilder atTrace() {
     return this.delegate.atTrace();
   }
 
+  @Override
   public void trace(Marker marker, String msg) {
     this.delegate.trace(marker, msg);
   }
 
+  @Override
   public void trace(Marker marker, String format, Object arg) {
     this.delegate.trace(marker, format, arg);
   }
 
+  @Override
   public void trace(Marker marker, String format, Object arg1, Object arg2) {
     this.delegate.trace(marker, format, arg1, arg2);
   }
 
+  @Override
   public void trace(Marker marker, String format, Object... argArray) {
     this.delegate.trace(marker, format, argArray);
   }
 
+  @Override
   public void trace(Marker marker, String msg, Throwable t) {
     this.delegate.trace(marker, msg, t);
   }
 
+  @Override
   public void debug(String msg) {
     this.delegate.debug(msg);
   }
 
+  @Override
   public void debug(String format, Object arg) {
     this.delegate.debug(format, arg);
   }
 
+  @Override
   public void debug(String format, Object arg1, Object arg2) {
     this.delegate.debug(format, arg1, arg2);
   }
 
+  @Override
   public void debug(String format, Object... arguments) {
     this.delegate.debug(format, arguments);
   }
 
+  @Override
   public void debug(String msg, Throwable t) {
     this.delegate.debug(msg, t);
   }
 
+  @Override
   public void debug(Marker marker, String msg) {
     this.delegate.debug(marker, msg);
   }
 
+  @Override
   public void debug(Marker marker, String format, Object arg) {
     this.delegate.debug(marker, format, arg);
   }
 
+  @Override
   public void debug(Marker marker, String format, Object arg1, Object arg2) {
     this.delegate.debug(marker, format, arg1, arg2);
   }
 
+  @Override
   public void debug(Marker marker, String format, Object... arguments) {
     this.delegate.debug(marker, format, arguments);
   }
 
+  @Override
   public void debug(Marker marker, String msg, Throwable t) {
     this.delegate.debug(marker, msg, t);
   }
 
+  @Override
   public LoggingEventBuilder atDebug() {
     return this.delegate.atDebug();
   }
 
+  @Override
   public void info(String msg) {
     this.delegate.info(msg);
   }
 
+  @Override
   public void info(String format, Object arg) {
     this.delegate.info(format, arg);
   }
 
+  @Override
   public void info(String format, Object arg1, Object arg2) {
     this.delegate.info(format, arg1, arg2);
   }
 
+  @Override
   public void info(String format, Object... arguments) {
     this.delegate.info(format, arguments);
   }
 
+  @Override
   public void info(String msg, Throwable t) {
     this.delegate.info(msg, t);
   }
 
+  @Override
   public void info(Marker marker, String msg) {
     this.delegate.info(marker, msg);
   }
 
+  @Override
   public void info(Marker marker, String format, Object arg) {
     this.delegate.info(marker, format, arg);
   }
 
+  @Override
   public void info(Marker marker, String format, Object arg1, Object arg2) {
     this.delegate.info(marker, format, arg1, arg2);
   }
 
+  @Override
   public void info(Marker marker, String format, Object... arguments) {
     this.delegate.info(marker, format, arguments);
   }
 
+  @Override
   public void info(Marker marker, String msg, Throwable t) {
     this.delegate.info(marker, msg, t);
   }
 
+  @Override
   public LoggingEventBuilder atInfo() {
     return this.delegate.atInfo();
   }
 
+  @Override
   public void warn(String msg) {
     this.delegate.warn(msg);
   }
 
+  @Override
   public void warn(String format, Object arg) {
     this.delegate.warn(format, arg);
   }
 
+  @Override
   public void warn(String format, Object... arguments) {
     this.delegate.warn(format, arguments);
   }
 
+  @Override
   public void warn(String format, Object arg1, Object arg2) {
     this.delegate.warn(format, arg1, arg2);
   }
 
+  @Override
   public void warn(String msg, Throwable t) {
     this.delegate.warn(msg, t);
   }
 
+  @Override
   public void warn(Marker marker, String msg) {
     this.delegate.warn(marker, msg);
   }
 
+  @Override
   public void warn(Marker marker, String format, Object arg) {
     this.delegate.warn(marker, format, arg);
   }
 
+  @Override
   public void warn(Marker marker, String format, Object arg1, Object arg2) {
     this.delegate.warn(marker, format, arg1, arg2);
   }
 
+  @Override
   public void warn(Marker marker, String format, Object... arguments) {
     this.delegate.warn(marker, format, arguments);
   }
 
+  @Override
   public void warn(Marker marker, String msg, Throwable t) {
     this.delegate.warn(marker, msg, t);
   }
 
+  @Override
   public LoggingEventBuilder atWarn() {
     return this.delegate.atWarn();
   }
 
+  @Override
   public void error(String msg) {
     this.delegate.error(msg);
   }
 
+  @Override
   public void error(String format, Object arg) {
     this.delegate.error(format, arg);
   }
 
+  @Override
   public void error(String format, Object arg1, Object arg2) {
     this.delegate.error(format, arg1, arg2);
   }
 
+  @Override
   public void error(String format, Object... arguments) {
     this.delegate.error(format, arguments);
   }
 
+  @Override
   public void error(String msg, Throwable t) {
     this.delegate.error(msg, t);
   }
 
+  @Override
   public void error(Marker marker, String msg) {
     this.delegate.error(marker, msg);
   }
 
+  @Override
   public void error(Marker marker, String format, Object arg) {
     this.delegate.error(marker, format, arg);
   }
 
+  @Override
   public void error(Marker marker, String format, Object arg1, Object arg2) {
     this.delegate.error(marker, format, arg1, arg2);
   }
 
+  @Override
   public void error(Marker marker, String format, Object... arguments) {
     this.delegate.error(marker, format, arguments);
   }
 
+  @Override
   public void error(Marker marker, String msg, Throwable t) {
     this.delegate.error(marker, msg, t);
   }
 
+  @Override
   public LoggingEventBuilder atError() {
     return this.delegate.atError();
   }
