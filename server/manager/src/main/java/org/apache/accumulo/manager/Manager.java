@@ -96,6 +96,7 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -706,14 +707,17 @@ public class Manager extends AbstractServer
       Scanner scanner =
           accumuloClient.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-      Set<KeyExtent> found = new HashSet<>();
+      scanner.setRange(MetadataSchema.TabletsSection.getRange());
+      Set<KeyExtent> notSeen;
+      synchronized (migrations) {
+        notSeen = new HashSet<>(migrations.keySet());
+      }
       for (Entry<Key,Value> entry : scanner) {
         KeyExtent extent = KeyExtent.fromMetaPrevRow(entry);
-        if (migrations.containsKey(extent)) {
-          found.add(extent);
-        }
+        notSeen.remove(extent);
       }
-      migrations.keySet().retainAll(found);
+      // remove tablets that used to be in migrations and were not seen in the metadata table
+      migrations.keySet().removeAll(notSeen);
     }
 
     /**
