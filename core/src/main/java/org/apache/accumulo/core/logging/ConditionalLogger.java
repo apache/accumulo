@@ -18,111 +18,427 @@
  */
 package org.apache.accumulo.core.logging;
 
-import java.util.function.Supplier;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.BiFunction;
 
 import org.slf4j.Logger;
 import org.slf4j.Marker;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.AbstractLogger;
+import org.slf4j.spi.LoggingEventBuilder;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * Logger that wraps another Logger and only emits a log message once per the supplied duration.
  *
  */
-public class ConditionalLogger extends AbstractLogger {
+public class ConditionalLogger implements Logger {
 
-  public static Logger createTimeFrequencyLogger(Logger log, Supplier<Long> intervalNanos) {
+  public static class DeduplicatingLogger extends ConditionalLogger {
 
-    final Supplier<Boolean> condition = new Supplier<>() {
-      private volatile long last = 0L;
+    public DeduplicatingLogger(Logger log, Duration threshold) {
+      super(log, new BiFunction<>() {
 
-      @Override
-      public Boolean get() {
-        if (intervalNanos.get() == 0) {
-          return false;
-        } else if (System.nanoTime() - last > intervalNanos.get()) {
-          last = System.nanoTime();
-          return true;
-        } else {
+        private final Cache<String,List<Object>> cache =
+            Caffeine.newBuilder().expireAfterWrite(threshold).weakKeys().weakValues().build();
+
+        @Override
+        public Boolean apply(String msg, List<Object> args) {
+
+          // WeakKeys will perform == check, this should work?
+          List<Object> storedArgs = cache.getIfPresent(msg);
+
+          if (storedArgs == null || !storedArgs.equals(args)) {
+            cache.put(msg, args);
+            return true;
+          }
           return false;
         }
-      }
-    };
 
-    return new ConditionalLogger(log, condition);
+      });
+    }
+
   }
 
-  private static final long serialVersionUID = 1L;
+  /*
+   * ConditionalLogger cannot extend AbstractLogger because it implements Serializable and the
+   * Supplier member is not Serializable. The supplied Logger is wrapped by the DelegateWrapper, and
+   * the ConditionalLogger delegates to the DelegateWrapper. The DelegateWrapper evaluates the
+   * condition to determine whether or not logging should be performed.
+   */
 
-  private final Logger delegate;
-  private final Supplier<Boolean> condition;
+  private class DelegateWrapper extends AbstractLogger {
 
-  private ConditionalLogger(Logger log, Supplier<Boolean> condition) {
-    this.delegate = log;
+    private static final long serialVersionUID = 1L;
+
+    private final Logger delegate;
+
+    public DelegateWrapper(Logger delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public boolean isTraceEnabled() {
+      return delegate.isTraceEnabled();
+    }
+
+    @Override
+    public boolean isTraceEnabled(Marker marker) {
+      return delegate.isTraceEnabled(marker);
+    }
+
+    @Override
+    public boolean isDebugEnabled() {
+      return delegate.isDebugEnabled();
+    }
+
+    @Override
+    public boolean isDebugEnabled(Marker marker) {
+      return delegate.isDebugEnabled(marker);
+    }
+
+    @Override
+    public boolean isInfoEnabled() {
+      return delegate.isInfoEnabled();
+    }
+
+    @Override
+    public boolean isInfoEnabled(Marker marker) {
+      return delegate.isInfoEnabled(marker);
+    }
+
+    @Override
+    public boolean isWarnEnabled() {
+      return delegate.isWarnEnabled();
+    }
+
+    @Override
+    public boolean isWarnEnabled(Marker marker) {
+      return delegate.isWarnEnabled(marker);
+    }
+
+    @Override
+    public boolean isErrorEnabled() {
+      return delegate.isErrorEnabled();
+    }
+
+    @Override
+    public boolean isErrorEnabled(Marker marker) {
+      return delegate.isErrorEnabled(marker);
+    }
+
+    @Override
+    protected String getFullyQualifiedCallerName() {
+      return delegate.getName();
+    }
+
+    @Override
+    protected void handleNormalizedLoggingCall(Level level, Marker marker, String messagePattern,
+        Object[] arguments, Throwable throwable) {
+      if (condition.apply(messagePattern, Arrays.asList(arguments))) {
+        delegate.atLevel(level).addMarker(marker).setCause(throwable).log(messagePattern,
+            arguments);
+      }
+    }
+
+  }
+
+  private final DelegateWrapper delegate;
+  private final BiFunction<String,List<Object>,Boolean> condition;
+
+  public ConditionalLogger(Logger log, BiFunction<String,List<Object>,Boolean> condition) {
+    this.delegate = new DelegateWrapper(log);
     this.condition = condition;
   }
 
   @Override
   public boolean isTraceEnabled() {
-    return delegate.isTraceEnabled();
+    return this.delegate.isTraceEnabled();
   }
 
   @Override
   public boolean isTraceEnabled(Marker marker) {
-    return delegate.isTraceEnabled(marker);
+    return this.delegate.isTraceEnabled(marker);
   }
 
   @Override
   public boolean isDebugEnabled() {
-    return delegate.isDebugEnabled();
+    return this.delegate.isDebugEnabled();
   }
 
   @Override
   public boolean isDebugEnabled(Marker marker) {
-    return delegate.isDebugEnabled(marker);
+    return this.delegate.isDebugEnabled(marker);
   }
 
   @Override
   public boolean isInfoEnabled() {
-    return delegate.isInfoEnabled();
+    return this.delegate.isInfoEnabled();
   }
 
   @Override
   public boolean isInfoEnabled(Marker marker) {
-    return delegate.isInfoEnabled(marker);
+    return this.delegate.isInfoEnabled(marker);
   }
 
   @Override
   public boolean isWarnEnabled() {
-    return delegate.isWarnEnabled();
+    return this.delegate.isWarnEnabled();
   }
 
   @Override
   public boolean isWarnEnabled(Marker marker) {
-    return delegate.isWarnEnabled(marker);
+    return this.delegate.isWarnEnabled(marker);
   }
 
   @Override
   public boolean isErrorEnabled() {
-    return delegate.isErrorEnabled();
+    return this.delegate.isErrorEnabled();
   }
 
   @Override
   public boolean isErrorEnabled(Marker marker) {
-    return delegate.isErrorEnabled(marker);
+    return this.delegate.isErrorEnabled(marker);
   }
 
-  @Override
-  protected String getFullyQualifiedCallerName() {
-    return delegate.getName();
+  public String getName() {
+    return this.delegate.getName();
   }
 
-  @Override
-  protected void handleNormalizedLoggingCall(Level level, Marker marker, String messagePattern,
-      Object[] arguments, Throwable throwable) {
-    if (condition.get()) {
-      delegate.atLevel(level).addMarker(marker).setCause(throwable).log(messagePattern, arguments);
-    }
+  public LoggingEventBuilder makeLoggingEventBuilder(Level level) {
+    return this.delegate.makeLoggingEventBuilder(level);
+  }
+
+  public LoggingEventBuilder atLevel(Level level) {
+    return this.delegate.atLevel(level);
+  }
+
+  public boolean isEnabledForLevel(Level level) {
+    return this.delegate.isEnabledForLevel(level);
+  }
+
+  public void trace(String msg) {
+    this.delegate.trace(msg);
+  }
+
+  public void trace(String format, Object arg) {
+    this.delegate.trace(format, arg);
+  }
+
+  public void trace(String format, Object arg1, Object arg2) {
+    this.delegate.trace(format, arg1, arg2);
+  }
+
+  public void trace(String format, Object... arguments) {
+    this.delegate.trace(format, arguments);
+  }
+
+  public void trace(String msg, Throwable t) {
+    this.delegate.trace(msg, t);
+  }
+
+  public LoggingEventBuilder atTrace() {
+    return this.delegate.atTrace();
+  }
+
+  public void trace(Marker marker, String msg) {
+    this.delegate.trace(marker, msg);
+  }
+
+  public void trace(Marker marker, String format, Object arg) {
+    this.delegate.trace(marker, format, arg);
+  }
+
+  public void trace(Marker marker, String format, Object arg1, Object arg2) {
+    this.delegate.trace(marker, format, arg1, arg2);
+  }
+
+  public void trace(Marker marker, String format, Object... argArray) {
+    this.delegate.trace(marker, format, argArray);
+  }
+
+  public void trace(Marker marker, String msg, Throwable t) {
+    this.delegate.trace(marker, msg, t);
+  }
+
+  public void debug(String msg) {
+    this.delegate.debug(msg);
+  }
+
+  public void debug(String format, Object arg) {
+    this.delegate.debug(format, arg);
+  }
+
+  public void debug(String format, Object arg1, Object arg2) {
+    this.delegate.debug(format, arg1, arg2);
+  }
+
+  public void debug(String format, Object... arguments) {
+    this.delegate.debug(format, arguments);
+  }
+
+  public void debug(String msg, Throwable t) {
+    this.delegate.debug(msg, t);
+  }
+
+  public void debug(Marker marker, String msg) {
+    this.delegate.debug(marker, msg);
+  }
+
+  public void debug(Marker marker, String format, Object arg) {
+    this.delegate.debug(marker, format, arg);
+  }
+
+  public void debug(Marker marker, String format, Object arg1, Object arg2) {
+    this.delegate.debug(marker, format, arg1, arg2);
+  }
+
+  public void debug(Marker marker, String format, Object... arguments) {
+    this.delegate.debug(marker, format, arguments);
+  }
+
+  public void debug(Marker marker, String msg, Throwable t) {
+    this.delegate.debug(marker, msg, t);
+  }
+
+  public LoggingEventBuilder atDebug() {
+    return this.delegate.atDebug();
+  }
+
+  public void info(String msg) {
+    this.delegate.info(msg);
+  }
+
+  public void info(String format, Object arg) {
+    this.delegate.info(format, arg);
+  }
+
+  public void info(String format, Object arg1, Object arg2) {
+    this.delegate.info(format, arg1, arg2);
+  }
+
+  public void info(String format, Object... arguments) {
+    this.delegate.info(format, arguments);
+  }
+
+  public void info(String msg, Throwable t) {
+    this.delegate.info(msg, t);
+  }
+
+  public void info(Marker marker, String msg) {
+    this.delegate.info(marker, msg);
+  }
+
+  public void info(Marker marker, String format, Object arg) {
+    this.delegate.info(marker, format, arg);
+  }
+
+  public void info(Marker marker, String format, Object arg1, Object arg2) {
+    this.delegate.info(marker, format, arg1, arg2);
+  }
+
+  public void info(Marker marker, String format, Object... arguments) {
+    this.delegate.info(marker, format, arguments);
+  }
+
+  public void info(Marker marker, String msg, Throwable t) {
+    this.delegate.info(marker, msg, t);
+  }
+
+  public LoggingEventBuilder atInfo() {
+    return this.delegate.atInfo();
+  }
+
+  public void warn(String msg) {
+    this.delegate.warn(msg);
+  }
+
+  public void warn(String format, Object arg) {
+    this.delegate.warn(format, arg);
+  }
+
+  public void warn(String format, Object... arguments) {
+    this.delegate.warn(format, arguments);
+  }
+
+  public void warn(String format, Object arg1, Object arg2) {
+    this.delegate.warn(format, arg1, arg2);
+  }
+
+  public void warn(String msg, Throwable t) {
+    this.delegate.warn(msg, t);
+  }
+
+  public void warn(Marker marker, String msg) {
+    this.delegate.warn(marker, msg);
+  }
+
+  public void warn(Marker marker, String format, Object arg) {
+    this.delegate.warn(marker, format, arg);
+  }
+
+  public void warn(Marker marker, String format, Object arg1, Object arg2) {
+    this.delegate.warn(marker, format, arg1, arg2);
+  }
+
+  public void warn(Marker marker, String format, Object... arguments) {
+    this.delegate.warn(marker, format, arguments);
+  }
+
+  public void warn(Marker marker, String msg, Throwable t) {
+    this.delegate.warn(marker, msg, t);
+  }
+
+  public LoggingEventBuilder atWarn() {
+    return this.delegate.atWarn();
+  }
+
+  public void error(String msg) {
+    this.delegate.error(msg);
+  }
+
+  public void error(String format, Object arg) {
+    this.delegate.error(format, arg);
+  }
+
+  public void error(String format, Object arg1, Object arg2) {
+    this.delegate.error(format, arg1, arg2);
+  }
+
+  public void error(String format, Object... arguments) {
+    this.delegate.error(format, arguments);
+  }
+
+  public void error(String msg, Throwable t) {
+    this.delegate.error(msg, t);
+  }
+
+  public void error(Marker marker, String msg) {
+    this.delegate.error(marker, msg);
+  }
+
+  public void error(Marker marker, String format, Object arg) {
+    this.delegate.error(marker, format, arg);
+  }
+
+  public void error(Marker marker, String format, Object arg1, Object arg2) {
+    this.delegate.error(marker, format, arg1, arg2);
+  }
+
+  public void error(Marker marker, String format, Object... arguments) {
+    this.delegate.error(marker, format, arguments);
+  }
+
+  public void error(Marker marker, String msg, Throwable t) {
+    this.delegate.error(marker, msg, t);
+  }
+
+  public LoggingEventBuilder atError() {
+    return this.delegate.atError();
   }
 
 }
