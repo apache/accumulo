@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.manager.metrics;
 
-import static java.util.Objects.requireNonNull;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -26,21 +27,12 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 
-import io.micrometer.core.instrument.MeterRegistry;
+public class ManagerMetrics {
 
-public class ManagerMetrics implements MetricsProducer {
-
-  private final FateMetrics fateMetrics;
-
-  public ManagerMetrics(final AccumuloConfiguration conf, final Manager manager) {
-    requireNonNull(conf, "AccumuloConfiguration must not be null");
-    requireNonNull(conf, "Manager must not be null");
-    fateMetrics = new FateMetrics(manager.getContext(),
-        conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL));
-  }
-
-  @Override
-  public void registerMetrics(MeterRegistry registry) {
-    fateMetrics.registerMetrics(registry);
+  public static List<MetricsProducer> getProducers(AccumuloConfiguration conf, Manager manager) {
+    ArrayList<MetricsProducer> producers = new ArrayList<>();
+    producers.add(new FateMetrics(manager.getContext(),
+        conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
+    return producers;
   }
 }

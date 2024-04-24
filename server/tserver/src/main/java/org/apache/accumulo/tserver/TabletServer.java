@@ -30,7 +30,6 @@ import static org.apache.accumulo.core.util.threads.ThreadPools.watchNonCritical
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.Instant;
@@ -93,7 +92,7 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
@@ -705,24 +704,19 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       throw new RuntimeException("Failed to start the tablet client service", e1);
     }
 
-    try {
-      MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName, clientAddress,
-          getContext().getInstanceName());
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addServiceTags(getApplicationName(), clientAddress);
 
-      metrics = new TabletServerMetrics(this);
-      updateMetrics = new TabletServerUpdateMetrics();
-      scanMetrics = new TabletServerScanMetrics();
-      mincMetrics = new TabletServerMinCMetrics();
-      ceMetrics = new CompactionExecutorsMetrics();
-      pausedMetrics = new PausedCompactionMetrics();
-      MetricsUtil.initializeProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
-          ceMetrics, pausedMetrics);
+    metrics = new TabletServerMetrics(this);
+    updateMetrics = new TabletServerUpdateMetrics();
+    scanMetrics = new TabletServerScanMetrics();
+    mincMetrics = new TabletServerMinCMetrics();
+    ceMetrics = new CompactionExecutorsMetrics();
+    pausedMetrics = new PausedCompactionMetrics();
 
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-        | SecurityException e1) {
-      log.error("Error initializing metrics, metrics will not be emitted.", e1);
-    }
+    metricsInfo.addMetricsProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics,
+        pausedMetrics);
+    metricsInfo.init();
 
     this.compactionManager = new CompactionManager(() -> Iterators
         .transform(onlineTablets.snapshot().values().iterator(), Tablet::asCompactable),

@@ -140,7 +140,7 @@ public class TabletServerResourceManager {
   }
 
   private ThreadPoolExecutor createPriorityExecutor(ScanExecutorConfig sec,
-      Map<String,Queue<Runnable>> scanExecQueues) {
+      Map<String,Queue<Runnable>> scanExecQueues, final boolean enableMetrics) {
 
     BlockingQueue<Runnable> queue;
 
@@ -188,7 +188,7 @@ public class TabletServerResourceManager {
     ThreadPoolExecutor es = ThreadPools.getServerThreadPools().getPoolBuilder("scan-" + sec.name)
         .numCoreThreads(sec.getCurrentMaxThreads()).numMaxThreads(sec.getCurrentMaxThreads())
         .withTimeOut(0L, MILLISECONDS).withQueue(queue).atPriority(sec.priority)
-        .enableThreadPoolMetrics().build();
+        .enableThreadPoolMetrics(enableMetrics).build();
     modifyThreadPoolSizesAtRuntime(sec::getCurrentMaxThreads, "scan-" + sec.name, es);
     return es;
 
@@ -251,6 +251,7 @@ public class TabletServerResourceManager {
   public TabletServerResourceManager(ServerContext context, TabletHostingServer tserver) {
     this.context = context;
     final AccumuloConfiguration acuConf = context.getConfiguration();
+    final boolean enableMetrics = context.getMetricsInfo().isMetricsEnabled(); // acuConf.getBoolean(Property.GENERAL_MICROMETER_ENABLED);
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
     boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
     if (usingNativeMap) {
@@ -307,20 +308,20 @@ public class TabletServerResourceManager {
         () -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
         "minor compactor", minorCompactionThreadPool);
 
-    splitThreadPool =
-        ThreadPools.getServerThreadPools().getPoolBuilder("splitter").numCoreThreads(0)
-            .numMaxThreads(1).withTimeOut(1, SECONDS).enableThreadPoolMetrics().build();
+    splitThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("splitter")
+        .numCoreThreads(0).numMaxThreads(1).withTimeOut(1, SECONDS)
+        .enableThreadPoolMetrics(enableMetrics).build();
 
-    defaultSplitThreadPool =
-        ThreadPools.getServerThreadPools().getPoolBuilder("md splitter").numCoreThreads(0)
-            .numMaxThreads(1).withTimeOut(60, SECONDS).enableThreadPoolMetrics().build();
+    defaultSplitThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("md splitter")
+        .numCoreThreads(0).numMaxThreads(1).withTimeOut(60, SECONDS)
+        .enableThreadPoolMetrics(enableMetrics).build();
 
     defaultMigrationPool = ThreadPools.getServerThreadPools()
         .getPoolBuilder("metadata tablet migration").numCoreThreads(0).numMaxThreads(1)
-        .withTimeOut(60, SECONDS).enableThreadPoolMetrics().build();
+        .withTimeOut(60, SECONDS).enableThreadPoolMetrics(enableMetrics).build();
 
     migrationPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
-        Property.TSERV_MIGRATE_MAXCONCURRENT, true);
+        Property.TSERV_MIGRATE_MAXCONCURRENT, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_MIGRATE_MAXCONCURRENT),
         "tablet migration", migrationPool);
@@ -331,31 +332,31 @@ public class TabletServerResourceManager {
     // individual tablet server run
     // concurrent assignments would put more load on the metadata table at startup
     assignmentPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
-        Property.TSERV_ASSIGNMENT_MAXCONCURRENT, true);
+        Property.TSERV_ASSIGNMENT_MAXCONCURRENT, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT),
         "tablet assignment", assignmentPool);
 
     assignMetaDataPool = ThreadPools.getServerThreadPools()
         .getPoolBuilder("metadata tablet assignment").numCoreThreads(0).numMaxThreads(1)
-        .withTimeOut(60, SECONDS).enableThreadPoolMetrics().build();
+        .withTimeOut(60, SECONDS).enableThreadPoolMetrics(enableMetrics).build();
 
     activeAssignments = new ConcurrentHashMap<>();
 
     summaryRetrievalPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
-        Property.TSERV_SUMMARY_RETRIEVAL_THREADS, true);
+        Property.TSERV_SUMMARY_RETRIEVAL_THREADS, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_RETRIEVAL_THREADS),
         "summary file retriever", summaryRetrievalPool);
 
     summaryRemotePool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
-        Property.TSERV_SUMMARY_REMOTE_THREADS, true);
+        Property.TSERV_SUMMARY_REMOTE_THREADS, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_REMOTE_THREADS),
         "summary remote", summaryRemotePool);
 
     summaryPartitionPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
-        Property.TSERV_SUMMARY_PARTITION_THREADS, true);
+        Property.TSERV_SUMMARY_PARTITION_THREADS, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_PARTITION_THREADS),
         "summary partition", summaryPartitionPool);
@@ -364,8 +365,8 @@ public class TabletServerResourceManager {
 
     Collection<ScanExecutorConfig> scanExecCfg = acuConf.getScanExecutors(isScanServer);
     Map<String,Queue<Runnable>> scanExecQueues = new HashMap<>();
-    scanExecutors = scanExecCfg.stream().collect(
-        toUnmodifiableMap(cfg -> cfg.name, cfg -> createPriorityExecutor(cfg, scanExecQueues)));
+    scanExecutors = scanExecCfg.stream().collect(toUnmodifiableMap(cfg -> cfg.name,
+        cfg -> createPriorityExecutor(cfg, scanExecQueues, enableMetrics)));
     scanExecutorChoices = scanExecCfg.stream().collect(toUnmodifiableMap(cfg -> cfg.name,
         cfg -> new ScanExecutorImpl(cfg, scanExecQueues.get(cfg.name))));
 

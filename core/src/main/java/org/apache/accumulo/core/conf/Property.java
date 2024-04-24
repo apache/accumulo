@@ -322,8 +322,15 @@ public enum Property {
       "Enables metrics functionality using Micrometer.", "2.1.0"),
   GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
       PropertyType.BOOLEAN, "Enables JVM metrics functionality using Micrometer.", "2.1.0"),
-  GENERAL_MICROMETER_FACTORY("general.micrometer.factory", "", PropertyType.CLASSNAME,
-      "Name of class that implements MeterRegistryFactory.", "2.1.0"),
+  GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
+      "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory",
+      PropertyType.CLASSNAMELIST,
+      "A comma separated list of one or more class names that implements"
+          + " org.apache.accumulo.core.spi.metrics.MeterRegistryFactory. Prior to"
+          + " 2.1.3 this was a single value and the default was an empty string.  In 2.1.3 the default"
+          + " was changed and it now can accept multiple class names. The metrics spi was introduced in 2.1.3,"
+          + " the deprecated factory is org.apache.accumulo.core.metrics.MeterRegistryFactory.",
+      "2.1.0"),
   GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic.",
       "3.0.0"),

@@ -48,13 +48,10 @@ public class PropCacheCaffeineImpl implements PropCache {
       ThreadPools.getServerThreadPools().getPoolBuilder("caffeine-tasks").numCoreThreads(1)
           .numMaxThreads(20).withTimeOut(60L, SECONDS).build();
 
-  private final PropStoreMetrics metrics;
-
   private final LoadingCache<PropStoreKey<?>,VersionedProperties> cache;
 
   private PropCacheCaffeineImpl(final CacheLoader<PropStoreKey<?>,VersionedProperties> cacheLoader,
-      final PropStoreMetrics metrics, final Ticker ticker, boolean runTasksInline) {
-    this.metrics = metrics;
+      final Ticker ticker, boolean runTasksInline) {
     var builder = Caffeine.newBuilder().expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS)
         .evictionListener(this::evictionNotifier);
     if (runTasksInline) {
@@ -68,14 +65,9 @@ public class PropCacheCaffeineImpl implements PropCache {
     cache = builder.build(cacheLoader);
   }
 
-  public PropStoreMetrics getMetrics() {
-    return metrics;
-  }
-
   void evictionNotifier(PropStoreKey<?> propStoreKey, VersionedProperties value,
       RemovalCause cause) {
     log.trace("Evicted: ID: {} was evicted from cache. Reason: {}", propStoreKey, cause);
-    metrics.incrEviction();
   }
 
   @Override
@@ -85,7 +77,6 @@ public class PropCacheCaffeineImpl implements PropCache {
       return cache.get(propStoreKey);
     } catch (Exception ex) {
       log.info("Cache failed to retrieve properties for: " + propStoreKey, ex);
-      metrics.incrZkError();
       return null;
     }
   }
@@ -116,20 +107,17 @@ public class PropCacheCaffeineImpl implements PropCache {
   }
 
   public static class Builder {
-
-    private final PropStoreMetrics metrics;
     private final ZooPropLoader zooPropLoader;
     private Ticker ticker = null;
     private boolean runTasksInline = false;
 
-    public Builder(final ZooPropLoader zooPropLoader, final PropStoreMetrics metrics) {
+    public Builder(final ZooPropLoader zooPropLoader) {
       Objects.requireNonNull(zooPropLoader, "A PropStoreChangeMonitor must be provided");
       this.zooPropLoader = zooPropLoader;
-      this.metrics = metrics;
     }
 
     public PropCacheCaffeineImpl build() {
-      return new PropCacheCaffeineImpl(zooPropLoader, metrics, ticker, runTasksInline);
+      return new PropCacheCaffeineImpl(zooPropLoader, ticker, runTasksInline);
     }
 
     public Builder forTests(final Ticker ticker) {
