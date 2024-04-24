@@ -546,8 +546,8 @@ public class CompactionCoordinator extends AbstractServer
     }
 
     var extent = KeyExtent.fromThrift(textent);
-    STATUS_LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId,
-        stats, extent);
+    LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
+        extent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     compactionFinalizer.commitCompaction(ecid, extent, stats.fileSize, stats.entriesWritten);
     // It's possible that RUNNING might not have an entry for this ecid in the case
@@ -565,8 +565,7 @@ public class CompactionCoordinator extends AbstractServer
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     KeyExtent fromThriftExtent = KeyExtent.fromThrift(extent);
-    STATUS_LOG.info("Compaction failed: id: {}, extent: {}", externalCompactionId,
-        fromThriftExtent);
+    LOG.info("Compaction failed: id: {}, extent: {}", externalCompactionId, fromThriftExtent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     compactionFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
   }
