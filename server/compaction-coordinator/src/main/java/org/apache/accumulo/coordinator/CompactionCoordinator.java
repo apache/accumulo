@@ -101,6 +101,9 @@ public class CompactionCoordinator extends AbstractServer
     implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
+
+  private static final Logger STATUS_LOG =
+      LoggerFactory.getLogger(CompactionCoordinator.class.getName() + ".compaction.status");
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
   protected static final QueueSummaries QUEUE_SUMMARIES = new QueueSummaries();
 
@@ -543,8 +546,8 @@ public class CompactionCoordinator extends AbstractServer
     }
 
     var extent = KeyExtent.fromThrift(textent);
-    LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
-        extent);
+    STATUS_LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId,
+        stats, extent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     compactionFinalizer.commitCompaction(ecid, extent, stats.fileSize, stats.entriesWritten);
     // It's possible that RUNNING might not have an entry for this ecid in the case
@@ -562,7 +565,8 @@ public class CompactionCoordinator extends AbstractServer
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     KeyExtent fromThriftExtent = KeyExtent.fromThrift(extent);
-    LOG.info("Compaction failed: id: {}, extent: {}", externalCompactionId, fromThriftExtent);
+    STATUS_LOG.info("Compaction failed: id: {}, extent: {}", externalCompactionId,
+        fromThriftExtent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     compactionFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
   }
@@ -591,8 +595,8 @@ public class CompactionCoordinator extends AbstractServer
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    LOG.trace("Compaction status update, id: {}, timestamp: {}, update: {}", externalCompactionId,
-        timestamp, update);
+    STATUS_LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}",
+        externalCompactionId, timestamp, update);
     final RunningCompaction rc = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     if (null != rc) {
       rc.addUpdate(timestamp, update);
