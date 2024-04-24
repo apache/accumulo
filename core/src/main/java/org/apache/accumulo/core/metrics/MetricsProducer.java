@@ -649,6 +649,10 @@ public interface MetricsProducer {
   String METRICS_UPDATE_WALOG_WRITE = METRICS_UPDATE_PREFIX + "walog.write";
   String METRICS_UPDATE_MUTATION_ARRAY_SIZE = METRICS_UPDATE_PREFIX + "mutation.arrays.size";
 
+  // balancer
+  String METRICS_MANAGER_BALANCER_MIGRATING = "manager.balancer.balancing.total";
+  String METRICS_MANAGER_BALANCER_NEED_MIGRATION = "manager.balancer.need.balancing.total";
+
   /**
    * Build Micrometer Meter objects and register them with the registry
    */
