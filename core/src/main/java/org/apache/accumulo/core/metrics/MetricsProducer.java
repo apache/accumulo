@@ -367,6 +367,28 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Gauge</td>
  * <td></td>
  * </tr>
+ * <!-- scan server -->
+ * <tr>
+ * <th>N/A</th>
+ * <th>N/A</th>
+ * <th>{@value #METRICS_SSERVER_REGISTRATION_TIMER}</th>
+ * <th>Timer</th>
+ * <th>Time to reserve a tablets files for scan</th>
+ * </tr>
+ * <tr>
+ * <th>N/A</th>
+ * <th>N/A</th>
+ * <th>{@value #METRICS_SSERVER_BUSY_COUNTER}</th>
+ * <th>Counter</th>
+ * <th>Count of the scans where a busy timeout happened</th>
+ * </tr>
+ * <tr>
+ * <th>N/A</th>
+ * <th>N/A</th>
+ * <th>{@value #METRICS_SSERVER_TABLET_METADATA_CACHE}</th>
+ * <th>Cache</th>
+ * <th>scan server tablet cache metrics</th>
+ * </tr>
  * <!-- scans -->
  * <tr>
  * <td>scan</td>
@@ -637,6 +659,11 @@ public interface MetricsProducer {
   String METRICS_TSERVER_SCAN_RESULTS = METRICS_TSERVER_PREFIX + "scan.results";
   String METRICS_TSERVER_SCAN_RESULTS_BYTES = METRICS_TSERVER_PREFIX + "scan.results.bytes";
   String METRICS_TSERVER_SCANNED_ENTRIES = METRICS_TSERVER_PREFIX + "scan.scanned.entries";
+
+  String METRICS_SSERVER_PREFIX = "accumulo.sserver.";
+  String METRICS_SSERVER_REGISTRATION_TIMER = METRICS_SSERVER_PREFIX + "registration.timer";
+  String METRICS_SSERVER_BUSY_COUNTER = METRICS_SSERVER_PREFIX + "busy.count";
+  String METRICS_SSERVER_TABLET_METADATA_CACHE = METRICS_SSERVER_PREFIX + "tablet.metadata.cache";
 
   String METRICS_THRIFT_PREFIX = "accumulo.thrift.";
   String METRICS_THRIFT_EXECUTE = METRICS_THRIFT_PREFIX + "execute";
