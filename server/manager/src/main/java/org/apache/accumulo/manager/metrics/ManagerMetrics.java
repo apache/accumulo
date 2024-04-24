@@ -18,11 +18,12 @@
  */
 package org.apache.accumulo.manager.metrics;
 
-import static java.util.Objects.requireNonNull;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.slf4j.Logger;
@@ -32,15 +33,13 @@ public class ManagerMetrics {
 
   private final static Logger log = LoggerFactory.getLogger(ManagerMetrics.class);
 
-  public static void init(AccumuloConfiguration conf, Manager m) {
-    requireNonNull(conf, "AccumuloConfiguration must not be null");
+  public static List<MetricsProducer> getProducers(AccumuloConfiguration conf, Manager m) {
+    ArrayList<MetricsProducer> producers = new ArrayList<>();
     @SuppressWarnings("deprecation")
     ReplicationMetrics replMetrics = new ReplicationMetrics(m);
-    MetricsUtil.initializeProducers(replMetrics);
-    log.info("Registered replication metrics module");
-    MetricsUtil.initializeProducers(new FateMetrics(m.getContext(),
+    producers.add(replMetrics);
+    producers.add(new FateMetrics(m.getContext(),
         conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
-    log.info("Registered FATE metrics module");
+    return producers;
   }
-
 }

@@ -46,6 +46,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
@@ -227,6 +228,8 @@ public class CompactionCoordinatorTest {
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    MetricsInfo metricsInfo = PowerMock.createNiceMock(MetricsInfo.class);
+    expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
     List<RunningCompaction> runningCompactions = new ArrayList<>();
@@ -278,6 +281,8 @@ public class CompactionCoordinatorTest {
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    MetricsInfo metricsInfo = PowerMock.createNiceMock(MetricsInfo.class);
+    expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
 
     TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
     expect(context.rpcCreds()).andReturn(creds);
@@ -350,6 +355,8 @@ public class CompactionCoordinatorTest {
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    MetricsInfo metricsInfo = PowerMock.createNiceMock(MetricsInfo.class);
+    expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
 
     TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
     expect(context.rpcCreds()).andReturn(creds);
@@ -425,6 +432,8 @@ public class CompactionCoordinatorTest {
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    MetricsInfo metricsInfo = PowerMock.createNiceMock(MetricsInfo.class);
+    expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
 
     TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
     expect(context.rpcCreds()).andReturn(creds);
@@ -505,6 +514,8 @@ public class CompactionCoordinatorTest {
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    MetricsInfo metricsInfo = PowerMock.createNiceMock(MetricsInfo.class);
+    expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
 
     TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
     expect(context.rpcCreds()).andReturn(creds).anyTimes();
