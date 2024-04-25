@@ -135,7 +135,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   private ServiceLock compactorLock;
   private ServerAddress compactorAddress = null;
-  private PausedCompactionMetrics pausedMetrics;
+  private final PausedCompactionMetrics pausedMetrics = new PausedCompactionMetrics();
 
   // Exposed for tests
   protected volatile boolean shutdown = false;
