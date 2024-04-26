@@ -30,7 +30,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
@@ -147,9 +146,11 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     return getContext().getConfiguration();
   }
 
-  @Override
-  public void close() {
-    MetricsUtil.close();
+  public String getApplicationName() {
+    return applicationName;
   }
+
+  @Override
+  public void close() {}
 
 }

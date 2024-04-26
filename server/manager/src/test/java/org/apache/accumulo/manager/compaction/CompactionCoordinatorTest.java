@@ -23,7 +23,11 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 import static org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator.canReserveCompaction;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -66,6 +70,7 @@ import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -100,6 +105,20 @@ public class CompactionCoordinatorTest {
 
   private static final CompactorGroupId GROUP_ID = CompactorGroupId.of("R2DQ");
 
+  private final HostAndPort tserverAddr = HostAndPort.fromParts("192.168.1.1", 9090);
+
+  public MetricsInfo getMockMetrics() {
+    MetricsInfo metricsInfo = createMock(MetricsInfo.class);
+    metricsInfo.addServiceTags(anyObject(), anyObject(), anyObject());
+    expectLastCall().anyTimes();
+    metricsInfo.addMetricsProducers(anyObject());
+    expectLastCall().anyTimes();
+    metricsInfo.init();
+    expectLastCall().anyTimes();
+    replay(metricsInfo);
+    return metricsInfo;
+  }
+
   public class TestCoordinator extends CompactionCoordinator {
 
     private final List<RunningCompaction> runningCompactions;
@@ -108,7 +127,7 @@ public class CompactionCoordinatorTest {
 
     public TestCoordinator(ServerContext ctx, SecurityOperation security,
         List<RunningCompaction> runningCompactions) {
-      super(ctx, security, fateInstances);
+      super(ctx, security, fateInstances, "TEST_GROUP");
       this.runningCompactions = runningCompactions;
     }
 
@@ -216,6 +235,9 @@ public class CompactionCoordinatorTest {
     expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
 
+    MetricsInfo metricsInfo = getMockMetrics();
+    expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
+
     AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
 
     EasyMock.replay(context, security);
@@ -228,7 +250,7 @@ public class CompactionCoordinatorTest {
 
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
-    EasyMock.verify(context, security);
+    EasyMock.verify(context, security, metricsInfo);
   }
 
   @Test
@@ -238,7 +260,8 @@ public class CompactionCoordinatorTest {
     expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
 
-    HostAndPort tserverAddress = HostAndPort.fromString("localhost:9997");
+    MetricsInfo metricsInfo = getMockMetrics();
+    expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
 
     List<RunningCompaction> runningCompactions = new ArrayList<>();
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
@@ -246,8 +269,7 @@ public class CompactionCoordinatorTest {
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     TKeyExtent extent = new TKeyExtent();
     extent.setTable("1".getBytes());
-    runningCompactions
-        .add(new RunningCompaction(job, tserverAddress.toString(), GROUP_ID.toString()));
+    runningCompactions.add(new RunningCompaction(job, tserverAddr.toString(), GROUP_ID.toString()));
 
     AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
 
@@ -267,7 +289,7 @@ public class CompactionCoordinatorTest {
     assertEquals(eci, ecomp.getKey());
     RunningCompaction rc = ecomp.getValue();
     assertEquals(GROUP_ID.toString(), rc.getGroupName());
-    assertEquals(tserverAddress.toString(), rc.getCompactorAddress());
+    assertEquals(tserverAddr.toString(), rc.getCompactorAddress());
 
     EasyMock.verify(context, job, security);
   }
@@ -283,6 +305,9 @@ public class CompactionCoordinatorTest {
     expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
     expect(context.getTableConfiguration(TableId.of("2a"))).andReturn(tconf).anyTimes();
+
+    MetricsInfo metricsInfo = getMockMetrics();
+    expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
 
     TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
     expect(context.rpcCreds()).andReturn(creds).anyTimes();

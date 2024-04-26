@@ -161,6 +161,7 @@ public class CompactionCoordinator
 
   private final ServerContext ctx;
   private final SecurityOperation security;
+  private final String resourceGroupName;
   private final CompactionJobQueues jobQueues;
   private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
   // Exposed for tests
@@ -173,13 +174,15 @@ public class CompactionCoordinator
   private final Cache<Path,Integer> tabletDirCache;
   private final DeadCompactionDetector deadCompactionDetector;
 
-  private final QueueMetrics queueMetrics;
+  private QueueMetrics queueMetrics;
 
   public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
-      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances) {
+      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances,
+      final String resourceGroupName) {
     this.ctx = ctx;
     this.schedExecutor = this.ctx.getScheduledExecutor();
     this.security = security;
+    this.resourceGroupName = resourceGroupName;
 
     this.jobQueues = new CompactionJobQueues(
         ctx.getConfiguration().getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE));
@@ -268,7 +271,6 @@ public class CompactionCoordinator
 
   @Override
   public void run() {
-
     startCompactionCleaner(schedExecutor);
     startRunningCleaner(schedExecutor);
 
@@ -638,8 +640,10 @@ public class CompactionCoordinator
   @Override
   public void registerMetrics(MeterRegistry registry) {
     Gauge.builder(METRICS_MAJC_QUEUED, jobQueues, CompactionJobQueues::getQueuedJobCount)
+        .tag("subprocess", "compaction.coordinator")
         .description("Number of queued major compactions").register(registry);
     Gauge.builder(METRICS_MAJC_RUNNING, this, CompactionCoordinator::getNumRunningCompactions)
+        .tag("subprocess", "compaction.coordinator")
         .description("Number of running major compactions").register(registry);
 
     queueMetrics.registerMetrics(registry);
