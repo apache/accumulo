@@ -19,7 +19,6 @@
 package org.apache.accumulo.server.compaction;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -40,9 +39,9 @@ public class PausedCompactionMetrics implements MetricsProducer {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     majcPauses = Counter.builder(METRICS_MAJC_PAUSED).description("major compaction pause count")
-        .tags(MetricsUtil.getCommonTags()).register(registry);
+        .register(registry);
     mincPauses = Counter.builder(METRICS_MINC_PAUSED).description("minor compactor pause count")
-        .tags(MetricsUtil.getCommonTags()).register(registry);
+        .register(registry);
   }
 
 }

@@ -33,6 +33,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -214,8 +215,7 @@ public class FileUtil {
 
     Path tmpDir = null;
 
-    int maxToOpen =
-        context.getConfiguration().getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
+    int maxToOpen = getMaxFilesToOpen(context.getConfiguration());
     ArrayList<FileSKVIterator> readers = new ArrayList<>(dataFiles.size());
 
     try {
@@ -276,6 +276,12 @@ public class FileUtil {
     }
   }
 
+  @SuppressWarnings("deprecation")
+  private static int getMaxFilesToOpen(AccumuloConfiguration conf) {
+    return conf.getCount(
+        conf.resolve(Property.SPLIT_MAXOPEN, Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN));
+  }
+
   /**
    *
    * @param dataFiles - list of data files to find the mid point key
@@ -294,8 +300,7 @@ public class FileUtil {
 
     Path tmpDir = null;
 
-    int maxToOpen =
-        context.getConfiguration().getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
+    int maxToOpen = getMaxFilesToOpen(context.getConfiguration());
     ArrayList<FileSKVIterator> readers = new ArrayList<>(dataFiles.size());
 
     try {
