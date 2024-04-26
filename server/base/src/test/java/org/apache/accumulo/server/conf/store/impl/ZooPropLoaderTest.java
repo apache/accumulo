@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.conf.Property.MANAGER_CLIENTPORT;
 import static org.apache.accumulo.core.conf.Property.TSERV_CLIENTPORT;
 import static org.apache.accumulo.core.conf.Property.TSERV_NATIVEMAP_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TSERV_SCAN_MAX_OPENFILES;
-import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
@@ -58,12 +57,8 @@ import org.easymock.Capture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ZooPropLoaderTest {
-
-  private static final Logger log = LoggerFactory.getLogger(ZooPropLoaderTest.class);
 
   private PropCacheCaffeineImplTest.TestTicker ticker;
   private InstanceId instanceId;
@@ -72,7 +67,6 @@ public class ZooPropLoaderTest {
   private VersionedPropCodec propCodec;
 
   // mocks
-  private PropStoreMetrics cacheMetrics;
   private PropStoreWatcher propStoreWatcher;
   private ZooReaderWriter zrw;
 
@@ -92,18 +86,16 @@ public class ZooPropLoaderTest {
 
     zrw = createMock(ZooReaderWriter.class);
 
-    cacheMetrics = createMock(PropStoreMetrics.class);
-
     propStoreWatcher = createMock(PropStoreWatcher.class);
 
     // loader used in tests
-    loader = new ZooPropLoader(zrw, propCodec, propStoreWatcher, cacheMetrics);
+    loader = new ZooPropLoader(zrw, propCodec, propStoreWatcher);
 
   }
 
   @AfterEach
   public void verifyCommonMocks() {
-    verify(context, zrw, propStoreWatcher, cacheMetrics);
+    verify(context, zrw, propStoreWatcher);
   }
 
   @Test
@@ -122,10 +114,7 @@ public class ZooPropLoaderTest {
       return (bytes);
     }).once();
 
-    cacheMetrics.addLoadTime(anyLong());
-    expectLastCall().times(1);
-
-    replay(context, zrw, propStoreWatcher, cacheMetrics);
+    replay(context, zrw, propStoreWatcher);
 
     assertNotNull(loader.load(propStoreKey));
   }
@@ -158,13 +147,10 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).once();
 
-    cacheMetrics.addLoadTime(anyLong());
-    expectLastCall().times(1);
-
-    replay(context, zrw, propStoreWatcher, cacheMetrics);
+    replay(context, zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
-        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).forTests(ticker).build();
+        new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
 
     // load into cache
     assertNotNull(cache.get(propStoreKey));
@@ -189,17 +175,12 @@ public class ZooPropLoaderTest {
     propStoreWatcher.signalZkChangeEvent(eq(propStoreKey));
     expectLastCall();
 
-    cacheMetrics.incrZkError();
-    expectLastCall().once();
-
-    replay(context, zrw, propStoreWatcher, cacheMetrics);
+    replay(context, zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
-        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).forTests(ticker).build();
+        new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
 
     assertNull(cache.get(propStoreKey));
-
-    log.debug("Metrics: {}", cacheMetrics);
   }
 
   /**
@@ -225,16 +206,10 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).times(2);
 
-    cacheMetrics.addLoadTime(anyLong());
-    expectLastCall().times(2);
-
-    cacheMetrics.incrEviction();
-    expectLastCall().once();
-
-    replay(context, zrw, propStoreWatcher, cacheMetrics);
+    replay(context, zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
-        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).forTests(ticker).build();
+        new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
 
     // load cache
     assertNotNull(cache.get(propStoreKey));
@@ -278,17 +253,10 @@ public class ZooPropLoaderTest {
     propStoreWatcher.signalCacheChangeEvent(anyObject());
     expectLastCall().anyTimes();
 
-    cacheMetrics.addLoadTime(anyLong());
-    expectLastCall().times(1);
-    cacheMetrics.incrEviction();
-    expectLastCall().times(1);
-    cacheMetrics.incrZkError();
-    expectLastCall().times(1);
-
-    replay(context, zrw, propStoreWatcher, cacheMetrics);
+    replay(context, zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
-        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).forTests(ticker).build();
+        new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
 
     // prime cache
     assertNotNull(cache.get(propStoreKey));
@@ -307,10 +275,10 @@ public class ZooPropLoaderTest {
   @Test
   public void getIfCachedTest() {
 
-    replay(context, zrw, propStoreWatcher, cacheMetrics);
+    replay(context, zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
-        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).forTests(ticker).build();
+        new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
 
     assertNull(cache.getIfCached(propStoreKey));
 
@@ -348,13 +316,10 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).once();
 
-    cacheMetrics.addLoadTime(anyLong());
-    expectLastCall().times(2);
-
-    replay(context, zrw, propStoreWatcher, cacheMetrics);
+    replay(context, zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
-        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).forTests(ticker).build();
+        new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
 
     // load into cache
     assertNotNull(cache.get(sysPropKey));
@@ -399,13 +364,10 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).once();
 
-    cacheMetrics.addLoadTime(anyLong());
-    expectLastCall().times(2);
-
-    replay(context, zrw, propStoreWatcher, cacheMetrics);
+    replay(context, zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
-        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).forTests(ticker).build();
+        new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
 
     // load into cache
     assertNotNull(cache.get(sysPropKey));
@@ -420,10 +382,10 @@ public class ZooPropLoaderTest {
 
   @Test
   public void getIfCachedNotPresentTest() {
-    replay(context, zrw, propStoreWatcher, cacheMetrics);
+    replay(context, zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
-        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).forTests(ticker).build();
+        new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
 
     // load into cache
     assertNull(cache.getIfCached(propStoreKey));
@@ -451,7 +413,7 @@ public class ZooPropLoaderTest {
       return propCodec.toBytes(vProps);
     }).anyTimes();
 
-    replay(context, zrw, propStoreWatcher, cacheMetrics);
+    replay(context, zrw, propStoreWatcher);
 
     Stat statCheck = new Stat();
     statCheck.setVersion(9);

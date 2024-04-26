@@ -42,6 +42,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
@@ -173,7 +174,7 @@ public class TServerUtils {
     // create the TimedProcessor outside the port search loop so we don't try to
     // register the same
     // metrics mbean more than once
-    TimedProcessor timedProcessor = new TimedProcessor(processor);
+    TimedProcessor timedProcessor = new TimedProcessor(processor, context.getMetricsInfo());
 
     HostAndPort[] addresses = getHostAndPorts(hostname, portHint);
     try {
@@ -568,16 +569,16 @@ public class TServerUtils {
       ThriftServerType serverType, TProcessor processor, String serverName, String threadName,
       int numThreads, long threadTimeOut, long timeBetweenThreadChecks, long maxMessageSize,
       SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
-      long serverSocketTimeout, int backlog, HostAndPort... addresses) {
+      long serverSocketTimeout, int backlog, MetricsInfo metricsInfo, HostAndPort... addresses) {
 
     if (serverType == ThriftServerType.SASL) {
       processor = updateSaslProcessor(serverType, processor);
     }
 
     try {
-      return startTServer(serverType, new TimedProcessor(processor), serverName, threadName,
-          numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize, sslParams,
-          saslParams, serverSocketTimeout, backlog, addresses);
+      return startTServer(serverType, new TimedProcessor(processor, metricsInfo), serverName,
+          threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize,
+          sslParams, saslParams, serverSocketTimeout, backlog, addresses);
     } catch (TTransportException e) {
       throw new IllegalStateException(e);
     }
