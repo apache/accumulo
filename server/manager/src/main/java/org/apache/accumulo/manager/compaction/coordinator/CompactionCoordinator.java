@@ -461,7 +461,6 @@ public class CompactionCoordinator
         }
         break;
       case USER:
-      case SELECTOR:
         if (tablet.getSelectedFiles() == null
             || !tablet.getSelectedFiles().getFiles().containsAll(jobFiles)) {
           return false;
@@ -509,7 +508,6 @@ public class CompactionCoordinator
         propDels = !compactingAll;
       }
         break;
-      case SELECTOR:
       case USER: {
         boolean compactingAll = tablet.getSelectedFiles().initiallySelectedAll()
             && tablet.getSelectedFiles().getFiles().equals(jobFiles);
