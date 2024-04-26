@@ -24,6 +24,8 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
+import java.util.Comparator;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
@@ -34,6 +36,8 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Keep a persistent roughly monotone view of how long a manager has been overseeing this cluster.
@@ -58,8 +62,7 @@ public class ManagerTime {
 
     try {
       zk.putPersistentData(zPath, "0".getBytes(UTF_8), NodeExistsPolicy.SKIP);
-      skewAmount =
-          new AtomicLong(Long.parseLong(new String(zk.getData(zPath), UTF_8)) - System.nanoTime());
+      skewAmount = new AtomicLong(updatedSkew(zk.getData(zPath)));
     } catch (Exception ex) {
       throw new IOException("Error updating manager time", ex);
     }
@@ -74,8 +77,8 @@ public class ManagerTime {
    *
    * @return Approximate total duration this cluster has had a Manager, in milliseconds.
    */
-  public long getTime() {
-    return NANOSECONDS.toMillis(System.nanoTime() + skewAmount.get());
+  public SteadyTime getTime() {
+    return fromSkew(skewAmount.get());
   }
 
   public void run() {
@@ -86,8 +89,7 @@ public class ManagerTime {
       case INITIAL:
       case STOP:
         try {
-          long zkTime = Long.parseLong(new String(zk.getData(zPath), UTF_8));
-          skewAmount.set(zkTime - System.nanoTime());
+          skewAmount.set(updatedSkew(zk.getData(zPath)));
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {
             log.debug("Failed to retrieve manager tick time", ex);
@@ -101,14 +103,80 @@ public class ManagerTime {
       case UNLOAD_METADATA_TABLETS:
       case UNLOAD_ROOT_TABLET:
         try {
-          zk.putPersistentData(zPath,
-              Long.toString(System.nanoTime() + skewAmount.get()).getBytes(UTF_8),
+          zk.putPersistentData(zPath, fromSkew(skewAmount.get()).serialize(),
               NodeExistsPolicy.OVERWRITE);
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {
             log.debug("Failed to update manager tick time", ex);
           }
         }
+    }
+  }
+
+  @VisibleForTesting
+  static long updatedSkew(byte[] steadyTime) {
+    return SteadyTime.deserialize(steadyTime).getTimeNs() - System.nanoTime();
+  }
+
+  @VisibleForTesting
+  static SteadyTime fromSkew(long skewAmount) {
+    return new SteadyTime(System.nanoTime() + skewAmount);
+  }
+
+  public static class SteadyTime implements Comparable<SteadyTime> {
+    public static final Comparator<SteadyTime> STEADY_TIME_COMPARATOR =
+        Comparator.comparingLong(SteadyTime::getTimeNs);
+
+    private final long time;
+
+    public SteadyTime(long time) {
+      this.time = time;
+    }
+
+    public long getTimeMillis() {
+      return NANOSECONDS.toMillis(time);
+    }
+
+    public long getTimeNs() {
+      return time;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      SteadyTime that = (SteadyTime) o;
+      return time == that.time;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(time);
+    }
+
+    @Override
+    public int compareTo(SteadyTime that) {
+      return STEADY_TIME_COMPARATOR.compare(this, that);
+    }
+
+    byte[] serialize() {
+      return serialize(this);
+    }
+
+    static SteadyTime deserialize(byte[] steadyTime) {
+      return from(Long.parseLong(new String(steadyTime, UTF_8)));
+    }
+
+    static byte[] serialize(SteadyTime steadyTime) {
+      return Long.toString(steadyTime.getTimeNs()).getBytes(UTF_8);
+    }
+
+    public static SteadyTime from(long time) {
+      return new SteadyTime(time);
     }
   }
 }
