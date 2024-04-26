@@ -292,8 +292,9 @@ public class LogSorter {
 
   public void startWatchingForRecoveryLogs() throws KeeperException, InterruptedException {
     int threadPoolSize = this.conf.getCount(Property.TSERV_WAL_SORT_MAX_CONCURRENT);
-    ThreadPoolExecutor threadPool = ThreadPools.getServerThreadPools()
-        .createFixedThreadPool(threadPoolSize, this.getClass().getName(), true);
+    ThreadPoolExecutor threadPool =
+        ThreadPools.getServerThreadPools().getPoolBuilder(this.getClass().getName())
+            .numCoreThreads(threadPoolSize).enableThreadPoolMetrics().build();
     new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf,
         context).startProcessing(new LogProcessor(), threadPool);
   }

@@ -272,6 +272,12 @@ public class Retry {
      * @return this builder with the maximum number of retries set to the provided value
      */
     NeedsRetryDelay maxRetries(long max);
+
+    /**
+     * @return this builder with the maximum number of retries set to the number of retries that can
+     *         occur within the given duration
+     */
+    NeedsRetryDelay maxRetriesWithinDuration(Duration duration);
   }
 
   public interface NeedsRetryDelay {
@@ -358,6 +364,7 @@ public class Retry {
     private Duration waitIncrement;
     private Duration logInterval;
     private double backOffFactor = 1.5;
+    private Duration retriesForDuration = null;
 
     RetryFactoryBuilder() {}
 
@@ -379,6 +386,48 @@ public class Retry {
       Preconditions.checkArgument(max >= 0, "Maximum number of retries must not be negative");
       this.maxRetries = max;
       return this;
+    }
+
+    @Override
+    public NeedsRetryDelay maxRetriesWithinDuration(Duration duration) {
+      checkState();
+      Preconditions.checkArgument(!duration.isNegative(),
+          "Duration for retries must not be negative");
+      this.retriesForDuration = duration;
+      return this;
+    }
+
+    /**
+     * Calculate the maximum number of retries that can occur within {@link #retriesForDuration}
+     */
+    private void calculateRetriesWithinDuration() {
+      long numberOfRetries = 0;
+      long cumulativeWaitTimeMillis = 0;
+      long currentWaitTimeMillis = initialWait.toMillis();
+      final long retriesForDurationMillis = retriesForDuration.toMillis();
+
+      // set an upper bound for the number of retries
+      final long maxRetries = Duration.ofHours(1).toMillis();
+
+      while (cumulativeWaitTimeMillis + currentWaitTimeMillis <= retriesForDurationMillis
+          && numberOfRetries < maxRetries) {
+
+        cumulativeWaitTimeMillis += currentWaitTimeMillis;
+        numberOfRetries++;
+
+        if (backOffFactor > 1.0) {
+          currentWaitTimeMillis = (long) Math.ceil(currentWaitTimeMillis * backOffFactor);
+        } else {
+          currentWaitTimeMillis += waitIncrement.toMillis();
+        }
+
+        if (currentWaitTimeMillis > maxWait.toMillis()) {
+          currentWaitTimeMillis = maxWait.toMillis(); // Ensure wait time does not exceed maxWait
+        }
+
+      }
+
+      this.maxRetries = numberOfRetries;
     }
 
     @Override
@@ -434,6 +483,10 @@ public class Retry {
 
     @Override
     public Retry createRetry() {
+      if (retriesForDuration != null) {
+        calculateRetriesWithinDuration();
+      }
+      this.modifiable = false;
       return new Retry(maxRetries, initialWait, waitIncrement, maxWait, logInterval, backOffFactor);
     }
 

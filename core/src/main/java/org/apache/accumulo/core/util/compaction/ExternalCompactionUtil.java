@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -107,14 +108,14 @@ public class ExternalCompactionUtil {
   /**
    * @return map of queue names to compactor addresses
    */
-  public static Map<String,List<HostAndPort>> getCompactorAddrs(ClientContext context) {
+  public static Map<String,Set<HostAndPort>> getCompactorAddrs(ClientContext context) {
     try {
-      final Map<String,List<HostAndPort>> queuesAndAddresses = new HashMap<>();
+      final Map<String,Set<HostAndPort>> queuesAndAddresses = new HashMap<>();
       final String compactorQueuesPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
       ZooReader zooReader = context.getZooReader();
       List<String> queues = zooReader.getChildren(compactorQueuesPath);
       for (String queue : queues) {
-        queuesAndAddresses.putIfAbsent(queue, new ArrayList<>());
+        queuesAndAddresses.putIfAbsent(queue, new HashSet<>());
         try {
           List<String> compactors = zooReader.getChildren(compactorQueuesPath + "/" + queue);
           for (String compactor : compactors) {
@@ -218,9 +219,8 @@ public class ExternalCompactionUtil {
    */
   public static List<RunningCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
     final List<RunningCompactionFuture> rcFutures = new ArrayList<>();
-    final ExecutorService executor = ThreadPools.getServerThreadPools().createFixedThreadPool(16,
-        "CompactorRunningCompactions", false);
-
+    final ExecutorService executor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder("CompactorRunningCompactions").numCoreThreads(16).build();
     getCompactorAddrs(context).forEach((q, hp) -> {
       hp.forEach(hostAndPort -> {
         rcFutures.add(new RunningCompactionFuture(q, hostAndPort,
@@ -246,9 +246,8 @@ public class ExternalCompactionUtil {
 
   public static Collection<ExternalCompactionId>
       getCompactionIdsRunningOnCompactors(ClientContext context) {
-    final ExecutorService executor = ThreadPools.getServerThreadPools().createFixedThreadPool(16,
-        "CompactorRunningCompactions", false);
-
+    final ExecutorService executor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder("CompactorRunningCompactions").numCoreThreads(16).build();
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
     getCompactorAddrs(context).forEach((q, hp) -> {

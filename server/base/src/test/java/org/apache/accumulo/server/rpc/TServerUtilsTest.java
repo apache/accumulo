@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.server.rpc;
 
+import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,6 +43,8 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -54,6 +58,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TServerUtilsTest {
 
   private ServerContext context;
+  private MetricsInfo metricsInfo;
   private final ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
 
   @BeforeEach
@@ -72,12 +77,16 @@ public class TServerUtilsTest {
     expect(context.getSaslParams()).andReturn(null).anyTimes();
     expect(context.getClientTimeoutInMillis()).andReturn((long) 1000).anyTimes();
     expect(context.getSecurityOperation()).andReturn(null).anyTimes();
-    replay(context);
+    metricsInfo = createMock(MetricsInfo.class);
+    metricsInfo.addMetricsProducers(anyObject(MetricsProducer.class));
+    expectLastCall().anyTimes();
+    expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
+    replay(context, metricsInfo);
   }
 
   @AfterEach
   public void verifyMockServerContext() {
-    verify(context);
+    verify(context, metricsInfo);
   }
 
   @Test
@@ -200,7 +209,7 @@ public class TServerUtilsTest {
       assertNotNull(server);
 
       // Finally ensure that the TServer is using the last port (i.e. port search worked)
-      assertTrue(address.getAddress().getPort() == tserverFinalPort);
+      assertEquals(address.getAddress().getPort(), tserverFinalPort);
     } finally {
       if (server != null) {
         server.stop();
@@ -253,9 +262,9 @@ public class TServerUtilsTest {
   }
 
   private int[] findTwoFreeSequentialPorts(int startingAddress) throws UnknownHostException {
-    boolean sequential = false;
+    boolean sequential;
     int low = startingAddress;
-    int high = 0;
+    int high;
     do {
       low = getFreePort(low);
       high = getFreePort(low + 1);

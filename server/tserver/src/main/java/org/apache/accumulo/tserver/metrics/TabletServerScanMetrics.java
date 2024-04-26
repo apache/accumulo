@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
@@ -138,18 +137,14 @@ public class TabletServerScanMetrics implements MetricsProducer {
         .description("Results per scan").register(registry);
     yields =
         DistributionSummary.builder(METRICS_SCAN_YIELDS).description("yields").register(registry);
-    startScanCalls =
-        Counter.builder(METRICS_SCAN_START).description("calls to start a scan / multiscan")
-            .tags(MetricsUtil.getCommonTags()).register(registry);
-    continueScanCalls =
-        Counter.builder(METRICS_SCAN_CONTINUE).description("calls to continue a scan / multiscan")
-            .tags(MetricsUtil.getCommonTags()).register(registry);
-    closeScanCalls =
-        Counter.builder(METRICS_SCAN_CLOSE).description("calls to close a scan / multiscan")
-            .tags(MetricsUtil.getCommonTags()).register(registry);
+    startScanCalls = Counter.builder(METRICS_SCAN_START)
+        .description("calls to start a scan / multiscan").register(registry);
+    continueScanCalls = Counter.builder(METRICS_SCAN_CONTINUE)
+        .description("calls to continue a scan / multiscan").register(registry);
+    closeScanCalls = Counter.builder(METRICS_SCAN_CLOSE)
+        .description("calls to close a scan / multiscan").register(registry);
     busyTimeoutReturned = Counter.builder(METRICS_SCAN_BUSY_TIMEOUT)
-        .description("times that a scan has timed out in the queue")
-        .tags(MetricsUtil.getCommonTags()).register(registry);
+        .description("times that a scan has timed out in the queue").register(registry);
     Gauge.builder(METRICS_TSERVER_QUERIES, this, TabletServerScanMetrics::getLookupCount)
         .description("Number of queries").register(registry);
     Gauge.builder(METRICS_TSERVER_SCAN_RESULTS, this, TabletServerScanMetrics::getQueryResultCount)
@@ -161,11 +156,10 @@ public class TabletServerScanMetrics implements MetricsProducer {
     Gauge.builder(METRICS_TSERVER_SCANNED_ENTRIES, this, TabletServerScanMetrics::getScannedCount)
         .description("Scanned rate").register(registry);
     pausedForMemory = Counter.builder(METRICS_SCAN_PAUSED_FOR_MEM)
-        .description("scan paused due to server being low on memory")
-        .tags(MetricsUtil.getCommonTags()).register(registry);
+        .description("scan paused due to server being low on memory").register(registry);
     earlyReturnForMemory = Counter.builder(METRICS_SCAN_RETURN_FOR_MEM)
         .description("scan returned results early due to server being low on memory")
-        .tags(MetricsUtil.getCommonTags()).register(registry);
+        .register(registry);
   }
 
 }

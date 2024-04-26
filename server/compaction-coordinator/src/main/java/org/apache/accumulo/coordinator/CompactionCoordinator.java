@@ -20,7 +20,6 @@ package org.apache.accumulo.coordinator;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
-import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -67,7 +66,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -144,8 +143,8 @@ public class CompactionCoordinator extends AbstractServer
     super("compaction-coordinator", opts, args);
     aconf = conf == null ? super.getConfiguration() : conf;
     schedExecutor = ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
-    summariesExecutor = ThreadPools.getServerThreadPools().createFixedThreadPool(10,
-        "Compaction Summary Gatherer", false);
+    summariesExecutor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder("Compaction Summary Gatherer").numCoreThreads(10).build();
     compactionFinalizer = createCompactionFinalizer(schedExecutor);
     tserverSet = createLiveTServerSet();
     setupSecurity();
@@ -263,15 +262,9 @@ public class CompactionCoordinator extends AbstractServer
       throw new IllegalStateException("Exception getting Coordinator lock", e);
     }
 
-    try {
-      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          clientAddress, getContext().getInstanceName());
-      MetricsUtil.initializeProducers(this);
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-        | SecurityException e1) {
-      LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
-    }
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addServiceTags(getApplicationName(), clientAddress);
+    metricsInfo.init();
 
     // On a re-start of the coordinator it's possible that external compactions are in-progress.
     // Attempt to get the running compactions on the compactors and then resolve which tserver
@@ -304,7 +297,7 @@ public class CompactionCoordinator extends AbstractServer
 
       long now = System.currentTimeMillis();
 
-      Map<String,List<HostAndPort>> idleCompactors = getIdleCompactors();
+      Map<String,Set<HostAndPort>> idleCompactors = getIdleCompactors();
       TIME_COMPACTOR_LAST_CHECKED.forEach((queue, lastCheckTime) -> {
         if ((now - lastCheckTime) > getMissingCompactorWarningTime()
             && QUEUE_SUMMARIES.isCompactionsQueued(queue) && idleCompactors.containsKey(queue)) {
@@ -325,16 +318,16 @@ public class CompactionCoordinator extends AbstractServer
     LOG.info("Shutting down");
   }
 
-  private Map<String,List<HostAndPort>> getIdleCompactors() {
+  private Map<String,Set<HostAndPort>> getIdleCompactors() {
 
-    Map<String,List<HostAndPort>> allCompactors =
+    Map<String,Set<HostAndPort>> allCompactors =
         ExternalCompactionUtil.getCompactorAddrs(getContext());
 
     Set<String> emptyQueues = new HashSet<>();
 
     // Remove all of the compactors that are running a compaction
     RUNNING_CACHE.values().forEach(rc -> {
-      List<HostAndPort> busyCompactors = allCompactors.get(rc.getQueueName());
+      Set<HostAndPort> busyCompactors = allCompactors.get(rc.getQueueName());
       if (busyCompactors != null
           && busyCompactors.remove(HostAndPort.fromString(rc.getCompactorAddress()))) {
         if (busyCompactors.isEmpty()) {
