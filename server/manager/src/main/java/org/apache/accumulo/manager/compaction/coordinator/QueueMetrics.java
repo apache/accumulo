@@ -19,10 +19,10 @@
 package org.apache.accumulo.manager.compaction.coordinator;
 
 import static org.apache.accumulo.core.metrics.MetricsUtil.formatString;
-import static org.apache.accumulo.core.metrics.MetricsUtil.getCommonTags;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
@@ -41,7 +41,7 @@ import com.google.common.collect.Sets.SetView;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.Tag;
 
 public class QueueMetrics implements MetricsProducer {
 
@@ -58,31 +58,31 @@ public class QueueMetrics implements MetricsProducer {
 
       length =
           Gauge.builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH, queue, q -> q.getMaxSize())
-              .description("Length of priority queues")
-              .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
+              .description("Length of priority queues").tags(List.of(Tag.of("queue.id", queueId)))
+              .register(meterRegistry);
 
       jobsQueued = Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED, queue, q -> q.getQueuedJobs())
-          .description("Count of queued jobs")
-          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
+          .description("Count of queued jobs").tags(List.of(Tag.of("queue.id", queueId)))
+          .register(meterRegistry);
 
       jobsDequeued = Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED, queue,
               q -> q.getDequeuedJobs())
-          .description("Count of jobs dequeued")
-          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
+          .description("Count of jobs dequeued").tags(List.of(Tag.of("queue.id", queueId)))
+          .register(meterRegistry);
 
       jobsRejected = Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED, queue,
               q -> q.getRejectedJobs())
-          .description("Count of rejected jobs")
-          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
+          .description("Count of rejected jobs").tags(List.of(Tag.of("queue.id", queueId)))
+          .register(meterRegistry);
 
       jobsLowestPriority = Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY, queue,
               q -> q.getLowestPriority())
-          .description("Lowest priority queued job")
-          .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
+          .description("Lowest priority queued job").tags(List.of(Tag.of("queue.id", queueId)))
+          .register(meterRegistry);
     }
 
     private void removeMeters(MeterRegistry registry) {
@@ -119,7 +119,7 @@ public class QueueMetrics implements MetricsProducer {
       queueCountMeter = Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUES, compactionJobQueues,
               CompactionJobQueues::getQueueCount)
-          .description("Number of current Queues").tags(getCommonTags()).register(localRegistry);
+          .description("Number of current Queues").register(localRegistry);
     }
     LOG.debug("update - cjq queues: {}", compactionJobQueues.getQueueIds());
 

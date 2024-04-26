@@ -48,8 +48,12 @@ public class GrepIteratorTest {
   public void init() {
     input = new TreeMap<>();
     output = new TreeMap<>();
+
     input.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz"));
     output.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz"));
+
+    input.put(new Key("abcdef", "cv", "cv", "colvis", 0), new Value("cv"));
+    output.put(new Key("abcdef", "cv", "cv", "colvis", 0), new Value("cv"));
 
     input.put(new Key("bdf", "ace", "xyz", 0), new Value("xyz"));
     input.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz"));
@@ -97,6 +101,20 @@ public class GrepIteratorTest {
     GrepIterator.setTerm(is, "def");
     gi.init(new SortedMapIterator(input), is.getOptions(), null);
     gi.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    checkEntries(gi, output);
+
+    input = new TreeMap<>();
+    output = new TreeMap<>();
+
+    input.put(new Key("abcdef", "cv", "cv", "colvis", 0), new Value("cv"));
+    input.put(new Key("abcdef", "cv", "cv", "nomatch", 0), new Value("cv"));
+    output.put(new Key("abcdef", "cv", "cv", "colvis", 0), new Value("cv"));
+
+    GrepIterator.setTerm(is, "colvis");
+    gi.init(new SortedMapIterator(input), is.getOptions(), null);
+    gi.seek(new Range(), EMPTY_COL_FAMS, false);
+
     checkEntries(gi, output);
   }
 }

@@ -20,6 +20,11 @@ package org.apache.accumulo.core.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
+/**
+ * @deprecated since 2.1.3; use {@link org.apache.accumulo.core.spi.metrics.MeterRegistryFactory}
+ *             instead
+ */
+@Deprecated()
 public interface MeterRegistryFactory {
   MeterRegistry create();
 }
