@@ -353,7 +353,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                     totalUnloaded++;
                   } catch (TException tException) {
                     Manager.log.warn("[{}] Failed to request tablet unload {} {} {} {}",
-                        store.name(), location.getServerInstance(), tls.extent, goal.howUnload(), tException);
+                        store.name(), location.getServerInstance(), tls.extent, goal.howUnload(),
+                        tException);
                   }
                 } else {
                   Manager.log.warn("Could not connect to server {}", location);
