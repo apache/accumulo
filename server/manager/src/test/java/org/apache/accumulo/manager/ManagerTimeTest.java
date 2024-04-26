@@ -51,11 +51,17 @@ public class ManagerTimeTest {
     var time = System.nanoTime();
     long skewAmount = 200000;
     var skewed = ManagerTime.fromSkew(skewAmount);
+
+    // Skew time appends the skew amount to the current nanotime
+    // so a comparsion here should always be greater than the previous computation
     assertTrue(skewed.getTimeNs() > time + skewAmount);
     assertTrue(skewed.compareTo(SteadyTime.from(time + skewAmount)) > 0);
 
     var steadyTime = SteadyTime.from(System.nanoTime());
     var newSkew = ManagerTime.updatedSkew(steadyTime.serialize());
+    // Updating the skew time subtracts the current nanotime from
+    // the previous value so the updated value should be less than
+    // a previously created SteadyTime based on the same skew
     assertTrue(skewed.getTimeNs() > newSkew);
     assertTrue(skewed.compareTo(SteadyTime.from(newSkew)) > 0);
   }
