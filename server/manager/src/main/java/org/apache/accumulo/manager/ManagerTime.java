@@ -53,7 +53,9 @@ public class ManagerTime {
 
   /**
    * Difference between time stored in ZooKeeper and System.nanoTime() when we last read from
-   * ZooKeeper.
+   * ZooKeeper. This offset may be negative or positive (depending on if the current nanoTime of the
+   * system is negative or positive) and is represented as a Duration to make computing future
+   * updates to the skewAmount and SteadyTime simpler.
    */
   private final AtomicReference<Duration> skewAmount;
 
