@@ -122,7 +122,7 @@ public class ManagerTime {
   /**
    * Creates a new skewAmount from an existing SteadyTime steadyTime - System.nanoTime()
    *
-   * @param steadyTime
+   * @param steadyTime existing steadyTime
    * @return Updated skew
    */
   @VisibleForTesting
@@ -133,8 +133,8 @@ public class ManagerTime {
   /**
    * Creates a new skewAmount from an existing SteadyTime by subtracting the given time value
    *
-   * @param steadyTime
-   * @param time
+   * @param steadyTime existing steadyTime
+   * @param time time to subtract to update skew
    * @return Updated skew
    */
   @VisibleForTesting
@@ -145,7 +145,7 @@ public class ManagerTime {
   /**
    * Create a new SteadyTime from a skewAmount using System.nanoTime() + skewAmount
    *
-   * @param skewAmount
+   * @param skewAmount the skew amount to add
    * @return A SteadyTime that has been skewed by the given skewAmount
    */
   @VisibleForTesting
@@ -156,8 +156,8 @@ public class ManagerTime {
   /**
    * Create a new SteadyTime from a given time in ns and skewAmount using time + skewAmount
    *
-   * @param time
-   * @param skewAmount
+   * @param time time to add the skew amount to
+   * @param skewAmount the skew amount to add
    * @return A SteadyTime that has been skewed by the given skewAmount
    */
   @VisibleForTesting
