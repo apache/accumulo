@@ -20,13 +20,13 @@ package org.apache.accumulo.manager;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.manager.ManagerTime.SteadyTime.deserialize;
 
 import java.io.IOException;
-import java.util.Comparator;
+import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -34,10 +34,12 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 /**
  * Keep a persistent roughly monotone view of how long a manager has been overseeing this cluster.
@@ -53,7 +55,7 @@ public class ManagerTime {
    * Difference between time stored in ZooKeeper and System.nanoTime() when we last read from
    * ZooKeeper.
    */
-  private final AtomicLong skewAmount;
+  private final AtomicReference<Duration> skewAmount;
 
   public ManagerTime(Manager manager, AccumuloConfiguration conf) throws IOException {
     this.zPath = manager.getZooKeeperRoot() + Constants.ZMANAGER_TICK;
@@ -62,20 +64,20 @@ public class ManagerTime {
 
     try {
       zk.putPersistentData(zPath, "0".getBytes(UTF_8), NodeExistsPolicy.SKIP);
-      skewAmount = new AtomicLong(updatedSkew(zk.getData(zPath)));
+      skewAmount = new AtomicReference<>(updateSkew(getZkTime()));
     } catch (Exception ex) {
       throw new IOException("Error updating manager time", ex);
     }
 
     ThreadPools.watchCriticalScheduledTask(manager.getContext().getScheduledExecutor()
-        .scheduleWithFixedDelay(Threads.createNamedRunnable("Manager time keeper", () -> run()), 0,
+        .scheduleWithFixedDelay(Threads.createNamedRunnable("Manager time keeper", this::run), 0,
             SECONDS.toMillis(10), MILLISECONDS));
   }
 
   /**
    * How long has this cluster had a Manager?
    *
-   * @return Approximate total duration this cluster has had a Manager, in milliseconds.
+   * @return Approximate total duration this cluster has had a Manager
    */
   public SteadyTime getTime() {
     return fromSkew(skewAmount.get());
@@ -89,7 +91,7 @@ public class ManagerTime {
       case INITIAL:
       case STOP:
         try {
-          skewAmount.set(updatedSkew(zk.getData(zPath)));
+          skewAmount.set(updateSkew(getZkTime()));
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {
             log.debug("Failed to retrieve manager tick time", ex);
@@ -113,31 +115,78 @@ public class ManagerTime {
     }
   }
 
-  @VisibleForTesting
-  static long updatedSkew(byte[] steadyTime) {
-    return SteadyTime.deserialize(steadyTime).getTimeNs() - System.nanoTime();
+  private SteadyTime getZkTime() throws InterruptedException, KeeperException {
+    return deserialize(zk.getData(zPath));
   }
 
+  /**
+   * Creates a new skewAmount from an existing SteadyTime steadyTime - System.nanoTime()
+   *
+   * @param steadyTime
+   * @return Updated skew
+   */
   @VisibleForTesting
-  static SteadyTime fromSkew(long skewAmount) {
-    return new SteadyTime(System.nanoTime() + skewAmount);
+  static Duration updateSkew(SteadyTime steadyTime) {
+    return updateSkew(steadyTime, System.nanoTime());
   }
 
+  /**
+   * Creates a new skewAmount from an existing SteadyTime by subtracting the given time value
+   *
+   * @param steadyTime
+   * @param time
+   * @return Updated skew
+   */
+  @VisibleForTesting
+  static Duration updateSkew(SteadyTime steadyTime, long time) {
+    return Duration.ofNanos(steadyTime.getNanos() - time);
+  }
+
+  /**
+   * Create a new SteadyTime from a skewAmount using System.nanoTime() + skewAmount
+   *
+   * @param skewAmount
+   * @return A SteadyTime that has been skewed by the given skewAmount
+   */
+  @VisibleForTesting
+  static SteadyTime fromSkew(Duration skewAmount) {
+    return fromSkew(System.nanoTime(), skewAmount);
+  }
+
+  /**
+   * Create a new SteadyTime from a given time in ns and skewAmount using time + skewAmount
+   *
+   * @param time
+   * @param skewAmount
+   * @return A SteadyTime that has been skewed by the given skewAmount
+   */
+  @VisibleForTesting
+  static SteadyTime fromSkew(long time, Duration skewAmount) {
+    return SteadyTime.from(skewAmount.plusNanos(time));
+  }
+
+  /**
+   * SteadyTime represents an approximation of teh total duration of time this cluster has had a
+   * Manager
+   */
   public static class SteadyTime implements Comparable<SteadyTime> {
-    public static final Comparator<SteadyTime> STEADY_TIME_COMPARATOR =
-        Comparator.comparingLong(SteadyTime::getTimeNs);
 
-    private final long time;
+    private final Duration time;
 
-    public SteadyTime(long time) {
+    private SteadyTime(Duration time) {
+      Preconditions.checkArgument(!time.isNegative(), "SteadyTime should not be negative.");
       this.time = time;
     }
 
-    public long getTimeMillis() {
-      return NANOSECONDS.toMillis(time);
+    public long getMillis() {
+      return time.toMillis();
     }
 
-    public long getTimeNs() {
+    public long getNanos() {
+      return time.toNanos();
+    }
+
+    public Duration getDuration() {
       return time;
     }
 
@@ -150,7 +199,7 @@ public class ManagerTime {
         return false;
       }
       SteadyTime that = (SteadyTime) o;
-      return time == that.time;
+      return Objects.equals(time, that.time);
     }
 
     @Override
@@ -159,8 +208,8 @@ public class ManagerTime {
     }
 
     @Override
-    public int compareTo(SteadyTime that) {
-      return STEADY_TIME_COMPARATOR.compare(this, that);
+    public int compareTo(SteadyTime other) {
+      return time.compareTo(other.time);
     }
 
     byte[] serialize() {
@@ -172,10 +221,14 @@ public class ManagerTime {
     }
 
     static byte[] serialize(SteadyTime steadyTime) {
-      return Long.toString(steadyTime.getTimeNs()).getBytes(UTF_8);
+      return Long.toString(steadyTime.getNanos()).getBytes(UTF_8);
     }
 
-    public static SteadyTime from(long time) {
+    public static SteadyTime from(long timeNs) {
+      return new SteadyTime(Duration.ofNanos(timeNs));
+    }
+
+    public static SteadyTime from(Duration time) {
       return new SteadyTime(time);
     }
   }
