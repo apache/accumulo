@@ -168,8 +168,8 @@ public class ManagerTime {
   }
 
   /**
-   * SteadyTime represents an approximation of teh total duration of time this cluster has had a
-   * Manager
+   * SteadyTime represents an approximation of the total duration of time this cluster has had a
+   * Manager. Because this represents an elapsed time it is guaranteed to not be negative.
    */
   public static class SteadyTime implements Comparable<SteadyTime> {
 
