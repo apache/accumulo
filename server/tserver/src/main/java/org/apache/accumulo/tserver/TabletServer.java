@@ -714,8 +714,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     ceMetrics = new CompactionExecutorsMetrics();
     pausedMetrics = new PausedCompactionMetrics();
 
-    metricsInfo.addMetricsProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics,
-        pausedMetrics);
+    metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
+        ceMetrics, pausedMetrics);
     metricsInfo.init();
 
     this.compactionManager = new CompactionManager(() -> Iterators
