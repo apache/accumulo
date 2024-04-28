@@ -21,11 +21,9 @@ package org.apache.accumulo.manager;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.manager.ManagerTime.SteadyTime.deserialize;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
@@ -34,12 +32,12 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 
 /**
  * Keep a persistent roughly monotone view of how long a manager has been overseeing this cluster.
@@ -107,7 +105,7 @@ public class ManagerTime {
       case UNLOAD_METADATA_TABLETS:
       case UNLOAD_ROOT_TABLET:
         try {
-          zk.putPersistentData(zPath, fromSkew(skewAmount.get()).serialize(),
+          zk.putPersistentData(zPath, serialize(fromSkew(skewAmount.get())),
               NodeExistsPolicy.OVERWRITE);
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {
@@ -167,71 +165,11 @@ public class ManagerTime {
     return SteadyTime.from(skewAmount.plusNanos(time));
   }
 
-  /**
-   * SteadyTime represents an approximation of the total duration of time this cluster has had a
-   * Manager. Because this represents an elapsed time it is guaranteed to not be negative.
-   */
-  public static class SteadyTime implements Comparable<SteadyTime> {
+  static SteadyTime deserialize(byte[] steadyTime) {
+    return SteadyTime.from(Long.parseLong(new String(steadyTime, UTF_8)));
+  }
 
-    private final Duration time;
-
-    private SteadyTime(Duration time) {
-      Preconditions.checkArgument(!time.isNegative(), "SteadyTime should not be negative.");
-      this.time = time;
-    }
-
-    public long getMillis() {
-      return time.toMillis();
-    }
-
-    public long getNanos() {
-      return time.toNanos();
-    }
-
-    public Duration getDuration() {
-      return time;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      SteadyTime that = (SteadyTime) o;
-      return Objects.equals(time, that.time);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hashCode(time);
-    }
-
-    @Override
-    public int compareTo(SteadyTime other) {
-      return time.compareTo(other.time);
-    }
-
-    byte[] serialize() {
-      return serialize(this);
-    }
-
-    static SteadyTime deserialize(byte[] steadyTime) {
-      return from(Long.parseLong(new String(steadyTime, UTF_8)));
-    }
-
-    static byte[] serialize(SteadyTime steadyTime) {
-      return Long.toString(steadyTime.getNanos()).getBytes(UTF_8);
-    }
-
-    public static SteadyTime from(long timeNs) {
-      return new SteadyTime(Duration.ofNanos(timeNs));
-    }
-
-    public static SteadyTime from(Duration time) {
-      return new SteadyTime(time);
-    }
+  static byte[] serialize(SteadyTime steadyTime) {
+    return Long.toString(steadyTime.getNanos()).getBytes(UTF_8);
   }
 }

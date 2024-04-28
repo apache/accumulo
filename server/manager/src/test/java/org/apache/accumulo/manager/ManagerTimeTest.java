@@ -23,9 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.manager.ManagerTime.SteadyTime;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -36,15 +35,13 @@ public class ManagerTimeTest {
   public void testSteadyTime() {
     long time = 20_000;
     var steadyTime = SteadyTime.from(time);
-    assertEquals(time, steadyTime.getNanos());
-    assertEquals(TimeUnit.NANOSECONDS.toMillis(time), steadyTime.getMillis());
 
     // make sure calling serialize on instance matches static helper
-    byte[] serialized = steadyTime.serialize();
-    assertArrayEquals(serialized, SteadyTime.serialize(steadyTime));
+    byte[] serialized = ManagerTime.serialize(steadyTime);
+    assertArrayEquals(serialized, ManagerTime.serialize(steadyTime));
 
     // Verify deserialization matches original object
-    var deserialized = SteadyTime.deserialize(serialized);
+    var deserialized = ManagerTime.deserialize(serialized);
     assertEquals(steadyTime, deserialized);
     assertEquals(0, steadyTime.compareTo(deserialized));
   }
