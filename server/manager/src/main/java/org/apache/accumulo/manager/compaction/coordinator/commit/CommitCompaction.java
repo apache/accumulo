@@ -199,7 +199,8 @@ public class CommitCompaction extends ManagerRepo {
 
         tabletMutator.putSelectedFiles(new SelectedFiles(newSelectedFileSet,
             tablet.getSelectedFiles().initiallySelectedAll(), tablet.getSelectedFiles().getFateId(),
-            tablet.getSelectedFiles().getCompletedJobs() + 1));
+            tablet.getSelectedFiles().getCompletedJobs() + 1,
+            tablet.getSelectedFiles().getSelectedTime()));
       }
     }
 

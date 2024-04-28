@@ -82,6 +82,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
@@ -454,8 +455,10 @@ public class CompactionCoordinatorTest {
     var cid1 = ExternalCompactionId.generate(UUID.randomUUID());
     var cid2 = ExternalCompactionId.generate(UUID.randomUUID());
 
-    var selectedWithoutComp = new SelectedFiles(Set.of(file1, file2, file3), false, fateId1);
-    var selectedWithComp = new SelectedFiles(Set.of(file1, file2, file3), false, fateId1, 1);
+    var selectedWithoutComp =
+        new SelectedFiles(Set.of(file1, file2, file3), false, fateId1, SteadyTime.from(100));
+    var selectedWithComp =
+        new SelectedFiles(Set.of(file1, file2, file3), false, fateId1, 1, SteadyTime.from(100));
 
     // should not be able to compact an offline table
     var tabletOffline = TabletMetadata.builder(new KeyExtent(tableId2, null, null))

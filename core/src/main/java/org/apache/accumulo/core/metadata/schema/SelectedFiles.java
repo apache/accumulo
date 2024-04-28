@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.util.time.SteadyTime;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
@@ -45,23 +46,26 @@ public class SelectedFiles {
   private final boolean initiallySelectedAll;
   private final FateId fateId;
   private final int completedJobs;
+  private final SteadyTime selectedTime;
 
   private String metadataValue;
 
   private static final Gson GSON = new GsonBuilder()
       .registerTypeAdapter(SelectedFiles.class, new SelectedFilesTypeAdapter()).create();
 
-  public SelectedFiles(Set<StoredTabletFile> files, boolean initiallySelectedAll, FateId fateId) {
-    this(files, initiallySelectedAll, fateId, 0);
+  public SelectedFiles(Set<StoredTabletFile> files, boolean initiallySelectedAll, FateId fateId,
+      SteadyTime selectedTime) {
+    this(files, initiallySelectedAll, fateId, 0, selectedTime);
   }
 
   public SelectedFiles(Set<StoredTabletFile> files, boolean initiallySelectedAll, FateId fateId,
-      int completedJobs) {
+      int completedJobs, SteadyTime selectedTime) {
     Preconditions.checkArgument(files != null && !files.isEmpty());
     this.files = Set.copyOf(files);
     this.initiallySelectedAll = initiallySelectedAll;
     this.fateId = fateId;
     this.completedJobs = completedJobs;
+    this.selectedTime = selectedTime;
   }
 
   private static class SelectedFilesTypeAdapter extends TypeAdapter<SelectedFiles> {
@@ -72,6 +76,7 @@ public class SelectedFiles {
     private static final String SELECTED_ALL = "selAll";
     private static final String COMPLETED_JOBS = "compJobs";
     private static final String FILES = "files";
+    private static final String SELECTED_TIME = "selTime";
 
     @Override
     public void write(JsonWriter out, SelectedFiles selectedFiles) throws IOException {
@@ -79,6 +84,7 @@ public class SelectedFiles {
       out.name(FATE_ID).value(selectedFiles.getFateId().canonical());
       out.name(SELECTED_ALL).value(selectedFiles.initiallySelectedAll());
       out.name(COMPLETED_JOBS).value(selectedFiles.getCompletedJobs());
+      out.name(SELECTED_TIME).value(selectedFiles.getSelectedTime().getNanos());
       out.name(FILES).beginArray();
       // sort the data to make serialized json comparable
       selectedFiles.getFiles().stream().map(StoredTabletFile::getMetadata).sorted()
@@ -100,6 +106,7 @@ public class SelectedFiles {
       boolean selAll = false;
       int completedJobs = 0;
       List<String> files = new ArrayList<>();
+      SteadyTime selectedTime = null;
 
       in.beginObject();
       while (in.hasNext()) {
@@ -113,6 +120,9 @@ public class SelectedFiles {
             break;
           case COMPLETED_JOBS:
             completedJobs = in.nextInt();
+            break;
+          case SELECTED_TIME:
+            selectedTime = SteadyTime.from(in.nextLong());
             break;
           case FILES:
             in.beginArray();
@@ -130,7 +140,7 @@ public class SelectedFiles {
       Set<StoredTabletFile> tabletFiles =
           files.stream().map(StoredTabletFile::new).collect(Collectors.toSet());
 
-      return new SelectedFiles(tabletFiles, selAll, fateId, completedJobs);
+      return new SelectedFiles(tabletFiles, selAll, fateId, completedJobs, selectedTime);
     }
 
   }
@@ -153,6 +163,10 @@ public class SelectedFiles {
 
   public int getCompletedJobs() {
     return completedJobs;
+  }
+
+  public SteadyTime getSelectedTime() {
+    return selectedTime;
   }
 
   public String getMetadataValue() {

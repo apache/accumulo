@@ -96,6 +96,7 @@ import org.apache.accumulo.core.metadata.schema.filters.TabletMetadataFilter;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -490,8 +491,9 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     FateInstanceType type = FateInstanceType.fromTableId(tid);
     FateId fateId1 = FateId.from(type, UUID.randomUUID());
     FateId fateId2 = FateId.from(type, UUID.randomUUID());
+    var time = SteadyTime.from(100_100);
     ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm1, FILES, SELECTED)
-        .putSelectedFiles(new SelectedFiles(Set.of(stf1, stf2, stf3), true, fateId1))
+        .putSelectedFiles(new SelectedFiles(Set.of(stf1, stf2, stf3), true, fateId1, time))
         .submit(tm -> false);
     results = ctmi.process();
     assertEquals(Status.REJECTED, results.get(e1).getStatus());
@@ -503,7 +505,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
         .build(SELECTED);
     ctmi = new ConditionalTabletsMutatorImpl(context);
     ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm2, FILES, SELECTED)
-        .putSelectedFiles(new SelectedFiles(Set.of(stf1, stf2, stf3), true, fateId1))
+        .putSelectedFiles(new SelectedFiles(Set.of(stf1, stf2, stf3), true, fateId1, time))
         .submit(tm -> false);
     results = ctmi.process();
     assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
@@ -516,10 +518,10 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     // fail
     var expectedToFail = new ArrayList<SelectedFiles>();
 
-    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2), true, fateId1));
-    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2, stf3, stf4), true, fateId1));
-    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2, stf3), false, fateId1));
-    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2, stf3), true, fateId2));
+    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2), true, fateId1, time));
+    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2, stf3, stf4), true, fateId1, time));
+    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2, stf3), false, fateId1, time));
+    expectedToFail.add(new SelectedFiles(Set.of(stf1, stf2, stf3), true, fateId2, time));
 
     for (var selectedFiles : expectedToFail) {
       var tm3 = TabletMetadata.builder(e1).putFile(stf1, dfv).putFile(stf2, dfv).putFile(stf3, dfv)
@@ -536,7 +538,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     }
 
     var tm5 = TabletMetadata.builder(e1).putFile(stf1, dfv).putFile(stf2, dfv).putFile(stf3, dfv)
-        .putSelectedFiles(new SelectedFiles(Set.of(stf1, stf2, stf3), true, fateId1)).build();
+        .putSelectedFiles(new SelectedFiles(Set.of(stf1, stf2, stf3), true, fateId1, time)).build();
     ctmi = new ConditionalTabletsMutatorImpl(context);
     ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm5, FILES, SELECTED)
         .deleteSelectedFiles().submit(tm -> false);
@@ -566,7 +568,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       final FateInstanceType type = FateInstanceType.fromTableId(tid);
       final FateId fateId = FateId.from(type, UUID.randomUUID());
       final SelectedFiles selectedFiles =
-          new SelectedFiles(storedTabletFiles, initiallySelectedAll, fateId);
+          new SelectedFiles(storedTabletFiles, initiallySelectedAll, fateId, SteadyTime.from(100));
 
       ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
 

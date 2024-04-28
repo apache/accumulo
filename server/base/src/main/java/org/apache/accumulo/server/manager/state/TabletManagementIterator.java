@@ -160,8 +160,8 @@ public class TabletManagementIterator extends SkippingIterator {
     this.env = env;
     tabletMgmtParams =
         TabletManagementParameters.deserialize(options.get(TABLET_GOAL_STATE_PARAMS_OPTION));
-    compactionGenerator =
-        new CompactionJobGenerator(env.getPluginEnv(), tabletMgmtParams.getCompactionHints());
+    compactionGenerator = new CompactionJobGenerator(env.getPluginEnv(),
+        tabletMgmtParams.getCompactionHints(), tabletMgmtParams.getSteadyTime());
     final AccumuloConfiguration conf = new ConfigurationCopy(env.getPluginEnv().getConfiguration());
     BalancerEnvironmentImpl benv =
         new BalancerEnvironmentImpl(((TabletIteratorEnvironment) env).getServerContext());

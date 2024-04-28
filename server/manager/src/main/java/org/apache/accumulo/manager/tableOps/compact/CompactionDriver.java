@@ -186,6 +186,7 @@ class CompactionDriver extends ManagerRepo {
         var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
 
       CompactionConfig config = CompactionConfigStorage.getConfig(manager.getContext(), fateId);
+      var time = manager.getSteadyTime();
 
       for (TabletMetadata tablet : tablets) {
 
@@ -242,8 +243,8 @@ class CompactionDriver extends ManagerRepo {
           } else {
             var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
                 .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED, USER_COMPACTION_REQUESTED);
-            var selectedFiles =
-                new SelectedFiles(filesToCompact, tablet.getFiles().equals(filesToCompact), fateId);
+            var selectedFiles = new SelectedFiles(filesToCompact,
+                tablet.getFiles().equals(filesToCompact), fateId, time);
 
             mutator.putSelectedFiles(selectedFiles);
 
