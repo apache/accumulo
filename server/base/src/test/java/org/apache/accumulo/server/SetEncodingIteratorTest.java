@@ -40,19 +40,19 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.metadata.iterators.SetEqualityIterator;
+import org.apache.accumulo.server.metadata.iterators.SetEncodingIterator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class SetEqualityIteratorTest {
+public class SetEncodingIteratorTest {
 
   private TabletMetadata tmOneFile;
   private TabletMetadata tmMultipleFiles;
-  private SetEqualityIterator setEqualityIterator;
-  private SetEqualityIterator setEqualityIteratorNoFiles;
-  private SetEqualityIterator setEqualityIteratorOneFile;
+  private SetEncodingIterator setEqualityIterator;
+  private SetEncodingIterator setEqualityIteratorNoFiles;
+  private SetEncodingIterator setEqualityIteratorOneFile;
   private SortedMapIterator sortedMapIterator;
   private SortedMapIterator sortedMapIteratorNoFiles;
   private SortedMapIterator sortedMapIteratorOneFile;
@@ -110,14 +110,14 @@ public class SetEqualityIteratorTest {
     sortedMapIteratorOneFile = new SortedMapIterator(sortedMapOneFile);
 
     // Set the SortedMapIterator as the source for SetEqualityIterator
-    setEqualityIterator = new SetEqualityIterator();
-    setEqualityIterator.init(sortedMapIterator, Map.of(SetEqualityIterator.CONCAT_VALUE, "true"),
+    setEqualityIterator = new SetEncodingIterator();
+    setEqualityIterator.init(sortedMapIterator, Map.of(SetEncodingIterator.CONCAT_VALUE, "true"),
         null);
-    setEqualityIteratorNoFiles = new SetEqualityIterator();
+    setEqualityIteratorNoFiles = new SetEncodingIterator();
     setEqualityIteratorNoFiles.init(sortedMapIteratorNoFiles, Collections.emptyMap(), null);
-    setEqualityIteratorOneFile = new SetEqualityIterator();
+    setEqualityIteratorOneFile = new SetEncodingIterator();
     setEqualityIteratorOneFile.init(sortedMapIteratorOneFile,
-        Map.of(SetEqualityIterator.CONCAT_VALUE, "true"), null);
+        Map.of(SetEncodingIterator.CONCAT_VALUE, "true"), null);
   }
 
   @Test
@@ -134,7 +134,7 @@ public class SetEqualityIteratorTest {
     // Asserting the result
     assertEquals(new Key(tabletRow, family), setEqualityIteratorNoFiles.getTopKey());
     // The iterator should produce a value that is equal to the expected value on the condition
-    var condition = SetEqualityIterator.createCondition(Collections.emptySet(),
+    var condition = SetEncodingIterator.createCondition(Collections.emptySet(),
         storedTabletFile -> ((StoredTabletFile) storedTabletFile).getMetadata().getBytes(UTF_8),
         family);
     assertArrayEquals(condition.getValue().toArray(),
@@ -155,7 +155,7 @@ public class SetEqualityIteratorTest {
     // Asserting the result
     assertEquals(new Key(tabletRow, family), setEqualityIteratorOneFile.getTopKey());
     // The iterator should produce a value that is equal to the expected value on the condition
-    var condition = SetEqualityIterator.createConditionWithVal(tmOneFile.getFilesMap().entrySet(),
+    var condition = SetEncodingIterator.createConditionWithVal(tmOneFile.getFilesMap().entrySet(),
         entry -> new Pair<>(entry.getKey().getMetadata().getBytes(UTF_8),
             entry.getValue().encode()),
         family);
@@ -178,7 +178,7 @@ public class SetEqualityIteratorTest {
     assertEquals(new Key(tabletRow, family), setEqualityIterator.getTopKey());
     // The iterator should produce a value that is equal to the expected value on the condition
     var condition =
-        SetEqualityIterator.createConditionWithVal(tmMultipleFiles.getFilesMap().entrySet(),
+        SetEncodingIterator.createConditionWithVal(tmMultipleFiles.getFilesMap().entrySet(),
             entry -> new Pair<>(entry.getKey().getMetadata().getBytes(UTF_8),
                 entry.getValue().encode()),
             family);

@@ -47,19 +47,21 @@ import org.apache.hadoop.io.Text;
 import com.google.common.base.Preconditions;
 
 /**
- * This iterator exists to enable checking for set equality in a conditional mutation. It allows
- * comparing a set in a client process to a set encoded in column qualifiers within a tablet.
+ * This iterator exists to enable checking for set equality in a conditional mutation. The
+ * createCondition methods allow the client to create conditions for specific column families in a
+ * tablets metadata. The conditions will check for equality based on the value in the column
+ * qualifier or values in the column qualifier and Value.
  *
- * <h3>Options</h3>
+ * <h2>Options</h2>
  * <ul>
  * <li><b>concat.value:</b> If this option is supplied and is true, then the bytes from the Value
  * will be concatenated with a null byte separator.</li>
  * </ul>
  */
-public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
+public class SetEncodingIterator implements SortedKeyValueIterator<Key,Value> {
 
   public static final String CONCAT_VALUE = "concat.value";
-  public static final String VALUE_SEPARATOR = "\u0000";
+  private static final String VALUE_SEPARATOR = "\u0000";
   private static final byte[] VALUE_SEPARATOR_BYTES = VALUE_SEPARATOR.getBytes(UTF_8);
   private static final int VALUE_SEPARATOR_BYTES_LENGTH = VALUE_SEPARATOR_BYTES.length;
 
@@ -208,21 +210,30 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
 
   private static final Text EMPTY = new Text();
 
+  /*
+   * Create a condition that will check the column qualifier values of the rows in the tablets
+   * metadata with the matching family against a set of values produced by the encoder function.
+   */
   public static <T> Condition createCondition(Collection<T> set, Function<T,byte[]> encoder,
       Text family) {
     Preconditions.checkArgument(set instanceof Set);
     IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
-        SetEqualityIterator.class);
-    is.addOption(SetEqualityIterator.CONCAT_VALUE, Boolean.toString(false));
+        SetEncodingIterator.class);
+    is.addOption(SetEncodingIterator.CONCAT_VALUE, Boolean.toString(false));
     return new Condition(family, EMPTY).setValue(encode((Set<T>) set, encoder)).setIterators(is);
   }
 
+  /*
+   * Create a condition that will check the column qualifier and Value values of the rows in the
+   * tablets metadata with the matching family against a set of values produced by the encoder
+   * function.
+   */
   public static <T> Condition createConditionWithVal(Collection<T> set,
       Function<T,Pair<byte[],byte[]>> encoder, Text family) {
     Preconditions.checkArgument(set instanceof Set);
     IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
-        SetEqualityIterator.class);
-    is.addOption(SetEqualityIterator.CONCAT_VALUE, Boolean.toString(true));
+        SetEncodingIterator.class);
+    is.addOption(SetEncodingIterator.CONCAT_VALUE, Boolean.toString(true));
     return new Condition(family, EMPTY).setValue(encode((Set<T>) set, s -> {
       Pair<byte[],byte[]> kv = encoder.apply(s);
       return encodeKeyValue(kv.getFirst(), kv.getSecond());
