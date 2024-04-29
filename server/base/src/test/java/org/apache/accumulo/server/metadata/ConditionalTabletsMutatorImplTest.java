@@ -32,8 +32,11 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
@@ -48,9 +51,10 @@ public class ConditionalTabletsMutatorImplTest {
 
     private int attempt = 0;
 
-    public TestConditionalTabletsMutator(List<Function<Text,ConditionalWriter.Status>> statuses,
+    public TestConditionalTabletsMutator(ServerContext context,
+        List<Function<Text,ConditionalWriter.Status>> statuses,
         Map<KeyExtent,TabletMetadata> failedExtents) {
-      super(null);
+      super(context);
       this.statuses = statuses;
       this.failedExtents = failedExtents;
     }
@@ -87,6 +91,15 @@ public class ConditionalTabletsMutatorImplTest {
 
   @Test
   public void testRejectionHandler() {
+
+    ServerContext context = EasyMock.createMock(ServerContext.class);
+    EasyMock.expect(context.getZooKeeperRoot()).andReturn("/some/path").anyTimes();
+    ServiceLock lock = EasyMock.createMock(ServiceLock.class);
+    LockID lid = EasyMock.createMock(LockID.class);
+    EasyMock.expect(lock.getLockID()).andReturn(lid).anyTimes();
+    EasyMock.expect(lid.serialize("/some/path/")).andReturn("/some/path/1234").anyTimes();
+    EasyMock.expect(context.getServiceLock()).andReturn(lock).anyTimes();
+    EasyMock.replay(context, lock, lid);
 
     // this test checks the handling of conditional mutations that return a status of unknown and
     // rejected
@@ -126,8 +139,8 @@ public class ConditionalTabletsMutatorImplTest {
     var statuses2 = Map.of(ke1.toMetaRow(), ConditionalWriter.Status.REJECTED, ke2.toMetaRow(),
         ConditionalWriter.Status.REJECTED);
 
-    try (var mutator =
-        new TestConditionalTabletsMutator(List.of(statuses1::get, statuses2::get), failedExtents)) {
+    try (var mutator = new TestConditionalTabletsMutator(context,
+        List.of(statuses1::get, statuses2::get), failedExtents)) {
 
       mutator.mutateTablet(ke1).requireAbsentOperation().putDirName("dir1")
           .submit(tmeta -> tmeta.getDirName().equals("dir1"));
@@ -149,6 +162,9 @@ public class ConditionalTabletsMutatorImplTest {
       assertEquals(Ample.ConditionalResult.Status.REJECTED, results.get(ke2).getStatus());
       assertEquals(Ample.ConditionalResult.Status.ACCEPTED, results.get(ke3).getStatus());
       assertEquals(Ample.ConditionalResult.Status.ACCEPTED, results.get(ke4).getStatus());
+
+      EasyMock.verify(context, lock, tm1, tm2, tm3, tm4, lid);
+
     }
   }
 }

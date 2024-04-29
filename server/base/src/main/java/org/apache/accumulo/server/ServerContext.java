@@ -38,6 +38,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
@@ -52,6 +53,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
@@ -105,6 +107,7 @@ public class ServerContext extends ClientContext {
   private final Supplier<AuditedSecurityOperation> securityOperation;
   private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
   private final Supplier<LowMemoryDetector> lowMemoryDetector;
+  private final AtomicReference<ServiceLock> serverLock = new AtomicReference<>();
   private final Supplier<MetricsInfo> metricsInfoSupplier;
 
   public ServerContext(SiteConfiguration siteConfig) {
@@ -461,6 +464,21 @@ public class ServerContext extends ClientContext {
 
   public LowMemoryDetector getLowMemoryDetector() {
     return lowMemoryDetector.get();
+  }
+
+  public void setServiceLock(ServiceLock lock) {
+    if (!serverLock.compareAndSet(null, lock)) {
+      throw new IllegalStateException("ServiceLock already set on ServerContext");
+    }
+  }
+
+  public ServiceLock getServiceLock() {
+    return serverLock.get();
+  }
+
+  /** Intended to be called from MiniAccumuloClusterImpl only as can be restarted **/
+  public void clearServiceLock() {
+    serverLock.set(null);
   }
 
   public MetricsInfo getMetricsInfo() {

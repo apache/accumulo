@@ -21,11 +21,13 @@ package org.apache.accumulo.server.metadata;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
@@ -39,6 +41,8 @@ import org.slf4j.LoggerFactory;
 
 public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
     implements Ample.TabletMutator {
+
+  private final ServiceLock lock;
   private final ServerContext context;
 
   private static final Logger log = LoggerFactory.getLogger(RootTabletMutatorImpl.class);
@@ -75,11 +79,14 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
   RootTabletMutatorImpl(ServerContext context) {
     super(RootTable.EXTENT);
     this.context = context;
+    this.lock = this.context.getServiceLock();
+    Objects.requireNonNull(this.lock, "ServiceLock not set on ServerContext");
   }
 
   @Override
   public void mutate() {
 
+    this.putZooLock(this.context.getZooKeeperRoot(), lock);
     Mutation mutation = getMutation();
 
     MetadataConstraints metaConstraint = new MetadataConstraints();
