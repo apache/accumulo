@@ -22,7 +22,6 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -49,7 +48,7 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -169,16 +168,10 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
     this.getContext().setServiceLock(gcLock);
 
-    try {
-      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName, address,
-          getContext().getInstanceName(), this.getResourceGroup());
-      MetricsUtil.initializeProducers(this, new GcMetrics(this));
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-        | SecurityException e1) {
-      log.error("Error initializing metrics, metrics will not be emitted.", e1);
-    }
-
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addServiceTags(getApplicationName(), address, getResourceGroup());
+    metricsInfo.addMetricsProducers(this, new GcMetrics(this));
+    metricsInfo.init();
     try {
       long delay = getStartDelay();
       log.debug("Sleeping for {} milliseconds before beginning garbage collection cycles", delay);
@@ -410,7 +403,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
         "GC Monitor Service", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
         getContext().getServerSslParams(), getContext().getSaslParams(), 0,
-        getConfiguration().getCount(Property.RPC_BACKLOG), addresses);
+        getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(),
+        addresses);
     log.debug("Starting garbage collector listening on " + server.address);
     return server.address;
   }

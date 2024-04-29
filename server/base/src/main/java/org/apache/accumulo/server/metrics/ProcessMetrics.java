@@ -19,7 +19,6 @@
 package org.apache.accumulo.server.metrics;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.server.ServerContext;
 
 import io.micrometer.core.instrument.Counter;
@@ -36,8 +35,8 @@ public class ProcessMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    registry.gauge(METRICS_LOW_MEMORY, MetricsUtil.getCommonTags(), this, this::lowMemDetected);
-    idleCounter = registry.counter(METRICS_SERVER_IDLE, MetricsUtil.getCommonTags());
+    registry.gauge(METRICS_LOW_MEMORY, this, this::lowMemDetected);
+    idleCounter = registry.counter(METRICS_SERVER_IDLE);
   }
 
   public void incrementIdleCounter() {

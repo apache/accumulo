@@ -431,6 +431,7 @@ public class ShellIT extends SharedMiniClusterBase {
     String expected = "r f:q [vis]\tv";
     String expectedTimestamp = "r f:q [vis] 0\tv";
     exec("grep", false, "No terms specified");
+    exec("grep vis", true, expected);
     exec("grep non_matching_string", true, "");
     // historically, showing few did not pertain to ColVis or Timestamp
     exec("grep r", true, expected);

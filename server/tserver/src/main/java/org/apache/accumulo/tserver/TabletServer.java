@@ -89,7 +89,7 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
@@ -576,23 +576,17 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       throw new RuntimeException("Failed to start the tablet client service", e1);
     }
 
-    try {
-      MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName, clientAddress,
-          getContext().getInstanceName(), this.getResourceGroup());
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addServiceTags(getApplicationName(), clientAddress, getResourceGroup());
+    metrics = new TabletServerMetrics(this);
+    updateMetrics = new TabletServerUpdateMetrics();
+    scanMetrics = new TabletServerScanMetrics();
+    mincMetrics = new TabletServerMinCMetrics();
+    pausedMetrics = new PausedCompactionMetrics();
 
-      metrics = new TabletServerMetrics(this);
-      updateMetrics = new TabletServerUpdateMetrics();
-      scanMetrics = new TabletServerScanMetrics();
-      mincMetrics = new TabletServerMinCMetrics();
-      pausedMetrics = new PausedCompactionMetrics();
-      MetricsUtil.initializeProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
-          pausedMetrics);
-
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-        | SecurityException e1) {
-      log.error("Error initializing metrics, metrics will not be emitted.", e1);
-    }
+    metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
+        pausedMetrics);
+    metricsInfo.init();
 
     announceExistence();
     getContext().setServiceLock(tabletServerLock);

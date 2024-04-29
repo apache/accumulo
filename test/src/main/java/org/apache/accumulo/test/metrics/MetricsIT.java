@@ -48,6 +48,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -84,13 +85,16 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
     cfg.setProperty(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL, "1s");
-    cfg.setProperty(Property.GENERAL_MICROMETER_CACHE_METRICS_ENABLED, "true");
-    cfg.setProperty(Property.GENERAL_MICROMETER_USER_TAGS, "tag1=value1,tag2=value2");
-
-    // Tell the server processes to use a StatsDMeterRegistry that will be configured
-    // to push all metrics to the sink we started.
+    // Tell the server processes to use a StatsDMeterRegistry and the simple logging registry
+    // that will be configured to push all metrics to the sink we started.
     cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
-    cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY, TestStatsDRegistryFactory.class.getName());
+    cfg.setProperty(Property.GENERAL_MICROMETER_USER_TAGS, "tag1=value1,tag2=value2");
+    cfg.setProperty(Property.GENERAL_MICROMETER_CACHE_METRICS_ENABLED, "true");
+    cfg.setProperty(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED, "true");
+    cfg.setProperty("general.custom.metrics.opts.logging.step", "10s");
+    String clazzList = LoggingMeterRegistryFactory.class.getName() + ","
+        + TestStatsDRegistryFactory.class.getName();
+    cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY, clazzList);
     Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
         TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));
     cfg.setSystemProperties(sysProps);
@@ -103,8 +107,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
         METRICS_SCAN_BUSY_TIMEOUT, METRICS_SCAN_PAUSED_FOR_MEM, METRICS_SCAN_RETURN_FOR_MEM,
         METRICS_MINC_PAUSED, METRICS_MAJC_PAUSED, METRICS_SERVER_IDLE);
     Set<String> flakyMetrics = Set.of(METRICS_GC_WAL_ERRORS, METRICS_FATE_TYPE_IN_PROGRESS,
-        METRICS_PROPSTORE_EVICTION_COUNT, METRICS_PROPSTORE_REFRESH_COUNT,
-        METRICS_PROPSTORE_REFRESH_LOAD_COUNT, METRICS_PROPSTORE_ZK_ERROR_COUNT,
         METRICS_TSERVER_TABLETS_ONLINE_ONDEMAND, METRICS_TSERVER_TABLETS_ONDEMAND_UNLOADED_FOR_MEM,
         METRICS_COMPACTOR_MAJC_STUCK, METRICS_MANAGER_ROOT_TGW_ERRORS,
         METRICS_MANAGER_META_TGW_ERRORS, METRICS_MANAGER_USER_TGW_ERRORS);
@@ -158,22 +160,29 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
               // flip a bit in the BitSet when each metric is seen. The top-level
               // loop will continue to iterate until all the metrics are seen.
               seenMetricNames.put(name, expectedMetricNames.remove(name));
-              if (METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH.equals(name)) {
-                queueMetricsSeen.set(compactionPriorityQueueLengthBit, true);
-              } else if (METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.equals(name)) {
-                queueMetricsSeen.set(compactionPriorityQueueQueuedBit, true);
-              } else if (METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED.equals(name)) {
-                queueMetricsSeen.set(compactionPriorityQueueDequeuedBit, true);
-              } else if (METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED.equals(name)) {
-                queueMetricsSeen.set(compactionPriorityQueueRejectedBit, true);
-              } else if (METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.equals(name)) {
-                queueMetricsSeen.set(compactionPriorityQueuePriorityBit, true);
+              switch (name) {
+                case METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH:
+                  queueMetricsSeen.set(compactionPriorityQueueLengthBit, true);
+                  break;
+                case METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED:
+                  queueMetricsSeen.set(compactionPriorityQueueQueuedBit, true);
+                  break;
+                case METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED:
+                  queueMetricsSeen.set(compactionPriorityQueueDequeuedBit, true);
+                  break;
+                case METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED:
+                  queueMetricsSeen.set(compactionPriorityQueueRejectedBit, true);
+                  break;
+                case METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY:
+                  queueMetricsSeen.set(compactionPriorityQueuePriorityBit, true);
+                  break;
               }
             } else {
               // completely unexpected metric
               fail("Found accumulo metric not in expectedMetricNames or flakyMetricNames: " + name);
             }
           });
+      log.debug("METRICS: metrics expected, but not seen so far: {}", expectedMetricNames);
       Thread.sleep(4_000);
     }
     assertTrue(expectedMetricNames.isEmpty(),
@@ -249,7 +258,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
       statsDMetrics.stream().filter(line -> line.startsWith("accumulo"))
           .map(TestStatsDSink::parseStatsDMetric).forEach(a -> {
             var t = a.getTags();
-            log.trace("METRICS, name: '{}' num tags: {}, tags: {}", a.getName(), t.size(), t);
+            log.trace("METRICS, received from statsd - name: '{}' num tags: {}, tags: {} = {}",
+                a.getName(), t.size(), t, a.getValue());
             // check hostname is always set and is valid
             assertNotEquals("0.0.0.0", a.getTags().get("host"));
             assertNotNull(a.getTags().get("instance.name"));

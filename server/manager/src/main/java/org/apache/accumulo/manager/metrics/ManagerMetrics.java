@@ -20,13 +20,14 @@ package org.apache.accumulo.manager.metrics;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 
@@ -36,9 +37,9 @@ public class ManagerMetrics implements MetricsProducer {
 
   private final FateMetrics fateMetrics;
 
-  private AtomicLong rootTGWErrorsGauge;
-  private AtomicLong metadataTGWErrorsGauge;
-  private AtomicLong userTGWErrorsGauge;
+  private final AtomicLong rootTGWErrorsGauge = new AtomicLong(0);
+  private final AtomicLong metadataTGWErrorsGauge = new AtomicLong(0);
+  private final AtomicLong userTGWErrorsGauge = new AtomicLong(0);
 
   public ManagerMetrics(final AccumuloConfiguration conf, final Manager manager) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
@@ -66,11 +67,16 @@ public class ManagerMetrics implements MetricsProducer {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     fateMetrics.registerMetrics(registry);
-    rootTGWErrorsGauge = registry.gauge(METRICS_MANAGER_ROOT_TGW_ERRORS,
-        MetricsUtil.getCommonTags(), new AtomicLong(0));
-    metadataTGWErrorsGauge = registry.gauge(METRICS_MANAGER_META_TGW_ERRORS,
-        MetricsUtil.getCommonTags(), new AtomicLong(0));
-    userTGWErrorsGauge = registry.gauge(METRICS_MANAGER_USER_TGW_ERRORS,
-        MetricsUtil.getCommonTags(), new AtomicLong(0));
+    registry.gauge(METRICS_MANAGER_ROOT_TGW_ERRORS, rootTGWErrorsGauge);
+    registry.gauge(METRICS_MANAGER_META_TGW_ERRORS, metadataTGWErrorsGauge);
+    registry.gauge(METRICS_MANAGER_USER_TGW_ERRORS, userTGWErrorsGauge);
+  }
+
+  public List<MetricsProducer> getProducers(AccumuloConfiguration conf, Manager manager) {
+    ArrayList<MetricsProducer> producers = new ArrayList<>();
+    producers.add(this);
+    producers.add(fateMetrics);
+    producers.add(manager.getCompactionCoordinator());
+    return producers;
   }
 }
