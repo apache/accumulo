@@ -25,6 +25,7 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.cr
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getRunningCompactions;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -246,11 +247,12 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
 
   private void verifyProgress() {
     log.info("Verify Progress.");
-    assertTrue(progressList.contains(EC_PROGRESS.STARTED), "Missing start of progress");
-    assertTrue(progressList.contains(EC_PROGRESS.QUARTER), "Missing quarter progress");
-    assertTrue(progressList.contains(EC_PROGRESS.HALF), "Missing half progress");
-    assertTrue(progressList.contains(EC_PROGRESS.THREE_QUARTERS),
-        "Missing three quarters progress");
-    assertFalse(progressList.contains(EC_PROGRESS.INVALID), "Invalid progress seen");
+    assertAll(
+        () -> assertTrue(progressList.contains(EC_PROGRESS.STARTED), "Missing start of progress"),
+        () -> assertTrue(progressList.contains(EC_PROGRESS.QUARTER), "Missing quarter progress"),
+        () -> assertTrue(progressList.contains(EC_PROGRESS.HALF), "Missing half progress"),
+        () -> assertTrue(progressList.contains(EC_PROGRESS.THREE_QUARTERS),
+            "Missing three quarters progress"),
+        () -> assertFalse(progressList.contains(EC_PROGRESS.INVALID), "Invalid progress seen"));
   }
 }

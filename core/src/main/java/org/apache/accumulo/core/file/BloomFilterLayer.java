@@ -429,7 +429,7 @@ public class BloomFilterLayer {
     }
 
     @Override
-    public long estimateEntries(KeyExtent extent) throws IOException {
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
       throw new UnsupportedOperationException();
     }
 

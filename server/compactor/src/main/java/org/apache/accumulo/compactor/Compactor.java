@@ -510,7 +510,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           StoredTabletFile stf = new StoredTabletFile(f.getMetadataFileEntry());
           // This happens with bulk import files
           if (estEntries == 0) {
-            estEntries = estimateEntries(extent, stf, aConfig, tConfig.getCryptoService());
+            estEntries =
+                estimateOverlappingEntries(extent, stf, aConfig, tConfig.getCryptoService());
           }
           files.put(stf, new DataFileValue(f.getSize(), estEntries, f.getTimestamp()));
           totalInputEntries.add(estEntries);
@@ -561,7 +562,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    * @param cryptoService the crypto service
    * @return an estimate of the number of key/value entries in the file that overlap the extent
    */
-  private long estimateEntries(KeyExtent extent, StoredTabletFile file,
+  private long estimateOverlappingEntries(KeyExtent extent, StoredTabletFile file,
       AccumuloConfiguration tableConf, CryptoService cryptoService) {
     FileOperations fileFactory = FileOperations.getInstance();
     FileSystem fs = getContext().getVolumeManager().getFileSystemByPath(file.getPath());
@@ -569,7 +570,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try (FileSKVIterator reader =
         fileFactory.newReaderBuilder().forFile(file.getPathStr(), fs, fs.getConf(), cryptoService)
             .withTableConfiguration(tableConf).dropCachesBehind().build()) {
-      return reader.estimateEntries(extent);
+      return reader.estimateOverlappingEntries(extent);
     } catch (IOException ioe) {
       throw new UncheckedIOException(ioe);
     }

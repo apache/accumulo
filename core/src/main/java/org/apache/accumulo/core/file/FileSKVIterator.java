@@ -42,7 +42,7 @@ public interface FileSKVIterator extends InterruptibleIterator, AutoCloseable {
    * @param extent the key extent
    * @return the estimate
    */
-  long estimateEntries(KeyExtent extent) throws IOException;
+  long estimateOverlappingEntries(KeyExtent extent) throws IOException;
 
   FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig);
 

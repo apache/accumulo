@@ -1161,7 +1161,7 @@ public class RFile {
     }
 
     @Override
-    public long estimateEntries(KeyExtent extent) throws IOException {
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
       throw new UnsupportedOperationException();
     }
   }
@@ -1563,7 +1563,7 @@ public class RFile {
     }
 
     @Override
-    public long estimateEntries(KeyExtent extent) throws IOException {
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
       long totalEntries = 0;
       Key startKey = extent.toDataRange().getStartKey();
       IndexEntry indexEntry;
