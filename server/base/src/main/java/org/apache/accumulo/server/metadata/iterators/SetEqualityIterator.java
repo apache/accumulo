@@ -48,9 +48,13 @@ import com.google.common.base.Preconditions;
 
 /**
  * This iterator exists to enable checking for set equality in a conditional mutation. It allows
- * comparing a set in a client process to a set encoded in column qualifiers within a tablet. If the
- * "concat.value" options is supplied and is true, then the bytes from the Value will be added with
- * a null byte separator.
+ * comparing a set in a client process to a set encoded in column qualifiers within a tablet.
+ *
+ * <h3>Options</h3>
+ * <ul>
+ * <li><b>concat.value:</b> If this option is supplied and is true, then the bytes from the Value
+ * will be concatenated with a null byte separator.</li>
+ * </ul>
  */
 public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
 
