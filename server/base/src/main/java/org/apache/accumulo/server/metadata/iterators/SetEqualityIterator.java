@@ -40,6 +40,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
 import org.apache.hadoop.io.Text;
 
@@ -87,16 +88,11 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
       int count = 0;
 
       while (source.hasTop()) {
-        byte[] bytesToWrite = null;
+        final byte[] bytesToWrite;
         byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
         if (concat) {
           byte[] val = source.getTopValue().get();
-          bytesToWrite = new byte[ba.length + VALUE_SEPARATOR_BYTES_LENGTH + val.length];
-          System.arraycopy(ba, 0, bytesToWrite, 0, ba.length);
-          System.arraycopy(VALUE_SEPARATOR_BYTES, 0, bytesToWrite, ba.length,
-              VALUE_SEPARATOR_BYTES_LENGTH);
-          System.arraycopy(val, 0, bytesToWrite, ba.length + VALUE_SEPARATOR_BYTES_LENGTH,
-              val.length);
+          bytesToWrite = encodeKeyValue(ba, val);
         } else {
           bytesToWrite = ba;
         }
@@ -197,15 +193,36 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
     }
   }
 
+  private static byte[] encodeKeyValue(byte[] key, byte[] val) {
+    var bytesToWrite = new byte[key.length + VALUE_SEPARATOR_BYTES_LENGTH + val.length];
+    System.arraycopy(key, 0, bytesToWrite, 0, key.length);
+    System.arraycopy(VALUE_SEPARATOR_BYTES, 0, bytesToWrite, key.length,
+        VALUE_SEPARATOR_BYTES_LENGTH);
+    System.arraycopy(val, 0, bytesToWrite, key.length + VALUE_SEPARATOR_BYTES_LENGTH, val.length);
+    return bytesToWrite;
+  }
+
   private static final Text EMPTY = new Text();
 
   public static <T> Condition createCondition(Collection<T> set, Function<T,byte[]> encoder,
-      Text family, boolean concatValue) {
+      Text family) {
     Preconditions.checkArgument(set instanceof Set);
     IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
         SetEqualityIterator.class);
-    is.addOption(SetEqualityIterator.CONCAT_VALUE, Boolean.toString(concatValue));
+    is.addOption(SetEqualityIterator.CONCAT_VALUE, Boolean.toString(false));
     return new Condition(family, EMPTY).setValue(encode((Set<T>) set, encoder)).setIterators(is);
+  }
+
+  public static <T> Condition createConditionWithVal(Collection<T> set,
+      Function<T,Pair<byte[],byte[]>> encoder, Text family) {
+    Preconditions.checkArgument(set instanceof Set);
+    IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
+        SetEqualityIterator.class);
+    is.addOption(SetEqualityIterator.CONCAT_VALUE, Boolean.toString(true));
+    return new Condition(family, EMPTY).setValue(encode((Set<T>) set, s -> {
+      Pair<byte[],byte[]> kv = encoder.apply(s);
+      return encodeKeyValue(kv.getFirst(), kv.getSecond());
+    })).setIterators(is);
   }
 
 }

@@ -54,6 +54,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.iterators.LocationExistsIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
@@ -168,16 +169,16 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
       case LOGS: {
         Condition c = SetEqualityIterator.createCondition(new HashSet<>(tabletMetadata.getLogs()),
             logEntry -> logEntry.getColumnQualifier().toString().getBytes(UTF_8),
-            LogColumnFamily.NAME, false);
+            LogColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;
       case FILES: {
-        Condition c = SetEqualityIterator.createCondition(tabletMetadata.getFilesMap().entrySet(),
-            (entry) -> {
-              return (entry.getKey().getMetadata() + SetEqualityIterator.VALUE_SEPARATOR
-                  + entry.getValue().encodeAsString()).getBytes(UTF_8);
-            }, DataFileColumnFamily.NAME, true);
+        Condition c =
+            SetEqualityIterator.createConditionWithVal(tabletMetadata.getFilesMap().entrySet(),
+                entry -> new Pair<>(entry.getKey().getMetadata().getBytes(UTF_8),
+                    entry.getValue().encode()),
+                DataFileColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;
@@ -194,9 +195,9 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
       }
         break;
       case ECOMP: {
-        Condition c = SetEqualityIterator.createCondition(
-            tabletMetadata.getExternalCompactions().keySet(),
-            ecid -> ecid.canonical().getBytes(UTF_8), ExternalCompactionColumnFamily.NAME, false);
+        Condition c =
+            SetEqualityIterator.createCondition(tabletMetadata.getExternalCompactions().keySet(),
+                ecid -> ecid.canonical().getBytes(UTF_8), ExternalCompactionColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;
@@ -209,13 +210,13 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         break;
       case LOADED: {
         Condition c = SetEqualityIterator.createCondition(tabletMetadata.getLoaded().keySet(),
-            stf -> stf.getMetadata().getBytes(UTF_8), BulkFileColumnFamily.NAME, false);
+            stf -> stf.getMetadata().getBytes(UTF_8), BulkFileColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;
       case COMPACTED: {
         Condition c = SetEqualityIterator.createCondition(tabletMetadata.getCompacted(),
-            fTid -> fTid.canonical().getBytes(UTF_8), CompactedColumnFamily.NAME, false);
+            fTid -> fTid.canonical().getBytes(UTF_8), CompactedColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;
@@ -236,9 +237,9 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
       }
         break;
       case USER_COMPACTION_REQUESTED: {
-        Condition c = SetEqualityIterator.createCondition(
-            tabletMetadata.getUserCompactionsRequested(), fTid -> fTid.canonical().getBytes(UTF_8),
-            UserCompactionRequestedColumnFamily.NAME, false);
+        Condition c =
+            SetEqualityIterator.createCondition(tabletMetadata.getUserCompactionsRequested(),
+                fTid -> fTid.canonical().getBytes(UTF_8), UserCompactionRequestedColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;

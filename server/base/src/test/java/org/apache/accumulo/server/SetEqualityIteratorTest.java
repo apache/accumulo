@@ -39,6 +39,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.metadata.iterators.SetEqualityIterator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -135,7 +136,7 @@ public class SetEqualityIteratorTest {
     // The iterator should produce a value that is equal to the expected value on the condition
     var condition = SetEqualityIterator.createCondition(Collections.emptySet(),
         storedTabletFile -> ((StoredTabletFile) storedTabletFile).getMetadata().getBytes(UTF_8),
-        family, false);
+        family);
     assertArrayEquals(condition.getValue().toArray(),
         setEqualityIteratorNoFiles.getTopValue().get());
   }
@@ -154,11 +155,10 @@ public class SetEqualityIteratorTest {
     // Asserting the result
     assertEquals(new Key(tabletRow, family), setEqualityIteratorOneFile.getTopKey());
     // The iterator should produce a value that is equal to the expected value on the condition
-    var condition =
-        SetEqualityIterator.createCondition(tmOneFile.getFilesMap().entrySet(), entry -> {
-          return (entry.getKey().getMetadata() + SetEqualityIterator.VALUE_SEPARATOR
-              + entry.getValue().encodeAsString()).getBytes(UTF_8);
-        }, family, true);
+    var condition = SetEqualityIterator.createConditionWithVal(tmOneFile.getFilesMap().entrySet(),
+        entry -> new Pair<>(entry.getKey().getMetadata().getBytes(UTF_8),
+            entry.getValue().encode()),
+        family);
     assertArrayEquals(condition.getValue().toArray(),
         setEqualityIteratorOneFile.getTopValue().get());
   }
@@ -178,10 +178,10 @@ public class SetEqualityIteratorTest {
     assertEquals(new Key(tabletRow, family), setEqualityIterator.getTopKey());
     // The iterator should produce a value that is equal to the expected value on the condition
     var condition =
-        SetEqualityIterator.createCondition(tmMultipleFiles.getFilesMap().entrySet(), entry -> {
-          return (entry.getKey().getMetadata() + SetEqualityIterator.VALUE_SEPARATOR
-              + entry.getValue().encodeAsString()).getBytes(UTF_8);
-        }, family, true);
+        SetEqualityIterator.createConditionWithVal(tmMultipleFiles.getFilesMap().entrySet(),
+            entry -> new Pair<>(entry.getKey().getMetadata().getBytes(UTF_8),
+                entry.getValue().encode()),
+            family);
     assertArrayEquals(condition.getValue().toArray(), setEqualityIterator.getTopValue().get());
 
   }
