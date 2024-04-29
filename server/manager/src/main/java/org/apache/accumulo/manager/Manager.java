@@ -28,7 +28,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -95,8 +94,10 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
@@ -710,14 +711,17 @@ public class Manager extends AbstractServer
         throws TableNotFoundException {
       Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-      Set<KeyExtent> found = new HashSet<>();
+      scanner.setRange(MetadataSchema.TabletsSection.getRange());
+      Set<KeyExtent> notSeen;
+      synchronized (migrations) {
+        notSeen = new HashSet<>(migrations.keySet());
+      }
       for (Entry<Key,Value> entry : scanner) {
         KeyExtent extent = KeyExtent.fromMetaPrevRow(entry);
-        if (migrations.containsKey(extent)) {
-          found.add(extent);
-        }
+        notSeen.remove(extent);
       }
-      migrations.keySet().retainAll(found);
+      // remove tablets that used to be in migrations and were not seen in the metadata table
+      migrations.keySet().removeAll(notSeen);
     }
 
     /**
@@ -1096,15 +1100,12 @@ public class Manager extends AbstractServer
       managerUpgrading.set(true);
     }
 
-    try {
-      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          sa.getAddress(), getContext().getInstanceName());
-      ManagerMetrics.init(getConfiguration(), this);
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-        | SecurityException e1) {
-      log.error("Error initializing metrics, metrics will not be emitted.", e1);
-    }
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addServiceTags(getApplicationName(), sa.getAddress());
+
+    var producers = ManagerMetrics.getProducers(getConfiguration(), this);
+    metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
+    metricsInfo.init();
 
     recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
