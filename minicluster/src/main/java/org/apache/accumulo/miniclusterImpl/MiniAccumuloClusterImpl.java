@@ -785,10 +785,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (control.gcProcess != null) {
       result.put(ServerType.GARBAGE_COLLECTOR, references(control.gcProcess));
     }
-    if (control.scanServerProcesses != null) {
-      result.put(ServerType.SCAN_SERVER,
-          references(control.scanServerProcesses.toArray(new Process[0])));
-    }
     return result;
   }
 
