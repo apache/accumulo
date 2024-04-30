@@ -81,6 +81,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -106,6 +107,11 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   public static final String QUEUE1_SERVICE = "Q1";
   public static final int QUEUE1_SIZE = 6;
 
+  // Metrics collector Thread
+  final LinkedBlockingQueue<TestStatsDSink.Metric> queueMetrics = new LinkedBlockingQueue<>();
+  final AtomicBoolean shutdownTailer = new AtomicBoolean(false);
+  Thread metricsTailer;
+
   @BeforeEach
   public void setupMetricsTest() throws Exception {
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
@@ -125,6 +131,28 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       fs = getCluster().getFileSystem();
       rootPath = getCluster().getTemporaryPath().toString();
     }
+    queueMetrics.clear();
+    shutdownTailer.set(false);
+    metricsTailer = Threads.createThread("metric-tailer", () -> {
+      while (!shutdownTailer.get()) {
+        List<String> statsDMetrics = sink.getLines();
+        for (String s : statsDMetrics) {
+          if (shutdownTailer.get()) {
+            break;
+          }
+          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "queue")) {
+            queueMetrics.add(TestStatsDSink.parseStatsDMetric(s));
+          }
+        }
+      }
+    });
+    metricsTailer.start();
+  }
+
+  @AfterEach
+  public void teardownMetricsTest() throws Exception {
+    shutdownTailer.set(true);
+    metricsTailer.join();
   }
 
   private String getDir(String testName) throws Exception {
@@ -260,24 +288,6 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
 
   @Test
   public void testQueueMetrics() throws Exception {
-    // Metrics collector Thread
-    final LinkedBlockingQueue<TestStatsDSink.Metric> queueMetrics = new LinkedBlockingQueue<>();
-    final AtomicBoolean shutdownTailer = new AtomicBoolean(false);
-
-    Thread thread = Threads.createThread("metric-tailer", () -> {
-      while (!shutdownTailer.get()) {
-        List<String> statsDMetrics = sink.getLines();
-        for (String s : statsDMetrics) {
-          if (shutdownTailer.get()) {
-            break;
-          }
-          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "queue")) {
-            queueMetrics.add(TestStatsDSink.parseStatsDMetric(s));
-          }
-        }
-      }
-    });
-    thread.start();
 
     long highestFileCount = 0L;
     ServerContext context = getCluster().getServerContext();
@@ -325,9 +335,8 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
           }
         }
       }
-      // Current poll rate of the TestStatsDRegistryFactory is 3 seconds
       // If metrics are not found in the queue, sleep until the next poll.
-      UtilWaitThread.sleep(3500);
+      UtilWaitThread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis());
     }
 
     // Set lowest priority to the lowest possible system compaction priority
@@ -383,7 +392,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     boolean emptyQueue = false;
 
     // Make sure that metrics added to the queue are recent
-    UtilWaitThread.sleep(3500);
+    UtilWaitThread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis());
 
     while (!emptyQueue) {
       while (!queueMetrics.isEmpty()) {
@@ -404,11 +413,8 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
           }
         }
       }
-      UtilWaitThread.sleep(3500);
+      UtilWaitThread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis());
     }
-
-    shutdownTailer.set(true);
-    thread.join();
   }
 
   /**
@@ -416,25 +422,6 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
    */
   @Test
   public void testCompactionQueueClearedWhenNotNeeded() throws Exception {
-
-    // Metrics collector Thread setup
-    final LinkedBlockingQueue<TestStatsDSink.Metric> queueMetrics = new LinkedBlockingQueue<>();
-    final AtomicBoolean shutdownTailer = new AtomicBoolean(false);
-    Thread thread = Threads.createThread("metric-tailer", () -> {
-      while (true) {
-        List<String> statsDMetrics = sink.getLines();
-        for (String s : statsDMetrics) {
-          if (shutdownTailer.get()) {
-            return;
-          }
-          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "queue")) {
-            queueMetrics.add(TestStatsDSink.parseStatsDMetric(s));
-          }
-        }
-      }
-    });
-    thread.start();
-
     ServerContext context = getCluster().getServerContext();
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
@@ -461,7 +448,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       verifyData(c, tableName, 0, 100 * 100 - 1, false);
     }
 
-    final int sleepMillis = 3500; // Current poll rate of the TestStatsDRegistryFactory is 3 seconds
+    final long sleepMillis = TestStatsDRegistryFactory.pollingFrequency.toMillis();
 
     Wait.waitFor(() -> {
       while (!queueMetrics.isEmpty()) {
@@ -488,7 +475,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
             .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUES)) {
           sawQueues = true;
         } else {
-          log.debug("{}", metric);
+          log.debug("Other metric not used in the test: {}", metric);
         }
       }
       return queueSize == QUEUE1_SIZE && sawQueues;
