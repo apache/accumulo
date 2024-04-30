@@ -27,14 +27,15 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.tserver.ScanServer;
@@ -144,31 +145,34 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
         assertEquals(ingestedEntryCount, Iterables.size(scanner),
             "The scanner should fall back to the tserver and should have seen all ingested and flushed entries");
 
-        // Allow one scan server to be started at time
+        // Allow one scan server to be started at this time
         getCluster().getConfig().setNumScanServers(1);
 
         // Start a ScanServer. No group specified, should be in the default group.
         getCluster().getClusterControl().start(ServerType.SCAN_SERVER, "localhost");
         Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 1, 30_000);
+        Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
+            (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
+            == true);
+
         assertEquals(ingestedEntryCount, Iterables.size(scanner),
             "The scan server scanner should have seen all ingested and flushed entries");
-
-        // Collection<ProcessReference> procs =
-        // getCluster().getProcesses().get(ServerType.SCAN_SERVER);
-        // assertEquals(1, procs.size());
-        // getCluster().killProcess(ServerType.SCAN_SERVER, procs.iterator().next());
-        // getCluster().getClusterControl().stop(ServerType.SCAN_SERVER);
-        // assertEquals(0, getCluster().getProcesses().get(ServerType.SCAN_SERVER).size());
-        // Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 0);
 
         // if scanning against tserver would see the following, but should not on scan server
         final int additionalIngest1 =
             ScanServerIT.ingest(client, tableName, 10, 10, 10, "colf", true);
         assertEquals(100, additionalIngest1);
 
-        ProcessInfo pInfo = getCluster()._exec(ScanServer.class, ServerType.SCAN_SERVER, Map.of(),
+        // Bump the number of scan serves that can run to start the GROUP1 scan server
+        getCluster().getConfig().setNumScanServers(2);
+        getCluster()._exec(ScanServer.class, ServerType.SCAN_SERVER, Map.of(),
             new String[] {"-g", "GROUP1"});
-        Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 1);
+        Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 2);
+        Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
+            (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
+            == true);
+        Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream()
+            .anyMatch((p) -> p.getSecond().equals("GROUP1")) == true);
 
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
         assertEquals(ingestedEntryCount + additionalIngest1, Iterables.size(scanner),
