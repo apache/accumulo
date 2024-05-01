@@ -39,7 +39,7 @@ public class TabletServerScanMetrics implements MetricsProducer {
   private Counter startScanCalls;
   private Counter continueScanCalls;
   private Counter closeScanCalls;
-  private Counter busyTimeoutReturned;
+  private Counter busyTimeoutCount;
 
   private final LongAdder lookupCount = new LongAdder();
   private final LongAdder queryResultCount = new LongAdder();
@@ -114,8 +114,8 @@ public class TabletServerScanMetrics implements MetricsProducer {
     closeScanCalls.increment(value);
   }
 
-  public void incrementScanBusyTimeout(double value) {
-    busyTimeoutReturned.increment(value);
+  public void incrementBusy(double value) {
+    busyTimeoutCount.increment(value);
   }
 
   @Override
@@ -133,8 +133,8 @@ public class TabletServerScanMetrics implements MetricsProducer {
         .description("calls to continue a scan / multiscan").register(registry);
     closeScanCalls = Counter.builder(METRICS_SCAN_CLOSE)
         .description("calls to close a scan / multiscan").register(registry);
-    busyTimeoutReturned = Counter.builder(METRICS_SCAN_BUSY_TIMEOUT)
-        .description("times that a scan has timed out in the queue").register(registry);
+    busyTimeoutCount = Counter.builder(METRICS_SCAN_BUSY_TIMEOUT_COUNTER)
+        .description("The number of scans where a busy timeout happened").register(registry);
     Gauge.builder(METRICS_TSERVER_QUERIES, this, TabletServerScanMetrics::getLookupCount)
         .description("Number of queries").register(registry);
     Gauge.builder(METRICS_TSERVER_SCAN_RESULTS, this, TabletServerScanMetrics::getQueryResultCount)

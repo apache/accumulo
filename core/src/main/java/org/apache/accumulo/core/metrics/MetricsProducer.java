@@ -371,21 +371,21 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <th>N/A</th>
  * <th>N/A</th>
- * <th>{@value #METRICS_SSERVER_REGISTRATION_TIMER}</th>
+ * <th>{@value #METRICS_SCAN_RESERVATION_TIMER}</th>
  * <th>Timer</th>
  * <th>Time to reserve a tablets files for scan</th>
  * </tr>
  * <tr>
  * <th>N/A</th>
  * <th>N/A</th>
- * <th>{@value #METRICS_SSERVER_BUSY_COUNTER}</th>
+ * <th>{@value #METRICS_SCAN_BUSY_TIMEOUT_COUNTER}</th>
  * <th>Counter</th>
  * <th>Count of the scans where a busy timeout happened</th>
  * </tr>
  * <tr>
  * <th>N/A</th>
  * <th>N/A</th>
- * <th>{@value #METRICS_SSERVER_TABLET_METADATA_CACHE}</th>
+ * <th>{@value #METRICS_SCAN_TABLET_METADATA_CACHE}</th>
  * <th>Cache</th>
  * <th>scan server tablet cache metrics</th>
  * </tr>
@@ -436,13 +436,6 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>N/A</td>
  * <td>N/A</td>
  * <td>{@value #METRICS_SCAN_CLOSE}</td>
- * <td>Counter</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>N/A</td>
- * <td>N/A</td>
- * <td>{@value #METRICS_SCAN_BUSY_TIMEOUT}</td>
  * <td>Counter</td>
  * <td></td>
  * </tr>
@@ -627,7 +620,7 @@ public interface MetricsProducer {
   String METRICS_REPLICATION_PEERS = METRICS_REPLICATION_PREFIX + "peers";
   String METRICS_REPLICATION_THREADS = METRICS_REPLICATION_PREFIX + "threads";
 
-  String METRICS_SCAN_PREFIX = "accumulo.tserver.scans.";
+  String METRICS_SCAN_PREFIX = "accumulo.scan.";
   String METRICS_SCAN_TIMES = METRICS_SCAN_PREFIX + "times";
   String METRICS_SCAN_OPEN_FILES = METRICS_SCAN_PREFIX + "files.open";
   String METRICS_SCAN_RESULTS = METRICS_SCAN_PREFIX + "result";
@@ -635,7 +628,10 @@ public interface MetricsProducer {
   String METRICS_SCAN_START = METRICS_SCAN_PREFIX + "start";
   String METRICS_SCAN_CONTINUE = METRICS_SCAN_PREFIX + "continue";
   String METRICS_SCAN_CLOSE = METRICS_SCAN_PREFIX + "close";
-  String METRICS_SCAN_BUSY_TIMEOUT = METRICS_SCAN_PREFIX + "busy.timeout";
+  String METRICS_SCAN_BUSY_TIMEOUT_COUNTER = METRICS_SCAN_PREFIX + "busy.timeout.count";
+  String METRICS_SCAN_RESERVATION_TIMER = METRICS_SCAN_PREFIX + "reservation.timer";
+
+  String METRICS_SCAN_TABLET_METADATA_CACHE = METRICS_SCAN_PREFIX + "tablet.metadata.cache";
 
   String METRICS_TSERVER_PREFIX = "accumulo.tserver.";
   String METRICS_TSERVER_ENTRIES = METRICS_TSERVER_PREFIX + "entries";
@@ -659,11 +655,6 @@ public interface MetricsProducer {
   String METRICS_TSERVER_SCAN_RESULTS = METRICS_TSERVER_PREFIX + "scan.results";
   String METRICS_TSERVER_SCAN_RESULTS_BYTES = METRICS_TSERVER_PREFIX + "scan.results.bytes";
   String METRICS_TSERVER_SCANNED_ENTRIES = METRICS_TSERVER_PREFIX + "scan.scanned.entries";
-
-  String METRICS_SSERVER_PREFIX = "accumulo.sserver.";
-  String METRICS_SSERVER_REGISTRATION_TIMER = METRICS_SSERVER_PREFIX + "registration.timer";
-  String METRICS_SSERVER_BUSY_COUNTER = METRICS_SSERVER_PREFIX + "busy.count";
-  String METRICS_SSERVER_TABLET_METADATA_CACHE = METRICS_SSERVER_PREFIX + "tablet.metadata.cache";
 
   String METRICS_THRIFT_PREFIX = "accumulo.thrift.";
   String METRICS_THRIFT_EXECUTE = METRICS_THRIFT_PREFIX + "execute";
@@ -696,7 +687,7 @@ public interface MetricsProducer {
           fields.put((String) f.get(MetricsProducer.class), f.getName());
         } catch (IllegalArgumentException | IllegalAccessException e) {
           // this shouldn't happen, but let's log it anyway
-          LOG.error("Error getting metric value for field: " + f.getName());
+          LOG.error("Error getting metric value for field: {}", f.getName());
         }
       }
     }

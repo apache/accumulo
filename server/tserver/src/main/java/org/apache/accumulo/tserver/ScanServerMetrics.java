@@ -36,7 +36,7 @@ public class ScanServerMetrics implements MetricsProducer {
 
   private final String resourceGroup;
   private Timer reservationTimer;
-  private Counter busyCounter;
+  private Counter busyTimeoutCount;
 
   private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
 
@@ -48,16 +48,14 @@ public class ScanServerMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    reservationTimer = Timer.builder(MetricsProducer.METRICS_SSERVER_REGISTRATION_TIMER)
+    reservationTimer = Timer.builder(MetricsProducer.METRICS_SCAN_RESERVATION_TIMER)
         .description("Time to reserve a tablets files for scan")
         .tag("resource.group", resourceGroup).register(registry);
-    // TODO this counter is a duplicate, already a metrics for this below the scan server... use
-    // that instead, but look into renaming existing one to indicate scan server
-    busyCounter = Counter.builder(MetricsProducer.METRICS_SSERVER_BUSY_COUNTER)
-        .tag("resource.group", resourceGroup)
-        .description("The number of scans where a busy timeout happened").register(registry);
-    CaffeineCacheMetrics.monitor(registry, tabletMetadataCache,
-        METRICS_SSERVER_TABLET_METADATA_CACHE, List.of(Tag.of("resource.group", resourceGroup)));
+    busyTimeoutCount =
+        Counter.builder(METRICS_SCAN_BUSY_TIMEOUT_COUNTER).tag("resource.group", resourceGroup)
+            .description("The number of scans where a busy timeout happened").register(registry);
+    CaffeineCacheMetrics.monitor(registry, tabletMetadataCache, METRICS_SCAN_TABLET_METADATA_CACHE,
+        List.of(Tag.of("resource.group", resourceGroup)));
   }
 
   public Timer getReservationTimer() {
@@ -65,6 +63,6 @@ public class ScanServerMetrics implements MetricsProducer {
   }
 
   public void incrementBusy() {
-    busyCounter.increment();
+    busyTimeoutCount.increment();
   }
 }
