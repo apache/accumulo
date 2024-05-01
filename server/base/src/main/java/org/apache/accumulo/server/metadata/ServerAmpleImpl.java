@@ -345,9 +345,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public void putScanServerFileReferences(Collection<ScanServerRefTabletFile> scanRefs) {
     try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
-      String prefix = ScanServerFileReferenceSection.getRowPrefix();
       for (ScanServerRefTabletFile ref : scanRefs) {
-        Mutation m = new Mutation(prefix + ref.getRowSuffix());
+        Mutation m = new Mutation(ScanServerFileReferenceSection.encodeRow(ref.getRowSuffix()));
         m.put(ref.getServerAddress(), ref.getServerLockUUID(), ref.getValue());
         writer.addMutation(m);
       }
@@ -362,9 +361,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     try {
       Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY);
       scanner.setRange(ScanServerFileReferenceSection.getRange());
-      int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
       return StreamSupport.stream(scanner.spliterator(), false)
-          .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
+          .map(e -> new ScanServerRefTabletFile(
+              ScanServerFileReferenceSection.decodeRow(e.getKey().getRowData().toString()),
               e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()));
     } catch (TableNotFoundException e) {
       throw new IllegalStateException(DataLevel.USER.metaTable() + " not found!", e);
@@ -380,9 +379,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       scanner.setRange(ScanServerFileReferenceSection.getRange());
       scanner.fetchColumn(new Text(serverAddress), new Text(scanServerLockUUID.toString()));
 
-      int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
       Set<ScanServerRefTabletFile> refsToDelete = StreamSupport.stream(scanner.spliterator(), false)
-          .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
+          .map(e -> new ScanServerRefTabletFile(
+              ScanServerFileReferenceSection.decodeRow(e.getKey().getRowData().toString()),
               e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()))
           .collect(Collectors.toSet());
 
@@ -397,9 +396,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public void deleteScanServerFileReferences(Collection<ScanServerRefTabletFile> refsToDelete) {
     try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
-      String prefix = ScanServerFileReferenceSection.getRowPrefix();
       for (ScanServerRefTabletFile ref : refsToDelete) {
-        Mutation m = new Mutation(prefix + ref.getRowSuffix());
+        Mutation m = new Mutation(ScanServerFileReferenceSection.encodeRow(ref.getRowSuffix()));
         m.putDelete(ref.getServerAddress(), ref.getServerLockUUID());
         writer.addMutation(m);
       }

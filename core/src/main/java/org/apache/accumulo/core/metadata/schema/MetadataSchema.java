@@ -491,12 +491,27 @@ public class MetadataSchema {
     private static final Section section =
         new Section(RESERVED_PREFIX + "sserv", true, RESERVED_PREFIX + "sserx", false);
 
+    private static final int encoded_prefix_length =
+        section.getRowPrefix().length() + SortSkew.SORTSKEW_LENGTH;
+
     public static Range getRange() {
       return section.getRange();
     }
 
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
+    public static String encodeRow(String value) {
+      return section.getRowPrefix() + SortSkew.getCode(value) + value;
+    }
+
+    public static String decodeRow(String row) {
+      return row.substring(encoded_prefix_length);
+    }
+
+    /**
+     * Value to indicate that the row has been skewed/encoded.
+     */
+    public static class SkewedKeyValue {
+      public static final String STR_NAME = "skewed";
+      public static final Value NAME = new Value(STR_NAME);
     }
   }
 }
