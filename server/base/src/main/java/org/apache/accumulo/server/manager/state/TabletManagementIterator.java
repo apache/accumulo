@@ -173,23 +173,16 @@ public class TabletManagementIterator extends SkippingIterator {
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
-    if (range == null) {
-      super.seek(range, columnFamilies, inclusive);
-      return;
-    }
-    Key startKey = range.getStartKey();
-    // This iterator sits on top of the WholeRowIterator (see configureScanner), so enforce
-    // that the start and end keys in the Range only have a row component to the key.
-    if (startKey != null && startKey.compareTo(new Key(startKey.getRow())) != 0) {
-      throw new IllegalArgumentException(
-          "TabletManagementIterator must be seeked with keys that only contain a row, supplied range: "
-              + range);
-    }
-    Key endKey = range.getEndKey();
-    if (endKey != null && endKey.compareTo(new Key(endKey.getRow())) != 0) {
-      throw new IllegalArgumentException(
-          "TabletManagementIterator must be seeked with keys that only contain a row, supplied range: "
-              + range);
+    if (range != null) {
+      // This iterator sits on top of the WholeRowIterator (see configureScanner), so enforce
+      // that the start and end keys in the Range only have a row component to the key.
+      for (Key k : new Key[] {range.getStartKey(), range.getEndKey()}) {
+        if (k != null && k.compareTo(new Key(k.getRow())) != 0) {
+          throw new IllegalArgumentException(
+              "TabletManagementIterator must be seeked with keys that only contain a row, supplied range: "
+                  + range);
+        }
+      }
     }
     super.seek(range, columnFamilies, inclusive);
   }
