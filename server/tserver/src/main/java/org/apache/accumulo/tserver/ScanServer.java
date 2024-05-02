@@ -245,7 +245,7 @@ public class ScanServer extends AbstractServer
       }
       tabletMetadataCache =
           Caffeine.newBuilder().expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
-              .scheduler(Scheduler.systemScheduler()).build(tabletMetadataLoader);
+              .scheduler(Scheduler.systemScheduler()).recordStats().build(tabletMetadataLoader);
     }
 
     delegate = newThriftScanClientHandler(new WriteTracker());
