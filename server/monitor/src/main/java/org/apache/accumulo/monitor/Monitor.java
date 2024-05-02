@@ -485,6 +485,12 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       }
     }
     log.debug("Using {} to advertise monitor location in ZooKeeper", advertiseHost);
+    try {
+      monitorLock.replaceLockData(
+          HostAndPort.fromParts(advertiseHost, livePort).toString().getBytes(UTF_8));
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Exception updating monitor lock with host and port", e);
+    }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addServiceTags(getApplicationName(),
