@@ -379,7 +379,7 @@ public class ScanServer extends AbstractServer
     metricsInfo.addCommonTags(List.of(Tag.of("resource.group", groupName)));
 
     scanMetrics = new TabletServerScanMetrics();
-    scanServerMetrics = new ScanServerMetrics(tabletMetadataCache, groupName);
+    scanServerMetrics = new ScanServerMetrics(tabletMetadataCache);
 
     metricsInfo.addMetricsProducers(scanMetrics, scanServerMetrics);
     metricsInfo.init();

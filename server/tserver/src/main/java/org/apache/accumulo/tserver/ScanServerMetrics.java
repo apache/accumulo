@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.tserver;
 
-import java.util.List;
-
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -28,34 +26,27 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 
 public class ScanServerMetrics implements MetricsProducer {
 
-  private final String resourceGroup;
   private Timer reservationTimer;
   private Counter busyTimeoutCount;
 
   private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
 
-  public ScanServerMetrics(final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache,
-      String resourceGroup) {
+  public ScanServerMetrics(final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache) {
     this.tabletMetadataCache = tabletMetadataCache;
-    this.resourceGroup = resourceGroup;
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
     reservationTimer = Timer.builder(MetricsProducer.METRICS_SCAN_RESERVATION_TIMER)
-        .description("Time to reserve a tablets files for scan")
-        .tag("resource.group", resourceGroup).register(registry);
-    busyTimeoutCount =
-        Counter.builder(METRICS_SCAN_BUSY_TIMEOUT_COUNTER).tag("resource.group", resourceGroup)
-            .description("The number of scans where a busy timeout happened").register(registry);
-    CaffeineCacheMetrics.monitor(registry, tabletMetadataCache, METRICS_SCAN_TABLET_METADATA_CACHE,
-        List.of(Tag.of("resource.group", resourceGroup)));
+        .description("Time to reserve a tablets files for scan").register(registry);
+    busyTimeoutCount = Counter.builder(METRICS_SCAN_BUSY_TIMEOUT_COUNTER)
+        .description("The number of scans where a busy timeout happened").register(registry);
+    CaffeineCacheMetrics.monitor(registry, tabletMetadataCache, METRICS_SCAN_TABLET_METADATA_CACHE);
   }
 
   public Timer getReservationTimer() {
