@@ -20,11 +20,13 @@ package org.apache.accumulo.tserver;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.cache.BlockCache;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -83,6 +85,7 @@ public class BlockCacheMetrics implements MetricsProducer {
 
     ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
-    scheduler.scheduleAtFixedRate(this::update, 0, 5, TimeUnit.SECONDS);
+    ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(this::update, 0, 5, TimeUnit.SECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 }
