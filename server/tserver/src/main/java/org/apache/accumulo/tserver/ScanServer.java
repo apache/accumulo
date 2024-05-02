@@ -123,6 +123,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
+import io.micrometer.core.instrument.Tag;
+
 public class ScanServer extends AbstractServer
     implements TabletScanClientService.Iface, TabletHostingServer {
 
@@ -340,6 +342,7 @@ public class ScanServer extends AbstractServer
       // Don't use the normal ServerServices lock content, instead put the server UUID here.
       byte[] lockContent = (serverLockUUID.toString() + "," + groupName).getBytes(UTF_8);
 
+      // wait for 120 seconds with 5 second delay
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
 
@@ -373,6 +376,7 @@ public class ScanServer extends AbstractServer
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addServiceTags(getApplicationName(), clientAddress);
+    metricsInfo.addCommonTags(List.of(Tag.of("resource.group", groupName)));
 
     scanMetrics = new TabletServerScanMetrics();
     scanServerMetrics = new ScanServerMetrics(tabletMetadataCache, groupName);
