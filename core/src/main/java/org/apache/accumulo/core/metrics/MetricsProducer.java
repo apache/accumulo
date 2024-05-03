@@ -314,37 +314,6 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td></td>
  * </tr>
  * <tr>
- * <td>queries</td>
- * <td>Gauge</td>
- * <td>{@value #METRICS_TSERVER_QUERIES}</td>
- * <td>Gauge</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>scannedRate</td>
- * <td>Gauge</td>
- * <td>{@value #METRICS_TSERVER_SCANNED_ENTRIES}</td>
- * <td>Gauge</td>
- * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
- * derived</td>
- * </tr>
- * <tr>
- * <td>queryRate</td>
- * <td>Gauge</td>
- * <td>{@value #METRICS_TSERVER_SCAN_RESULTS}</td>
- * <td>Gauge</td>
- * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
- * derived</td>
- * </tr>
- * <tr>
- * <td>queryByteRate</td>
- * <td>Gauge</td>
- * <td>{@value #METRICS_TSERVER_SCAN_RESULTS_BYTES}</td>
- * <td>Gauge</td>
- * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
- * derived</td>
- * </tr>
- * <tr>
  * <td>ingestRate</td>
  * <td>Gauge</td>
  * <td>{@value #METRICS_TSERVER_INGEST_MUTATIONS}</td>
@@ -438,6 +407,37 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>{@value #METRICS_SCAN_CLOSE}</td>
  * <td>Counter</td>
  * <td></td>
+ * </tr>
+ * <tr>
+ * <td>queries</td>
+ * <td>Gauge</td>
+ * <td>{@value #METRICS_SCAN_QUERIES}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>scannedRate</td>
+ * <td>Gauge</td>
+ * <td>{@value #METRICS_SCAN_SCANNED_ENTRIES}</td>
+ * <td>Gauge</td>
+ * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
+ * derived</td>
+ * </tr>
+ * <tr>
+ * <td>queryRate</td>
+ * <td>Gauge</td>
+ * <td>{@value #METRICS_SCAN_QUERY_SCAN_RESULTS}</td>
+ * <td>Gauge</td>
+ * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
+ * derived</td>
+ * </tr>
+ * <tr>
+ * <td>queryByteRate</td>
+ * <td>Gauge</td>
+ * <td>{@value #METRICS_SCAN_QUERY_SCAN_RESULTS_BYTES}</td>
+ * <td>Gauge</td>
+ * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
+ * derived</td>
  * </tr>
  * <!-- major compactions -->
  * <tr>
@@ -630,6 +630,10 @@ public interface MetricsProducer {
   String METRICS_SCAN_CLOSE = METRICS_SCAN_PREFIX + "close";
   String METRICS_SCAN_BUSY_TIMEOUT_COUNTER = METRICS_SCAN_PREFIX + "busy.timeout.count";
   String METRICS_SCAN_RESERVATION_TIMER = METRICS_SCAN_PREFIX + "reservation.timer";
+  String METRICS_SCAN_QUERIES = METRICS_SCAN_PREFIX + "queries";
+  String METRICS_SCAN_QUERY_SCAN_RESULTS = METRICS_SCAN_PREFIX + "query.results";
+  String METRICS_SCAN_QUERY_SCAN_RESULTS_BYTES = METRICS_SCAN_PREFIX + "query.results.bytes";
+  String METRICS_SCAN_SCANNED_ENTRIES = METRICS_SCAN_PREFIX + "query.scanned.entries";
 
   String METRICS_SCAN_TABLET_METADATA_CACHE = METRICS_SCAN_PREFIX + "tablet.metadata.cache";
 
@@ -647,14 +651,10 @@ public interface MetricsProducer {
   String METRICS_TSERVER_TABLETS_ONLINE = METRICS_TSERVER_PREFIX + "tablets.online";
   String METRICS_TSERVER_TABLETS_OPENING = METRICS_TSERVER_PREFIX + "tablets.opening";
   String METRICS_TSERVER_TABLETS_UNOPENED = METRICS_TSERVER_PREFIX + "tablets.unopened";
-  String METRICS_TSERVER_QUERIES = METRICS_TSERVER_PREFIX + "queries";
   String METRICS_TSERVER_TABLETS_FILES = METRICS_TSERVER_PREFIX + "tablets.files";
   String METRICS_TSERVER_HOLD = METRICS_TSERVER_PREFIX + "hold";
   String METRICS_TSERVER_INGEST_MUTATIONS = METRICS_TSERVER_PREFIX + "ingest.mutations";
   String METRICS_TSERVER_INGEST_BYTES = METRICS_TSERVER_PREFIX + "ingest.bytes";
-  String METRICS_TSERVER_SCAN_RESULTS = METRICS_TSERVER_PREFIX + "scan.results";
-  String METRICS_TSERVER_SCAN_RESULTS_BYTES = METRICS_TSERVER_PREFIX + "scan.results.bytes";
-  String METRICS_TSERVER_SCANNED_ENTRIES = METRICS_TSERVER_PREFIX + "scan.scanned.entries";
 
   String METRICS_THRIFT_PREFIX = "accumulo.thrift.";
   String METRICS_THRIFT_EXECUTE = METRICS_THRIFT_PREFIX + "execute";
