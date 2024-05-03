@@ -31,9 +31,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -110,6 +112,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   private static final int DEFAULT_OUTSTANDING_MIGRATIONS = 0;
   public static final String HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY =
       PROP_PREFIX + "balancer.host.regex.max.outstanding.migrations";
+  public static final String HOST_BALANCER_REGEX_CONCURRENT_TABLES_KEY =
+      PROP_PREFIX + "balancer.host.regex.concurrent.tables";
+  private static final boolean HOST_BALANCER_REGEX_CONCURRENT_TABLES_DEFAULT = true;
 
   private static Map<String,String> getRegexes(PluginEnvironment.Configuration conf) {
     Map<String,String> regexes = new HashMap<>();
@@ -121,7 +126,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
           if (customProp.getKey().equals(HOST_BALANCER_OOB_CHECK_KEY)
               || customProp.getKey().equals(HOST_BALANCER_REGEX_USING_IPS_KEY)
               || customProp.getKey().equals(HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY)
-              || customProp.getKey().equals(HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY)) {
+              || customProp.getKey().equals(HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY)
+              || customProp.getKey().equals(HOST_BALANCER_REGEX_CONCURRENT_TABLES_KEY)) {
             continue;
           }
           String tableName = customProp.getKey().substring(HOST_BALANCER_PREFIX.length());
@@ -146,6 +152,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     private boolean isIpBasedRegex = false;
     private final Map<String,String> regexes;
     private final Map<String,Pattern> poolNameToRegexPattern;
+    private final boolean concurrentTables;
 
     HrtlbConf(PluginEnvironment.Configuration conf) {
       System.out.println("building hrtlb conf");
@@ -165,6 +172,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       if (outstanding != null) {
         maxOutstandingMigrations = Integer.parseInt(outstanding);
       }
+      concurrentTables = Optional.ofNullable(conf.get(HOST_BALANCER_REGEX_CONCURRENT_TABLES_KEY))
+          .map(Boolean::parseBoolean).orElse(HOST_BALANCER_REGEX_CONCURRENT_TABLES_DEFAULT);
 
       this.regexes = getRegexes(conf);
 
@@ -466,6 +475,13 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
           LOG.trace("Sample up to 10 outstanding migrations: {}", limitTen(migrations));
         }
         return minBalanceTime;
+      } else if (!myConf.concurrentTables) {
+        LOG.warn("Not balancing tables due to {} existing migrations and {}} is set to false",
+            migrations.size(), HOST_BALANCER_REGEX_CONCURRENT_TABLES_KEY);
+        if (LOG.isTraceEnabled()) {
+          LOG.trace("Sample up to 10 outstanding migrations: {}", limitTen(migrations));
+        }
+        return minBalanceTime;
       }
 
       LOG.debug("Current outstanding migrations of {} being applied", migrations.size());
@@ -493,7 +509,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       migrationsFromLastPass.clear();
     }
 
-    for (TableId tableId : tableIdMap.values()) {
+    // Sort the tableIds so we process them in order always
+    for (TableId tableId : new TreeSet<>(tableIdMap.values())) {
       String tableName = tableIdToTableName.get(tableId);
       String regexTableName = getPoolNameForTable(tableName);
       SortedMap<TabletServerId,TServerStatus> currentView = currentGrouped.get(regexTableName);
@@ -517,7 +534,10 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       }
 
       migrationsOut.addAll(newMigrations);
-      if (migrationsOut.size() >= myConf.maxTServerMigrations) {
+      // Break if concurrentTables is false and migrations are found as we only are processing
+      // one table at a time. Also break if the migrations count reaches maxTServerMigrations
+      if ((!myConf.concurrentTables && !migrationsOut.isEmpty())
+          || (migrationsOut.size() >= myConf.maxTServerMigrations)) {
         break;
       }
     }
