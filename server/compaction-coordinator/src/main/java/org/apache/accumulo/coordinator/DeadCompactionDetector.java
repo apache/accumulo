@@ -117,8 +117,15 @@ public class DeadCompactionDetector {
         });
 
     tabletCompactions.forEach((ecid, extent) -> {
-      log.debug("Possible dead compaction detected {} {}", ecid, extent);
-      this.deadCompactions.merge(ecid, 1L, Long::sum);
+      var count = this.deadCompactions.merge(ecid, 1L, Long::sum);
+      if (count == 1) {
+        // The first time a possible dead compaction is seen, for quick compactions there is a good
+        // chance that it is already complete instead of dead. In order to avoid spamming the logs
+        // w/ false positives, log the first seen at trace.
+        log.trace("Possible dead compaction detected {} {} {}", ecid, extent, count);
+      } else {
+        log.debug("Possible dead compaction detected {} {} {}", ecid, extent, count);
+      }
     });
 
     // Everything left in tabletCompactions is no longer running anywhere and should be failed.

@@ -80,6 +80,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
+import org.apache.accumulo.core.tabletscan.thrift.ScanServerBusyException;
 import org.apache.accumulo.core.tabletscan.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletscan.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
@@ -126,6 +127,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
+
+import io.micrometer.core.instrument.Tag;
 
 public class ScanServer extends AbstractServer
     implements TabletScanClientService.Iface, TabletHostingServer {
@@ -196,6 +199,7 @@ public class ScanServer extends AbstractServer
   private volatile boolean serverStopRequested = false;
   private ServiceLock scanServerLock;
   protected TabletServerScanMetrics scanMetrics;
+  private ScanServerMetrics scanServerMetrics;
 
   private ZooCache managerLockCache;
 
@@ -240,7 +244,7 @@ public class ScanServer extends AbstractServer
       }
       tabletMetadataCache =
           Caffeine.newBuilder().expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
-              .scheduler(Scheduler.systemScheduler()).build(tabletMetadataLoader);
+              .scheduler(Scheduler.systemScheduler()).recordStats().build(tabletMetadataLoader);
     }
 
     delegate = newThriftScanClientHandler(new WriteTracker());
@@ -375,10 +379,12 @@ public class ScanServer extends AbstractServer
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addServiceTags(getApplicationName(), clientAddress);
+    metricsInfo.addCommonTags(List.of(Tag.of("resource.group", groupName)));
 
     scanMetrics = new TabletServerScanMetrics();
+    scanServerMetrics = new ScanServerMetrics(tabletMetadataCache);
 
-    metricsInfo.addMetricsProducers(this, scanMetrics);
+    metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics);
     metricsInfo.init();
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 
@@ -662,6 +668,19 @@ public class ScanServer extends AbstractServer
     }
   }
 
+  @VisibleForTesting
+  ScanReservation reserveFilesInstrumented(Map<KeyExtent,List<TRange>> extents)
+      throws AccumuloException {
+    long start = System.nanoTime();
+    try {
+      return reserveFiles(extents);
+    } finally {
+      scanServerMetrics.getReservationTimer().record(System.nanoTime() - start,
+          TimeUnit.NANOSECONDS);
+    }
+
+  }
+
   protected ScanReservation reserveFiles(Map<KeyExtent,List<TRange>> extents)
       throws AccumuloException {
 
@@ -690,6 +709,17 @@ public class ScanServer extends AbstractServer
     });
 
     return new ScanReservation(tabletsMetadata, myReservationId, failures);
+  }
+
+  @VisibleForTesting
+  ScanReservation reserveFilesInstrumented(long scanId) throws NoSuchScanIDException {
+    long start = System.nanoTime();
+    try {
+      return reserveFiles(scanId);
+    } finally {
+      scanServerMetrics.getReservationTimer().record(System.nanoTime() - start,
+          TimeUnit.NANOSECONDS);
+    }
   }
 
   protected ScanReservation reserveFiles(long scanId) throws NoSuchScanIDException {
@@ -880,7 +910,7 @@ public class ScanServer extends AbstractServer
 
     KeyExtent extent = getKeyExtent(textent);
     try (ScanReservation reservation =
-        reserveFiles(Map.of(extent, Collections.singletonList(range)))) {
+        reserveFilesInstrumented(Map.of(extent, Collections.singletonList(range)))) {
 
       if (reservation.getFailures().containsKey(textent)) {
         throw new NotServingTabletException(extent.toThrift());
@@ -894,7 +924,9 @@ public class ScanServer extends AbstractServer
           busyTimeout);
 
       return is;
-
+    } catch (ScanServerBusyException be) {
+      scanServerMetrics.incrementBusy();
+      throw be;
     } catch (AccumuloException | IOException e) {
       LOG.error("Error starting scan", e);
       throw new RuntimeException(e);
@@ -907,9 +939,12 @@ public class ScanServer extends AbstractServer
       TSampleNotPresentException, TException {
     LOG.trace("continue scan: {}", scanID);
 
-    try (ScanReservation reservation = reserveFiles(scanID)) {
+    try (ScanReservation reservation = reserveFilesInstrumented(scanID)) {
       Preconditions.checkState(reservation.getFailures().isEmpty());
       return delegate.continueScan(tinfo, scanID, busyTimeout);
+    } catch (ScanServerBusyException be) {
+      scanServerMetrics.incrementBusy();
+      throw be;
     }
   }
 
@@ -938,7 +973,7 @@ public class ScanServer extends AbstractServer
       batch.put(extent, entry.getValue());
     }
 
-    try (ScanReservation reservation = reserveFiles(batch)) {
+    try (ScanReservation reservation = reserveFilesInstrumented(batch)) {
 
       HashMap<KeyExtent,TabletBase> tablets = new HashMap<>();
       reservation.getTabletMetadataExtents().forEach(extent -> {
@@ -955,6 +990,9 @@ public class ScanServer extends AbstractServer
 
       LOG.trace("started scan: {}", ims.getScanID());
       return ims;
+    } catch (ScanServerBusyException be) {
+      scanServerMetrics.incrementBusy();
+      throw be;
     } catch (TException e) {
       LOG.error("Error starting scan", e);
       throw e;
@@ -969,9 +1007,12 @@ public class ScanServer extends AbstractServer
       throws NoSuchScanIDException, TSampleNotPresentException, TException {
     LOG.trace("continue multi scan: {}", scanID);
 
-    try (ScanReservation reservation = reserveFiles(scanID)) {
+    try (ScanReservation reservation = reserveFilesInstrumented(scanID)) {
       Preconditions.checkState(reservation.getFailures().isEmpty());
       return delegate.continueMultiScan(tinfo, scanID, busyTimeout);
+    } catch (ScanServerBusyException be) {
+      scanServerMetrics.incrementBusy();
+      throw be;
     }
   }
 

@@ -24,8 +24,6 @@ import org.apache.accumulo.tserver.tablet.Tablet;
 
 /**
  * Wrapper around extracting metrics from a TabletServer instance
- *
- * Necessary to support both old custom JMX metrics and Hadoop Metrics2
  */
 public class TabletServerMetricsUtil {
 
