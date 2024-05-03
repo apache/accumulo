@@ -45,6 +45,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletsMutator;
@@ -229,6 +230,16 @@ public class TestAmple {
       @Override
       public Ample getAmple() {
         return ample;
+      }
+
+      @Override
+      public ServiceLock getServiceLock() {
+        return context.getServiceLock();
+      }
+
+      @Override
+      public void setServiceLock(ServiceLock lock) {
+        context.setServiceLock(lock);
       }
     };
   }
