@@ -591,6 +591,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error registering compactor in ZooKeeper", e);
     }
+    this.getContext().setServiceLock(compactorLock);
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addServiceTags(getApplicationName(), clientAddress, getResourceGroup());

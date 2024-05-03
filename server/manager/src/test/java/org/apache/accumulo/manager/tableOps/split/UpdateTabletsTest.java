@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
@@ -229,6 +230,9 @@ public class UpdateTabletsTest {
     EasyMock.expect(splitter.getCachedFileInfo(tableId, file3)).andReturn(newFileInfo("d", "f"));
     EasyMock.expect(splitter.getCachedFileInfo(tableId, file4)).andReturn(newFileInfo("d", "j"));
     EasyMock.expect(manager.getSplitter()).andReturn(splitter).atLeastOnce();
+
+    ServiceLock managerLock = EasyMock.mock(ServiceLock.class);
+    EasyMock.expect(context.getServiceLock()).andReturn(managerLock).anyTimes();
 
     // Setup the metadata for the tablet that is going to split, set as many columns as possible on
     // it.

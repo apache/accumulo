@@ -589,6 +589,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     metricsInfo.init();
 
     announceExistence();
+    getContext().setServiceLock(tabletServerLock);
 
     try {
       walMarker.initWalMarker(getTabletSession());

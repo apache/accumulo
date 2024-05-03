@@ -60,7 +60,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -296,13 +295,11 @@ public class Tablet extends TabletBase {
         if (entriesUsedOnTablet.get() == 0) {
           log.debug("No replayed mutations applied, removing unused walog entries for {}", extent);
 
-          final ServiceLock zooLock = tabletServer.getLock();
           final Location expectedLocation = Location.future(this.tabletServer.getTabletSession());
           try (ConditionalTabletsMutator mutator =
               getContext().getAmple().conditionallyMutateTablets()) {
             ConditionalTabletMutator mut = mutator.mutateTablet(extent).requireAbsentOperation()
-                .requireLocation(expectedLocation)
-                .putZooLock(getContext().getZooKeeperRoot(), zooLock);
+                .requireLocation(expectedLocation);
             logEntries.forEach(mut::deleteWal);
             mut.submit(tabletMetadata -> tabletMetadata.getLogs().isEmpty());
 
@@ -491,7 +488,6 @@ public class Tablet extends TabletBase {
                   .requireSame(lastTabletMetadata, ColumnType.FLUSH_ID);
 
               tablet.putFlushId(tableFlushID);
-              tablet.putZooLock(context.getZooKeeperRoot(), getTabletServer().getLock());
               tablet
                   .submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == tableFlushID);
 
@@ -1370,8 +1366,6 @@ public class Tablet extends TabletBase {
         tablet.putFlushNonce(flushNonce);
 
         unusedWalLogs.forEach(tablet::deleteWal);
-
-        tablet.putZooLock(getContext().getZooKeeperRoot(), tabletServer.getLock());
 
         // When trying to determine if write was successful, check if the flush nonce was updated.
         // Can not check if the new file exists because of two reasons. First, it could be compacted

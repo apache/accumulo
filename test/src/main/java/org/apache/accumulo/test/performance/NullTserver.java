@@ -26,7 +26,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -52,6 +54,13 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
+import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -78,6 +87,10 @@ import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.thrift.TException;
 import org.apache.thrift.TMultiplexedProcessor;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.net.HostAndPort;
@@ -88,6 +101,8 @@ import com.google.common.net.HostAndPort;
  * performance to be measured by running any client code that writes to a table.
  */
 public class NullTserver {
+
+  private static final Logger LOG = LoggerFactory.getLogger(NullTserver.class);
 
   public static class NullTServerTabletClientHandler
       implements TabletServerClientService.Iface, TabletScanClientService.Iface,
@@ -307,29 +322,79 @@ public class NullTserver {
         10 * 1024 * 1024, null, null, -1, context.getConfiguration().getCount(Property.RPC_BACKLOG),
         context.getMetricsInfo(), HostAndPort.fromParts("0.0.0.0", opts.port));
 
-    HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
+    AccumuloLockWatcher miniLockWatcher = new AccumuloLockWatcher() {
 
-    TableId tableId = context.getTableId(opts.tableName);
-
-    // read the locations for the table
-    Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
-    List<Assignment> assignments = new ArrayList<>();
-    try (var tablets = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
-      long randomSessionID = opts.port;
-      TServerInstance instance = new TServerInstance(addr, randomSessionID);
-      var s = tablets.iterator();
-
-      while (s.hasNext()) {
-        TabletMetadata next = s.next();
-        assignments.add(new Assignment(next.getExtent(), instance, next.getLast()));
+      @Override
+      public void lostLock(LockLossReason reason) {
+        LOG.warn("Lost lock: " + reason.toString());
       }
-    }
-    // point them to this server
-    TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
-    store.setLocations(assignments);
 
-    while (true) {
-      Thread.sleep(SECONDS.toMillis(10));
+      @Override
+      public void unableToMonitorLockNode(Exception e) {
+        LOG.warn("Unable to monitor lock: " + e.getMessage());
+      }
+
+      @Override
+      public void acquiredLock() {
+        LOG.debug("Acquired ZooKeeper lock for NullTserver");
+      }
+
+      @Override
+      public void failedToAcquireLock(Exception e) {
+        LOG.warn("Failed to acquire ZK lock for NullTserver, msg: " + e.getMessage());
+      }
+    };
+
+    ServiceLock miniLock = null;
+    try {
+      ZooKeeper zk = context.getZooReaderWriter().getZooKeeper();
+      UUID nullTServerUUID = UUID.randomUUID();
+      String miniZDirPath = context.getZooKeeperRoot() + "/mini";
+      String miniZInstancePath = miniZDirPath + "/" + nullTServerUUID.toString();
+      try {
+        context.getZooReaderWriter().putPersistentData(miniZDirPath, new byte[0],
+            ZooUtil.NodeExistsPolicy.SKIP);
+        context.getZooReaderWriter().putPersistentData(miniZInstancePath, new byte[0],
+            ZooUtil.NodeExistsPolicy.SKIP);
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException("Error creating path in ZooKeeper", e);
+      }
+      ServiceLockPath path = ServiceLock.path(miniZInstancePath);
+      ServiceLockData sld = new ServiceLockData(nullTServerUUID, "localhost", ThriftService.TSERV,
+          Constants.DEFAULT_RESOURCE_GROUP_NAME);
+      miniLock = new ServiceLock(zk, path, UUID.randomUUID());
+      miniLock.lock(miniLockWatcher, sld);
+      context.setServiceLock(miniLock);
+      HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
+
+      TableId tableId = context.getTableId(opts.tableName);
+
+      // read the locations for the table
+      Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
+      List<Assignment> assignments = new ArrayList<>();
+      try (var tablets = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
+        long randomSessionID = opts.port;
+        TServerInstance instance = new TServerInstance(addr, randomSessionID);
+        var s = tablets.iterator();
+
+        while (s.hasNext()) {
+          TabletMetadata next = s.next();
+          assignments.add(new Assignment(next.getExtent(), instance, next.getLast()));
+        }
+      }
+      // point them to this server
+      final ServiceLock lock = miniLock;
+      TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
+      store.setLocations(assignments);
+
+      while (true) {
+        Thread.sleep(SECONDS.toMillis(10));
+      }
+
+    } finally {
+      if (miniLock != null) {
+        miniLock.unlock();
+      }
     }
   }
 }

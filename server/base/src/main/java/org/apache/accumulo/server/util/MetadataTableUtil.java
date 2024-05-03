@@ -146,7 +146,6 @@ public class MetadataTableUtil {
       tablet.putBulkFile(tf, fateId);
       newFiles.put(tf.insert(), dfv);
     });
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.mutate();
     return newFiles;
   }

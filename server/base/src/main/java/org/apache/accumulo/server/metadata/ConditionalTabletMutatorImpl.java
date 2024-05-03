@@ -41,6 +41,7 @@ import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedFilesIterator;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -73,6 +74,8 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
 
   private final BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer;
 
+  private final ServerContext context;
+  private final ServiceLock lock;
   private final KeyExtent extent;
 
   private boolean sawOperationRequirement = false;
@@ -87,6 +90,9 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     this.parent = parent;
     this.rejectionHandlerConsumer = rejectionHandlerConsumer;
     this.extent = extent;
+    this.context = context;
+    this.lock = this.context.getServiceLock();
+    Objects.requireNonNull(this.lock, "ServiceLock not set on ServerContext");
   }
 
   @Override
@@ -284,6 +290,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
               .setValue(encodePrevEndRow(extent.prevEndRow()).get());
       mutation.addCondition(c);
     }
+    this.putZooLock(context.getZooKeeperRoot(), lock);
     getMutation();
     mutationConsumer.accept(mutation);
     rejectionHandlerConsumer.accept(extent, rejectionCheck);

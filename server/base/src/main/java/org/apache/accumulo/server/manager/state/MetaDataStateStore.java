@@ -31,6 +31,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.server.ServerContext;
 
 import com.google.common.base.Preconditions;
 
@@ -41,7 +42,7 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
   private final Ample ample;
   private final DataLevel level;
 
-  protected MetaDataStateStore(DataLevel level, ClientContext context, String targetTableName) {
+  protected MetaDataStateStore(DataLevel level, ServerContext context, String targetTableName) {
     super(context);
     this.level = level;
     this.context = context;
@@ -49,7 +50,7 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
     this.targetTableName = targetTableName;
   }
 
-  MetaDataStateStore(DataLevel level, ClientContext context) {
+  MetaDataStateStore(DataLevel level, ServerContext context) {
     this(level, context, AccumuloTable.METADATA.tableName());
   }
 

@@ -36,7 +36,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
@@ -363,8 +362,6 @@ public interface Ample {
     T putLocation(Location location);
 
     T deleteLocation(Location location);
-
-    T putZooLock(String zookeeperRoot, ServiceLock zooLock);
 
     T putDirName(String dirName);
 

@@ -996,8 +996,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         vr.filesToRemove.forEach(tabletMutator::deleteFile);
         vr.filesToAdd.forEach(tabletMutator::putFile);
 
-        tabletMutator.putZooLock(manager.getContext().getZooKeeperRoot(), manager.getManagerLock());
-
         tabletMutator.submit(
             tm -> tm.getLogs().containsAll(vr.logsToAdd) && tm.getFiles().containsAll(vr.filesToAdd
                 .keySet().stream().map(ReferencedTabletFile::insert).collect(Collectors.toSet())));

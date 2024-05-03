@@ -476,6 +476,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       log.error("Failed to get Monitor ZooKeeper lock");
       throw new RuntimeException(e);
     }
+    this.getContext().setServiceLock(this.monitorLock);
 
     String advertiseHost = getHostname();
     if (advertiseHost.equals("0.0.0.0")) {

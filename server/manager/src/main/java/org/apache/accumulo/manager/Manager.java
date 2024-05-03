@@ -978,6 +978,7 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
+    this.getContext().setServiceLock(getManagerLock());
 
     // If UpgradeStatus is not at complete by this moment, then things are currently
     // upgrading.
