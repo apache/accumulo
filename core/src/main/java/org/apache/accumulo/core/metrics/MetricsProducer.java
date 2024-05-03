@@ -685,8 +685,8 @@ public interface MetricsProducer {
   String METRICS_SCAN_CONTINUE = METRICS_SCAN_PREFIX + "continue";
   String METRICS_SCAN_CLOSE = METRICS_SCAN_PREFIX + "close";
   String METRICS_SCAN_BUSY_TIMEOUT = METRICS_SCAN_PREFIX + "busy.timeout";
-  String METRICS_SCAN_PAUSED_FOR_MEM = METRICS_SCAN_PREFIX + ".paused.for.memory";
-  String METRICS_SCAN_RETURN_FOR_MEM = METRICS_SCAN_PREFIX + ".return.early.for.memory";
+  String METRICS_SCAN_PAUSED_FOR_MEM = METRICS_SCAN_PREFIX + "paused.for.memory";
+  String METRICS_SCAN_RETURN_FOR_MEM = METRICS_SCAN_PREFIX + "return.early.for.memory";
 
   String METRICS_TSERVER_PREFIX = "accumulo.tserver.";
   String METRICS_TSERVER_ENTRIES = METRICS_TSERVER_PREFIX + "entries";

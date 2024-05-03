@@ -584,11 +584,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     mincMetrics = new TabletServerMinCMetrics();
     pausedMetrics = new PausedCompactionMetrics();
 
-    metricsInfo.addMetricsProducers(metrics, updateMetrics, scanMetrics, mincMetrics,
+    metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
         pausedMetrics);
     metricsInfo.init();
 
     announceExistence();
+    getContext().setServiceLock(tabletServerLock);
 
     try {
       walMarker.initWalMarker(getTabletSession());
