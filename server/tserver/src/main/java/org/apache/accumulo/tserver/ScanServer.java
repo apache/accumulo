@@ -707,7 +707,8 @@ public class ScanServer extends AbstractServer
     return new ScanReservation(tabletsMetadata, myReservationId, failures);
   }
 
-  private ScanReservation reserveFilesInstrumented(long scanId) throws NoSuchScanIDException {
+  @VisibleForTesting
+  ScanReservation reserveFilesInstrumented(long scanId) throws NoSuchScanIDException {
     long start = System.nanoTime();
     try {
       return reserveFiles(scanId);
@@ -934,7 +935,7 @@ public class ScanServer extends AbstractServer
       TSampleNotPresentException, TException {
     LOG.trace("continue scan: {}", scanID);
 
-    try (ScanReservation reservation = reserveFiles(scanID)) {
+    try (ScanReservation reservation = reserveFilesInstrumented(scanID)) {
       Preconditions.checkState(reservation.getFailures().isEmpty());
       return delegate.continueScan(tinfo, scanID, busyTimeout);
     } catch (ScanServerBusyException be) {
@@ -1002,7 +1003,7 @@ public class ScanServer extends AbstractServer
       throws NoSuchScanIDException, TSampleNotPresentException, TException {
     LOG.trace("continue multi scan: {}", scanID);
 
-    try (ScanReservation reservation = reserveFiles(scanID)) {
+    try (ScanReservation reservation = reserveFilesInstrumented(scanID)) {
       Preconditions.checkState(reservation.getFailures().isEmpty());
       return delegate.continueMultiScan(tinfo, scanID, busyTimeout);
     } catch (ScanServerBusyException be) {
