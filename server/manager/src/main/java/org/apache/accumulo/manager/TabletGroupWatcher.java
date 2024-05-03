@@ -344,12 +344,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 TServerConnection client =
                     manager.tserverSet.getConnection(location.getServerInstance());
                 if (client != null) {
-                  Manager.log.trace("[{}] Requesting TabletServer {} unload {} {}", store.name(),
-                      location.getServerInstance(), tls.extent, goal.howUnload());
-                  client.unloadTablet(manager.managerLock, tls.extent, goal.howUnload(),
-                      manager.getSteadyTime());
-                  unloaded++;
-                  totalUnloaded++;
+                  try {
+                    Manager.log.trace("[{}] Requesting TabletServer {} unload {} {}", store.name(),
+                        location.getServerInstance(), tls.extent, goal.howUnload());
+                    client.unloadTablet(manager.managerLock, tls.extent, goal.howUnload(),
+                        manager.getSteadyTime());
+                    unloaded++;
+                    totalUnloaded++;
+                  } catch (TException tException) {
+                    Manager.log.warn("[{}] Failed to request tablet unload {} {} {}", store.name(),
+                        location.getServerInstance(), tls.extent, goal.howUnload(), tException);
+                  }
                 } else {
                   Manager.log.warn("Could not connect to server {}", location);
                 }
@@ -1036,13 +1041,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
     tLists.assignments.addAll(tLists.assigned);
     for (Assignment a : tLists.assignments) {
-      TServerConnection client = manager.tserverSet.getConnection(a.server);
-      if (client != null) {
-        client.assignTablet(manager.managerLock, a.tablet);
-      } else {
-        Manager.log.warn("Could not connect to server {}", a.server);
+      try {
+        TServerConnection client = manager.tserverSet.getConnection(a.server);
+        if (client != null) {
+          client.assignTablet(manager.managerLock, a.tablet);
+          manager.assignedTablet(a.tablet);
+        } else {
+          Manager.log.warn("Could not connect to server {} for assignment of {}", a.server,
+              a.tablet);
+        }
+      } catch (TException tException) {
+        Manager.log.warn("Could not connect to server {} for assignment of {}", a.server, a.tablet,
+            tException);
       }
-      manager.assignedTablet(a.tablet);
     }
   }
 

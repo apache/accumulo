@@ -382,9 +382,6 @@ public enum Property {
   MANAGER_WALOG_CLOSER_IMPLEMETATION("manager.walog.closer.implementation",
       "org.apache.accumulo.server.manager.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechanism to steal write access to a write-ahead log.", "1.5.0"),
-  @Deprecated
-  MANAGER_FATE_METRICS_ENABLED("manager.fate.metrics.enabled", "true", PropertyType.BOOLEAN,
-      "Enable reporting of FATE metrics in JMX (and logging with Hadoop Metrics2).", "1.9.3"),
   MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL("manager.fate.metrics.min.update.interval", "60s",
       PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval.",
       "1.9.3"),
@@ -924,9 +921,6 @@ public enum Property {
           + " and possibly compacted. Legal values are: compact - which both flushes and compacts the"
           + " metadata; flush - which flushes only (compactions may be triggered if required); or none.",
       "1.10.0"),
-  @Deprecated
-  GC_METRICS_ENABLED("gc.metrics.enabled", "true", PropertyType.BOOLEAN,
-      "Enable detailed gc metrics reporting with hadoop metrics.", "1.10.0"),
 
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,
