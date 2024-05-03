@@ -98,7 +98,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       }
 
       var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW)
-          .putCreateTime(System.currentTimeMillis()).tryMutate();
+          .putCreateTime(System.currentTimeMillis()).putInitReserveColVal(fateId).tryMutate();
 
       switch (status) {
         case ACCEPTED:
@@ -131,7 +131,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       }
 
       var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW).putKey(fateKey)
-          .putCreateTime(System.currentTimeMillis()).tryMutate();
+          .putCreateTime(System.currentTimeMillis()).putInitReserveColVal(fateId).tryMutate();
 
       switch (status) {
         case ACCEPTED:
@@ -148,6 +148,39 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     throw new IllegalStateException("Failed to create transaction with fateId " + fateId
         + " and fateKey " + fateKey + " after " + maxAttempts + " attempts");
+  }
+
+  @Override
+  public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
+    // TODO 4131 should this throw an exception if the id doesn't exist (status = UNKNOWN)?
+    FateMutator.Status status = newMutator(fateId).putReservedTx(fateId).tryMutate();
+    if (status.equals(FateMutator.Status.ACCEPTED)) {
+      return Optional.of(new FateTxStoreImpl(fateId, true));
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  @Override
+  protected boolean isReserved(FateId fateId) {
+    return newMutator(fateId).requireReserved(fateId).tryMutate()
+        .equals(FateMutator.Status.ACCEPTED);
+  }
+
+  // TODO 4131 is public fine for this? Public for tests
+  @Override
+  public List<FateId> getReservedTxns() {
+    try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setRange(new Range());
+      scanner.fetchColumn(TxColumnFamily.RESERVED_COLUMN.getColumnFamily(),
+          TxColumnFamily.RESERVED_COLUMN.getColumnQualifier());
+      return scanner.stream()
+          .filter(e -> e.getValue().toString().equals(FateMutatorImpl.IS_RESERVED))
+          .map(e -> FateId.from(fateInstanceType, e.getKey().getRow().toString()))
+          .collect(Collectors.toList());
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException(tableName + " not found!", e);
+    }
   }
 
   @Override
@@ -234,13 +267,8 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected FateTxStore<T> newFateTxStore(FateId fateId, boolean isReserved) {
-    return new FateTxStoreImpl(fateId, isReserved);
-  }
-
-  @Override
-  protected FateInstanceType getInstanceType() {
-    return fateInstanceType;
+  protected FateTxStore<T> newUnreservedFateTxStore(FateId fateId) {
+    return new FateTxStoreImpl(fateId, false);
   }
 
   static Range getRow(FateId fateId) {
@@ -269,9 +297,16 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   private class FateTxStoreImpl extends AbstractFateTxStoreImpl<T> {
+    private boolean isReserved;
 
     private FateTxStoreImpl(FateId fateId, boolean isReserved) {
-      super(fateId, isReserved);
+      super(fateId);
+      this.isReserved = isReserved;
+    }
+
+    @Override
+    protected boolean isReserved() {
+      return isReserved;
     }
 
     @Override
@@ -401,6 +436,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       var mutator = newMutator(fateId);
       mutator.requireStatus(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED);
       mutator.delete().mutate();
+      this.deleted = true;
     }
 
     private Optional<Integer> findTop() {
@@ -410,6 +446,17 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         scanner.fetchColumnFamily(RepoColumnFamily.NAME);
         return scanner.stream().map(e -> restoreRepo(e.getKey().getColumnQualifier())).findFirst();
       });
+    }
+
+    @Override
+    protected void unreserve() {
+      if (!this.deleted) {
+        FateMutator.Status status = newMutator(fateId).putUnreserveTx(fateId).tryMutate();
+        if (!status.equals(FateMutator.Status.ACCEPTED)) {
+          throw new IllegalStateException("Failed to unreserve " + fateId);
+        }
+      }
+      this.isReserved = false;
     }
   }
 

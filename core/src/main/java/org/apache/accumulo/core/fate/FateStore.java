@@ -111,7 +111,8 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    * Attempt to reserve the fate transaction.
    *
    * @param fateId The FateId
-   * @return true if reserved by this call, false if already reserved
+   * @return An Optional containing the {@link FateTxStore} if the transaction was successfully
+   *         reserved, or an empty Optional if the transaction was not able to be reserved.
    */
   Optional<FateTxStore<T>> tryReserve(FateId fateId);
 

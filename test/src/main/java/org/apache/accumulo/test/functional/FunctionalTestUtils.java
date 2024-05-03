@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
+import static org.apache.accumulo.test.fate.meta.MetaFateIT.createTestLockID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -231,10 +232,10 @@ public class FunctionalTestUtils {
       AdminUtil<String> admin = new AdminUtil<>(false);
       ServerContext context = cluster.getServerContext();
       ZooReaderWriter zk = context.getZooReaderWriter();
-      MetaFateStore<String> zs =
-          new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk);
+      MetaFateStore<String> mfs =
+          new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk, createTestLockID());
       var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
-      return admin.getStatus(zs, zk, lockPath, null, null, null);
+      return admin.getStatus(mfs, zk, lockPath, null, null, null);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

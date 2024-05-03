@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -71,7 +72,9 @@ public class FateMetrics implements MetricsProducer {
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
     try {
-      this.fateStore = new MetaFateStore<>(fateRootPath, context.getZooReaderWriter());
+      // TODO 4131 dummy lock for now
+      this.fateStore = new MetaFateStore<>(fateRootPath, context.getZooReaderWriter(),
+          new ZooUtil.LockID("path", "node", 1234));
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);

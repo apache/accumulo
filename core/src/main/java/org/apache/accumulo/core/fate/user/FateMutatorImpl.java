@@ -49,6 +49,10 @@ import org.apache.hadoop.io.Text;
 
 public class FateMutatorImpl<T> implements FateMutator<T> {
 
+  // TODO 4131 these can be changed/simplified to take up less space/memory in the table
+  protected static final String IS_RESERVED = "isreserved";
+  protected static final String NOT_RESERVED = "notreserved";
+
   private final ClientContext context;
   private final String tableName;
   private final FateId fateId;
@@ -76,6 +80,44 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   @Override
   public FateMutator<T> putCreateTime(long ctime) {
     TxColumnFamily.CREATE_TIME_COLUMN.put(mutation, new Value(Long.toString(ctime)));
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> putReservedTx(FateId fateId) {
+    // Require that the column value is NOT_RESERVED (the FateId is not reserved)
+    Condition condition = new Condition(TxColumnFamily.RESERVED_COLUMN.getColumnFamily(),
+        TxColumnFamily.RESERVED_COLUMN.getColumnQualifier()).setValue(NOT_RESERVED);
+    mutation.addCondition(condition);
+    TxColumnFamily.RESERVED_COLUMN.put(mutation, new Value(IS_RESERVED));
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> putUnreserveTx(FateId fateId) {
+    // Require that the column value is IS_RESERVED (the FateId is reserved)
+    Condition condition = new Condition(TxColumnFamily.RESERVED_COLUMN.getColumnFamily(),
+        TxColumnFamily.RESERVED_COLUMN.getColumnQualifier()).setValue(IS_RESERVED);
+    mutation.addCondition(condition);
+    TxColumnFamily.RESERVED_COLUMN.put(mutation, new Value(NOT_RESERVED));
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> putInitReserveColVal(FateId fateId) {
+    // Require that the column does not have a set value yet
+    Condition condition = new Condition(TxColumnFamily.RESERVED_COLUMN.getColumnFamily(),
+        TxColumnFamily.RESERVED_COLUMN.getColumnQualifier());
+    mutation.addCondition(condition);
+    TxColumnFamily.RESERVED_COLUMN.put(mutation, new Value(NOT_RESERVED));
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> requireReserved(FateId fateId) {
+    Condition condition = new Condition(TxColumnFamily.RESERVED_COLUMN.getColumnFamily(),
+        TxColumnFamily.RESERVED_COLUMN.getColumnQualifier()).setValue(IS_RESERVED);
+    mutation.addCondition(condition);
     return this;
   }
 

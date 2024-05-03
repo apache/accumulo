@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ConfigCheckUtil;
 import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
@@ -307,8 +308,10 @@ public class UpgradeCoordinator {
       justification = "Want to immediately stop all manager threads on upgrade error")
   private void abortIfFateTransactions(ServerContext context) {
     try {
-      final ReadOnlyFateStore<UpgradeCoordinator> fate = new MetaFateStore<>(
-          context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter());
+      // TODO 4131 dummy lock for now
+      final ReadOnlyFateStore<UpgradeCoordinator> fate =
+          new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
+              context.getZooReaderWriter(), new ZooUtil.LockID("path", "node", 1234));
       try (var idStream = fate.list()) {
         if (idStream.findFirst().isPresent()) {
           throw new AccumuloException("Aborting upgrade because there are"

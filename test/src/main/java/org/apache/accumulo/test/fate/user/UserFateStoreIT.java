@@ -268,7 +268,7 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
 
   // Create the fate table with the exact configuration as the real Fate user instance table
   // including table properties and TabletAvailability
-  protected static void createFateTable(ClientContext client, String table) throws Exception {
+  public static void createFateTable(ClientContext client, String table) throws Exception {
     final var fateTableProps =
         client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
 

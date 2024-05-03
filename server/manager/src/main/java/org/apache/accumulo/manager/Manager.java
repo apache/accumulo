@@ -1083,8 +1083,9 @@ public class Manager extends AbstractServer
     }
 
     try {
-      var metaInstance = initializeFateInstance(context,
-          new MetaFateStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
+      var metaInstance =
+          initializeFateInstance(context, new MetaFateStore<>(getZooKeeperRoot() + Constants.ZFATE,
+              context.getZooReaderWriter(), managerLock.getLockID()));
       var userInstance = initializeFateInstance(context,
           new UserFateStore<>(context, AccumuloTable.FATE.tableName()));
 

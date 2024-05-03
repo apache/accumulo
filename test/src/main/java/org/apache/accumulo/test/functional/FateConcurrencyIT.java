@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.apache.accumulo.test.fate.meta.MetaFateIT.createTestLockID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -262,13 +263,13 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
         InstanceId instanceId = context.getInstanceID();
         ZooReaderWriter zk = context.getZooReader().asWriter(secret);
-        MetaFateStore<String> zs =
-            new MetaFateStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
+        MetaFateStore<String> mfs = new MetaFateStore<>(
+            ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk, createTestLockID());
         var lockPath =
             ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
         UserFateStore<String> ufs = new UserFateStore<>(context);
         Map<FateInstanceType,ReadOnlyFateStore<String>> fateStores =
-            Map.of(FateInstanceType.META, zs, FateInstanceType.USER, ufs);
+            Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
 
         withLocks = admin.getStatus(fateStores, zk, lockPath, null, null, null);
 
@@ -356,11 +357,11 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       InstanceId instanceId = context.getInstanceID();
       ZooReaderWriter zk = context.getZooReader().asWriter(secret);
-      MetaFateStore<String> zs =
-          new MetaFateStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
+      MetaFateStore<String> mfs = new MetaFateStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE,
+          zk, createTestLockID());
       var lockPath =
           ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
-      AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk, lockPath, null, null, null);
+      AdminUtil.FateStatus fateStatus = admin.getStatus(mfs, zk, lockPath, null, null, null);
 
       log.trace("current fates: {}", fateStatus.getTransactions().size());
 

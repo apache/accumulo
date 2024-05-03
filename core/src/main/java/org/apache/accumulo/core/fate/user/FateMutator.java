@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.fate.user;
 
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
@@ -30,6 +31,14 @@ public interface FateMutator<T> {
   FateMutator<T> putKey(FateKey fateKey);
 
   FateMutator<T> putCreateTime(long ctime);
+
+  FateMutator<T> putReservedTx(FateId fateId);
+
+  FateMutator<T> putUnreserveTx(FateId fateId);
+
+  FateMutator<T> putInitReserveColVal(FateId fateId);
+
+  FateMutator<T> requireReserved(FateId fateId);
 
   FateMutator<T> putName(byte[] data);
 
