@@ -18,15 +18,8 @@
  */
 package org.apache.accumulo.tserver;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.cache.BlockCache;
-import org.apache.accumulo.core.util.threads.ThreadPools;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -37,55 +30,28 @@ public class BlockCacheMetrics implements MetricsProducer {
   BlockCache dataCache;
   BlockCache summaryCache;
 
-  AtomicLong indexHitCount = new AtomicLong(0);
-  AtomicLong indexRequestCount = new AtomicLong(0);
-
-  AtomicLong dataHitCount = new AtomicLong(0);
-  AtomicLong dataRequestCount = new AtomicLong(0);
-
-  AtomicLong summaryHitCount = new AtomicLong(0);
-  AtomicLong summaryRequestCount = new AtomicLong(0);
-
   public BlockCacheMetrics(BlockCache indexCache, BlockCache dataCache, BlockCache summaryCache) {
     this.indexCache = indexCache;
     this.dataCache = dataCache;
     this.summaryCache = summaryCache;
   }
 
-  private void update() {
-    indexHitCount.set(indexCache.getStats().hitCount());
-    indexRequestCount.set(indexCache.getStats().requestCount());
-
-    dataHitCount.set(dataCache.getStats().hitCount());
-    dataRequestCount.set(dataCache.getStats().requestCount());
-
-    summaryHitCount.set(summaryCache.getStats().hitCount());
-    summaryRequestCount.set(summaryCache.getStats().requestCount());
-  }
-
-  /**
-   * Register metrics for the data, index and summary block caches.
-   */
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder(METRICS_BLOCKCACHE_INDEX_HITCOUNT, indexHitCount::get)
+    Gauge.builder("indexCacheHitCount", indexCache, cache -> cache.getStats().hitCount())
         .description("Index block cache hit count").register(registry);
-    Gauge.builder(METRICS_BLOCKCACHE_INDEX_REQUESTCOUNT, indexRequestCount::get)
+    Gauge.builder("indexCacheRequestCount", indexCache, cache -> cache.getStats().requestCount())
         .description("Index block cache request count").register(registry);
 
-    Gauge.builder(METRICS_BLOCKCACHE_DATA_HITCOUNT, dataHitCount::get)
+    Gauge.builder("dataCacheHitCount", dataCache, cache -> cache.getStats().hitCount())
         .description("Data block cache hit count").register(registry);
-    Gauge.builder(METRICS_BLOCKCACHE_DATA_REQUESTCOUNT, dataRequestCount::get)
+    Gauge.builder("dataCacheRequestCount", dataCache, cache -> cache.getStats().requestCount())
         .description("Data block cache request count").register(registry);
 
-    Gauge.builder(METRICS_BLOCKCACHE_SUMMARY_HITCOUNT, summaryHitCount::get)
+    Gauge.builder("summaryCacheHitCount", summaryCache, cache -> cache.getStats().hitCount())
         .description("Summary block cache hit count").register(registry);
-    Gauge.builder(METRICS_BLOCKCACHE_SUMMARY_REQUESTCOUNT, summaryRequestCount::get)
+    Gauge
+        .builder("summaryCacheRequestCount", summaryCache, cache -> cache.getStats().requestCount())
         .description("Summary block cache request count").register(registry);
-
-    ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
-    ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(this::update, 0, 5, TimeUnit.SECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 }
