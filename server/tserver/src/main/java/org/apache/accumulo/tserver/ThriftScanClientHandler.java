@@ -284,7 +284,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       server.getSessionManager().removeSession(scanID);
       TabletBase tablet = scanSession.getTabletResolver().getTablet(scanSession.extent);
       if (busyTimeout > 0) {
-        server.getScanMetrics().incrementScanBusyTimeout(1.0D);
+        server.getScanMetrics().incrementBusy(1.0D);
         throw new ScanServerBusyException();
       } else if (tablet == null || tablet.isClosed()) {
         throw new NotServingTabletException(scanSession.extent.toThrift());
@@ -495,7 +495,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     } catch (CancellationException ce) {
       server.getSessionManager().removeSession(scanID);
       if (busyTimeout > 0) {
-        server.getScanMetrics().incrementScanBusyTimeout(1.0D);
+        server.getScanMetrics().incrementBusy(1.0D);
         throw new ScanServerBusyException();
       } else {
         log.warn("Failed to get multiscan result", ce);

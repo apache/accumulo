@@ -972,13 +972,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
     tLists.assignments.addAll(tLists.assigned);
     for (Assignment a : tLists.assignments) {
-      TServerConnection client = manager.tserverSet.getConnection(a.server);
-      if (client != null) {
-        client.assignTablet(manager.managerLock, a.tablet);
-      } else {
-        Manager.log.warn("Could not connect to server {}", a.server);
+      try {
+        TServerConnection client = manager.tserverSet.getConnection(a.server);
+        if (client != null) {
+          client.assignTablet(manager.managerLock, a.tablet);
+          manager.assignedTablet(a.tablet);
+        } else {
+          Manager.log.warn("Could not connect to server {} for assignment of {}", a.server,
+              a.tablet);
+        }
+      } catch (TException tException) {
+        Manager.log.warn("Could not connect to server {} for assignment of {}", a.server, a.tablet,
+            tException);
       }
-      manager.assignedTablet(a.tablet);
     }
 
     replaceVolumes(tLists.volumeReplacements);
