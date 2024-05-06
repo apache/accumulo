@@ -567,13 +567,14 @@ public class ThriftScanner {
           delay = actions.getDelay();
           scanState.busyTimeout = actions.getBusyTimeout();
           log.trace(
-              "For tablet {} scan server selector chose scan_server:{} delay:{} busyTimeout:{}",
-              loc.getExtent(), scanServer, delay, scanState.busyTimeout);
+              "For tablet {} using hints {} scan server selector chose scan_server:{} delay:{} busyTimeout:{}",
+              loc.getExtent(), scanState.executionHints, scanServer, delay, scanState.busyTimeout);
         } else {
           newLoc = loc;
           delay = actions.getDelay();
           scanState.busyTimeout = Duration.ZERO;
-          log.trace("For tablet {} scan server selector chose tablet_server", loc.getExtent());
+          log.trace("For tablet {} using hints {} scan server selector chose tablet_server",
+              loc.getExtent(), scanState.executionHints);
         }
 
         if (!delay.isZero()) {
