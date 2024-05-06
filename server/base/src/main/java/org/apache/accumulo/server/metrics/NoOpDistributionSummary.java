@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
@@ -45,9 +48,11 @@ import io.micrometer.core.instrument.distribution.HistogramSnapshot;
  */
 public class NoOpDistributionSummary implements DistributionSummary {
 
+  private static final Logger LOG = LoggerFactory.getLogger(NoOpDistributionSummary.class);
+
   @Override
   public void record(double v) {
-    // empty
+    LOG.debug("record ignored - distribution summary will not be available.");
   }
 
   @Override
