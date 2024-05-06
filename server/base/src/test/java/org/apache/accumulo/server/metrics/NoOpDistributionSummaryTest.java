@@ -18,30 +18,18 @@
  */
 package org.apache.accumulo.server.metrics;
 
-import org.apache.accumulo.core.metrics.MetricsProducer;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-import io.micrometer.core.instrument.DistributionSummary;
-import io.micrometer.core.instrument.MeterRegistry;
+import org.junit.jupiter.api.Test;
 
-public class ThriftMetrics implements MetricsProducer {
-
-  private DistributionSummary idle = new NoOpDistributionSummary();
-  private DistributionSummary execute = new NoOpDistributionSummary();
-
-  public ThriftMetrics() {}
-
-  public void addIdle(long time) {
-    idle.record(time);
+class NoOpDistributionSummaryTest {
+  @Test
+  public void testNoOp() {
+    NoOpDistributionSummary noop = new NoOpDistributionSummary();
+    assertDoesNotThrow(() -> noop.getId());
+    assertDoesNotThrow(() -> noop.takeSnapshot());
+    assertDoesNotThrow(() -> noop.max());
+    assertDoesNotThrow(() -> noop.count());
+    assertDoesNotThrow(() -> noop.totalAmount());
   }
-
-  public void addExecute(long time) {
-    execute.record(time);
-  }
-
-  @Override
-  public void registerMetrics(MeterRegistry registry) {
-    idle = DistributionSummary.builder(METRICS_THRIFT_IDLE).baseUnit("ms").register(registry);
-    execute = DistributionSummary.builder(METRICS_THRIFT_EXECUTE).baseUnit("ms").register(registry);
-  }
-
 }
