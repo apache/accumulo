@@ -176,6 +176,36 @@ public class FindCompactionTmpFiles {
     return stats;
   }
 
+  public static void execute(ServerContext context, final String tablesToSearch,
+      final boolean delete) throws Exception {
+    LOG.info("Looking for compaction tmp files over tables: {}, deleting: {}", tablesToSearch,
+        delete);
+
+    String[] tables = tablesToSearch.split(",");
+    for (String table : tables) {
+
+      table = table.trim();
+      String tableId = context.tableOperations().tableIdMap().get(table);
+      if (tableId == null || tableId.isEmpty()) {
+        LOG.warn("TableId for table: {} does not exist, maybe the table was deleted?", table);
+        continue;
+      }
+
+      final Set<Path> matches = findTempFiles(context, tableId);
+      LOG.info("Found the following compaction tmp files for table {}:", table);
+      matches.forEach(p -> LOG.info("{}", p));
+
+      if (delete) {
+        LOG.info("Deleting compaction tmp files for table {}...", table);
+        DeleteStats stats = deleteTempFiles(context, matches);
+        LOG.info(
+            "Deletion of compaction tmp files for table {} complete. Success:{}, Failure:{}, Error:{}",
+            table, stats.success, stats.failure, stats.error);
+      }
+
+    }
+  }
+
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(FindCompactionTmpFiles.class.getName(), args);
@@ -186,30 +216,7 @@ public class FindCompactionTmpFiles {
     try (Scope scope = span.makeCurrent()) {
 
       ServerContext context = opts.getServerContext();
-      String[] tables = opts.tables.split(",");
-
-      for (String table : tables) {
-
-        table = table.trim();
-        String tableId = context.tableOperations().tableIdMap().get(table);
-        if (tableId == null || tableId.isEmpty()) {
-          LOG.warn("TableId for table: {} does not exist, maybe the table was deleted?", table);
-          continue;
-        }
-
-        final Set<Path> matches = findTempFiles(context, tableId);
-        LOG.info("Found the following compaction tmp files for table {}:", table);
-        matches.forEach(p -> LOG.info("{}", p));
-
-        if (opts.delete) {
-          LOG.info("Deleting compaction tmp files for table {}...", table);
-          DeleteStats stats = deleteTempFiles(context, matches);
-          LOG.info(
-              "Deletion of compaction tmp files for table {} complete. Success:{}, Failure:{}, Error:{}",
-              table, stats.success, stats.failure, stats.error);
-        }
-
-      }
+      execute(context, opts.tables, opts.delete);
 
     } finally {
       span.end();

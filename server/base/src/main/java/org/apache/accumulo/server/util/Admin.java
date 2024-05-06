@@ -398,11 +398,7 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("fate")) {
         executeFateOpsCommand(context, fateOpsCommand);
       } else if (cl.getParsedCommand().equals("compactionTempFiles")) {
-        if (filesCommand.delete) {
-          FindCompactionTmpFiles.main(new String[] {filesCommand.tables, "--delete"});
-        } else {
-          FindCompactionTmpFiles.main(new String[] {filesCommand.tables});
-        }
+        FindCompactionTmpFiles.execute(context, filesCommand.tables, filesCommand.delete);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
