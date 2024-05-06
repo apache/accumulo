@@ -18,10 +18,12 @@
  */
 package org.apache.accumulo.tserver;
 
+import java.util.function.ToDoubleFunction;
+
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 
-import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class BlockCacheMetrics implements MetricsProducer {
@@ -38,20 +40,22 @@ public class BlockCacheMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder("indexCacheHitCount", indexCache, cache -> cache.getStats().hitCount())
+    ToDoubleFunction<BlockCache> getHitCount = cache -> cache.getStats().hitCount();
+    ToDoubleFunction<BlockCache> getRequestCount = cache -> cache.getStats().requestCount();
+
+    FunctionCounter.builder(METRICS_BLOCKCACHE_INDEX_HITCOUNT, indexCache, getHitCount)
         .description("Index block cache hit count").register(registry);
-    Gauge.builder("indexCacheRequestCount", indexCache, cache -> cache.getStats().requestCount())
+    FunctionCounter.builder(METRICS_BLOCKCACHE_INDEX_REQUESTCOUNT, indexCache, getRequestCount)
         .description("Index block cache request count").register(registry);
 
-    Gauge.builder("dataCacheHitCount", dataCache, cache -> cache.getStats().hitCount())
+    FunctionCounter.builder(METRICS_BLOCKCACHE_DATA_HITCOUNT, dataCache, getHitCount)
         .description("Data block cache hit count").register(registry);
-    Gauge.builder("dataCacheRequestCount", dataCache, cache -> cache.getStats().requestCount())
+    FunctionCounter.builder(METRICS_BLOCKCACHE_DATA_REQUESTCOUNT, dataCache, getRequestCount)
         .description("Data block cache request count").register(registry);
 
-    Gauge.builder("summaryCacheHitCount", summaryCache, cache -> cache.getStats().hitCount())
+    FunctionCounter.builder(METRICS_BLOCKCACHE_SUMMARY_HITCOUNT, summaryCache, getHitCount)
         .description("Summary block cache hit count").register(registry);
-    Gauge
-        .builder("summaryCacheRequestCount", summaryCache, cache -> cache.getStats().requestCount())
+    FunctionCounter.builder(METRICS_BLOCKCACHE_SUMMARY_REQUESTCOUNT, summaryCache, getRequestCount)
         .description("Summary block cache request count").register(registry);
   }
 }
