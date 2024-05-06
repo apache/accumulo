@@ -26,6 +26,22 @@ import io.micrometer.core.instrument.distribution.HistogramSnapshot;
 /**
  * Provides a default DistributionSummary that does not do anything. This can be used to prevent NPE
  * if metrics have not been initialized when a DistributionSummary is expected.
+ * <p>
+ * Normally DistributionSummaries are created using a builder that takes a registry.
+ *
+ * <pre>
+ *   DistributionSummary distSum;
+ *   ...
+ *   public void registerMetrics(MeterRegistry registry) {
+ *      ...
+ *      distSum = DistributionSummary.builder("metric name") .description("...").register(registry);
+ *      ...
+ *   }
+ * </pre>
+ *
+ * Until the registration is called, the instance variable is null. If code then tries to update the
+ * metric, a NPE is thrown. Using this class to provide a default value prevents this from occurring
+ * and on registration, it is replaced with a valid instance.
  */
 public class NoOpDistributionSummary implements DistributionSummary {
 
