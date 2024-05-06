@@ -36,7 +36,7 @@ public class TabletServerUpdateMetrics implements MetricsProducer {
   private Timer commitPrepStat;
   private Timer walogWriteTimeStat;
   private Timer commitTimeStat;
-  private DistributionSummary mutationArraySizeStat = new NoOpDistributionSummary();;
+  private DistributionSummary mutationArraySizeStat = new NoOpDistributionSummary();
 
   public void addPermissionErrors(long value) {
     permissionErrorsCounter.increment(value);

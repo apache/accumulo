@@ -21,6 +21,8 @@ package org.apache.accumulo.server.metrics;
 import static org.apache.accumulo.core.metrics.MetricsProducer.METRICS_THRIFT_EXECUTE;
 import static org.apache.accumulo.core.metrics.MetricsProducer.METRICS_THRIFT_IDLE;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -51,7 +53,8 @@ class ThriftMetricsTest {
 
     registry.forEachMeter(m -> {
       LOG.trace("meter: {}", m.getId());
-      assertTrue(m instanceof DistributionSummary);
+      assertInstanceOf(DistributionSummary.class, m);
+      assertFalse(m instanceof NoOpDistributionSummary);
     });
     assertTrue(registry.get(METRICS_THRIFT_IDLE).summary().count() > 0);
     assertTrue(registry.get(METRICS_THRIFT_EXECUTE).summary().count() > 0);
