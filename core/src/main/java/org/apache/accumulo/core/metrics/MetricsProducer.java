@@ -667,6 +667,15 @@ public interface MetricsProducer {
   String METRICS_UPDATE_WALOG_WRITE = METRICS_UPDATE_PREFIX + "walog.write";
   String METRICS_UPDATE_MUTATION_ARRAY_SIZE = METRICS_UPDATE_PREFIX + "mutation.arrays.size";
 
+  String METRICS_BLOCKCACHE_PREFIX = "accumulo.blockcache.";
+  String METRICS_BLOCKCACHE_INDEX_HITCOUNT = METRICS_BLOCKCACHE_PREFIX + "index.hitcount";
+  String METRICS_BLOCKCACHE_INDEX_REQUESTCOUNT = METRICS_BLOCKCACHE_PREFIX + "index.requestcount";
+  String METRICS_BLOCKCACHE_DATA_HITCOUNT = METRICS_BLOCKCACHE_PREFIX + "data.hitcount";
+  String METRICS_BLOCKCACHE_DATA_REQUESTCOUNT = METRICS_BLOCKCACHE_PREFIX + "data.requestcount";
+  String METRICS_BLOCKCACHE_SUMMARY_HITCOUNT = METRICS_BLOCKCACHE_PREFIX + "summary.hitcount";
+  String METRICS_BLOCKCACHE_SUMMARY_REQUESTCOUNT =
+      METRICS_BLOCKCACHE_PREFIX + "summary.requestcount";
+
   /**
    * Build Micrometer Meter objects and register them with the registry
    */

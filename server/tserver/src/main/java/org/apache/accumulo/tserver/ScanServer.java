@@ -203,6 +203,7 @@ public class ScanServer extends AbstractServer
   private ServiceLock scanServerLock;
   protected TabletServerScanMetrics scanMetrics;
   private ScanServerMetrics scanServerMetrics;
+  private BlockCacheMetrics blockCacheMetrics;
 
   private ZooCache managerLockCache;
 
@@ -380,8 +381,10 @@ public class ScanServer extends AbstractServer
 
     scanMetrics = new TabletServerScanMetrics();
     scanServerMetrics = new ScanServerMetrics(tabletMetadataCache);
+    blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),
+        resourceManager.getDataCache(), resourceManager.getSummaryCache());
 
-    metricsInfo.addMetricsProducers(scanMetrics, scanServerMetrics);
+    metricsInfo.addMetricsProducers(scanMetrics, scanServerMetrics, blockCacheMetrics);
     metricsInfo.init();
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 
