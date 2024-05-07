@@ -183,6 +183,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   TabletServerMinCMetrics mincMetrics;
   CompactionExecutorsMetrics ceMetrics;
   PausedCompactionMetrics pausedMetrics;
+  BlockCacheMetrics blockCacheMetrics;
 
   @Override
   public TabletServerScanMetrics getScanMetrics() {
@@ -704,7 +705,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       throw new RuntimeException("Failed to start the tablet client service", e1);
     }
 
-    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    MetricsInfo metricsInfo = context.getMetricsInfo();
     metricsInfo.addServiceTags(getApplicationName(), clientAddress);
 
     metrics = new TabletServerMetrics(this);
@@ -713,9 +714,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     mincMetrics = new TabletServerMinCMetrics();
     ceMetrics = new CompactionExecutorsMetrics();
     pausedMetrics = new PausedCompactionMetrics();
+    blockCacheMetrics = new BlockCacheMetrics(this.resourceManager.getIndexCache(),
+        this.resourceManager.getDataCache(), this.resourceManager.getSummaryCache());
 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
-        ceMetrics, pausedMetrics);
+        ceMetrics, pausedMetrics, blockCacheMetrics);
     metricsInfo.init();
 
     this.compactionManager = new CompactionManager(() -> Iterators
