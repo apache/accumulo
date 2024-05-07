@@ -668,8 +668,8 @@ public interface MetricsProducer {
   String METRICS_UPDATE_MUTATION_ARRAY_SIZE = METRICS_UPDATE_PREFIX + "mutation.arrays.size";
 
   // balancer
-  String METRICS_MANAGER_BALANCER_MIGRATING = "manager.balancer.balancing.total";
-  String METRICS_MANAGER_BALANCER_NEED_MIGRATION = "manager.balancer.need.balancing.total";
+  String METRICS_MANAGER_BALANCER_MIGRATING = "manager.balancer.migrations.in_progress";
+  String METRICS_MANAGER_BALANCER_NEED_MIGRATION = "manager.balancer.migrations.needed";
 
   /**
    * Build Micrometer Meter objects and register them with the registry
