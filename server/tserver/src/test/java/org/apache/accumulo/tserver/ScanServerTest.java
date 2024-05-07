@@ -134,8 +134,8 @@ public class ScanServerTest {
     TabletResolver resolver = createMock(TabletResolver.class);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    expect(reservation.getFailures()).andReturn(Map.of()).times(2);
     expect(reservation.newTablet(ss, sextent)).andReturn(tablet);
+    expect(reservation.getFailures()).andReturn(Map.of()).anyTimes();
     reservation.close();
     reservation.close();
     expect(handler.startScan(tinfo, tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false,
@@ -158,7 +158,7 @@ public class ScanServerTest {
     assertEquals(15, is.getScanID());
     ss.continueScan(tinfo, is.getScanID(), 0L);
     ss.closeScan(tinfo, is.getScanID());
-    verify(handler);
+    verify(reservation, handler);
   }
 
   @Test
@@ -180,15 +180,12 @@ public class ScanServerTest {
     Map<String,String> execHints = new HashMap<>();
     ScanReservation reservation = createMock(ScanReservation.class);
 
-    expect(handler.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false,
-        false, 10, tsc, 30L, classLoaderContext, execHints, 0L))
-        .andReturn(new InitialScan(15, null));
+    expect(extent.isMeta()).andReturn(false).anyTimes();
+    expect(extent.toThrift()).andReturn(textent).anyTimes();
     expect(reservation.getFailures()).andReturn(Map.of(textent, ranges));
     reservation.close();
-    expect(handler.continueScan(tinfo, 15, 0L)).andReturn(new ScanResult());
-    handler.closeScan(tinfo, 15);
 
-    replay(handler, reservation);
+    replay(extent, reservation);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
     ss.extent = extent;
@@ -199,6 +196,8 @@ public class ScanServerTest {
       ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
           tsc, 30L, classLoaderContext, execHints, 0L);
     });
+
+    verify(extent, reservation);
   }
 
   @Test
@@ -232,6 +231,7 @@ public class ScanServerTest {
     };
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
+    expect(extent.isMeta()).andReturn(false).anyTimes();
     expect(reservation.newTablet(ss, extent)).andReturn(tablet);
     expect(reservation.getTabletMetadataExtents()).andReturn(Set.of(extent));
     expect(reservation.getFailures()).andReturn(Map.of());
@@ -242,7 +242,7 @@ public class ScanServerTest {
     expect(handler.continueMultiScan(tinfo, 15, 0L)).andReturn(new MultiScanResult());
     handler.closeMultiScan(tinfo, 15);
 
-    replay(reservation, handler);
+    replay(extent, reservation, handler);
 
     ss.delegate = handler;
     ss.extent = extent;
@@ -258,7 +258,7 @@ public class ScanServerTest {
     ss.continueMultiScan(tinfo, is.getScanID(), 0L);
     assertEquals(15, is.getScanID());
     ss.closeMultiScan(tinfo, is.getScanID());
-    verify(handler);
+    verify(extent, reservation, handler);
   }
 
   @Test
@@ -293,19 +293,17 @@ public class ScanServerTest {
     };
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    expect(reservation.newTablet(ss, extent)).andReturn(tablet);
+    expect(extent.isMeta()).andReturn(false).anyTimes();
+    expect(reservation.newTablet(ss, extent)).andReturn(tablet).anyTimes();
     expect(reservation.getTabletMetadataExtents()).andReturn(Set.of());
     expect(reservation.getFailures()).andReturn(Map.of(textent, ranges)).anyTimes();
-    reservation.close();
     reservation.close();
     InitialMultiScan ims = new InitialMultiScan(15, null);
     ims.setResult(new MultiScanResult());
     expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, batch, ssio, auths, false, tsc, 30L,
         classLoaderContext, execHints, resolver, 0L)).andReturn(ims);
-    expect(handler.continueMultiScan(tinfo, 15, 0L)).andReturn(new MultiScanResult());
-    handler.closeMultiScan(tinfo, 15);
 
-    replay(reservation, handler);
+    replay(extent, reservation, handler);
 
     ss.delegate = handler;
     ss.extent = extent;
@@ -319,6 +317,8 @@ public class ScanServerTest {
         false, tsc, 30L, classLoaderContext, execHints, 0L);
     assertEquals(15, is.getScanID());
     assertEquals(0, is.getResult().getFailuresSize());
+
+    verify(extent, reservation, handler);
 
   }
 
