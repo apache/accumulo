@@ -522,6 +522,10 @@ public class ScanServer extends AbstractServer
         extents);
 
     Map<KeyExtent,TabletMetadata> tabletsMetadata = getTabletMetadata(extents);
+    if (!(tabletsMetadata instanceof HashMap)) {
+      // the map returned by getTabletMetadata may not be mutable
+      tabletsMetadata = new HashMap<>(tabletsMetadata);
+    }
 
     for (KeyExtent extent : extents) {
       var tabletMetadata = tabletsMetadata.get(extent);
@@ -534,10 +538,6 @@ public class ScanServer extends AbstractServer
         LOG.info("RFFS {} extent unable to load {} as AssignmentHandler returned false",
             myReservationId, extent);
         failures.add(extent);
-        if (!(tabletsMetadata instanceof HashMap)) {
-          // the map returned by getTabletMetadata may not be mutable
-          tabletsMetadata = new HashMap<>(tabletsMetadata);
-        }
         tabletsMetadata.remove(extent);
       }
     }
@@ -622,14 +622,9 @@ public class ScanServer extends AbstractServer
         for (KeyExtent extent : tabletsToCheck) {
           TabletMetadata metadataAfter = tabletsToCheckMetadata.get(extent);
           if (metadataAfter == null) {
-            getContext().getAmple().deleteScanServerFileReferences(refs);
             LOG.info("RFFS {} extent unable to load {} as metadata no longer referencing files",
                 myReservationId, extent);
             failures.add(extent);
-            if (!(tabletsMetadata instanceof HashMap)) {
-              // the map returned by getTabletMetadata may not be mutable
-              tabletsMetadata = new HashMap<>(tabletsMetadata);
-            }
             tabletsMetadata.remove(extent);
           } else {
             // remove files that are still referenced
