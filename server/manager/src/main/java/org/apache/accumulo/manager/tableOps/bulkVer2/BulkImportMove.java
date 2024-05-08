@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_POOL_PREFIX;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -117,7 +119,7 @@ class BulkImportMove extends ManagerRepo {
       oldToNewMap.put(originalPath, newPath);
     }
     try {
-      fs.bulkRename(oldToNewMap, workerCount, "bulkDir move", fmtTid);
+      fs.bulkRename(oldToNewMap, workerCount, METRICS_POOL_PREFIX + "bulk.dir.move", fmtTid);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,

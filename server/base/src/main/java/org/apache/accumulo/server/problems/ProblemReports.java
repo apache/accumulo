@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.problems;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_POOL_PREFIX;
 
 import java.util.Collections;
 import java.util.EnumMap;
@@ -68,7 +69,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
    * is reporting lots of problems, but problem reports can not be processed
    */
   private final ExecutorService reportExecutor = ThreadPools.getServerThreadPools()
-      .getPoolBuilder("acu-problem-reporter").numCoreThreads(0).numMaxThreads(1)
+      .getPoolBuilder(METRICS_POOL_PREFIX + "problem.reporter").numCoreThreads(0).numMaxThreads(1)
       .withTimeOut(60L, SECONDS).withQueue(new LinkedBlockingQueue<>(500)).build();
 
   private final ServerContext context;

@@ -18,6 +18,23 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_COORDINATOR_FINALIZER_NOTIFIER_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_GC_DELETE_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_GENERAL_SERVER_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_GENERAL_SERVER_SIMPLETIMER_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_MANAGER_BULK_IMPORT_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_MANAGER_FATE_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_MANAGER_RENAME_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_MANAGER_STATUS_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_REPLICATION_WORKER_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_ASSIGNMENT_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_COMPACTION_MINOR_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_MIGRATIONS_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_SUMMARY_PARTITION_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_SUMMARY_REMOTE_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_SUMMARY_RETRIEVAL_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_WORKQ_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERV_WAL_SORT_CONCURRENT_POOL;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -99,11 +116,21 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     doWorkToGenerateMetrics();
     cluster.stop();
 
-    Set<String> unexpectedMetrics = Set.of(METRICS_SCAN_YIELDS, METRICS_UPDATE_ERRORS,
-        METRICS_REPLICATION_QUEUE, METRICS_COMPACTOR_MAJC_STUCK, METRICS_SCAN_BUSY_TIMEOUT_COUNTER);
+    Set<String> unexpectedMetrics =
+        Set.of(METRICS_COMPACTOR_MAJC_STUCK, METRICS_SCAN_BUSY_TIMEOUT_COUNTER, METRICS_SCAN_YIELDS,
+            METRICS_UPDATE_ERRORS, METRICS_REPLICATION_QUEUE);
+
     // add sserver as flaky until scan server included in mini tests.
-    Set<String> flakyMetrics = Set.of(METRICS_GC_WAL_ERRORS, METRICS_FATE_TYPE_IN_PROGRESS,
-        METRICS_SCAN_BUSY_TIMEOUT_COUNTER, METRICS_SCAN_RESERVATION_TIMER,
+    Set<String> flakyMetrics = Set.of(METRICS_COORDINATOR_FINALIZER_NOTIFIER_POOL,
+        METRICS_FATE_TYPE_IN_PROGRESS, METRICS_GC_DELETE_POOL, METRICS_GC_WAL_ERRORS,
+        METRICS_GENERAL_SERVER_POOL, METRICS_TSERVER_WORKQ_POOL,
+        METRICS_GENERAL_SERVER_SIMPLETIMER_POOL, METRICS_MANAGER_BULK_IMPORT_POOL,
+        METRICS_MANAGER_FATE_POOL, METRICS_MANAGER_RENAME_POOL, METRICS_MANAGER_STATUS_POOL,
+        METRICS_REPLICATION_WORKER_POOL, METRICS_SCAN_RESERVATION_TIMER,
+        METRICS_TSERVER_ASSIGNMENT_POOL, METRICS_TSERVER_COMPACTION_MINOR_POOL,
+        METRICS_TSERVER_MIGRATIONS_POOL, METRICS_TSERVER_SUMMARY_PARTITION_POOL,
+        METRICS_TSERVER_SUMMARY_REMOTE_POOL, METRICS_TSERVER_SUMMARY_RETRIEVAL_POOL,
+        METRICS_TSERV_WAL_SORT_CONCURRENT_POOL, METRICS_SCAN_BUSY_TIMEOUT_COUNTER,
         METRICS_SCAN_TABLET_METADATA_CACHE);
 
     Map<String,String> expectedMetricNames = this.getMetricFields();

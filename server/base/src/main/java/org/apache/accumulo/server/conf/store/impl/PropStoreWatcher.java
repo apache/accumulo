@@ -20,6 +20,7 @@ package org.apache.accumulo.server.conf.store.impl;
 
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_POOL_PREFIX;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -58,7 +59,8 @@ public class PropStoreWatcher implements Watcher {
   private static final Logger log = LoggerFactory.getLogger(PropStoreWatcher.class);
 
   private static final ExecutorService executorService = ThreadPools.getServerThreadPools()
-      .getPoolBuilder("zoo_change_update").numCoreThreads(2).build();
+      .getPoolBuilder(METRICS_POOL_PREFIX + "prop.store.zoo.change.update").numCoreThreads(2)
+      .build();
   private final ReentrantReadWriteLock listenerLock = new ReentrantReadWriteLock();
   private final ReentrantReadWriteLock.ReadLock listenerReadLock = listenerLock.readLock();
   private final ReentrantReadWriteLock.WriteLock listenerWriteLock = listenerLock.writeLock();

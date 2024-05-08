@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.tableImport;
 
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_POOL_PREFIX;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -108,7 +110,8 @@ class MoveExportedFiles extends ManagerRepo {
       }
     }
     try {
-      fs.bulkRename(oldToNewPaths, workerCount, "importtable rename", fmtTid);
+      fs.bulkRename(oldToNewPaths, workerCount, METRICS_POOL_PREFIX + "import.table.rename",
+          fmtTid);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(), null,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER, ioe.getCause().getMessage());

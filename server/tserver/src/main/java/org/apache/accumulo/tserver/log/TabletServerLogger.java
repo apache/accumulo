@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.util.Collections.singletonList;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_POOL_PREFIX;
 
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
@@ -262,8 +263,8 @@ public class TabletServerLogger {
     if (nextLogMaker != null) {
       return;
     }
-    nextLogMaker = ThreadPools.getServerThreadPools().getPoolBuilder("WALog creator")
-        .numCoreThreads(1).enableThreadPoolMetrics().build();
+    nextLogMaker = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(METRICS_POOL_PREFIX + "tserver.walog.creator").numCoreThreads(1).build();
     nextLogMaker.execute(new Runnable() {
       @Override
       public void run() {

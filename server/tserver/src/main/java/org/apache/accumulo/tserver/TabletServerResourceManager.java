@@ -22,6 +22,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toUnmodifiableMap;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_POOL_PREFIX;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_MINOR_COMPACTOR_POOL;
+import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_TABLET_MIGRATION_POOL;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -185,11 +188,13 @@ public class TabletServerResourceManager {
 
     scanExecQueues.put(sec.name, queue);
 
-    ThreadPoolExecutor es = ThreadPools.getServerThreadPools().getPoolBuilder("scan-" + sec.name)
-        .numCoreThreads(sec.getCurrentMaxThreads()).numMaxThreads(sec.getCurrentMaxThreads())
-        .withTimeOut(0L, MILLISECONDS).withQueue(queue).atPriority(sec.priority)
-        .enableThreadPoolMetrics(enableMetrics).build();
-    modifyThreadPoolSizesAtRuntime(sec::getCurrentMaxThreads, "scan-" + sec.name, es);
+    ThreadPoolExecutor es =
+        ThreadPools.getServerThreadPools().getPoolBuilder(METRICS_POOL_PREFIX + "scan." + sec.name)
+            .numCoreThreads(sec.getCurrentMaxThreads()).numMaxThreads(sec.getCurrentMaxThreads())
+            .withTimeOut(0L, MILLISECONDS).withQueue(queue).atPriority(sec.priority)
+            .enableThreadPoolMetrics(enableMetrics).build();
+    modifyThreadPoolSizesAtRuntime(sec::getCurrentMaxThreads,
+        METRICS_POOL_PREFIX + "scan." + sec.name, es);
     return es;
 
   }
@@ -306,25 +311,25 @@ public class TabletServerResourceManager {
         Property.TSERV_MINC_MAXCONCURRENT, true);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
-        "minor compactor", minorCompactionThreadPool);
+        METRICS_TSERVER_MINOR_COMPACTOR_POOL, minorCompactionThreadPool);
 
-    splitThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("splitter")
-        .numCoreThreads(0).numMaxThreads(1).withTimeOut(1, SECONDS)
-        .enableThreadPoolMetrics(enableMetrics).build();
+    splitThreadPool = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(METRICS_POOL_PREFIX + "tserver.minor.compactor").numCoreThreads(0)
+        .numMaxThreads(1).withTimeOut(1, SECONDS).build();
 
-    defaultSplitThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("md splitter")
-        .numCoreThreads(0).numMaxThreads(1).withTimeOut(60, SECONDS)
-        .enableThreadPoolMetrics(enableMetrics).build();
+    defaultSplitThreadPool = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(METRICS_POOL_PREFIX + "metadata.tablet.default.splitter").numCoreThreads(0)
+        .numMaxThreads(1).withTimeOut(60, SECONDS).build();
 
     defaultMigrationPool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder("metadata tablet migration").numCoreThreads(0).numMaxThreads(1)
-        .withTimeOut(60, SECONDS).enableThreadPoolMetrics(enableMetrics).build();
+        .getPoolBuilder(METRICS_POOL_PREFIX + "metadata.tablet.migration").numCoreThreads(0)
+        .numMaxThreads(1).withTimeOut(60, SECONDS).build();
 
     migrationPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
         Property.TSERV_MIGRATE_MAXCONCURRENT, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_MIGRATE_MAXCONCURRENT),
-        "tablet migration", migrationPool);
+        METRICS_TSERVER_TABLET_MIGRATION_POOL, migrationPool);
 
     // not sure if concurrent assignments can run safely... even if they could there is probably no
     // benefit at startup because
@@ -335,11 +340,11 @@ public class TabletServerResourceManager {
         Property.TSERV_ASSIGNMENT_MAXCONCURRENT, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT),
-        "tablet assignment", assignmentPool);
+        "tserver.tablet.assignment.pool", assignmentPool);
 
     assignMetaDataPool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder("metadata tablet assignment").numCoreThreads(0).numMaxThreads(1)
-        .withTimeOut(60, SECONDS).enableThreadPoolMetrics(enableMetrics).build();
+        .getPoolBuilder(METRICS_POOL_PREFIX + "metadata.tablet.assignment").numCoreThreads(0)
+        .numMaxThreads(1).withTimeOut(60, SECONDS).build();
 
     activeAssignments = new ConcurrentHashMap<>();
 
@@ -347,19 +352,19 @@ public class TabletServerResourceManager {
         Property.TSERV_SUMMARY_RETRIEVAL_THREADS, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_RETRIEVAL_THREADS),
-        "summary file retriever", summaryRetrievalPool);
+        "tserver.summary.file.retriever.pool", summaryRetrievalPool);
 
     summaryRemotePool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
         Property.TSERV_SUMMARY_REMOTE_THREADS, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_REMOTE_THREADS),
-        "summary remote", summaryRemotePool);
+        "tserver.summary.remote.pool", summaryRemotePool);
 
     summaryPartitionPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
         Property.TSERV_SUMMARY_PARTITION_THREADS, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_PARTITION_THREADS),
-        "summary partition", summaryPartitionPool);
+        "tserver.summary.partition.pool", summaryPartitionPool);
 
     boolean isScanServer = (tserver instanceof ScanServer);
 
