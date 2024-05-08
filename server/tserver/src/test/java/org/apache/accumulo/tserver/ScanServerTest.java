@@ -64,6 +64,7 @@ public class ScanServerTest {
     private KeyExtent extent;
     private TabletResolver resolver;
     private ScanReservation reservation;
+    private boolean systemUser;
 
     protected TestScanServer(ScanServerOpts opts, String[] args) {
       super(opts, args);
@@ -110,6 +111,12 @@ public class ScanServerTest {
     ScanReservation reserveFilesInstrumented(long scanId) {
       return reservation;
     }
+
+    @Override
+    protected boolean isSystemUser(TCredentials creds) {
+      return systemUser;
+    }
+
   }
 
   private ThriftScanClientHandler handler;
@@ -151,6 +158,7 @@ public class ScanServerTest {
     ss.resolver = resolver;
     ss.reservation = reservation;
     ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
+    ss.systemUser = false;
 
     TKeyExtent textent = createMock(TKeyExtent.class);
     InitialScan is = ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths,
@@ -191,6 +199,7 @@ public class ScanServerTest {
     ss.extent = extent;
     ss.delegate = handler;
     ss.reservation = reservation;
+    ss.systemUser = false;
 
     assertThrows(NotServingTabletException.class, () -> {
       ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
@@ -249,6 +258,7 @@ public class ScanServerTest {
     ss.resolver = resolver;
     ss.reservation = reservation;
     ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
+    ss.systemUser = false;
 
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
     extents.put(createMock(TKeyExtent.class), ranges);
@@ -310,6 +320,7 @@ public class ScanServerTest {
     ss.resolver = resolver;
     ss.reservation = reservation;
     ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
+    ss.systemUser = false;
 
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
     extents.put(textent, ranges);
@@ -353,12 +364,103 @@ public class ScanServerTest {
     ss.delegate = handler;
     ss.resolver = resolver;
     ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
+    ss.systemUser = false;
 
     assertThrows(TException.class, () -> {
       ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc, 30L,
           classLoaderContext, execHints, 0L);
     });
     verify(handler);
+  }
+
+  @Test
+  public void testScanMetaTablesSystemUser() throws Exception {
+    handler = createMock(ThriftScanClientHandler.class);
+
+    TInfo tinfo = createMock(TInfo.class);
+    TCredentials tcreds = createMock(TCredentials.class);
+    KeyExtent sextent = createMock(KeyExtent.class);
+    ScanReservation reservation = createMock(ScanReservation.class);
+    SnapshotTablet tablet = createMock(SnapshotTablet.class);
+    TRange trange = createMock(TRange.class);
+    List<TColumn> tcols = new ArrayList<>();
+    List<IterInfo> titer = new ArrayList<>();
+    Map<String,Map<String,String>> ssio = new HashMap<>();
+    List<ByteBuffer> auths = new ArrayList<>();
+    TSamplerConfiguration tsc = createMock(TSamplerConfiguration.class);
+    String classLoaderContext = new String();
+    Map<String,String> execHints = new HashMap<>();
+    TabletResolver resolver = createMock(TabletResolver.class);
+
+    TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
+    expect(sextent.isMeta()).andReturn(true).anyTimes();
+    expect(reservation.newTablet(ss, sextent)).andReturn(tablet);
+    expect(reservation.getFailures()).andReturn(Map.of()).anyTimes();
+    reservation.close();
+    reservation.close();
+    expect(handler.startScan(tinfo, tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false,
+        false, 10, tsc, 30L, classLoaderContext, execHints, resolver, 0L))
+        .andReturn(new InitialScan(15, null));
+    expect(handler.continueScan(tinfo, 15, 0L)).andReturn(new ScanResult());
+    handler.closeScan(tinfo, 15);
+
+    replay(sextent, reservation, handler);
+
+    ss.delegate = handler;
+    ss.extent = sextent;
+    ss.resolver = resolver;
+    ss.reservation = reservation;
+    ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
+    ss.systemUser = true;
+
+    TKeyExtent textent = createMock(TKeyExtent.class);
+    InitialScan is = ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths,
+        false, false, 10, tsc, 30L, classLoaderContext, execHints, 0L);
+    assertEquals(15, is.getScanID());
+    ss.continueScan(tinfo, is.getScanID(), 0L);
+    ss.closeScan(tinfo, is.getScanID());
+    verify(sextent, reservation, handler);
+
+  }
+
+  @Test
+  public void testScanMetaTablesNonSystemUser() throws Exception {
+    handler = createMock(ThriftScanClientHandler.class);
+
+    TInfo tinfo = createMock(TInfo.class);
+    TCredentials tcreds = createMock(TCredentials.class);
+    KeyExtent sextent = createMock(KeyExtent.class);
+    ScanReservation reservation = createMock(ScanReservation.class);
+    TRange trange = createMock(TRange.class);
+    List<TColumn> tcols = new ArrayList<>();
+    List<IterInfo> titer = new ArrayList<>();
+    Map<String,Map<String,String>> ssio = new HashMap<>();
+    List<ByteBuffer> auths = new ArrayList<>();
+    TSamplerConfiguration tsc = createMock(TSamplerConfiguration.class);
+    String classLoaderContext = new String();
+    Map<String,String> execHints = new HashMap<>();
+    TabletResolver resolver = createMock(TabletResolver.class);
+
+    TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
+    expect(sextent.isMeta()).andReturn(true).anyTimes();
+    expect(reservation.getFailures()).andReturn(Map.of()).anyTimes();
+
+    replay(sextent, reservation, handler);
+
+    ss.delegate = handler;
+    ss.extent = sextent;
+    ss.resolver = resolver;
+    ss.reservation = reservation;
+    ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
+    ss.systemUser = false;
+
+    TKeyExtent textent = createMock(TKeyExtent.class);
+    assertThrows(TException.class, () -> {
+      ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
+          tsc, 30L, classLoaderContext, execHints, 0L);
+    });
+    verify(sextent, reservation, handler);
+
   }
 
 }

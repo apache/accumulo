@@ -893,6 +893,11 @@ public class ScanServer extends AbstractServer
     };
   }
 
+  /* Exposed for testing */
+  protected boolean isSystemUser(TCredentials creds) {
+    return context.getSecurityOperation().isSystemUser(creds);
+  }
+
   @Override
   public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent,
       TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
@@ -904,7 +909,7 @@ public class ScanServer extends AbstractServer
 
     KeyExtent extent = getKeyExtent(textent);
 
-    if (extent.isMeta() && !context.getSecurityOperation().isSystemUser(credentials)) {
+    if (extent.isMeta() && !isSystemUser(credentials)) {
       throw new TException(
           "Only the system user can perform eventual consistency scans on the root and metadata tables");
     }
