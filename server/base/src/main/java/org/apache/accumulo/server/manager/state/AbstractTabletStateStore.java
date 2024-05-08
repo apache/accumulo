@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -33,6 +32,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +45,7 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
 
   private final Ample ample;
 
-  protected AbstractTabletStateStore(ClientContext context) {
+  protected AbstractTabletStateStore(ServerContext context) {
     this.ample = context.getAmple();
   }
 

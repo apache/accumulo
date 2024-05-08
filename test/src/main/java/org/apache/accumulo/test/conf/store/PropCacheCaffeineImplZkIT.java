@@ -41,13 +41,11 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropCacheCaffeineImpl;
-import org.apache.accumulo.server.conf.store.impl.PropStoreMetrics;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ReadyMonitor;
 import org.apache.accumulo.server.conf.store.impl.ZooPropLoader;
@@ -79,7 +77,6 @@ public class PropCacheCaffeineImplZkIT {
 
   private final TableId tIdA = TableId.of("A");
   private final TableId tIdB = TableId.of("B");
-  private final PropStoreMetrics cacheMetrics = new PropStoreMetrics();
   private static ServerContext context;
 
   @TempDir
@@ -161,12 +158,9 @@ public class PropCacheCaffeineImplZkIT {
 
     PropStoreWatcher propStoreWatcher = new PropStoreWatcher(readyMonitor);
 
-    MetricsUtil.initializeProducers(cacheMetrics);
-
     ZooPropLoader propLoader =
-        new ZooPropLoader(zrw, VersionedPropCodec.getDefault(), propStoreWatcher, cacheMetrics);
-    PropCacheCaffeineImpl cache =
-        new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).build();
+        new ZooPropLoader(zrw, VersionedPropCodec.getDefault(), propStoreWatcher);
+    PropCacheCaffeineImpl cache = new PropCacheCaffeineImpl.Builder(propLoader).build();
 
     VersionedProperties readProps = cache.get(propStoreKey);
 

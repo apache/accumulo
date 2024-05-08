@@ -28,7 +28,6 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -104,8 +103,10 @@ import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
@@ -572,14 +573,17 @@ public class Manager extends AbstractServer
       Scanner scanner =
           accumuloClient.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-      Set<KeyExtent> found = new HashSet<>();
+      scanner.setRange(MetadataSchema.TabletsSection.getRange());
+      Set<KeyExtent> notSeen;
+      synchronized (migrations) {
+        notSeen = new HashSet<>(migrations.keySet());
+      }
       for (Entry<Key,Value> entry : scanner) {
         KeyExtent extent = KeyExtent.fromMetaPrevRow(entry);
-        if (migrations.containsKey(extent)) {
-          found.add(extent);
-        }
+        notSeen.remove(extent);
       }
-      migrations.keySet().retainAll(found);
+      // remove tablets that used to be in migrations and were not seen in the metadata table
+      migrations.keySet().removeAll(notSeen);
     }
 
     /**
@@ -944,7 +948,9 @@ public class Manager extends AbstractServer
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator = new CompactionCoordinator(context, security, fateRefs);
+    compactionCoordinator =
+        new CompactionCoordinator(context, security, fateRefs, getResourceGroup());
+
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =
@@ -972,6 +978,7 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
+    this.getContext().setServiceLock(getManagerLock());
 
     // If UpgradeStatus is not at complete by this moment, then things are currently
     // upgrading.
@@ -979,16 +986,12 @@ public class Manager extends AbstractServer
       managerUpgrading.set(true);
     }
 
-    ManagerMetrics mm = new ManagerMetrics(getConfiguration(), this);
-    try {
-      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          sa.getAddress(), getContext().getInstanceName(), this.getResourceGroup());
-      MetricsUtil.initializeProducers(this, mm);
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-        | SecurityException e1) {
-      log.error("Error initializing metrics, metrics will not be emitted.", e1);
-    }
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addServiceTags(getApplicationName(), sa.getAddress(), getResourceGroup());
+    ManagerMetrics managerMetrics = new ManagerMetrics(getConfiguration(), this);
+    var producers = managerMetrics.getProducers(getConfiguration(), this);
+    metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
+    metricsInfo.init();
 
     recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
@@ -1040,7 +1043,7 @@ public class Manager extends AbstractServer
     this.splitter = new Splitter(context);
     this.splitter.start();
 
-    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null, mm) {
+    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null, managerMetrics) {
       @Override
       boolean canSuspendTablets() {
         // Always allow user data tablets to enter suspended state.
@@ -1048,24 +1051,26 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), mm) {
-      @Override
-      boolean canSuspendTablets() {
-        // Allow metadata tablets to enter suspended state only if so configured. Generally
-        // we'll want metadata tablets to
-        // be immediately reassigned, even if there's a global table.suspension.duration
-        // setting.
-        return getConfiguration().getBoolean(Property.MANAGER_METADATA_SUSPENDABLE);
-      }
-    });
+    watchers.add(
+        new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), managerMetrics) {
+          @Override
+          boolean canSuspendTablets() {
+            // Allow metadata tablets to enter suspended state only if so configured. Generally
+            // we'll want metadata tablets to
+            // be immediately reassigned, even if there's a global table.suspension.duration
+            // setting.
+            return getConfiguration().getBoolean(Property.MANAGER_METADATA_SUSPENDABLE);
+          }
+        });
 
-    watchers.add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), mm) {
-      @Override
-      boolean canSuspendTablets() {
-        // Never allow root tablet to enter suspended state.
-        return false;
-      }
-    });
+    watchers
+        .add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), managerMetrics) {
+          @Override
+          boolean canSuspendTablets() {
+            // Never allow root tablet to enter suspended state.
+            return false;
+          }
+        });
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
     }

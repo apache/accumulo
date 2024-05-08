@@ -25,8 +25,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 
 public class ThriftMetrics implements MetricsProducer {
 
-  private DistributionSummary idle;
-  private DistributionSummary execute;
+  private DistributionSummary idle = new NoOpDistributionSummary();
+  private DistributionSummary execute = new NoOpDistributionSummary();
 
   public ThriftMetrics() {}
 

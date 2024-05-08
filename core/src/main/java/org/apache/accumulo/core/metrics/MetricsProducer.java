@@ -357,37 +357,6 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td></td>
  * </tr>
  * <tr>
- * <td>queries</td>
- * <td>Gauge</td>
- * <td>{@value #METRICS_TSERVER_QUERIES}</td>
- * <td>Gauge</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>scannedRate</td>
- * <td>Gauge</td>
- * <td>{@value #METRICS_TSERVER_SCANNED_ENTRIES}</td>
- * <td>Gauge</td>
- * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
- * derived</td>
- * </tr>
- * <tr>
- * <td>queryRate</td>
- * <td>Gauge</td>
- * <td>{@value #METRICS_TSERVER_SCAN_RESULTS}</td>
- * <td>Gauge</td>
- * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
- * derived</td>
- * </tr>
- * <tr>
- * <td>queryByteRate</td>
- * <td>Gauge</td>
- * <td>{@value #METRICS_TSERVER_SCAN_RESULTS_BYTES}</td>
- * <td>Gauge</td>
- * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
- * derived</td>
- * </tr>
- * <tr>
  * <td>ingestRate</td>
  * <td>Gauge</td>
  * <td>{@value #METRICS_TSERVER_INGEST_MUTATIONS}</td>
@@ -409,6 +378,28 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>{@value #METRICS_TSERVER_HOLD}</td>
  * <td>Gauge</td>
  * <td></td>
+ * </tr>
+ * <!-- scan server -->
+ * <tr>
+ * <th>N/A</th>
+ * <th>N/A</th>
+ * <th>{@value #METRICS_SCAN_RESERVATION_TIMER}</th>
+ * <th>Timer</th>
+ * <th>Time to reserve a tablets files for scan</th>
+ * </tr>
+ * <tr>
+ * <th>N/A</th>
+ * <th>N/A</th>
+ * <th>{@value #METRICS_SCAN_BUSY_TIMEOUT_COUNTER}</th>
+ * <th>Counter</th>
+ * <th>Count of the scans where a busy timeout happened</th>
+ * </tr>
+ * <tr>
+ * <th>N/A</th>
+ * <th>N/A</th>
+ * <th>{@value #METRICS_SCAN_TABLET_METADATA_CACHE}</th>
+ * <th>Cache</th>
+ * <th>scan server tablet cache metrics</th>
  * </tr>
  * <!-- scans -->
  * <tr>
@@ -461,25 +452,35 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td></td>
  * </tr>
  * <tr>
- * <td>N/A</td>
- * <td>N/A</td>
- * <td>{@value #METRICS_SCAN_BUSY_TIMEOUT}</td>
- * <td>Counter</td>
+ * <td>queries</td>
+ * <td>Gauge</td>
+ * <td>{@value #METRICS_SCAN_QUERIES}</td>
+ * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
- * <td>N/A</td>
- * <td>N/A</td>
- * <td>{@value #METRICS_SCAN_PAUSED_FOR_MEM}</td>
- * <td>Counter</td>
- * <td></td>
+ * <td>scannedRate</td>
+ * <td>Gauge</td>
+ * <td>{@value #METRICS_SCAN_SCANNED_ENTRIES}</td>
+ * <td>Gauge</td>
+ * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
+ * derived</td>
  * </tr>
  * <tr>
- * <td>N/A</td>
- * <td>N/A</td>
- * <td>{@value #METRICS_SCAN_RETURN_FOR_MEM}</td>
- * <td>Counter</td>
- * <td></td>
+ * <td>queryRate</td>
+ * <td>Gauge</td>
+ * <td>{@value #METRICS_SCAN_QUERY_SCAN_RESULTS}</td>
+ * <td>Gauge</td>
+ * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
+ * derived</td>
+ * </tr>
+ * <tr>
+ * <td>queryByteRate</td>
+ * <td>Gauge</td>
+ * <td>{@value #METRICS_SCAN_QUERY_SCAN_RESULTS_BYTES}</td>
+ * <td>Gauge</td>
+ * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
+ * derived</td>
  * </tr>
  * <!-- major compactions -->
  * <tr>
@@ -592,42 +593,6 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Distribution Summary</td>
  * <td></td>
  * </tr>
- * <!-- ZooKeeper property cache -->
- * <tr>
- * <td>N/A</td>
- * <td>N/A</td>
- * <td>{@value #METRICS_PROPSTORE_LOAD_TIMER}</td>
- * <td>Timer</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>N/A</td>
- * <td>N/A</td>
- * <td>{@value #METRICS_PROPSTORE_REFRESH_COUNT}</td>
- * <td>Counter</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>N/A</td>
- * <td>N/A</td>
- * <td>{@value #METRICS_PROPSTORE_REFRESH_LOAD_COUNT}</td>
- * <td>Counter</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>N/A</td>
- * <td>N/A</td>
- * <td>{@value #METRICS_PROPSTORE_EVICTION_COUNT}</td>
- * <td>Counter</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>N/A</td>
- * <td>N/A</td>
- * <td>{@value #METRICS_PROPSTORE_ZK_ERROR_COUNT}</td>
- * <td>Counter</td>
- * <td></td>
- * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
@@ -712,7 +677,7 @@ public interface MetricsProducer {
   String METRICS_MINC_RUNNING = METRICS_MINC_PREFIX + "running";
   String METRICS_MINC_PAUSED = METRICS_MINC_PREFIX + "paused";
 
-  String METRICS_SCAN_PREFIX = "accumulo.tserver.scans.";
+  String METRICS_SCAN_PREFIX = "accumulo.scan.";
   String METRICS_SCAN_TIMES = METRICS_SCAN_PREFIX + "times";
   String METRICS_SCAN_OPEN_FILES = METRICS_SCAN_PREFIX + "files.open";
   String METRICS_SCAN_RESULTS = METRICS_SCAN_PREFIX + "result";
@@ -720,9 +685,16 @@ public interface MetricsProducer {
   String METRICS_SCAN_START = METRICS_SCAN_PREFIX + "start";
   String METRICS_SCAN_CONTINUE = METRICS_SCAN_PREFIX + "continue";
   String METRICS_SCAN_CLOSE = METRICS_SCAN_PREFIX + "close";
-  String METRICS_SCAN_BUSY_TIMEOUT = METRICS_SCAN_PREFIX + "busy.timeout";
-  String METRICS_SCAN_PAUSED_FOR_MEM = METRICS_SCAN_PREFIX + ".paused.for.memory";
-  String METRICS_SCAN_RETURN_FOR_MEM = METRICS_SCAN_PREFIX + ".return.early.for.memory";
+  String METRICS_SCAN_BUSY_TIMEOUT_COUNTER = METRICS_SCAN_PREFIX + "busy.timeout.count";
+  String METRICS_SCAN_RESERVATION_TIMER = METRICS_SCAN_PREFIX + "reservation.timer";
+  String METRICS_SCAN_QUERIES = METRICS_SCAN_PREFIX + "queries";
+  String METRICS_SCAN_QUERY_SCAN_RESULTS = METRICS_SCAN_PREFIX + "query.results";
+  String METRICS_SCAN_QUERY_SCAN_RESULTS_BYTES = METRICS_SCAN_PREFIX + "query.results.bytes";
+  String METRICS_SCAN_SCANNED_ENTRIES = METRICS_SCAN_PREFIX + "query.scanned.entries";
+  String METRICS_SCAN_PAUSED_FOR_MEM = METRICS_SCAN_PREFIX + "paused.for.memory";
+  String METRICS_SCAN_RETURN_FOR_MEM = METRICS_SCAN_PREFIX + "return.early.for.memory";
+
+  String METRICS_SCAN_TABLET_METADATA_CACHE = METRICS_SCAN_PREFIX + "tablet.metadata.cache";
 
   String METRICS_TSERVER_PREFIX = "accumulo.tserver.";
   String METRICS_TSERVER_ENTRIES = METRICS_TSERVER_PREFIX + "entries";
@@ -739,14 +711,10 @@ public interface MetricsProducer {
   String METRICS_TSERVER_TABLETS_ONLINE = METRICS_TSERVER_PREFIX + "tablets.online";
   String METRICS_TSERVER_TABLETS_OPENING = METRICS_TSERVER_PREFIX + "tablets.opening";
   String METRICS_TSERVER_TABLETS_UNOPENED = METRICS_TSERVER_PREFIX + "tablets.unopened";
-  String METRICS_TSERVER_QUERIES = METRICS_TSERVER_PREFIX + "queries";
   String METRICS_TSERVER_TABLETS_FILES = METRICS_TSERVER_PREFIX + "tablets.files";
   String METRICS_TSERVER_HOLD = METRICS_TSERVER_PREFIX + "hold";
   String METRICS_TSERVER_INGEST_MUTATIONS = METRICS_TSERVER_PREFIX + "ingest.mutations";
   String METRICS_TSERVER_INGEST_BYTES = METRICS_TSERVER_PREFIX + "ingest.bytes";
-  String METRICS_TSERVER_SCAN_RESULTS = METRICS_TSERVER_PREFIX + "scan.results";
-  String METRICS_TSERVER_SCAN_RESULTS_BYTES = METRICS_TSERVER_PREFIX + "scan.results.bytes";
-  String METRICS_TSERVER_SCANNED_ENTRIES = METRICS_TSERVER_PREFIX + "scan.scanned.entries";
 
   String METRICS_THRIFT_PREFIX = "accumulo.thrift.";
   String METRICS_THRIFT_EXECUTE = METRICS_THRIFT_PREFIX + "execute";
@@ -758,13 +726,6 @@ public interface MetricsProducer {
   String METRICS_UPDATE_COMMIT_PREP = METRICS_UPDATE_COMMIT + ".prep";
   String METRICS_UPDATE_WALOG_WRITE = METRICS_UPDATE_PREFIX + "walog.write";
   String METRICS_UPDATE_MUTATION_ARRAY_SIZE = METRICS_UPDATE_PREFIX + "mutation.arrays.size";
-
-  String METRICS_PROPSTORE_PREFIX = "accumulo.prop.store.";
-  String METRICS_PROPSTORE_LOAD_TIMER = METRICS_PROPSTORE_PREFIX + "load";
-  String METRICS_PROPSTORE_REFRESH_COUNT = METRICS_PROPSTORE_PREFIX + "refresh";
-  String METRICS_PROPSTORE_REFRESH_LOAD_COUNT = METRICS_PROPSTORE_PREFIX + "refresh.load";
-  String METRICS_PROPSTORE_EVICTION_COUNT = METRICS_PROPSTORE_PREFIX + "evictions";
-  String METRICS_PROPSTORE_ZK_ERROR_COUNT = METRICS_PROPSTORE_PREFIX + "zookeeper.error";
 
   /**
    * Build Micrometer Meter objects and register them with the registry
@@ -786,7 +747,7 @@ public interface MetricsProducer {
           fields.put((String) f.get(MetricsProducer.class), f.getName());
         } catch (IllegalArgumentException | IllegalAccessException e) {
           // this shouldn't happen, but let's log it anyway
-          LOG.error("Error getting metric value for field: " + f.getName());
+          LOG.error("Error getting metric value for field: {}", f.getName());
         }
       }
     }

@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.TablePropKey;
@@ -67,9 +66,6 @@ public class PropCacheCaffeineImplTest {
     ticker = new TestTicker();
     instanceId = InstanceId.of(UUID.randomUUID());
 
-    PropStoreMetrics cacheMetrics = new PropStoreMetrics();
-    MetricsUtil.initializeProducers(cacheMetrics);
-
     tablePropKey =
         TablePropKey.of(instanceId, TableId.of("t" + ThreadLocalRandom.current().nextInt(1, 1000)));
 
@@ -85,7 +81,7 @@ public class PropCacheCaffeineImplTest {
 
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
-    cache = new PropCacheCaffeineImpl.Builder(zooPropLoader, cacheMetrics).forTests(ticker).build();
+    cache = new PropCacheCaffeineImpl.Builder(zooPropLoader).forTests(ticker).build();
 
   }
 

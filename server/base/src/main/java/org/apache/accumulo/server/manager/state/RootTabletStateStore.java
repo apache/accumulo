@@ -20,17 +20,17 @@ package org.apache.accumulo.server.manager.state;
 
 import java.util.List;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.server.ServerContext;
 
 import com.google.common.base.Preconditions;
 
 class RootTabletStateStore extends MetaDataStateStore {
 
-  RootTabletStateStore(DataLevel level, ClientContext context) {
+  RootTabletStateStore(DataLevel level, ServerContext context) {
     super(level, context, AccumuloTable.ROOT.tableName());
   }
 

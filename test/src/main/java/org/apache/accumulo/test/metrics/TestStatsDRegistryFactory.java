@@ -20,7 +20,7 @@ package org.apache.accumulo.test.metrics;
 
 import java.time.Duration;
 
-import org.apache.accumulo.core.metrics.MeterRegistryFactory;
+import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,8 +40,8 @@ public class TestStatsDRegistryFactory implements MeterRegistryFactory {
   public static final Duration pollingFrequency = Duration.ofSeconds(3);
 
   @Override
-  public MeterRegistry create() {
-
+  public MeterRegistry create(final InitParameters params) {
+    LOG.info("starting metrics registration.");
     String host = System.getProperty(SERVER_HOST, null);
     String port = System.getProperty(SERVER_PORT, null);
 
