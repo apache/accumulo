@@ -149,7 +149,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 public class ConfigurableScanServerSelector implements ScanServerSelector {
 
-  private static final SecureRandom RANDOM = new SecureRandom();
+  protected static final SecureRandom RANDOM = new SecureRandom();
   public static final String PROFILES_DEFAULT = "[{'isDefault':true,'maxBusyTimeout':'5m',"
       + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], "
       + "'attemptPlans':[{'servers':'3', 'busyTimeout':'33ms', 'salt':'one'},"
@@ -218,7 +218,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
   @SuppressFBWarnings(value = {"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_FIELD"},
       justification = "Object deserialized by GSON")
-  private static class Profile {
+  protected static class Profile {
     public List<AttemptPlan> attemptPlans;
     List<String> scanTypeActivations;
     boolean isDefault = false;
@@ -353,27 +353,9 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     Map<TabletId,String> serversToUse = new HashMap<>();
 
-    // get the max number of busy attempts, treat errors as busy attempts
-    int attempts = params.getTablets().stream()
-        .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
+    int maxAttempts = hashTabletsToServers(params, profile, orderedScanServers, serversToUse);
 
-    int numServers = profile.getNumServers(attempts, orderedScanServers.size());
-
-    for (TabletId tablet : params.getTablets()) {
-
-      String serverToUse = null;
-
-      var hashCode = hashTablet(tablet, profile.getSalt(attempts));
-
-      int serverIndex =
-          (Math.abs(hashCode.asInt()) + RANDOM.nextInt(numServers)) % orderedScanServers.size();
-
-      serverToUse = orderedScanServers.get(serverIndex);
-
-      serversToUse.put(tablet, serverToUse);
-    }
-
-    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(attempts));
+    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(maxAttempts));
 
     return new ScanServerSelections() {
       @Override
@@ -393,7 +375,30 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     };
   }
 
-  private HashCode hashTablet(TabletId tablet, String salt) {
+  protected int hashTabletsToServers(ScanServerSelector.SelectorParameters params, Profile profile,
+      List<String> orderedScanServers, Map<TabletId,String> serversToUse) {
+
+    int attempts = params.getTablets().stream()
+        .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
+
+    int numServers = profile.getNumServers(attempts, orderedScanServers.size());
+    for (TabletId tablet : params.getTablets()) {
+
+      String serverToUse = null;
+
+      var hashCode = hashTablet(tablet, profile.getSalt(attempts));
+
+      int serverIndex =
+          (Math.abs(hashCode.asInt()) + RANDOM.nextInt(numServers)) % orderedScanServers.size();
+
+      serverToUse = orderedScanServers.get(serverIndex);
+
+      serversToUse.put(tablet, serverToUse);
+    }
+    return attempts;
+  }
+
+  HashCode hashTablet(TabletId tablet, String salt) {
     var hasher = Hashing.murmur3_128().newHasher();
 
     if (tablet.getEndRow() != null) {
