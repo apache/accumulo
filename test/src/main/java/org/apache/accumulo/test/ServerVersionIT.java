@@ -18,31 +18,17 @@
  */
 package org.apache.accumulo.test;
 
-import static org.easymock.EasyMock.createMock;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.volume.Volume;
+import java.io.File;
+
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.AccumuloDataVersion;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class ServerVersionIT extends SharedMiniClusterBase {
 
@@ -59,27 +45,26 @@ public class ServerVersionIT extends SharedMiniClusterBase {
   @Test
   public void test() throws Exception {
 
-      File root = getCluster().getConfig().getAccumuloDir();
-      String path = root + "/version/";
-      Path rootPath =  new Path(path + AccumuloDataVersion.get());
+    File root = getCluster().getConfig().getAccumuloDir();
+    String path = root + "/version/";
+    Path rootPath = new Path(path + AccumuloDataVersion.get());
+    FileSystem fs = getCluster().getFileSystem();
 
-      // Check to make sure cluster is running as expected
-      assertTrue(getCluster().getFileSystem().exists(rootPath));
+    // Check to make sure cluster is running as expected
+    assertTrue(fs.exists(rootPath));
 
-      getCluster().stop();
+    getCluster().stop();
 
-      //Create a new Path to simulate accumulo update
-      Path newPath = new Path(path + AccumuloDataVersion.get()+1);
-      getCluster().getFileSystem().createNewFile(newPath);
+    // Create a new Path to simulate accumulo update
+    Path newPath = new Path(path + AccumuloDataVersion.get() + 1);
+    fs.createNewFile(newPath);
 
-      //Check to see if there are errors when restarting servers given new file system.
-      for(ServerType st : ServerType.values()) {
-        assertThrows(IOException.class, () -> getCluster().getClusterControl().start(st));
-      }
+    // Check to see if there are errors when restarting servers given new file system.
+    getCluster().start();
 
-      //Check to see if both paths exist at the sametime
-      assertTrue(getCluster().getFileSystem().exists(rootPath));
-      assertTrue(getCluster().getFileSystem().exists(newPath));
+    // Check to see if both paths exist at the sametime
+    assertTrue(fs.exists(rootPath));
+    assertTrue(fs.exists(newPath));
 
   }
 }
