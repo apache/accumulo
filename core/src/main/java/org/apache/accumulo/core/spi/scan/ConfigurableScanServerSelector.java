@@ -51,8 +51,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *
  * <ul>
  * <li>Hash each tablet to a per attempt configurable number of scan servers and then randomly
- * choose one of those scan servers. Using hashing allows different client to select the same scan
- * servers for a given tablet.</li>
+ * findScanServers servers for a given tablet.</li>
  * <li>Use a per attempt configurable busy timeout.</li>
  * </ul>
  *
@@ -353,7 +352,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     Map<TabletId,String> serversToUse = new HashMap<>();
 
-    int maxAttempts = hashTabletsToServers(params, profile, orderedScanServers, serversToUse);
+    int maxAttempts = selectServers(params, profile, orderedScanServers, serversToUse);
 
     Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(maxAttempts));
 
@@ -375,7 +374,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     };
   }
 
-  protected int hashTabletsToServers(ScanServerSelector.SelectorParameters params, Profile profile,
+  protected int selectServers(ScanServerSelector.SelectorParameters params, Profile profile,
       List<String> orderedScanServers, Map<TabletId,String> serversToUse) {
 
     int attempts = params.getTablets().stream()
@@ -398,7 +397,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     return attempts;
   }
 
-  HashCode hashTablet(TabletId tablet, String salt) {
+  final HashCode hashTablet(TabletId tablet, String salt) {
     var hasher = Hashing.murmur3_128().newHasher();
 
     if (tablet.getEndRow() != null) {
