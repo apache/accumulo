@@ -51,7 +51,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *
  * <ul>
  * <li>Hash each tablet to a per attempt configurable number of scan servers and then randomly
- * findScanServers servers for a given tablet.</li>
+ * choose one of those scan servers. Using hashing allows different client to select the same scan
+ * servers for a given tablet.</li>
  * <li>Use a per attempt configurable busy timeout.</li>
  * </ul>
  *
