@@ -131,13 +131,12 @@ public class CompactionJobGenerator {
       String cacheKey = tablet.getTableId() + " " + e.getClass().getName();
       // This check defends against every tablet in a table having the same problem and therefore
       // generating an enormous amount of spam for the logs.
-      var last = generateJobsErrorCache.getIfPresent(cacheKey);
-      if (last == null) {
+      if (generateJobsErrorCache.asMap().putIfAbsent(cacheKey, System.currentTimeMillis())
+          == null) {
         log.error(
             "Failed to generate compaction jobs for {}. Other tablets may be experiencing the"
                 + " same error, this log message is temporarily suppressed for the entire table.",
             tablet.getExtent(), e);
-        generateJobsErrorCache.put(cacheKey, System.currentTimeMillis());
       }
 
       log.trace("Failed to generate compaction jobs for {}", tablet.getExtent(), e);
