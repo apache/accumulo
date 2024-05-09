@@ -567,8 +567,12 @@ public class ScanServer extends AbstractServer
     reservationsWriteLock.lock();
     try {
       // wait if another thread is working on the files we are interested in
+      boolean hasCollided = false;
       while (!Collections.disjoint(influxFiles, allFiles.keySet())) {
         reservationCondition.await();
+        hasCollided = true;
+      }
+      if (hasCollided) {
         scanServerMetrics.incrementCollision();
       }
 

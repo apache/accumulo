@@ -55,7 +55,8 @@ public class ScanServerMetrics implements MetricsProducer {
             .description("Time to write out a tablets files for scan").register(registry);
     busyTimeoutCount = Counter.builder(METRICS_SCAN_BUSY_TIMEOUT_COUNTER)
         .description("The number of scans where a busy timeout happened").register(registry);
-    FunctionCounter.builder(METRICS_SCAN_COLLISION_COUNTER, collisionCount, AtomicLong::get)
+    FunctionCounter
+        .builder(METRICS_SCAN_RESERVATION_COLLISION_COUNTER, collisionCount, AtomicLong::get)
         .description("The number of scans where a collision happened while trying to reserve files")
         .register(registry);
 
