@@ -56,7 +56,8 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Gauge</td>
  * <td>{@value #METRICS_FATE_OPS}</td>
  * <td>Gauge</td>
- * <td></td>
+ * <td>Was previously named "accumulo.fate.ops.in.progress". Changed to better reflect what the
+ * gauge is actually tracking which is all the current fate ops in any state.</td>
  * </tr>
  * <tr>
  * <td>FateTxOpType_{name}</td>
