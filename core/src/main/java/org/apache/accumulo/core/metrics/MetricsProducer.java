@@ -54,7 +54,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>currentFateOps</td>
  * <td>Gauge</td>
- * <td>{@value #METRICS_FATE_TOTAL_IN_PROGRESS}</td>
+ * <td>{@value #METRICS_FATE_OPS}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
