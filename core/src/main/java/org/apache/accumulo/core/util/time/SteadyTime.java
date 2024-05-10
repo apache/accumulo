@@ -20,12 +20,15 @@ package org.apache.accumulo.core.util.time;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
 
 /**
  * SteadyTime represents an approximation of the total duration of time this cluster has had a
- * Manager. Because this represents an elapsed time it is guaranteed to not be negative.
+ * Manager. Because this represents an elapsed time it is guaranteed to not be negative. SteadyTime
+ * is not expected to represent real world date times, its main use is for computing deltas similar
+ * System.nanoTime but across JVM processes.
  */
 public class SteadyTime implements Comparable<SteadyTime> {
 
@@ -70,8 +73,8 @@ public class SteadyTime implements Comparable<SteadyTime> {
     return time.compareTo(other.time);
   }
 
-  public static SteadyTime from(long timeNs) {
-    return new SteadyTime(Duration.ofNanos(timeNs));
+  public static SteadyTime from(long time, TimeUnit unit) {
+    return new SteadyTime(Duration.of(time, unit.toChronoUnit()));
   }
 
   public static SteadyTime from(Duration time) {

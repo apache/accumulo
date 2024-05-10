@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ public class ManagerTimeTest {
   @Test
   public void testSteadyTime() {
     long time = 20_000;
-    var steadyTime = SteadyTime.from(time);
+    var steadyTime = SteadyTime.from(time, TimeUnit.NANOSECONDS);
 
     // make sure calling serialize on instance matches static helper
     byte[] serialized = ManagerTime.serialize(steadyTime);
@@ -59,7 +60,8 @@ public class ManagerTimeTest {
       // from the previous persisted time in ZK. The skew can be negative or positive because
       // it will depend on if the current nanotime is negative or positive as
       // nanotime is allowed to be negative
-      var skewAmount = ManagerTime.updateSkew(SteadyTime.from(previousTime), time);
+      var skewAmount =
+          ManagerTime.updateSkew(SteadyTime.from(previousTime, TimeUnit.NANOSECONDS), time);
 
       // Build a SteadyTime using the skewAmount
       // SteadyTime should never be negative
@@ -82,7 +84,7 @@ public class ManagerTimeTest {
   @ValueSource(longs = {0, 50_000})
   public void testSteadyTimeFromSkewCurrent(long previousTime) throws InterruptedException {
     // Also test fromSkew(skewAmount) method which only uses System.nanoTime()
-    var skewAmount = ManagerTime.updateSkew(SteadyTime.from(previousTime));
+    var skewAmount = ManagerTime.updateSkew(SteadyTime.from(previousTime, TimeUnit.NANOSECONDS));
 
     // Build a SteadyTime using the skewAmount and current time
     var original = ManagerTime.fromSkew(skewAmount);
@@ -102,19 +104,19 @@ public class ManagerTimeTest {
   @ValueSource(longs = {0, 50_000})
   public void testSteadyTimeUpdateSkew(long previousTime) throws InterruptedException {
 
-    var steadyTime = SteadyTime.from(previousTime);
+    var steadyTime = SteadyTime.from(previousTime, TimeUnit.NANOSECONDS);
     List<Long> times = List.of(-100_000L, -100L, 0L, 20_000L, System.nanoTime());
 
     // test updateSkew with various times and previous times
     for (Long time : times) {
       var expected = steadyTime.getNanos() - time;
 
-      // test that updateSkewy computes the update as current steadyTime - time
+      // test that updateSkew computes the update as current steadyTime - time
       var skewAmount = ManagerTime.updateSkew(steadyTime, time);
       assertEquals(expected, skewAmount.toNanos());
     }
 
-    // test updateSkey with current system time
+    // test updateSkew with current system time
     var skew = ManagerTime.updateSkew(steadyTime);
     // sleep a bit so time elapses
     Thread.sleep(10);

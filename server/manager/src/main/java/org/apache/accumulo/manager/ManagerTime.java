@@ -24,6 +24,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
@@ -166,7 +167,7 @@ public class ManagerTime {
   }
 
   static SteadyTime deserialize(byte[] steadyTime) {
-    return SteadyTime.from(Long.parseLong(new String(steadyTime, UTF_8)));
+    return SteadyTime.from(Long.parseLong(new String(steadyTime, UTF_8)), TimeUnit.NANOSECONDS);
   }
 
   static byte[] serialize(SteadyTime steadyTime) {

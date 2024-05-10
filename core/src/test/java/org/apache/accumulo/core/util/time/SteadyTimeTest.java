@@ -33,24 +33,24 @@ public class SteadyTimeTest {
   @Test
   public void testSteadyTime() {
     long time = 20_000;
-    var steadyTime = SteadyTime.from(time);
+    var steadyTime = SteadyTime.from(time, TimeUnit.NANOSECONDS);
 
     assertEquals(time, steadyTime.getNanos());
     assertEquals(TimeUnit.NANOSECONDS.toMillis(time), steadyTime.getMillis());
     assertEquals(Duration.ofNanos(time), steadyTime.getDuration());
 
     // Verify equals and compareTo work correctly for same
-    var steadyTime2 = SteadyTime.from(time);
+    var steadyTime2 = SteadyTime.from(time, TimeUnit.NANOSECONDS);
     assertEquals(steadyTime, steadyTime2);
     assertEquals(0, steadyTime.compareTo(steadyTime2));
 
     // Check equals/compareto different objects
-    var steadyTime3 = SteadyTime.from(time + 100);
+    var steadyTime3 = SteadyTime.from(time + 100, TimeUnit.NANOSECONDS);
     assertNotEquals(steadyTime, steadyTime3);
     assertTrue(steadyTime.compareTo(steadyTime3) < 1);
 
     // Negatives are not allowed
-    assertThrows(IllegalArgumentException.class, () -> SteadyTime.from(-100));
+    assertThrows(IllegalArgumentException.class, () -> SteadyTime.from(-100, TimeUnit.NANOSECONDS));
   }
 
 }
