@@ -51,6 +51,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -87,6 +88,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -144,7 +146,7 @@ public class TabletMetadataTest {
         UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2));
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta.toBase64()));
 
-    long suspensionTime = System.currentTimeMillis();
+    SteadyTime suspensionTime = SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
     TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
     Value suspend = SuspendingTServer.toValue(ser1, suspensionTime);
     SUSPEND_COLUMN.put(mutation, suspend);
@@ -303,13 +305,14 @@ public class TabletMetadataTest {
     // test SUSPENDED
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
     mutation.at().family(SUSPEND_COLUMN.getColumnFamily())
-        .qualifier(SUSPEND_COLUMN.getColumnQualifier()).put(SuspendingTServer.toValue(ser2, 1000L));
+        .qualifier(SUSPEND_COLUMN.getColumnQualifier())
+        .put(SuspendingTServer.toValue(ser2, SteadyTime.from(1000L, TimeUnit.MILLISECONDS)));
     rowMap = toRowMap(mutation);
 
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
 
     assertEquals(TabletState.SUSPENDED, TabletState.compute(tm, tservers));
-    assertEquals(1000L, tm.getSuspend().suspensionTime);
+    assertEquals(1000L, tm.getSuspend().suspensionTime.getMillis());
     assertEquals(ser2.getHostAndPort(), tm.getSuspend().server);
     assertNull(tm.getLocation());
     assertFalse(tm.hasCurrent());
@@ -669,14 +672,15 @@ public class TabletMetadataTest {
         UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2));
 
     TabletMetadata tm3 = TabletMetadata.builder(extent).putExternalCompaction(ecid1, ecm)
-        .putSuspension(ser1, 45L).putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1)
-        .putWal(le2).setHostingRequested().putSelectedFiles(selFiles).setMerged()
+        .putSuspension(ser1, SteadyTime.from(45L, TimeUnit.MILLISECONDS))
+        .putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1).putWal(le2)
+        .setHostingRequested().putSelectedFiles(selFiles).setMerged()
         .putUserCompactionRequested(selFilesFateId).setUnSplittable(unsplittableMeta).build();
 
     assertEquals(Set.of(ecid1), tm3.getExternalCompactions().keySet());
     assertEquals(Set.of(sf1, sf2), tm3.getExternalCompactions().get(ecid1).getJobFiles());
     assertEquals(ser1.getHostAndPort(), tm3.getSuspend().server);
-    assertEquals(45L, tm3.getSuspend().suspensionTime);
+    assertEquals(SteadyTime.from(45L, TimeUnit.MILLISECONDS), tm3.getSuspend().suspensionTime);
     assertEquals(new MetadataTime(479, TimeType.LOGICAL), tm3.getTime());
     assertTrue(tm3.getHostingRequested());
     assertEquals(Stream.of(le1, le2).map(LogEntry::toString).collect(toSet()),

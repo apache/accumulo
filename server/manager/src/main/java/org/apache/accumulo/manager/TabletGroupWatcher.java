@@ -606,7 +606,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 LOG.debug("Requesting tserver {} unload tablet {}", location.getServerInstance(),
                     tm.getExtent());
                 client.unloadTablet(manager.managerLock, tm.getExtent(), goal.howUnload(),
-                    manager.getSteadyTime());
+                    manager.getSteadyTime().getMillis());
                 tableMgmtStats.totalUnloaded++;
                 unloaded++;
               } else {
@@ -770,7 +770,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private void hostSuspendedTablet(TabletLists tLists, TabletMetadata tm, Location location,
       TableConfiguration tableConf) {
-    if (manager.getSteadyTime() - tm.getSuspend().suspensionTime
+    if (manager.getSteadyTime().minus(tm.getSuspend().suspensionTime).toMillis()
         < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
       // Tablet is suspended. See if its tablet server is back.
       TServerInstance returnInstance = null;
@@ -972,13 +972,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
     tLists.assignments.addAll(tLists.assigned);
     for (Assignment a : tLists.assignments) {
-      TServerConnection client = manager.tserverSet.getConnection(a.server);
-      if (client != null) {
-        client.assignTablet(manager.managerLock, a.tablet);
-      } else {
-        Manager.log.warn("Could not connect to server {}", a.server);
+      try {
+        TServerConnection client = manager.tserverSet.getConnection(a.server);
+        if (client != null) {
+          client.assignTablet(manager.managerLock, a.tablet);
+          manager.assignedTablet(a.tablet);
+        } else {
+          Manager.log.warn("Could not connect to server {} for assignment of {}", a.server,
+              a.tablet);
+        }
+      } catch (TException tException) {
+        Manager.log.warn("Could not connect to server {} for assignment of {}", a.server, a.tablet,
+            tException);
       }
-      manager.assignedTablet(a.tablet);
     }
 
     replaceVolumes(tLists.volumeReplacements);

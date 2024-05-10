@@ -31,6 +31,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 
 import com.google.common.base.Preconditions;
@@ -94,14 +95,14 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
 
   @Override
   protected void processSuspension(Ample.ConditionalTabletMutator tabletMutator, TabletMetadata tm,
-      long suspensionTimestamp) {
+      SteadyTime suspensionTimestamp) {
     if (tm.hasCurrent()) {
-      if (suspensionTimestamp >= 0) {
+      if (suspensionTimestamp != null) {
         tabletMutator.putSuspension(tm.getLocation().getServerInstance(), suspensionTimestamp);
       }
     }
 
-    if (tm.getSuspend() != null && suspensionTimestamp < 0) {
+    if (tm.getSuspend() != null && suspensionTimestamp == null) {
       tabletMutator.deleteSuspension();
     }
   }

@@ -486,11 +486,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         log.error("Unable to get hostname", e);
       }
     }
-    log.debug("Using {} to advertise monitor location in ZooKeeper", advertiseHost);
+    HostAndPort monitorHostAndPort = HostAndPort.fromParts(advertiseHost, livePort);
+    log.debug("Using {} to advertise monitor location in ZooKeeper", monitorHostAndPort);
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), HostAndPort.fromParts(advertiseHost, livePort),
-        getResourceGroup());
+    metricsInfo.addServiceTags(getApplicationName(), monitorHostAndPort, getResourceGroup());
     metricsInfo.addMetricsProducers(this);
     metricsInfo.init();
 
