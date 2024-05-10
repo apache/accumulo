@@ -454,7 +454,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private void hostSuspendedTablet(TabletLists tLists, TabletLocationState tls, Location location,
       TableConfiguration tableConf) {
-    if (manager.getSteadyTime().getMillis() - tls.suspend.suspensionTime
+    if (manager.getSteadyTime().minus(tls.suspend.suspensionTime).toMillis()
         < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
       // Tablet is suspended. See if its tablet server is back.
       TServerInstance returnInstance = null;
@@ -1386,7 +1386,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           deadTablets.subList(0, maxServersToShow));
       Manager.log.debug("logs for dead servers: {}", deadLogs);
       if (canSuspendTablets()) {
-        store.suspend(deadTablets, deadLogs, manager.getSteadyTime().getMillis());
+        store.suspend(deadTablets, deadLogs, manager.getSteadyTime());
       } else {
         store.unassign(deadTablets, deadLogs);
       }

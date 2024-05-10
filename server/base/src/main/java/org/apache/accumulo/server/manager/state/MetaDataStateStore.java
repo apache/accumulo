@@ -32,6 +32,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.hadoop.fs.Path;
 
@@ -99,18 +100,18 @@ class MetaDataStateStore implements TabletStateStore {
   @Override
   public void unassign(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
-    unassign(tablets, logsForDeadServers, -1);
+    unassign(tablets, logsForDeadServers, null);
   }
 
   @Override
   public void suspend(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     unassign(tablets, logsForDeadServers, suspensionTimestamp);
   }
 
   private void unassign(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (TabletLocationState tls : tablets) {
@@ -128,11 +129,11 @@ class MetaDataStateStore implements TabletStateStore {
               }
             }
           }
-          if (suspensionTimestamp >= 0) {
+          if (suspensionTimestamp != null && suspensionTimestamp.getMillis() >= 0) {
             tabletMutator.putSuspension(tls.current.getServerInstance(), suspensionTimestamp);
           }
         }
-        if (tls.suspend != null && suspensionTimestamp < 0) {
+        if (tls.suspend != null && suspensionTimestamp == null) {
           tabletMutator.deleteSuspension();
         }
         if (tls.hasFuture()) {

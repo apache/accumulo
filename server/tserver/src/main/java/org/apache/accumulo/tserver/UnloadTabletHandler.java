@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.tserver;
 
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
@@ -28,6 +26,8 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
+import org.apache.accumulo.core.util.time.NanoTime;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.manager.state.DistributedStoreException;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
@@ -39,15 +39,17 @@ class UnloadTabletHandler implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(UnloadTabletHandler.class);
   private final KeyExtent extent;
   private final TUnloadTabletGoal goalState;
-  private final long requestTimeSkew;
+  private final SteadyTime requestTime;
+  private final NanoTime createTime;
   private final TabletServer server;
 
   public UnloadTabletHandler(TabletServer server, KeyExtent extent, TUnloadTabletGoal goalState,
-      long requestTime) {
+      SteadyTime requestTime) {
     this.extent = extent;
     this.goalState = goalState;
     this.server = server;
-    this.requestTimeSkew = requestTime - NANOSECONDS.toMillis(System.nanoTime());
+    this.requestTime = requestTime;
+    this.createTime = NanoTime.now();
   }
 
   @Override
@@ -121,7 +123,7 @@ class UnloadTabletHandler implements Runnable {
         TabletStateStore.unassign(server.getContext(), tls, null);
       } else {
         TabletStateStore.suspend(server.getContext(), tls, null,
-            requestTimeSkew + NANOSECONDS.toMillis(System.nanoTime()));
+            requestTime.plus(createTime.elapsed()));
       }
     } catch (DistributedStoreException ex) {
       log.warn("Unable to update storage", ex);
