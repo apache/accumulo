@@ -111,5 +111,12 @@ public interface BlockCache {
      * @return the number of lookups
      */
     long requestCount();
+
+    /**
+     * @return The number of entries evicted from the cache.
+     *
+     * @since 3.1.0
+     */
+    long evictionCount();
   }
 }

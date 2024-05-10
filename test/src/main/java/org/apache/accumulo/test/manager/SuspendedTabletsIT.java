@@ -285,6 +285,9 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
           Thread.sleep(1000);
           ds = TabletLocations.retrieve(ctx, tableName);
         }
+
+        // Ensure all suspension markers in the metadata table were cleared.
+        assertTrue(ds.suspended.isEmpty());
       } else {
         throw new IllegalStateException("Unknown action " + action);
       }
