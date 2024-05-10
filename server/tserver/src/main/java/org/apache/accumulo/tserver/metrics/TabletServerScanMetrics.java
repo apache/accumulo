@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.server.metrics.NoOpDistributionSummary;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
@@ -34,8 +35,8 @@ public class TabletServerScanMetrics implements MetricsProducer {
 
   private final AtomicInteger openFiles = new AtomicInteger(0);
   private Timer scans;
-  private DistributionSummary resultsPerScan;
-  private DistributionSummary yields;
+  private DistributionSummary resultsPerScan = new NoOpDistributionSummary();
+  private DistributionSummary yields = new NoOpDistributionSummary();
   private Counter startScanCalls;
   private Counter continueScanCalls;
   private Counter closeScanCalls;

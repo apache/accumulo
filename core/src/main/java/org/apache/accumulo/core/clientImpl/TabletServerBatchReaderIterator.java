@@ -650,9 +650,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       if (serverToUse == null) {
         // no scan server was given so use the tablet server
         serverToUse = extentToTserverMap.get(extent);
-        log.trace("For tablet {} scan server selector chose tablet_server", tabletId);
+        log.trace("For tablet {} using hints {} scan server selector chose tablet_server", tabletId,
+            options.executionHints);
       } else {
-        log.trace("For tablet {} scan server selector chose scan_server:{}", tabletId, serverToUse);
+        log.trace("For tablet {} using hints {} scan server selector chose scan_server:{}",
+            tabletId, options.executionHints, serverToUse);
       }
 
       var rangeMap = binnedRanges2.computeIfAbsent(serverToUse, k -> new HashMap<>());
