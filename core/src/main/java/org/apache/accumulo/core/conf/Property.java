@@ -485,7 +485,8 @@ public enum Property {
       "2.1.0"),
   @Experimental
   SSERV_PORTSEARCH("sserver.port.search", "true", PropertyType.BOOLEAN,
-      "if the ports above are in use, search higher ports until one is available.", "2.1.0"),
+      "if the sserver.port.client ports are in use, search higher ports until one is available.",
+      "2.1.0"),
   @Experimental
   SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers.", "2.1.0"),
@@ -553,8 +554,9 @@ public enum Property {
       "Specifies the size of the cache for RFile index blocks.", "1.3.5"),
   TSERV_SUMMARYCACHE_SIZE("tserver.cache.summary.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for summary data on each tablet server.", "2.0.0"),
-  TSERV_PORTSEARCH("tserver.port.search", "false", PropertyType.BOOLEAN,
-      "if the ports above are in use, search higher ports until one is available.", "1.3.5"),
+  TSERV_PORTSEARCH("tserver.port.search", "true", PropertyType.BOOLEAN,
+      "if the tserver.port.client ports are in use, search higher ports until one is available.",
+      "1.3.5"),
   TSERV_CLIENTPORT("tserver.port.client", "9997", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers.", "1.3.5"),
   TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "5%", PropertyType.MEMORY,
@@ -1101,7 +1103,7 @@ public enum Property {
       "4.0.0"),
   @Experimental
   COMPACTOR_PORTSEARCH("compactor.port.search", "true", PropertyType.BOOLEAN,
-      "If the compactor.port.client is in use, search higher ports until one is available.",
+      "If the compactor.port.client ports are in use, search higher ports until one is available.",
       "2.1.0"),
   @Experimental
   COMPACTOR_CLIENTPORT("compactor.port.client", "9133", PropertyType.PORT,
