@@ -19,8 +19,10 @@
 package org.apache.accumulo.core.metadata;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.util.time.SteadyTime;
 
 import com.google.common.net.HostAndPort;
 
@@ -29,21 +31,22 @@ import com.google.common.net.HostAndPort;
  */
 public class SuspendingTServer {
   public final HostAndPort server;
-  public final long suspensionTime;
+  public final SteadyTime suspensionTime;
 
-  SuspendingTServer(HostAndPort server, long suspensionTime) {
+  SuspendingTServer(HostAndPort server, SteadyTime suspensionTime) {
     this.server = Objects.requireNonNull(server);
-    this.suspensionTime = suspensionTime;
+    this.suspensionTime = Objects.requireNonNull(suspensionTime);
   }
 
   public static SuspendingTServer fromValue(Value value) {
     String valStr = value.toString();
     String[] parts = valStr.split("[|]", 2);
-    return new SuspendingTServer(HostAndPort.fromString(parts[0]), Long.parseLong(parts[1]));
+    return new SuspendingTServer(HostAndPort.fromString(parts[0]),
+        SteadyTime.from(Long.parseLong(parts[1]), TimeUnit.MILLISECONDS));
   }
 
-  public static Value toValue(TServerInstance tServer, long suspensionTime) {
-    return new Value(tServer.getHostPort() + "|" + suspensionTime);
+  public static Value toValue(TServerInstance tServer, SteadyTime suspensionTime) {
+    return new Value(tServer.getHostPort() + "|" + suspensionTime.getMillis());
   }
 
   @Override
@@ -52,7 +55,7 @@ public class SuspendingTServer {
       return false;
     }
     SuspendingTServer rhs = (SuspendingTServer) rhsObject;
-    return server.equals(rhs.server) && suspensionTime == rhs.suspensionTime;
+    return server.equals(rhs.server) && suspensionTime.equals(rhs.suspensionTime);
   }
 
   @Override
