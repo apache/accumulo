@@ -113,6 +113,11 @@ public final class TinyLfuBlockCache implements BlockCache {
       public long requestCount() {
         return stats.requestCount();
       }
+
+      @Override
+      public long evictionCount() {
+        return stats.evictionCount();
+      }
     };
   }
 
