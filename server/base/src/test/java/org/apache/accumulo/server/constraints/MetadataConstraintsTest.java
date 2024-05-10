@@ -143,12 +143,14 @@ public class MetadataConstraintsTest {
     MetadataConstraints mc = new MetadataConstraints();
     TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
 
-    SuspendLocationColumn.SUSPEND_COLUMN.put(m, SuspendingTServer.toValue(ser1, SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS)));
+    SuspendLocationColumn.SUSPEND_COLUMN.put(m, SuspendingTServer.toValue(ser1,
+        SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS)));
     List<Short> violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     m = new Mutation(new Text("0;foo"));
-    SuspendLocationColumn.SUSPEND_COLUMN.put(m, SuspendingTServer.toValue(ser1, SteadyTime.from(0, TimeUnit.MILLISECONDS)));
+    SuspendLocationColumn.SUSPEND_COLUMN.put(m,
+        SuspendingTServer.toValue(ser1, SteadyTime.from(0, TimeUnit.MILLISECONDS)));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
