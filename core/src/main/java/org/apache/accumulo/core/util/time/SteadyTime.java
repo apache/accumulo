@@ -35,7 +35,8 @@ public class SteadyTime implements Comparable<SteadyTime> {
   private final Duration time;
 
   private SteadyTime(Duration time) {
-    Preconditions.checkArgument(!time.isNegative(), "SteadyTime should not be negative.");
+    Preconditions.checkArgument(!time.isNegative(), "SteadyTime '%s' should not be negative.",
+        time.toNanos());
     this.time = time;
   }
 

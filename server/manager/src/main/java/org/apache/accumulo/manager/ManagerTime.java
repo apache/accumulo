@@ -55,6 +55,35 @@ public class ManagerTime {
    * ZooKeeper. This offset may be negative or positive (depending on if the current nanoTime of the
    * system is negative or positive) and is represented as a Duration to make computing future
    * updates to the skewAmount and SteadyTime simpler.
+   * <p>
+   * Example where the skewAmount would be negative:
+   * <ul>
+   * <li>There's an existing persisted SteadyTime duration stored in Zookeeper from the total
+   * previous manager runs of 1,000,000</li>
+   * <li>Manager starts up and reads the previous value and the gets the current nano time which is
+   * 2,000,000</li>
+   * <li>The skew gets computed as the previous steady time duration minus the current time, so that
+   * becomes: 1,000,000 - 2,000,000 = -1,000,000 resulting in the skew value being negative 1
+   * million in this case</li>
+   * <li>When reading the current SteadyTime from the API, a new SteadyTime is computed by adding
+   * the current nano time plus the skew. So let's say 100,000 ns have elapsed since the start, so
+   * the current time is now 2,100,000. This results in:(-1,000,000) + 2,100,000 = 1,100,000. You
+   * end up with 1.1 million as a SteadyTime value that is the current elapsed time of 100,000 for
+   * the current manager run plus the previous SteadyTime of 1 million that was read on start.</li>
+   * </ul>
+   *
+   * Example where the skewAmount would be positive:
+   * <ul>
+   * <li>The current persisted value from previous runs is 1,000,000</li>
+   * <li>Manager starts up gets the current nano time which is -2,000,000</li>
+   * <li>The skew gets computed as: 1,000,000 - (-2,000,000) = 3,000,000 resulting in the skew value
+   * being positive 3 million in this case</li>
+   * <li>When reading the current SteadyTime from the API, a new SteadyTime is computed by adding
+   * the current nano time plus the skew. So let's say 100,000 ns have elapsed since the start, so
+   * the current time is now -1,900,000. This results in: (3,000,000) + (-1,900,000) = 1,100,000. You
+   * end up with 1.1 million as a SteadyTime value that is the current elapsed time of 100,000 for
+   * the current manager run plus the previous SteadyTime of 1 million that was read on start.</li>
+   * </ul>
    */
   private final AtomicReference<Duration> skewAmount;
 
