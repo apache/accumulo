@@ -568,8 +568,9 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       final boolean initiallySelectedAll = true;
       final FateInstanceType type = FateInstanceType.fromTableId(tid);
       final FateId fateId = FateId.from(type, UUID.randomUUID());
-      final SelectedFiles selectedFiles = new SelectedFiles(storedTabletFiles, initiallySelectedAll,
-          fateId, SteadyTime.from(100, TimeUnit.NANOSECONDS));
+      final SteadyTime time = SteadyTime.from(100, TimeUnit.NANOSECONDS);
+      final SelectedFiles selectedFiles =
+          new SelectedFiles(storedTabletFiles, initiallySelectedAll, fateId, time);
 
       ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
 
@@ -609,13 +610,15 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           .sorted().collect(Collectors.toList());
 
       // verify we have the format of the json correct
-      String newJson = createSelectedFilesJson(fateId, initiallySelectedAll, filesPathList);
+      String newJson =
+          createSelectedFilesJson(fateId, initiallySelectedAll, filesPathList, 0, time.getNanos());
       assertEquals(actualMetadataValue, newJson,
           "Test json should be identical to actual metadata at this point");
 
       // reverse the order of the files and create a new json
       Collections.reverse(filesPathList);
-      newJson = createSelectedFilesJson(fateId, initiallySelectedAll, filesPathList);
+      newJson =
+          createSelectedFilesJson(fateId, initiallySelectedAll, filesPathList, 0, time.getNanos());
       assertNotEquals(actualMetadataValue, newJson,
           "Test json should have reverse file order of actual metadata");
 
@@ -666,10 +669,10 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
    * </pre>
    */
   public static String createSelectedFilesJson(FateId fateId, boolean selAll,
-      Collection<String> paths) {
+      Collection<String> paths, int compJobs, long selTime) {
     String filesJsonArray = GSON.get().toJson(paths);
-    return ("{'fateId':'" + fateId + "','selAll':" + selAll + ",'files':" + filesJsonArray + "}")
-        .replace('\'', '\"');
+    return ("{'fateId':'" + fateId + "','selAll':" + selAll + ",'compJobs':" + compJobs
+        + ",'selTime':" + selTime + ",'files':" + filesJsonArray + "}").replace('\'', '\"');
   }
 
   @Test
