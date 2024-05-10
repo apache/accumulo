@@ -62,6 +62,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -414,6 +415,9 @@ public class MergeTabletsTest {
         EasyMock.mock(ConditionalTabletsMutatorImpl.class);
     ConditionalTabletMutatorImpl tabletMutator = EasyMock.mock(ConditionalTabletMutatorImpl.class);
 
+    ServiceLock managerLock = EasyMock.mock(ServiceLock.class);
+    EasyMock.expect(context.getServiceLock()).andReturn(managerLock).anyTimes();
+
     // setup reading the tablets
     EasyMock.expect(manager.getContext()).andReturn(context).atLeastOnce();
     EasyMock.expect(context.getAmple()).andReturn(ample).atLeastOnce();
@@ -456,11 +460,11 @@ public class MergeTabletsTest {
     EasyMock.expectLastCall().once();
 
     EasyMock.replay(manager, context, ample, tabletBuilder, tabletsMetadata, tabletsMutator,
-        tabletMutator, cr);
+        tabletMutator, cr, managerLock);
 
     mergeTablets.call(fateId, manager);
 
     EasyMock.verify(manager, context, ample, tabletBuilder, tabletsMetadata, tabletsMutator,
-        tabletMutator, cr);
+        tabletMutator, cr, managerLock);
   }
 }

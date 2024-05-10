@@ -65,6 +65,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
@@ -475,6 +476,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       log.error("Failed to get Monitor ZooKeeper lock");
       throw new RuntimeException(e);
     }
+    this.getContext().setServiceLock(this.monitorLock);
 
     String advertiseHost = getHostname();
     if (advertiseHost.equals("0.0.0.0")) {
@@ -484,7 +486,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         log.error("Unable to get hostname", e);
       }
     }
-    log.debug("Using {} to advertise monitor location in ZooKeeper", advertiseHost);
+    HostAndPort monitorHostAndPort = HostAndPort.fromParts(advertiseHost, livePort);
+    log.debug("Using {} to advertise monitor location in ZooKeeper", monitorHostAndPort);
+
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addServiceTags(getApplicationName(), monitorHostAndPort, getResourceGroup());
+    metricsInfo.addMetricsProducers(this);
+    metricsInfo.init();
 
     try {
       URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");

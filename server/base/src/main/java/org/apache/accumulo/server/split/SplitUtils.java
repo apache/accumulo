@@ -188,13 +188,6 @@ public class SplitUtils {
   }
 
   public static int calculateDesiredSplits(long esitimatedSize, long splitThreshold) {
-    // ELASTICITY_TODO tablets used to always split into 2 tablets. Now the split operation will
-    // split into many. How does this impact a tablet with many files and the estimated sizes after
-    // split vs the old method. Need to run test where we add lots of data to a single tablet,
-    // change the split thresh, wait for splits, then look at the estimated sizes, then compact and
-    // look at the sizes after. For example if a tablet has 10M of data and the split thesh is set
-    // to 100K, what will the est sizes look like across the tablets after splitting and then after
-    // compacting?
     return (int) Math.floor((double) esitimatedSize / (double) splitThreshold);
   }
 
