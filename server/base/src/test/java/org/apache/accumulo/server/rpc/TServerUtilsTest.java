@@ -93,6 +93,7 @@ public class TServerUtilsTest {
   public void testStartServerZeroPort() throws Exception {
     TServer server = null;
     conf.set(Property.TSERV_CLIENTPORT, "0");
+    conf.set(Property.TSERV_PORTSEARCH, "false");
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -111,6 +112,7 @@ public class TServerUtilsTest {
     TServer server = null;
     int port = getFreePort(1024);
     conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port));
+    conf.set(Property.TSERV_PORTSEARCH, "false");
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -131,6 +133,7 @@ public class TServerUtilsTest {
     InetAddress addr = InetAddress.getByName("localhost");
     // Bind to the port
     conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port));
+    conf.set(Property.TSERV_PORTSEARCH, "false");
     try (ServerSocket s = new ServerSocket(port, 50, addr)) {
       assertNotNull(s);
       assertThrows(UnknownHostException.class, this::startServer);
@@ -145,7 +148,6 @@ public class TServerUtilsTest {
     // Bind to the port
     InetAddress addr = InetAddress.getByName("localhost");
     conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port[0]));
-    conf.set(Property.TSERV_PORTSEARCH, "true");
     try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
       assertNotNull(s);
       ServerAddress address = startServer();
@@ -188,8 +190,6 @@ public class TServerUtilsTest {
     ports = findTwoFreeSequentialPorts(monitorPort + 1);
     int tserverFinalPort = ports[0];
 
-    conf.set(Property.TSERV_PORTSEARCH, "true");
-
     // Ensure that the TServer client port we set above is NOT in the reserved ports
     Map<Integer,Property> reservedPorts =
         TServerUtils.getReservedPorts(conf, Property.TSERV_CLIENTPORT);
@@ -224,6 +224,7 @@ public class TServerUtilsTest {
     int[] port = findTwoFreeSequentialPorts(1024);
     String portRange = port[0] + "-" + port[1];
     conf.set(Property.TSERV_CLIENTPORT, portRange);
+    conf.set(Property.TSERV_PORTSEARCH, "false");
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -247,6 +248,7 @@ public class TServerUtilsTest {
     String portRange = port[0] + "-" + port[1];
     // Bind to the port
     conf.set(Property.TSERV_CLIENTPORT, portRange);
+    conf.set(Property.TSERV_PORTSEARCH, "false");
     try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
       assertNotNull(s);
       ServerAddress address = startServer();

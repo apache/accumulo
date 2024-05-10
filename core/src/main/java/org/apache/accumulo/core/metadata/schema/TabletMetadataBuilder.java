@@ -55,6 +55,7 @@ import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.io.Text;
 
 public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadataBuilder> {
@@ -182,7 +183,7 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder putSuspension(TServerInstance tserver, long suspensionTime) {
+  public TabletMetadataBuilder putSuspension(TServerInstance tserver, SteadyTime suspensionTime) {
     fetched.add(SUSPEND);
     internalBuilder.putSuspension(tserver, suspensionTime);
     return this;

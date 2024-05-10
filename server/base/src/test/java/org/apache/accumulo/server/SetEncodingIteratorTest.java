@@ -21,10 +21,11 @@ package org.apache.accumulo.server;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Set;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -39,17 +40,20 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.server.metadata.iterators.SetEqualityIterator;
+import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.server.metadata.iterators.SetEncodingIterator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class SetEqualityIteratorTest {
+public class SetEncodingIteratorTest {
 
-  private SetEqualityIterator setEqualityIterator;
-  private SetEqualityIterator setEqualityIteratorNoFiles;
-  private SetEqualityIterator setEqualityIteratorOneFile;
+  private TabletMetadata tmOneFile;
+  private TabletMetadata tmMultipleFiles;
+  private SetEncodingIterator setEqualityIterator;
+  private SetEncodingIterator setEqualityIteratorNoFiles;
+  private SetEncodingIterator setEqualityIteratorOneFile;
   private SortedMapIterator sortedMapIterator;
   private SortedMapIterator sortedMapIteratorNoFiles;
   private SortedMapIterator sortedMapIteratorOneFile;
@@ -72,13 +76,13 @@ public class SetEqualityIteratorTest {
     // Create tablet metadata with one file
     StoredTabletFile singleFile =
         new ReferencedTabletFile(new Path("dfs://nn1/acc/tables/1/t-0001/sf1.rf")).insert();
-    TabletMetadata tmOneFile = TabletMetadata.builder(extent)
-        .putFile(singleFile, new DataFileValue(100, 50)).putFlushId(8).build();
+    tmOneFile = TabletMetadata.builder(extent).putFile(singleFile, new DataFileValue(100, 50))
+        .putFlushId(8).build();
 
     // Create tablet metadata with multiple files
-    TabletMetadata tmMultipleFiles = TabletMetadata.builder(extent)
-        .putFile(file1, new DataFileValue(0, 0)).putFile(file2, new DataFileValue(555, 23))
-        .putFile(file3, new DataFileValue(234, 13)).putFlushId(6).build();
+    tmMultipleFiles = TabletMetadata.builder(extent).putFile(file1, new DataFileValue(0, 0))
+        .putFile(file2, new DataFileValue(555, 23)).putFile(file3, new DataFileValue(234, 13))
+        .putFlushId(6).build();
 
     var extent2 = new KeyExtent(extent.tableId(), null, extent.endRow());
     // create another tablet metadata using extent2 w/ diff files and add it to sortedMap. This
@@ -107,12 +111,15 @@ public class SetEqualityIteratorTest {
     sortedMapIteratorOneFile = new SortedMapIterator(sortedMapOneFile);
 
     // Set the SortedMapIterator as the source for SetEqualityIterator
-    setEqualityIterator = new SetEqualityIterator();
-    setEqualityIterator.init(sortedMapIterator, Collections.emptyMap(), null);
-    setEqualityIteratorNoFiles = new SetEqualityIterator();
-    setEqualityIteratorNoFiles.init(sortedMapIteratorNoFiles, Collections.emptyMap(), null);
-    setEqualityIteratorOneFile = new SetEqualityIterator();
-    setEqualityIteratorOneFile.init(sortedMapIteratorOneFile, Collections.emptyMap(), null);
+    setEqualityIterator = new SetEncodingIterator();
+    setEqualityIterator.init(sortedMapIterator, Map.of(SetEncodingIterator.CONCAT_VALUE, "true"),
+        null);
+    setEqualityIteratorNoFiles = new SetEncodingIterator();
+    setEqualityIteratorNoFiles.init(sortedMapIteratorNoFiles,
+        Map.of(SetEncodingIterator.CONCAT_VALUE, "false"), null);
+    setEqualityIteratorOneFile = new SetEncodingIterator();
+    setEqualityIteratorOneFile.init(sortedMapIteratorOneFile,
+        Map.of(SetEncodingIterator.CONCAT_VALUE, "true"), null);
   }
 
   @Test
@@ -129,7 +136,7 @@ public class SetEqualityIteratorTest {
     // Asserting the result
     assertEquals(new Key(tabletRow, family), setEqualityIteratorNoFiles.getTopKey());
     // The iterator should produce a value that is equal to the expected value on the condition
-    var condition = SetEqualityIterator.createCondition(Collections.emptySet(),
+    var condition = SetEncodingIterator.createCondition(Collections.emptySet(),
         storedTabletFile -> ((StoredTabletFile) storedTabletFile).getMetadata().getBytes(UTF_8),
         family);
     assertArrayEquals(condition.getValue().toArray(),
@@ -150,8 +157,10 @@ public class SetEqualityIteratorTest {
     // Asserting the result
     assertEquals(new Key(tabletRow, family), setEqualityIteratorOneFile.getTopKey());
     // The iterator should produce a value that is equal to the expected value on the condition
-    var condition = SetEqualityIterator.createCondition(Collections.singleton(file1),
-        storedTabletFile -> storedTabletFile.getMetadata().getBytes(UTF_8), family);
+    var condition = SetEncodingIterator.createConditionWithVal(tmOneFile.getFilesMap().entrySet(),
+        entry -> new Pair<>(entry.getKey().getMetadata().getBytes(UTF_8),
+            entry.getValue().encode()),
+        family);
     assertArrayEquals(condition.getValue().toArray(),
         setEqualityIteratorOneFile.getTopValue().get());
   }
@@ -170,9 +179,25 @@ public class SetEqualityIteratorTest {
     // Asserting the result
     assertEquals(new Key(tabletRow, family), setEqualityIterator.getTopKey());
     // The iterator should produce a value that is equal to the expected value on the condition
-    var condition = SetEqualityIterator.createCondition(Set.of(file1, file2, file3),
-        storedTabletFile -> storedTabletFile.getMetadata().getBytes(UTF_8), family);
+    var condition =
+        SetEncodingIterator.createConditionWithVal(tmMultipleFiles.getFilesMap().entrySet(),
+            entry -> new Pair<>(entry.getKey().getMetadata().getBytes(UTF_8),
+                entry.getValue().encode()),
+            family);
     assertArrayEquals(condition.getValue().toArray(), setEqualityIterator.getTopValue().get());
+
+  }
+
+  @Test
+  public void testInvalidConcatValueOption() throws IOException {
+    SetEncodingIterator iter = new SetEncodingIterator();
+    iter.init(null, Map.of(SetEncodingIterator.CONCAT_VALUE, "true"), null);
+    iter.init(null, Map.of(SetEncodingIterator.CONCAT_VALUE, "false"), null);
+    assertThrows(IllegalArgumentException.class, () -> iter.init(null, Map.of(), null));
+    assertThrows(IllegalArgumentException.class,
+        () -> iter.init(null, Map.of(SetEncodingIterator.CONCAT_VALUE, "yes"), null));
+    assertThrows(IllegalArgumentException.class,
+        () -> iter.init(null, Map.of(SetEncodingIterator.CONCAT_VALUE, ""), null));
 
   }
 

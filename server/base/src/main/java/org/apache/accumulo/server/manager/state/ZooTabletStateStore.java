@@ -44,6 +44,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.hadoop.fs.Path;
@@ -190,7 +191,7 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
 
   @Override
   public void suspend(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     validateTablets(tablets);
     super.suspend(tablets, logsForDeadServers, suspensionTimestamp);
@@ -198,7 +199,7 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
 
   @Override
   protected void processSuspension(Ample.ConditionalTabletMutator tabletMutator, TabletMetadata tm,
-      long suspensionTimestamp) {
+      SteadyTime suspensionTimestamp) {
     // No support for suspending root tablet, so this is a NOOP
   }
 

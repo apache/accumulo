@@ -167,6 +167,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   TabletServerScanMetrics scanMetrics;
   TabletServerMinCMetrics mincMetrics;
   PausedCompactionMetrics pausedMetrics;
+  BlockCacheMetrics blockCacheMetrics;
 
   @Override
   public TabletServerScanMetrics getScanMetrics() {
@@ -583,9 +584,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     scanMetrics = new TabletServerScanMetrics();
     mincMetrics = new TabletServerMinCMetrics();
     pausedMetrics = new PausedCompactionMetrics();
+    blockCacheMetrics = new BlockCacheMetrics(this.resourceManager.getIndexCache(),
+        this.resourceManager.getDataCache(), this.resourceManager.getSummaryCache());
 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
-        pausedMetrics);
+        pausedMetrics, blockCacheMetrics);
     metricsInfo.init();
 
     announceExistence();
