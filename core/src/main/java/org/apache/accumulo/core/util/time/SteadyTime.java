@@ -52,6 +52,10 @@ public class SteadyTime implements Comparable<SteadyTime> {
     return time;
   }
 
+  public Duration minus(SteadyTime other) {
+    return time.minus(other.getDuration());
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -72,6 +76,11 @@ public class SteadyTime implements Comparable<SteadyTime> {
   @Override
   public int compareTo(SteadyTime other) {
     return time.compareTo(other.time);
+  }
+
+  @Override
+  public String toString() {
+    return "SteadyTime[" + time + "]";
   }
 
   public static SteadyTime from(long time, TimeUnit unit) {

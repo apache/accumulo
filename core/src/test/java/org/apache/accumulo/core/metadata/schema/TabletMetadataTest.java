@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -78,6 +79,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -128,7 +130,7 @@ public class TabletMetadataTest {
     MERGED_COLUMN.put(mutation, new Value());
 
     OLD_PREV_ROW_COLUMN.put(mutation, TabletColumnFamily.encodePrevEndRow(new Text("oldPrev")));
-    long suspensionTime = System.currentTimeMillis();
+    SteadyTime suspensionTime = SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
     TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
     Value suspend = SuspendingTServer.toValue(ser1, suspensionTime);
     SUSPEND_COLUMN.put(mutation, suspend);
@@ -289,13 +291,14 @@ public class TabletMetadataTest {
     // test SUSPENDED
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
     mutation.at().family(SUSPEND_COLUMN.getColumnFamily())
-        .qualifier(SUSPEND_COLUMN.getColumnQualifier()).put(SuspendingTServer.toValue(ser2, 1000L));
+        .qualifier(SUSPEND_COLUMN.getColumnQualifier())
+        .put(SuspendingTServer.toValue(ser2, SteadyTime.from(1000L, TimeUnit.MILLISECONDS)));
     rowMap = toRowMap(mutation);
 
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
 
     assertEquals(TabletState.SUSPENDED, tm.getTabletState(tservers));
-    assertEquals(1000L, tm.getSuspend().suspensionTime);
+    assertEquals(1000L, tm.getSuspend().suspensionTime.getMillis());
     assertEquals(ser2.getHostAndPort(), tm.getSuspend().server);
     assertNull(tm.getLocation());
     assertFalse(tm.hasCurrent());
