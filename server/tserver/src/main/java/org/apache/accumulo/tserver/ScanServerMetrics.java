@@ -21,6 +21,7 @@ package org.apache.accumulo.tserver;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.server.metrics.NoopMetrics;
 
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
@@ -31,8 +32,8 @@ import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 
 public class ScanServerMetrics implements MetricsProducer {
 
-  private Timer reservationTimer;
-  private Counter busyTimeoutCount;
+  private Timer reservationTimer = NoopMetrics.useNoopTimer();;
+  private Counter busyTimeoutCount = NoopMetrics.useNoopCounter();;
 
   private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
 
