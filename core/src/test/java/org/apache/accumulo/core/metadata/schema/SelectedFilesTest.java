@@ -143,11 +143,12 @@ public class SelectedFilesTest {
   }
 
   private static Stream<Arguments> provideTestJsons() {
-    return Stream.of(Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", true, 0, 12),
-        Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", false, 1, 12),
-        Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", false, 2, 23),
-        Arguments.of("FATE:META:abcdef12-3456-789a-bcde-f123456789ab", false, 2, 23),
-        Arguments.of("FATE:META:41b40c7c-55e5-4d3b-8d21-1b70d1e7f3fb", false, 2, 23));
+    return Stream.of(
+        Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", true, 0, 1000, 12),
+        Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", false, 1, 2000, 12),
+        Arguments.of("FATE:META:12345678-9abc-def1-2345-6789abcdef12", false, 2, 3000, 23),
+        Arguments.of("FATE:META:abcdef12-3456-789a-bcde-f123456789ab", false, 2, 4000, 23),
+        Arguments.of("FATE:META:41b40c7c-55e5-4d3b-8d21-1b70d1e7f3fb", false, 2, 5000, 23));
   }
 
   /**
@@ -156,14 +157,15 @@ public class SelectedFilesTest {
    */
   @ParameterizedTest
   @MethodSource("provideTestJsons")
-  public void testJsonStrings(FateId fateId, boolean selAll, int compJobs, int numPaths) {
+  public void testJsonStrings(FateId fateId, boolean selAll, int compJobs, long selTime,
+      int numPaths) {
     List<String> paths = getFilePaths(numPaths);
 
     // should be resilient to unordered file arrays
     Collections.shuffle(paths, RANDOM.get());
 
     // construct a json from the given parameters
-    String json = getJson(fateId, selAll, compJobs, paths);
+    String json = getJson(fateId, selAll, compJobs, selTime, paths);
 
     System.out.println(json);
 
@@ -177,7 +179,7 @@ public class SelectedFilesTest {
     assertEquals(expectedStoredTabletFiles, selectedFiles.getFiles());
 
     Collections.sort(paths);
-    String jsonWithSortedFiles = getJson(fateId, selAll, compJobs, paths);
+    String jsonWithSortedFiles = getJson(fateId, selAll, compJobs, selTime, paths);
     assertEquals(jsonWithSortedFiles, selectedFiles.getMetadataValue());
   }
 
@@ -193,13 +195,14 @@ public class SelectedFilesTest {
    * }
    * </pre>
    */
-  private static String getJson(FateId fateId, boolean selAll, int compJobs, List<String> paths) {
+  private static String getJson(FateId fateId, boolean selAll, int compJobs, long selTime,
+      List<String> paths) {
     String filesJsonArray =
         paths.stream().map(path -> new ReferencedTabletFile(new Path(path)).insert().getMetadata())
             .map(path -> path.replace("\"", "\\\"")).map(path -> "'" + path + "'")
             .collect(Collectors.joining(","));
     return ("{'fateId':'" + fateId + "','selAll':" + selAll + ",'compJobs':" + compJobs
-        + ",'files':[" + filesJsonArray + "]}").replace('\'', '\"');
+        + ",'selTime':" + selTime + ",'files':[" + filesJsonArray + "]}").replace('\'', '\"');
   }
 
   /**
