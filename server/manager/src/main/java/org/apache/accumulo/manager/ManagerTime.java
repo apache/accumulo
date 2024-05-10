@@ -80,9 +80,10 @@ public class ManagerTime {
    * being positive 3 million in this case</li>
    * <li>When reading the current SteadyTime from the API, a new SteadyTime is computed by adding
    * the current nano time plus the skew. So let's say 100,000 ns have elapsed since the start, so
-   * the current time is now -1,900,000. This results in: (3,000,000) + (-1,900,000) = 1,100,000. You
-   * end up with 1.1 million as a SteadyTime value that is the current elapsed time of 100,000 for
-   * the current manager run plus the previous SteadyTime of 1 million that was read on start.</li>
+   * the current time is now -1,900,000. This results in: (3,000,000) + (-1,900,000) = 1,100,000.
+   * You end up with 1.1 million as a SteadyTime value that is the current elapsed time of 100,000
+   * for the current manager run plus the previous SteadyTime of 1 million that was read on
+   * start.</li>
    * </ul>
    */
   private final AtomicReference<Duration> skewAmount;
