@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.lang.reflect.Method;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -42,6 +43,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -141,18 +143,18 @@ public class MetadataConstraintsTest {
     MetadataConstraints mc = new MetadataConstraints();
     TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
 
-    long suspensionTime = System.currentTimeMillis();
-    SuspendLocationColumn.SUSPEND_COLUMN.put(m, SuspendingTServer.toValue(ser1, suspensionTime));
+    SuspendLocationColumn.SUSPEND_COLUMN.put(m, SuspendingTServer.toValue(ser1, SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS)));
     List<Short> violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     m = new Mutation(new Text("0;foo"));
-    SuspendLocationColumn.SUSPEND_COLUMN.put(m, SuspendingTServer.toValue(ser1, 0));
+    SuspendLocationColumn.SUSPEND_COLUMN.put(m, SuspendingTServer.toValue(ser1, SteadyTime.from(0, TimeUnit.MILLISECONDS)));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     m = new Mutation(new Text("0;foo"));
-    SuspendLocationColumn.SUSPEND_COLUMN.put(m, SuspendingTServer.toValue(ser1, -1));
+    // We must encode manually since SteadyTime won't allow a negative
+    SuspendLocationColumn.SUSPEND_COLUMN.put(m, new Value(ser1.getHostPort() + "|" + -1L));
     violations = mc.check(createEnv(), m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
