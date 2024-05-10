@@ -22,6 +22,7 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.data.Value;
 
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -39,6 +40,8 @@ public class SuspendingTServer {
   public static SuspendingTServer fromValue(Value value) {
     String valStr = value.toString();
     String[] parts = valStr.split("[|]", 2);
+    // TODO: This line is temporary until #4545 is merged which already does the negative check
+    Preconditions.checkArgument(Long.parseLong(parts[1]) >= 0, "Suspended time cannot be negative");
     return new SuspendingTServer(HostAndPort.fromString(parts[0]), Long.parseLong(parts[1]));
   }
 
