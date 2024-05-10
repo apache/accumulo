@@ -114,6 +114,7 @@ import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.NanoTime;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
@@ -1726,11 +1727,11 @@ public class Manager extends AbstractServer
   }
 
   /**
-   * Return how long (in milliseconds) there has been a manager overseeing this cluster. This is an
-   * approximately monotonic clock, which will be approximately consistent between different
-   * managers or different runs of the same manager.
+   * Return how long there has been a manager overseeing this cluster. This is an approximately
+   * monotonic clock, which will be approximately consistent between different managers or different
+   * runs of the same manager. SteadyTime supports both nanoseconds and milliseconds.
    */
-  public Long getSteadyTime() {
+  public SteadyTime getSteadyTime() {
     return timeKeeper.getTime();
   }
 
