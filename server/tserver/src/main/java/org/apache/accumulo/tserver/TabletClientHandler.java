@@ -103,6 +103,7 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionInfo;
 import org.apache.accumulo.server.compaction.FileCompactor;
@@ -1075,8 +1076,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     KeyExtent extent = KeyExtent.fromThrift(textent);
 
-    server.resourceManager.addMigration(extent,
-        new UnloadTabletHandler(server, extent, goal, requestTime));
+    server.resourceManager.addMigration(extent, new UnloadTabletHandler(server, extent, goal,
+        SteadyTime.from(requestTime, TimeUnit.MILLISECONDS)));
   }
 
   @Override

@@ -56,6 +56,10 @@ public class SteadyTime implements Comparable<SteadyTime> {
     return time.minus(other.getDuration());
   }
 
+  public SteadyTime plus(Duration other) {
+    return SteadyTime.from(time.plus(other));
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -90,4 +94,5 @@ public class SteadyTime implements Comparable<SteadyTime> {
   public static SteadyTime from(Duration time) {
     return new SteadyTime(time);
   }
+
 }
