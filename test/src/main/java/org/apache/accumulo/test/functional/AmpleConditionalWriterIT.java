@@ -319,6 +319,19 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           .putFile(stf4, new DataFileValue(0, 0)).deleteFile(stf1).deleteFile(stf2).deleteFile(stf3)
           .submit(tm -> false);
       results = ctmi.process();
+      // First attempt should fail because the dfvs were replaced in the test
+      // so the values of the files will not match
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+
+      // Try again with the correct comapcted datafiles
+      var compactedDv = new DataFileValue(0, 0);
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      tm5 = TabletMetadata.builder(e1).putFile(stf1, compactedDv).putFile(stf2, compactedDv)
+          .putFile(stf3, compactedDv).build();
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm5, FILES)
+          .putFile(stf4, new DataFileValue(0, 0)).deleteFile(stf1).deleteFile(stf2).deleteFile(stf3)
+          .submit(tm -> false);
+      results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
 
       assertEquals(Set.of(stf4), context.getAmple().readTablet(e1).getFiles());
@@ -332,7 +345,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       FateId fateId = FateId.from(type, UUID.randomUUID());
       ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm6, LOADED)
           .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5.getTabletFile(), fateId)
-          .putFile(stf5, new DataFileValue(0, 0)).submit(tm -> false);
+          .submit(tm -> false);
       results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
 
@@ -342,7 +355,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var stf6 = StoredTabletFile
           .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/A0000075.rf"));
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      var tm7 = TabletMetadata.builder(e1).putFile(stf4, dfv).putFile(stf5, dfv).build();
+      var tm7 =
+          TabletMetadata.builder(e1).putFile(stf4, compactedDv).putFile(stf5, compactedDv).build();
       ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm7, FILES)
           .putFile(stf6, new DataFileValue(0, 0)).deleteFile(stf4).deleteFile(stf5)
           .submit(tm -> false);
