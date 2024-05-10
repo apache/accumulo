@@ -21,6 +21,7 @@ package org.apache.accumulo.server;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -114,7 +115,8 @@ public class SetEncodingIteratorTest {
     setEqualityIterator.init(sortedMapIterator, Map.of(SetEncodingIterator.CONCAT_VALUE, "true"),
         null);
     setEqualityIteratorNoFiles = new SetEncodingIterator();
-    setEqualityIteratorNoFiles.init(sortedMapIteratorNoFiles, Collections.emptyMap(), null);
+    setEqualityIteratorNoFiles.init(sortedMapIteratorNoFiles,
+        Map.of(SetEncodingIterator.CONCAT_VALUE, "false"), null);
     setEqualityIteratorOneFile = new SetEncodingIterator();
     setEqualityIteratorOneFile.init(sortedMapIteratorOneFile,
         Map.of(SetEncodingIterator.CONCAT_VALUE, "true"), null);
@@ -183,6 +185,19 @@ public class SetEncodingIteratorTest {
                 entry.getValue().encode()),
             family);
     assertArrayEquals(condition.getValue().toArray(), setEqualityIterator.getTopValue().get());
+
+  }
+
+  @Test
+  public void testInvalidConcatValueOption() throws IOException {
+    SetEncodingIterator iter = new SetEncodingIterator();
+    iter.init(null, Map.of(SetEncodingIterator.CONCAT_VALUE, "true"), null);
+    iter.init(null, Map.of(SetEncodingIterator.CONCAT_VALUE, "false"), null);
+    assertThrows(IllegalArgumentException.class, () -> iter.init(null, Map.of(), null));
+    assertThrows(IllegalArgumentException.class,
+        () -> iter.init(null, Map.of(SetEncodingIterator.CONCAT_VALUE, "yes"), null));
+    assertThrows(IllegalArgumentException.class,
+        () -> iter.init(null, Map.of(SetEncodingIterator.CONCAT_VALUE, ""), null));
 
   }
 

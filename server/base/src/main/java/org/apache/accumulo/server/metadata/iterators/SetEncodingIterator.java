@@ -54,7 +54,7 @@ import com.google.common.base.Preconditions;
  *
  * <h2>Options</h2>
  * <ul>
- * <li><b>concat.value:</b> If this option is supplied and is true, then the bytes from the Value
+ * <li><b>concat.value:</b> This option must be supplied. If true, then the bytes from the Value
  * will be concatenated with a null byte separator.</li>
  * </ul>
  */
@@ -160,8 +160,13 @@ public class SetEncodingIterator implements SortedKeyValueIterator<Key,Value> {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
+    String concat = options.get(CONCAT_VALUE);
+    if (concat == null || !(concat.equalsIgnoreCase("true") || concat.equalsIgnoreCase("false"))) {
+      throw new IllegalArgumentException(
+          CONCAT_VALUE + " option must be supplied with a value of 'true' or 'false'");
+    }
     this.source = source;
-    this.concat = Boolean.parseBoolean(options.getOrDefault(CONCAT_VALUE, Boolean.toString(false)));
+    this.concat = Boolean.parseBoolean(concat);
   }
 
   @Override
