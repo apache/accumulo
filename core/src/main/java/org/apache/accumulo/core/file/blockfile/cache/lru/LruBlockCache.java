@@ -633,6 +633,11 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
       return accessCount.get();
     }
 
+    @Override
+    public long evictionCount() {
+      return getEvictedCount();
+    }
+
     public long getMissCount() {
       return missCount.get();
     }
