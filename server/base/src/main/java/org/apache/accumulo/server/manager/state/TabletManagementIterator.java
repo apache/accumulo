@@ -20,6 +20,7 @@ package org.apache.accumulo.server.manager.state;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -35,7 +36,9 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SkippingIterator;
@@ -165,6 +168,23 @@ public class TabletManagementIterator extends SkippingIterator {
     balancer = Property.createInstanceFromPropertyName(conf, Property.MANAGER_TABLET_BALANCER,
         TabletBalancer.class, new SimpleLoadBalancer());
     balancer.init(benv);
+  }
+
+  @Override
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
+    if (range != null) {
+      // This iterator sits on top of the WholeRowIterator (see configureScanner), so enforce
+      // that the start and end keys in the Range only have a row component to the key.
+      for (Key k : new Key[] {range.getStartKey(), range.getEndKey()}) {
+        if (k != null && k.compareTo(new Key(k.getRow())) != 0) {
+          throw new IllegalArgumentException(
+              "TabletManagementIterator must be seeked with keys that only contain a row, supplied range: "
+                  + range);
+        }
+      }
+    }
+    super.seek(range, columnFamilies, inclusive);
   }
 
   @Override
@@ -299,4 +319,5 @@ public class TabletManagementIterator extends SkippingIterator {
       return ALL_COMPACTION_KINDS;
     }
   }
+
 }
