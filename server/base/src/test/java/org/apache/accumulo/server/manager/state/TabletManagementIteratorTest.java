@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.manager.state;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Set;
@@ -46,11 +47,14 @@ public class TabletManagementIteratorTest {
         () -> iter.seek(new Range((Key) null, (Key) null), Set.of(), false));
     assertThrows(IllegalStateException.class,
         () -> iter.seek(new Range(goodStartKey, goodEndKey), Set.of(), false));
-    assertThrows(IllegalArgumentException.class,
-        () -> iter.seek(new Range(goodStartKey, badEndKey), Set.of(), false));
-    assertThrows(IllegalArgumentException.class,
-        () -> iter.seek(new Range(badStartKey, goodEndKey), Set.of(), false));
-    assertThrows(IllegalArgumentException.class,
-        () -> iter.seek(new Range(badStartKey, badEndKey), Set.of(), false));
+    assertTrue(assertThrows(IllegalArgumentException.class,
+        () -> iter.seek(new Range(goodStartKey, badEndKey), Set.of(), false)).getMessage()
+        .startsWith("TabletManagementIterator must be seeked"));
+    assertTrue(assertThrows(IllegalArgumentException.class,
+        () -> iter.seek(new Range(badStartKey, goodEndKey), Set.of(), false)).getMessage()
+        .startsWith("TabletManagementIterator must be seeked"));
+    assertTrue(assertThrows(IllegalArgumentException.class,
+        () -> iter.seek(new Range(badStartKey, badEndKey), Set.of(), false)).getMessage()
+        .startsWith("TabletManagementIterator must be seeked"));
   }
 }
