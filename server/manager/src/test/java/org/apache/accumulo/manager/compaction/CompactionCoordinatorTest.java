@@ -43,6 +43,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -455,10 +456,10 @@ public class CompactionCoordinatorTest {
     var cid1 = ExternalCompactionId.generate(UUID.randomUUID());
     var cid2 = ExternalCompactionId.generate(UUID.randomUUID());
 
-    var selectedWithoutComp =
-        new SelectedFiles(Set.of(file1, file2, file3), false, fateId1, SteadyTime.from(100));
-    var selectedWithComp =
-        new SelectedFiles(Set.of(file1, file2, file3), false, fateId1, 1, SteadyTime.from(100));
+    var selectedWithoutComp = new SelectedFiles(Set.of(file1, file2, file3), false, fateId1,
+        SteadyTime.from(100, TimeUnit.NANOSECONDS));
+    var selectedWithComp = new SelectedFiles(Set.of(file1, file2, file3), false, fateId1, 1,
+        SteadyTime.from(100, TimeUnit.NANOSECONDS));
 
     // should not be able to compact an offline table
     var tabletOffline = TabletMetadata.builder(new KeyExtent(tableId2, null, null))

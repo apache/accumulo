@@ -29,6 +29,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -494,7 +495,8 @@ public class MetadataConstraintsTest {
     ServerColumnFamily.SELECTED_COLUMN.put(m,
         new Value(new SelectedFiles(Set.of(new ReferencedTabletFile(
             new Path("hdfs://nn.somewhere.com:86753/accumulo/tables/42/t-0000/F00001.rf"))
-            .insert()), true, fateId, SteadyTime.from(100)).getMetadataValue()));
+            .insert()), true, fateId, SteadyTime.from(100, TimeUnit.NANOSECONDS))
+            .getMetadataValue()));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
   }

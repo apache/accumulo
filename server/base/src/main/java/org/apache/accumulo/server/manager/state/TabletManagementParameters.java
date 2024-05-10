@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -134,7 +135,7 @@ public class TabletManagementParameters {
     });
     this.canSuspendTablets = jdata.canSuspendTablets;
     this.volumeReplacements = Collections.unmodifiableMap(jdata.volumeReplacements);
-    this.steadyTime = SteadyTime.from(jdata.steadyTime);
+    this.steadyTime = SteadyTime.from(jdata.steadyTime, TimeUnit.NANOSECONDS);
   }
 
   public ManagerState getManagerState() {

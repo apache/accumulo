@@ -52,6 +52,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -491,7 +492,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     FateInstanceType type = FateInstanceType.fromTableId(tid);
     FateId fateId1 = FateId.from(type, UUID.randomUUID());
     FateId fateId2 = FateId.from(type, UUID.randomUUID());
-    var time = SteadyTime.from(100_100);
+    var time = SteadyTime.from(100_100, TimeUnit.NANOSECONDS);
     ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm1, FILES, SELECTED)
         .putSelectedFiles(new SelectedFiles(Set.of(stf1, stf2, stf3), true, fateId1, time))
         .submit(tm -> false);
@@ -567,8 +568,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       final boolean initiallySelectedAll = true;
       final FateInstanceType type = FateInstanceType.fromTableId(tid);
       final FateId fateId = FateId.from(type, UUID.randomUUID());
-      final SelectedFiles selectedFiles =
-          new SelectedFiles(storedTabletFiles, initiallySelectedAll, fateId, SteadyTime.from(100));
+      final SelectedFiles selectedFiles = new SelectedFiles(storedTabletFiles, initiallySelectedAll,
+          fateId, SteadyTime.from(100, TimeUnit.NANOSECONDS));
 
       ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
 

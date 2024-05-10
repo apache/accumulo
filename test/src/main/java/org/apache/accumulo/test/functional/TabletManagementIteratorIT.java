@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -591,6 +592,6 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         new LiveTServerSet.LiveTServersSnapshot(tservers,
             Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers)),
         Set.of(), Map.of(), Ample.DataLevel.USER, Map.of(), true, replacements,
-        SteadyTime.from(10000));
+        SteadyTime.from(10000, TimeUnit.NANOSECONDS));
   }
 }

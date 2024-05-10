@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -57,7 +58,8 @@ public class SelectedFilesTest {
     Set<StoredTabletFile> files = getStoredTabletFiles(2);
     FateId fateId = FateId.from(FateInstanceType.META, UUID.randomUUID());
 
-    SelectedFiles original = new SelectedFiles(files, true, fateId, SteadyTime.from(100_100));
+    SelectedFiles original =
+        new SelectedFiles(files, true, fateId, SteadyTime.from(100_100, TimeUnit.NANOSECONDS));
 
     String json = original.getMetadataValue();
     SelectedFiles deserialized = SelectedFiles.from(json);
@@ -74,8 +76,10 @@ public class SelectedFilesTest {
     Set<StoredTabletFile> files = getStoredTabletFiles(16);
     FateId fateId = FateId.from(FateInstanceType.META, UUID.randomUUID());
 
-    SelectedFiles sf1 = new SelectedFiles(files, true, fateId, SteadyTime.from(100_100));
-    SelectedFiles sf2 = new SelectedFiles(files, true, fateId, SteadyTime.from(100_100));
+    SelectedFiles sf1 =
+        new SelectedFiles(files, true, fateId, SteadyTime.from(100_100, TimeUnit.NANOSECONDS));
+    SelectedFiles sf2 =
+        new SelectedFiles(files, true, fateId, SteadyTime.from(100_100, TimeUnit.NANOSECONDS));
 
     assertEquals(sf1.getMetadataValue(), sf2.getMetadataValue());
     assertEquals(sf1, sf2);
@@ -95,8 +99,10 @@ public class SelectedFilesTest {
     assertNotEquals(files.toString(), sortedFiles.toString(),
         "Order of files set should differ for this test case");
 
-    SelectedFiles sf1 = new SelectedFiles(files, false, fateId, SteadyTime.from(100_100));
-    SelectedFiles sf2 = new SelectedFiles(sortedFiles, false, fateId, SteadyTime.from(100_100));
+    SelectedFiles sf1 =
+        new SelectedFiles(files, false, fateId, SteadyTime.from(100_100, TimeUnit.NANOSECONDS));
+    SelectedFiles sf2 = new SelectedFiles(sortedFiles, false, fateId,
+        SteadyTime.from(100_100, TimeUnit.NANOSECONDS));
 
     assertEquals(sf1.getMetadataValue(), sf2.getMetadataValue());
     assertEquals(sf1, sf2);
@@ -114,10 +120,10 @@ public class SelectedFilesTest {
     // Remove an element to create a subset
     filesSubSet.remove(filesSubSet.iterator().next());
 
-    SelectedFiles superSetSelectedFiles =
-        new SelectedFiles(filesSuperSet, true, fateId, SteadyTime.from(100_100));
-    SelectedFiles subSetSelectedFiles =
-        new SelectedFiles(filesSubSet, true, fateId, SteadyTime.from(100_100));
+    SelectedFiles superSetSelectedFiles = new SelectedFiles(filesSuperSet, true, fateId,
+        SteadyTime.from(100_100, TimeUnit.NANOSECONDS));
+    SelectedFiles subSetSelectedFiles = new SelectedFiles(filesSubSet, true, fateId,
+        SteadyTime.from(100_100, TimeUnit.NANOSECONDS));
 
     String superSetJson = superSetSelectedFiles.getMetadataValue();
     String subSetJson = subSetSelectedFiles.getMetadataValue();

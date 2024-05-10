@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
@@ -56,7 +57,7 @@ public class TabletManagementParametersTest {
     final boolean canSuspendTablets = true;
     final Map<Path,Path> replacements =
         Map.of(new Path("file:/vol1/accumulo/inst_id"), new Path("file:/vol2/accumulo/inst_id"));
-    final SteadyTime steadyTime = SteadyTime.from(100_000);
+    final SteadyTime steadyTime = SteadyTime.from(100_000, TimeUnit.NANOSECONDS);
 
     final TabletManagementParameters tmp = new TabletManagementParameters(managerState,
         parentUpgradeMap, onlineTables, serverSnapshot, serversToShutdown, migrations, dataLevel,

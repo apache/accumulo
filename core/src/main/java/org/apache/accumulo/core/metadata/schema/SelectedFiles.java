@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.fate.FateId;
@@ -122,7 +123,7 @@ public class SelectedFiles {
             completedJobs = in.nextInt();
             break;
           case SELECTED_TIME:
-            selectedTime = SteadyTime.from(in.nextLong());
+            selectedTime = SteadyTime.from(in.nextLong(), TimeUnit.NANOSECONDS);
             break;
           case FILES:
             in.beginArray();
