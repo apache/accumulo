@@ -62,6 +62,7 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.MoreCollectors;
 
 public class TestAmple {
@@ -92,6 +93,8 @@ public class TestAmple {
 
     private final Map<DataLevel,String> tables;
     private final Supplier<ConditionalWriterInterceptor> cwInterceptor;
+    private final Supplier<ServerContext> testContext =
+        Suppliers.memoize(() -> testAmpleServerContext(super.getContext(), this));
 
     private TestServerAmpleImpl(ServerContext context, Map<DataLevel,String> tables,
         Supplier<ConditionalWriterInterceptor> cwInterceptor) {
@@ -105,7 +108,7 @@ public class TestAmple {
 
     @Override
     public TabletsMutator mutateTablets() {
-      return new TabletsMutatorImpl(testAmpleServerContext(getContext(), this), tables::get);
+      return new TabletsMutatorImpl(getContext(), tables::get);
     }
 
     @Override
@@ -122,7 +125,7 @@ public class TestAmple {
 
     @Override
     protected TableOptions newBuilder() {
-      return TabletsMetadata.builder(testAmpleServerContext(getContext(), this), getTableMapper());
+      return TabletsMetadata.builder(getContext(), getTableMapper());
     }
 
     /**
@@ -210,8 +213,7 @@ public class TestAmple {
 
     @Override
     ServerContext getContext() {
-      // TODO: we can probably cache this
-      return testAmpleServerContext(super.getContext(), this);
+      return testContext.get();
     }
 
   }

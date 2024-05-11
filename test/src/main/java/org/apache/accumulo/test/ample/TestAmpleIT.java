@@ -97,7 +97,6 @@ public class TestAmpleIT extends SharedMiniClusterBase {
 
   @Test
   public void testCreateMetadata() throws Exception {
-    // final var ctx = getCluster().getServerContext();
     String[] tableNames = getUniqueNames(2);
     String metadataTable = tableNames[0];
     String userTable = tableNames[1];
