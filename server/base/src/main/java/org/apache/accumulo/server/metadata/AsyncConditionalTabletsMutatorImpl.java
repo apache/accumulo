@@ -25,9 +25,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
 
@@ -39,16 +41,18 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
   private final ServerContext context;
   private long mutatedTablets = 0;
   public static final int BATCH_SIZE = 1000;
+  private final Function<DataLevel,String> tableMapper;
 
-  AsyncConditionalTabletsMutatorImpl(ServerContext context,
+  AsyncConditionalTabletsMutatorImpl(ServerContext context, Function<DataLevel,String> tableMapper,
       Consumer<Ample.ConditionalResult> resultsConsumer) {
     this.resultsConsumer = Objects.requireNonNull(resultsConsumer);
-    this.bufferingMutator = new ConditionalTabletsMutatorImpl(context);
     this.context = context;
+    this.bufferingMutator = new ConditionalTabletsMutatorImpl(context, tableMapper);
     var creatorId = Thread.currentThread().getId();
     this.executor = Executors.newSingleThreadExecutor(runnable -> Threads.createThread(
         "Async conditional tablets mutator background thread, created by : #" + creatorId,
         runnable));
+    this.tableMapper = Objects.requireNonNull(tableMapper);
 
   }
 
@@ -73,7 +77,7 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
         return result;
       });
 
-      bufferingMutator = new ConditionalTabletsMutatorImpl(context);
+      bufferingMutator = new ConditionalTabletsMutatorImpl(context, tableMapper);
       mutatedTablets = 0;
     }
     mutatedTablets++;
@@ -95,4 +99,5 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
     bufferingMutator.close();
     executor.shutdownNow();
   }
+
 }

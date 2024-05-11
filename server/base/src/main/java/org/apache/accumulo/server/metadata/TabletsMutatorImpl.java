@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.server.metadata;
 
+import java.util.Objects;
+import java.util.function.Function;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -25,6 +28,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.server.ServerContext;
 
@@ -32,13 +36,15 @@ import com.google.common.base.Preconditions;
 
 public class TabletsMutatorImpl implements TabletsMutator {
 
-  private ServerContext context;
+  private final ServerContext context;
 
   private BatchWriter rootWriter;
   private BatchWriter metaWriter;
+  private final Function<DataLevel,String> tableMapper;
 
-  public TabletsMutatorImpl(ServerContext context) {
+  TabletsMutatorImpl(ServerContext context, Function<DataLevel,String> tableMapper) {
     this.context = context;
+    this.tableMapper = Objects.requireNonNull(tableMapper);
   }
 
   private BatchWriter getWriter(TableId tableId) {
@@ -48,13 +54,13 @@ public class TabletsMutatorImpl implements TabletsMutator {
     try {
       if (AccumuloTable.METADATA.tableId().equals(tableId)) {
         if (rootWriter == null) {
-          rootWriter = context.createBatchWriter(AccumuloTable.ROOT.tableName());
+          rootWriter = context.createBatchWriter(tableMapper.apply(DataLevel.METADATA));
         }
 
         return rootWriter;
       } else {
         if (metaWriter == null) {
-          metaWriter = context.createBatchWriter(AccumuloTable.METADATA.tableName());
+          metaWriter = context.createBatchWriter(tableMapper.apply(DataLevel.USER));
         }
 
         return metaWriter;

@@ -24,8 +24,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -35,6 +37,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.server.ServerContext;
@@ -61,9 +64,16 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   private boolean active = true;
 
   Map<KeyExtent,Ample.RejectionHandler> rejectedHandlers = new HashMap<>();
+  private final Function<DataLevel,String> tableMapper;
 
   public ConditionalTabletsMutatorImpl(ServerContext context) {
+    this(context, DataLevel::metaTable);
+  }
+
+  public ConditionalTabletsMutatorImpl(ServerContext context,
+      Function<DataLevel,String> tableMapper) {
     this.context = context;
+    this.tableMapper = Objects.requireNonNull(tableMapper);
   }
 
   @Override
@@ -90,7 +100,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
     if (dataLevel == Ample.DataLevel.ROOT) {
       return new RootConditionalWriter(context);
     } else {
-      return context.createConditionalWriter(dataLevel.metaTable());
+      return context.createConditionalWriter(getTableMapper().apply(dataLevel));
     }
   }
 
@@ -293,4 +303,9 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
   @Override
   public void close() {}
+
+  protected Function<DataLevel,String> getTableMapper() {
+    return tableMapper;
+  }
+
 }
