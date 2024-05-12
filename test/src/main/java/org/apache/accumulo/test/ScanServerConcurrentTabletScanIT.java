@@ -46,6 +46,7 @@ import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -188,20 +189,20 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
       assertEquals(firstBatchOfEntriesCount, count2);
 
       // If a refresh was done this should see 1100 entries
-      // Sleep again before reading just to make sure the async refresh
-      // had time to finish as there isn't a good way to know it's done loading
-      Thread.sleep(1000);
-
-      // Count the number of entries for the third iterator to test if
-      // refresh worked depending on configs
-      int count3 = 0;
-      Iterator<Entry<Key,Value>> iter3 = scanner1.iterator();
-      while (iter3.hasNext()) {
-        iter3.next();
-        count3++;
+      // Keep scanning until updated value is seen
+      if (shouldRefresh) {
+        // Count the number of entries for the third iterator to test if
+        // refresh worked depending on configs
+        Wait.waitFor(
+            () -> countEntries(scanner1) == firstBatchOfEntriesCount + secondBatchOfEntriesCount,
+            10000, 500);
+      } else {
+        // There's not a great way to test the case of things not refreshing as the value
+        // should just be the same, so sleep for a period of time that should be longer than
+        // the refresh
+        Thread.sleep(1000);
+        assertEquals(firstBatchOfEntriesCount, countEntries(scanner1));
       }
-      assertEquals(shouldRefresh ? firstBatchOfEntriesCount + secondBatchOfEntriesCount
-          : firstBatchOfEntriesCount, count3);
 
       scanner1.close();
 
@@ -211,6 +212,16 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
         assertEquals(totalEntriesExpected, Iterables.size(scanner2));
       }
     }
+  }
+
+  private int countEntries(Scanner scanner) {
+    int count = 0;
+    Iterator<Entry<Key,Value>> iter = scanner.iterator();
+    while (iter.hasNext()) {
+      iter.next();
+      count++;
+    }
+    return count;
   }
 
   @Test
