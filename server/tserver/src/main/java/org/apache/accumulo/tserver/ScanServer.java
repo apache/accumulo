@@ -256,7 +256,8 @@ public class ScanServer extends AbstractServer
           cacheRefreshPercentage);
 
       var builder = Caffeine.newBuilder().expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
-          .scheduler(Scheduler.systemScheduler()).recordStats();
+          .scheduler(Scheduler.systemScheduler()).executor(context.getScheduledExecutor())
+          .recordStats();
       if (cacheRefreshPercentage > 0) {
         // Compute the refresh time as a percentage of the expiration time
         // Cache hits after this time, but before expiration, will trigger a background
