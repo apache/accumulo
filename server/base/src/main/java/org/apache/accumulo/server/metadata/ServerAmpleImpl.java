@@ -65,6 +65,8 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   private static Logger log = LoggerFactory.getLogger(ServerAmpleImpl.class);
@@ -347,7 +349,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
   }
 
-  ServerContext getContext() {
+  @VisibleForTesting
+  protected ServerContext getContext() {
     return context;
   }
 

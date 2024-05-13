@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.fate;
 
-import static org.apache.accumulo.server.metadata.TestAmple.not;
 import static org.apache.accumulo.test.ample.TestAmpleUtil.mockWithAmple;
+import static org.apache.accumulo.test.ample.metadata.TestAmple.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -57,8 +57,8 @@ import org.apache.accumulo.manager.tableOps.merge.MergeTablets;
 import org.apache.accumulo.manager.tableOps.merge.ReserveTablets;
 import org.apache.accumulo.manager.tableOps.split.FindSplits;
 import org.apache.accumulo.manager.tableOps.split.PreSplit;
-import org.apache.accumulo.server.metadata.TestAmple;
-import org.apache.accumulo.server.metadata.TestAmple.TestServerAmpleImpl;
+import org.apache.accumulo.test.ample.metadata.TestAmple;
+import org.apache.accumulo.test.ample.metadata.TestAmple.TestServerAmpleImpl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

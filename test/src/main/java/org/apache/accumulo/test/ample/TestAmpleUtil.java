@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.test.ample;
 
-import static org.apache.accumulo.server.metadata.TestAmple.testAmpleServerContext;
+import static org.apache.accumulo.test.ample.metadata.TestAmple.testAmpleServerContext;
 
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.metadata.TestAmple.TestServerAmpleImpl;
+import org.apache.accumulo.test.ample.metadata.TestAmple.TestServerAmpleImpl;
 import org.easymock.EasyMock;
 
 public class TestAmpleUtil {
