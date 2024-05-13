@@ -24,12 +24,14 @@ import static org.apache.accumulo.core.util.compaction.DeprecatedCompactionKind.
 import static org.apache.accumulo.tserver.tablet.CompactableImplFileManagerTest.TestFileManager.SELECTION_EXPIRATION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -114,7 +116,7 @@ public class CompactableImplFileManagerTest {
         fileMgr.getCandidates(tabletFiles, SYSTEM));
     assertNoCandidates(fileMgr, tabletFiles, USER, SELECTOR);
 
-    assertTrue(fileMgr.initiateSelection(USER));
+    assertTrue(fileMgr.initiateSelection(USER, 1L));
 
     assertFalse(fileMgr.reserveFiles(staleJob));
 
@@ -185,7 +187,7 @@ public class CompactableImplFileManagerTest {
     TestFileManager fileMgr = new TestFileManager();
     var tabletFiles = newFiles("F00000.rf", "F00001.rf", "F00002.rf", "F00003.rf");
 
-    assertTrue(fileMgr.initiateSelection(USER));
+    assertTrue(fileMgr.initiateSelection(USER, 1L));
     assertTrue(fileMgr.beginSelection());
     fileMgr.finishSelection(newFiles("F00000.rf", "F00001.rf", "F00002.rf", "F00003.rf"), false);
     assertEquals(FileSelectionStatus.SELECTED, fileMgr.getSelectionStatus());
@@ -227,7 +229,7 @@ public class CompactableImplFileManagerTest {
   public void testSelectionExpirationDisjoint() {
     TestFileManager fileMgr = new TestFileManager();
 
-    assertTrue(fileMgr.initiateSelection(USER));
+    assertTrue(fileMgr.initiateSelection(USER, 1L));
     assertTrue(fileMgr.beginSelection());
     fileMgr.finishSelection(newFiles("F00000.rf", "F00001.rf"), false);
     assertEquals(FileSelectionStatus.SELECTED, fileMgr.getSelectionStatus());
@@ -262,7 +264,7 @@ public class CompactableImplFileManagerTest {
     var job1 = newJob(SYSTEM, "F00000.rf", "F00001.rf");
     assertTrue(fileMgr.reserveFiles(job1));
 
-    assertTrue(fileMgr.initiateSelection(USER));
+    assertTrue(fileMgr.initiateSelection(USER, 1L));
 
     // selection was initiated, so a new system compaction should not be able to start
     assertFalse(fileMgr.reserveFiles(newJob(SYSTEM, "F00002.rf", "F00003.rf")));
@@ -286,11 +288,11 @@ public class CompactableImplFileManagerTest {
   public void testUserCompactionPreemptsSelectorCompaction() {
     TestFileManager fileMgr = new TestFileManager();
 
-    assertTrue(fileMgr.initiateSelection(SELECTOR));
+    assertTrue(fileMgr.initiateSelection(SELECTOR, null));
     assertEquals(SELECTOR, fileMgr.getSelectionKind());
     assertTrue(fileMgr.beginSelection());
     // USER compaction should not be able to preempt while in the middle of selecting files
-    assertFalse(fileMgr.initiateSelection(USER));
+    assertFalse(fileMgr.initiateSelection(USER, 1L));
     assertEquals(SELECTOR, fileMgr.getSelectionKind());
     fileMgr.finishSelection(newFiles("F00000.rf", "F00001.rf", "F00002.rf"), false);
     // check state is as expected after finishing selection
@@ -300,7 +302,7 @@ public class CompactableImplFileManagerTest {
 
     // USER compaction should not be able to preempt when there are running compactions.
     fileMgr.running.add(SELECTOR);
-    assertFalse(fileMgr.initiateSelection(USER));
+    assertFalse(fileMgr.initiateSelection(USER, 1L));
     // check state is as expected
     assertEquals(SELECTOR, fileMgr.getSelectionKind());
     assertEquals(FileSelectionStatus.SELECTED, fileMgr.getSelectionStatus());
@@ -309,7 +311,7 @@ public class CompactableImplFileManagerTest {
     // after file selection is complete and there are no running compactions, should be able to
     // preempt
     fileMgr.running.clear();
-    assertTrue(fileMgr.initiateSelection(USER));
+    assertTrue(fileMgr.initiateSelection(USER, 1L));
     // check that things were properly reset
     assertEquals(USER, fileMgr.getSelectionKind());
     assertEquals(FileSelectionStatus.NEW, fileMgr.getSelectionStatus());
@@ -321,7 +323,7 @@ public class CompactableImplFileManagerTest {
     TestFileManager fileMgr = new TestFileManager();
     var tabletFiles = newFiles("F00000.rf", "F00001.rf", "F00002.rf", "F00003.rf", "F00004.rf");
 
-    assertTrue(fileMgr.initiateSelection(USER));
+    assertTrue(fileMgr.initiateSelection(USER, 1L));
     assertTrue(fileMgr.beginSelection());
     fileMgr.finishSelection(
         newFiles("F00000.rf", "F00001.rf", "F00002.rf", "F00003.rf", "F00004.rf"), false);
@@ -331,7 +333,7 @@ public class CompactableImplFileManagerTest {
     fileMgr.userCompactionCanceled();
     assertEquals(FileSelectionStatus.NOT_ACTIVE, fileMgr.getSelectionStatus());
 
-    assertTrue(fileMgr.initiateSelection(USER));
+    assertTrue(fileMgr.initiateSelection(USER, 1L));
     assertTrue(fileMgr.beginSelection());
     fileMgr.finishSelection(
         newFiles("F00000.rf", "F00001.rf", "F00002.rf", "F00003.rf", "F00004.rf"), false);
@@ -372,6 +374,39 @@ public class CompactableImplFileManagerTest {
 
   }
 
+  @Test
+  public void testComletedUserCompaction() {
+    TestFileManager fileMgr = new TestFileManager();
+
+    fileMgr.lastCompactId.set(2);
+    // should fail to initiate because the last compact id is equal
+    assertFalse(fileMgr.initiateSelection(USER, 2L));
+    assertEquals(FileSelectionStatus.NOT_ACTIVE, fileMgr.selectStatus);
+
+    fileMgr.lastCompactId.set(3);
+    // should fail to initiate because the last compact id is greater than
+    assertFalse(fileMgr.initiateSelection(USER, 2L));
+    assertEquals(FileSelectionStatus.NOT_ACTIVE, fileMgr.selectStatus);
+
+    fileMgr.lastCompactId.set(1);
+    assertTrue(fileMgr.initiateSelection(USER, 2L));
+    assertEquals(FileSelectionStatus.NEW, fileMgr.selectStatus);
+
+    assertTrue(fileMgr.beginSelection());
+    fileMgr.finishSelection(
+        newFiles("F00000.rf", "F00001.rf", "F00002.rf", "F00003.rf", "F00004.rf"), false);
+    assertEquals(FileSelectionStatus.SELECTED, fileMgr.getSelectionStatus());
+  }
+
+  @Test
+  public void testIllegalInitiateArgs() {
+    TestFileManager fileMgr = new TestFileManager();
+    assertThrows(IllegalArgumentException.class, () -> fileMgr.initiateSelection(USER, null));
+    assertThrows(IllegalArgumentException.class, () -> fileMgr.initiateSelection(SELECTOR, 2L));
+    assertThrows(IllegalArgumentException.class, () -> fileMgr.initiateSelection(SYSTEM, 2L));
+    assertThrows(IllegalArgumentException.class, () -> fileMgr.initiateSelection(SYSTEM, null));
+  }
+
   private void assertNoCandidates(TestFileManager fileMgr, Set<StoredTabletFile> tabletFiles,
       CompactionKind... kinds) {
     for (CompactionKind kind : kinds) {
@@ -385,6 +420,7 @@ public class CompactableImplFileManagerTest {
     public static final Duration SELECTION_EXPIRATION = Duration.ofMinutes(2);
     private long time = 0;
     public Set<CompactionKind> running = new HashSet<>();
+    public AtomicLong lastCompactId = new AtomicLong(0);
 
     public TestFileManager() {
       super(new KeyExtent(TableId.of("1"), null, null), Set.of(), Optional.empty(),
@@ -407,6 +443,11 @@ public class CompactableImplFileManagerTest {
     @Override
     protected long getNanoTime() {
       return time;
+    }
+
+    @Override
+    protected long getLastCompactId() {
+      return lastCompactId.get();
     }
 
     void setNanoTime(long t) {
