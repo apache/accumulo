@@ -489,6 +489,20 @@ public class MetadataSchema {
 
   public static class ScanServerFileReferenceSection {
     private static final Section section =
+        new Section(RESERVED_PREFIX + "scanr", true, RESERVED_PREFIX + "scans", false);
+
+    public static Range getRange() {
+      return section.getRange();
+    }
+
+    public static String getRowPrefix() {
+      return section.getRowPrefix();
+    }
+  }
+
+  @Deprecated(since = "2.1")
+  public static class OldScanServerFileReferenceSection {
+    private static final Section section =
         new Section(RESERVED_PREFIX + "sserv", true, RESERVED_PREFIX + "sserx", false);
 
     public static Range getRange() {

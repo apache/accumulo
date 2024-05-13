@@ -22,38 +22,85 @@ import java.net.URI;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.OldScanServerFileReferenceSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 public class ScanServerRefTabletFile extends TabletFile {
 
+  @SuppressWarnings("deprecation")
+  private static final String oldPrefix = OldScanServerFileReferenceSection.getRowPrefix();
+  private final String prefix;
   private final Value NULL_VALUE = new Value(new byte[0]);
-  private final Text colf;
-  private final Text colq;
+  private final Text serverAddress;
+  private final Text uuid;
 
-  public ScanServerRefTabletFile(String file, String serverAddress, UUID serverLockUUID) {
+  public ScanServerRefTabletFile(UUID serverLockUUID, String serverAddress, String file) {
     super(new Path(URI.create(file)));
-    this.colf = new Text(serverAddress);
-    this.colq = new Text(serverLockUUID.toString());
+    // For new data, always use the current prefix
+    prefix = ScanServerFileReferenceSection.getRowPrefix();
+    this.serverAddress = new Text(serverAddress);
+    uuid = new Text(serverLockUUID.toString());
   }
 
-  public ScanServerRefTabletFile(String file, Text colf, Text colq) {
-    super(new Path(URI.create(file)));
-    this.colf = colf;
-    this.colq = colq;
+  public ScanServerRefTabletFile(Key k) {
+    super(new Path(URI.create(extractFile(k))));
+    serverAddress = k.getColumnFamily();
+    if (isOldPrefix(k)) {
+      prefix = oldPrefix;
+      uuid = new Text(k.getColumnQualifier().toString());
+    } else {
+      prefix = ScanServerFileReferenceSection.getRowPrefix();
+      uuid = new Text(k.getRow().toString().substring(prefix.length()));
+    }
   }
 
-  public String getRowSuffix() {
-    return this.getPathStr();
+  public Mutation putMutation() {
+    Mutation mutation;
+    if (Objects.equals(prefix, oldPrefix)) {
+      mutation = new Mutation(prefix + this.getPath().toString());
+      mutation.put(serverAddress, uuid, getValue());
+    } else {
+      mutation = new Mutation(prefix + uuid.toString());
+      mutation.put(serverAddress, getFilePath(), getValue());
+    }
+    return mutation;
   }
 
-  public Text getServerAddress() {
-    return this.colf;
+  public Mutation putDeleteMutation() {
+    Mutation mutation;
+    if (Objects.equals(prefix, oldPrefix)) {
+      mutation = new Mutation(prefix + this.getPath().toString());
+      mutation.putDelete(serverAddress, uuid);
+    } else {
+      mutation = new Mutation(prefix + uuid.toString());
+      mutation.putDelete(serverAddress, getFilePath());
+    }
+    return mutation;
   }
 
-  public Text getServerLockUUID() {
-    return this.colq;
+  private static String extractFile(Key k) {
+    if (isOldPrefix(k)) {
+      return k.getRow().toString().substring(oldPrefix.length());
+    } else {
+      return k.getColumnQualifier().toString();
+    }
+  }
+
+  private static boolean isOldPrefix(Key k) {
+    return k.getRow().toString().startsWith(oldPrefix);
+  }
+
+  public UUID getServerLockUUID() {
+    return UUID.fromString(uuid.toString());
+  }
+
+  public Text getFilePath() {
+    return new Text(this.getPath().toString());
   }
 
   public Value getValue() {
@@ -64,8 +111,8 @@ public class ScanServerRefTabletFile extends TabletFile {
   public int hashCode() {
     final int prime = 31;
     int result = super.hashCode();
-    result = prime * result + ((colf == null) ? 0 : colf.hashCode());
-    result = prime * result + ((colq == null) ? 0 : colq.hashCode());
+    result = prime * result + ((serverAddress == null) ? 0 : serverAddress.hashCode());
+    result = prime * result + ((uuid == null) ? 0 : uuid.hashCode());
     return result;
   }
 
@@ -81,13 +128,13 @@ public class ScanServerRefTabletFile extends TabletFile {
       return false;
     }
     ScanServerRefTabletFile other = (ScanServerRefTabletFile) obj;
-    return Objects.equals(colf, other.colf) && Objects.equals(colq, other.colq);
+    return Objects.equals(serverAddress, other.serverAddress) && Objects.equals(uuid, other.uuid);
   }
 
   @Override
   public String toString() {
-    return "ScanServerRefTabletFile [file=" + this.getRowSuffix() + ", server address=" + colf
-        + ", server lock uuid=" + colq + "]";
+    return "ScanServerRefTabletFile [file=" + this.getPath().toString() + ", server address="
+        + serverAddress + ", server lock uuid=" + uuid + "]";
   }
 
 }
