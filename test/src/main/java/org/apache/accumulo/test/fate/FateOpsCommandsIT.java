@@ -34,8 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -64,7 +62,7 @@ import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public abstract class FateOpsCommandsIT extends ConfigurableMacBase
@@ -81,6 +79,15 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT.getKey(), "10s");
   }
 
+  @BeforeEach
+  public void shutdownCompactor() throws Exception {
+    // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
+    // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
+    // this issue.
+    getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
+    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
+  }
+
   @Test
   public void testFateSummaryCommand() throws Exception {
     executeTest(this::testFateSummaryCommand);
@@ -90,11 +97,6 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       throws Exception {
     // Configure Fate
     Fate<TestEnv> fate = initializeFate(store);
-    // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
-    // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
-    // this issue.
-    getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // validate blank report, no transactions have started
     ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
@@ -282,11 +284,6 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       throws Exception {
     // Configure Fate
     Fate<TestEnv> fate = initializeFate(store);
-    // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
-    // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
-    // this issue.
-    getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // Start some transactions
     FateId fateId1 = fate.startTransaction();
@@ -313,17 +310,12 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       throws Exception {
     // Configure Fate
     Fate<TestEnv> fate = initializeFate(store);
-    // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
-    // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
-    // this issue.
-    getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // validate no transactions
     ProcessInfo p = getCluster().exec(Admin.class, "fate", "--print");
     assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
-    assertTrue(result.contains("0 transactions"));
+    assertTrue(result.contains(" 0 transactions"));
 
     // create Fate transactions
     FateId fateId1 = fate.startTransaction();
@@ -423,20 +415,12 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // step). This test uses seeded/in progress transactions to test that the summary and print
     // commands properly output these fields.
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String namespace = "ns1";
-      final String table = namespace + "." + getUniqueNames(1)[0];
-      client.namespaceOperations().create(namespace);
+      final String table = getUniqueNames(1)[0];
 
-      SortedSet<Text> splits = new TreeSet<>();
-      splits.add(new Text("h"));
-      splits.add(new Text("m"));
-      splits.add(new Text("r"));
-      splits.add(new Text("w"));
       IteratorSetting is = new IteratorSetting(1, SlowIterator.class);
       is.addOption("sleepTime", "10000");
 
       NewTableConfiguration cfg = new NewTableConfiguration();
-      cfg.withSplits(splits);
       cfg.attachIterator(is, EnumSet.of(IteratorUtil.IteratorScope.majc));
       client.tableOperations().create(table, cfg);
 
@@ -458,13 +442,9 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       // Validate transaction name and transaction step from summary command
 
       for (FateTxnDetails d : report.getFateDetails()) {
-        // Since we could not shut down the COMPACTOR for this test, we need to ignore the Fate
-        // details if it is a COMMIT_COMPACTION transaction
-        if (!d.getTxName().equals("COMMIT_COMPACTION")) {
-          assertEquals("TABLE_COMPACT", d.getTxName());
-          assertEquals("CompactionDriver", d.getStep());
-          fateIdsStarted.add(d.getFateId());
-        }
+        assertEquals("TABLE_COMPACT", d.getTxName());
+        assertEquals("CompactionDriver", d.getStep());
+        fateIdsStarted.add(d.getFateId());
       }
       assertEquals(2, fateIdsStarted.size());
 
@@ -485,6 +465,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
         assertTrue(info.contains("TABLE_COMPACT"));
         assertTrue(info.contains("op: CompactionDriver"));
       }
+
+      client.tableOperations().delete(table);
     }
   }
 
@@ -497,11 +479,6 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       throws Exception {
     // Configure Fate
     Fate<TestEnv> fate = initializeFate(store);
-    // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
-    // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
-    // this issue.
-    getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // Start some transactions
     FateId fateId1 = fate.startTransaction();
@@ -535,11 +512,6 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       throws Exception {
     // Configure Fate
     Fate<TestEnv> fate = initializeFate(store);
-    // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
-    // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
-    // this issue.
-    getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // Start some transactions
     FateId fateId1 = fate.startTransaction();
@@ -585,11 +557,6 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       throws Exception {
     // Configure Fate
     Fate<TestEnv> fate = initializeFate(store);
-    // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
-    // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
-    // this issue.
-    getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
 
     // Start some transactions
     FateId fateId1 = fate.startTransaction();
