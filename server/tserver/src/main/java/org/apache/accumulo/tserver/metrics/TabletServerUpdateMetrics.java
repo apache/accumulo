@@ -69,12 +69,12 @@ public class TabletServerUpdateMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    FunctionCounter.builder("tabletServerUpdateErrors", permissionErrorsCount, AtomicLong::get)
+    FunctionCounter.builder(METRICS_UPDATE_ERRORS, permissionErrorsCount, AtomicLong::get)
         .tags("type", "permission").description("Counts permission errors").register(registry);
-    FunctionCounter.builder("tabletServerUpdateErrors", unknownTabletErrorsCount, AtomicLong::get)
+    FunctionCounter.builder(METRICS_UPDATE_ERRORS, unknownTabletErrorsCount, AtomicLong::get)
         .tags("type", "unknown.tablet").description("Counts unknown tablet errors")
         .register(registry);
-    FunctionCounter.builder("tabletServerUpdateErrors", constraintViolationsCount, AtomicLong::get)
+    FunctionCounter.builder(METRICS_UPDATE_ERRORS, constraintViolationsCount, AtomicLong::get)
         .tags("type", "constraint.violation").description("Counts constraint violations")
         .register(registry);
     commitPrepStat = Timer.builder(METRICS_UPDATE_COMMIT_PREP)
