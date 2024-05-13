@@ -301,7 +301,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
           .computeIfAbsent(sserver.getGroup(), k -> new ArrayList<>()).add(sserver.getAddress()));
       groupedServers.values().forEach(ssAddrs -> Collections.sort(ssAddrs));
       return groupedServers;
-    }, 100, TimeUnit.MILLISECONDS);
+    }, 3, TimeUnit.SECONDS);
 
     var opts = params.getOptions();
 
