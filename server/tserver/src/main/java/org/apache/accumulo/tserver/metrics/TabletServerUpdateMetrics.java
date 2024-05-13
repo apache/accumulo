@@ -19,35 +19,36 @@
 package org.apache.accumulo.tserver.metrics;
 
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.server.metrics.NoOpDistributionSummary;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
 public class TabletServerUpdateMetrics implements MetricsProducer {
 
-  private Counter permissionErrorsCounter;
-  private Counter unknownTabletErrorsCounter;
-  private Counter constraintViolationsCounter;
+  private final AtomicLong permissionErrorsCount = new AtomicLong();
+  private final AtomicLong unknownTabletErrorsCount = new AtomicLong();
+  private final AtomicLong constraintViolationsCount = new AtomicLong();
   private Timer commitPrepStat;
   private Timer walogWriteTimeStat;
   private Timer commitTimeStat;
   private DistributionSummary mutationArraySizeStat = new NoOpDistributionSummary();
 
   public void addPermissionErrors(long value) {
-    permissionErrorsCounter.increment(value);
+    permissionErrorsCount.addAndGet(value);
   }
 
   public void addUnknownTabletErrors(long value) {
-    unknownTabletErrorsCounter.increment(value);
+    unknownTabletErrorsCount.addAndGet(value);
   }
 
   public void addConstraintViolations(long value) {
-    constraintViolationsCounter.increment(value);
+    constraintViolationsCount.addAndGet(value);
   }
 
   public void addCommitPrep(long value) {
@@ -68,10 +69,14 @@ public class TabletServerUpdateMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    permissionErrorsCounter = registry.counter(METRICS_UPDATE_ERRORS, "type", "permission");
-    unknownTabletErrorsCounter = registry.counter(METRICS_UPDATE_ERRORS, "type", "unknown.tablet");
-    constraintViolationsCounter =
-        registry.counter(METRICS_UPDATE_ERRORS, "type", "constraint.violation");
+    FunctionCounter.builder("tabletServerUpdateErrors", permissionErrorsCount, AtomicLong::get)
+        .tags("type", "permission").description("Counts permission errors").register(registry);
+    FunctionCounter.builder("tabletServerUpdateErrors", unknownTabletErrorsCount, AtomicLong::get)
+        .tags("type", "unknown.tablet").description("Counts unknown tablet errors")
+        .register(registry);
+    FunctionCounter.builder("tabletServerUpdateErrors", constraintViolationsCount, AtomicLong::get)
+        .tags("type", "constraint.violation").description("Counts constraint violations")
+        .register(registry);
     commitPrepStat = Timer.builder(METRICS_UPDATE_COMMIT_PREP)
         .description("preparing to commit mutations").register(registry);
     walogWriteTimeStat = Timer.builder(METRICS_UPDATE_WALOG_WRITE)
