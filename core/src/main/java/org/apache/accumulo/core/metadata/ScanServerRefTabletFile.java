@@ -30,30 +30,30 @@ public class ScanServerRefTabletFile extends TabletFile {
 
   private final Value NULL_VALUE = new Value(new byte[0]);
   private final Text colf;
-  private final Text colq;
+  private final String uuid;
 
-  public ScanServerRefTabletFile(String file, String serverAddress, UUID serverLockUUID) {
+  public ScanServerRefTabletFile(UUID serverLockUUID, String serverAddress, String file) {
     super(new Path(URI.create(file)));
     this.colf = new Text(serverAddress);
-    this.colq = new Text(serverLockUUID.toString());
+    this.uuid = serverLockUUID.toString();
   }
 
-  public ScanServerRefTabletFile(String file, Text colf, Text colq) {
-    super(new Path(URI.create(file)));
+  public ScanServerRefTabletFile(String uuid, Text colf, Text file) {
+    super(new Path(URI.create(file.toString())));
     this.colf = colf;
-    this.colq = colq;
+    this.uuid = uuid;
   }
 
   public String getRowSuffix() {
-    return this.getPathStr();
+    return this.uuid;
+  }
+
+  public Text getFilePath() {
+    return new Text(getPath().toString());
   }
 
   public Text getServerAddress() {
     return this.colf;
-  }
-
-  public Text getServerLockUUID() {
-    return this.colq;
   }
 
   public Value getValue() {
@@ -65,7 +65,7 @@ public class ScanServerRefTabletFile extends TabletFile {
     final int prime = 31;
     int result = super.hashCode();
     result = prime * result + ((colf == null) ? 0 : colf.hashCode());
-    result = prime * result + ((colq == null) ? 0 : colq.hashCode());
+    result = prime * result + ((this.getRowSuffix() == null) ? 0 : this.getRowSuffix().hashCode());
     return result;
   }
 
@@ -81,13 +81,13 @@ public class ScanServerRefTabletFile extends TabletFile {
       return false;
     }
     ScanServerRefTabletFile other = (ScanServerRefTabletFile) obj;
-    return Objects.equals(colf, other.colf) && Objects.equals(colq, other.colq);
+    return Objects.equals(colf, other.colf) && Objects.equals(uuid, other.uuid);
   }
 
   @Override
   public String toString() {
-    return "ScanServerRefTabletFile [file=" + this.getRowSuffix() + ", server address=" + colf
-        + ", server lock uuid=" + colq + "]";
+    return "ScanServerRefTabletFile [file=" + this.getPath().toString() + ", server address=" + colf
+        + ", server lock uuid=" + this.uuid + "]";
   }
 
 }

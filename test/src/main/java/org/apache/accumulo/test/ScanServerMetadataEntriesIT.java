@@ -111,7 +111,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
     Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf")
         .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
-        .map(f -> new ScanServerRefTabletFile(f, server.toString(), serverLockUUID))
+        .map(f -> new ScanServerRefTabletFile(serverLockUUID, server.toString(), f))
         .collect(Collectors.toSet());
 
     ServerContext ctx = getCluster().getServerContext();
@@ -243,7 +243,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         metadataEntries.forEach(m -> {
           String row = m.getKey().getRow().toString();
           assertTrue(row.startsWith("~sserv"));
-          String file = row.substring(ScanServerFileReferenceSection.getRowPrefix().length());
+          String file = m.getKey().getColumnQualifier().toString();
           metadataScanFileRefs.add(file);
         });
         assertEquals(fileCount, metadataScanFileRefs.size());
