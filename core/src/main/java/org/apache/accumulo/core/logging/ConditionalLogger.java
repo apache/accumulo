@@ -76,7 +76,7 @@ public class ConditionalLogger implements Logger {
 
     private final Logger delegate;
 
-    public DelegateWrapper(Logger delegate) {
+    private DelegateWrapper(Logger delegate) {
       this.delegate = delegate;
     }
 
@@ -152,7 +152,7 @@ public class ConditionalLogger implements Logger {
   private final DelegateWrapper delegate;
   private final BiFunction<String,List<Object>,Boolean> condition;
 
-  public ConditionalLogger(Logger log, BiFunction<String,List<Object>,Boolean> condition) {
+  private ConditionalLogger(Logger log, BiFunction<String,List<Object>,Boolean> condition) {
     this.delegate = new DelegateWrapper(log);
     this.condition = condition;
   }

@@ -55,11 +55,11 @@ public class DeduplicatingLoggerTest {
     cfg.getLoggerConfig(DeduplicatingLoggerTest.class.getName()).addAppender(appender, null, null);
 
     TEST_LOGGER.error("ERROR TEST");
-    TEST_LOGGER.error("WARN TEST");
+    TEST_LOGGER.warn("WARN TEST");
     assertEquals(1, StringUtils.countMatches(writer.toString(), "ERROR TEST"));
     assertEquals(1, StringUtils.countMatches(writer.toString(), "WARN TEST"));
     TEST_LOGGER.error("ERROR TEST");
-    TEST_LOGGER.error("WARN TEST");
+    TEST_LOGGER.warn("WARN TEST");
     assertEquals(1, StringUtils.countMatches(writer.toString(), "ERROR TEST"));
     assertEquals(1, StringUtils.countMatches(writer.toString(), "WARN TEST"));
 
