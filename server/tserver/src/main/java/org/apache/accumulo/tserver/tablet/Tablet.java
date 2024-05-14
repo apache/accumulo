@@ -68,6 +68,7 @@ import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
@@ -142,6 +143,7 @@ import io.opentelemetry.context.Scope;
  */
 public class Tablet extends TabletBase {
   private static final Logger log = LoggerFactory.getLogger(Tablet.class);
+  private static final Logger DEDUPE_LOGGER = new DeduplicatingLogger(log, Duration.ofMinutes(5));
 
   private final TabletServer tabletServer;
   private final TabletResourceManager tabletResources;
@@ -913,7 +915,7 @@ public class Tablet extends TabletBase {
       } else if (closeRequestTime != 0) {
         long runningTime = Duration.ofNanos(System.nanoTime() - closeRequestTime).toMinutes();
         if (runningTime >= 15) {
-          log.info("Tablet {} close requested again, but has been closing for {} minutes",
+          DEDUPE_LOGGER.info("Tablet {} close requested again, but has been closing for {} minutes",
               this.extent, runningTime);
         }
       }
