@@ -39,6 +39,44 @@ public abstract class ConditionalLogger extends AbstractLogger {
 
   private static final long serialVersionUID = 1L;
 
+  /**
+   * A Logger implementation that will log a message at the supplied elevated level if it has not
+   * been seen in the supplied duration. For repeat occurrences the message will be logged at the
+   * level used in code (which is likely a lower level). Note that the first log message will be
+   * logged at the elevated level because it has not been seen before.
+   */
+  public static class EscalatingLogger extends DeduplicatingLogger {
+
+    private static final long serialVersionUID = 1L;
+    private final Level elevatedLevel;
+
+    public EscalatingLogger(Logger log, Duration threshold, Level elevatedLevel) {
+      super(log, threshold);
+      this.elevatedLevel = elevatedLevel;
+    }
+
+    @Override
+    protected void handleNormalizedLoggingCall(Level level, Marker marker, String messagePattern,
+        Object[] arguments, Throwable throwable) {
+
+      if (arguments == null) {
+        arguments = new Object[0];
+      }
+      if (!condition.apply(messagePattern, Arrays.asList(arguments))) {
+        delegate.atLevel(level).addMarker(marker).setCause(throwable).log(messagePattern,
+            arguments);
+      } else {
+        delegate.atLevel(elevatedLevel).addMarker(marker).setCause(throwable).log(messagePattern,
+            arguments);
+      }
+
+    }
+
+  }
+
+  /**
+   * A Logger implementation that will suppress duplicate messages within the supplied duration.
+   */
   public static class DeduplicatingLogger extends ConditionalLogger {
 
     private static final long serialVersionUID = 1L;
@@ -49,6 +87,13 @@ public abstract class ConditionalLogger extends AbstractLogger {
         private final Cache<String,List<Object>> cache =
             Caffeine.newBuilder().expireAfterWrite(threshold).weakKeys().weakValues().build();
 
+        /**
+         * Function that will return true if the message has not been seen in the supplied duration.
+         *
+         * @param msg log message
+         * @param args log message arguments
+         * @return true if message has not been seen in duration, else false.
+         */
         @Override
         public Boolean apply(String msg, List<Object> args) {
 
@@ -67,8 +112,8 @@ public abstract class ConditionalLogger extends AbstractLogger {
 
   }
 
-  private final Logger delegate;
-  private final BiFunction<String,List<Object>,Boolean> condition;
+  protected final Logger delegate;
+  protected final BiFunction<String,List<Object>,Boolean> condition;
 
   protected ConditionalLogger(Logger log, BiFunction<String,List<Object>,Boolean> condition) {
     // this.delegate = new DelegateWrapper(log);

@@ -22,6 +22,7 @@ import static java.lang.Math.min;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -52,6 +53,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.logging.ConditionalLogger.EscalatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -100,14 +102,17 @@ import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.event.Level;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
-  // Constants used to make sure assignment logging isn't excessive in quantity or size
 
+  private static final Logger ESCALATING_LOGGER =
+      new EscalatingLogger(Manager.log, Duration.ofMinutes(5), Level.INFO);
   private final Manager manager;
   private final TabletStateStore store;
   private final TabletGroupWatcher dependentWatcher;
@@ -345,8 +350,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                     manager.tserverSet.getConnection(location.getServerInstance());
                 if (client != null) {
                   try {
-                    Manager.log.trace("[{}] Requesting TabletServer {} unload {} {}", store.name(),
-                        location.getServerInstance(), tls.extent, goal.howUnload());
+                    ESCALATING_LOGGER.trace("[{}] Requesting TabletServer {} unload {} {}",
+                        store.name(), location.getServerInstance(), tls.extent, goal.howUnload());
                     client.unloadTablet(manager.managerLock, tls.extent, goal.howUnload(),
                         manager.getSteadyTime());
                     unloaded++;
