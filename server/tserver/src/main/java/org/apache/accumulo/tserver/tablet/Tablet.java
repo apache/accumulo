@@ -27,6 +27,7 @@ import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -164,9 +165,10 @@ public class Tablet extends TabletBase {
   }
 
   private enum CloseState {
-    OPEN, CLOSING, CLOSED, COMPLETE
+    OPEN, REQUESTED, CLOSING, CLOSED, COMPLETE
   }
 
+  private volatile long closeRequestTime = 0;
   private volatile CloseState closeState = CloseState.OPEN;
 
   private boolean updatingFlushID = false;
@@ -904,6 +906,19 @@ public class Tablet extends TabletBase {
 
   void initiateClose(boolean saveState) {
     log.trace("initiateClose(saveState={}) {}", saveState, getExtent());
+
+    synchronized (this) {
+      if (closeState == CloseState.OPEN) {
+        closeRequestTime = System.nanoTime();
+      } else if (closeRequestTime != 0) {
+        long runningTime = Duration.ofNanos(System.nanoTime() - closeRequestTime).toMinutes();
+        if (runningTime >= 15) {
+          log.info("Tablet {} close requested again, but has been closing for {} minutes",
+              this.extent, runningTime);
+        }
+      }
+      closeState = CloseState.REQUESTED;
+    }
 
     MinorCompactionTask mct = null;
     if (saveState) {
