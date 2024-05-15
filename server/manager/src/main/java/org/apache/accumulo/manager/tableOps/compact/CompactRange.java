@@ -102,13 +102,15 @@ public class CompactRange extends ManagerRepo {
       // startRow
       Text nextPossibleRow = new Key(startRow).followingKey(PartialKey.ROW).getRow();
       keyExtent = findContaining(env.getContext().getAmple(), tableId, nextPossibleRow);
-      prevRowOfStartRowTablet = keyExtent.prevEndRow().getBytes();
+      prevRowOfStartRowTablet =
+          keyExtent.prevEndRow() == null ? null : TextUtil.getBytes(keyExtent.prevEndRow());
     }
 
     if (endRow != null) {
       // find the tablet containing endRow and pass its end row to the CompactionDriver constructor.
       keyExtent = findContaining(env.getContext().getAmple(), tableId, new Text(endRow));
-      endRowOfEndRowTablet = keyExtent.endRow().getBytes();
+      endRowOfEndRowTablet =
+          keyExtent.endRow().getBytes() == null ? null : TextUtil.getBytes(keyExtent.endRow());
     }
     return new CompactionDriver(namespaceId, tableId, prevRowOfStartRowTablet,
         endRowOfEndRowTablet);
