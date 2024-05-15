@@ -175,7 +175,7 @@ public class Manager extends AbstractServer
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
   static final int ONE_SECOND = 1000;
-  private static final long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
+  private static final long CLEANUP_INTERVAL_MINUTES = 5;
   static final long WAIT_BETWEEN_ERRORS = ONE_SECOND;
   private static final long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
   private static final int MAX_CLEANUP_WAIT_TIME = ONE_SECOND;
@@ -699,7 +699,7 @@ public class Manager extends AbstractServer
             log.error("Error cleaning up migrations", ex);
           }
         }
-        sleepUninterruptibly(TIME_BETWEEN_MIGRATION_CLEANUPS, MILLISECONDS);
+        sleepUninterruptibly(CLEANUP_INTERVAL_MINUTES, MINUTES);
       }
     }
 
@@ -776,7 +776,7 @@ public class Manager extends AbstractServer
           log.error("Interrupted trying to delete empty scan server ZNodes, will retry", e);
         } finally {
           // sleep for 5 mins
-          sleepUninterruptibly(TIME_BETWEEN_MIGRATION_CLEANUPS, MILLISECONDS);
+          sleepUninterruptibly(CLEANUP_INTERVAL_MINUTES, MINUTES);
         }
       }
     }
