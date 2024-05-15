@@ -72,6 +72,7 @@ import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -740,6 +741,48 @@ public class Manager extends AbstractServer
     }
   }
 
+  private class ScanServerZKCleaner implements Runnable {
+
+    @Override
+    public void run() {
+
+      final ZooReaderWriter zrw = getContext().getZooReaderWriter();
+      final String sserverZNodePath = getContext().getZooKeeperRoot() + Constants.ZSSERVERS;
+
+      while (stillManager()) {
+        try {
+          for (String sserverClientAddress : zrw.getChildren(sserverZNodePath)) {
+
+            final String sServerZPath = sserverZNodePath + "/" + sserverClientAddress;
+            final var zLockPath = ServiceLock.path(sServerZPath);
+            ZcStat stat = new ZcStat();
+            byte[] lockData = ServiceLock.getLockData(getContext().getZooCache(), zLockPath, stat);
+
+            if (lockData == null) {
+              try {
+                log.debug("Deleting empty ScanServer ZK node {}", sServerZPath);
+                zrw.delete(sServerZPath);
+              } catch (KeeperException.NotEmptyException e) {
+                log.debug(
+                    "Failed to delete ScanServer ZK node {} its not empty, likely an expected race condition.",
+                    sServerZPath);
+              }
+            }
+          }
+        } catch (KeeperException e) {
+          log.error("Exception trying to delete empty scan server ZNodes, will retry", e);
+        } catch (InterruptedException e) {
+          Thread.interrupted();
+          log.error("Interrupted trying to delete empty scan server ZNodes, will retry", e);
+        } finally {
+          // sleep for 5 mins
+          sleepUninterruptibly(TIME_BETWEEN_MIGRATION_CLEANUPS, MILLISECONDS);
+        }
+      }
+    }
+
+  }
+
   private class StatusThread implements Runnable {
 
     private boolean goodStats() {
@@ -1117,6 +1160,8 @@ public class Manager extends AbstractServer
     Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
 
     tserverSet.startListeningForTabletServerChanges();
+
+    Threads.createThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
     try {
       blockForTservers();
