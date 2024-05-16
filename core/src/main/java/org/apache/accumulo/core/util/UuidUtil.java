@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.util;
 
 public class UuidUtil {
-
   private static boolean isHex(String s, int offset, int start, int end) {
     for (int i = start; i < end; i++) {
       var c = s.charAt(i + offset);
@@ -45,5 +44,4 @@ public class UuidUtil {
         && uuid.charAt(18 + offset) == '-' && isHex(uuid, offset, 19, 23)
         && uuid.charAt(23 + offset) == '-' && isHex(uuid, offset, 24, 36);
   }
-
 }

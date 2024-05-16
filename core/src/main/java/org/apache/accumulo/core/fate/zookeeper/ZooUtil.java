@@ -74,7 +74,7 @@ public class ZooUtil {
         path = root + "/" + sa[0].substring(0, lastSlash);
       }
       node = sa[0].substring(lastSlash + 1);
-      eid = Long.parseLong(sa[1], 16);
+      eid = Long.parseUnsignedLong(sa[1], 16);
     }
 
     public LockID(String path, String node, long eid) {

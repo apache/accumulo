@@ -85,7 +85,10 @@ public class SplitMillionIT extends ConfigurableMacBase {
         String metaSplit = String.format("%s;%010d", tableId, 100_000_000 / 10 * i);
         metaSplits.add(new Text(metaSplit));
       }
+      var mt1 = System.currentTimeMillis();
       c.tableOperations().addSplits(AccumuloTable.METADATA.tableName(), metaSplits);
+      var mt2 = System.currentTimeMillis();
+      log.info("Time to add metadata splits : {}ms", mt2 - mt1);
 
       SortedSet<Text> splits = new TreeSet<>();
 
@@ -165,7 +168,19 @@ public class SplitMillionIT extends ConfigurableMacBase {
       log.info("Time to clone table : {}ms", t2 - t1);
       vefifyData(rows, c, cloneName, expected);
 
-      // merge the clone, so that delete table can run later on tablet with lots and lots of tablets
+      // pre split the metadata table
+      var cloneTableId = getServerContext().getTableId(cloneName);
+      metaSplits.clear();
+      for (int i = 1; i < 10; i++) {
+        String metaSplit = String.format("%s;%010d", cloneTableId, 100_000_000 / 10 * i);
+        metaSplits.add(new Text(metaSplit));
+      }
+      t1 = System.currentTimeMillis();
+      c.tableOperations().addSplits(AccumuloTable.METADATA.tableName(), metaSplits);
+      t2 = System.currentTimeMillis();
+      log.info("Time to add metadata splits for clone : {}ms", t2 - t1);
+
+      // merge the clone, so that delete table can run later on table with lots and lots of tablets
       t1 = System.currentTimeMillis();
       c.tableOperations().merge(cloneName, null, null);
       t2 = System.currentTimeMillis();
