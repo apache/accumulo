@@ -32,6 +32,12 @@ public class UuidUtil {
     return true;
   }
 
+  /**
+   * A fast method for verifying a suffix of a string looks like a uuid.
+   *
+   * @param offset location where the uuid starts. Its expected the uuid occupies the rest of the
+   *        string.
+   */
   public static boolean isUUID(String uuid, int offset) {
     return uuid.length() - offset == 36 && isHex(uuid, offset, 0, 8)
         && uuid.charAt(8 + offset) == '-' && isHex(uuid, offset, 9, 13)
