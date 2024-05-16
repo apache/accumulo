@@ -331,6 +331,7 @@ public interface TableOperations {
    *
    * @since 1.7.0
    */
+  // TODO could the return of this change to TableCompaction? Need to see if that is ABI compat.
   void compact(String tableName, CompactionConfig config)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException;
 

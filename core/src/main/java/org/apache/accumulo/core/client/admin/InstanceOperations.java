@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +26,7 @@ import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.compaction.TableCompaction;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -207,6 +209,19 @@ public interface InstanceOperations {
    */
   List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * @return table compactions running for the specified tables
+   * @since 4.0.0
+   */
+  Collection<TableCompaction> getTableCompactions(Set<String> tableNames);
+
+  /**
+   * Return all table compactions running.
+   *
+   * @since 4.0.0
+   */
+  Collection<TableCompaction> getTableCompactions();
 
   /**
    * List the active compaction running on a tablet server. Using this method with
