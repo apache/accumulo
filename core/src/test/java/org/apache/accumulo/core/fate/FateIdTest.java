@@ -62,5 +62,14 @@ public class FateIdTest {
       assertThrows(IllegalArgumentException.class, () -> FateId.from(illegalId));
       assertFalse(FateId.isFateId(illegalId));
     }
+
+    // Try an illegal character in every position
+    for (int i = 0; i < legalId.toString().length(); i++) {
+      var chars = legalId.toString().toCharArray();
+      chars[i] = '#';
+      var illegalId = new String(chars);
+      assertThrows(IllegalArgumentException.class, () -> FateId.from(illegalId));
+      assertFalse(FateId.isFateId(illegalId));
+    }
   }
 }

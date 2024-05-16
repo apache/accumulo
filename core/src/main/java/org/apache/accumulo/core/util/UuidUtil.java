@@ -33,7 +33,6 @@ public class UuidUtil {
   }
 
   public static boolean isUUID(String uuid, int offset) {
-    // TODO not getting full coverage in unit test
     return uuid.length() - offset == 36 && isHex(uuid, offset, 0, 8)
         && uuid.charAt(8 + offset) == '-' && isHex(uuid, offset, 9, 13)
         && uuid.charAt(13 + offset) == '-' && isHex(uuid, offset, 14, 18)
