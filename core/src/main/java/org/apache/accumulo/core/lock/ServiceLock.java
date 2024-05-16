@@ -189,7 +189,7 @@ public class ServiceLock implements Watcher {
    */
   public static List<String> validateAndSort(ServiceLockPath path, List<String> children) {
     LOG.trace("validating and sorting children at path {}", path);
-    List<String> validChildren = new ArrayList<>(children.size());
+    List<String> validChildren = children == null ? List.of() : new ArrayList<>(children.size());
     if (children == null || children.isEmpty()) {
       return validChildren;
     }
