@@ -78,7 +78,7 @@ public class SplitMillionIT extends ConfigurableMacBase {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
 
-      //pre split the metadata table
+      // pre split the metadata table
       var tableId = getServerContext().getTableId(tableName);
       SortedSet<Text> metaSplits = new TreeSet<>();
       for (int i = 1; i < 10; i++) {
