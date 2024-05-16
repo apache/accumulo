@@ -26,7 +26,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost.Type;
-import org.apache.accumulo.core.client.admin.compaction.RunningCompactionId;
+import org.apache.accumulo.core.client.admin.compaction.ActiveCompactionId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -145,7 +145,7 @@ public class ActiveCompactionImpl extends ActiveCompaction {
   }
 
   @Override
-  public RunningCompactionId getId() {
+  public ActiveCompactionId getId() {
     // TODO
     return null;
   }

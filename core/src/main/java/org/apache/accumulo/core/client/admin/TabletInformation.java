@@ -21,7 +21,7 @@ package org.apache.accumulo.core.client.admin;
 import java.util.Collection;
 import java.util.Optional;
 
-import org.apache.accumulo.core.client.admin.compaction.RunningCompactionId;
+import org.apache.accumulo.core.client.admin.compaction.ActiveCompactionId;
 import org.apache.accumulo.core.client.admin.compaction.TableCompactionId;
 import org.apache.accumulo.core.data.TabletId;
 
@@ -80,7 +80,7 @@ public interface TabletInformation {
     /**
      * @return an id that uniquely identifies a running compaction
      */
-    RunningCompactionId getId();
+    ActiveCompactionId getId();
 
     /**
      * If this tablet compaction was initiated as part of a table compaction, then return the id of

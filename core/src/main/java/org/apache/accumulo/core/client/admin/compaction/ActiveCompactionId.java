@@ -21,6 +21,6 @@ package org.apache.accumulo.core.client.admin.compaction;
 /**
  * Unique identifier for a compaction running against a tablet
  */
-public class RunningCompactionId {
+public class ActiveCompactionId {
 
 }
