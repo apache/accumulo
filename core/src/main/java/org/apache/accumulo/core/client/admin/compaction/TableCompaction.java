@@ -68,7 +68,7 @@ public interface TableCompaction {
    * @return information about tablet compactions that are currently running on behalf of this table
    *         compaction.
    */
-  Stream<ActiveCompaction> getRunningCompactions();
+  Stream<ActiveCompaction> getActiveCompactions();
 
   /**
    * Cancels this table compaction. This will attempt to interrupt running tablet compactions, stop
