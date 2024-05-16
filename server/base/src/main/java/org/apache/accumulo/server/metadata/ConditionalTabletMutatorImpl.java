@@ -31,6 +31,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -55,6 +56,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.iterators.LocationExistsIterator;
@@ -278,8 +280,9 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   @Override
   public Ample.ConditionalTabletMutator requireAbsentLogs() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    // create a tablet metadata with an empty set of logs and require the same as that
-    requireSameSingle(TabletMetadata.builder(extent).build(ColumnType.LOGS), ColumnType.LOGS);
+    Condition c = SetEncodingIterator.createCondition(Set.<LogEntry>of(),
+        logEntry -> logEntry.getColumnQualifier().toString().getBytes(UTF_8), LogColumnFamily.NAME);
+    mutation.addCondition(c);
     return this;
   }
 
