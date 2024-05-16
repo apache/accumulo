@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.TabletInformation;
+import org.apache.accumulo.core.data.TableId;
 
 /**
  * Provides information about a table compaction started using
@@ -37,6 +38,16 @@ public interface TableCompaction {
    * @return the unique identifier for this table compaction
    */
   TableCompactionId getId();
+
+  /**
+   * The id of the table the table compaction is running against
+   */
+  TableId getTableId();
+
+  /**
+   * The name of the table the table compaction is running against
+   */
+  String getTableName();
 
   /**
    * @return the time this table compaction was initiated
@@ -59,4 +70,9 @@ public interface TableCompaction {
    */
   Stream<ActiveCompaction> getRunningCompactions();
 
+  /**
+   * Cancels this table compaction. This will attempt to interrupt running tablet compactions, stop
+   * new tablet compactions from starting, and clean up metadata related to this table compaction.
+   */
+  void cancel();
 }
