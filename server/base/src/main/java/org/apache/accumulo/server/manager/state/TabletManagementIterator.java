@@ -97,8 +97,10 @@ public class TabletManagementIterator extends WholeRowIterator {
   private static boolean shouldReturnDueToSplit(final TabletMetadata tm,
       final Configuration tableConfig, SplitConfig splitConfig) {
 
-    // should see the same table many times in a row, so this should only read config the first time
-    // seen
+    // Should see the same table many times in a row, so this should only read config the first time
+    // seen. Reading the config for each tablet was showing up as performance problem when profiling
+    // SplitMillionIT that reads one million tablets. It is also nice to have snapshot of config
+    // that is used for all tablet in a table.
     splitConfig.update(tm.getTableId(), tableConfig);
 
     // If the current computed metadata matches the current marker then we can't split,
