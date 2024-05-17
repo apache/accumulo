@@ -575,7 +575,8 @@ public class CompactionCoordinator
           // so the column is eligible to be deleted so a system job can run instead
           if (selectedFiles != null && reserved.isEmpty()
               && !Collections.disjoint(jobFiles, selectedFiles.getFiles())) {
-            LOG.debug("Deleting user compaction selected files for {} {}", extent, externalCompactionId);
+            LOG.debug("Deleting user compaction selected files for {} {}", extent,
+                externalCompactionId);
             tabletMutator.deleteSelectedFiles();
           }
         }
