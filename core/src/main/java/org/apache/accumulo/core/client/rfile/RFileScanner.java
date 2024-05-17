@@ -141,6 +141,11 @@ class RFileScanner extends ScannerOptions implements Scanner {
         public long requestCount() {
           return 0L;
         }
+
+        @Override
+        public long evictionCount() {
+          return 0L;
+        }
       };
     }
 

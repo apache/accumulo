@@ -61,9 +61,10 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>currentFateOps</td>
  * <td>Gauge</td>
- * <td>{@value #METRICS_FATE_TOTAL_IN_PROGRESS}</td>
+ * <td>{@value #METRICS_FATE_OPS}</td>
  * <td>Gauge</td>
- * <td></td>
+ * <td>Was previously named "accumulo.fate.ops.in.progress". Changed to better reflect what the
+ * gauge is actually tracking which is all the current fate ops in any state.</td>
  * </tr>
  * <tr>
  * <td>FateTxOpType_{name}</td>
@@ -571,7 +572,7 @@ public interface MetricsProducer {
 
   String METRICS_FATE_PREFIX = "accumulo.fate.";
   String METRICS_FATE_TYPE_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in.progress.by.type";
-  String METRICS_FATE_TOTAL_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in.progress";
+  String METRICS_FATE_OPS = METRICS_FATE_PREFIX + "ops";
   String METRICS_FATE_OPS_ACTIVITY = METRICS_FATE_PREFIX + "ops.activity";
   String METRICS_FATE_ERRORS = METRICS_FATE_PREFIX + "errors";
   String METRICS_FATE_TX = METRICS_FATE_PREFIX + "tx";
@@ -654,11 +655,15 @@ public interface MetricsProducer {
   String METRICS_BLOCKCACHE_PREFIX = "accumulo.blockcache.";
   String METRICS_BLOCKCACHE_INDEX_HITCOUNT = METRICS_BLOCKCACHE_PREFIX + "index.hitcount";
   String METRICS_BLOCKCACHE_INDEX_REQUESTCOUNT = METRICS_BLOCKCACHE_PREFIX + "index.requestcount";
+  String METRICS_BLOCKCACHE_INDEX_EVICTIONCOUNT = METRICS_BLOCKCACHE_PREFIX + "index.evictioncount";
   String METRICS_BLOCKCACHE_DATA_HITCOUNT = METRICS_BLOCKCACHE_PREFIX + "data.hitcount";
   String METRICS_BLOCKCACHE_DATA_REQUESTCOUNT = METRICS_BLOCKCACHE_PREFIX + "data.requestcount";
+  String METRICS_BLOCKCACHE_DATA_EVICTIONCOUNT = METRICS_BLOCKCACHE_PREFIX + "data.evictioncount";
   String METRICS_BLOCKCACHE_SUMMARY_HITCOUNT = METRICS_BLOCKCACHE_PREFIX + "summary.hitcount";
   String METRICS_BLOCKCACHE_SUMMARY_REQUESTCOUNT =
       METRICS_BLOCKCACHE_PREFIX + "summary.requestcount";
+  String METRICS_BLOCKCACHE_SUMMARY_EVICTIONCOUNT =
+      METRICS_BLOCKCACHE_PREFIX + "summary.evictioncount";
 
   /**
    * Build Micrometer Meter objects and register them with the registry

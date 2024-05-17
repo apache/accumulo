@@ -173,6 +173,10 @@ public class Tablet extends TabletBase {
   private AtomicLong lastFlushID = new AtomicLong(-1);
   private AtomicLong lastCompactID = new AtomicLong(-1);
 
+  public long getLastCompactId() {
+    return lastCompactID.get();
+  }
+
   private static class CompactionWaitInfo {
     long flushID = -1;
     long compactionID = -1;
@@ -2022,6 +2026,10 @@ public class Tablet extends TabletBase {
   public void compactAll(long compactionId, CompactionConfig compactionConfig) {
 
     synchronized (this) {
+      // This check will quickly ignore stale request from the manager, however its not sufficient
+      // for correctness. This same check is done again later at a point when no compactions could
+      // be running concurrently to avoid race conditions. If the check passes here, it possible a
+      // concurrent compaction could change lastCompactID after the check succeeds.
       if (lastCompactID.get() >= compactionId) {
         return;
       }
