@@ -43,6 +43,7 @@ public class RunningCompactionInfo {
   public final long duration;
   public final String status;
   public final long lastUpdate;
+  public final long entriesToBeCompacted;
 
   /**
    * Info parsed about the external running compaction. Calculate the progress, which is defined as
@@ -63,6 +64,7 @@ public class RunningCompactionInfo {
     // parse the updates map
     long nowMillis = System.currentTimeMillis();
     long startedMillis = nowMillis;
+    long total = 0L;
     float percent = 0f;
     long updateMillis;
     TCompactionStatusUpdate last;
@@ -87,6 +89,7 @@ public class RunningCompactionInfo {
     } else {
       log.debug("No updates found for {}", ecid);
       lastUpdate = 1;
+      entriesToBeCompacted = total;
       progress = percent;
       status = "na";
       return;
@@ -96,11 +99,12 @@ public class RunningCompactionInfo {
     log.debug("Time since Last update {} - {} = {} seconds", nowMillis, updateMillis,
         sinceLastUpdateSeconds);
 
-    var total = last.getEntriesToBeCompacted();
+    total = last.getEntriesToBeCompacted();
     if (total > 0) {
       percent = (last.getEntriesRead() / (float) total) * 100;
     }
     lastUpdate = nowMillis - updateMillis;
+    entriesToBeCompacted = total;
     progress = percent;
 
     if (updates.isEmpty()) {
