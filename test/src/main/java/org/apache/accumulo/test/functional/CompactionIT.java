@@ -1107,6 +1107,9 @@ public class CompactionIT extends AccumuloClusterHarness {
 
       // Change the ratio so a system compaction will be scheduled for table 1
       client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.getKey(), "1");
+      // Set a short timeout so the system job can cancel the user job
+      client.tableOperations().setProperty(table1,
+          Property.TABLE_COMPACTION_SELECTION_EXPIRATION.getKey(), "1000ms");
 
       // Because of the custom planner, the system compaction should now take priority
       // System compactions were previously not eligible to run if selectedFiles existed
