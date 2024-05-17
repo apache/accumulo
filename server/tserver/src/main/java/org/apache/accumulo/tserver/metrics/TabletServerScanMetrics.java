@@ -20,13 +20,14 @@ package org.apache.accumulo.tserver.metrics;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.server.metrics.NoOpDistributionSummary;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -37,48 +38,32 @@ public class TabletServerScanMetrics implements MetricsProducer {
   private Timer scans;
   private DistributionSummary resultsPerScan = new NoOpDistributionSummary();
   private DistributionSummary yields = new NoOpDistributionSummary();
-  private Counter startScanCalls;
-  private Counter continueScanCalls;
-  private Counter closeScanCalls;
-  private Counter busyTimeoutCount;
-  private Counter pausedForMemory;
-  private Counter earlyReturnForMemory;
+  private final AtomicLong startScanCalls = new AtomicLong(0);
+  private final AtomicLong continueScanCalls = new AtomicLong(0);
+  private final AtomicLong closeScanCalls = new AtomicLong(0);
+  private final AtomicLong busyTimeoutCount = new AtomicLong(0);
+  private final AtomicLong pausedForMemory = new AtomicLong(0);
+  private final AtomicLong earlyReturnForMemory = new AtomicLong(0);
 
   private final LongAdder lookupCount = new LongAdder();
   private final LongAdder queryResultCount = new LongAdder();
   private final LongAdder queryResultBytes = new LongAdder();
   private final LongAdder scannedCount = new LongAdder();
 
-  public void incrementLookupCount(long amount) {
-    this.lookupCount.add(amount);
-  }
-
-  public long getLookupCount() {
-    return this.lookupCount.sum();
+  public void incrementLookupCount() {
+    this.lookupCount.increment();
   }
 
   public void incrementQueryResultCount(long amount) {
     this.queryResultCount.add(amount);
   }
 
-  public long getQueryResultCount() {
-    return this.queryResultCount.sum();
-  }
-
   public void incrementQueryResultBytes(long amount) {
     this.queryResultBytes.add(amount);
   }
 
-  public long getQueryByteCount() {
-    return this.queryResultBytes.sum();
-  }
-
   public LongAdder getScannedCounter() {
     return this.scannedCount;
-  }
-
-  public long getScannedCount() {
-    return this.scannedCount.sum();
   }
 
   public void addScan(long value) {
@@ -101,28 +86,28 @@ public class TabletServerScanMetrics implements MetricsProducer {
     openFiles.addAndGet(delta < 0 ? delta : delta * -1);
   }
 
-  public void incrementStartScan(double value) {
-    startScanCalls.increment(value);
+  public void incrementStartScan() {
+    startScanCalls.incrementAndGet();
   }
 
-  public void incrementContinueScan(double value) {
-    continueScanCalls.increment(value);
+  public void incrementContinueScan() {
+    continueScanCalls.incrementAndGet();
   }
 
-  public void incrementCloseScan(double value) {
-    closeScanCalls.increment(value);
+  public void incrementCloseScan() {
+    closeScanCalls.incrementAndGet();
   }
 
-  public void incrementBusy(double value) {
-    busyTimeoutCount.increment(value);
+  public void incrementBusy() {
+    busyTimeoutCount.incrementAndGet();
   }
 
   public void incrementScanPausedForLowMemory() {
-    pausedForMemory.increment();
+    pausedForMemory.incrementAndGet();
   }
 
   public void incrementEarlyReturnForLowMemory() {
-    earlyReturnForMemory.increment();
+    earlyReturnForMemory.incrementAndGet();
   }
 
   @Override
@@ -134,31 +119,28 @@ public class TabletServerScanMetrics implements MetricsProducer {
         .description("Results per scan").register(registry);
     yields =
         DistributionSummary.builder(METRICS_SCAN_YIELDS).description("yields").register(registry);
-    startScanCalls = Counter.builder(METRICS_SCAN_START)
+    FunctionCounter.builder(METRICS_SCAN_START, this.startScanCalls, AtomicLong::get)
         .description("calls to start a scan / multiscan").register(registry);
-    continueScanCalls = Counter.builder(METRICS_SCAN_CONTINUE)
+    FunctionCounter.builder(METRICS_SCAN_CONTINUE, this.continueScanCalls, AtomicLong::get)
         .description("calls to continue a scan / multiscan").register(registry);
-    closeScanCalls = Counter.builder(METRICS_SCAN_CLOSE)
+    FunctionCounter.builder(METRICS_SCAN_CLOSE, this.closeScanCalls, AtomicLong::get)
         .description("calls to close a scan / multiscan").register(registry);
-    busyTimeoutCount = Counter.builder(METRICS_SCAN_BUSY_TIMEOUT_COUNTER)
+    FunctionCounter
+        .builder(METRICS_SCAN_BUSY_TIMEOUT_COUNTER, this.busyTimeoutCount, AtomicLong::get)
         .description("The number of scans where a busy timeout happened").register(registry);
-    Gauge.builder(METRICS_SCAN_QUERIES, this, TabletServerScanMetrics::getLookupCount)
+    FunctionCounter.builder(METRICS_SCAN_QUERIES, this.lookupCount, LongAdder::sum)
         .description("Number of queries").register(registry);
-    Gauge
-        .builder(METRICS_SCAN_QUERY_SCAN_RESULTS, this,
-            TabletServerScanMetrics::getQueryResultCount)
-        .description("Query rate (entries/sec)").register(registry);
-    Gauge
-        .builder(METRICS_SCAN_QUERY_SCAN_RESULTS_BYTES, this,
-            TabletServerScanMetrics::getQueryByteCount)
-        .description("Query rate (bytes/sec)").register(registry);
-    Gauge.builder(METRICS_SCAN_SCANNED_ENTRIES, this, TabletServerScanMetrics::getScannedCount)
+    FunctionCounter.builder(METRICS_SCAN_SCANNED_ENTRIES, this.scannedCount, LongAdder::sum)
         .description("Scanned rate").register(registry);
-    pausedForMemory = Counter.builder(METRICS_SCAN_PAUSED_FOR_MEM)
+    FunctionCounter.builder(METRICS_SCAN_PAUSED_FOR_MEM, this.pausedForMemory, AtomicLong::get)
         .description("scan paused due to server being low on memory").register(registry);
-    earlyReturnForMemory = Counter.builder(METRICS_SCAN_RETURN_FOR_MEM)
+    FunctionCounter.builder(METRICS_SCAN_RETURN_FOR_MEM, this.earlyReturnForMemory, AtomicLong::get)
         .description("scan returned results early due to server being low on memory")
         .register(registry);
+    Gauge.builder(METRICS_SCAN_QUERY_SCAN_RESULTS, this.queryResultCount, LongAdder::sum)
+        .description("Query rate (entries/sec)").register(registry);
+    Gauge.builder(METRICS_SCAN_QUERY_SCAN_RESULTS_BYTES, this.queryResultBytes, LongAdder::sum)
+        .description("Query rate (bytes/sec)").register(registry);
   }
 
 }
