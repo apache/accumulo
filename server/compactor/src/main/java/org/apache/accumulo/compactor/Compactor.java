@@ -115,7 +115,7 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 
-import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -164,9 +164,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder(METRICS_COMPACTOR_ENTRIES_READ, entriesRead::get)
+    FunctionCounter.builder(METRICS_COMPACTOR_ENTRIES_READ, entriesRead, AtomicLong::get)
         .description("Number of entries read").register(registry);
-    Gauge.builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, entriesWritten::get)
+    FunctionCounter.builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, entriesWritten, AtomicLong::get)
         .description("Number of entries written").register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
         .description("Number and duration of stuck major compactions").register(registry);

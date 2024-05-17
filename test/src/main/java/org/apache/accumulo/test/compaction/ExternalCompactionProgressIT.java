@@ -167,6 +167,8 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
     return Threads.createThread("metric-tailer", () -> {
       log.info("Starting metric tailer");
 
+      sink.getLines().clear();
+
       while (!stopCheckerThread.get()) {
         List<String> statsDMetrics = sink.getLines();
         for (String s : statsDMetrics) {
@@ -176,12 +178,12 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "entries.read")) {
             TestStatsDSink.Metric e = TestStatsDSink.parseStatsDMetric(s);
             int value = Integer.parseInt(e.getValue());
-            totalEntriesRead.set(value);
+            totalEntriesRead.addAndGet(value);
             log.info("Found entries.read metric: {} with value: {}", e.getName(), value);
           } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "entries.written")) {
             TestStatsDSink.Metric e = TestStatsDSink.parseStatsDMetric(s);
             int value = Integer.parseInt(e.getValue());
-            totalEntriesWritten.set(value);
+            totalEntriesWritten.addAndGet(value);
             log.info("Found entries.written metric: {} with value: {}", e.getName(), value);
           }
         }
