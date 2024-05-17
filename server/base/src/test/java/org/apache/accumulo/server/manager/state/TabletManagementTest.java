@@ -129,7 +129,7 @@ public class TabletManagementTest {
 
     final SortedMap<Key,Value> entries = createMetadataEntryKV(extent);
 
-    TabletManagement.addActions(entries, actions);
+    TabletManagement.addActions(entries::put, entries.firstKey().getRow(), actions);
     Key key = entries.firstKey();
     Value val = WholeRowIterator.encodeRow(new ArrayList<>(entries.keySet()),
         new ArrayList<>(entries.values()));
@@ -149,7 +149,8 @@ public class TabletManagementTest {
 
     final SortedMap<Key,Value> entries = createMetadataEntryKV(extent);
 
-    TabletManagement.addError(entries, new UnsupportedOperationException("Not supported."));
+    TabletManagement.addError(entries::put, entries.firstKey().getRow(),
+        new UnsupportedOperationException("Not supported."));
     Key key = entries.firstKey();
     Value val = WholeRowIterator.encodeRow(new ArrayList<>(entries.keySet()),
         new ArrayList<>(entries.values()));
@@ -174,7 +175,7 @@ public class TabletManagementTest {
 
     final SortedMap<Key,Value> entries = createMetadataEntryKV(extent);
 
-    TabletManagement.addActions(entries, actions);
+    TabletManagement.addActions(entries::put, entries.firstKey().getRow(), actions);
     Key key = entries.firstKey();
     Value val = WholeRowIterator.encodeRow(new ArrayList<>(entries.keySet()),
         new ArrayList<>(entries.values()));

@@ -156,8 +156,13 @@ public class TabletMetadata {
     this.compacted = tmBuilder.compacted.build();
     this.userCompactionsRequested = tmBuilder.userCompactionsRequested.build();
     this.unSplittableMetadata = tmBuilder.unSplittableMetadata;
-    this.fileSize =
-        Suppliers.memoize(() -> files.values().stream().mapToLong(DataFileValue::getSize).sum());
+    this.fileSize = Suppliers.memoize(() -> {
+      long sum = 0;
+      for (var dfv : files.values()) {
+        sum += dfv.getSize();
+      }
+      return sum;
+    });
     this.extent =
         Suppliers.memoize(() -> new KeyExtent(getTableId(), getEndRow(), getPrevEndRow()));
   }

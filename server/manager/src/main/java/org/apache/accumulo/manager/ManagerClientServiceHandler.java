@@ -648,8 +648,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       inProgress.forEach(hostingRequestInProgress::remove);
     }
 
-    manager.getEventCoordinator().event(success, "Tablet hosting requested for %d tablets in %s",
-        success.size(), tableId);
+    manager.getEventCoordinator().event(success,
+        "Tablet hosting requested for %d of %d tablets in %s", success.size(), extents.size(),
+        tableId);
   }
 
   protected TableId getTableId(ClientContext context, String tableName)
