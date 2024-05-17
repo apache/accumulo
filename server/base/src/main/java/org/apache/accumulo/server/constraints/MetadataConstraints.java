@@ -36,6 +36,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -306,40 +307,49 @@ public class MetadataConstraints implements Constraint {
       } else {
         if (!isValidColumn(columnUpdate)) {
           violations = addViolation(violations, 2);
-        } else if (new ColumnFQ(columnUpdate).equals(TabletColumnFamily.PREV_ROW_COLUMN)
-            && columnUpdate.getValue().length > 0
-            && (violations == null || !violations.contains((short) 4))) {
-          KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
+        } else {
+          final var column = new ColumnFQ(columnUpdate);
+          if (column.equals(TabletColumnFamily.PREV_ROW_COLUMN)
+              && columnUpdate.getValue().length > 0
+              && (violations == null || !violations.contains((short) 4))) {
+            KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
 
-          Text per = TabletColumnFamily.decodePrevEndRow(new Value(columnUpdate.getValue()));
+            Text per = TabletColumnFamily.decodePrevEndRow(new Value(columnUpdate.getValue()));
 
-          boolean prevEndRowLessThanEndRow =
-              per == null || ke.endRow() == null || per.compareTo(ke.endRow()) < 0;
+            boolean prevEndRowLessThanEndRow =
+                per == null || ke.endRow() == null || per.compareTo(ke.endRow()) < 0;
 
-          if (!prevEndRowLessThanEndRow) {
-            violations = addViolation(violations, 3);
-          }
-        } else if (new ColumnFQ(columnUpdate).equals(ServerColumnFamily.LOCK_COLUMN)) {
-          if (zooCache == null) {
-            zooCache = new ZooCache(context.getZooReader(), null);
-            CleanerUtil.zooCacheClearer(this, zooCache);
-          }
+            if (!prevEndRowLessThanEndRow) {
+              violations = addViolation(violations, 3);
+            }
+          } else if (column.equals(ServerColumnFamily.LOCK_COLUMN)) {
+            if (zooCache == null) {
+              zooCache = new ZooCache(context.getZooReader(), null);
+              CleanerUtil.zooCacheClearer(this, zooCache);
+            }
 
-          if (zooRoot == null) {
-            zooRoot = context.getZooKeeperRoot();
-          }
+            if (zooRoot == null) {
+              zooRoot = context.getZooKeeperRoot();
+            }
 
-          boolean lockHeld = false;
-          String lockId = new String(columnUpdate.getValue(), UTF_8);
+            boolean lockHeld = false;
+            String lockId = new String(columnUpdate.getValue(), UTF_8);
 
-          try {
-            lockHeld = ServiceLock.isLockHeld(zooCache, new ZooUtil.LockID(zooRoot, lockId));
-          } catch (Exception e) {
-            log.debug("Failed to verify lock was held {} {}", lockId, e.getMessage());
-          }
+            try {
+              lockHeld = ServiceLock.isLockHeld(zooCache, new ZooUtil.LockID(zooRoot, lockId));
+            } catch (Exception e) {
+              log.debug("Failed to verify lock was held {} {}", lockId, e.getMessage());
+            }
 
-          if (!lockHeld) {
-            violations = addViolation(violations, 7);
+            if (!lockHeld) {
+              violations = addViolation(violations, 7);
+            }
+          } else if (column.equals(SuspendLocationColumn.SUSPEND_COLUMN)) {
+            try {
+              SuspendingTServer.fromValue(new Value(columnUpdate.getValue()));
+            } catch (IllegalArgumentException e) {
+              violations = addViolation(violations, 10);
+            }
           }
         }
       }
@@ -379,6 +389,8 @@ public class MetadataConstraints implements Constraint {
         return "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
       case 9:
         return "Invalid data file metadata format";
+      case 10:
+        return "Suspended timestamp is not valid";
     }
     return null;
   }
