@@ -567,10 +567,12 @@ public class CompactionCoordinator
             .requireSame(tabletMetadata, FILES, SELECTED, ECOMP);
 
         if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
-
           var selectedFiles = tabletMetadata.getSelectedFiles();
           var reserved = getFilesReservedBySelection(tabletMetadata, manager.getSteadyTime(), ctx);
 
+          // If there is a selectedFiles column, and the reserved set is empty this means that
+          // either no user jobs were completed yet or the selection expiration time has passed
+          // so the column is eligible to be deleted so a system job can run instead
           if (selectedFiles != null && reserved.isEmpty()
               && !Collections.disjoint(jobFiles, selectedFiles.getFiles())) {
             LOG.debug("Deleting user compaction selected files for {}", extent);
