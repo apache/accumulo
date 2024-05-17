@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metadata;
+package org.apache.accumulo.test.ample.metadata;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -48,7 +48,6 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletsMutator;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
@@ -58,6 +57,10 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata.TableOptions;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
+import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
+import org.apache.accumulo.server.metadata.ServerAmpleImpl;
+import org.apache.accumulo.server.metadata.TabletsMutatorImpl;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -212,7 +215,7 @@ public class TestAmple {
     }
 
     @Override
-    ServerContext getContext() {
+    protected ServerContext getContext() {
       return testContext.get();
     }
 

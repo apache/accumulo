@@ -20,7 +20,7 @@ package org.apache.accumulo.test.ample;
 
 import static org.apache.accumulo.core.client.ConditionalWriter.Status.ACCEPTED;
 import static org.apache.accumulo.core.client.ConditionalWriter.Status.UNKNOWN;
-import static org.apache.accumulo.server.metadata.ConditionalWriterInterceptor.withStatus;
+import static org.apache.accumulo.test.ample.metadata.ConditionalWriterInterceptor.withStatus;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -39,8 +39,8 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.server.metadata.TestAmple;
-import org.apache.accumulo.server.metadata.TestAmple.TestServerAmpleImpl;
+import org.apache.accumulo.test.ample.metadata.TestAmple;
+import org.apache.accumulo.test.ample.metadata.TestAmple.TestServerAmpleImpl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

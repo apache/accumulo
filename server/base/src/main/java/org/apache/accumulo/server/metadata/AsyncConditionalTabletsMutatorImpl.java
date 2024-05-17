@@ -33,6 +33,8 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditionalTabletsMutator {
   private final Consumer<Ample.ConditionalResult> resultsConsumer;
   private final ExecutorService executor;
@@ -43,8 +45,9 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
   public static final int BATCH_SIZE = 1000;
   private final Function<DataLevel,String> tableMapper;
 
-  AsyncConditionalTabletsMutatorImpl(ServerContext context, Function<DataLevel,String> tableMapper,
-      Consumer<Ample.ConditionalResult> resultsConsumer) {
+  @VisibleForTesting
+  public AsyncConditionalTabletsMutatorImpl(ServerContext context,
+      Function<DataLevel,String> tableMapper, Consumer<Ample.ConditionalResult> resultsConsumer) {
     this.resultsConsumer = Objects.requireNonNull(resultsConsumer);
     this.context = context;
     this.bufferingMutator = new ConditionalTabletsMutatorImpl(context, tableMapper);

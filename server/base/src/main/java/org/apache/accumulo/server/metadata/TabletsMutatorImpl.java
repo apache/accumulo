@@ -32,6 +32,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.server.ServerContext;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 public class TabletsMutatorImpl implements TabletsMutator {
@@ -42,7 +43,8 @@ public class TabletsMutatorImpl implements TabletsMutator {
   private BatchWriter metaWriter;
   private final Function<DataLevel,String> tableMapper;
 
-  TabletsMutatorImpl(ServerContext context, Function<DataLevel,String> tableMapper) {
+  @VisibleForTesting
+  public TabletsMutatorImpl(ServerContext context, Function<DataLevel,String> tableMapper) {
     this.context = context;
     this.tableMapper = Objects.requireNonNull(tableMapper);
   }

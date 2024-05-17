@@ -1033,7 +1033,7 @@ public class CompactionIT extends AccumuloClusterHarness {
         var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
         var externalCompactions = tabletMeta.getExternalCompactions().size();
         log.debug("Current external compactions {}", externalCompactions);
-        return externalCompactions == 0;
+        return externalCompactions == 0 && tabletMeta.getCompacted().isEmpty();
       }, Wait.MAX_WAIT_MILLIS, 100);
     }
 
