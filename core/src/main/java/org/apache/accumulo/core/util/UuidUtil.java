@@ -19,18 +19,6 @@
 package org.apache.accumulo.core.util;
 
 public class UuidUtil {
-  private static boolean isHex(String s, int offset, int start, int end) {
-    for (int i = start; i < end; i++) {
-      var c = s.charAt(i + offset);
-      boolean isHex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-      if (!isHex) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
   /**
    * A fast method for verifying a suffix of a string looks like a uuid.
    *
@@ -42,12 +30,14 @@ public class UuidUtil {
       return false;
     }
     for (int i = 0; i < 36; i++) {
-      var c = s.charAt(i + offset);
-      if ((i == 8 || i == 13 || i == 18 || i == 23)  && c != '-' ) {
-        return false;
-      } else if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
-        continue;
-      } else {
+      var c = uuid.charAt(i + offset);
+      if (i == 8 || i == 13 || i == 18 || i == 23) {
+        if (c != '-') {
+          // expect '-' char at above positions, did not see it
+          return false;
+        }
+      } else if (c < '0' || (c > '9' && c < 'A') || (c > 'F' && c < 'a') || c > 'f') {
+        // expected hex at all other positions, did not see hex chars
         return false;
       }
     }
