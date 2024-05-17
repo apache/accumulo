@@ -42,20 +42,28 @@ public class BlockCacheMetrics implements MetricsProducer {
   public void registerMetrics(MeterRegistry registry) {
     ToDoubleFunction<BlockCache> getHitCount = cache -> cache.getStats().hitCount();
     ToDoubleFunction<BlockCache> getRequestCount = cache -> cache.getStats().requestCount();
+    ToDoubleFunction<BlockCache> getEvictionCount = cache -> cache.getStats().evictionCount();
 
     FunctionCounter.builder(METRICS_BLOCKCACHE_INDEX_HITCOUNT, indexCache, getHitCount)
         .description("Index block cache hit count").register(registry);
     FunctionCounter.builder(METRICS_BLOCKCACHE_INDEX_REQUESTCOUNT, indexCache, getRequestCount)
         .description("Index block cache request count").register(registry);
+    FunctionCounter.builder(METRICS_BLOCKCACHE_INDEX_EVICTIONCOUNT, indexCache, getEvictionCount)
+        .description("Index block cache eviction count").register(registry);
 
     FunctionCounter.builder(METRICS_BLOCKCACHE_DATA_HITCOUNT, dataCache, getHitCount)
         .description("Data block cache hit count").register(registry);
     FunctionCounter.builder(METRICS_BLOCKCACHE_DATA_REQUESTCOUNT, dataCache, getRequestCount)
         .description("Data block cache request count").register(registry);
+    FunctionCounter.builder(METRICS_BLOCKCACHE_DATA_EVICTIONCOUNT, dataCache, getEvictionCount)
+        .description("Data block cache eviction count").register(registry);
 
     FunctionCounter.builder(METRICS_BLOCKCACHE_SUMMARY_HITCOUNT, summaryCache, getHitCount)
         .description("Summary block cache hit count").register(registry);
     FunctionCounter.builder(METRICS_BLOCKCACHE_SUMMARY_REQUESTCOUNT, summaryCache, getRequestCount)
         .description("Summary block cache request count").register(registry);
+    FunctionCounter
+        .builder(METRICS_BLOCKCACHE_SUMMARY_EVICTIONCOUNT, summaryCache, getEvictionCount)
+        .description("Summary block cache eviction count").register(registry);
   }
 }

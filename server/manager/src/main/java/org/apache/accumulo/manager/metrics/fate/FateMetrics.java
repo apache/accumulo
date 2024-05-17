@@ -126,7 +126,7 @@ public class FateMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(final MeterRegistry registry) {
-    registry.gauge(METRICS_FATE_TOTAL_IN_PROGRESS, totalCurrentOpsGauge);
+    registry.gauge(METRICS_FATE_OPS, totalCurrentOpsGauge);
     registry.gauge(METRICS_FATE_OPS_ACTIVITY, totalOpsGauge);
     registry.gauge(METRICS_FATE_ERRORS, List.of(Tag.of("type", "zk.connection")), fateErrorsGauge);
     registry.gauge(METRICS_FATE_TX,
