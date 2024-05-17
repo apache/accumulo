@@ -38,10 +38,19 @@ public class UuidUtil {
    *        string.
    */
   public static boolean isUUID(String uuid, int offset) {
-    return uuid.length() - offset == 36 && isHex(uuid, offset, 0, 8)
-        && uuid.charAt(8 + offset) == '-' && isHex(uuid, offset, 9, 13)
-        && uuid.charAt(13 + offset) == '-' && isHex(uuid, offset, 14, 18)
-        && uuid.charAt(18 + offset) == '-' && isHex(uuid, offset, 19, 23)
-        && uuid.charAt(23 + offset) == '-' && isHex(uuid, offset, 24, 36);
+    if (uuid.length() - offset != 36) {
+      return false;
+    }
+    for (int i = 0; i < 36; i++) {
+      var c = s.charAt(i + offset);
+      if ((i == 8 || i == 13 || i == 18 || i == 23)  && c != '-' ) {
+        return false;
+      } else if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+        continue;
+      } else {
+        return false;
+      }
+    }
+    return true;
   }
 }
