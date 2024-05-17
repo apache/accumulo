@@ -157,7 +157,7 @@ public class SelectedFilesTest {
    */
   @ParameterizedTest
   @MethodSource("provideTestJsons")
-  public void testJsonStrings(FateId fateId, boolean selAll, int compJobs, long selTime,
+  public void testJsonStrings(FateId fateId, boolean selAll, int compJobs, long selTimeNanos,
       int numPaths) {
     List<String> paths = getFilePaths(numPaths);
 
@@ -165,7 +165,7 @@ public class SelectedFilesTest {
     Collections.shuffle(paths, RANDOM.get());
 
     // construct a json from the given parameters
-    String json = getJson(fateId, selAll, compJobs, selTime, paths);
+    String json = getJson(fateId, selAll, compJobs, selTimeNanos, paths);
 
     System.out.println(json);
 
@@ -179,7 +179,7 @@ public class SelectedFilesTest {
     assertEquals(expectedStoredTabletFiles, selectedFiles.getFiles());
 
     Collections.sort(paths);
-    String jsonWithSortedFiles = getJson(fateId, selAll, compJobs, selTime, paths);
+    String jsonWithSortedFiles = getJson(fateId, selAll, compJobs, selTimeNanos, paths);
     assertEquals(jsonWithSortedFiles, selectedFiles.getMetadataValue());
   }
 
@@ -195,14 +195,15 @@ public class SelectedFilesTest {
    * }
    * </pre>
    */
-  private static String getJson(FateId fateId, boolean selAll, int compJobs, long selTime,
+  private static String getJson(FateId fateId, boolean selAll, int compJobs, long selTimeNanos,
       List<String> paths) {
     String filesJsonArray =
         paths.stream().map(path -> new ReferencedTabletFile(new Path(path)).insert().getMetadata())
             .map(path -> path.replace("\"", "\\\"")).map(path -> "'" + path + "'")
             .collect(Collectors.joining(","));
     return ("{'fateId':'" + fateId + "','selAll':" + selAll + ",'compJobs':" + compJobs
-        + ",'selTime':" + selTime + ",'files':[" + filesJsonArray + "]}").replace('\'', '\"');
+        + ",'selTimeNanos':" + selTimeNanos + ",'files':[" + filesJsonArray + "]}")
+        .replace('\'', '\"');
   }
 
   /**
