@@ -77,7 +77,7 @@ public class SelectedFiles {
     private static final String SELECTED_ALL = "selAll";
     private static final String COMPLETED_JOBS = "compJobs";
     private static final String FILES = "files";
-    private static final String SELECTED_TIME = "selTime";
+    private static final String SELECTED_TIME_NANOS = "selTimeNanos";
 
     @Override
     public void write(JsonWriter out, SelectedFiles selectedFiles) throws IOException {
@@ -85,7 +85,7 @@ public class SelectedFiles {
       out.name(FATE_ID).value(selectedFiles.getFateId().canonical());
       out.name(SELECTED_ALL).value(selectedFiles.initiallySelectedAll());
       out.name(COMPLETED_JOBS).value(selectedFiles.getCompletedJobs());
-      out.name(SELECTED_TIME).value(selectedFiles.getSelectedTime().getNanos());
+      out.name(SELECTED_TIME_NANOS).value(selectedFiles.getSelectedTime().getNanos());
       out.name(FILES).beginArray();
       // sort the data to make serialized json comparable
       selectedFiles.getFiles().stream().map(StoredTabletFile::getMetadata).sorted()
@@ -122,7 +122,7 @@ public class SelectedFiles {
           case COMPLETED_JOBS:
             completedJobs = in.nextInt();
             break;
-          case SELECTED_TIME:
+          case SELECTED_TIME_NANOS:
             selectedTime = SteadyTime.from(in.nextLong(), TimeUnit.NANOSECONDS);
             break;
           case FILES:

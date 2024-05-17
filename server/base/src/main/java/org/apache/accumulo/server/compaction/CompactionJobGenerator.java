@@ -213,16 +213,16 @@ public class CompactionJobGenerator {
         // at least 1 job, otherwise we can keep the files
         var selectedFiles = tablet.getSelectedFiles();
 
-        long selectedExpirationDuration =
-            ConfigurationTypeHelper.getTimeInMillis(env.getConfiguration(tablet.getTableId())
-                .get(Property.TABLE_COMPACTION_SELECTION_EXPIRATION.getKey()));
-
-        // If jobs are completed, or selected time has not expired, the remove
-        // from the candidate list otherwise we can cancel the selection
         if (selectedFiles != null) {
+          long selectedExpirationDuration =
+              ConfigurationTypeHelper.getTimeInMillis(env.getConfiguration(tablet.getTableId())
+                  .get(Property.TABLE_COMPACTION_SELECTION_EXPIRATION.getKey()));
+
+          // If jobs are completed, or selected time has not expired, the remove
+          // from the candidate list otherwise we can cancel the selection
           if (selectedFiles.getCompletedJobs() > 0 || (selectedFiles.getSelectedTime() != null
-              && (System.nanoTime() - selectedFiles.getSelectedTime().getNanos())
-                  < selectedExpirationDuration)) {
+              && (steadyTime.minus(selectedFiles.getSelectedTime()).toMillis()
+                  < selectedExpirationDuration))) {
             tmpFiles.keySet().removeAll(selectedFiles.getFiles());
           }
         }
