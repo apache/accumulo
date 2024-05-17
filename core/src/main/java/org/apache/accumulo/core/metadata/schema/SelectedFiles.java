@@ -62,11 +62,12 @@ public class SelectedFiles {
   public SelectedFiles(Set<StoredTabletFile> files, boolean initiallySelectedAll, FateId fateId,
       int completedJobs, SteadyTime selectedTime) {
     Preconditions.checkArgument(files != null && !files.isEmpty());
+    Preconditions.checkArgument(completedJobs >= 0);
     this.files = Set.copyOf(files);
     this.initiallySelectedAll = initiallySelectedAll;
-    this.fateId = fateId;
+    this.fateId = Objects.requireNonNull(fateId);
     this.completedJobs = completedJobs;
-    this.selectedTime = selectedTime;
+    this.selectedTime = Objects.requireNonNull(selectedTime);
   }
 
   private static class SelectedFilesTypeAdapter extends TypeAdapter<SelectedFiles> {

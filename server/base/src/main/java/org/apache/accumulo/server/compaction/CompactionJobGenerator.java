@@ -220,9 +220,9 @@ public class CompactionJobGenerator {
 
           // If jobs are completed, or selected time has not expired, the remove
           // from the candidate list otherwise we can cancel the selection
-          if (selectedFiles.getCompletedJobs() > 0 || (selectedFiles.getSelectedTime() != null
-              && (steadyTime.minus(selectedFiles.getSelectedTime()).toMillis()
-                  < selectedExpirationDuration))) {
+          if (selectedFiles.getCompletedJobs() > 0
+              || (steadyTime.minus(selectedFiles.getSelectedTime()).toMillis()
+                  < selectedExpirationDuration)) {
             tmpFiles.keySet().removeAll(selectedFiles.getFiles());
           }
         }
