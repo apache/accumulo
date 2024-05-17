@@ -21,8 +21,10 @@ package org.apache.accumulo.core.logging;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
 
+import org.apache.accumulo.core.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.Marker;
 import org.slf4j.event.Level;
@@ -84,8 +86,10 @@ public abstract class ConditionalLogger extends AbstractLogger {
     public DeduplicatingLogger(Logger log, Duration threshold) {
       super(log, new BiFunction<>() {
 
-        private final Cache<String,List<Object>> cache =
-            Caffeine.newBuilder().expireAfterWrite(threshold).weakKeys().weakValues().build();
+        private final Cache<Pair<String,List<Object>>,Boolean> cache =
+            Caffeine.newBuilder().expireAfterWrite(threshold).maximumSize(250).build();
+
+        private final ConcurrentMap<Pair<String,List<Object>>,Boolean> cacheMap = cache.asMap();
 
         /**
          * Function that will return true if the message has not been seen in the supplied duration.
@@ -96,15 +100,7 @@ public abstract class ConditionalLogger extends AbstractLogger {
          */
         @Override
         public Boolean apply(String msg, List<Object> args) {
-
-          // WeakKeys will perform == check, this should work?
-          List<Object> storedArgs = cache.getIfPresent(msg);
-
-          if (storedArgs == null || !storedArgs.equals(args)) {
-            cache.put(msg, args);
-            return true;
-          }
-          return false;
+          return cacheMap.putIfAbsent(new Pair<>(msg, args), true) == null;
         }
 
       });
