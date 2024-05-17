@@ -344,8 +344,7 @@ public class MetadataConstraints implements Constraint {
             if (!lockHeld) {
               violations = addViolation(violations, 7);
             }
-          } else if (column.equals(SuspendLocationColumn.SUSPEND_COLUMN)
-              && columnUpdate.getValue().length > 0) {
+          } else if (column.equals(SuspendLocationColumn.SUSPEND_COLUMN)) {
             try {
               SuspendingTServer.fromValue(new Value(columnUpdate.getValue()));
             } catch (IllegalArgumentException e) {
@@ -391,7 +390,7 @@ public class MetadataConstraints implements Constraint {
       case 9:
         return "Invalid data file metadata format";
       case 10:
-        return "Suspended timestamp can not be negative";
+        return "Suspended timestamp is not valid";
     }
     return null;
   }
