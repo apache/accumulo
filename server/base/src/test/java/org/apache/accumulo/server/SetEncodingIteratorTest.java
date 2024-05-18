@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -97,11 +98,19 @@ public class SetEncodingIteratorTest {
         .putFile(file4, new DataFileValue(100, 50)).putFile(file5, new DataFileValue(200, 75))
         .putFile(file6, new DataFileValue(300, 100)).putFlushId(7).build();
 
+    Function<Iterable<Map.Entry<Key,Value>>,SortedMap<Key,Value>> converter = entries -> {
+      SortedMap<Key,Value> map = new TreeMap<>();
+      for (var entry : entries) {
+        map.put(entry.getKey(), entry.getValue());
+      }
+      return map;
+    };
+
     // Convert TabletMetadata to a SortedMap
-    SortedMap<Key,Value> sortedMapNoFiles = new TreeMap<>(tmNoFiles.getKeyValues());
-    SortedMap<Key,Value> sortedMapOneFile = new TreeMap<>(tmOneFile.getKeyValues());
-    SortedMap<Key,Value> sortedMap = new TreeMap<>(tmMultipleFiles.getKeyValues());
-    SortedMap<Key,Value> sortedMap2 = new TreeMap<>(tmMultipleFiles2.getKeyValues());
+    SortedMap<Key,Value> sortedMapNoFiles = converter.apply(tmNoFiles.getKeyValues());
+    SortedMap<Key,Value> sortedMapOneFile = converter.apply(tmOneFile.getKeyValues());
+    SortedMap<Key,Value> sortedMap = converter.apply(tmMultipleFiles.getKeyValues());
+    SortedMap<Key,Value> sortedMap2 = converter.apply(tmMultipleFiles2.getKeyValues());
     // Add the second tablet metadata to the sortedMap
     sortedMap.putAll(sortedMap2);
 

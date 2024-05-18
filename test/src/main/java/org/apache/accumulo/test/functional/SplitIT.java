@@ -422,7 +422,9 @@ public class SplitIT extends AccumuloClusterHarness {
 
       // remove the srv:lock column for tests as this will change
       // because we are changing the metadata from the IT.
-      var original = new TreeMap<>(tabletMetadata.getKeyValues());
+      var original = new TreeMap<Key,Value>();
+      tabletMetadata.getKeyValues()
+          .forEach(entry -> original.put(entry.getKey(), entry.getValue()));
       assertTrue(original.keySet().removeIf(LOCK_COLUMN::hasColumns));
 
       // Split operation should fail because of the unexpected column.
@@ -436,7 +438,8 @@ public class SplitIT extends AccumuloClusterHarness {
       assertEquals(extent, tabletMetadata.getExtent());
 
       // tablet should have an operation id set, but nothing else changed
-      var kvCopy = new TreeMap<>(tabletMetadata2.getKeyValues());
+      var kvCopy = new TreeMap<Key,Value>();
+      tabletMetadata2.getKeyValues().forEach(entry -> kvCopy.put(entry.getKey(), entry.getValue()));
       assertTrue(kvCopy.keySet().removeIf(LOCK_COLUMN::hasColumns));
       assertTrue(kvCopy.keySet().removeIf(OPID_COLUMN::hasColumns));
       assertEquals(original, kvCopy);

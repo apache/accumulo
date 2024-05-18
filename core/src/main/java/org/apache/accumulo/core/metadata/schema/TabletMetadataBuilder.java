@@ -41,7 +41,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.Set;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -263,7 +263,7 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder deleteAll(Set<Key> keys) {
+  public TabletMetadataBuilder deleteAll(Iterable<Map.Entry<Key,Value>> keys) {
     throw new UnsupportedOperationException();
   }
 
