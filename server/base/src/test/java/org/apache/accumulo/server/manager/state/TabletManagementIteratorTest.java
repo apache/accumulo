@@ -42,10 +42,10 @@ public class TabletManagementIteratorTest {
     Key badStartKey = new Key("row", "colf", "colq", 1234L);
     Key badEndKey = new Key("rowEnd", "colf", "colq", 1234L);
 
-    assertThrows(IllegalStateException.class, () -> iter.seek(null, Set.of(), false));
-    assertThrows(IllegalStateException.class,
+    assertThrows(NullPointerException.class, () -> iter.seek(null, Set.of(), false));
+    assertThrows(NullPointerException.class,
         () -> iter.seek(new Range((Key) null, (Key) null), Set.of(), false));
-    assertThrows(IllegalStateException.class,
+    assertThrows(NullPointerException.class,
         () -> iter.seek(new Range(goodStartKey, goodEndKey), Set.of(), false));
     assertTrue(assertThrows(IllegalArgumentException.class,
         () -> iter.seek(new Range(goodStartKey, badEndKey), Set.of(), false)).getMessage()

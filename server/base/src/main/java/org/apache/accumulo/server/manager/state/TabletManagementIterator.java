@@ -19,15 +19,16 @@
 package org.apache.accumulo.server.manager.state;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
@@ -39,9 +40,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
@@ -58,6 +59,7 @@ import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.accumulo.server.split.SplitUtils;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,35 +68,55 @@ import org.slf4j.LoggerFactory;
  * TabletManagement objects for each Tablet that needs some type of action performed on it by the
  * Manager.
  */
-public class TabletManagementIterator extends SkippingIterator {
+public class TabletManagementIterator extends WholeRowIterator {
   private static final Logger LOG = LoggerFactory.getLogger(TabletManagementIterator.class);
   public static final String TABLET_GOAL_STATE_PARAMS_OPTION = "tgsParams";
   private CompactionJobGenerator compactionGenerator;
   private TabletBalancer balancer;
+  private final SplitConfig splitConfig = new SplitConfig();
+
+  private static class SplitConfig {
+    TableId tableId;
+    long splitThreshold;
+    long maxEndRowSize;
+    int maxFilesToOpen;
+
+    void update(TableId tableId, Configuration tableConfig) {
+      if (!tableId.equals(this.tableId)) {
+        this.tableId = tableId;
+        splitThreshold = ConfigurationTypeHelper
+            .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
+        maxEndRowSize = ConfigurationTypeHelper
+            .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_MAX_END_ROW_SIZE.getKey()));
+        maxFilesToOpen = (int) ConfigurationTypeHelper
+            .getFixedMemoryAsBytes(tableConfig.get(Property.SPLIT_MAXOPEN.getKey()));
+      }
+    }
+  }
 
   private static boolean shouldReturnDueToSplit(final TabletMetadata tm,
-      final Configuration tableConfig) {
+      final Configuration tableConfig, SplitConfig splitConfig) {
 
-    final long splitThreshold = ConfigurationTypeHelper
-        .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
-    final long maxEndRowSize = ConfigurationTypeHelper
-        .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_MAX_END_ROW_SIZE.getKey()));
-    final int maxFilesToOpen = (int) ConfigurationTypeHelper
-        .getFixedMemoryAsBytes(tableConfig.get(Property.SPLIT_MAXOPEN.getKey()));
+    // Should see the same table many times in a row, so this should only read config the first time
+    // seen. Reading the config for each tablet was showing up as performance problem when profiling
+    // SplitMillionIT that reads one million tablets. It is also nice to have snapshot of config
+    // that is used for all tablet in a table.
+    splitConfig.update(tm.getTableId(), tableConfig);
 
     // If the current computed metadata matches the current marker then we can't split,
     // so we return false. If the marker is set but doesn't match then return true
     // which gives a chance to clean up the marker and recheck.
     var unsplittable = tm.getUnSplittable();
     if (unsplittable != null) {
-      return !unsplittable.equals(UnSplittableMetadata.toUnSplittable(tm.getExtent(),
-          splitThreshold, maxEndRowSize, maxFilesToOpen, tm.getFiles()));
+      return !unsplittable
+          .equals(UnSplittableMetadata.toUnSplittable(tm.getExtent(), splitConfig.splitThreshold,
+              splitConfig.maxEndRowSize, splitConfig.maxFilesToOpen, tm.getFiles()));
     }
 
     // If unsplittable is not set at all then check if over split threshold
-    final boolean shouldSplit = SplitUtils.needsSplit(tableConfig, tm);
+    final boolean shouldSplit = SplitUtils.needsSplit(splitConfig.splitThreshold, tm);
     LOG.trace("{} should split? sum: {}, threshold: {}, result: {}", tm.getExtent(),
-        tm.getFileSize(), splitThreshold, shouldSplit);
+        tm.getFileSize(), splitConfig.splitThreshold, shouldSplit);
     return shouldSplit;
   }
 
@@ -137,7 +159,6 @@ public class TabletManagementIterator extends SkippingIterator {
       final TabletManagementParameters tabletMgmtParams) {
     // Note : if the scanner is ever made to fetch columns, then TabletManagement.CONFIGURED_COLUMNS
     // must be updated
-    scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "ManagerTabletInfoIterator", TabletManagementIterator.class);
     tabletChange.addOption(TABLET_GOAL_STATE_PARAMS_OPTION, tabletMgmtParams.serialize());
@@ -149,8 +170,7 @@ public class TabletManagementIterator extends SkippingIterator {
   }
 
   private IteratorEnvironment env;
-  private Key topKey = null;
-  private Value topValue = null;
+
   private TabletManagementParameters tabletMgmtParams = null;
 
   @Override
@@ -188,69 +208,64 @@ public class TabletManagementIterator extends SkippingIterator {
   }
 
   @Override
-  public Key getTopKey() {
-    return topKey;
-  }
+  protected boolean filter(Text currentRow, List<Key> keys, List<Value> values) {
 
-  @Override
-  public Value getTopValue() {
-    return topValue;
-  }
+    var keyIter = keys.listIterator();
+    var kvIter = new Iterator<Map.Entry<Key,Value>>() {
+      @Override
+      public boolean hasNext() {
+        return keyIter.hasNext();
+      }
 
-  @Override
-  public boolean hasTop() {
-    return topKey != null && topValue != null;
-  }
-
-  @Override
-  protected void consume() throws IOException {
-    topKey = null;
-    topValue = null;
+      @Override
+      public Entry<Key,Value> next() {
+        var valueIdx = keyIter.nextIndex();
+        var key = keyIter.next();
+        return new AbstractMap.SimpleImmutableEntry<>(key, values.get(valueIdx));
+      }
+    };
 
     final Set<ManagementAction> actions = new HashSet<>();
-    while (getSource().hasTop()) {
-      final Key k = getSource().getTopKey();
-      final Value v = getSource().getTopValue();
-      final SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(k, v);
-      final TabletMetadata tm = TabletMetadata.convertRow(decodedRow.entrySet().iterator(),
-          TabletManagement.CONFIGURED_COLUMNS, false, true);
+    final TabletMetadata tm =
+        TabletMetadata.convertRow(kvIter, TabletManagement.CONFIGURED_COLUMNS, false, true);
 
-      actions.clear();
-      Exception error = null;
-      try {
-        LOG.trace("Evaluating extent: {}", tm);
-        computeTabletManagementActions(tm, actions);
-      } catch (Exception e) {
-        LOG.error("Error computing tablet management actions for extent: {}", tm.getExtent(), e);
-        error = e;
-      }
-
-      if (!actions.isEmpty() || error != null) {
-        if (error != null) {
-          // Insert the error into K,V pair representing
-          // the tablet metadata.
-          TabletManagement.addError(decodedRow, error);
-        } else if (!actions.isEmpty()) {
-          // If we simply returned here, then the client would get the encoded K,V
-          // from the WholeRowIterator. However, it would not know the reason(s) why
-          // it was returned. Insert a K,V pair to represent the reasons. The client
-          // can pull this K,V pair from the results by looking at the colf.
-          TabletManagement.addActions(decodedRow, actions);
-        }
-
-        // This key is being created exactly the same way as the whole row iterator creates keys.
-        // This is important for ensuring that seek works as expected in the continue case. See
-        // WholeRowIterator seek function for details, it looks for keys w/o columns.
-        topKey = new Key(decodedRow.firstKey().getRow());
-        topValue = WholeRowIterator.encodeRow(new ArrayList<>(decodedRow.keySet()),
-            new ArrayList<>(decodedRow.values()));
-        LOG.trace("Returning extent {} with reasons: {}", tm.getExtent(), actions);
-        return;
-      }
-
-      LOG.trace("No reason to return extent {}, continuing", tm.getExtent());
-      getSource().next();
+    Exception error = null;
+    try {
+      LOG.trace("Evaluating extent: {}", tm);
+      computeTabletManagementActions(tm, actions);
+    } catch (Exception e) {
+      LOG.error("Error computing tablet management actions for extent: {}", tm.getExtent(), e);
+      error = e;
     }
+
+    if (!actions.isEmpty() || error != null) {
+      if (error != null) {
+        // Insert the error into K,V pair representing
+        // the tablet metadata.
+        TabletManagement.addError((k, v) -> {
+          keys.add(k);
+          values.add(v);
+        }, currentRow, error);
+      } else if (!actions.isEmpty()) {
+        // If we simply returned here, then the client would get the encoded K,V
+        // from the WholeRowIterator. However, it would not know the reason(s) why
+        // it was returned. Insert a K,V pair to represent the reasons. The client
+        // can pull this K,V pair from the results by looking at the colf.
+        TabletManagement.addActions((k, v) -> {
+          keys.add(k);
+          values.add(v);
+        }, currentRow, actions);
+      }
+
+      // This key is being created exactly the same way as the whole row iterator creates keys.
+      // This is important for ensuring that seek works as expected in the continue case. See
+      // WholeRowIterator seek function for details, it looks for keys w/o columns.
+      LOG.trace("Returning extent {} with reasons: {}", tm.getExtent(), actions);
+      return true;
+    }
+
+    LOG.trace("No reason to return extent {}, continuing", tm.getExtent());
+    return false;
   }
 
   private static final Set<ManagementAction> REASONS_NOT_TO_SPLIT_OR_COMPACT =
@@ -285,7 +300,8 @@ public class TabletManagementIterator extends SkippingIterator {
     if (tm.getOperationId() == null && tabletMgmtParams.isTableOnline(tm.getTableId())
         && Collections.disjoint(REASONS_NOT_TO_SPLIT_OR_COMPACT, reasonsToReturnThisTablet)) {
       try {
-        if (shouldReturnDueToSplit(tm, this.env.getPluginEnv().getConfiguration(tm.getTableId()))) {
+        if (shouldReturnDueToSplit(tm, this.env.getPluginEnv().getConfiguration(tm.getTableId()),
+            splitConfig)) {
           reasonsToReturnThisTablet.add(ManagementAction.NEEDS_SPLITTING);
         }
         // important to call this since reasonsToReturnThisTablet is passed to it

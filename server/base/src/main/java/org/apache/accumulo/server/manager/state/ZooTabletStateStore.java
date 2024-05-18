@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -79,7 +78,6 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
     final String zpath = ctx.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
     final TabletIteratorEnvironment env = new TabletIteratorEnvironment(ctx, IteratorScope.scan,
         ctx.getTableConfiguration(AccumuloTable.ROOT.tableId()), AccumuloTable.ROOT.tableId());
-    final WholeRowIterator wri = new WholeRowIterator();
     final TabletManagementIterator tmi = new TabletManagementIterator();
     final AtomicBoolean closed = new AtomicBoolean(false);
 
@@ -88,8 +86,7 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
           ctx.getZooReaderWriter().getZooKeeper().getData(zpath, false, null);
       final RootTabletMetadata rtm = new RootTabletMetadata(new String(rootTabletMetadata, UTF_8));
       final SortedMapIterator iter = new SortedMapIterator(rtm.toKeyValues());
-      wri.init(iter, Map.of(), env);
-      tmi.init(wri,
+      tmi.init(iter,
           Map.of(TabletManagementIterator.TABLET_GOAL_STATE_PARAMS_OPTION, parameters.serialize()),
           env);
       tmi.seek(new Range(), null, true);

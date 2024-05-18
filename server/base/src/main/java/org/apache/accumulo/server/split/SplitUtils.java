@@ -29,8 +29,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -291,12 +289,6 @@ public class SplitUtils {
   public static boolean needsSplit(ServerContext context, TabletMetadata tabletMetadata) {
     var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
     var splitThreshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
-    return needsSplit(splitThreshold, tabletMetadata);
-  }
-
-  public static boolean needsSplit(final Configuration tableConf, TabletMetadata tabletMetadata) {
-    var splitThreshold = ConfigurationTypeHelper
-        .getFixedMemoryAsBytes(tableConf.get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
     return needsSplit(splitThreshold, tabletMetadata);
   }
 
