@@ -54,6 +54,7 @@ import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -160,7 +161,10 @@ public class Fate<T> {
           } else if (status == SUBMITTED || status == IN_PROGRESS) {
             Repo<T> prevOp = null;
             try {
+              var startTime = NanoTime.now();
               deferTime = op.isReady(txStore.getID(), environment);
+              log.trace("Running {}.isReady() {} took {} ms and returned {}", op.getName(),
+                  txStore.getID(), startTime.elapsed().toMillis(), deferTime);
 
               // Here, deferTime is only used to determine success (zero) or failure (non-zero),
               // proceeding on success and returning to the while loop on failure.
@@ -170,7 +174,12 @@ public class Fate<T> {
                 if (status == SUBMITTED) {
                   txStore.setStatus(IN_PROGRESS);
                 }
+
+                startTime = NanoTime.now();
                 op = op.call(txStore.getID(), environment);
+                log.trace("Running {}.call() {} took {} ms and returned {}", prevOp.getName(),
+                    txStore.getID(), startTime.elapsed().toMillis(),
+                    op == null ? "null" : op.getName());
               } else {
                 continue;
               }

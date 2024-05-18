@@ -121,13 +121,13 @@ public class MetadataConstraints implements Constraint {
       );
   // @formatter:on
 
-  private static boolean isValidColumn(ColumnUpdate cu) {
+  private static boolean isValidColumn(Text family, Text qualifier) {
 
-    if (validColumnFams.contains(new Text(cu.getColumnFamily()))) {
+    if (validColumnFams.contains(family)) {
       return true;
     }
 
-    return validColumnQuals.contains(new ColumnFQ(cu));
+    return validColumnQuals.contains(new ColumnFQ(family, qualifier));
   }
 
   private static ArrayList<Short> addViolation(ArrayList<Short> lst, int violation) {
@@ -226,7 +226,7 @@ public class MetadataConstraints implements Constraint {
       Text columnQualifier = new Text(columnUpdate.getColumnQualifier());
 
       if (columnUpdate.isDeleted()) {
-        if (!isValidColumn(columnUpdate)) {
+        if (!isValidColumn(columnFamily, columnQualifier)) {
           violations = addViolation(violations, 2);
         }
         continue;
@@ -365,7 +365,7 @@ public class MetadataConstraints implements Constraint {
           checkedBulk = true;
         }
       } else {
-        if (!isValidColumn(columnUpdate)) {
+        if (!isValidColumn(columnFamily, columnQualifier)) {
           violations = addViolation(violations, 2);
         } else {
           final var column = new ColumnFQ(columnUpdate);

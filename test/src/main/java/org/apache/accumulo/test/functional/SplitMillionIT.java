@@ -39,7 +39,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.minicluster.MemoryUnit;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -47,7 +51,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class SplitMillionIT extends AccumuloClusterHarness {
+public class SplitMillionIT extends ConfigurableMacBase {
 
   private static final Logger log = LoggerFactory.getLogger(SplitMillionIT.class);
 
@@ -59,14 +63,29 @@ public class SplitMillionIT extends AccumuloClusterHarness {
     }
   }
 
+  @Override
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setMemory(ServerType.MANAGER, 1, MemoryUnit.GIGABYTE);
+    cfg.setMemory(ServerType.TABLET_SERVER, 1, MemoryUnit.GIGABYTE);
+  }
+
   @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
       justification = "predictable random is ok for testing")
   @Test
   public void testOneMillionTablets() throws Exception {
 
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
+
+      // pre split the metadata table
+      var tableId = getServerContext().getTableId(tableName);
+      SortedSet<Text> metaSplits = new TreeSet<>();
+      for (int i = 1; i < 10; i++) {
+        String metaSplit = String.format("%s;%010d", tableId, 100_000_000 / 10 * i);
+        metaSplits.add(new Text(metaSplit));
+      }
+      c.tableOperations().addSplits(AccumuloTable.METADATA.tableName(), metaSplits);
 
       SortedSet<Text> splits = new TreeSet<>();
 

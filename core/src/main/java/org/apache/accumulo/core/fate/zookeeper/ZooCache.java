@@ -295,19 +295,23 @@ public class ZooCache {
 
         // only read volatile once for consistency
         ImmutableCacheCopies lic = immutableCache;
-        if (lic.childrenCache.containsKey(zPath)) {
-          return lic.childrenCache.get(zPath);
+        var cachedChildren = lic.childrenCache.get(zPath);
+        // null is cached as a value, that is the reason for the secondary containsKey check
+        if (cachedChildren != null || lic.childrenCache.containsKey(zPath)) {
+          return cachedChildren;
         }
 
         cacheWriteLock.lock();
         try {
-          if (childrenCache.containsKey(zPath)) {
-            return childrenCache.get(zPath);
+          List<String> children = childrenCache.get(zPath);
+          // null is cached as a value, that is the reason for the secondary containsKey check
+          if (children != null || lic.childrenCache.containsKey(zPath)) {
+            return children;
           }
 
           final ZooKeeper zooKeeper = getZooKeeper();
 
-          List<String> children = zooKeeper.getChildren(zPath, watcher);
+          children = zooKeeper.getChildren(zPath, watcher);
           if (children != null) {
             children = List.copyOf(children);
           }
