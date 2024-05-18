@@ -44,7 +44,7 @@ public class ScanServerRefTabletFile extends ReferencedTabletFile {
     this.colq = colq;
   }
 
-  public String getRowSuffix() {
+  public String getRow() {
     return this.getNormalizedPathStr();
   }
 
@@ -86,7 +86,7 @@ public class ScanServerRefTabletFile extends ReferencedTabletFile {
 
   @Override
   public String toString() {
-    return "ScanServerRefTabletFile [file=" + this.getRowSuffix() + ", server address=" + colf
+    return "ScanServerRefTabletFile [file=" + this.getRow() + ", server address=" + colf
         + ", server lock uuid=" + colq + "]";
   }
 

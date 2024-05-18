@@ -51,7 +51,6 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.gc.GCRun;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -235,8 +234,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
         List<Entry<Key,Value>> metadataEntries = null;
         try (Scanner scanner2 =
-            client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
-          scanner2.setRange(ScanServerFileReferenceSection.getRange());
+            client.createScanner(AccumuloTable.SCAN_REF.tableName(), Authorizations.EMPTY)) {
           metadataEntries = scanner2.stream().distinct().collect(Collectors.toList());
         }
         assertEquals(fileCount, metadataEntries.size());
@@ -244,9 +242,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
         Set<String> metadataScanFileRefs = new HashSet<>();
         metadataEntries.forEach(m -> {
-          String row = m.getKey().getRow().toString();
-          assertTrue(row.startsWith("~sserv"));
-          String file = row.substring(ScanServerFileReferenceSection.getRowPrefix().length());
+          String file = m.getKey().getRow().toString();
           metadataScanFileRefs.add(file);
         });
         assertEquals(fileCount, metadataScanFileRefs.size());

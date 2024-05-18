@@ -21,10 +21,8 @@ package org.apache.accumulo.core.metadata.schema;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -38,11 +36,11 @@ import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.scan.ScanServerRefStore;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.io.Text;
@@ -71,7 +69,7 @@ import org.apache.hadoop.io.Text;
  * of an effort to remove this specialized code. See #936
  * </ul>
  */
-public interface Ample {
+public interface Ample extends ScanServerRefStore {
 
   /**
    * Accumulo is a distributed tree with three levels. This enum is used to communicate to Ample
@@ -635,43 +633,6 @@ public interface Ample {
      *        let the rejected status carry forward in this case.
      */
     void submit(RejectionHandler rejectionHandler);
-  }
-
-  /**
-   * Insert ScanServer references to Tablet files
-   *
-   * @param scanRefs set of scan server ref table file objects
-   */
-  default void putScanServerFileReferences(Collection<ScanServerRefTabletFile> scanRefs) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Get ScanServer references to Tablet files
-   *
-   * @return stream of scan server references
-   */
-  default Stream<ScanServerRefTabletFile> getScanServerFileReferences() {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Delete the set of scan server references
-   *
-   * @param refsToDelete set of scan server references to delete
-   */
-  default void deleteScanServerFileReferences(Collection<ScanServerRefTabletFile> refsToDelete) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Delete scan server references for this server
-   *
-   * @param serverAddress address of server, cannot be null
-   * @param serverSessionId server session id, cannot be null
-   */
-  default void deleteScanServerFileReferences(String serverAddress, UUID serverSessionId) {
-    throw new UnsupportedOperationException();
   }
 
   /**
