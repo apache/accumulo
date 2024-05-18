@@ -50,6 +50,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -65,6 +66,12 @@ public class TabletManagementTest {
       Value v = new Value(cu.getValue());
       rowMap.put(k, v);
     });
+    return rowMap;
+  }
+
+  private SortedMap<Key,Value> toRowMap(TabletMetadata tm) {
+    TreeMap<Key,Value> rowMap = new TreeMap<>();
+    tm.getKeyValues().forEach(entry -> rowMap.put(entry.getKey(), entry.getValue()));
     return rowMap;
   }
 
@@ -139,7 +146,7 @@ public class TabletManagementTest {
     entries.remove(new Key(key.getRow().toString(), "REASONS", ""));
 
     TabletManagement tmi = new TabletManagement(key, val, true);
-    assertEquals(entries, tmi.getTabletMetadata().getKeyValues());
+    assertEquals(entries, toRowMap(tmi.getTabletMetadata()));
     assertEquals(actions, tmi.getActions());
   }
 
@@ -159,7 +166,7 @@ public class TabletManagementTest {
     entries.remove(new Key(key.getRow().toString(), "ERROR", ""));
 
     TabletManagement tmi = new TabletManagement(key, val, true);
-    assertEquals(entries, tmi.getTabletMetadata().getKeyValues());
+    assertEquals(entries, toRowMap(tmi.getTabletMetadata()));
     assertEquals("Not supported.", tmi.getErrorMessage());
   }
 
@@ -186,7 +193,7 @@ public class TabletManagementTest {
     entries.remove(new Key(key.getRow(), new Text("REASONS"), new Text("")));
 
     TabletManagement tmi = new TabletManagement(key, val, true);
-    assertEquals(entries, tmi.getTabletMetadata().getKeyValues());
+    assertEquals(entries, toRowMap(tmi.getTabletMetadata()));
     assertEquals(actions, tmi.getActions());
 
   }
