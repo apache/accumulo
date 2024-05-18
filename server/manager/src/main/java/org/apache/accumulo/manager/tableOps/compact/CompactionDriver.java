@@ -186,7 +186,6 @@ class CompactionDriver extends ManagerRepo {
         var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
 
       CompactionConfig config = CompactionConfigStorage.getConfig(manager.getContext(), fateId);
-      var time = manager.getSteadyTime();
 
       for (TabletMetadata tablet : tablets) {
 
@@ -244,7 +243,7 @@ class CompactionDriver extends ManagerRepo {
             var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
                 .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED, USER_COMPACTION_REQUESTED);
             var selectedFiles = new SelectedFiles(filesToCompact,
-                tablet.getFiles().equals(filesToCompact), fateId, time);
+                tablet.getFiles().equals(filesToCompact), fateId, manager.getSteadyTime());
 
             mutator.putSelectedFiles(selectedFiles);
 
@@ -255,14 +254,9 @@ class CompactionDriver extends ManagerRepo {
 
             selectionsSubmitted.put(tablet.getExtent(), filesToCompact);
 
-            // TODO: Do we need to handle a race condition for the rejection handler check
-            // where a compaction could run a job and increase the count of completed jobs
-            // if the submission went through and the status is unknown? Should we
-            // only check if the fateId and files match?
             mutator.submit(tabletMetadata -> tabletMetadata.getSelectedFiles() != null
-                && tabletMetadata.getSelectedFiles().getMetadataValue()
-                    .equals(selectedFiles.getMetadataValue())
-                && !tabletMetadata.getUserCompactionsRequested().contains(fateId));
+                && tabletMetadata.getSelectedFiles().getFateId().equals(fateId)
+                || tabletMetadata.getCompacted().contains(fateId));
 
             if (minSelected == null || tablet.getExtent().compareTo(minSelected) < 0) {
               minSelected = tablet.getExtent();

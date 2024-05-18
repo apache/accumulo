@@ -1041,7 +1041,16 @@ public class CompactionIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testCancelUserCompaction() throws Exception {
+  public void testCancelUserCompactionTimeoutExceeded() throws Exception {
+    testCancelUserCompactionTimeout(true);
+  }
+
+  @Test
+  public void testCancelUserCompactionTimeoutNotExceeded() throws Exception {
+    testCancelUserCompactionTimeout(false);
+  }
+
+  private void testCancelUserCompactionTimeout(boolean timeout) throws Exception {
 
     var uniqueNames = getUniqueNames(2);
     String table1 = uniqueNames[0];
@@ -1092,6 +1101,12 @@ public class CompactionIT extends AccumuloClusterHarness {
       var tableId = TableId.of(client.tableOperations().tableIdMap().get(table1));
       var extent = new KeyExtent(tableId, null, null);
 
+      // If timeout is true then set a short timeout so the system job can cancel the user job
+      // Otherwise the long timeout should prevent the system from clearing the selected files
+      var expiration = timeout ? "100ms" : "100s";
+      client.tableOperations().setProperty(table1,
+          Property.TABLE_COMPACTION_SELECTION_EXPIRATION.getKey(), expiration);
+
       // Submit a user job for table1 that will be put on the queue and waiting
       // for the current job to finish
       client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
@@ -1105,46 +1120,58 @@ public class CompactionIT extends AccumuloClusterHarness {
         return false;
       }, Wait.MAX_WAIT_MILLIS, 10);
 
-      // Change the ratio so a system compaction will be scheduled for table 1
+      // Change the ratio so a system compaction will attempt to be scheduled for table 1
       client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.getKey(), "1");
-      // Set a short timeout so the system job can cancel the user job
-      client.tableOperations().setProperty(table1,
-          Property.TABLE_COMPACTION_SELECTION_EXPIRATION.getKey(), "1000ms");
 
-      // Because of the custom planner, the system compaction should now take priority
-      // System compactions were previously not eligible to run if selectedFiles existed
-      // for a user compaction already (and they overlapped). But now system compaction jobs
-      // are eligible to run if the user compaction has not started or completed any jobs
-      // When this happens the system compaction will delete the selectedFiles column
-      Wait.waitFor(() -> {
-        var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
-        return tabletMeta.getSelectedFiles() == null;
-      }, Wait.MAX_WAIT_MILLIS, 100);
+      if (timeout) {
+        // Because of the custom planner, the system compaction should now take priority
+        // System compactions were previously not eligible to run if selectedFiles existed
+        // for a user compaction already (and they overlapped). But now system compaction jobs
+        // are eligible to run if the user compaction has not started or completed any jobs
+        // and the expiration period has been exceeded.
+        // When this happens the system compaction will delete the selectedFiles column
+        Wait.waitFor(() -> {
+          var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
+          return tabletMeta.getSelectedFiles() == null;
+        }, Wait.MAX_WAIT_MILLIS, 100);
 
-      // Wait for the system compaction to be running
-      Wait.waitFor(() -> {
-        var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
-        var externalCompactions = tabletMeta.getExternalCompactions();
-        assertTrue(externalCompactions.values().stream()
-            .allMatch(ec -> ec.getKind() == CompactionKind.SYSTEM));
-        return externalCompactions.size() == 1;
-      }, Wait.MAX_WAIT_MILLIS, 10);
+        // Wait for the system compaction to be running
+        Wait.waitFor(() -> {
+          var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
+          var externalCompactions = tabletMeta.getExternalCompactions();
+          assertTrue(externalCompactions.values().stream()
+              .allMatch(ec -> ec.getKind() == CompactionKind.SYSTEM));
+          return externalCompactions.size() == 1;
+        }, Wait.MAX_WAIT_MILLIS, 10);
 
-      // Wait for the user compaction to now run after the system finishes
-      Wait.waitFor(() -> {
-        var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
-        var externalCompactions = tabletMeta.getExternalCompactions();
-        var running = externalCompactions.values().stream()
-            .filter(ec -> ec.getKind() == CompactionKind.USER).count();
-        return running == 1;
-      }, Wait.MAX_WAIT_MILLIS, 100);
+        // Wait for the user compaction to now run after the system finishes
+        Wait.waitFor(() -> {
+          var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
+          var externalCompactions = tabletMeta.getExternalCompactions();
+          var running = externalCompactions.values().stream()
+              .filter(ec -> ec.getKind() == CompactionKind.USER).count();
+          return running == 1;
+        }, Wait.MAX_WAIT_MILLIS, 100);
+      } else {
+        // Wait for the user compaction to run, there should no system compactions scheduled
+        // even though system has the higher priority in the test because the timeout was
+        // not exceeded
+        Wait.waitFor(() -> {
+          var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
+          var externalCompactions = tabletMeta.getExternalCompactions();
+          assertTrue(externalCompactions.values().stream()
+              .allMatch(ec -> ec.getKind() == CompactionKind.USER));
+          return externalCompactions.size() == 1;
+        }, Wait.MAX_WAIT_MILLIS, 10);
+      }
 
       // Wait and verify all compactions finish
       Wait.waitFor(() -> {
         var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
         var externalCompactions = tabletMeta.getExternalCompactions().size();
         log.debug("Waiting for compactions to finish, count {}", externalCompactions);
-        return externalCompactions == 0 && tabletMeta.getCompacted().isEmpty();
+        return externalCompactions == 0 && tabletMeta.getCompacted().isEmpty()
+            && tabletMeta.getSelectedFiles() == null;
       }, Wait.MAX_WAIT_MILLIS, 100);
     }
 
