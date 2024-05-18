@@ -667,7 +667,8 @@ public class TabletMetadataTest {
     LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
 
     FateId selFilesFateId = FateId.from(type, UUID.randomUUID());
-    SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, selFilesFateId);
+    SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, selFilesFateId,
+        SteadyTime.from(100_000, TimeUnit.NANOSECONDS));
     var unsplittableMeta =
         UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2));
 

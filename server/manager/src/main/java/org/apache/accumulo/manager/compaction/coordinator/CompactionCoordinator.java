@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -109,6 +110,7 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CommitCompaction;
@@ -175,14 +177,16 @@ public class CompactionCoordinator
   private final DeadCompactionDetector deadCompactionDetector;
 
   private QueueMetrics queueMetrics;
+  private final Manager manager;
 
   public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
       AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances,
-      final String resourceGroupName) {
+      final String resourceGroupName, Manager manager) {
     this.ctx = ctx;
     this.schedExecutor = this.ctx.getScheduledExecutor();
     this.security = security;
     this.resourceGroupName = resourceGroupName;
+    this.manager = Objects.requireNonNull(manager);
 
     this.jobQueues = new CompactionJobQueues(
         ctx.getConfiguration().getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE));
@@ -423,7 +427,7 @@ public class CompactionCoordinator
 
   @VisibleForTesting
   public static boolean canReserveCompaction(TabletMetadata tablet, CompactionKind kind,
-      Set<StoredTabletFile> jobFiles, ServerContext ctx) {
+      Set<StoredTabletFile> jobFiles, ServerContext ctx, SteadyTime steadyTime) {
 
     if (tablet == null) {
       // the tablet no longer exist
@@ -457,8 +461,8 @@ public class CompactionCoordinator
               "Unable to reserve {} for system compaction, tablet has {} pending requested user compactions",
               tablet.getExtent(), userRequestedCompactions);
           return false;
-        } else if (tablet.getSelectedFiles() != null
-            && !Collections.disjoint(jobFiles, tablet.getSelectedFiles().getFiles())) {
+        } else if (!Collections.disjoint(jobFiles,
+            getFilesReservedBySelection(tablet, steadyTime, ctx))) {
           return false;
         }
         break;
@@ -549,7 +553,8 @@ public class CompactionCoordinator
       try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
         var extent = metaJob.getTabletMetadata().getExtent();
 
-        if (!canReserveCompaction(tabletMetadata, metaJob.getJob().getKind(), jobFiles, ctx)) {
+        if (!canReserveCompaction(tabletMetadata, metaJob.getJob().getKind(), jobFiles, ctx,
+            manager.getSteadyTime())) {
           return null;
         }
 
@@ -560,6 +565,21 @@ public class CompactionCoordinator
         // must be included in the requireSame call
         var tabletMutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
             .requireSame(tabletMetadata, FILES, SELECTED, ECOMP);
+
+        if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
+          var selectedFiles = tabletMetadata.getSelectedFiles();
+          var reserved = getFilesReservedBySelection(tabletMetadata, manager.getSteadyTime(), ctx);
+
+          // If there is a selectedFiles column, and the reserved set is empty this means that
+          // either no user jobs were completed yet or the selection expiration time has passed
+          // so the column is eligible to be deleted so a system job can run instead
+          if (selectedFiles != null && reserved.isEmpty()
+              && !Collections.disjoint(jobFiles, selectedFiles.getFiles())) {
+            LOG.debug("Deleting user compaction selected files for {} {}", extent,
+                externalCompactionId);
+            tabletMutator.deleteSelectedFiles();
+          }
+        }
 
         tabletMutator.putExternalCompaction(externalCompactionId, ecm);
         tabletMutator.submit(tm -> tm.getExternalCompactions().containsKey(externalCompactionId));
@@ -1052,4 +1072,24 @@ public class CompactionCoordinator
     }
   }
 
+  private static Set<StoredTabletFile> getFilesReservedBySelection(TabletMetadata tabletMetadata,
+      SteadyTime steadyTime, ServerContext ctx) {
+    if (tabletMetadata.getSelectedFiles() == null) {
+      return Set.of();
+    }
+
+    if (tabletMetadata.getSelectedFiles().getCompletedJobs() > 0) {
+      return tabletMetadata.getSelectedFiles().getFiles();
+    }
+
+    long selectedExpirationDuration = ctx.getTableConfiguration(tabletMetadata.getTableId())
+        .getTimeInMillis(Property.TABLE_COMPACTION_SELECTION_EXPIRATION);
+
+    if (steadyTime.minus(tabletMetadata.getSelectedFiles().getSelectedTime()).toMillis()
+        < selectedExpirationDuration) {
+      return tabletMetadata.getSelectedFiles().getFiles();
+    }
+
+    return Set.of();
+  }
 }

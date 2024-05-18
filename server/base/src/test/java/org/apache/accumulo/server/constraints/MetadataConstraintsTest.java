@@ -526,7 +526,8 @@ public class MetadataConstraintsTest {
     ServerColumnFamily.SELECTED_COLUMN.put(m,
         new Value(new SelectedFiles(Set.of(new ReferencedTabletFile(
             new Path("hdfs://nn.somewhere.com:86753/accumulo/tables/42/t-0000/F00001.rf"))
-            .insert()), true, fateId).getMetadataValue()));
+            .insert()), true, fateId, SteadyTime.from(100, TimeUnit.NANOSECONDS))
+            .getMetadataValue()));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
   }

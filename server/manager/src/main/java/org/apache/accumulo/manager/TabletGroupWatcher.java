@@ -347,7 +347,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
         store.getLevel(), manager.getCompactionHints(store.getLevel()), canSuspendTablets(),
         lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
-            : Map.of());
+            : Map.of(),
+        manager.getSteadyTime());
   }
 
   private Set<TServerInstance> getFilteredServersToShutdown() {
@@ -382,8 +383,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     TabletLists tLists = new TabletLists(currentTServers, tableMgmtParams.getGroupedTServers(),
         tableMgmtParams.getServersToShutdown());
 
-    CompactionJobGenerator compactionGenerator = new CompactionJobGenerator(
-        new ServiceEnvironmentImpl(manager.getContext()), tableMgmtParams.getCompactionHints());
+    CompactionJobGenerator compactionGenerator =
+        new CompactionJobGenerator(new ServiceEnvironmentImpl(manager.getContext()),
+            tableMgmtParams.getCompactionHints(), tableMgmtParams.getSteadyTime());
 
     Set<TServerInstance> filteredServersToShutdown =
         new HashSet<>(tableMgmtParams.getServersToShutdown());

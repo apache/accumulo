@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
@@ -55,10 +57,11 @@ public class TabletManagementParametersTest {
     final boolean canSuspendTablets = true;
     final Map<Path,Path> replacements =
         Map.of(new Path("file:/vol1/accumulo/inst_id"), new Path("file:/vol2/accumulo/inst_id"));
+    final SteadyTime steadyTime = SteadyTime.from(100_000, TimeUnit.NANOSECONDS);
 
     final TabletManagementParameters tmp = new TabletManagementParameters(managerState,
         parentUpgradeMap, onlineTables, serverSnapshot, serversToShutdown, migrations, dataLevel,
-        compactionHints, canSuspendTablets, replacements);
+        compactionHints, canSuspendTablets, replacements, steadyTime);
 
     String jsonString = tmp.serialize();
     TabletManagementParameters tmp2 = TabletManagementParameters.deserialize(jsonString);
@@ -73,5 +76,6 @@ public class TabletManagementParametersTest {
     assertEquals(compactionHints, tmp2.getCompactionHints());
     assertEquals(canSuspendTablets, tmp2.canSuspendTablets());
     assertEquals(replacements, tmp2.getVolumeReplacements());
+    assertEquals(steadyTime, tmp2.getSteadyTime());
   }
 }
