@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -565,11 +566,17 @@ public class ScanServer extends AbstractServer
     }
 
     // reservations do not exist in the metadata table, so we will attempt to add them
+    long reservationWriteStart = System.nanoTime();
     reservationsWriteLock.lock();
     try {
       // wait if another thread is working on the files we are interested in
+      boolean hasCollided = false;
       while (!Collections.disjoint(influxFiles, allFiles.keySet())) {
         reservationCondition.await();
+        hasCollided = true;
+      }
+      if (hasCollided) {
+        scanServerMetrics.incrementCollisions();
       }
 
       // add files to reserve to influxFiles so that no other thread tries to add or remove these
@@ -579,6 +586,8 @@ public class ScanServer extends AbstractServer
       throw new RuntimeException(e);
     } finally {
       reservationsWriteLock.unlock();
+      long elapsed = System.nanoTime() - reservationWriteStart;
+      scanServerMetrics.recordWriteOutReservationTime(Duration.ofNanos(elapsed));
     }
 
     // do not add any code here that could cause an exception which could lead to files not being
@@ -669,8 +678,7 @@ public class ScanServer extends AbstractServer
     try {
       return reserveFiles(extents);
     } finally {
-      scanServerMetrics.getReservationTimer().record(System.nanoTime() - start,
-          TimeUnit.NANOSECONDS);
+      scanServerMetrics.recordTotalReservationTime(Duration.ofNanos(System.nanoTime() - start));
     }
 
   }
@@ -711,8 +719,7 @@ public class ScanServer extends AbstractServer
     try {
       return reserveFiles(scanId);
     } finally {
-      scanServerMetrics.getReservationTimer().record(System.nanoTime() - start,
-          TimeUnit.NANOSECONDS);
+      scanServerMetrics.recordTotalReservationTime(Duration.ofNanos(System.nanoTime() - start));
     }
   }
 
