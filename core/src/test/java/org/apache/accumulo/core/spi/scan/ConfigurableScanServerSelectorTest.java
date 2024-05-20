@@ -505,7 +505,7 @@ public class ConfigurableScanServerSelectorTest {
 
     var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
 
-    var params = new DaParams(tabletId, Map.of(), Map.of()) {
+    var params = new SelectorParams(tabletId, Map.of(), Map.of()) {
       @Override
       public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
           String description) {
