@@ -378,11 +378,16 @@ public class AdminUtil<T> {
         // If the cause of the Exception is a NoNodeException, it should be ignored as this
         // indicates the transaction has completed between the time the list of transactions was
         // acquired and the time the transaction was probed for info.
+        boolean nne = false;
         Throwable cause = e;
-        while (cause != null && !(cause instanceof KeeperException.NoNodeException)) {
+        while (cause != null) {
+          if (cause instanceof KeeperException.NoNodeException) {
+            nne = true;
+            break;
+          }
           cause = cause.getCause();
         }
-        if (cause == null) {
+        if (!nne) {
           throw e;
         }
         log.debug("Tried to get info on a since completed transaction - ignoring "
