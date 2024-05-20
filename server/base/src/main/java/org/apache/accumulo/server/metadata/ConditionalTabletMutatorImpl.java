@@ -255,8 +255,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         Condition c =
             new Condition(SUSPEND_COLUMN.getColumnFamily(), SUSPEND_COLUMN.getColumnQualifier());
         if (tabletMetadata.getSuspend() != null) {
-          c.setValue(tabletMetadata.getSuspend().server + "|"
-              + tabletMetadata.getSuspend().suspensionTime);
+          c.setValue(tabletMetadata.getSuspend().toValue());
         }
         mutation.addCondition(c);
       }
