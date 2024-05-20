@@ -535,6 +535,10 @@ public class KeyExtent implements Comparable<KeyExtent> {
     return prevExtent.endRow().equals(prevEndRow());
   }
 
+  public boolean isSystemTable() {
+    return AccumuloTable.allTableIds().contains(tableId());
+  }
+
   public boolean isMeta() {
     return tableId().equals(AccumuloTable.METADATA.tableId()) || isRootTablet();
   }
