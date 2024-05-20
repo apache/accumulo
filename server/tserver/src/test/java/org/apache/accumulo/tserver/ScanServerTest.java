@@ -190,7 +190,7 @@ public class ScanServerTest {
     Map<String,String> execHints = new HashMap<>();
     ScanReservation reservation = createMock(ScanReservation.class);
 
-    expect(extent.isMeta()).andReturn(false).anyTimes();
+    expect(extent.isSystemTable()).andReturn(false).anyTimes();
     expect(extent.toThrift()).andReturn(textent).anyTimes();
     expect(reservation.getFailures()).andReturn(Map.of(textent, ranges));
     reservation.close();
@@ -242,7 +242,7 @@ public class ScanServerTest {
     };
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    expect(extent.isMeta()).andReturn(false).anyTimes();
+    expect(extent.isSystemTable()).andReturn(false).anyTimes();
     expect(reservation.newTablet(ss, extent)).andReturn(tablet);
     expect(reservation.getTabletMetadataExtents()).andReturn(Set.of(extent));
     expect(reservation.getFailures()).andReturn(Map.of());
@@ -305,7 +305,7 @@ public class ScanServerTest {
     };
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    expect(extent.isMeta()).andReturn(false).anyTimes();
+    expect(extent.isSystemTable()).andReturn(false).anyTimes();
     expect(reservation.newTablet(ss, extent)).andReturn(tablet).anyTimes();
     expect(reservation.getTabletMetadataExtents()).andReturn(Set.of());
     expect(reservation.getFailures()).andReturn(Map.of(textent, ranges)).anyTimes();
@@ -395,7 +395,7 @@ public class ScanServerTest {
     TabletResolver resolver = createMock(TabletResolver.class);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    expect(sextent.isMeta()).andReturn(true).anyTimes();
+    expect(sextent.isSystemTable()).andReturn(true).anyTimes();
     expect(reservation.newTablet(ss, sextent)).andReturn(tablet);
     expect(reservation.getFailures()).andReturn(Map.of()).anyTimes();
     reservation.close();
@@ -444,7 +444,7 @@ public class ScanServerTest {
     TabletResolver resolver = createMock(TabletResolver.class);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    expect(sextent.isMeta()).andReturn(true).anyTimes();
+    expect(sextent.isSystemTable()).andReturn(true).anyTimes();
     expect(reservation.getFailures()).andReturn(Map.of()).anyTimes();
 
     replay(sextent, reservation, handler);

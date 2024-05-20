@@ -933,7 +933,7 @@ public class ScanServer extends AbstractServer
 
     KeyExtent extent = getKeyExtent(textent);
 
-    if (extent.isMeta() && !isSystemUser(credentials)) {
+    if (extent.isSystemTable() && !isSystemUser(credentials)) {
       throw new TException(
           "Only the system user can perform eventual consistency scans on the root and metadata tables");
     }
@@ -1000,7 +1000,7 @@ public class ScanServer extends AbstractServer
     for (Entry<TKeyExtent,List<TRange>> entry : tbatch.entrySet()) {
       KeyExtent extent = getKeyExtent(entry.getKey());
 
-      if (extent.isMeta() && !context.getSecurityOperation().isSystemUser(credentials)) {
+      if (extent.isSystemTable() && !isSystemUser(credentials)) {
         throw new TException(
             "Only the system user can perform eventual consistency scans on the root and metadata tables");
       }
