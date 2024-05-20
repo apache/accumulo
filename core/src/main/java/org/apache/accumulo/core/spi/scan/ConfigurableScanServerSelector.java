@@ -217,7 +217,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
   @SuppressFBWarnings(value = {"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_FIELD"},
       justification = "Object deserialized by GSON")
-  private static class Profile {
+  protected static class Profile {
     public List<AttemptPlan> attemptPlans;
     List<String> scanTypeActivations;
     boolean isDefault = false;
@@ -351,27 +351,9 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     Map<TabletId,String> serversToUse = new HashMap<>();
 
-    // get the max number of busy attempts, treat errors as busy attempts
-    int attempts = params.getTablets().stream()
-        .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
+    int maxAttempts = selectServers(params, profile, orderedScanServers, serversToUse);
 
-    int numServers = profile.getNumServers(attempts, orderedScanServers.size());
-
-    for (TabletId tablet : params.getTablets()) {
-
-      String serverToUse = null;
-
-      var hashCode = hashTablet(tablet, profile.getSalt(attempts));
-
-      int serverIndex = (Math.abs(hashCode.asInt()) + RANDOM.get().nextInt(numServers))
-          % orderedScanServers.size();
-
-      serverToUse = orderedScanServers.get(serverIndex);
-
-      serversToUse.put(tablet, serverToUse);
-    }
-
-    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(attempts));
+    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(maxAttempts));
 
     return new ScanServerSelections() {
       @Override
@@ -391,7 +373,30 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     };
   }
 
-  private HashCode hashTablet(TabletId tablet, String salt) {
+  protected int selectServers(ScanServerSelector.SelectorParameters params, Profile profile,
+      List<String> orderedScanServers, Map<TabletId,String> serversToUse) {
+
+    int attempts = params.getTablets().stream()
+        .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
+
+    int numServers = profile.getNumServers(attempts, orderedScanServers.size());
+    for (TabletId tablet : params.getTablets()) {
+
+      String serverToUse = null;
+
+      var hashCode = hashTablet(tablet, profile.getSalt(attempts));
+
+      int serverIndex = (Math.abs(hashCode.asInt()) + RANDOM.get().nextInt(numServers))
+          % orderedScanServers.size();
+
+      serverToUse = orderedScanServers.get(serverIndex);
+
+      serversToUse.put(tablet, serverToUse);
+    }
+    return attempts;
+  }
+
+  final HashCode hashTablet(TabletId tablet, String salt) {
     var hasher = Hashing.murmur3_128().newHasher();
 
     if (tablet.getEndRow() != null) {
