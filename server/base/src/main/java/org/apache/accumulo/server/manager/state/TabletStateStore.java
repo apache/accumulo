@@ -18,10 +18,7 @@
  */
 package org.apache.accumulo.server.manager.state;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -65,8 +62,11 @@ public interface TabletStateStore {
 
   /**
    * Store the assigned locations in the data store.
+   *
+   * @return the failures, the extents that a future location could not be set for
    */
-  void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException;
+  Set<KeyExtent> setFutureLocations(Collection<Assignment> assignments)
+      throws DistributedStoreException;
 
   /**
    * Tablet servers will update the data store with the location when they bring the tablet online

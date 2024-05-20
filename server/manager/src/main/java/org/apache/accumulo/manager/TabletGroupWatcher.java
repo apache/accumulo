@@ -968,12 +968,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       flushLock.unlock();
     }
 
+    Set<KeyExtent> failedFuture = Set.of();
     if (!tLists.assignments.isEmpty()) {
       Manager.log.info(String.format("Assigning %d tablets", tLists.assignments.size()));
-      store.setFutureLocations(tLists.assignments);
+      failedFuture = store.setFutureLocations(tLists.assignments);
     }
     tLists.assignments.addAll(tLists.assigned);
     for (Assignment a : tLists.assignments) {
+      if (failedFuture.contains(a.tablet)) {
+        // do not ask a tserver to load a tablet where the future location could not be set
+        continue;
+      }
       try {
         TServerConnection client = manager.tserverSet.getConnection(a.server);
         if (client != null) {

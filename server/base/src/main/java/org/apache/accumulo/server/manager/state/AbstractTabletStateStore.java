@@ -18,9 +18,7 @@
  */
 package org.apache.accumulo.server.manager.state;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -79,7 +77,7 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments)
+  public Set<KeyExtent> setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (Assignment assignment : assignments) {
@@ -94,14 +92,17 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
       }
 
       Map<KeyExtent,ConditionalResult> results = tabletsMutator.process();
+      List<KeyExtent> failed = new ArrayList<>();
 
       for (Entry<KeyExtent,ConditionalResult> entry : results.entrySet()) {
         if (entry.getValue().getStatus() != Status.ACCEPTED) {
           LOG.debug("Likely concurrent FATE operation prevented setting future location for {}, "
               + "Manager will retry soon.", entry.getKey());
+          failed.add(entry.getKey());
         }
       }
 
+      return Set.copyOf(failed);
     } catch (RuntimeException ex) {
       throw new DistributedStoreException(ex);
     }

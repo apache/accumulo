@@ -22,17 +22,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.AbstractMap;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
@@ -154,10 +151,10 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments)
+  public Set<KeyExtent> setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
     validateAssignments(assignments);
-    super.setFutureLocations(assignments);
+    return super.setFutureLocations(assignments);
   }
 
   @Override
