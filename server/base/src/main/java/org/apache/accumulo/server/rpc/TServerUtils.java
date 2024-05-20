@@ -642,7 +642,7 @@ public class TServerUtils {
         }
         break;
       } catch (TTransportException e) {
-        log.warn("Error attempting to create server at {}. Error: {}", address, e.getMessage());
+        log.debug("Failed attempting to create server at {}. {}", address, e.getMessage());
       }
     }
     if (serverAddress == null) {
