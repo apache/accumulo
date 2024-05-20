@@ -917,6 +917,11 @@ public class ScanServer extends AbstractServer
     };
   }
 
+  /* Exposed for testing */
+  protected boolean isSystemUser(TCredentials creds) {
+    return context.getSecurityOperation().isSystemUser(creds);
+  }
+
   @Override
   public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent,
       TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
@@ -927,6 +932,12 @@ public class ScanServer extends AbstractServer
       TooManyFilesException, TSampleNotPresentException, TException {
 
     KeyExtent extent = getKeyExtent(textent);
+
+    if (extent.isMeta() && !isSystemUser(credentials)) {
+      throw new TException(
+          "Only the system user can perform eventual consistency scans on the root and metadata tables");
+    }
+
     try (ScanReservation reservation =
         reserveFilesInstrumented(Map.of(extent, Collections.singletonList(range)))) {
 
@@ -988,6 +999,12 @@ public class ScanServer extends AbstractServer
 
     for (Entry<TKeyExtent,List<TRange>> entry : tbatch.entrySet()) {
       KeyExtent extent = getKeyExtent(entry.getKey());
+
+      if (extent.isMeta() && !context.getSecurityOperation().isSystemUser(credentials)) {
+        throw new TException(
+            "Only the system user can perform eventual consistency scans on the root and metadata tables");
+      }
+
       batch.put(extent, entry.getValue());
     }
 
