@@ -33,13 +33,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
-import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.DelegationTokenConfigSerializer;
@@ -69,7 +67,6 @@ import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -92,15 +89,15 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 
+import com.google.common.collect.Lists;
+
 public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   private static final Logger log = Manager.log;
   private final Manager manager;
-  private final Set<KeyExtent> hostingRequestInProgress;
 
   protected ManagerClientServiceHandler(Manager manager) {
     this.manager = manager;
-    this.hostingRequestInProgress = new ConcurrentSkipListSet<>();
   }
 
   @Override
@@ -611,51 +608,11 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     manager.mustBeOnline(tableId);
 
-    final List<KeyExtent> success = new ArrayList<>();
-    final List<KeyExtent> inProgress = new ArrayList<>();
-    extents.forEach(e -> {
-      KeyExtent ke = KeyExtent.fromThrift(e);
-      if (hostingRequestInProgress.add(ke)) {
-        log.info("Tablet hosting requested for: {} ", KeyExtent.fromThrift(e));
-        inProgress.add(ke);
-      } else {
-        log.trace("Ignoring hosting request because another thread is currently processing it {}",
-            ke);
-      }
-    });
-    // Do not add any code here, it may interfere with the finally block removing extents from
-    // hostingRequestInProgress
-    try (var mutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
-      inProgress.forEach(ke -> {
-        mutator.mutateTablet(ke).requireAbsentOperation()
-            .requireTabletAvailability(TabletAvailability.ONDEMAND).requireAbsentLocation()
-            .setHostingRequested().submit(TabletMetadata::getHostingRequested);
-
-      });
-
-      mutator.process().forEach((extent, result) -> {
-        if (result.getStatus() == Status.ACCEPTED) {
-          // cache this success for a bit
-          success.add(extent);
-        } else {
-          if (log.isTraceEnabled()) {
-            // only read the metadata if the logging is enabled
-            log.trace("Failed to set hosting request {}", result.readMetadata());
-          }
-        }
-      });
-    } finally {
-      inProgress.forEach(hostingRequestInProgress::remove);
-    }
-
-    manager.getEventCoordinator().event(success,
-        "Tablet hosting requested for %d of %d tablets in %s", success.size(), extents.size(),
-        tableId);
+    manager.hostOndemand(Lists.transform(extents, KeyExtent::fromThrift));
   }
 
   protected TableId getTableId(ClientContext context, String tableName)
       throws ThriftTableOperationException {
     return ClientServiceHandler.checkTableId(context, tableName, null);
   }
-
 }
