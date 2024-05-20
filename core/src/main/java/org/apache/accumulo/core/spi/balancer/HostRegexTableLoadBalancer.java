@@ -518,6 +518,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
       migrationsOut.addAll(newMigrations);
       if (migrationsOut.size() >= myConf.maxTServerMigrations) {
+        LOG.warn("Table {} migration size : {} is over tserver migration max: {}", tableId,
+            migrationsOut.size(), myConf.maxTServerMigrations);
         break;
       }
     }
