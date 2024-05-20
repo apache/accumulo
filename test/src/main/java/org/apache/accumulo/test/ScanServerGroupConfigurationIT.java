@@ -38,7 +38,6 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.accumulo.tserver.ScanServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.zookeeper.ZooKeeper;
 import org.junit.jupiter.api.AfterAll;
@@ -163,11 +162,10 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
             ScanServerIT.ingest(client, tableName, 10, 10, 10, "colf", true);
         assertEquals(100, additionalIngest1);
 
-        // Bump the number of scan serves that can run to start the GROUP1 scan server
-        getCluster().getConfig().getClusterServerConfiguration().setNumDefaultScanServers(2);
-
-        getCluster()._exec(ScanServer.class, ServerType.SCAN_SERVER, Map.of(),
-            new String[] {"-g", "GROUP1"});
+        // A a scan server for resource group GROUP1
+        getCluster().getConfig().getClusterServerConfiguration()
+            .addScanServerResourceGroup("GROUP1", 1);
+        getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
         Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 2);
         Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
             (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
