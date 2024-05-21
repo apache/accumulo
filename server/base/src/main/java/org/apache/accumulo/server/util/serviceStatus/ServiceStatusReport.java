@@ -41,26 +41,19 @@ public class ServiceStatusReport {
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
   private static final String I2 = "  ";
   private static final String I4 = "    ";
+  private static final String I6 = "      ";
 
   private final String reportTime;
   private final int zkReadErrors;
   private final boolean noHosts;
-  private final Map<ReportKey,StatusSummary> summaryMap;
+  private final Map<ReportKey,StatusSummary> summaries;
 
-  public ServiceStatusReport(final Map<ReportKey,StatusSummary> summaryMap, final boolean noHosts) {
+  public ServiceStatusReport(final Map<ReportKey,StatusSummary> summaries, final boolean noHosts) {
     reportTime = rptTimeFmt.format(ZonedDateTime.now(ZoneId.of("UTC")));
-    zkReadErrors = summaryMap.values().stream().map(StatusSummary::getErrorCount)
+    zkReadErrors = summaries.values().stream().map(StatusSummary::getErrorCount)
         .reduce(Integer::sum).orElse(0);
     this.noHosts = noHosts;
-    this.summaryMap = summaryMap;
-  }
-
-  public String getReportTime() {
-    return reportTime;
-  }
-
-  public Map<ReportKey,StatusSummary> getSummaryMap() {
-    return summaryMap;
+    this.summaries = summaries;
   }
 
   public String toJson() {
@@ -70,43 +63,43 @@ public class ServiceStatusReport {
   public String report(final StringBuilder sb) {
     sb.append("Report time: ").append(rptTimeFmt.format(ZonedDateTime.now(ZoneId.of("UTC"))))
         .append("\n");
-    int zkErrors = summaryMap.values().stream().map(StatusSummary::getErrorCount)
+    int zkErrors = summaries.values().stream().map(StatusSummary::getErrorCount)
         .reduce(Integer::sum).orElse(0);
     sb.append("ZooKeeper read errors: ").append(zkErrors).append("\n");
 
-    writeServiceStatus(sb, ReportKey.MANAGER, summaryMap.get(ReportKey.MANAGER), noHosts);
-    writeServiceStatus(sb, ReportKey.MONITOR, summaryMap.get(ReportKey.MONITOR), noHosts);
-    writeServiceStatus(sb, ReportKey.GC, summaryMap.get(ReportKey.GC), noHosts);
-    writeServiceStatus(sb, ReportKey.T_SERVER, summaryMap.get(ReportKey.T_SERVER), noHosts);
-    writeResourceGroups(sb, ReportKey.S_SERVER, summaryMap.get(ReportKey.S_SERVER), noHosts);
-    writeServiceStatus(sb, ReportKey.COORDINATOR, summaryMap.get(ReportKey.COORDINATOR), noHosts);
-    writeResourceGroups(sb, ReportKey.COMPACTOR, summaryMap.get(ReportKey.COMPACTOR), noHosts);
+    fmtServiceStatus(sb, ReportKey.MANAGER, summaries.get(ReportKey.MANAGER), noHosts);
+    fmtServiceStatus(sb, ReportKey.MONITOR, summaries.get(ReportKey.MONITOR), noHosts);
+    fmtServiceStatus(sb, ReportKey.GC, summaries.get(ReportKey.GC), noHosts);
+    fmtServiceStatus(sb, ReportKey.T_SERVER, summaries.get(ReportKey.T_SERVER), noHosts);
+    fmtResourceGroups(sb, ReportKey.S_SERVER, summaries.get(ReportKey.S_SERVER), noHosts);
+    fmtServiceStatus(sb, ReportKey.COORDINATOR, summaries.get(ReportKey.COORDINATOR), noHosts);
+    fmtResourceGroups(sb, ReportKey.COMPACTOR, summaries.get(ReportKey.COMPACTOR), noHosts);
 
     sb.append("\n");
-    LOG.trace("fmtStatus - with hosts: {}", summaryMap);
+    LOG.trace("fmtStatus - with hosts: {}", summaries);
     return sb.toString();
   }
 
-  public void writeServiceStatus(final StringBuilder sb, final ReportKey displayNames,
+  private void fmtServiceStatus(final StringBuilder sb, final ReportKey displayNames,
       final StatusSummary summary, boolean noHosts) {
     if (summary == null) {
       sb.append(displayNames).append(": unavailable").append("\n");
       return;
     }
 
-    writeCounts(sb, summary);
+    fmtCounts(sb, summary);
 
     // skip host info if requested
     if (noHosts) {
       return;
     }
     if (summary.getServiceCount() > 0) {
-      var hosts = summary.getServiceNames();
-      hosts.forEach(h -> sb.append(I2).append(h).append("\n"));
+      var hosts = summary.getServiceByGroups();
+      hosts.values().forEach(s -> s.forEach(h -> sb.append(I2).append(h).append("\n")));
     }
   }
 
-  private void writeCounts(StringBuilder sb, StatusSummary summary) {
+  private void fmtCounts(StringBuilder sb, StatusSummary summary) {
     sb.append(summary.getDisplayName()).append(": count: ").append(summary.getServiceCount());
     if (summary.getErrorCount() > 0) {
       sb.append(", (ZooKeeper errors: ").append(summary.getErrorCount()).append(")\n");
@@ -115,27 +108,33 @@ public class ServiceStatusReport {
     }
   }
 
-  private void writeResourceGroups(final StringBuilder sb, final ReportKey reportKey,
+  private void fmtResourceGroups(final StringBuilder sb, final ReportKey reportKey,
       final StatusSummary summary, boolean noHosts) {
     if (summary == null) {
       sb.append(reportKey).append(": unavailable").append("\n");
       return;
     }
 
-    writeCounts(sb, summary);
+    fmtCounts(sb, summary);
 
     // skip host info if requested
     if (noHosts) {
       return;
     }
+
     if (!summary.getResourceGroups().isEmpty()) {
       sb.append(I2).append("resource groups:\n");
       summary.getResourceGroups().forEach(g -> sb.append(I4).append(g).append("\n"));
 
       if (summary.getServiceCount() > 0) {
         sb.append(I2).append("hosts (by group):\n");
-        var hosts = summary.getServiceNames();
-        hosts.forEach(h -> sb.append(I4).append(h).append("\n"));
+        var groups = summary.getServiceByGroups();
+        groups.forEach((g, h) -> {
+          sb.append(I4).append(g).append(" (").append(h.size()).append(")").append(":\n");
+          h.forEach(n -> {
+            sb.append(I6).append(n).append("\n");
+          });
+        });
       }
     }
   }
@@ -143,7 +142,7 @@ public class ServiceStatusReport {
   @Override
   public String toString() {
     return "ServiceStatusReport{reportTime='" + reportTime + '\'' + ", zkReadErrors=" + zkReadErrors
-        + ", noHosts=" + noHosts + ", status=" + summaryMap + '}';
+        + ", noHosts=" + noHosts + ", status=" + summaries + '}';
   }
 
   public enum ReportKey {

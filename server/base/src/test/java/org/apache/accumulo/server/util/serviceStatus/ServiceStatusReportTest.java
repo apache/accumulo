@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.server.util.serviceStatus;
 
+import static org.apache.accumulo.server.util.ServiceStatusCmd.NO_GROUP_TAG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -61,7 +63,7 @@ public class ServiceStatusReportTest {
     ServiceStatusReport report = new ServiceStatusReport(services, false);
     var output = report.toJson();
     LOG.info("{}", output);
-    assertTrue(!output.isEmpty());
+    assertFalse(output.isEmpty());
   }
 
   /**
@@ -78,37 +80,54 @@ public class ServiceStatusReportTest {
   private Map<ServiceStatusReport.ReportKey,StatusSummary> buildHostStatus() {
     final Map<ServiceStatusReport.ReportKey,StatusSummary> services = new TreeMap<>();
 
-    StatusSummary managerSummary = new StatusSummary(ServiceStatusReport.ReportKey.MANAGER,
-        Set.of(), Set.of("host1:8080", "host2:9090"), 1);
+    Map<String,Set<String>> managerByGroup = new TreeMap<>();
+    managerByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of("host1:8080", "host2:9090")));
+    StatusSummary managerSummary =
+        new StatusSummary(ServiceStatusReport.ReportKey.MANAGER, Set.of(), managerByGroup, 1);
     services.put(ServiceStatusReport.ReportKey.MANAGER, managerSummary);
 
-    StatusSummary monitorSummary = new StatusSummary(ServiceStatusReport.ReportKey.MONITOR,
-        Set.of(), Set.of("host1:8080", "host2:9090"), 0);
+    Map<String,Set<String>> monitorByGroup = new TreeMap<>();
+    monitorByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of("host1:8080", "host2:9090")));
+    StatusSummary monitorSummary =
+        new StatusSummary(ServiceStatusReport.ReportKey.MONITOR, Set.of(), monitorByGroup, 0);
     services.put(ServiceStatusReport.ReportKey.MONITOR, monitorSummary);
 
-    StatusSummary gcSummary = new StatusSummary(ServiceStatusReport.ReportKey.GC, Set.of(),
-        Set.of("host1:8080", "host2:9090"), 0);
+    Map<String,Set<String>> gcByGroup = new TreeMap<>();
+    gcByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of("host1:8080", "host2:9090")));
+
+    StatusSummary gcSummary =
+        new StatusSummary(ServiceStatusReport.ReportKey.GC, Set.of(), gcByGroup, 0);
     services.put(ServiceStatusReport.ReportKey.GC, gcSummary);
 
+    Map<String,Set<String>> tserverByGroup = new TreeMap<>();
+    tserverByGroup.put(NO_GROUP_TAG,
+        new TreeSet<>(List.of("host2:9090", "host4:9091", "host1:8080", "host3:9091")));
+
     StatusSummary tserverSummary =
-        new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, Set.of(),
-            new TreeSet<>(List.of("host2:9090", "host4:9091", "host1:8080", "host3:9091")), 1);
+        new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, Set.of(), tserverByGroup, 1);
     services.put(ServiceStatusReport.ReportKey.T_SERVER, tserverSummary);
 
+    Map<String,Set<String>> sserverByGroup = new TreeMap<>();
+    sserverByGroup.put("default", new TreeSet<>(List.of("host2:9090")));
+    sserverByGroup.put("rg1", new TreeSet<>(List.of("host1:8080", "host3:9091")));
+    sserverByGroup.put("rg2", new TreeSet<>(List.of("host4:9091")));
+
     StatusSummary scanServerSummary = new StatusSummary(ServiceStatusReport.ReportKey.S_SERVER,
-        new TreeSet<>(List.of("default", "rg1", "rg2")), new TreeSet<>(List
-            .of("default, host2:9090", "rg2, host4:9091", "rg1, host1:8080", "rg1, host3:9091")),
-        2);
+        new TreeSet<>(List.of("default", "rg1", "rg2")), sserverByGroup, 2);
     services.put(ServiceStatusReport.ReportKey.S_SERVER, scanServerSummary);
 
+    Map<String,Set<String>> coordinatorByGroup = new TreeMap<>();
+    coordinatorByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of("host4:9090", "host2:9091")));
     StatusSummary coordinatorSummary = new StatusSummary(ServiceStatusReport.ReportKey.COORDINATOR,
-        Set.of(), new TreeSet<>(List.of("host4:9090", "host2:9091")), 0);
+        Set.of(), coordinatorByGroup, 0);
     services.put(ServiceStatusReport.ReportKey.COORDINATOR, coordinatorSummary);
 
+    Map<String,Set<String>> compactorByGroup = new TreeMap<>();
+    compactorByGroup.put("q2", new TreeSet<>(List.of("host5:8080", "host2:9090", "host4:9091")));
+    compactorByGroup.put("q1", new TreeSet<>(List.of("host3:8080", "host1:9091")));
+
     StatusSummary compactorSummary = new StatusSummary(ServiceStatusReport.ReportKey.COMPACTOR,
-        new TreeSet<>(List.of("q2", "q1")), new TreeSet<>(List.of("q2: host2:9090",
-            "q2: host4:9091", "q1: host3:8080", "q1: host1:9091", "q2: host5:8080")),
-        0);
+        new TreeSet<>(List.of("q2", "q1")), compactorByGroup, 0);
     services.put(ServiceStatusReport.ReportKey.COMPACTOR, compactorSummary);
 
     return services;

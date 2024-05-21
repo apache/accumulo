@@ -20,6 +20,7 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZGC_LOCK;
+import static org.apache.accumulo.server.util.ServiceStatusCmd.NO_GROUP_TAG;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
@@ -29,7 +30,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 
@@ -104,13 +107,16 @@ public class ServiceStatusCmdTest {
 
     // expect sorted by name
     Set<String> hosts = new TreeSet<>(List.of(host1, host2, host3));
+    Map<String,Set<String>> hostByGroup = new TreeMap<>();
+    hostByGroup.put(NO_GROUP_TAG, hosts);
+
     StatusSummary expected =
-        new StatusSummary(ServiceStatusReport.ReportKey.MANAGER, Set.of(), hosts, 0);
+        new StatusSummary(ServiceStatusReport.ReportKey.MANAGER, Set.of(), hostByGroup, 0);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
     assertEquals(expected.getResourceGroups(), status.getResourceGroups());
-    assertEquals(expected.getServiceNames(), status.getServiceNames());
+    assertEquals(expected.getServiceByGroups(), status.getServiceByGroups());
     assertEquals(expected.getServiceCount(), status.getServiceCount());
     assertEquals(expected.getErrorCount(), status.getErrorCount());
     assertEquals(expected, status);
@@ -140,14 +146,16 @@ public class ServiceStatusCmdTest {
     assertEquals(2, status.getServiceCount());
 
     // expect sorted by name
-    Set<String> hosts = new TreeSet<>(List.of(host1, host2));
+    Map<String,Set<String>> hostByGroup = new TreeMap<>();
+    hostByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of(host1, host2)));
+
     StatusSummary expected =
-        new StatusSummary(ServiceStatusReport.ReportKey.MONITOR, Set.of(), hosts, 0);
+        new StatusSummary(ServiceStatusReport.ReportKey.MONITOR, Set.of(), hostByGroup, 0);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
     assertEquals(expected.getResourceGroups(), status.getResourceGroups());
-    assertEquals(expected.getServiceNames(), status.getServiceNames());
+    assertEquals(expected.getServiceByGroups(), status.getServiceByGroups());
     assertEquals(expected.getServiceCount(), status.getServiceCount());
     assertEquals(expected.getErrorCount(), status.getErrorCount());
     assertEquals(expected, status);
@@ -187,14 +195,16 @@ public class ServiceStatusCmdTest {
     assertEquals(3, status.getServiceCount());
 
     // expect sorted by name
-    Set<String> hosts = new TreeSet<>(List.of(host1, host2, host3));
+    Map<String,Set<String>> hostByGroup = new TreeMap<>();
+    hostByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of(host1, host2, host3)));
+
     StatusSummary expected =
-        new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, Set.of(), hosts, 0);
+        new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, Set.of(), hostByGroup, 0);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
     assertEquals(expected.getResourceGroups(), status.getResourceGroups());
-    assertEquals(expected.getServiceNames(), status.getServiceNames());
+    assertEquals(expected.getServiceByGroups(), status.getServiceByGroups());
     assertEquals(expected.getServiceCount(), status.getServiceCount());
     assertEquals(expected.getErrorCount(), status.getErrorCount());
     assertEquals(expected, status);
@@ -243,10 +253,12 @@ public class ServiceStatusCmdTest {
     StatusSummary status = cmd.getScanServerStatus(zooReader, zRoot);
     assertEquals(4, status.getServiceCount());
 
-    Set<String> hosts =
-        Set.of("default: host2:9090", "default: host4:9091", "rg1: host1:8080", "rg1: host3:9091");
+    Map<String,Set<String>> hostByGroup = new TreeMap<>();
+    hostByGroup.put("default", new TreeSet<>(List.of("host2:9090", "host4:9091")));
+    hostByGroup.put("rg1", new TreeSet<>(List.of("host1:8080", "host3:9091")));
+
     StatusSummary expected = new StatusSummary(ServiceStatusReport.ReportKey.S_SERVER,
-        Set.of("default", "rg1"), hosts, 0);
+        Set.of("default", "rg1"), hostByGroup, 0);
 
     assertEquals(expected, status);
 
@@ -282,13 +294,16 @@ public class ServiceStatusCmdTest {
 
     // expect sorted by name
     Set<String> hosts = new TreeSet<>(List.of(host1, host2, host3));
+    Map<String,Set<String>> hostByGroup = new TreeMap<>();
+    hostByGroup.put(NO_GROUP_TAG, hosts);
+
     StatusSummary expected =
-        new StatusSummary(ServiceStatusReport.ReportKey.COORDINATOR, Set.of(), hosts, 0);
+        new StatusSummary(ServiceStatusReport.ReportKey.COORDINATOR, Set.of(), hostByGroup, 0);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
     assertEquals(expected.getResourceGroups(), status.getResourceGroups());
-    assertEquals(expected.getServiceNames(), status.getServiceNames());
+    assertEquals(expected.getServiceByGroups(), status.getServiceByGroups());
     assertEquals(expected.getServiceCount(), status.getServiceCount());
     assertEquals(expected.getErrorCount(), status.getErrorCount());
     assertEquals(expected, status);
@@ -338,8 +353,10 @@ public class ServiceStatusCmdTest {
     assertEquals(0, status.getResourceGroups().size());
     assertEquals(2, status.getServiceCount());
     assertEquals(0, status.getErrorCount());
-    assertEquals(2, status.getServiceNames().size());
-    assertEquals(new TreeSet<>(List.of(host1, host2)), status.getServiceNames());
+    assertEquals(1, status.getServiceByGroups().size());
+    assertEquals(2, status.getServiceByGroups().get(NO_GROUP_TAG).size());
+    assertEquals(new TreeSet<>(List.of(host1, host2)),
+        status.getServiceByGroups().get(NO_GROUP_TAG));
   }
 
   /**
@@ -369,12 +386,13 @@ public class ServiceStatusCmdTest {
     StatusSummary status = cmd.getManagerStatus(zooReader, zRoot);
     LOG.info("manager status data: {}", status);
 
-    assertEquals(2, status.getServiceNames().size());
+    assertEquals(1, status.getServiceByGroups().size());
+    assertEquals(2, status.getServiceByGroups().get(NO_GROUP_TAG).size());
     assertEquals(1, status.getErrorCount());
 
     // host 1 missing - no node exception
     Set<String> sortedHosts = new TreeSet<>(List.of(host3, host2));
-    assertEquals(sortedHosts, status.getServiceNames());
+    assertEquals(sortedHosts, status.getServiceByGroups().get(NO_GROUP_TAG));
   }
 
   @Test

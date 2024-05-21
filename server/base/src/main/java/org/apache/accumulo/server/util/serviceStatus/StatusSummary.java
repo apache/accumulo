@@ -18,40 +18,42 @@
  */
 package org.apache.accumulo.server.util.serviceStatus;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 public class StatusSummary {
 
-  private final ServiceStatusReport.ReportKey reportKey;
+  private final ServiceStatusReport.ReportKey serviceType;
   private final Set<String> resourceGroups;
-  private final Set<String> serviceNames;
+  private final Map<String,Set<String>> serviceByGroups;
   private final int serviceCount;
   private final int errorCount;
 
-  public StatusSummary(ServiceStatusReport.ReportKey reportKey, final Set<String> resourceGroups,
-      final Set<String> serviceNames, final int errorCount) {
-    this.reportKey = reportKey;
+  public StatusSummary(ServiceStatusReport.ReportKey serviceType, final Set<String> resourceGroups,
+      final Map<String,Set<String>> serviceByGroups, final int errorCount) {
+    this.serviceType = serviceType;
     this.resourceGroups = resourceGroups;
-    this.serviceNames = serviceNames;
-    this.serviceCount = serviceNames.size();
+    this.serviceByGroups = serviceByGroups;
+    this.serviceCount =
+        serviceByGroups.values().stream().map(Set::size).reduce(Integer::sum).orElse(0);
     this.errorCount = errorCount;
   }
 
-  public ServiceStatusReport.ReportKey getReportKey() {
-    return reportKey;
+  public ServiceStatusReport.ReportKey getServiceType() {
+    return serviceType;
   }
 
   public String getDisplayName() {
-    return reportKey.getDisplayName();
+    return serviceType.getDisplayName();
   }
 
   public Set<String> getResourceGroups() {
     return resourceGroups;
   }
 
-  public Set<String> getServiceNames() {
-    return serviceNames;
+  public Map<String,Set<String>> getServiceByGroups() {
+    return serviceByGroups;
   }
 
   public int getServiceCount() {
@@ -72,19 +74,19 @@ public class StatusSummary {
     }
     StatusSummary that = (StatusSummary) o;
     return serviceCount == that.serviceCount && errorCount == that.errorCount
-        && reportKey == that.reportKey && Objects.equals(resourceGroups, that.resourceGroups)
-        && Objects.equals(serviceNames, that.serviceNames);
+        && serviceType == that.serviceType && Objects.equals(resourceGroups, that.resourceGroups)
+        && Objects.equals(serviceByGroups, that.serviceByGroups);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(reportKey, resourceGroups, serviceCount, serviceNames, errorCount);
+    return Objects.hash(serviceType, resourceGroups, serviceCount, serviceByGroups, errorCount);
   }
 
   @Override
   public String toString() {
-    return "StatusSummary{serviceName=" + reportKey + ", resourceGroups=" + resourceGroups
-        + ", serviceCount=" + serviceCount + ", names=" + serviceNames + ", errorCount="
+    return "StatusSummary{serviceName=" + serviceType + ", resourceGroups=" + resourceGroups
+        + ", serviceCount=" + serviceCount + ", names=" + serviceByGroups + ", errorCount="
         + errorCount + '}';
   }
 }

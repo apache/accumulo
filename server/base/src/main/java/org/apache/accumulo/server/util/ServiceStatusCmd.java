@@ -44,23 +44,13 @@ import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 
 public class ServiceStatusCmd {
+
+  // used when grouping by resource group when there is no group.
+  public static final String NO_GROUP_TAG = "NO_GROUP";
+
   private static final Logger LOG = LoggerFactory.getLogger(ServiceStatusCmd.class);
 
   public ServiceStatusCmd() {}
-
-  /**
-   * ServerServices writes lock data as SERVICE=host. This strips the SERVICE= from the string.
-   *
-   * @return a sort set of host names.
-   */
-  private static Set<String> stripServiceName(Set<String> hostnames) {
-    return hostnames.stream().map(h -> {
-      if (h.contains(ServerServices.SEPARATOR_CHAR)) {
-        return h.substring(h.indexOf(ServerServices.SEPARATOR_CHAR) + 1);
-      }
-      return h;
-    }).collect(Collectors.toCollection(TreeSet::new));
-  }
 
   /**
    * Read the service statuses from ZooKeeper, build the status report and then output the report to
@@ -143,37 +133,35 @@ public class ServiceStatusCmd {
       ServiceStatusReport.ReportKey displayNames) {
     AtomicInteger errorSum = new AtomicInteger(0);
 
-    Set<String> hostNames = new TreeSet<>();
+    // Set<String> hostNames = new TreeSet<>();
     Set<String> groupNames = new TreeSet<>();
+    Map<String,Set<String>> hostsByGroups = new TreeMap<>();
 
     var nodeNames = readNodeNames(zooReader, basePath);
 
-    nodeNames.getSecond().forEach(name -> {
-      var lock = readNodeNames(zooReader, basePath + "/" + name);
-      lock.getSecond().forEach(l -> {
-        var r = readNodeData(zooReader, basePath + "/" + name + "/" + l);
-        int err = r.getFirst();
+    nodeNames.getHosts().forEach(host -> {
+      var lock = readNodeNames(zooReader, basePath + "/" + host);
+      lock.getHosts().forEach(l -> {
+        var nodeData = readNodeData(zooReader, basePath + "/" + host + "/" + l);
+        int err = nodeData.getErrorCount();
         if (err > 0) {
-          errorSum.addAndGet(r.getFirst());
+          errorSum.addAndGet(nodeData.getErrorCount());
         } else {
           // process resource groups
-          var payload = r.getSecond();
-          String[] tokens = payload.split(",");
-          String groupSeparator = "";
+          String[] tokens = nodeData.getHosts().split(",");
           if (tokens.length == 2) {
-            groupNames.add(tokens[1]);
-            groupSeparator = tokens[1] + ": ";
+            String groupName = tokens[1];
+            groupNames.add(groupName);
+            hostsByGroups.computeIfAbsent(groupName, s -> new TreeSet<>()).add(host);
+          } else {
+            hostsByGroups.computeIfAbsent(NO_GROUP_TAG, s -> new TreeSet<>()).add(host);
           }
-          hostNames.add(groupSeparator + name);
         }
 
       });
       errorSum.addAndGet(lock.getFirst());
     });
-
-    LOG.trace("Current data: {}", hostNames);
-
-    return new StatusSummary(displayNames, groupNames, new TreeSet<>(hostNames), errorSum.get());
+    return new StatusSummary(displayNames, groupNames, hostsByGroups, errorSum.get());
   }
 
   /**
@@ -185,10 +173,29 @@ public class ServiceStatusCmd {
     String lockPath = zRootPath + Constants.ZGC_LOCK;
     var temp = getStatusSummary(ServiceStatusReport.ReportKey.GC, zooReader, lockPath);
     // remove GC_CLIENT= from displayed host:port
-    Set<String> hosts = stripServiceName(temp.getServiceNames());
-    return new StatusSummary(temp.getReportKey(), temp.getResourceGroups(), hosts,
+    Set<String> hosts =
+        new TreeSet<>(stripServiceName(temp.getServiceByGroups().get(NO_GROUP_TAG)));
+
+    Map<String,Set<String>> hostByGroup = new TreeMap<>();
+    hostByGroup.put(NO_GROUP_TAG, hosts);
+
+    return new StatusSummary(temp.getServiceType(), temp.getResourceGroups(), hostByGroup,
         temp.getErrorCount());
 
+  }
+
+  /**
+   * ServerServices writes lock data as [SERVICE]=host. This strips the [SERVICE]= from the string.
+   *
+   * @return a sort set of host names.
+   */
+  private Set<String> stripServiceName(Set<String> hostnames) {
+    return hostnames.stream().map(h -> {
+      if (h.contains(ServerServices.SEPARATOR_CHAR)) {
+        return h.substring(h.indexOf(ServerServices.SEPARATOR_CHAR) + 1);
+      }
+      return h;
+    }).collect(Collectors.toCollection(TreeSet::new));
   }
 
   /**
@@ -221,7 +228,9 @@ public class ServiceStatusCmd {
   private StatusSummary getStatusSummary(ServiceStatusReport.ReportKey displayNames,
       ZooReader zooReader, String lockPath) {
     var result = readAllNodesData(zooReader, lockPath);
-    return new StatusSummary(displayNames, Set.of(), result.getSecond(), result.getFirst());
+    Map<String,Set<String>> byGroup = new TreeMap<>();
+    byGroup.put(NO_GROUP_TAG, result.getHosts());
+    return new StatusSummary(displayNames, Set.of(), byGroup, result.getErrorCount());
   }
 
   /**
@@ -229,31 +238,34 @@ public class ServiceStatusCmd {
    */
   private StatusSummary getCompactorHosts(final ZooReader zooReader, final String zRootPath) {
     final AtomicInteger errors = new AtomicInteger(0);
-    final Set<String> hostAndQueue = new TreeSet<>();
+
+    Map<String,Set<String>> hostsByGroups = new TreeMap<>();
+
     // get group names
-    Pair<Integer,Collection<String>> r1 = readNodeNames(zooReader, zRootPath);
-    errors.addAndGet(r1.getFirst());
-    Set<String> queues = new TreeSet<>(r1.getSecond());
+    Result<Integer,Set<String>> queueNodes = readNodeNames(zooReader, zRootPath);
+    errors.addAndGet(queueNodes.getErrorCount());
+    Set<String> queues = new TreeSet<>(queueNodes.getHosts());
 
-    queues.forEach(g -> {
-      var r2 = readNodeNames(zooReader, zRootPath + "/" + g);
-      errors.addAndGet(r2.getFirst());
-      Collection<String> hosts = r2.getSecond();
-      hosts.forEach(h -> hostAndQueue.add(g + ": " + h));
-
+    queues.forEach(group -> {
+      var hostNames = readNodeNames(zooReader, zRootPath + "/" + group);
+      errors.addAndGet(hostNames.getErrorCount());
+      Collection<String> hosts = hostNames.getHosts();
+      hosts.forEach(host -> {
+        hostsByGroups.computeIfAbsent(group, set -> new TreeSet<>()).add(host);
+      });
     });
 
-    return new StatusSummary(ServiceStatusReport.ReportKey.COMPACTOR, queues, hostAndQueue,
+    return new StatusSummary(ServiceStatusReport.ReportKey.COMPACTOR, queues, hostsByGroups,
         errors.get());
   }
 
   /**
    * Read the node names from ZooKeeper. Exceptions are counted but ignored.
    *
-   * @return Pair with error count, Collection of the node names.
+   * @return Result with error count, Set of the node names.
    */
   @VisibleForTesting
-  Pair<Integer,Collection<String>> readNodeNames(final ZooReader zooReader, final String path) {
+  Result<Integer,Set<String>> readNodeNames(final ZooReader zooReader, final String path) {
     Set<String> nodeNames = new TreeSet<>();
     final AtomicInteger errorCount = new AtomicInteger(0);
     try {
@@ -268,7 +280,7 @@ public class ServiceStatusCmd {
       }
       errorCount.incrementAndGet();
     }
-    return new Pair<>(errorCount.get(), nodeNames);
+    return new Result<>(errorCount.get(), nodeNames);
   }
 
   /**
@@ -278,17 +290,17 @@ public class ServiceStatusCmd {
    * @return Pair with error count, the node data as String.
    */
   @VisibleForTesting
-  Pair<Integer,String> readNodeData(final ZooReader zooReader, final String path) {
+  Result<Integer,String> readNodeData(final ZooReader zooReader, final String path) {
     try {
       byte[] data = zooReader.getData(path);
-      return new Pair<>(0, new String(data, UTF_8));
+      return new Result<>(0, new String(data, UTF_8));
     } catch (KeeperException | InterruptedException ex) {
       if (Thread.currentThread().isInterrupted()) {
         Thread.currentThread().interrupt();
         throw new IllegalStateException(ex);
       }
       LOG.info("Could not read locks from ZooKeeper for path {}", path, ex);
-      return new Pair<>(1, "");
+      return new Result<>(1, "");
     }
   }
 
@@ -299,18 +311,18 @@ public class ServiceStatusCmd {
    * @return Pair with error count, the data from each node as a String.
    */
   @VisibleForTesting
-  Pair<Integer,Set<String>> readAllNodesData(final ZooReader zooReader, final String path) {
+  Result<Integer,Set<String>> readAllNodesData(final ZooReader zooReader, final String path) {
     Set<String> hosts = new TreeSet<>();
     final AtomicInteger errorCount = new AtomicInteger(0);
     try {
       var locks = zooReader.getChildren(path);
       locks.forEach(lock -> {
-        var r = readNodeData(zooReader, path + "/" + lock);
-        int err = r.getFirst();
+        var nodeData = readNodeData(zooReader, path + "/" + lock);
+        int err = nodeData.getErrorCount();
         if (err > 0) {
-          errorCount.addAndGet(r.getFirst());
+          errorCount.addAndGet(nodeData.getErrorCount());
         } else {
-          hosts.add(r.getSecond());
+          hosts.add(nodeData.getHosts());
         }
       });
     } catch (KeeperException | InterruptedException ex) {
@@ -321,7 +333,7 @@ public class ServiceStatusCmd {
       LOG.info("Could not read node names from ZooKeeper for path {}", path, ex);
       errorCount.incrementAndGet();
     }
-    return new Pair<>(errorCount.get(), hosts);
+    return new Result<>(errorCount.get(), hosts);
   }
 
   @Parameters(commandDescription = "show service status")
@@ -333,4 +345,24 @@ public class ServiceStatusCmd {
     boolean noHosts = false;
   }
 
+  /**
+   * Provides explicit method names instead of generic getFirst to get the error count and getSecond
+   * hosts information
+   *
+   * @param <A> errorCount
+   * @param <B> hosts
+   */
+  private static class Result<A extends Integer,B> extends Pair<A,B> {
+    public Result(A errorCount, B hosts) {
+      super(errorCount, hosts);
+    }
+
+    public A getErrorCount() {
+      return getFirst();
+    }
+
+    public B getHosts() {
+      return getSecond();
+    }
+  }
 }
