@@ -566,17 +566,11 @@ public class ScanServer extends AbstractServer
     }
 
     // reservations do not exist in the metadata table, so we will attempt to add them
-    long reservationWriteStart = System.nanoTime();
     reservationsWriteLock.lock();
     try {
       // wait if another thread is working on the files we are interested in
-      boolean hasCollided = false;
       while (!Collections.disjoint(influxFiles, allFiles.keySet())) {
         reservationCondition.await();
-        hasCollided = true;
-      }
-      if (hasCollided) {
-        scanServerMetrics.incrementCollisions();
       }
 
       // add files to reserve to influxFiles so that no other thread tries to add or remove these
@@ -586,8 +580,6 @@ public class ScanServer extends AbstractServer
       throw new RuntimeException(e);
     } finally {
       reservationsWriteLock.unlock();
-      long elapsed = System.nanoTime() - reservationWriteStart;
-      scanServerMetrics.recordWriteOutReservationTime(Duration.ofNanos(elapsed));
     }
 
     // do not add any code here that could cause an exception which could lead to files not being
@@ -610,7 +602,13 @@ public class ScanServer extends AbstractServer
       }
 
       if (!filesToReserve.isEmpty()) {
-        getContext().getAmple().putScanServerFileReferences(refs);
+        long reservationWriteStart = System.nanoTime();
+        try {
+          getContext().getAmple().putScanServerFileReferences(refs);
+        } finally {
+          long elapsed = System.nanoTime() - reservationWriteStart;
+          scanServerMetrics.recordWriteOutReservationTime(Duration.ofNanos(elapsed));
+        }
 
         // After we insert the scan server refs we need to check and see if the tablet is still
         // using the file. As long as the tablet is still using the files then the Accumulo GC
@@ -644,6 +642,7 @@ public class ScanServer extends AbstractServer
           LOG.info("RFFS {} tablet files changed while attempting to reference files {}",
               myReservationId, filesToReserve);
           getContext().getAmple().deleteScanServerFileReferences(refs);
+          scanServerMetrics.incrementCollisions();
           return null;
         }
       }
