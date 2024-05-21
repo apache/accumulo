@@ -303,6 +303,11 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public TabletMetadataBuilder automaticallyPutServerLock(boolean b) {
+    throw new UnsupportedOperationException();
+  }
+
   /**
    * @param extraFetched Anything that was put on the builder will automatically be added to the
    *        fetched set. However, for the case where something was not put and it needs to be

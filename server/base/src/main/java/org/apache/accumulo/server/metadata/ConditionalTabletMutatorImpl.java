@@ -295,7 +295,9 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
               .setValue(encodePrevEndRow(extent.prevEndRow()).get());
       mutation.addCondition(c);
     }
-    this.putZooLock(context.getZooKeeperRoot(), lock);
+    if (putServerLock) {
+      this.putZooLock(context.getZooKeeperRoot(), lock);
+    }
     getMutation();
     mutationConsumer.accept(mutation);
     rejectionHandlerConsumer.accept(extent, rejectionCheck);
