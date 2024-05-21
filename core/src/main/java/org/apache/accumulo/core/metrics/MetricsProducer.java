@@ -633,8 +633,8 @@ public interface MetricsProducer {
   String METRICS_SCAN_RESERVATION_WRITEOUT_TIMER =
       METRICS_SCAN_PREFIX + "reservation.writeout.timer";
   String METRICS_SCAN_BUSY_TIMEOUT_COUNTER = METRICS_SCAN_PREFIX + "busy.timeout.count";
-  String METRICS_SCAN_RESERVATION_COLLISION_COUNTER =
-      METRICS_SCAN_PREFIX + "reservation.collision.count";
+  String METRICS_SCAN_RESERVATION_CONFLICT_COUNTER =
+      METRICS_SCAN_PREFIX + "reservation.conflict.count";
   String METRICS_SCAN_QUERIES = METRICS_SCAN_PREFIX + "queries";
   String METRICS_SCAN_QUERY_SCAN_RESULTS = METRICS_SCAN_PREFIX + "query.results";
   String METRICS_SCAN_QUERY_SCAN_RESULTS_BYTES = METRICS_SCAN_PREFIX + "query.results.bytes";

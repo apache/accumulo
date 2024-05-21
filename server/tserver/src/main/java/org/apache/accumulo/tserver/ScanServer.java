@@ -642,7 +642,7 @@ public class ScanServer extends AbstractServer
           LOG.info("RFFS {} tablet files changed while attempting to reference files {}",
               myReservationId, filesToReserve);
           getContext().getAmple().deleteScanServerFileReferences(refs);
-          scanServerMetrics.incrementCollisions();
+          scanServerMetrics.incrementReservationConflictCount();
           return null;
         }
       }

@@ -38,7 +38,7 @@ public class ScanServerMetrics implements MetricsProducer {
   private Timer totalReservationTimer;
   private Timer writeOutReservationTimer;
   private Counter busyTimeoutCount;
-  private final AtomicLong collisionCount = new AtomicLong(0);
+  private final AtomicLong reservationConflictCount = new AtomicLong(0);
 
   private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
 
@@ -56,8 +56,10 @@ public class ScanServerMetrics implements MetricsProducer {
     busyTimeoutCount = Counter.builder(METRICS_SCAN_BUSY_TIMEOUT_COUNTER)
         .description("The number of scans where a busy timeout happened").register(registry);
     FunctionCounter
-        .builder(METRICS_SCAN_RESERVATION_COLLISION_COUNTER, collisionCount, AtomicLong::get)
-        .description("The number of scans where a collision happened while trying to reserve files")
+        .builder(METRICS_SCAN_RESERVATION_CONFLICT_COUNTER, reservationConflictCount,
+            AtomicLong::get)
+        .description(
+            "Counts instances where file reservation attempts for scans encountered conflicts")
         .register(registry);
 
     CaffeineCacheMetrics.monitor(registry, tabletMetadataCache, METRICS_SCAN_TABLET_METADATA_CACHE);
@@ -75,7 +77,7 @@ public class ScanServerMetrics implements MetricsProducer {
     busyTimeoutCount.increment();
   }
 
-  public void incrementCollisions() {
-    collisionCount.getAndIncrement();
+  public void incrementReservationConflictCount() {
+    reservationConflictCount.getAndIncrement();
   }
 }
