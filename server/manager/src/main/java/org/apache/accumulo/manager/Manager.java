@@ -549,6 +549,16 @@ public class Manager extends AbstractServer
     return compactionCoordinator;
   }
 
+  public void hostOndemand(List<KeyExtent> extents) {
+    extents.forEach(e -> Preconditions.checkArgument(DataLevel.of(e.tableId()) == DataLevel.USER));
+
+    for (var watcher : watchers) {
+      if (watcher.getLevel() == DataLevel.USER) {
+        watcher.hostOndemand(extents);
+      }
+    }
+  }
+
   private class MigrationCleanupThread implements Runnable {
 
     @Override
