@@ -421,6 +421,12 @@ public interface Ample {
     T setUnSplittable(UnSplittableMetadata unSplittableMeta);
 
     T deleteUnSplittable();
+
+    /**
+     * By default the server lock is automatically added to mutations unless this method is set to
+     * false.
+     */
+    T automaticallyPutServerLock(boolean b);
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {

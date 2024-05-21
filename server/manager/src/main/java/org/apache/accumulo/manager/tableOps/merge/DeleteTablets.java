@@ -107,6 +107,10 @@ public class DeleteTablets extends ManagerRepo {
         }
 
         tabletMutator.deleteAll(tabletMeta.getKeyValues().keySet());
+
+        // the entire tablet is being deleted, so do not want to add lock entry to the tablet
+        tabletMutator.automaticallyPutServerLock(false);
+
         // if the tablet no longer exists, then it was successful
         tabletMutator.submit(Ample.RejectionHandler.acceptAbsentTablet());
         submitted++;

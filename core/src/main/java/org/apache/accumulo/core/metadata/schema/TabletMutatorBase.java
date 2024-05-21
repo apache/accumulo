@@ -64,6 +64,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   protected final Mutation mutation;
   protected AutoCloseable closeAfterMutate;
   protected boolean updatesEnabled = true;
+  protected boolean putServerLock = true;
 
   @SuppressWarnings("unchecked")
   private T getThis() {
@@ -357,6 +358,12 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T deleteUnSplittable() {
     SplitColumnFamily.UNSPLITTABLE_COLUMN.putDelete(mutation);
+    return getThis();
+  }
+
+  @Override
+  public T automaticallyPutServerLock(boolean b) {
+    putServerLock = b;
     return getThis();
   }
 
