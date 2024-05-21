@@ -35,7 +35,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -154,9 +153,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
-  private final AtomicLong entriesRead = new AtomicLong(0);
-  private final AtomicLong entriesWritten = new AtomicLong(0);
-
   protected Compactor(CompactorServerOpts opts, String[] args) {
     super("compactor", opts, args);
     queueName = opts.getQueueName();
@@ -164,9 +160,15 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    FunctionCounter.builder(METRICS_COMPACTOR_ENTRIES_READ, entriesRead, AtomicLong::get)
+
+    // TODO the tablet server can setup a FunctionCounter that calls the same two methods on
+    // FileCompactor. Should the metrics have the same name in both processes?
+    FunctionCounter
+        .builder(METRICS_COMPACTOR_ENTRIES_READ, null, o -> FileCompactor.getTotalEntriesRead())
         .description("Number of entries read").register(registry);
-    FunctionCounter.builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, entriesWritten, AtomicLong::get)
+    FunctionCounter
+        .builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, null,
+            o -> FileCompactor.getTotalEntriesWritten())
         .description("Number of entries written").register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
         .description("Number and duration of stuck major compactions").register(registry);
@@ -669,8 +671,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
               if (info != null) {
                 final long entriesRead = info.getEntriesRead();
                 final long entriesWritten = info.getEntriesWritten();
-                this.entriesRead.set(entriesRead);
-                this.entriesWritten.set(entriesWritten);
                 if (inputEntries > 0) {
                   percentComplete = Float.toString((entriesRead / (float) inputEntries) * 100);
                 }

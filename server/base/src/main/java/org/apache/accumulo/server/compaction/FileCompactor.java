@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -122,6 +123,32 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   private final AtomicLong entriesRead = new AtomicLong(0);
   private final AtomicLong entriesWritten = new AtomicLong(0);
+
+  // These track the amount of data recorded in the globle counts, their purpose is to avoid double
+  // couting of metrics
+  private final AtomicLong entriesReadRecorded = new AtomicLong(0);
+  private final AtomicLong entriesWrittenRecorded = new AtomicLong(0);
+
+  private void updateGlobalStats() {
+    // Update the global read stats with any new counts that were not previously added to the global
+    // stats
+    var currRead = entriesRead.get();
+    var lastReadRecorded =
+        entriesReadRecorded.getAndUpdate(recorded -> Math.max(recorded, currRead));
+    if (lastReadRecorded < currRead) {
+      totalEntriesRead.add(currRead - lastReadRecorded);
+    }
+
+    // Update the global write stats with any new counts that were not previously added to the
+    // global stats
+    var currWritten = entriesWritten.get();
+    var lastWrittenRecorded =
+        entriesWrittenRecorded.getAndUpdate(recorded -> Math.max(recorded, currWritten));
+    if (lastWrittenRecorded < currWritten) {
+      totalEntriesWritten.add(currWritten - lastWrittenRecorded);
+    }
+  }
+
   private final DateFormat dateFormatter = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
 
   // a unique id to identify a compactor
@@ -144,6 +171,37 @@ public class FileCompactor implements Callable<CompactionStats> {
   private void clearStats() {
     entriesRead.set(0);
     entriesWritten.set(0);
+  }
+
+  private static final LongAdder totalEntriesRead = new LongAdder();
+  private static final LongAdder totalEntriesWritten = new LongAdder();
+
+  /**
+   * @return the total entries written by compactions over the lifetime of this process.
+   */
+  public static long getTotalEntriesWritten() {
+    updateTotalEntries();
+    return totalEntriesWritten.sum();
+  }
+
+  /**
+   * @return the total entries read by compactions over the lifetime of this process.
+   */
+  public static long getTotalEntriesRead() {
+    updateTotalEntries();
+    return totalEntriesRead.sum();
+  }
+
+  /**
+   * Updates total entries read and written for all currently running compactions. Compactions will
+   * update the global stats when they finish. This can be called to update them sooner.
+   */
+  private static void updateTotalEntries() {
+    // TODO its likely the merics system will call getTotalEntriesWritten() and
+    // getTotalEntriesRead() back to back and each will then call updateTotalEntries() doing
+    // redundant work... maybe put something here the rate limits calls to this to no more than once
+    // per a 100ms or something?
+    runningCompactions.forEach(FileCompactor::updateGlobalStats);
   }
 
   protected static final Set<FileCompactor> runningCompactions =
@@ -297,6 +355,8 @@ public class FileCompactor implements Callable<CompactionStats> {
         thread = null;
         runningCompactions.remove(this);
       }
+
+      updateGlobalStats();
 
       try {
         if (mfw != null) {
