@@ -23,6 +23,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.google.common.base.Preconditions;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -46,6 +47,8 @@ public class ScanServerMetrics implements MetricsProducer {
         .description("Time to reserve a tablets files for scan").register(registry);
     busyTimeoutCount = Counter.builder(METRICS_SCAN_BUSY_TIMEOUT_COUNTER)
         .description("The number of scans where a busy timeout happened").register(registry);
+    Preconditions.checkState(tabletMetadataCache.policy().isRecordingStats(),
+        "Attempted to instrument cache that is not recording stats.");
     CaffeineCacheMetrics.monitor(registry, tabletMetadataCache, METRICS_SCAN_TABLET_METADATA_CACHE);
   }
 
