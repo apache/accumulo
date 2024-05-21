@@ -26,6 +26,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.google.common.base.Preconditions;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.FunctionCounter;
@@ -62,6 +63,8 @@ public class ScanServerMetrics implements MetricsProducer {
             "Counts instances where file reservation attempts for scans encountered conflicts")
         .register(registry);
 
+    Preconditions.checkState(tabletMetadataCache.policy().isRecordingStats(),
+        "Attempted to instrument cache that is not recording stats.");
     CaffeineCacheMetrics.monitor(registry, tabletMetadataCache, METRICS_SCAN_TABLET_METADATA_CACHE);
   }
 
