@@ -672,7 +672,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       Collection<String> paths, int compJobs, long selTime) {
     String filesJsonArray = GSON.get().toJson(paths);
     return ("{'fateId':'" + fateId + "','selAll':" + selAll + ",'compJobs':" + compJobs
-        + ",'selTime':" + selTime + ",'files':" + filesJsonArray + "}").replace('\'', '\"');
+        + ",'selTimeNanos':" + selTime + ",'files':" + filesJsonArray + "}").replace('\'', '\"');
   }
 
   @Test
