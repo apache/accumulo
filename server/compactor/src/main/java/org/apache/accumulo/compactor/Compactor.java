@@ -161,8 +161,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   @Override
   public void registerMetrics(MeterRegistry registry) {
 
-    // TODO the tablet server can setup a FunctionCounter that calls the same two methods on
-    // FileCompactor. Should the metrics have the same name in both processes?
+    // TODO Should the metrics have the same name in both processes?
     FunctionCounter
         .builder(METRICS_COMPACTOR_ENTRIES_READ, null, o -> FileCompactor.getTotalEntriesRead())
         .description("Number of entries read").register(registry);
