@@ -19,8 +19,10 @@
 package org.apache.accumulo.server.util.serviceStatus;
 
 import static org.apache.accumulo.server.util.ServiceStatusCmd.NO_GROUP_TAG;
+import static org.apache.accumulo.server.util.serviceStatus.ServiceStatusReport.ReportKey.MANAGER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -66,6 +68,26 @@ public class ServiceStatusReportTest {
     assertFalse(output.isEmpty());
   }
 
+  @Test
+  public void jsonRoundTripTest() {
+    final Map<ServiceStatusReport.ReportKey,StatusSummary> services = new TreeMap<>();
+
+    Map<String,Set<String>> managerByGroup = new TreeMap<>();
+    managerByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of("hostZ:8080", "hostA:9090")));
+    StatusSummary managerSummary = new StatusSummary(MANAGER, Set.of(), managerByGroup, 1);
+    services.put(MANAGER, managerSummary);
+    ServiceStatusReport report = new ServiceStatusReport(services, false);
+    var encoded = report.toJson();
+
+    ServiceStatusReport decoded = ServiceStatusReport.fromJson(encoded);
+    assertNotNull(decoded.getReportTime());
+    assertEquals(1, decoded.getTotalZkReadErrors());
+    assertEquals(1, report.getSummaries().size());
+
+    var byGroup = report.getSummaries().get(MANAGER).getServiceByGroups();
+    assertEquals(new TreeSet<>(List.of("hostZ:8080", "hostA:9090")), byGroup.get(NO_GROUP_TAG));
+  }
+
   /**
    * validate reduce / sum is correct
    */
@@ -82,9 +104,8 @@ public class ServiceStatusReportTest {
 
     Map<String,Set<String>> managerByGroup = new TreeMap<>();
     managerByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of("host1:8080", "host2:9090")));
-    StatusSummary managerSummary =
-        new StatusSummary(ServiceStatusReport.ReportKey.MANAGER, Set.of(), managerByGroup, 1);
-    services.put(ServiceStatusReport.ReportKey.MANAGER, managerSummary);
+    StatusSummary managerSummary = new StatusSummary(MANAGER, Set.of(), managerByGroup, 1);
+    services.put(MANAGER, managerSummary);
 
     Map<String,Set<String>> monitorByGroup = new TreeMap<>();
     monitorByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of("host1:8080", "host2:9090")));

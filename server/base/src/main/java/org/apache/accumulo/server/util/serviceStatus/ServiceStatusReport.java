@@ -56,8 +56,24 @@ public class ServiceStatusReport {
     this.summaries = summaries;
   }
 
+  public String getReportTime() {
+    return reportTime;
+  }
+
+  public int getTotalZkReadErrors() {
+    return zkReadErrors;
+  }
+
+  public Map<ReportKey,StatusSummary> getSummaries() {
+    return summaries;
+  }
+
   public String toJson() {
     return gson.toJson(this, ServiceStatusReport.class);
+  }
+
+  public static ServiceStatusReport fromJson(final String json) {
+    return gson.fromJson(json, ServiceStatusReport.class);
   }
 
   public String report(final StringBuilder sb) {
