@@ -55,6 +55,7 @@ import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import com.github.benmanes.caffeine.cache.Cache;
 
@@ -67,6 +68,8 @@ public class CompactionJobGenerator {
   private final PluginEnvironment env;
   private final Map<FateId,Map<String,String>> allExecutionHints;
   private final Cache<Pair<TableId,CompactionServiceId>,Long> unknownCompactionServiceErrorCache;
+  private final Cache<Pair<TableId,CompactionServiceId>,Long> plannerInitErrorCache;
+  private final Cache<Pair<TableId,CompactionServiceId>,Long> planningErrorCache;
   private final SteadyTime steadyTime;
 
   public CompactionJobGenerator(PluginEnvironment env,
@@ -90,18 +93,19 @@ public class CompactionJobGenerator {
     unknownCompactionServiceErrorCache =
         Caches.getInstance().createNewBuilder(CacheName.COMPACTION_SERVICE_UNKNOWN, false)
             .expireAfterWrite(5, TimeUnit.MINUTES).build();
+    plannerInitErrorCache =
+        Caches.getInstance().createNewBuilder(CacheName.COMPACTION_PLANNER_INIT_FAILED, false)
+            .expireAfterWrite(5, TimeUnit.MINUTES).build();
+    planningErrorCache =
+        Caches.getInstance().createNewBuilder(CacheName.COMPACTION_PLANNER_FAILED, false)
+            .expireAfterWrite(5, TimeUnit.MINUTES).build();
     this.steadyTime = steadyTime;
   }
 
   public Collection<CompactionJob> generateJobs(TabletMetadata tablet, Set<CompactionKind> kinds) {
-
-    // ELASTICITY_TODO do not want user configured plugins to cause exceptions that prevents tablets
-    // from being
-    // assigned. So probably want to catch exceptions and log, but not too spammily OR some how
-    // report something
-    // back to the manager so it can log.
-
     Collection<CompactionJob> systemJobs = Set.of();
+
+    log.debug("Planning for {} {} {}", tablet.getExtent(), kinds, this.hashCode());
 
     if (kinds.contains(CompactionKind.SYSTEM)) {
       CompactionServiceId serviceId = dispatch(CompactionKind.SYSTEM, tablet, Map.of());
@@ -162,23 +166,29 @@ public class CompactionJobGenerator {
     return dispatcher.dispatch(dispatchParams).getService();
   }
 
+  private Level getLevel(TableId tableId, CompactionServiceId serviceId,
+      Cache<Pair<TableId,CompactionServiceId>,Long> lastErrorCache) {
+    var cacheKey = new Pair<>(tableId, serviceId);
+    var last = lastErrorCache.getIfPresent(cacheKey);
+    if (last == null) {
+      lastErrorCache.put(cacheKey, System.currentTimeMillis());
+      return Level.ERROR;
+    } else {
+      return Level.TRACE;
+    }
+  }
+
   private Collection<CompactionJob> planCompactions(CompactionServiceId serviceId,
       CompactionKind kind, TabletMetadata tablet, Map<String,String> executionHints) {
 
     if (!servicesConfig.getPlanners().containsKey(serviceId.canonical())) {
-      var cacheKey = new Pair<>(tablet.getTableId(), serviceId);
-      var last = unknownCompactionServiceErrorCache.getIfPresent(cacheKey);
-      if (last == null) {
-        // have not logged an error recently for this, so lets log one
-        log.error(
-            "Tablet {} returned non-existent compaction service {} for compaction type {}.  Check"
-                + " the table compaction dispatcher configuration. No compactions will happen"
-                + " until the configuration is fixed. This log message is temporarily suppressed for the"
-                + " entire table.",
-            tablet.getExtent(), serviceId, kind);
-        unknownCompactionServiceErrorCache.put(cacheKey, System.currentTimeMillis());
-      }
-
+      Level level = getLevel(tablet.getTableId(), serviceId, unknownCompactionServiceErrorCache);
+      log.atLevel(level).log(
+          "Tablet {} returned non-existent compaction service {} for compaction type {}.  Check"
+              + " the table compaction dispatcher configuration. No compactions will happen"
+              + " until the configuration is fixed. This log message is temporarily suppressed for the"
+              + " entire table.",
+          tablet.getExtent(), serviceId, kind);
       return Set.of();
     }
 
@@ -299,8 +309,7 @@ public class CompactionJobGenerator {
         return new CompactionPlanImpl.BuilderImpl(kind, allFiles, candidates);
       }
     };
-
-    return planner.makePlan(params).getJobs();
+    return planCompactions(planner, params, serviceId);
   }
 
   private CompactionPlanner createPlanner(TableId tableId, CompactionServiceId serviceId) {
@@ -317,11 +326,28 @@ public class CompactionJobGenerator {
           servicesConfig.getOptions().get(serviceId.canonical()), (ServiceEnvironment) env);
       planner.init(initParameters);
     } catch (Exception e) {
-      log.error(
-          "Failed to create compaction planner for {} using class:{} options:{}.  Compaction service will not start any new compactions until its configuration is fixed.",
-          serviceId, plannerClassName, options, e);
+      Level level = getLevel(tableId, serviceId, plannerInitErrorCache);
+      log.atLevel(level).setCause(e).log(
+          "Failed to create compaction planner for {} using class:{} options:{}.  Compaction service will not "
+              + "start any new compactions until its configuration is fixed. This log message is temporarily "
+              + "suppressed for the entire table {}.",
+          serviceId, plannerClassName, options, tableId);
       planner = new ProvisionalCompactionPlanner(serviceId);
     }
     return planner;
+  }
+
+  private Collection<CompactionJob> planCompactions(CompactionPlanner planner,
+      CompactionPlanner.PlanningParameters params, CompactionServiceId serviceId) {
+    try {
+      return planner.makePlan(params).getJobs();
+    } catch (Exception e) {
+      Level level = getLevel(params.getTableId(), serviceId, planningErrorCache);
+      log.atLevel(level).setCause(e).log(
+          "Failed to plan compactions for {} {} hints:{}.  Compaction service may not start any new compactions"
+              + " until this issue is resolved. This log message is temporarily suppressed for the entire table. {}",
+          serviceId, params.getKind(), params.getExecutionHints(), params.getTableId());
+      return Set.of();
+    }
   }
 }
