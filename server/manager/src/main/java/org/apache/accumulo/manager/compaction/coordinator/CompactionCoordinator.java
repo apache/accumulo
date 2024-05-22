@@ -158,7 +158,7 @@ public class CompactionCoordinator
       new ConcurrentHashMap<>();
 
   /* Map of group name to last time compactor called to get a compaction job */
-  // ELASTICITY_TODO need to clean out groups that are no longer configured..
+  // ELASTICITY_TODO #4403 need to clean out groups that are no longer configured..
   private final Map<CompactorGroupId,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
 
   private final ServerContext ctx;
