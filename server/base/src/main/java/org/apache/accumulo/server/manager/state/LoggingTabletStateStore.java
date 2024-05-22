@@ -21,8 +21,10 @@ package org.apache.accumulo.server.manager.state;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -61,10 +63,15 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments)
+  public Set<KeyExtent> setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
-    wrapped.setFutureLocations(assignments);
-    assignments.forEach(assignment -> TabletLogger.assigned(assignment.tablet, assignment.server));
+    var failures = wrapped.setFutureLocations(assignments);
+    assignments.forEach(assignment -> {
+      if (!failures.contains(assignment.tablet)) {
+        TabletLogger.assigned(assignment.tablet, assignment.server);
+      }
+    });
+    return failures;
   }
 
   @Override
