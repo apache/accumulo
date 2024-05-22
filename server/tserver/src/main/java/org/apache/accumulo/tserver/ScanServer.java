@@ -602,13 +602,8 @@ public class ScanServer extends AbstractServer
       }
 
       if (!filesToReserve.isEmpty()) {
-        long reservationWriteStart = System.nanoTime();
-        try {
-          getContext().getAmple().putScanServerFileReferences(refs);
-        } finally {
-          long elapsed = System.nanoTime() - reservationWriteStart;
-          scanServerMetrics.recordWriteOutReservationTime(Duration.ofNanos(elapsed));
-        }
+        scanServerMetrics.recordWriteOutReservationTime(
+            () -> getContext().getAmple().putScanServerFileReferences(refs));
 
         // After we insert the scan server refs we need to check and see if the tablet is still
         // using the file. As long as the tablet is still using the files then the Accumulo GC

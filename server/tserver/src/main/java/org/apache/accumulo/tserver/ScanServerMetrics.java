@@ -51,9 +51,9 @@ public class ScanServerMetrics implements MetricsProducer {
   public void registerMetrics(MeterRegistry registry) {
     totalReservationTimer = Timer.builder(MetricsProducer.METRICS_SCAN_RESERVATION_TOTAL_TIMER)
         .description("Time to reserve a tablets files for scan").register(registry);
-    writeOutReservationTimer =
-        Timer.builder(MetricsProducer.METRICS_SCAN_RESERVATION_WRITEOUT_TIMER)
-            .description("Time to write out a tablets files for scan").register(registry);
+    writeOutReservationTimer = Timer
+        .builder(MetricsProducer.METRICS_SCAN_RESERVATION_WRITEOUT_TIMER)
+        .description("Time to write out a tablets file reservations for scan").register(registry);
     busyTimeoutCount = Counter.builder(METRICS_SCAN_BUSY_TIMEOUT_COUNTER)
         .description("The number of scans where a busy timeout happened").register(registry);
     FunctionCounter
@@ -72,7 +72,7 @@ public class ScanServerMetrics implements MetricsProducer {
     totalReservationTimer.record(time);
   }
 
-  public void recordWriteOutReservationTime(Duration time) {
+  public void recordWriteOutReservationTime(Runnable time) {
     writeOutReservationTimer.record(time);
   }
 
