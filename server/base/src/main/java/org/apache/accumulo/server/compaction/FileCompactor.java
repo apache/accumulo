@@ -121,33 +121,18 @@ public class FileCompactor implements Callable<CompactionStats> {
   private String currentLocalityGroup = "";
   private final long startTime;
 
-  private final AtomicLong entriesRead = new AtomicLong(0);
-  private final AtomicLong entriesWritten = new AtomicLong(0);
+  private final AtomicLong currentEntriesRead = new AtomicLong(0);
+  private final AtomicLong currentEntriesWritten = new AtomicLong(0);
 
-  // These track the amount of data recorded in the globle counts, their purpose is to avoid double
-  // couting of metrics
-  private final AtomicLong entriesReadRecorded = new AtomicLong(0);
-  private final AtomicLong entriesWrittenRecorded = new AtomicLong(0);
+  // These track the cumulative count of entries (read and written) that has been recorded in
+  // the global counts. Their purpose is to avoid double counting of metrics during the update of
+  // global statistics.
+  private final AtomicLong lastRecordedEntriesRead = new AtomicLong(0);
+  private final AtomicLong lastRecordedEntriesWritten = new AtomicLong(0);
 
-  private void updateGlobalStats() {
-    // Update the global read stats with any new counts that were not previously added to the global
-    // stats
-    var currRead = entriesRead.get();
-    var lastReadRecorded =
-        entriesReadRecorded.getAndUpdate(recorded -> Math.max(recorded, currRead));
-    if (lastReadRecorded < currRead) {
-      totalEntriesRead.add(currRead - lastReadRecorded);
-    }
-
-    // Update the global write stats with any new counts that were not previously added to the
-    // global stats
-    var currWritten = entriesWritten.get();
-    var lastWrittenRecorded =
-        entriesWrittenRecorded.getAndUpdate(recorded -> Math.max(recorded, currWritten));
-    if (lastWrittenRecorded < currWritten) {
-      totalEntriesWritten.add(currWritten - lastWrittenRecorded);
-    }
-  }
+  private static final LongAdder totalEntriesRead = new LongAdder();
+  private static final LongAdder totalEntriesWritten = new LongAdder();
+  private static volatile long lastUpdateTime = 0;
 
   private final DateFormat dateFormatter = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
 
@@ -168,13 +153,32 @@ public class FileCompactor implements Callable<CompactionStats> {
     return currentLocalityGroup;
   }
 
-  private void clearStats() {
-    entriesRead.set(0);
-    entriesWritten.set(0);
+  private void clearCurrentEntryCounts() {
+    currentEntriesRead.set(0);
+    currentEntriesWritten.set(0);
   }
 
-  private static final LongAdder totalEntriesRead = new LongAdder();
-  private static final LongAdder totalEntriesWritten = new LongAdder();
+  private void updateGlobalEntryCounts() {
+    updateTotalEntries(currentEntriesRead, lastRecordedEntriesRead, totalEntriesRead);
+    updateTotalEntries(currentEntriesWritten, lastRecordedEntriesWritten, totalEntriesWritten);
+  }
+
+  /**
+   * Updates the total count of entries by adding the difference between the current count and the
+   * last recorded count to the total.
+   *
+   * @param current The current count of entries
+   * @param recorded The last recorded count of entries
+   * @param total The total count to add the difference to
+   */
+  private void updateTotalEntries(AtomicLong current, AtomicLong recorded, LongAdder total) {
+    long currentCount = current.get();
+    long lastRecorded =
+        recorded.getAndUpdate(recordedValue -> Math.max(recordedValue, currentCount));
+    if (lastRecorded < currentCount) {
+      total.add(currentCount - lastRecorded);
+    }
+  }
 
   /**
    * @return the total entries written by compactions over the lifetime of this process.
@@ -194,14 +198,16 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   /**
    * Updates total entries read and written for all currently running compactions. Compactions will
-   * update the global stats when they finish. This can be called to update them sooner.
+   * update the global stats when they finish. This can be called to update them sooner. This method
+   * is rate limited, so it will not cause issues if called too frequently.
    */
   private static void updateTotalEntries() {
-    // TODO its likely the merics system will call getTotalEntriesWritten() and
-    // getTotalEntriesRead() back to back and each will then call updateTotalEntries() doing
-    // redundant work... maybe put something here the rate limits calls to this to no more than once
-    // per a 100ms or something?
-    runningCompactions.forEach(FileCompactor::updateGlobalStats);
+    long currentTime = System.currentTimeMillis();
+    if (currentTime - lastUpdateTime < 100) {
+      return;
+    }
+    runningCompactions.forEach(FileCompactor::updateGlobalEntryCounts);
+    lastUpdateTime = currentTime;
   }
 
   protected static final Set<FileCompactor> runningCompactions =
@@ -269,7 +275,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     String threadStartDate = dateFormatter.format(new Date());
 
-    clearStats();
+    clearCurrentEntryCounts();
 
     String oldThreadName = Thread.currentThread().getName();
     String newThreadName =
@@ -356,7 +362,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         runningCompactions.remove(this);
       }
 
-      updateGlobalStats();
+      updateGlobalEntryCounts();
 
       try {
         if (mfw != null) {
@@ -457,7 +463,7 @@ public class FileCompactor implements Callable<CompactionStats> {
       }
 
       CountingIterator citr =
-          new CountingIterator(new MultiIterator(iters, extent.toDataRange()), entriesRead);
+          new CountingIterator(new MultiIterator(iters, extent.toDataRange()), currentEntriesRead);
       SortedKeyValueIterator<Key,Value> delIter =
           DeletingIterator.wrap(citr, propagateDeletes, DeletingIterator.getBehavior(acuTableConf));
       ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
@@ -485,7 +491,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
           if (entriesCompacted % 1024 == 0) {
             // Periodically update stats, do not want to do this too often since its volatile
-            entriesWritten.addAndGet(1024);
+            currentEntriesWritten.addAndGet(1024);
           }
         }
 
@@ -540,11 +546,11 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   long getEntriesRead() {
-    return entriesRead.get();
+    return currentEntriesRead.get();
   }
 
   long getEntriesWritten() {
-    return entriesWritten.get();
+    return currentEntriesWritten.get();
   }
 
   long getStartTime() {

@@ -40,11 +40,11 @@ public class TabletServerMetrics implements MetricsProducer {
   public void registerMetrics(MeterRegistry registry) {
     FunctionCounter
         .builder(METRICS_COMPACTOR_ENTRIES_READ, null, o -> FileCompactor.getTotalEntriesRead())
-        .description("Number of entries read").register(registry);
+        .description("Number of entries read").tag("type", "tserver").register(registry);
     FunctionCounter
         .builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, null,
             o -> FileCompactor.getTotalEntriesWritten())
-        .description("Number of entries written").register(registry);
+        .description("Number of entries written").tag("type", "tserver").register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_TSERVER_MAJC_STUCK)
         .description("Number and duration of stuck major compactions").register(registry);
     CompactionWatcher.setTimer(timer);
