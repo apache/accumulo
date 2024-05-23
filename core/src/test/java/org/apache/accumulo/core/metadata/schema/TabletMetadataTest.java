@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Constructor;
+import java.util.AbstractMap;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -160,7 +161,9 @@ public class TabletMetadataTest {
     assertEquals(Set.of(tf1, tf2), Set.copyOf(tm.getFiles()));
     assertEquals(Map.of(tf1, dfv1, tf2, dfv2), tm.getFilesMap());
     assertEquals(6L, tm.getFlushId().getAsLong());
-    assertEquals(rowMap, tm.getKeyValues());
+    TreeMap<Key,Value> actualRowMap = new TreeMap<>();
+    tm.getKeyValues().forEach(entry -> actualRowMap.put(entry.getKey(), entry.getValue()));
+    assertEquals(rowMap, actualRowMap);
     assertEquals(Map.of(new StoredTabletFile(bf1), 56L, new StoredTabletFile(bf2), 59L),
         tm.getLoaded());
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
@@ -388,7 +391,7 @@ public class TabletMetadataTest {
     b.log(LogEntry.fromPath("localhost+8020/" + UUID.randomUUID()));
     b.scan(stf);
     b.loadedFile(stf, 0L);
-    b.keyValue(new Key(), new Value());
+    b.keyValue(new AbstractMap.SimpleImmutableEntry<>(new Key(), new Value()));
     var tm2 = b.build(EnumSet.allOf(ColumnType.class));
 
     assertEquals(1, tm2.getExternalCompactions().size());
@@ -407,8 +410,7 @@ public class TabletMetadataTest {
     assertEquals(1, tm2.getLoaded().size());
     assertThrows(UnsupportedOperationException.class, () -> tm2.getLoaded().put(stf, 0L));
     assertEquals(1, tm2.getKeyValues().size());
-    assertThrows(UnsupportedOperationException.class,
-        () -> tm2.getKeyValues().put(new Key(), new Value()));
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getKeyValues().remove(null));
 
   }
 

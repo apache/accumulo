@@ -398,12 +398,12 @@ public class MetadataTableUtil {
   }
 
   private static Mutation createCloneMutation(TableId srcTableId, TableId tableId,
-      Map<Key,Value> tablet) {
+      Iterable<Entry<Key,Value>> tablet) {
 
-    KeyExtent ke = KeyExtent.fromMetaRow(tablet.keySet().iterator().next().getRow());
+    KeyExtent ke = KeyExtent.fromMetaRow(tablet.iterator().next().getKey().getRow());
     Mutation m = new Mutation(TabletsSection.encodeRow(tableId, ke.endRow()));
 
-    for (Entry<Key,Value> entry : tablet.entrySet()) {
+    for (Entry<Key,Value> entry : tablet) {
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
         String cf = entry.getKey().getColumnQualifier().toString();
         if (!cf.startsWith("../") && !cf.contains(":")) {
@@ -538,7 +538,7 @@ public class MetadataTableUtil {
         // delete existing cloned tablet entry
         Mutation m = new Mutation(cloneTablet.getExtent().toMetaRow());
 
-        for (Entry<Key,Value> entry : cloneTablet.getKeyValues().entrySet()) {
+        for (Entry<Key,Value> entry : cloneTablet.getKeyValues()) {
           Key k = entry.getKey();
           m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), k.getTimestamp());
         }
