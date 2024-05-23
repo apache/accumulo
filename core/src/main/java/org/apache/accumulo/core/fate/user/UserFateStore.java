@@ -178,7 +178,6 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     try {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
-      // TODO push iterator down to filter
       TxColumnFamily.TX_KEY_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close)
           .map(e -> FateKey.deserialize(e.getValue().get()))
