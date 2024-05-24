@@ -20,6 +20,7 @@ package org.apache.accumulo.core.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -32,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
@@ -368,7 +368,7 @@ public class AdminUtil<T> {
 
       long timeCreated = zs.timeCreated(tid);
 
-      zs.unreserve(tid, 0, TimeUnit.MILLISECONDS);
+      zs.unreserve(tid, Duration.ZERO);
 
       if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
         statuses.add(new TransactionStatus(tid, status, txName, hlocks, wlocks, top, timeCreated));
@@ -451,7 +451,7 @@ public class AdminUtil<T> {
         break;
     }
 
-    zs.unreserve(txid, 0, TimeUnit.MILLISECONDS);
+    zs.unreserve(txid, Duration.ZERO);
     return state;
   }
 
@@ -495,7 +495,7 @@ public class AdminUtil<T> {
         break;
     }
 
-    zs.unreserve(txid, 0, TimeUnit.MILLISECONDS);
+    zs.unreserve(txid, Duration.ZERO);
     return state;
   }
 
