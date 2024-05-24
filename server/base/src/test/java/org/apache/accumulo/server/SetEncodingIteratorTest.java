@@ -99,14 +99,6 @@ public class SetEncodingIteratorTest {
         .putFile(file4, new DataFileValue(100, 50)).putFile(file5, new DataFileValue(200, 75))
         .putFile(file6, new DataFileValue(300, 100)).putFlushId(7).build();
 
-    Function<Iterable<Map.Entry<Key,Value>>,SortedMap<Key,Value>> converter = entries -> {
-      SortedMap<Key,Value> map = new TreeMap<>();
-      for (var entry : entries) {
-        map.put(entry.getKey(), entry.getValue());
-      }
-      return map;
-    };
-
     // Convert TabletMetadata to a SortedMap
     SortedMap<Key,Value> sortedMapNoFiles = tmNoFiles.getKeyValues().stream().collect(
         Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a3, b3) -> b3, TreeMap::new));
