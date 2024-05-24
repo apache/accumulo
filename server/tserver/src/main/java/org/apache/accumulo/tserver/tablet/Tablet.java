@@ -27,6 +27,7 @@ import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -67,6 +68,7 @@ import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
@@ -141,6 +143,8 @@ import io.opentelemetry.context.Scope;
  */
 public class Tablet extends TabletBase {
   private static final Logger log = LoggerFactory.getLogger(Tablet.class);
+  private static final Logger CLOSING_STUCK_LOGGER =
+      new DeduplicatingLogger(log, Duration.ofMinutes(5), 1000);
 
   private final TabletServer tabletServer;
   private final TabletResourceManager tabletResources;
@@ -164,9 +168,10 @@ public class Tablet extends TabletBase {
   }
 
   private enum CloseState {
-    OPEN, CLOSING, CLOSED, COMPLETE
+    OPEN, REQUESTED, CLOSING, CLOSED, COMPLETE
   }
 
+  private long closeRequestTime = 0;
   private volatile CloseState closeState = CloseState.OPEN;
 
   private boolean updatingFlushID = false;
@@ -904,6 +909,21 @@ public class Tablet extends TabletBase {
 
   void initiateClose(boolean saveState) {
     log.trace("initiateClose(saveState={}) {}", saveState, getExtent());
+
+    synchronized (this) {
+      if (closeState == CloseState.OPEN) {
+        closeRequestTime = System.nanoTime();
+        closeState = CloseState.REQUESTED;
+      } else {
+        Preconditions.checkState(closeRequestTime != 0);
+        long runningTime = Duration.ofNanos(System.nanoTime() - closeRequestTime).toMinutes();
+        if (runningTime >= 15) {
+          CLOSING_STUCK_LOGGER.info(
+              "Tablet {} close requested again, but has been closing for {} minutes", this.extent,
+              runningTime);
+        }
+      }
+    }
 
     MinorCompactionTask mct = null;
     if (saveState) {
