@@ -101,7 +101,9 @@ public class DeleteTablets extends ManagerRepo {
         }
 
         if (log.isTraceEnabled()) {
-          tabletMeta.getKeyValues().forEach(e -> log.trace("{} deleting {}", fateId, e.getKey()));
+          tabletMeta.getKeyValues().forEach(entry -> {
+            log.trace("{} deleting {}", fateId, entry.getKey());
+          });
         }
 
         tabletMutator.deleteAll(tabletMeta.getKeyValues());
