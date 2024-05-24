@@ -177,9 +177,9 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
       TxColumnFamily.TX_KEY_COLUMN.fetch(scanner);
+      FateKeyFilter.configureScanner(scanner, type);
       return scanner.stream().onClose(scanner::close)
-          .map(e -> FateKey.deserialize(e.getValue().get()))
-          .filter(fateKey -> fateKey.getType() == type);
+          .map(e -> FateKey.deserialize(e.getValue().get()));
     } catch (TableNotFoundException e) {
       throw new IllegalStateException(tableName + " not found!", e);
     }
