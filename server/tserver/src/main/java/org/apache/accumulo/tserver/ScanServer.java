@@ -259,8 +259,8 @@ public class ScanServer extends AbstractServer
           "Tablet metadata cache refresh percentage is '%s' but must be less than 1",
           cacheRefreshPercentage);
 
-      tmCacheExecutor =
-          context.threadPools().getPoolBuilder("scanServerTmCache").numCoreThreads(8).build();
+      tmCacheExecutor = context.threadPools().getPoolBuilder("scanServerTmCache").numCoreThreads(8)
+          .enableThreadPoolMetrics().build();
       var builder = Caffeine.newBuilder().expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
           .scheduler(Scheduler.systemScheduler()).executor(tmCacheExecutor).recordStats();
       if (cacheRefreshPercentage > 0) {
