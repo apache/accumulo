@@ -63,9 +63,12 @@ public class ScanServerMetrics implements MetricsProducer {
             "Counts instances where file reservation attempts for scans encountered conflicts")
         .register(registry);
 
-    Preconditions.checkState(tabletMetadataCache.policy().isRecordingStats(),
-        "Attempted to instrument cache that is not recording stats.");
-    CaffeineCacheMetrics.monitor(registry, tabletMetadataCache, METRICS_SCAN_TABLET_METADATA_CACHE);
+    if (tabletMetadataCache != null) {
+      Preconditions.checkState(tabletMetadataCache.policy().isRecordingStats(),
+          "Attempted to instrument cache that is not recording stats.");
+      CaffeineCacheMetrics.monitor(registry, tabletMetadataCache,
+          METRICS_SCAN_TABLET_METADATA_CACHE);
+    }
   }
 
   public void recordTotalReservationTime(Duration time) {
