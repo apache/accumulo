@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import java.util.Set;
+import java.util.Collection;
+import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
@@ -310,15 +311,17 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T deleteAll(Set<Key> keys) {
+  public T deleteAll(Collection<Map.Entry<Key,Value>> entries) {
     ByteSequence row = new ArrayByteSequence(mutation.getRow());
-    keys.forEach(key -> {
+    entries.forEach(e -> {
+      var key = e.getKey();
       Preconditions.checkArgument(key.getRowData().equals(row), "Unexpected row %s %s", row, key);
       Preconditions.checkArgument(key.getColumnVisibilityData().length() == 0,
           "Non empty column visibility %s", key);
     });
 
-    keys.forEach(key -> {
+    entries.forEach(e -> {
+      var key = e.getKey();
       mutation.putDelete(key.getColumnFamily(), key.getColumnQualifier());
     });
 

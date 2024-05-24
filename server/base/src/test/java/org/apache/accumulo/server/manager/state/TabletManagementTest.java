@@ -25,10 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -50,6 +52,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -139,7 +142,9 @@ public class TabletManagementTest {
     entries.remove(new Key(key.getRow().toString(), "REASONS", ""));
 
     TabletManagement tmi = new TabletManagement(key, val, true);
-    assertEquals(entries, tmi.getTabletMetadata().getKeyValues());
+    TabletMetadata tabletMetadata = tmi.getTabletMetadata();
+    assertEquals(entries, tabletMetadata.getKeyValues().stream().collect(
+        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, TreeMap::new)));
     assertEquals(actions, tmi.getActions());
   }
 
@@ -160,7 +165,9 @@ public class TabletManagementTest {
     entries.remove(new Key(key.getRow().toString(), "ERROR", ""));
 
     TabletManagement tmi = new TabletManagement(key, val, true);
-    assertEquals(entries, tmi.getTabletMetadata().getKeyValues());
+    TabletMetadata tabletMetadata = tmi.getTabletMetadata();
+    assertEquals(entries, tabletMetadata.getKeyValues().stream().collect(
+        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, TreeMap::new)));
     assertEquals("Not supported.", tmi.getErrorMessage());
   }
 
@@ -187,7 +194,9 @@ public class TabletManagementTest {
     entries.remove(new Key(key.getRow(), new Text("REASONS"), new Text("")));
 
     TabletManagement tmi = new TabletManagement(key, val, true);
-    assertEquals(entries, tmi.getTabletMetadata().getKeyValues());
+    TabletMetadata tabletMetadata = tmi.getTabletMetadata();
+    assertEquals(entries, tabletMetadata.getKeyValues().stream().collect(
+        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, TreeMap::new)));
     assertEquals(actions, tmi.getActions());
 
   }

@@ -21,7 +21,6 @@ package org.apache.accumulo.core.metadata.schema;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -32,6 +31,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
@@ -408,7 +408,7 @@ public interface Ample {
      * @throws IllegalArgumentException if rows in keys do not match tablet row or column visibility
      *         is not empty
      */
-    T deleteAll(Set<Key> keys);
+    T deleteAll(Collection<Map.Entry<Key,Value>> entries);
 
     T setMerged();
 

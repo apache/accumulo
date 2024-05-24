@@ -39,7 +39,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
-import java.util.SortedMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -88,7 +87,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.net.HostAndPort;
 
 public class TabletMetadata {
@@ -111,7 +109,7 @@ public class TabletMetadata {
   private final String dirName;
   private final MetadataTime time;
   private final String cloned;
-  private final SortedMap<Key,Value> keyValues;
+  private final List<Entry<Key,Value>> keyValues;
   private final OptionalLong flush;
   private final OptionalLong flushNonce;
   private final List<LogEntry> logs;
@@ -142,8 +140,8 @@ public class TabletMetadata {
     this.dirName = tmBuilder.dirName;
     this.time = tmBuilder.time;
     this.cloned = tmBuilder.cloned;
-    this.keyValues = Optional.ofNullable(tmBuilder.keyValues).map(ImmutableSortedMap.Builder::build)
-        .orElse(null);
+    this.keyValues =
+        Optional.ofNullable(tmBuilder.keyValues).map(ImmutableList.Builder::build).orElse(null);
     this.flush = tmBuilder.flush;
     this.flushNonce = tmBuilder.flushNonce;
     this.logs = Objects.requireNonNull(tmBuilder.logs.build());
@@ -457,7 +455,7 @@ public class TabletMetadata {
         .append("unSplittableMetadata", unSplittableMetadata).toString();
   }
 
-  public SortedMap<Key,Value> getKeyValues() {
+  public List<Entry<Key,Value>> getKeyValues() {
     Preconditions.checkState(keyValues != null, "Requested key values when it was not saved");
     return keyValues;
   }
@@ -502,7 +500,7 @@ public class TabletMetadata {
       final String qual = key.getColumnQualifierData().toString();
 
       if (buildKeyValueMap) {
-        tmBuilder.keyValue(key, kv.getValue());
+        tmBuilder.keyValue(kv);
       }
 
       if (row == null) {
@@ -677,7 +675,7 @@ public class TabletMetadata {
     private String dirName;
     private MetadataTime time;
     private String cloned;
-    private ImmutableSortedMap.Builder<Key,Value> keyValues;
+    private ImmutableList.Builder<Entry<Key,Value>> keyValues;
     private OptionalLong flush = OptionalLong.empty();
     private OptionalLong flushNonce = OptionalLong.empty();
     private final ImmutableList.Builder<LogEntry> logs = ImmutableList.builder();
@@ -801,11 +799,11 @@ public class TabletMetadata {
       this.unSplittableMetadata = unSplittableMetadata;
     }
 
-    void keyValue(Key key, Value value) {
+    void keyValue(Entry<Key,Value> kv) {
       if (this.keyValues == null) {
-        this.keyValues = ImmutableSortedMap.naturalOrder();
+        this.keyValues = ImmutableList.builder();
       }
-      this.keyValues.put(key, value);
+      this.keyValues.add(kv);
     }
 
     TabletMetadata build(EnumSet<ColumnType> fetchedCols) {

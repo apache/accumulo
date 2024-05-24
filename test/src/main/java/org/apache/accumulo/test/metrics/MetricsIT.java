@@ -104,13 +104,15 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
   public void confirmMetricsPublished() throws Exception {
 
     Set<String> unexpectedMetrics = Set.of(METRICS_COMPACTOR_MAJC_STUCK, METRICS_SCAN_YIELDS);
+    // add sserver as flaky until scan server included in mini tests.
     Set<String> flakyMetrics = Set.of(METRICS_GC_WAL_ERRORS, METRICS_FATE_TYPE_IN_PROGRESS,
         METRICS_TSERVER_TABLETS_ONLINE_ONDEMAND, METRICS_TSERVER_TABLETS_ONDEMAND_UNLOADED_FOR_MEM,
         METRICS_COMPACTOR_MAJC_STUCK, METRICS_MANAGER_ROOT_TGW_ERRORS,
         METRICS_MANAGER_META_TGW_ERRORS, METRICS_MANAGER_USER_TGW_ERRORS,
         METRICS_SCAN_TABLET_METADATA_CACHE, METRICS_SCAN_BUSY_TIMEOUT_COUNTER,
         METRICS_SCAN_RESERVATION_TOTAL_TIMER, METRICS_SCAN_RESERVATION_WRITEOUT_TIMER,
-        METRICS_SERVER_IDLE);
+        METRICS_SERVER_IDLE, METRICS_SCAN_RESERVATION_CONFLICT_COUNTER, METRICS_GC_WAL_ERRORS,
+        METRICS_SCAN_TABLET_METADATA_CACHE);
 
     Map<String,String> expectedMetricNames = this.getMetricFields();
     flakyMetrics.forEach(expectedMetricNames::remove); // might not see these
