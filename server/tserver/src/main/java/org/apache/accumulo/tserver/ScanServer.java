@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -601,7 +602,8 @@ public class ScanServer extends AbstractServer
       }
 
       if (!filesToReserve.isEmpty()) {
-        getContext().getAmple().putScanServerFileReferences(refs);
+        scanServerMetrics.recordWriteOutReservationTime(
+            () -> getContext().getAmple().putScanServerFileReferences(refs));
 
         // After we insert the scan server refs we need to check and see if the tablet is still
         // using the file. As long as the tablet is still using the files then the Accumulo GC
@@ -635,6 +637,7 @@ public class ScanServer extends AbstractServer
           LOG.info("RFFS {} tablet files changed while attempting to reference files {}",
               myReservationId, filesToReserve);
           getContext().getAmple().deleteScanServerFileReferences(refs);
+          scanServerMetrics.incrementReservationConflictCount();
           return null;
         }
       }
@@ -669,8 +672,7 @@ public class ScanServer extends AbstractServer
     try {
       return reserveFiles(extents);
     } finally {
-      scanServerMetrics.getReservationTimer().record(System.nanoTime() - start,
-          TimeUnit.NANOSECONDS);
+      scanServerMetrics.recordTotalReservationTime(Duration.ofNanos(System.nanoTime() - start));
     }
 
   }
@@ -711,8 +713,7 @@ public class ScanServer extends AbstractServer
     try {
       return reserveFiles(scanId);
     } finally {
-      scanServerMetrics.getReservationTimer().record(System.nanoTime() - start,
-          TimeUnit.NANOSECONDS);
+      scanServerMetrics.recordTotalReservationTime(Duration.ofNanos(System.nanoTime() - start));
     }
   }
 
