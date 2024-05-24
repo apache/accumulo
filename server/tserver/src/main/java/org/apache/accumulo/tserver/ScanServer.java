@@ -92,6 +92,7 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -625,7 +626,8 @@ public class ScanServer extends AbstractServer
       }
 
       if (!filesToReserve.isEmpty()) {
-        getContext().getAmple().putScanServerFileReferences(refs);
+        scanServerMetrics.recordWriteOutReservationTime(
+            () -> getContext().getAmple().putScanServerFileReferences(refs));
 
         // After we insert the scan server refs we need to check and see if the tablet is still
         // using the file. As long as the tablet is still using the files then the Accumulo GC
@@ -659,6 +661,7 @@ public class ScanServer extends AbstractServer
           LOG.info("RFFS {} tablet files changed while attempting to reference files {}",
               myReservationId, filesToReserve);
           getContext().getAmple().deleteScanServerFileReferences(refs);
+          scanServerMetrics.incrementReservationConflictCount();
           return null;
         }
       }
@@ -689,12 +692,11 @@ public class ScanServer extends AbstractServer
   @VisibleForTesting
   ScanReservation reserveFilesInstrumented(Map<KeyExtent,List<TRange>> extents)
       throws AccumuloException {
-    long start = System.nanoTime();
+    NanoTime start = NanoTime.now();
     try {
       return reserveFiles(extents);
     } finally {
-      scanServerMetrics.getReservationTimer().record(System.nanoTime() - start,
-          TimeUnit.NANOSECONDS);
+      scanServerMetrics.recordTotalReservationTime(start.elapsed());
     }
 
   }
@@ -731,12 +733,11 @@ public class ScanServer extends AbstractServer
 
   @VisibleForTesting
   ScanReservation reserveFilesInstrumented(long scanId) throws NoSuchScanIDException {
-    long start = System.nanoTime();
+    NanoTime start = NanoTime.now();
     try {
       return reserveFiles(scanId);
     } finally {
-      scanServerMetrics.getReservationTimer().record(System.nanoTime() - start,
-          TimeUnit.NANOSECONDS);
+      scanServerMetrics.recordTotalReservationTime(start.elapsed());
     }
   }
 

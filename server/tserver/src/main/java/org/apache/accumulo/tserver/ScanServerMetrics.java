@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -34,8 +35,10 @@ import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 
 public class ScanServerMetrics implements MetricsProducer {
 
-  private Timer reservationTimer;
+  private Timer totalReservationTimer;
+  private Timer writeOutReservationTimer;
   private final AtomicLong busyTimeoutCount = new AtomicLong(0);
+  private final AtomicLong reservationConflictCount = new AtomicLong(0);
 
   private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
 
@@ -45,20 +48,41 @@ public class ScanServerMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    reservationTimer = Timer.builder(MetricsProducer.METRICS_SCAN_RESERVATION_TIMER)
+    totalReservationTimer = Timer.builder(MetricsProducer.METRICS_SCAN_RESERVATION_TOTAL_TIMER)
         .description("Time to reserve a tablets files for scan").register(registry);
+    writeOutReservationTimer = Timer
+        .builder(MetricsProducer.METRICS_SCAN_RESERVATION_WRITEOUT_TIMER)
+        .description("Time to write out a tablets file reservations for scan").register(registry);
     FunctionCounter.builder(METRICS_SCAN_BUSY_TIMEOUT_COUNTER, busyTimeoutCount, AtomicLong::get)
         .description("The number of scans where a busy timeout happened").register(registry);
-    Preconditions.checkState(tabletMetadataCache.policy().isRecordingStats(),
-        "Attempted to instrument cache that is not recording stats.");
-    CaffeineCacheMetrics.monitor(registry, tabletMetadataCache, METRICS_SCAN_TABLET_METADATA_CACHE);
+    FunctionCounter
+        .builder(METRICS_SCAN_RESERVATION_CONFLICT_COUNTER, reservationConflictCount,
+            AtomicLong::get)
+        .description(
+            "Counts instances where file reservation attempts for scans encountered conflicts")
+        .register(registry);
+
+    if (tabletMetadataCache != null) {
+      Preconditions.checkState(tabletMetadataCache.policy().isRecordingStats(),
+          "Attempted to instrument cache that is not recording stats.");
+      CaffeineCacheMetrics.monitor(registry, tabletMetadataCache,
+          METRICS_SCAN_TABLET_METADATA_CACHE);
+    }
   }
 
-  public Timer getReservationTimer() {
-    return reservationTimer;
+  public void recordTotalReservationTime(Duration time) {
+    totalReservationTimer.record(time);
+  }
+
+  public void recordWriteOutReservationTime(Runnable time) {
+    writeOutReservationTimer.record(time);
   }
 
   public void incrementBusy() {
     busyTimeoutCount.incrementAndGet();
+  }
+
+  public void incrementReservationConflictCount() {
+    reservationConflictCount.getAndIncrement();
   }
 }
