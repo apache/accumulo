@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -91,6 +90,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -672,11 +672,11 @@ public class ScanServer extends AbstractServer
   @VisibleForTesting
   ScanReservation reserveFilesInstrumented(Map<KeyExtent,List<TRange>> extents)
       throws AccumuloException {
-    long start = System.nanoTime();
+    NanoTime start = NanoTime.now();
     try {
       return reserveFiles(extents);
     } finally {
-      scanServerMetrics.recordTotalReservationTime(Duration.ofNanos(System.nanoTime() - start));
+      scanServerMetrics.recordTotalReservationTime(start.elapsed());
     }
 
   }
@@ -713,11 +713,11 @@ public class ScanServer extends AbstractServer
 
   @VisibleForTesting
   ScanReservation reserveFilesInstrumented(long scanId) throws NoSuchScanIDException {
-    long start = System.nanoTime();
+    NanoTime start = NanoTime.now();
     try {
       return reserveFiles(scanId);
     } finally {
-      scanServerMetrics.recordTotalReservationTime(Duration.ofNanos(System.nanoTime() - start));
+      scanServerMetrics.recordTotalReservationTime(start.elapsed());
     }
   }
 
