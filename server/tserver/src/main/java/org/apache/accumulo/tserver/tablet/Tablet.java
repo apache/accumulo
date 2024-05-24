@@ -143,7 +143,8 @@ import io.opentelemetry.context.Scope;
  */
 public class Tablet extends TabletBase {
   private static final Logger log = LoggerFactory.getLogger(Tablet.class);
-  private static final Logger DEDUPE_LOGGER = new DeduplicatingLogger(log, Duration.ofMinutes(5));
+  private static final Logger CLOSING_STUCK_LOGGER =
+      new DeduplicatingLogger(log, Duration.ofMinutes(5), 1000);
 
   private final TabletServer tabletServer;
   private final TabletResourceManager tabletResources;
@@ -170,7 +171,7 @@ public class Tablet extends TabletBase {
     OPEN, REQUESTED, CLOSING, CLOSED, COMPLETE
   }
 
-  private volatile long closeRequestTime = 0;
+  private long closeRequestTime = 0;
   private volatile CloseState closeState = CloseState.OPEN;
 
   private boolean updatingFlushID = false;
@@ -912,14 +913,16 @@ public class Tablet extends TabletBase {
     synchronized (this) {
       if (closeState == CloseState.OPEN) {
         closeRequestTime = System.nanoTime();
-      } else if (closeRequestTime != 0) {
+        closeState = CloseState.REQUESTED;
+      } else {
+        Preconditions.checkState(closeRequestTime != 0);
         long runningTime = Duration.ofNanos(System.nanoTime() - closeRequestTime).toMinutes();
         if (runningTime >= 15) {
-          DEDUPE_LOGGER.info("Tablet {} close requested again, but has been closing for {} minutes",
-              this.extent, runningTime);
+          CLOSING_STUCK_LOGGER.info(
+              "Tablet {} close requested again, but has been closing for {} minutes", this.extent,
+              runningTime);
         }
       }
-      closeState = CloseState.REQUESTED;
     }
 
     MinorCompactionTask mct = null;

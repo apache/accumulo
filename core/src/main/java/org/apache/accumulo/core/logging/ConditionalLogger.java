@@ -52,8 +52,9 @@ public abstract class ConditionalLogger extends AbstractLogger {
     private static final long serialVersionUID = 1L;
     private final Level elevatedLevel;
 
-    public EscalatingLogger(Logger log, Duration threshold, Level elevatedLevel) {
-      super(log, threshold);
+    public EscalatingLogger(Logger log, Duration threshold, long maxCachedLogMessages,
+        Level elevatedLevel) {
+      super(log, threshold, maxCachedLogMessages);
       this.elevatedLevel = elevatedLevel;
     }
 
@@ -83,11 +84,11 @@ public abstract class ConditionalLogger extends AbstractLogger {
 
     private static final long serialVersionUID = 1L;
 
-    public DeduplicatingLogger(Logger log, Duration threshold) {
+    public DeduplicatingLogger(Logger log, Duration threshold, long maxCachedLogMessages) {
       super(log, new BiFunction<>() {
 
-        private final Cache<Pair<String,List<Object>>,Boolean> cache =
-            Caffeine.newBuilder().expireAfterWrite(threshold).maximumSize(250).build();
+        private final Cache<Pair<String,List<Object>>,Boolean> cache = Caffeine.newBuilder()
+            .expireAfterWrite(threshold).maximumSize(maxCachedLogMessages).build();
 
         private final ConcurrentMap<Pair<String,List<Object>>,Boolean> cacheMap = cache.asMap();
 

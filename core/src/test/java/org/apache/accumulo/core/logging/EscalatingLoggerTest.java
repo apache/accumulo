@@ -39,7 +39,7 @@ public class EscalatingLoggerTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(EscalatingLoggerTest.class);
   private static final Logger TEST_LOGGER =
-      new EscalatingLogger(LOG, Duration.ofSeconds(3), Level.WARN);
+      new EscalatingLogger(LOG, Duration.ofSeconds(3), 100, Level.WARN);
 
   @Test
   public void test() throws InterruptedException {

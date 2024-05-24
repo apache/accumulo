@@ -111,8 +111,8 @@ import com.google.common.collect.Iterators;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
-  private static final Logger ESCALATING_LOGGER =
-      new EscalatingLogger(Manager.log, Duration.ofMinutes(5), Level.INFO);
+  private static final Logger TABLET_UNLOAD_LOGGER =
+      new EscalatingLogger(Manager.log, Duration.ofMinutes(5), 1000, Level.INFO);
   private final Manager manager;
   private final TabletStateStore store;
   private final TabletGroupWatcher dependentWatcher;
@@ -350,7 +350,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                     manager.tserverSet.getConnection(location.getServerInstance());
                 if (client != null) {
                   try {
-                    ESCALATING_LOGGER.trace("[{}] Requesting TabletServer {} unload {} {}",
+                    TABLET_UNLOAD_LOGGER.trace("[{}] Requesting TabletServer {} unload {} {}",
                         store.name(), location.getServerInstance(), tls.extent, goal.howUnload());
                     client.unloadTablet(manager.managerLock, tls.extent, goal.howUnload(),
                         manager.getSteadyTime());
