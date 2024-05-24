@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -179,6 +180,7 @@ public class ScanServer extends AbstractServer
   private UUID serverLockUUID;
   private final TabletMetadataLoader tabletMetadataLoader;
   private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
+  private final ThreadPoolExecutor tmCacheExecutor;
   // tracks file reservations that are in the process of being added or removed from the metadata
   // table
   private final Set<StoredTabletFile> influxFiles = new HashSet<>();
@@ -242,6 +244,7 @@ public class ScanServer extends AbstractServer
     if (cacheExpiration == 0L) {
       LOG.warn("Tablet metadata caching disabled, may cause excessive scans on metadata table.");
       tabletMetadataCache = null;
+      tmCacheExecutor = null;
     } else {
       if (cacheExpiration < 60000) {
         LOG.warn(
@@ -256,9 +259,10 @@ public class ScanServer extends AbstractServer
           "Tablet metadata cache refresh percentage is '%s' but must be less than 1",
           cacheRefreshPercentage);
 
+      tmCacheExecutor =
+          context.threadPools().getPoolBuilder("scanServerTmCache").numCoreThreads(8).build();
       var builder = Caffeine.newBuilder().expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
-          .scheduler(Scheduler.systemScheduler()).executor(context.getScheduledExecutor())
-          .recordStats();
+          .scheduler(Scheduler.systemScheduler()).executor(tmCacheExecutor).recordStats();
       if (cacheRefreshPercentage > 0) {
         // Compute the refresh time as a percentage of the expiration time
         // Cache hits after this time, but before expiration, will trigger a background
@@ -433,6 +437,11 @@ public class ScanServer extends AbstractServer
         }
       } catch (IOException e) {
         LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
+      }
+
+      if (tmCacheExecutor != null) {
+        LOG.debug("Shutting down TabletMetadataCache executor");
+        tmCacheExecutor.shutdownNow();
       }
 
       gcLogger.logGCInfo(getConfiguration());
