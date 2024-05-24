@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.Key;
