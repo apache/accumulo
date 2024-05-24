@@ -61,7 +61,6 @@ class UnloadTabletHandler implements Runnable {
     synchronized (server.unopenedTablets) {
       if (server.unopenedTablets.contains(extent)) {
         server.unopenedTablets.remove(extent);
-        // enqueueManagerMessage(new TabletUnloadedMessage(extent));
         return;
       }
     }

@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.lang.Math.min;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.logging.ConditionalLogger.EscalatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -107,6 +109,8 @@ import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.event.Level;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -115,8 +119,9 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
-  // Constants used to make sure assignment logging isn't excessive in quantity or size
 
+  private static final Logger TABLET_UNLOAD_LOGGER =
+      new EscalatingLogger(Manager.log, Duration.ofMinutes(5), 1000, Level.INFO);
   private final Manager manager;
   private final TabletStateStore store;
   private final TabletGroupWatcher dependentWatcher;
@@ -352,8 +357,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                     manager.tserverSet.getConnection(location.getServerInstance());
                 if (client != null) {
                   try {
-                    Manager.log.trace("[{}] Requesting TabletServer {} unload {} {}", store.name(),
-                        location.getServerInstance(), tls.extent, goal.howUnload());
+                    TABLET_UNLOAD_LOGGER.trace("[{}] Requesting TabletServer {} unload {} {}",
+                        store.name(), location.getServerInstance(), tls.extent, goal.howUnload());
                     client.unloadTablet(manager.managerLock, tls.extent, goal.howUnload(),
                         manager.getSteadyTime().getMillis());
                     unloaded++;
