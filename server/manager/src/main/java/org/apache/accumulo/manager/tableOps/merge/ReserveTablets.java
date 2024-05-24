@@ -115,14 +115,10 @@ public class ReserveTablets extends ManagerRepo {
     }
 
     long sleepTime = Math.min(Math.max(1000, count), maxSleepTime);
-    if (locations > 0 || otherOps > 0 || wals > 0) {
-      // need to wait on these tablets
-      return sleepTime;
-    }
-
-    if (opsSet != opsAccepted.get()) {
-      // not all operation ids were set
-      return sleepTime;
+    if (locations > 0 || otherOps > 0 || wals > 0 || opsSet != opsAccepted.get()) {
+      // need to wait on these tablets, must return non-zero to indicate not ready so need to handle
+      // case of sleepTime being zero
+      return Math.max(1, sleepTime);
     }
 
     // operations ids were set on all tablets and no tablets have locations, so ready
