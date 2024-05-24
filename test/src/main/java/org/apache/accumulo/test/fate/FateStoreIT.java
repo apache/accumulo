@@ -65,6 +65,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.Sets;
 
 public abstract class FateStoreIT extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
 
@@ -250,6 +251,44 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       // All stores should already be unreserved
       store.list().forEach(
           fateIdStatus -> store.tryReserve(fateIdStatus.getFateId()).orElseThrow().delete());
+    }
+  }
+
+  @Test
+  public void testListStatus() throws Exception {
+    executeTest(this::testListStatus);
+  }
+
+  protected void testListStatus(FateStore<TestEnv> store, ServerContext sctx) throws Exception {
+    try {
+      Map<FateId,TStatus> expectedStatus = new HashMap<>();
+
+      for (int i = 0; i < 5; i++) {
+        for (var status : TStatus.values()) {
+          var fateId = store.create();
+          var txStore = store.reserve(fateId);
+          txStore.setStatus(status);
+          txStore.unreserve(0, TimeUnit.SECONDS);
+          expectedStatus.put(fateId, status);
+        }
+      }
+
+      for (var statuses : Sets.powerSet(Set.of(TStatus.values()))) {
+        var expected =
+            expectedStatus.entrySet().stream().filter(e -> statuses.contains(e.getValue()))
+                .map(Map.Entry::getKey).collect(Collectors.toSet());
+        var actual = store.list(statuses).map(FateIdStatus::getFateId).collect(Collectors.toSet());
+        assertEquals(expected, actual);
+      }
+    } finally {
+      // Cleanup so we don't interfere with other tests
+      // All stores should already be unreserved
+      store.list().forEach(fateIdStatus -> {
+        var txStore = store.tryReserve(fateIdStatus.getFateId()).orElseThrow();
+        txStore.setStatus(TStatus.SUCCESSFUL);
+        txStore.delete();
+        txStore.unreserve(0, TimeUnit.SECONDS);
+      });
     }
   }
 

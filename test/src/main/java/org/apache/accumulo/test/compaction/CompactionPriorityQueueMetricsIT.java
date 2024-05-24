@@ -152,7 +152,9 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   @AfterEach
   public void teardownMetricsTest() throws Exception {
     shutdownTailer.set(true);
-    metricsTailer.join();
+    if (metricsTailer != null) {
+      metricsTailer.join();
+    }
   }
 
   private String getDir(String testName) throws Exception {
@@ -196,6 +198,10 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
 
       cfg.setProperty(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE, "6");
       cfg.getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 0);
+
+      // This test waits for dead compactors to be absent in zookeeper. The following setting will
+      // make entries in ZK related to dead compactor processes expire sooner.
+      cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT.getKey(), "10");
 
       // use raw local file system
       conf.set("fs.file.impl", RawLocalFileSystem.class.getName());

@@ -86,7 +86,9 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
   @Override
   public void mutate() {
 
-    this.putZooLock(this.context.getZooKeeperRoot(), lock);
+    if (putServerLock) {
+      this.putZooLock(this.context.getZooKeeperRoot(), lock);
+    }
     Mutation mutation = getMutation();
 
     MetadataConstraints metaConstraint = new MetadataConstraints();

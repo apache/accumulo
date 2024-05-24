@@ -25,10 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -66,12 +68,6 @@ public class TabletManagementTest {
       Value v = new Value(cu.getValue());
       rowMap.put(k, v);
     });
-    return rowMap;
-  }
-
-  private SortedMap<Key,Value> toRowMap(TabletMetadata tm) {
-    TreeMap<Key,Value> rowMap = new TreeMap<>();
-    tm.getKeyValues().forEach(entry -> rowMap.put(entry.getKey(), entry.getValue()));
     return rowMap;
   }
 
@@ -136,7 +132,7 @@ public class TabletManagementTest {
 
     final SortedMap<Key,Value> entries = createMetadataEntryKV(extent);
 
-    TabletManagement.addActions(entries, actions);
+    TabletManagement.addActions(entries::put, entries.firstKey().getRow(), actions);
     Key key = entries.firstKey();
     Value val = WholeRowIterator.encodeRow(new ArrayList<>(entries.keySet()),
         new ArrayList<>(entries.values()));
@@ -146,7 +142,9 @@ public class TabletManagementTest {
     entries.remove(new Key(key.getRow().toString(), "REASONS", ""));
 
     TabletManagement tmi = new TabletManagement(key, val, true);
-    assertEquals(entries, toRowMap(tmi.getTabletMetadata()));
+    TabletMetadata tabletMetadata = tmi.getTabletMetadata();
+    assertEquals(entries, tabletMetadata.getKeyValues().stream().collect(
+        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, TreeMap::new)));
     assertEquals(actions, tmi.getActions());
   }
 
@@ -156,7 +154,8 @@ public class TabletManagementTest {
 
     final SortedMap<Key,Value> entries = createMetadataEntryKV(extent);
 
-    TabletManagement.addError(entries, new UnsupportedOperationException("Not supported."));
+    TabletManagement.addError(entries::put, entries.firstKey().getRow(),
+        new UnsupportedOperationException("Not supported."));
     Key key = entries.firstKey();
     Value val = WholeRowIterator.encodeRow(new ArrayList<>(entries.keySet()),
         new ArrayList<>(entries.values()));
@@ -166,7 +165,9 @@ public class TabletManagementTest {
     entries.remove(new Key(key.getRow().toString(), "ERROR", ""));
 
     TabletManagement tmi = new TabletManagement(key, val, true);
-    assertEquals(entries, toRowMap(tmi.getTabletMetadata()));
+    TabletMetadata tabletMetadata = tmi.getTabletMetadata();
+    assertEquals(entries, tabletMetadata.getKeyValues().stream().collect(
+        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, TreeMap::new)));
     assertEquals("Not supported.", tmi.getErrorMessage());
   }
 
@@ -181,7 +182,7 @@ public class TabletManagementTest {
 
     final SortedMap<Key,Value> entries = createMetadataEntryKV(extent);
 
-    TabletManagement.addActions(entries, actions);
+    TabletManagement.addActions(entries::put, entries.firstKey().getRow(), actions);
     Key key = entries.firstKey();
     Value val = WholeRowIterator.encodeRow(new ArrayList<>(entries.keySet()),
         new ArrayList<>(entries.values()));
@@ -193,7 +194,9 @@ public class TabletManagementTest {
     entries.remove(new Key(key.getRow(), new Text("REASONS"), new Text("")));
 
     TabletManagement tmi = new TabletManagement(key, val, true);
-    assertEquals(entries, toRowMap(tmi.getTabletMetadata()));
+    TabletMetadata tabletMetadata = tmi.getTabletMetadata();
+    assertEquals(entries, tabletMetadata.getKeyValues().stream().collect(
+        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, TreeMap::new)));
     assertEquals(actions, tmi.getActions());
 
   }

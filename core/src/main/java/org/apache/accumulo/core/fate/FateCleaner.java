@@ -104,7 +104,7 @@ public class FateCleaner<T> {
   }
 
   public void ageOff() {
-    store.list().filter(ids -> AGE_OFF_STATUSES.contains(ids.getStatus()))
+    store.list(AGE_OFF_STATUSES)
         .forEach(idStatus -> store.tryReserve(idStatus.getFateId()).ifPresent(txStore -> {
           try {
             AgeOffInfo ageOffInfo = readAgeOffInfo(txStore);

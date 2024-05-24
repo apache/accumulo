@@ -26,6 +26,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,6 +40,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -46,6 +48,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -99,6 +102,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 
@@ -152,6 +156,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   TableCounts getStats(TableId tableId) {
     return stats.getLast(tableId);
+  }
+
+  public Ample.DataLevel getLevel() {
+    return store.getLevel();
   }
 
   /**
@@ -238,29 +246,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
             rangesToProcess.drainTo(ranges);
 
-            if (manager.getManagerGoalState() == ManagerGoalState.CLEAN_STOP) {
-              // only do full scans when trying to shutdown
+            if (!processRanges(ranges)) {
               setNeedsFullScan();
-              continue;
-            }
-
-            TabletManagementParameters tabletMgmtParams = createTabletManagementParameters(false);
-
-            var currentTservers = getCurrentTservers(tabletMgmtParams.getOnlineTsevers());
-            if (currentTservers.isEmpty()) {
-              setNeedsFullScan();
-              continue;
-            }
-
-            try (var iter = store.iterator(ranges, tabletMgmtParams)) {
-              long t1 = System.currentTimeMillis();
-              manageTablets(iter, tabletMgmtParams, currentTservers, false);
-              long t2 = System.currentTimeMillis();
-              Manager.log.debug(String.format("[%s]: partial scan time %.2f seconds for %,d ranges",
-                  store.name(), (t2 - t1) / 1000., ranges.size()));
-            } catch (Exception e) {
-              Manager.log.error("Error processing {} ranges for store {} ", ranges.size(),
-                  store.name(), e);
             }
           }
         } catch (InterruptedException e) {
@@ -322,6 +309,77 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
+  private boolean processRanges(List<Range> ranges) {
+    if (manager.getManagerGoalState() == ManagerGoalState.CLEAN_STOP) {
+      return false;
+    }
+
+    TabletManagementParameters tabletMgmtParams = createTabletManagementParameters(false);
+
+    var currentTservers = getCurrentTservers(tabletMgmtParams.getOnlineTsevers());
+    if (currentTservers.isEmpty()) {
+      return false;
+    }
+
+    try (var iter = store.iterator(ranges, tabletMgmtParams)) {
+      long t1 = System.currentTimeMillis();
+      manageTablets(iter, tabletMgmtParams, currentTservers, false);
+      long t2 = System.currentTimeMillis();
+      Manager.log.debug(String.format("[%s]: partial scan time %.2f seconds for %,d ranges",
+          store.name(), (t2 - t1) / 1000., ranges.size()));
+    } catch (Exception e) {
+      Manager.log.error("Error processing {} ranges for store {} ", ranges.size(), store.name(), e);
+    }
+
+    return true;
+  }
+
+  private final Set<KeyExtent> hostingRequestInProgress = new ConcurrentSkipListSet<>();
+
+  public void hostOndemand(Collection<KeyExtent> extents) {
+    // This is only expected to be called for the user level
+    Preconditions.checkState(getLevel() == Ample.DataLevel.USER);
+
+    final List<KeyExtent> inProgress = new ArrayList<>();
+    extents.forEach(ke -> {
+      if (hostingRequestInProgress.add(ke)) {
+        LOG.info("Tablet hosting requested for: {} ", ke);
+        inProgress.add(ke);
+      } else {
+        LOG.trace("Ignoring hosting request because another thread is currently processing it {}",
+            ke);
+      }
+    });
+    // Do not add any code here, it may interfere with the finally block removing extents from
+    // hostingRequestInProgress
+    try (var mutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+      inProgress.forEach(ke -> {
+        mutator.mutateTablet(ke).requireAbsentOperation()
+            .requireTabletAvailability(TabletAvailability.ONDEMAND).requireAbsentLocation()
+            .setHostingRequested().submit(TabletMetadata::getHostingRequested);
+
+      });
+
+      List<Range> ranges = new ArrayList<>();
+
+      mutator.process().forEach((extent, result) -> {
+        if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
+          // cache this success for a bit
+          ranges.add(extent.toMetaRange());
+        } else {
+          if (LOG.isTraceEnabled()) {
+            // only read the metadata if the logging is enabled
+            LOG.trace("Failed to set hosting request {}", result.readMetadata());
+          }
+        }
+      });
+
+      processRanges(ranges);
+    } finally {
+      inProgress.forEach(hostingRequestInProgress::remove);
+    }
+  }
+
   private TabletManagementParameters
       createTabletManagementParameters(boolean lookForTabletsNeedingVolReplacement) {
 
@@ -347,7 +405,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
         store.getLevel(), manager.getCompactionHints(store.getLevel()), canSuspendTablets(),
         lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
-            : Map.of());
+            : Map.of(),
+        manager.getSteadyTime());
   }
 
   private Set<TServerInstance> getFilteredServersToShutdown() {
@@ -382,8 +441,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     TabletLists tLists = new TabletLists(currentTServers, tableMgmtParams.getGroupedTServers(),
         tableMgmtParams.getServersToShutdown());
 
-    CompactionJobGenerator compactionGenerator = new CompactionJobGenerator(
-        new ServiceEnvironmentImpl(manager.getContext()), tableMgmtParams.getCompactionHints());
+    CompactionJobGenerator compactionGenerator =
+        new CompactionJobGenerator(new ServiceEnvironmentImpl(manager.getContext()),
+            tableMgmtParams.getCompactionHints(), tableMgmtParams.getSteadyTime());
 
     Set<TServerInstance> filteredServersToShutdown =
         new HashSet<>(tableMgmtParams.getServersToShutdown());
@@ -966,12 +1026,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       flushLock.unlock();
     }
 
+    Set<KeyExtent> failedFuture = Set.of();
     if (!tLists.assignments.isEmpty()) {
       Manager.log.info(String.format("Assigning %d tablets", tLists.assignments.size()));
-      store.setFutureLocations(tLists.assignments);
+      failedFuture = store.setFutureLocations(tLists.assignments);
     }
     tLists.assignments.addAll(tLists.assigned);
     for (Assignment a : tLists.assignments) {
+      if (failedFuture.contains(a.tablet)) {
+        // do not ask a tserver to load a tablet where the future location could not be set
+        continue;
+      }
       try {
         TServerConnection client = manager.tserverSet.getConnection(a.server);
         if (client != null) {

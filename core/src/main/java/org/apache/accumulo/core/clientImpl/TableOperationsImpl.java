@@ -538,11 +538,19 @@ public class TableOperationsImpl extends TableOperationsHelper {
       var split = iterator.next();
 
       try {
+        Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
+            .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(2)).backOffFactor(1.5)
+            .logInterval(Duration.ofMinutes(3)).createRetry();
+
         var tablet = tabLocator.findTablet(context, split, false, LocationNeed.NOT_REQUIRED);
-        if (tablet == null) {
+        while (tablet == null) {
           context.requireTableExists(tableId, tableName);
-          throw new IllegalStateException("Unable to find a tablet for split " + split
-              + " in table " + tableName + " " + tableId);
+          try {
+            retry.waitForNextAttempt(log, "Find tablet in " + tableId + " containing " + split);
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+          }
+          tablet = tabLocator.findTablet(context, split, false, LocationNeed.NOT_REQUIRED);
         }
 
         if (split.equals(tablet.getExtent().endRow())) {

@@ -64,6 +64,7 @@ public final class TinyLfuBlockCache implements BlockCache {
   private final int maxSize;
   private final ScheduledExecutorService statsExecutor = ThreadPools.getServerThreadPools()
       .createScheduledExecutorService(1, "TinyLfuBlockCacheStatsExecutor");
+  private final CacheType type;
 
   public TinyLfuBlockCache(Configuration conf, CacheType type) {
     cache = Caches.getInstance().createNewBuilder(CacheName.TINYLFU_BLOCK_CACHE, false)
@@ -76,6 +77,7 @@ public final class TinyLfuBlockCache implements BlockCache {
     maxSize = (int) Math.min(Integer.MAX_VALUE, policy.getMaximum());
     ScheduledFuture<?> future = statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC,
         STATS_PERIOD_SEC, SECONDS);
+    this.type = type;
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
@@ -126,7 +128,7 @@ public final class TinyLfuBlockCache implements BlockCache {
     double maxMB = ((double) policy.getMaximum()) / ((double) (1024 * 1024));
     double sizeMB = ((double) policy.weightedSize().orElse(0)) / ((double) (1024 * 1024));
     double freeMB = maxMB - sizeMB;
-    log.debug("Cache Size={}MB, Free={}MB, Max={}MB, Blocks={}", sizeMB, freeMB, maxMB,
+    log.debug("Cache {} Size={}MB, Free={}MB, Max={}MB, Blocks={}", type, sizeMB, freeMB, maxMB,
         cache.estimatedSize());
     log.debug(cache.stats().toString());
   }

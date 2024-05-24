@@ -47,7 +47,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.Test;
 
-// ELASTICITY_TODO When reviewing the changes for ACCUMULO-3423, kturner suggested
+// When reviewing the changes for ACCUMULO-3423, kturner suggested
 // "tablets will now have log references that contain no data,
 // so it may be marked with 3 WALs, the first with data, the 2nd without, a 3rd with data.
 // It would be useful to have an IT that will test this situation.

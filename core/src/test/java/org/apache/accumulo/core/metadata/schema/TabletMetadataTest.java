@@ -54,6 +54,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -94,7 +95,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
 import com.google.common.net.HostAndPort;
 
 public class TabletMetadataTest {
@@ -178,8 +178,8 @@ public class TabletMetadataTest {
     assertEquals(tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum(),
         tm.getFileSize());
     assertEquals(6L, tm.getFlushId().getAsLong());
-    TreeMap<Key,Value> actualRowMap = new TreeMap<>();
-    tm.getKeyValues().forEach(entry -> actualRowMap.put(entry.getKey(), entry.getValue()));
+    SortedMap<Key,Value> actualRowMap = tm.getKeyValues().stream().collect(
+        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, TreeMap::new));
     assertEquals(rowMap, actualRowMap);
     assertEquals(Map.of(new StoredTabletFile(bf1), fateId1, new StoredTabletFile(bf2), fateId2),
         tm.getLoaded());
@@ -433,10 +433,8 @@ public class TabletMetadataTest {
     assertEquals(1, tm2.getLoaded().size());
     assertThrows(UnsupportedOperationException.class,
         () -> tm2.getLoaded().put(stf, FateId.from(FateInstanceType.USER, UUID.randomUUID())));
-    assertEquals(1, Iterables.size(tm2.getKeyValues()));
-    var iter = tm2.getKeyValues().iterator();
-    iter.next();
-    assertThrows(UnsupportedOperationException.class, iter::remove);
+    assertEquals(1, tm2.getKeyValues().size());
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getKeyValues().remove(null));
     assertEquals(1, tm2.getCompacted().size());
     assertThrows(UnsupportedOperationException.class,
         () -> tm2.getCompacted().add(FateId.from(FateInstanceType.USER, UUID.randomUUID())));
@@ -672,7 +670,8 @@ public class TabletMetadataTest {
     LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
 
     FateId selFilesFateId = FateId.from(type, UUID.randomUUID());
-    SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, selFilesFateId);
+    SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, selFilesFateId,
+        SteadyTime.from(100_000, TimeUnit.NANOSECONDS));
     var unsplittableMeta =
         UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2));
 

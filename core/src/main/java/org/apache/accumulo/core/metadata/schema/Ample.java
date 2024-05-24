@@ -408,7 +408,7 @@ public interface Ample {
      * @throws IllegalArgumentException if rows in keys do not match tablet row or column visibility
      *         is not empty
      */
-    T deleteAll(Iterable<Map.Entry<Key,Value>> entries);
+    T deleteAll(Collection<Map.Entry<Key,Value>> entries);
 
     T setMerged();
 
@@ -421,6 +421,12 @@ public interface Ample {
     T setUnSplittable(UnSplittableMetadata unSplittableMeta);
 
     T deleteUnSplittable();
+
+    /**
+     * By default the server lock is automatically added to mutations unless this method is set to
+     * false.
+     */
+    T automaticallyPutServerLock(boolean b);
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {

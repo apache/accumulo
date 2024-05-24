@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
@@ -422,9 +423,8 @@ public class SplitIT extends AccumuloClusterHarness {
 
       // remove the srv:lock column for tests as this will change
       // because we are changing the metadata from the IT.
-      var original = new TreeMap<Key,Value>();
-      tabletMetadata.getKeyValues()
-          .forEach(entry -> original.put(entry.getKey(), entry.getValue()));
+      var original = (SortedMap<Key,Value>) tabletMetadata.getKeyValues().stream()
+          .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (a1, b1) -> b1, TreeMap::new));
       assertTrue(original.keySet().removeIf(LOCK_COLUMN::hasColumns));
 
       // Split operation should fail because of the unexpected column.
@@ -438,8 +438,8 @@ public class SplitIT extends AccumuloClusterHarness {
       assertEquals(extent, tabletMetadata.getExtent());
 
       // tablet should have an operation id set, but nothing else changed
-      var kvCopy = new TreeMap<Key,Value>();
-      tabletMetadata2.getKeyValues().forEach(entry -> kvCopy.put(entry.getKey(), entry.getValue()));
+      var kvCopy = (SortedMap<Key,Value>) tabletMetadata2.getKeyValues().stream()
+          .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (a, b) -> b, TreeMap::new));
       assertTrue(kvCopy.keySet().removeIf(LOCK_COLUMN::hasColumns));
       assertTrue(kvCopy.keySet().removeIf(OPID_COLUMN::hasColumns));
       assertEquals(original, kvCopy);

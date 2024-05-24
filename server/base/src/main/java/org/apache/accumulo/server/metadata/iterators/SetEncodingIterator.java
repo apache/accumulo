@@ -24,8 +24,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -184,15 +186,23 @@ public class SetEncodingIterator implements SortedKeyValueIterator<Key,Value> {
   private static <T> byte[] encode(Set<T> set, Function<T,byte[]> encoder) {
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos)) {
-      set.stream().map(encoder).sorted(Arrays::compare).forEach(ba -> {
-        try {
+
+      if (set.size() == 1) {
+        // no need to sort or use a stream when the set is size 1.
+        var ba = encoder.apply(set.iterator().next());
+        dos.writeInt(ba.length);
+        dos.write(ba, 0, ba.length);
+      } else if (set.size() > 1) {
+        List<byte[]> copy = new ArrayList<>(set.size());
+        for (var entry : set) {
+          copy.add(encoder.apply(entry));
+        }
+        copy.sort(Arrays::compare);
+        for (var ba : copy) {
           dos.writeInt(ba.length);
           dos.write(ba, 0, ba.length);
-        } catch (IOException ioe) {
-          throw new UncheckedIOException(ioe);
         }
-
-      });
+      }
 
       dos.writeInt(set.size());
 

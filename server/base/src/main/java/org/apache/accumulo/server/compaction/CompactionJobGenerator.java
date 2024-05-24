@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
@@ -51,6 +52,7 @@ import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,9 +67,10 @@ public class CompactionJobGenerator {
   private final PluginEnvironment env;
   private final Map<FateId,Map<String,String>> allExecutionHints;
   private final Cache<Pair<TableId,CompactionServiceId>,Long> unknownCompactionServiceErrorCache;
+  private final SteadyTime steadyTime;
 
   public CompactionJobGenerator(PluginEnvironment env,
-      Map<FateId,Map<String,String>> executionHints) {
+      Map<FateId,Map<String,String>> executionHints, SteadyTime steadyTime) {
     servicesConfig = new CompactionServicesConfig(env.getConfiguration());
     serviceIds = servicesConfig.getPlanners().keySet().stream().map(CompactionServiceId::of)
         .collect(Collectors.toUnmodifiableSet());
@@ -87,6 +90,7 @@ public class CompactionJobGenerator {
     unknownCompactionServiceErrorCache =
         Caches.getInstance().createNewBuilder(CacheName.COMPACTION_SERVICE_UNKNOWN, false)
             .expireAfterWrite(5, TimeUnit.MINUTES).build();
+    this.steadyTime = steadyTime;
   }
 
   public Collection<CompactionJob> generateJobs(TabletMetadata tablet, Set<CompactionKind> kinds) {
@@ -205,9 +209,22 @@ public class CompactionJobGenerator {
         // remove any files that are in active compactions
         tablet.getExternalCompactions().values().stream().flatMap(ecm -> ecm.getJobFiles().stream())
             .forEach(tmpFiles::remove);
-        // remove any files that are selected
-        if (tablet.getSelectedFiles() != null) {
-          tmpFiles.keySet().removeAll(tablet.getSelectedFiles().getFiles());
+        // remove any files that are selected and the user compaction has completed
+        // at least 1 job, otherwise we can keep the files
+        var selectedFiles = tablet.getSelectedFiles();
+
+        if (selectedFiles != null) {
+          long selectedExpirationDuration =
+              ConfigurationTypeHelper.getTimeInMillis(env.getConfiguration(tablet.getTableId())
+                  .get(Property.TABLE_COMPACTION_SELECTION_EXPIRATION.getKey()));
+
+          // If jobs are completed, or selected time has not expired, the remove
+          // from the candidate list otherwise we can cancel the selection
+          if (selectedFiles.getCompletedJobs() > 0
+              || (steadyTime.minus(selectedFiles.getSelectedTime()).toMillis()
+                  < selectedExpirationDuration)) {
+            tmpFiles.keySet().removeAll(selectedFiles.getFiles());
+          }
         }
         candidates = tmpFiles.entrySet().stream()
             .map(entry -> new CompactableFileImpl(entry.getKey(), entry.getValue()))

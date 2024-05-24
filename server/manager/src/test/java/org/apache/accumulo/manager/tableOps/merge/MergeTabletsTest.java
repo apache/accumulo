@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -79,6 +80,7 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
@@ -315,7 +317,8 @@ public class MergeTabletsTest {
     testUnexpectedColumn(tmb -> tmb.putBulkFile(lodedFile.getTabletFile(), otherFateId),
         "has unexpected loaded column");
 
-    var selectedFiles = new SelectedFiles(Set.of(newSTF(567)), false, otherFateId);
+    var selectedFiles = new SelectedFiles(Set.of(newSTF(567)), false, otherFateId,
+        SteadyTime.from(100, TimeUnit.NANOSECONDS));
     testUnexpectedColumn(tmb -> tmb.putSelectedFiles(selectedFiles),
         "has unexpected selected file");
 

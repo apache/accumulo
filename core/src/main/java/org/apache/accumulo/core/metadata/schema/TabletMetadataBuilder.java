@@ -40,6 +40,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.SortedMap;
@@ -263,7 +264,7 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder deleteAll(Iterable<Map.Entry<Key,Value>> keys) {
+  public TabletMetadataBuilder deleteAll(Collection<Map.Entry<Key,Value>> entries) {
     throw new UnsupportedOperationException();
   }
 
@@ -300,6 +301,11 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
 
   @Override
   public TabletMetadataBuilder deleteUnSplittable() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public TabletMetadataBuilder automaticallyPutServerLock(boolean b) {
     throw new UnsupportedOperationException();
   }
 

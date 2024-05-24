@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import java.util.Collection;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -64,6 +65,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   protected final Mutation mutation;
   protected AutoCloseable closeAfterMutate;
   protected boolean updatesEnabled = true;
+  protected boolean putServerLock = true;
 
   @SuppressWarnings("unchecked")
   private T getThis() {
@@ -309,17 +311,17 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T deleteAll(Iterable<Map.Entry<Key,Value>> keys) {
+  public T deleteAll(Collection<Map.Entry<Key,Value>> entries) {
     ByteSequence row = new ArrayByteSequence(mutation.getRow());
-    keys.forEach(entry -> {
-      var key = entry.getKey();
+    entries.forEach(e -> {
+      var key = e.getKey();
       Preconditions.checkArgument(key.getRowData().equals(row), "Unexpected row %s %s", row, key);
       Preconditions.checkArgument(key.getColumnVisibilityData().length() == 0,
           "Non empty column visibility %s", key);
     });
 
-    keys.forEach(entry -> {
-      var key = entry.getKey();
+    entries.forEach(e -> {
+      var key = e.getKey();
       mutation.putDelete(key.getColumnFamily(), key.getColumnQualifier());
     });
 
@@ -359,6 +361,12 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T deleteUnSplittable() {
     SplitColumnFamily.UNSPLITTABLE_COLUMN.putDelete(mutation);
+    return getThis();
+  }
+
+  @Override
+  public T automaticallyPutServerLock(boolean b) {
+    putServerLock = b;
     return getThis();
   }
 
