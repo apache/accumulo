@@ -32,6 +32,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.slf4j.Logger;
@@ -70,6 +71,7 @@ public class ReserveTablets extends ManagerRepo {
     int locations = 0;
     int wals = 0;
 
+    var startTime = NanoTime.now();
     try (
         var tablets = env.getContext().getAmple().readTablets().forTable(data.tableId)
             .overlapping(range.prevEndRow(), range.endRow()).fetch(PREV_ROW, LOCATION, LOGS, OPID)
@@ -95,6 +97,7 @@ public class ReserveTablets extends ManagerRepo {
         count++;
       }
     }
+    var maxSleepTime = Math.min(60000, startTime.elapsed().toMillis());
 
     log.debug(
         "{} reserve tablets op:{} count:{} other opids:{} opids set:{} locations:{} accepted:{} wals:{}",
@@ -111,14 +114,15 @@ public class ReserveTablets extends ManagerRepo {
           opsAccepted.get(), fateId);
     }
 
+    long sleepTime = Math.min(Math.max(1000, count), maxSleepTime);
     if (locations > 0 || otherOps > 0 || wals > 0) {
       // need to wait on these tablets
-      return Math.min(Math.max(1000, count), 60000);
+      return sleepTime;
     }
 
     if (opsSet != opsAccepted.get()) {
       // not all operation ids were set
-      return Math.min(Math.max(1000, count), 60000);
+      return sleepTime;
     }
 
     // operations ids were set on all tablets and no tablets have locations, so ready
