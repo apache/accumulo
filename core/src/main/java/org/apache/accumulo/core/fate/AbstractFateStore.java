@@ -149,6 +149,10 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
   }
 
+  private static final Set<TStatus> IN_PROGRESS_SET = Set.of(TStatus.IN_PROGRESS);
+  private static final Set<TStatus> OTHER_RUNNABLE_SET =
+      Set.of(TStatus.SUBMITTED, TStatus.FAILED_IN_PROGRESS);
+
   @Override
   public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
 
@@ -158,7 +162,11 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       final long beforeCount = unreservedRunnableCount.getCount();
       final boolean beforeDeferredOverflow = deferredOverflow.get();
 
-      try (Stream<FateIdStatus> transactions = getTransactions()) {
+      try (Stream<FateIdStatus> inProgress = getTransactions(IN_PROGRESS_SET);
+          Stream<FateIdStatus> other = getTransactions(OTHER_RUNNABLE_SET)) {
+        // read the in progress transaction first and then everything else in order to process those
+        // first
+        var transactions = Stream.concat(inProgress, other);
         transactions.filter(fateIdStatus -> isRunnable(fateIdStatus.getStatus()))
             .map(FateIdStatus::getFateId).filter(fateId -> {
               synchronized (AbstractFateStore.this) {
@@ -213,7 +221,12 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   @Override
   public Stream<FateIdStatus> list() {
-    return getTransactions();
+    return getTransactions(TStatus.ALL_STATUSES);
+  }
+
+  @Override
+  public Stream<FateIdStatus> list(Set<TStatus> statuses) {
+    return getTransactions(statuses);
   }
 
   @Override
@@ -343,7 +356,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   protected abstract Pair<TStatus,Optional<FateKey>> getStatusAndKey(FateId fateId);
 
-  protected abstract Stream<FateIdStatus> getTransactions();
+  protected abstract Stream<FateIdStatus> getTransactions(Set<TStatus> statuses);
 
   protected abstract TStatus _getStatus(FateId fateId);
 

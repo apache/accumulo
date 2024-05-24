@@ -217,6 +217,11 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
+  public Stream<FateIdStatus> list(Set<TStatus> statuses) {
+    return list().filter(fis -> statuses.contains(fis.getStatus()));
+  }
+
+  @Override
   public Stream<FateKey> list(FateKey.FateKeyType type) {
     throw new UnsupportedOperationException();
   }
