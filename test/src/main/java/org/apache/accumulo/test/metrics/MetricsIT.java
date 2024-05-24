@@ -100,9 +100,9 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cluster.stop();
 
     Set<String> unexpectedMetrics = Set.of(METRICS_COMPACTOR_MAJC_STUCK, METRICS_SCAN_YIELDS);
-    Set<String> flakyMetrics =
-        Set.of(METRICS_FATE_TYPE_IN_PROGRESS, METRICS_GC_WAL_ERRORS, METRICS_SCAN_RESERVATION_TIMER,
-            METRICS_SCAN_BUSY_TIMEOUT_COUNTER, METRICS_SCAN_TABLET_METADATA_CACHE);
+    Set<String> flakyMetrics = Set.of(METRICS_FATE_TYPE_IN_PROGRESS, METRICS_GC_WAL_ERRORS,
+        METRICS_SCAN_RESERVATION_TOTAL_TIMER, METRICS_SCAN_BUSY_TIMEOUT_COUNTER,
+        METRICS_SCAN_TABLET_METADATA_CACHE);
 
     Map<String,String> expectedMetricNames = this.getMetricFields();
     flakyMetrics.forEach(expectedMetricNames::remove); // might not see these

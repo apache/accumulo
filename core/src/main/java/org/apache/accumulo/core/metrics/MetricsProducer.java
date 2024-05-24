@@ -348,7 +348,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <th>N/A</th>
  * <th>N/A</th>
- * <th>{@value #METRICS_SCAN_RESERVATION_TIMER}</th>
+ * <th>{@value #METRICS_SCAN_RESERVATION_TOTAL_TIMER}</th>
  * <th>Timer</th>
  * <th>Time to reserve a tablets files for scan</th>
  * </tr>
@@ -611,8 +611,12 @@ public interface MetricsProducer {
   String METRICS_SCAN_START = METRICS_SCAN_PREFIX + "start";
   String METRICS_SCAN_CONTINUE = METRICS_SCAN_PREFIX + "continue";
   String METRICS_SCAN_CLOSE = METRICS_SCAN_PREFIX + "close";
+  String METRICS_SCAN_RESERVATION_TOTAL_TIMER = METRICS_SCAN_PREFIX + "reservation.total.timer";
+  String METRICS_SCAN_RESERVATION_WRITEOUT_TIMER =
+      METRICS_SCAN_PREFIX + "reservation.writeout.timer";
   String METRICS_SCAN_BUSY_TIMEOUT_COUNTER = METRICS_SCAN_PREFIX + "busy.timeout.count";
-  String METRICS_SCAN_RESERVATION_TIMER = METRICS_SCAN_PREFIX + "reservation.timer";
+  String METRICS_SCAN_RESERVATION_CONFLICT_COUNTER =
+      METRICS_SCAN_PREFIX + "reservation.conflict.count";
   String METRICS_SCAN_QUERIES = METRICS_SCAN_PREFIX + "queries";
   String METRICS_SCAN_QUERY_SCAN_RESULTS = METRICS_SCAN_PREFIX + "query.results";
   String METRICS_SCAN_QUERY_SCAN_RESULTS_BYTES = METRICS_SCAN_PREFIX + "query.results.bytes";
