@@ -283,6 +283,9 @@ public class Admin implements KeywordExecutable {
     JCommander cl = new JCommander(opts);
     cl.setProgramName("accumulo admin");
 
+    ServiceStatusCmd.Opts serviceStatusCommandOpts = new ServiceStatusCmd.Opts();
+    cl.addCommand("serviceStatus", serviceStatusCommandOpts);
+
     ChangeSecretCommand changeSecretCommand = new ChangeSecretCommand();
     cl.addCommand("changeSecret", changeSecretCommand);
 
@@ -398,6 +401,8 @@ public class Admin implements KeywordExecutable {
             tServerLocksOpts.delete);
       } else if (cl.getParsedCommand().equals("fate")) {
         executeFateOpsCommand(context, fateOpsCommand);
+      } else if (cl.getParsedCommand().equals("serviceStatus")) {
+        printServiceStatus(context, serviceStatusCommandOpts);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
@@ -423,6 +428,11 @@ public class Admin implements KeywordExecutable {
     } finally {
       SingletonManager.setMode(Mode.CLOSED);
     }
+  }
+
+  private static void printServiceStatus(ServerContext context, ServiceStatusCmd.Opts opts) {
+    ServiceStatusCmd ssc = new ServiceStatusCmd();
+    ssc.execute(context, opts);
   }
 
   private static int ping(ClientContext context, List<String> args) {
@@ -590,21 +600,11 @@ public class Admin implements KeywordExecutable {
   private Map<String,String> siteConfig, systemConfig;
   private List<String> localUsers;
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "code runs in same security context as user who provided input")
   public void printConfig(ClientContext context, DumpConfigCommand opts) throws Exception {
 
-    File outputDirectory = null;
-    if (opts.directory != null) {
-      outputDirectory = new File(opts.directory);
-      if (!outputDirectory.isDirectory()) {
-        throw new IllegalArgumentException(
-            opts.directory + " does not exist on the local filesystem.");
-      }
-      if (!outputDirectory.canWrite()) {
-        throw new IllegalArgumentException(opts.directory + " is not writable");
-      }
-    }
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+        justification = "app is run in same security context as user providing the filename")
+    File outputDirectory = getOutputDirectory(opts.directory);
     defaultConfig = DefaultConfiguration.getInstance();
     siteConfig = context.instanceOperations().getSiteConfiguration();
     systemConfig = context.instanceOperations().getSystemConfiguration();
@@ -649,6 +649,22 @@ public class Admin implements KeywordExecutable {
         }
       }
     }
+  }
+
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "app is run in same security context as user providing the filename")
+  private static File getOutputDirectory(final String directory) {
+    File outputDirectory = null;
+    if (directory != null) {
+      outputDirectory = new File(directory);
+      if (!outputDirectory.isDirectory()) {
+        throw new IllegalArgumentException(directory + " does not exist on the local filesystem.");
+      }
+      if (!outputDirectory.canWrite()) {
+        throw new IllegalArgumentException(directory + " is not writable");
+      }
+    }
+    return outputDirectory;
   }
 
   private String getDefaultConfigValue(String key) {
