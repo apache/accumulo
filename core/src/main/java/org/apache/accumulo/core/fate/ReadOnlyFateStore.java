@@ -19,11 +19,14 @@
 package org.apache.accumulo.core.fate;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.util.Pair;
@@ -53,7 +56,10 @@ public interface ReadOnlyFateStore<T> {
     /** Unrecognized or unknown transaction state */
     UNKNOWN,
     /** Transaction that is eligible to be executed */
-    SUBMITTED
+    SUBMITTED;
+
+    public static final Set<TStatus> ALL_STATUSES =
+        Arrays.stream(values()).collect(Collectors.toUnmodifiableSet());
   }
 
   /**
@@ -137,6 +143,13 @@ public interface ReadOnlyFateStore<T> {
    * @return all outstanding transactions, including those reserved by others.
    */
   Stream<FateIdStatus> list();
+
+  /**
+   * list all transaction ids in store that have a current status that is in the provided set
+   *
+   * @return all outstanding transactions, including those reserved by others.
+   */
+  Stream<FateIdStatus> list(Set<TStatus> statuses);
 
   /**
    * list transaction in the store that have a given fate key type.

@@ -20,6 +20,7 @@ package org.apache.accumulo.core.logging;
 
 import java.io.Serializable;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -118,6 +119,11 @@ public class FateLogger {
       @Override
       public Stream<FateIdStatus> list() {
         return store.list();
+      }
+
+      @Override
+      public Stream<FateIdStatus> list(Set<TStatus> statuses) {
+        return store.list(statuses);
       }
 
       @Override
