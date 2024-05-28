@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -53,6 +54,7 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -216,7 +218,7 @@ public abstract class FateInterleavingIT extends SharedMiniClusterBase
         txStore.setTransactionInfo(TxInfo.TX_NAME, "TEST_" + i);
         txStore.setStatus(SUBMITTED);
       } finally {
-        txStore.unreserve(0, TimeUnit.SECONDS);
+        txStore.unreserve(Duration.ZERO);
       }
     }
 
@@ -337,7 +339,7 @@ public abstract class FateInterleavingIT extends SharedMiniClusterBase
         txStore.setTransactionInfo(TxInfo.TX_NAME, "TEST_" + i);
         txStore.setStatus(SUBMITTED);
       } finally {
-        txStore.unreserve(0, TimeUnit.SECONDS);
+        txStore.unreserve(Duration.ZERO);
       }
     }
 
