@@ -71,8 +71,6 @@ public class ServiceStatusCmd {
     services.put(ServiceStatusReport.ReportKey.MONITOR, getMonitorStatus(zooReader, zooRoot));
     services.put(ServiceStatusReport.ReportKey.T_SERVER, getTServerStatus(zooReader, zooRoot));
     services.put(ServiceStatusReport.ReportKey.S_SERVER, getScanServerStatus(zooReader, zooRoot));
-    services.put(ServiceStatusReport.ReportKey.COORDINATOR,
-        getCoordinatorStatus(zooReader, zooRoot));
     services.put(ServiceStatusReport.ReportKey.COMPACTOR, getCompactorStatus(zooReader, zooRoot));
     services.put(ServiceStatusReport.ReportKey.GC, getGcStatus(zooReader, zooRoot));
 
@@ -176,15 +174,6 @@ public class ServiceStatusCmd {
   StatusSummary getGcStatus(final ZooReader zooReader, String zRootPath) {
     String lockPath = zRootPath + Constants.ZGC_LOCK;
     return getStatusSummary(ServiceStatusReport.ReportKey.GC, zooReader, lockPath);
-  }
-
-  /**
-   * The coordinator paths in ZooKeeper are: {@code /accumulo/[IID]/coordinators/lock/zlock#[NUM]}
-   * with the lock data providing host:port
-   */
-  @VisibleForTesting
-  StatusSummary getCoordinatorStatus(final ZooReader zooReader, String zRootPath) {
-    throw new UnsupportedOperationException();
   }
 
   /**
