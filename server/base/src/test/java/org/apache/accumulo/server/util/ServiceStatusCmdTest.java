@@ -20,7 +20,6 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZGC_LOCK;
-import static org.apache.accumulo.server.util.ServiceStatusCmd.NO_GROUP_TAG;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
@@ -83,18 +82,21 @@ public class ServiceStatusCmdTest {
     String lock2Name = "zlock#" + UUID.randomUUID() + "#0000000002";
     String lock3Name = "zlock#" + UUID.randomUUID() + "#0000000003";
 
-    String host1 = "hostA:8080";
-    String host2 = "hostB:9090";
-    String host3 = "host1:9091";
+    String lock1data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\"localhost:9991\",\"group\":\"default\"}]}";
+    String lock2Data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\"localhost:9992\",\"group\":\"default\"}]}";
+    String lock3Data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\"hostA:9999\",\"group\":\"manager1\"}]}";
 
     String lockPath = zRoot + Constants.ZMANAGER_LOCK;
     expect(zooReader.getChildren(eq(lockPath))).andReturn(List.of(lock1Name, lock2Name, lock3Name))
         .anyTimes();
-    expect(zooReader.getData(eq(lockPath + "/" + lock1Name))).andReturn(host1.getBytes(UTF_8))
+    expect(zooReader.getData(eq(lockPath + "/" + lock1Name))).andReturn(lock1data.getBytes(UTF_8))
         .anyTimes();
-    expect(zooReader.getData(eq(lockPath + "/" + lock2Name))).andReturn(host2.getBytes(UTF_8))
+    expect(zooReader.getData(eq(lockPath + "/" + lock2Name))).andReturn(lock2Data.getBytes(UTF_8))
         .anyTimes();
-    expect(zooReader.getData(eq(lockPath + "/" + lock3Name))).andReturn(host3.getBytes(UTF_8))
+    expect(zooReader.getData(eq(lockPath + "/" + lock3Name))).andReturn(lock3Data.getBytes(UTF_8))
         .anyTimes();
 
     replay(zooReader);
@@ -106,12 +108,12 @@ public class ServiceStatusCmdTest {
     assertEquals(3, status.getServiceCount());
 
     // expect sorted by name
-    Set<String> hosts = new TreeSet<>(List.of(host1, host2, host3));
     Map<String,Set<String>> hostByGroup = new TreeMap<>();
-    hostByGroup.put(NO_GROUP_TAG, hosts);
+    hostByGroup.put("default", new TreeSet<>(List.of("localhost:9991", "localhost:9992")));
+    hostByGroup.put("manager1", new TreeSet<>(List.of("hostA:9999")));
 
-    StatusSummary expected =
-        new StatusSummary(ServiceStatusReport.ReportKey.MANAGER, Set.of(), hostByGroup, 0);
+    StatusSummary expected = new StatusSummary(ServiceStatusReport.ReportKey.MANAGER,
+        new TreeSet<>(List.of("default", "manager1")), hostByGroup, 0);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
@@ -127,8 +129,10 @@ public class ServiceStatusCmdTest {
     String lock1Name = "zlock#" + UUID.randomUUID() + "#0000000001";
     String lock2Name = "zlock#" + UUID.randomUUID() + "#0000000002";
 
-    String host1 = "hostA:8080";
-    String host2 = "host1:9091";
+    String host1 =
+        "{\"descriptors\":[{\"uuid\":\"87465459-9c8f-4f95-b4c6-ef3029030d05\",\"service\":\"NONE\",\"address\":\"hostA\",\"group\":\"default\"}]}";
+    String host2 =
+        "{\"descriptors\":[{\"uuid\":\"87465459-9c8f-4f95-b4c6-ef3029030d05\",\"service\":\"NONE\",\"address\":\"hostB\",\"group\":\"default\"}]}";
 
     String lockPath = zRoot + Constants.ZMONITOR_LOCK;
     expect(zooReader.getChildren(eq(lockPath))).andReturn(List.of(lock1Name, lock2Name)).anyTimes();
@@ -147,10 +151,10 @@ public class ServiceStatusCmdTest {
 
     // expect sorted by name
     Map<String,Set<String>> hostByGroup = new TreeMap<>();
-    hostByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of(host1, host2)));
+    hostByGroup.put("default", new TreeSet<>(List.of("hostA", "hostB")));
 
-    StatusSummary expected =
-        new StatusSummary(ServiceStatusReport.ReportKey.MONITOR, Set.of(), hostByGroup, 0);
+    StatusSummary expected = new StatusSummary(ServiceStatusReport.ReportKey.MONITOR,
+        new TreeSet<>(List.of("default")), hostByGroup, 0);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
@@ -167,24 +171,58 @@ public class ServiceStatusCmdTest {
     String lock2Name = "zlock#" + UUID.randomUUID() + "#0000000002";
     String lock3Name = "zlock#" + UUID.randomUUID() + "#0000000003";
 
-    String host1 = "hostA:8080";
-    String host2 = "hostB:9090";
-    String host3 = "host1:9091";
+    String host1 = "localhost:9997";
+    String host2 = "localhost:10000";
+    String host3 = "hostZ:9999";
+
+    String lockData1 =
+        "{\"descriptors\":[{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"TABLET_SCAN\",\"address\":\""
+            + host1
+            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"CLIENT\",\"address\":\""
+            + host1
+            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"TABLET_INGEST\",\"address\":\""
+            + host1
+            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"TABLET_MANAGEMENT\",\"address\":\""
+            + host1
+            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"TSERV\",\"address\":\""
+            + host1 + "\",\"group\":\"default\"}]}\n";
+    String lockData2 =
+        "{\"descriptors\":[{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_SCAN\",\"address\":\""
+            + host2
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_MANAGEMENT\",\"address\":\""
+            + host2
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"CLIENT\",\"address\":\""
+            + host2
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TSERV\",\"address\":\""
+            + host2
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_INGEST\",\"address\":\""
+            + host2 + "\",\"group\":\"default\"}]}";
+    String lockData3 =
+        "{\"descriptors\":[{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_SCAN\",\"address\":\""
+            + host3
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_MANAGEMENT\",\"address\":\""
+            + host3
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"CLIENT\",\"address\":\""
+            + host3
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TSERV\",\"address\":\""
+            + host3
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_INGEST\",\"address\":\""
+            + host3 + "\",\"group\":\"default\"}]}";
 
     String basePath = zRoot + Constants.ZTSERVERS;
     expect(zooReader.getChildren(eq(basePath))).andReturn(List.of(host1, host2, host3)).anyTimes();
 
     expect(zooReader.getChildren(eq(basePath + "/" + host1))).andReturn(List.of(lock1Name)).once();
     expect(zooReader.getData(eq(basePath + "/" + host1 + "/" + lock1Name)))
-        .andReturn(("TSERV_CLIENT=" + host1).getBytes(UTF_8)).anyTimes();
+        .andReturn(lockData1.getBytes(UTF_8)).anyTimes();
 
     expect(zooReader.getChildren(eq(basePath + "/" + host2))).andReturn(List.of(lock2Name)).once();
     expect(zooReader.getData(eq(basePath + "/" + host2 + "/" + lock2Name)))
-        .andReturn(("TSERV_CLIENT=" + host2).getBytes(UTF_8)).anyTimes();
+        .andReturn(lockData2.getBytes(UTF_8)).anyTimes();
 
     expect(zooReader.getChildren(eq(basePath + "/" + host3))).andReturn(List.of(lock3Name)).once();
     expect(zooReader.getData(eq(basePath + "/" + host3 + "/" + lock3Name)))
-        .andReturn(("TSERV_CLIENT=" + host3).getBytes(UTF_8)).anyTimes();
+        .andReturn(lockData3.getBytes(UTF_8)).anyTimes();
 
     replay(zooReader);
 
@@ -196,10 +234,13 @@ public class ServiceStatusCmdTest {
 
     // expect sorted by name
     Map<String,Set<String>> hostByGroup = new TreeMap<>();
-    hostByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of(host1, host2, host3)));
+    hostByGroup.put("default", new TreeSet<>(List.of(host1, host2, host3)));
 
-    StatusSummary expected =
-        new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, Set.of(), hostByGroup, 0);
+    StatusSummary expected = new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER,
+        Set.of("default"), hostByGroup, 0);
+
+    LOG.info("read: {}", status);
+    LOG.info("need: {}", expected);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
@@ -220,12 +261,31 @@ public class ServiceStatusCmdTest {
     String lock3Name = "zlock#" + uuid3 + "#0000000033";
     String lock4Name = "zlock#" + uuid3 + "#0000000044";
 
-    // UUID uuidLock = UUID.randomUUID();
-
     String host1 = "host1:8080";
     String host2 = "host2:9090";
     String host3 = "host3:9091";
     String host4 = "host4:9091";
+
+    String lockData1 =
+        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"TABLET_SCAN\",\"address\":\""
+            + host1
+            + "\",\"group\":\"sg1\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"CLIENT\",\"address\":\""
+            + host1 + "\",\"group\":\"sg1\"}]}";
+    String lockData2 =
+        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"TABLET_SCAN\",\"address\":\""
+            + host2
+            + "\",\"group\":\"default\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"CLIENT\",\"address\":\""
+            + host2 + "\",\"group\":\"default\"}]}";
+    String lockData3 =
+        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"TABLET_SCAN\",\"address\":\""
+            + host3
+            + "\",\"group\":\"sg1\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"CLIENT\",\"address\":\""
+            + host3 + "\",\"group\":\"sg1\"}]}";
+    String lockData4 =
+        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"TABLET_SCAN\",\"address\":\""
+            + host4
+            + "\",\"group\":\"default\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"CLIENT\",\"address\":\""
+            + host4 + "\",\"group\":\"default\"}]}";
 
     String lockPath = zRoot + Constants.ZSSERVERS;
     expect(zooReader.getChildren(eq(lockPath))).andReturn(List.of(host1, host2, host3, host4))
@@ -233,19 +293,19 @@ public class ServiceStatusCmdTest {
 
     expect(zooReader.getChildren(eq(lockPath + "/" + host1))).andReturn(List.of(lock1Name)).once();
     expect(zooReader.getData(eq(lockPath + "/" + host1 + "/" + lock1Name)))
-        .andReturn((UUID.randomUUID() + ",rg1").getBytes(UTF_8)).once();
+        .andReturn(lockData1.getBytes(UTF_8)).once();
 
     expect(zooReader.getChildren(eq(lockPath + "/" + host2))).andReturn(List.of(lock2Name)).once();
     expect(zooReader.getData(eq(lockPath + "/" + host2 + "/" + lock2Name)))
-        .andReturn((UUID.randomUUID() + ",default").getBytes(UTF_8)).once();
+        .andReturn(lockData2.getBytes(UTF_8)).once();
 
     expect(zooReader.getChildren(eq(lockPath + "/" + host3))).andReturn(List.of(lock3Name)).once();
     expect(zooReader.getData(eq(lockPath + "/" + host3 + "/" + lock3Name)))
-        .andReturn((UUID.randomUUID() + ",rg1").getBytes(UTF_8)).once();
+        .andReturn(lockData3.getBytes(UTF_8)).once();
 
     expect(zooReader.getChildren(eq(lockPath + "/" + host4))).andReturn(List.of(lock4Name)).once();
     expect(zooReader.getData(eq(lockPath + "/" + host4 + "/" + lock4Name)))
-        .andReturn((UUID.randomUUID() + ",default").getBytes(UTF_8)).once();
+        .andReturn(lockData4.getBytes(UTF_8)).once();
 
     replay(zooReader);
 
@@ -255,10 +315,10 @@ public class ServiceStatusCmdTest {
 
     Map<String,Set<String>> hostByGroup = new TreeMap<>();
     hostByGroup.put("default", new TreeSet<>(List.of("host2:9090", "host4:9091")));
-    hostByGroup.put("rg1", new TreeSet<>(List.of("host1:8080", "host3:9091")));
+    hostByGroup.put("sg1", new TreeSet<>(List.of("host1:8080", "host3:9091")));
 
     StatusSummary expected = new StatusSummary(ServiceStatusReport.ReportKey.S_SERVER,
-        Set.of("default", "rg1"), hostByGroup, 0);
+        Set.of("default", "sg1"), hostByGroup, 0);
 
     assertEquals(expected, status);
 
@@ -274,14 +334,24 @@ public class ServiceStatusCmdTest {
     String host2 = "hostB:9090";
     String host3 = "host1:9091";
 
+    String lockData1 =
+        "{\"descriptors\":[{\"uuid\":\"1d55f7a5-090d-48fc-a3ea-f1a66e984a21\",\"service\":\"COORDINATOR\",\"address\":\""
+            + host1 + "\",\"group\":\"default\"}]}\n";
+    String lockData2 =
+        "{\"descriptors\":[{\"uuid\":\"1d55f7a5-090d-48fc-a3ea-f1a66e984a21\",\"service\":\"COORDINATOR\",\"address\":\""
+            + host2 + "\",\"group\":\"coord1\"}]}\n";
+    String lockData3 =
+        "{\"descriptors\":[{\"uuid\":\"1d55f7a5-090d-48fc-a3ea-f1a66e984a21\",\"service\":\"COORDINATOR\",\"address\":\""
+            + host3 + "\",\"group\":\"coord2\"}]}\n";
+
     String lockPath = zRoot + Constants.ZCOORDINATOR_LOCK;
     expect(zooReader.getChildren(eq(lockPath))).andReturn(List.of(lock1Name, lock2Name, lock3Name))
         .anyTimes();
-    expect(zooReader.getData(eq(lockPath + "/" + lock1Name))).andReturn(host1.getBytes(UTF_8))
+    expect(zooReader.getData(eq(lockPath + "/" + lock1Name))).andReturn(lockData1.getBytes(UTF_8))
         .anyTimes();
-    expect(zooReader.getData(eq(lockPath + "/" + lock2Name))).andReturn(host2.getBytes(UTF_8))
+    expect(zooReader.getData(eq(lockPath + "/" + lock2Name))).andReturn(lockData2.getBytes(UTF_8))
         .anyTimes();
-    expect(zooReader.getData(eq(lockPath + "/" + lock3Name))).andReturn(host3.getBytes(UTF_8))
+    expect(zooReader.getData(eq(lockPath + "/" + lock3Name))).andReturn(lockData3.getBytes(UTF_8))
         .anyTimes();
 
     replay(zooReader);
@@ -293,12 +363,13 @@ public class ServiceStatusCmdTest {
     assertEquals(3, status.getServiceCount());
 
     // expect sorted by name
-    Set<String> hosts = new TreeSet<>(List.of(host1, host2, host3));
     Map<String,Set<String>> hostByGroup = new TreeMap<>();
-    hostByGroup.put(NO_GROUP_TAG, hosts);
+    hostByGroup.put("default", new TreeSet<>(List.of(host1)));
+    hostByGroup.put("coord1", new TreeSet<>(List.of(host2)));
+    hostByGroup.put("coord2", new TreeSet<>(List.of(host3)));
 
-    StatusSummary expected =
-        new StatusSummary(ServiceStatusReport.ReportKey.COORDINATOR, Set.of(), hostByGroup, 0);
+    StatusSummary expected = new StatusSummary(ServiceStatusReport.ReportKey.COORDINATOR,
+        new TreeSet<>(List.of("coord1", "default", "coord2")), hostByGroup, 0);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
@@ -339,24 +410,33 @@ public class ServiceStatusCmdTest {
     String host1 = "host1:8080";
     String host2 = "host2:9090";
 
+    String lockData1 =
+        "{\"descriptors\":[{\"uuid\":\"5c901352-b027-4f78-8ee1-05ae163fbb0e\",\"service\":\"GC\",\"address\":\""
+            + host2 + "\",\"group\":\"default\"}]}";
+    String lockData2 =
+        "{\"descriptors\":[{\"uuid\":\"5c901352-b027-4f78-8ee1-05ae163fbb0e\",\"service\":\"GC\",\"address\":\""
+            + host1 + "\",\"group\":\"gc1\"}]}";
+
     expect(zooReader.getChildren(eq(lockPath))).andReturn(List.of(lock1Name, lock2Name)).once();
-    expect(zooReader.getData(eq(lockPath + "/" + lock1Name)))
-        .andReturn(("GC_CLIENT=" + host1).getBytes(UTF_8)).once();
-    expect(zooReader.getData(eq(lockPath + "/" + lock2Name)))
-        .andReturn(("GC_CLIENT=" + host2).getBytes(UTF_8)).once();
+    expect(zooReader.getData(eq(lockPath + "/" + lock1Name))).andReturn(lockData1.getBytes(UTF_8))
+        .once();
+    expect(zooReader.getData(eq(lockPath + "/" + lock2Name))).andReturn(lockData2.getBytes(UTF_8))
+        .once();
 
     replay(zooReader);
 
     ServiceStatusCmd cmd = new ServiceStatusCmd();
     StatusSummary status = cmd.getGcStatus(zooReader, zRoot);
     LOG.info("gc server counts: {}", status);
-    assertEquals(0, status.getResourceGroups().size());
+    assertEquals(2, status.getResourceGroups().size());
     assertEquals(2, status.getServiceCount());
     assertEquals(0, status.getErrorCount());
-    assertEquals(1, status.getServiceByGroups().size());
-    assertEquals(2, status.getServiceByGroups().get(NO_GROUP_TAG).size());
-    assertEquals(new TreeSet<>(List.of(host1, host2)),
-        status.getServiceByGroups().get(NO_GROUP_TAG));
+    assertEquals(2, status.getServiceByGroups().size());
+    assertEquals(1, status.getServiceByGroups().get("default").size());
+    assertEquals(1, status.getServiceByGroups().get("gc1").size());
+    assertEquals(new TreeSet<>(List.of("default", "gc1")), status.getResourceGroups());
+    assertEquals(new TreeSet<>(List.of(host1)), status.getServiceByGroups().get("gc1"));
+    assertEquals(new TreeSet<>(List.of(host2)), status.getServiceByGroups().get("default"));
   }
 
   /**
@@ -366,33 +446,47 @@ public class ServiceStatusCmdTest {
   @Test
   void zkNodeDeletedTest() throws Exception {
     String lock1Name = "zlock#" + UUID.randomUUID() + "#0000000001";
-    String lock2Name = "zlock#" + UUID.randomUUID() + "#0000000022";
-    String lock3Name = "zlock#" + UUID.randomUUID() + "#0000000099";
-    String host2 = "hostZ:8080";
-    String host3 = "hostA:8080";
+    String lock2Name = "zlock#" + UUID.randomUUID() + "#0000000002";
+    String lock3Name = "zlock#" + UUID.randomUUID() + "#0000000003";
+
+    String host2 = "localhost:9992";
+    String host3 = "hostA:9999";
+
+    String lock1data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\"localhost:9991\",\"group\":\"default\"}]}";
+    String lock2Data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\""
+            + host2 + "\",\"group\":\"default\"}]}";
+    String lock3Data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\""
+            + host3 + "\",\"group\":\"manager1\"}]}";
 
     String lockPath = zRoot + Constants.ZMANAGER_LOCK;
     expect(zooReader.getChildren(eq(lockPath))).andReturn(List.of(lock1Name, lock2Name, lock3Name))
         .anyTimes();
+    // expect(zooReader.getData(eq(lockPath + "/" + lock1Name)))
+    // .andThrow(new KeeperException.NoNodeException("no node forced exception")).once();
     expect(zooReader.getData(eq(lockPath + "/" + lock1Name)))
-        .andThrow(new KeeperException.NoNodeException("no node forced exception")).anyTimes();
-    expect(zooReader.getData(eq(lockPath + "/" + lock2Name))).andReturn(host2.getBytes(UTF_8))
+        .andThrow(new KeeperException.NoNodeException("no node forced exception")).once();
+    expect(zooReader.getData(eq(lockPath + "/" + lock2Name))).andReturn(lock2Data.getBytes(UTF_8))
         .anyTimes();
-    expect(zooReader.getData(eq(lockPath + "/" + lock3Name))).andReturn(host3.getBytes(UTF_8))
+    expect(zooReader.getData(eq(lockPath + "/" + lock3Name))).andReturn(lock3Data.getBytes(UTF_8))
         .anyTimes();
+
     replay(zooReader);
 
     ServiceStatusCmd cmd = new ServiceStatusCmd();
     StatusSummary status = cmd.getManagerStatus(zooReader, zRoot);
     LOG.info("manager status data: {}", status);
 
-    assertEquals(1, status.getServiceByGroups().size());
-    assertEquals(2, status.getServiceByGroups().get(NO_GROUP_TAG).size());
+    assertEquals(2, status.getServiceByGroups().size());
+    assertEquals(1, status.getServiceByGroups().get("default").size());
+    assertEquals(1, status.getServiceByGroups().get("manager1").size());
     assertEquals(1, status.getErrorCount());
 
     // host 1 missing - no node exception
-    Set<String> sortedHosts = new TreeSet<>(List.of(host3, host2));
-    assertEquals(sortedHosts, status.getServiceByGroups().get(NO_GROUP_TAG));
+    assertEquals(new TreeSet<>(List.of(host2)), status.getServiceByGroups().get("default"));
+    assertEquals(new TreeSet<>(List.of(host3)), status.getServiceByGroups().get("manager1"));
   }
 
   @Test
