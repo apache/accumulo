@@ -163,15 +163,21 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     queueName = opts.getQueueName();
   }
 
+  private long getTotalEntriesRead() {
+    return FileCompactor.getTotalEntriesRead();
+  }
+
+  private long getTotalEntriesWritten() {
+    return FileCompactor.getTotalEntriesWritten();
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    FunctionCounter
-        .builder(METRICS_COMPACTOR_ENTRIES_READ, null, o -> FileCompactor.getTotalEntriesRead())
+    FunctionCounter.builder(METRICS_COMPACTOR_ENTRIES_READ, this, Compactor::getTotalEntriesRead)
         .description("Number of entries read by all compactions that have run on this compactor")
         .register(registry);
     FunctionCounter
-        .builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, null,
-            o -> FileCompactor.getTotalEntriesWritten())
+        .builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, this, Compactor::getTotalEntriesWritten)
         .description("Number of entries written by all compactions that have run on this compactor")
         .register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)

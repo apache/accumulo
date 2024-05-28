@@ -278,7 +278,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       client.tableOperations().compact(tableName2,
           new CompactionConfig().setWait(true).setIterators(List.of(setting)));
       log.info("Finished compacting table " + tableName2);
-      compactionFinished.set(true);
+      stopCheckerThread.set(true);
 
       log.info("Waiting on progress checker thread");
       checkerThread.join();
