@@ -36,12 +36,12 @@ import io.micrometer.core.instrument.noop.NoopTimer;
 /**
  * Convenience utility class to return micrometer noop metrics. Initialization of the metrics system
  * registry can be delayed so that common tags with values determined at runtime (for example, port
- * numbers). Initializing meters that are create from the registry at initialization with a noop
+ * numbers). Initializing meters that are created from the registry at initialization with a noop
  * implementation prevents NPEs if something tries to record a metric value before the
  * initialization has run.
  */
 public class NoopMetrics {
-  private static AtomicInteger idCount = new AtomicInteger(0);
+  private final static AtomicInteger idCount = new AtomicInteger(0);
 
   private NoopMetrics() {}
 
