@@ -206,7 +206,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
    * @param colf column family to use for ingest
    * @return the number of ingested entries
    */
-  protected static int createTableAndIngest(AccumuloClient client, String tableName,
+  public static int createTableAndIngest(AccumuloClient client, String tableName,
       NewTableConfiguration ntc, int rowCount, int colCount, String colf) throws Exception {
 
     if (Objects.isNull(ntc)) {
@@ -230,7 +230,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
    * @param shouldFlush if true, the entries will be flushed after ingest
    * @return the number of ingested entries
    */
-  protected static int ingest(AccumuloClient client, String tableName, int rowCount, int colCount,
+  public static int ingest(AccumuloClient client, String tableName, int rowCount, int colCount,
       int offset, String colf, boolean shouldFlush) throws Exception {
     ReadWriteIT.ingest(client, colCount, rowCount, 50, offset, colf, tableName);
 

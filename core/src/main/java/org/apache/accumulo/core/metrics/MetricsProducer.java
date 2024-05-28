@@ -54,9 +54,10 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>currentFateOps</td>
  * <td>Gauge</td>
- * <td>{@value #METRICS_FATE_TOTAL_IN_PROGRESS}</td>
+ * <td>{@value #METRICS_FATE_OPS}</td>
  * <td>Gauge</td>
- * <td></td>
+ * <td>Was previously named "accumulo.fate.ops.in.progress". Changed to better reflect what the
+ * gauge is actually tracking which is all the current fate ops in any state.</td>
  * </tr>
  * <tr>
  * <td>FateTxOpType_{name}</td>
@@ -340,7 +341,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <th>N/A</th>
  * <th>N/A</th>
- * <th>{@value #METRICS_SCAN_RESERVATION_TIMER}</th>
+ * <th>{@value #METRICS_SCAN_RESERVATION_TOTAL_TIMER}</th>
  * <th>Timer</th>
  * <th>Time to reserve a tablets files for scan</th>
  * </tr>
@@ -585,7 +586,7 @@ public interface MetricsProducer {
 
   String METRICS_FATE_PREFIX = "accumulo.fate.";
   String METRICS_FATE_TYPE_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in.progress.by.type";
-  String METRICS_FATE_TOTAL_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in.progress";
+  String METRICS_FATE_OPS = METRICS_FATE_PREFIX + "ops";
   String METRICS_FATE_OPS_ACTIVITY = METRICS_FATE_PREFIX + "ops.activity";
   String METRICS_FATE_ERRORS = METRICS_FATE_PREFIX + "errors";
   String METRICS_FATE_TX = METRICS_FATE_PREFIX + "tx";
@@ -628,8 +629,12 @@ public interface MetricsProducer {
   String METRICS_SCAN_START = METRICS_SCAN_PREFIX + "start";
   String METRICS_SCAN_CONTINUE = METRICS_SCAN_PREFIX + "continue";
   String METRICS_SCAN_CLOSE = METRICS_SCAN_PREFIX + "close";
+  String METRICS_SCAN_RESERVATION_TOTAL_TIMER = METRICS_SCAN_PREFIX + "reservation.total.timer";
+  String METRICS_SCAN_RESERVATION_WRITEOUT_TIMER =
+      METRICS_SCAN_PREFIX + "reservation.writeout.timer";
   String METRICS_SCAN_BUSY_TIMEOUT_COUNTER = METRICS_SCAN_PREFIX + "busy.timeout.count";
-  String METRICS_SCAN_RESERVATION_TIMER = METRICS_SCAN_PREFIX + "reservation.timer";
+  String METRICS_SCAN_RESERVATION_CONFLICT_COUNTER =
+      METRICS_SCAN_PREFIX + "reservation.conflict.count";
   String METRICS_SCAN_QUERIES = METRICS_SCAN_PREFIX + "queries";
   String METRICS_SCAN_QUERY_SCAN_RESULTS = METRICS_SCAN_PREFIX + "query.results";
   String METRICS_SCAN_QUERY_SCAN_RESULTS_BYTES = METRICS_SCAN_PREFIX + "query.results.bytes";
@@ -666,6 +671,15 @@ public interface MetricsProducer {
   String METRICS_UPDATE_COMMIT_PREP = METRICS_UPDATE_COMMIT + ".prep";
   String METRICS_UPDATE_WALOG_WRITE = METRICS_UPDATE_PREFIX + "walog.write";
   String METRICS_UPDATE_MUTATION_ARRAY_SIZE = METRICS_UPDATE_PREFIX + "mutation.arrays.size";
+
+  String METRICS_BLOCKCACHE_PREFIX = "accumulo.blockcache.";
+  String METRICS_BLOCKCACHE_INDEX_HITCOUNT = METRICS_BLOCKCACHE_PREFIX + "index.hitcount";
+  String METRICS_BLOCKCACHE_INDEX_REQUESTCOUNT = METRICS_BLOCKCACHE_PREFIX + "index.requestcount";
+  String METRICS_BLOCKCACHE_DATA_HITCOUNT = METRICS_BLOCKCACHE_PREFIX + "data.hitcount";
+  String METRICS_BLOCKCACHE_DATA_REQUESTCOUNT = METRICS_BLOCKCACHE_PREFIX + "data.requestcount";
+  String METRICS_BLOCKCACHE_SUMMARY_HITCOUNT = METRICS_BLOCKCACHE_PREFIX + "summary.hitcount";
+  String METRICS_BLOCKCACHE_SUMMARY_REQUESTCOUNT =
+      METRICS_BLOCKCACHE_PREFIX + "summary.requestcount";
 
   // balancer
   String METRICS_MANAGER_BALANCER_MIGRATING = "manager.balancer.migrations.in_progress";

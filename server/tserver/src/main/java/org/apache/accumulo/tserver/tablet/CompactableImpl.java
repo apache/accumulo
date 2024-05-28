@@ -247,13 +247,32 @@ public class CompactableImpl implements Compactable {
 
     protected abstract long getNanoTime();
 
-    boolean initiateSelection(CompactionKind kind) {
+    /**
+     * @return the last id of the last successful user compaction
+     */
+    protected abstract long getLastCompactId();
 
-      Preconditions.checkArgument(kind == CompactionKind.SELECTOR || kind == CompactionKind.USER);
+    boolean initiateSelection(CompactionKind kind, Long compactionId) {
+
+      Preconditions.checkArgument(
+          kind == CompactionKind.SELECTOR && compactionId == null
+              || kind == CompactionKind.USER && compactionId != null,
+          "Unexpected kind and/or compaction id: %s %s", kind, compactionId);
 
       if (selectStatus == FileSelectionStatus.NOT_ACTIVE || (kind == CompactionKind.USER
           && selectKind == CompactionKind.SELECTOR && noneRunning(CompactionKind.SELECTOR)
           && selectStatus != FileSelectionStatus.SELECTING)) {
+
+        // Check compaction id when a lock is held and no other user compactions have files
+        // selected, at this point the results of any previous user compactions should be seen. If
+        // user compaction is currently running, then will not get this far because of the checks a
+        // few lines up.
+        if (kind == CompactionKind.USER && getLastCompactId() >= compactionId) {
+          // This user compaction has already completed, so no need to initiate selection of files
+          // for user compaction.
+          return false;
+        }
+
         selectStatus = FileSelectionStatus.NEW;
         selectKind = kind;
         selectedFiles.clear();
@@ -728,6 +747,11 @@ public class CompactableImpl implements Compactable {
       protected long getNanoTime() {
         return System.nanoTime();
       }
+
+      @Override
+      protected long getLastCompactId() {
+        return tablet.getLastCompactId();
+      }
     };
   }
 
@@ -1030,7 +1054,7 @@ public class CompactableImpl implements Compactable {
         return;
       }
 
-      if (fileMgr.initiateSelection(kind)) {
+      if (fileMgr.initiateSelection(kind, compactionId)) {
         this.chelper = localHelper;
         this.compactionId = compactionId;
         this.compactionConfig = compactionConfig;
