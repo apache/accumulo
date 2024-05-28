@@ -165,8 +165,11 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
 
         // Bump the number of scan serves that can run to start the GROUP1 scan server
         getCluster().getConfig().setNumScanServers(2);
+        // If the following fails to start the ScanServer, it's possible that the value
+        // of property SSERV_GROUP_NAME has changed. If that is the case, then this test
+        // and the scripts need to be updated.
         getCluster()._exec(ScanServer.class, ServerType.SCAN_SERVER, Map.of(),
-            new String[] {"-g", "GROUP1"});
+            new String[] {"-o", "sserver.group=GROUP1"});
         Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 2);
         Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
             (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
