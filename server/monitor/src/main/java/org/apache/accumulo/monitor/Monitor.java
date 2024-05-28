@@ -474,13 +474,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       log.debug("Monitor started on port {}", livePort);
     }
 
-    try {
-      getMonitorLock();
-    } catch (Exception e) {
-      log.error("Failed to get Monitor ZooKeeper lock");
-      throw new RuntimeException(e);
-    }
-
     String advertiseHost = getHostname();
     if (advertiseHost.equals("0.0.0.0")) {
       try {
@@ -491,6 +484,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
     HostAndPort monitorHostAndPort = HostAndPort.fromParts(advertiseHost, livePort);
     log.debug("Using {} to advertise monitor location in ZooKeeper", monitorHostAndPort);
+
+    try {
+      getMonitorLock(monitorHostAndPort);
+    } catch (Exception e) {
+      log.error("Failed to get Monitor ZooKeeper lock");
+      throw new RuntimeException(e);
+    }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addServiceTags(getApplicationName(), monitorHostAndPort);
@@ -796,7 +796,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   /**
    * Get the monitor lock in ZooKeeper
    */
-  private void getMonitorLock() throws KeeperException, InterruptedException {
+  private void getMonitorLock(HostAndPort monitorLocation)
+      throws KeeperException, InterruptedException {
     ServerContext context = getContext();
     final String zRoot = context.getZooKeeperRoot();
     final String monitorPath = zRoot + Constants.ZMONITOR;
@@ -833,8 +834,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     while (true) {
       MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
       monitorLock = new ServiceLock(zoo.getZooKeeper(), monitorLockPath, zooLockUUID);
-      monitorLock.lock(monitorLockWatcher,
-          new ServiceLockData(zooLockUUID, getHostname(), ThriftService.NONE));
+      monitorLock.lock(monitorLockWatcher, new ServiceLockData(zooLockUUID,
+          monitorLocation.getHost() + ":" + monitorLocation.getPort(), ThriftService.NONE));
 
       monitorLockWatcher.waitForChange();
 
