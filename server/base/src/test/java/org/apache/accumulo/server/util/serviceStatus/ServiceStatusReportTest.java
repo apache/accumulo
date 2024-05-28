@@ -103,29 +103,29 @@ public class ServiceStatusReportTest {
     final Map<ServiceStatusReport.ReportKey,StatusSummary> services = new TreeMap<>();
 
     Map<String,Set<String>> managerByGroup = new TreeMap<>();
-    managerByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of("host1:8080", "host2:9090")));
-    StatusSummary managerSummary = new StatusSummary(MANAGER, Set.of(), managerByGroup, 1);
+    managerByGroup.put("default", new TreeSet<>(List.of("host1:8080", "host2:9090")));
+    StatusSummary managerSummary = new StatusSummary(MANAGER, Set.of("default"), managerByGroup, 1);
     services.put(MANAGER, managerSummary);
 
     Map<String,Set<String>> monitorByGroup = new TreeMap<>();
-    monitorByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of("host1:8080", "host2:9090")));
-    StatusSummary monitorSummary =
-        new StatusSummary(ServiceStatusReport.ReportKey.MONITOR, Set.of(), monitorByGroup, 0);
+    monitorByGroup.put("default", new TreeSet<>(List.of("host1:8080", "host2:9090")));
+    StatusSummary monitorSummary = new StatusSummary(ServiceStatusReport.ReportKey.MONITOR,
+        Set.of("default"), monitorByGroup, 0);
     services.put(ServiceStatusReport.ReportKey.MONITOR, monitorSummary);
 
     Map<String,Set<String>> gcByGroup = new TreeMap<>();
-    gcByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of("host1:8080", "host2:9090")));
+    gcByGroup.put("default", new TreeSet<>(List.of("host1:8080", "host2:9090")));
 
     StatusSummary gcSummary =
-        new StatusSummary(ServiceStatusReport.ReportKey.GC, Set.of(), gcByGroup, 0);
+        new StatusSummary(ServiceStatusReport.ReportKey.GC, Set.of("default"), gcByGroup, 0);
     services.put(ServiceStatusReport.ReportKey.GC, gcSummary);
 
     Map<String,Set<String>> tserverByGroup = new TreeMap<>();
-    tserverByGroup.put(NO_GROUP_TAG,
+    tserverByGroup.put("default",
         new TreeSet<>(List.of("host2:9090", "host4:9091", "host1:8080", "host3:9091")));
 
-    StatusSummary tserverSummary =
-        new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, Set.of(), tserverByGroup, 1);
+    StatusSummary tserverSummary = new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER,
+        Set.of("default"), tserverByGroup, 1);
     services.put(ServiceStatusReport.ReportKey.T_SERVER, tserverSummary);
 
     Map<String,Set<String>> sserverByGroup = new TreeMap<>();
@@ -138,7 +138,7 @@ public class ServiceStatusReportTest {
     services.put(ServiceStatusReport.ReportKey.S_SERVER, scanServerSummary);
 
     Map<String,Set<String>> coordinatorByGroup = new TreeMap<>();
-    coordinatorByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of("host4:9090", "host2:9091")));
+    coordinatorByGroup.put("default", new TreeSet<>(List.of("host4:9090", "host2:9091")));
     StatusSummary coordinatorSummary = new StatusSummary(ServiceStatusReport.ReportKey.COORDINATOR,
         Set.of(), coordinatorByGroup, 0);
     services.put(ServiceStatusReport.ReportKey.COORDINATOR, coordinatorSummary);
