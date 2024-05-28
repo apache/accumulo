@@ -72,9 +72,9 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     this.tableName = tableName;
     this.numThreads = numQueryThreads;
 
-    queryThreadPool = context.threadPools()
-        .getPoolBuilder(METRICS_POOL_PREFIX + "tserver.batch.reader.scanner" + batchReaderInstance)
-        .numCoreThreads(numQueryThreads).build();
+    queryThreadPool =
+        context.threadPools().getPoolBuilder(METRICS_POOL_PREFIX + "client.batch.reader.scanner")
+            .numCoreThreads(numQueryThreads).build();
     // Call shutdown on this thread pool in case the caller does not call close().
     cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, closed, log);
   }

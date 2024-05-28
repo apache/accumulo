@@ -313,9 +313,9 @@ public class TabletServerResourceManager {
         () -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
         METRICS_TSERVER_MINOR_COMPACTOR_POOL, minorCompactionThreadPool);
 
-    splitThreadPool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(METRICS_POOL_PREFIX + "tserver.minor.compactor").numCoreThreads(0)
-        .numMaxThreads(1).withTimeOut(1, SECONDS).build();
+    splitThreadPool =
+        ThreadPools.getServerThreadPools().getPoolBuilder(METRICS_POOL_PREFIX + "tserver.split")
+            .numCoreThreads(0).numMaxThreads(1).withTimeOut(1, SECONDS).build();
 
     defaultSplitThreadPool = ThreadPools.getServerThreadPools()
         .getPoolBuilder(METRICS_POOL_PREFIX + "metadata.tablet.default.splitter").numCoreThreads(0)
@@ -340,7 +340,7 @@ public class TabletServerResourceManager {
         Property.TSERV_ASSIGNMENT_MAXCONCURRENT, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT),
-        "tserver.tablet.assignment.pool", assignmentPool);
+        "tablet.assignment.pool", assignmentPool);
 
     assignMetaDataPool = ThreadPools.getServerThreadPools()
         .getPoolBuilder(METRICS_POOL_PREFIX + "metadata.tablet.assignment").numCoreThreads(0)

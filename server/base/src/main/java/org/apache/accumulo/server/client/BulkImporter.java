@@ -365,7 +365,8 @@ public class BulkImporter {
     final Map<Path,List<AssignmentInfo>> ais = Collections.synchronizedMap(new TreeMap<>());
 
     ExecutorService threadPool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder("bulk.import.estimate.sizes.pool").numCoreThreads(numThreads).build();
+        .getPoolBuilder(METRICS_POOL_PREFIX + "bulk.import.size.estimate")
+        .numCoreThreads(numThreads).build();
 
     for (final Entry<Path,List<TabletLocation>> entry : assignments.entrySet()) {
       if (entry.getValue().size() == 1) {
