@@ -325,63 +325,6 @@ public class ServiceStatusCmdTest {
   }
 
   @Test
-  void testCoordinatorHosts() throws Exception {
-    String lock1Name = "zlock#" + UUID.randomUUID() + "#0000000001";
-    String lock2Name = "zlock#" + UUID.randomUUID() + "#0000000002";
-    String lock3Name = "zlock#" + UUID.randomUUID() + "#0000000003";
-
-    String host1 = "hostA:8080";
-    String host2 = "hostB:9090";
-    String host3 = "host1:9091";
-
-    String lockData1 =
-        "{\"descriptors\":[{\"uuid\":\"1d55f7a5-090d-48fc-a3ea-f1a66e984a21\",\"service\":\"COORDINATOR\",\"address\":\""
-            + host1 + "\",\"group\":\"default\"}]}\n";
-    String lockData2 =
-        "{\"descriptors\":[{\"uuid\":\"1d55f7a5-090d-48fc-a3ea-f1a66e984a21\",\"service\":\"COORDINATOR\",\"address\":\""
-            + host2 + "\",\"group\":\"coord1\"}]}\n";
-    String lockData3 =
-        "{\"descriptors\":[{\"uuid\":\"1d55f7a5-090d-48fc-a3ea-f1a66e984a21\",\"service\":\"COORDINATOR\",\"address\":\""
-            + host3 + "\",\"group\":\"coord2\"}]}\n";
-
-    String lockPath = null;
-    // String lockPath = zRoot + Constants.ZCOORDINATOR_LOCK;
-    expect(zooReader.getChildren(eq(lockPath))).andReturn(List.of(lock1Name, lock2Name, lock3Name))
-        .anyTimes();
-    expect(zooReader.getData(eq(lockPath + "/" + lock1Name))).andReturn(lockData1.getBytes(UTF_8))
-        .anyTimes();
-    expect(zooReader.getData(eq(lockPath + "/" + lock2Name))).andReturn(lockData2.getBytes(UTF_8))
-        .anyTimes();
-    expect(zooReader.getData(eq(lockPath + "/" + lock3Name))).andReturn(lockData3.getBytes(UTF_8))
-        .anyTimes();
-
-    replay(zooReader);
-
-    ServiceStatusCmd cmd = new ServiceStatusCmd();
-    StatusSummary status = cmd.getCoordinatorStatus(zooReader, zRoot);
-    LOG.info("tserver status data: {}", status);
-
-    assertEquals(3, status.getServiceCount());
-
-    // expect sorted by name
-    Map<String,Set<String>> hostByGroup = new TreeMap<>();
-    hostByGroup.put("default", new TreeSet<>(List.of(host1)));
-    hostByGroup.put("coord1", new TreeSet<>(List.of(host2)));
-    hostByGroup.put("coord2", new TreeSet<>(List.of(host3)));
-
-    StatusSummary expected = new StatusSummary(ServiceStatusReport.ReportKey.COORDINATOR,
-        new TreeSet<>(List.of("coord1", "default", "coord2")), hostByGroup, 0);
-
-    assertEquals(expected.hashCode(), status.hashCode());
-    assertEquals(expected.getDisplayName(), status.getDisplayName());
-    assertEquals(expected.getResourceGroups(), status.getResourceGroups());
-    assertEquals(expected.getServiceByGroups(), status.getServiceByGroups());
-    assertEquals(expected.getServiceCount(), status.getServiceCount());
-    assertEquals(expected.getErrorCount(), status.getErrorCount());
-    assertEquals(expected, status);
-  }
-
-  @Test
   public void testCompactorStatus() throws Exception {
     String lockPath = zRoot + Constants.ZCOMPACTORS;
     expect(zooReader.getChildren(eq(lockPath))).andReturn(List.of("q1", "q2")).once();
@@ -453,8 +396,6 @@ public class ServiceStatusCmdTest {
     String host2 = "localhost:9992";
     String host3 = "hostA:9999";
 
-    String lock1data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\"localhost:9991\",\"group\":\"default\"}]}";
     String lock2Data =
         "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\""
             + host2 + "\",\"group\":\"default\"}]}";
