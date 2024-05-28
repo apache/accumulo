@@ -341,37 +341,57 @@ public class AdminUtil<T> {
     List<TransactionStatus> statuses = new ArrayList<>(transactions.size());
 
     for (Long tid : transactions) {
+      try {
+        zs.reserve(tid);
 
-      zs.reserve(tid);
+        String txName = (String) zs.getTransactionInfo(tid, Fate.TxInfo.TX_NAME);
 
-      String txName = (String) zs.getTransactionInfo(tid, Fate.TxInfo.TX_NAME);
+        List<String> hlocks = heldLocks.remove(tid);
 
-      List<String> hlocks = heldLocks.remove(tid);
+        if (hlocks == null) {
+          hlocks = Collections.emptyList();
+        }
 
-      if (hlocks == null) {
-        hlocks = Collections.emptyList();
-      }
+        List<String> wlocks = waitingLocks.remove(tid);
 
-      List<String> wlocks = waitingLocks.remove(tid);
+        if (wlocks == null) {
+          wlocks = Collections.emptyList();
+        }
 
-      if (wlocks == null) {
-        wlocks = Collections.emptyList();
-      }
+        String top = null;
+        ReadOnlyRepo<T> repo = zs.top(tid);
+        if (repo != null) {
+          top = repo.getName();
+        }
 
-      String top = null;
-      ReadOnlyRepo<T> repo = zs.top(tid);
-      if (repo != null) {
-        top = repo.getName();
-      }
+        TStatus status = zs.getStatus(tid);
 
-      TStatus status = zs.getStatus(tid);
+        long timeCreated = zs.timeCreated(tid);
 
-      long timeCreated = zs.timeCreated(tid);
+        zs.unreserve(tid, 0, TimeUnit.MILLISECONDS);
 
-      zs.unreserve(tid, 0, TimeUnit.MILLISECONDS);
-
-      if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
-        statuses.add(new TransactionStatus(tid, status, txName, hlocks, wlocks, top, timeCreated));
+        if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
+          statuses
+              .add(new TransactionStatus(tid, status, txName, hlocks, wlocks, top, timeCreated));
+        }
+      } catch (Exception e) {
+        // If the cause of the Exception is a NoNodeException, it should be ignored as this
+        // indicates the transaction has completed between the time the list of transactions was
+        // acquired and the time the transaction was probed for info.
+        boolean nne = false;
+        Throwable cause = e;
+        while (cause != null) {
+          if (cause instanceof KeeperException.NoNodeException) {
+            nne = true;
+            break;
+          }
+          cause = cause.getCause();
+        }
+        if (!nne) {
+          throw e;
+        }
+        log.debug("Tried to get info on a since completed transaction - ignoring "
+            + FateTxId.formatTid(tid));
       }
     }
 
