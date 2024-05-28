@@ -52,8 +52,6 @@ public class ServiceStatusCmd {
 
   private static final Logger LOG = LoggerFactory.getLogger(ServiceStatusCmd.class);
 
-  // private static final Gson gson = new Gson();
-
   public ServiceStatusCmd() {}
 
   /**
