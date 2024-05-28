@@ -21,6 +21,7 @@ package org.apache.accumulo.server.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.lock.ServiceLockData.ThriftService.TABLET_SCAN;
 import static org.apache.accumulo.core.lock.ServiceLockData.ThriftService.TSERV;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.Collection;
 import java.util.Map;
@@ -43,7 +44,6 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.gson.Gson;
 
 public class ServiceStatusCmd {
 
@@ -52,7 +52,7 @@ public class ServiceStatusCmd {
 
   private static final Logger LOG = LoggerFactory.getLogger(ServiceStatusCmd.class);
 
-  private static final Gson gson = new Gson();
+  // private static final Gson gson = new Gson();
 
   public ServiceStatusCmd() {}
 
@@ -154,7 +154,7 @@ public class ServiceStatusCmd {
         } else {
 
           ServiceLockData.ServiceDescriptors sld =
-              gson.fromJson(nodeData.getData(), ServiceLockData.ServiceDescriptors.class);
+              GSON.get().fromJson(nodeData.getData(), ServiceLockData.ServiceDescriptors.class);
 
           sld.getServices().forEach(sd -> {
             if (serviceType == sd.getService()) {
@@ -213,7 +213,7 @@ public class ServiceStatusCmd {
     Map<String,Set<String>> byGroup = new TreeMap<>();
     result.getData().forEach(data -> {
       ServiceLockData.ServiceDescriptors sld =
-          gson.fromJson(data, ServiceLockData.ServiceDescriptors.class);
+          GSON.get().fromJson(data, ServiceLockData.ServiceDescriptors.class);
       var services = sld.getServices();
       services.forEach(sd -> {
         byGroup.computeIfAbsent(sd.getGroup(), set -> new TreeSet<>()).add(sd.getAddress());
