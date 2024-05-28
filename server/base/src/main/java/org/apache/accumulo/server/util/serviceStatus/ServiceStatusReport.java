@@ -18,10 +18,13 @@
  */
 package org.apache.accumulo.server.util.serviceStatus;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_RESOURCE_GROUP_NAME;
+
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,12 +86,12 @@ public class ServiceStatusReport {
         .reduce(Integer::sum).orElse(0);
     sb.append("ZooKeeper read errors: ").append(zkErrors).append("\n");
 
-    fmtServiceStatus(sb, ReportKey.MANAGER, summaries.get(ReportKey.MANAGER), noHosts);
-    fmtServiceStatus(sb, ReportKey.MONITOR, summaries.get(ReportKey.MONITOR), noHosts);
-    fmtServiceStatus(sb, ReportKey.GC, summaries.get(ReportKey.GC), noHosts);
-    fmtServiceStatus(sb, ReportKey.T_SERVER, summaries.get(ReportKey.T_SERVER), noHosts);
+    fmtResourceGroups(sb, ReportKey.MANAGER, summaries.get(ReportKey.MANAGER), noHosts);
+    fmtResourceGroups(sb, ReportKey.MONITOR, summaries.get(ReportKey.MONITOR), noHosts);
+    fmtResourceGroups(sb, ReportKey.GC, summaries.get(ReportKey.GC), noHosts);
+    fmtResourceGroups(sb, ReportKey.T_SERVER, summaries.get(ReportKey.T_SERVER), noHosts);
     fmtResourceGroups(sb, ReportKey.S_SERVER, summaries.get(ReportKey.S_SERVER), noHosts);
-    fmtServiceStatus(sb, ReportKey.COORDINATOR, summaries.get(ReportKey.COORDINATOR), noHosts);
+    fmtResourceGroups(sb, ReportKey.COORDINATOR, summaries.get(ReportKey.COORDINATOR), noHosts);
     fmtResourceGroups(sb, ReportKey.COMPACTOR, summaries.get(ReportKey.COMPACTOR), noHosts);
 
     sb.append("\n");
@@ -96,6 +99,12 @@ public class ServiceStatusReport {
     return sb.toString();
   }
 
+  /**
+   * This method can be used instead of
+   * {@link #fmtResourceGroups(StringBuilder, ReportKey, StatusSummary, boolean)} if there are
+   * services that do not make sense to group by a resource group. With the data in ServiceLock, all
+   * services has at least the default group.
+   */
   private void fmtServiceStatus(final StringBuilder sb, final ReportKey displayNames,
       final StatusSummary summary, boolean noHosts) {
     if (summary == null) {
@@ -109,9 +118,10 @@ public class ServiceStatusReport {
     if (noHosts) {
       return;
     }
+    sb.append(I2).append("resource group: (default)").append("\n");
     if (summary.getServiceCount() > 0) {
       var hosts = summary.getServiceByGroups();
-      hosts.values().forEach(s -> s.forEach(h -> sb.append(I2).append(h).append("\n")));
+      hosts.values().forEach(s -> s.forEach(h -> sb.append(I4).append(h).append("\n")));
     }
   }
 
@@ -130,6 +140,12 @@ public class ServiceStatusReport {
       sb.append(reportKey).append(": unavailable").append("\n");
       return;
     }
+    // only default group is present, omit grouping from report
+    if (!summary.getResourceGroups().isEmpty()
+        && summary.getResourceGroups().equals(Set.of(DEFAULT_RESOURCE_GROUP_NAME))) {
+      fmtServiceStatus(sb, reportKey, summary, noHosts);
+      return;
+    }
 
     fmtCounts(sb, summary);
 
@@ -139,6 +155,7 @@ public class ServiceStatusReport {
     }
 
     if (!summary.getResourceGroups().isEmpty()) {
+
       sb.append(I2).append("resource groups:\n");
       summary.getResourceGroups().forEach(g -> sb.append(I4).append(g).append("\n"));
 
