@@ -199,9 +199,8 @@ public class IteratorConfigUtil {
     final boolean useClassLoader = iteratorBuilder.useAccumuloClassLoader;
     Map<String,Class<SortedKeyValueIterator<Key,Value>>> classCache = new HashMap<>();
 
-    try {
-      for (IterInfo iterInfo : iteratorBuilder.iters) {
-
+    for (IterInfo iterInfo : iteratorBuilder.iters) {
+      try {
         Class<SortedKeyValueIterator<Key,Value>> clazz = null;
         log.trace("Attempting to load iterator class {}", iterInfo.className);
         if (iteratorBuilder.useClassCache) {
@@ -225,10 +224,12 @@ public class IteratorConfigUtil {
 
         skvi.init(prev, options, iteratorBuilder.iteratorEnvironment);
         prev = skvi;
+
+      } catch (ReflectiveOperationException e) {
+        log.error("Failed to load iterator {}, for table {}, from context {}", iterInfo.className,
+            iteratorBuilder.iteratorEnvironment.getTableId(), iteratorBuilder.context, e);
+        throw new RuntimeException(e);
       }
-    } catch (ReflectiveOperationException e) {
-      log.error(e.toString());
-      throw new RuntimeException(e);
     }
     return prev;
   }
