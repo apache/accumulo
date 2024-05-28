@@ -36,7 +36,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -395,10 +394,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
 
     @Override
-    public void unreserve(long deferTime, TimeUnit timeUnit) {
-      Duration deferDuration = Duration.of(deferTime, timeUnit.toChronoUnit());
+    public void unreserve(Duration deferTime) {
 
-      if (deferDuration.isNegative()) {
+      if (deferTime.isNegative()) {
         throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
       }
 
@@ -414,7 +412,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         // and clear the map and set the flag. This will cause the next execution
         // of runnable to process all the transactions and to not defer as we
         // have a large backlog and want to make progress
-        if (deferDuration.compareTo(Duration.ZERO) > 0 && !deferredOverflow.get()) {
+        if (deferTime.compareTo(Duration.ZERO) > 0 && !deferredOverflow.get()) {
           if (deferred.size() >= maxDeferred) {
             log.info(
                 "Deferred map overflowed with size {}, clearing and setting deferredOverflow to true",
@@ -422,7 +420,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
             deferredOverflow.set(true);
             deferred.clear();
           } else {
-            deferred.put(fateId, NanoTime.nowPlus(deferDuration));
+            deferred.put(fateId, NanoTime.nowPlus(deferTime));
           }
         }
       }
