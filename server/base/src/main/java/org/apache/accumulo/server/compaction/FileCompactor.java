@@ -21,6 +21,7 @@ package org.apache.accumulo.server.compaction;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -202,8 +203,8 @@ public class FileCompactor implements Callable<CompactionStats> {
    * is rate limited, so it will not cause issues if called too frequently.
    */
   private static void updateTotalEntries() {
-    long currentTime = System.currentTimeMillis();
-    if (currentTime - lastUpdateTime < 100) {
+    long currentTime = System.nanoTime();
+    if (currentTime - lastUpdateTime < Duration.ofMillis(100).toNanos()) {
       return;
     }
     runningCompactions.forEach(FileCompactor::updateGlobalEntryCounts);

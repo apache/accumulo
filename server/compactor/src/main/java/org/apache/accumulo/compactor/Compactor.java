@@ -160,15 +160,15 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-
-    // TODO Should the metrics have the same name in both processes?
     FunctionCounter
         .builder(METRICS_COMPACTOR_ENTRIES_READ, null, o -> FileCompactor.getTotalEntriesRead())
-        .description("Number of entries read").tag("type", "compactor").register(registry);
+        .description("Number of entries read by all compactions that have run on this compactor")
+        .register(registry);
     FunctionCounter
         .builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, null,
             o -> FileCompactor.getTotalEntriesWritten())
-        .description("Number of entries written").tag("type", "compactor").register(registry);
+        .description("Number of entries written by all compactions that have run on this compactor")
+        .register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
         .description("Number and duration of stuck major compactions").register(registry);
     CompactionWatcher.setTimer(timer);
