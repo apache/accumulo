@@ -36,6 +36,7 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.server.metrics.NoopMetrics;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -53,7 +54,7 @@ public class ReplicationMetrics implements MetricsProducer {
   private final ReplicationUtil replicationUtil;
   private final Map<Path,Long> pathModTimes;
 
-  private Timer replicationQueueTimer;
+  private Timer replicationQueueTimer = NoopMetrics.useNoopTimer();
   private AtomicLong pendingFiles;
   private AtomicInteger numPeers;
   private AtomicInteger maxReplicationThreads;

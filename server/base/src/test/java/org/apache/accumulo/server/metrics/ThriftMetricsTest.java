@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.noop.NoopDistributionSummary;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 class ThriftMetricsTest {
@@ -54,7 +55,7 @@ class ThriftMetricsTest {
     registry.forEachMeter(m -> {
       LOG.trace("meter: {}", m.getId());
       assertInstanceOf(DistributionSummary.class, m);
-      assertFalse(m instanceof NoOpDistributionSummary);
+      assertFalse(m instanceof NoopDistributionSummary);
     });
     assertTrue(registry.get(METRICS_THRIFT_IDLE).summary().count() > 0);
     assertTrue(registry.get(METRICS_THRIFT_EXECUTE).summary().count() > 0);
