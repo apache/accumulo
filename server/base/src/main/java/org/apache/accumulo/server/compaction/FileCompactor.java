@@ -400,7 +400,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
 
-    for (TabletFile mapFile : filesToCompact.keySet()) {
+    for (StoredTabletFile mapFile : filesToCompact.keySet()) {
       try {
 
         FileOperations fileFactory = FileOperations.getInstance();
