@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.thrift.TInfo;
@@ -32,7 +34,7 @@ import org.apache.thrift.TException;
 public class SelfStoppingScanServer extends ScanServer
     implements TabletScanClientService.Iface, TabletHostingServer {
 
-  private volatile int scanCount = 0;
+  private final AtomicInteger scanCount = new AtomicInteger(0);
 
   public SelfStoppingScanServer(ScanServerOpts opts, String[] args) {
     super(opts, args);
@@ -40,9 +42,9 @@ public class SelfStoppingScanServer extends ScanServer
 
   @Override
   public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {
-    scanCount++;
+    scanCount.incrementAndGet();
     super.closeMultiScan(tinfo, scanID);
-    if (scanCount == 3) {
+    if (scanCount.get() == 3) {
       serverStopRequested = true;
     }
   }
