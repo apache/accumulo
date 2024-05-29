@@ -119,6 +119,7 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -162,8 +163,23 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     queueName = opts.getQueueName();
   }
 
+  private long getTotalEntriesRead() {
+    return FileCompactor.getTotalEntriesRead();
+  }
+
+  private long getTotalEntriesWritten() {
+    return FileCompactor.getTotalEntriesWritten();
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
+    FunctionCounter.builder(METRICS_COMPACTOR_ENTRIES_READ, this, Compactor::getTotalEntriesRead)
+        .description("Number of entries read by all compactions that have run on this compactor")
+        .register(registry);
+    FunctionCounter
+        .builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, this, Compactor::getTotalEntriesWritten)
+        .description("Number of entries written by all compactions that have run on this compactor")
+        .register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
         .description("Number and duration of stuck major compactions").register(registry);
     CompactionWatcher.setTimer(timer);
@@ -690,20 +706,20 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
               // Compaction has started. There should only be one in the list
               CompactionInfo info = running.get(0);
               if (info != null) {
+                final long entriesRead = info.getEntriesRead();
+                final long entriesWritten = info.getEntriesWritten();
                 if (inputEntries > 0) {
-                  percentComplete =
-                      Float.toString((info.getEntriesRead() / (float) inputEntries) * 100);
+                  percentComplete = Float.toString((entriesRead / (float) inputEntries) * 100);
                 }
                 String message = String.format(
                     "Compaction in progress, read %d of %d input entries ( %s %s ), written %d entries",
-                    info.getEntriesRead(), inputEntries, percentComplete, "%",
-                    info.getEntriesWritten());
+                    entriesRead, inputEntries, percentComplete, "%", entriesWritten);
                 watcher.run();
                 try {
                   LOG.debug("Updating coordinator with compaction progress: {}.", message);
                   TCompactionStatusUpdate update =
                       new TCompactionStatusUpdate(TCompactionState.IN_PROGRESS, message,
-                          inputEntries, info.getEntriesRead(), info.getEntriesWritten());
+                          inputEntries, entriesRead, entriesWritten);
                   updateCompactionState(job, update);
                 } catch (RetriesExceededException e) {
                   LOG.warn("Error updating coordinator with compaction progress, error: {}",
