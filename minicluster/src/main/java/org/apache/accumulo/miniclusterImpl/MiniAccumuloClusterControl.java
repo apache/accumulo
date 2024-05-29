@@ -179,6 +179,18 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   @Override
+  public synchronized void startScanServer(Class<? extends ScanServer> scanServer, int limit,
+      String groupName) throws IOException {
+    synchronized (scanServerProcesses) {
+      int count =
+          Math.min(limit, cluster.getConfig().getNumScanServers() - scanServerProcesses.size());
+      for (int i = 0; i < count; i++) {
+        scanServerProcesses.add(cluster.exec(scanServer, "-g", groupName).getProcess());
+      }
+    }
+  }
+
+  @Override
   public synchronized void startAllServers(ServerType server) throws IOException {
     start(server, null);
   }
