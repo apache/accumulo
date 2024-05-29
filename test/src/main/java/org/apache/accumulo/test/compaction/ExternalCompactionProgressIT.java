@@ -182,12 +182,12 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           if (stopCheckerThread.get()) {
             break;
           }
-          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "entries.read")) {
+          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_ENTRIES_READ)) {
             TestStatsDSink.Metric e = TestStatsDSink.parseStatsDMetric(s);
             int value = Integer.parseInt(e.getValue());
             totalEntriesRead.addAndGet(value);
             log.info("Found entries.read metric: {} with value: {}", e.getName(), value);
-          } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "entries.written")) {
+          } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_ENTRIES_WRITTEN)) {
             TestStatsDSink.Metric e = TestStatsDSink.parseStatsDMetric(s);
             int value = Integer.parseInt(e.getValue());
             totalEntriesWritten.addAndGet(value);
