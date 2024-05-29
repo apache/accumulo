@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.server.metrics.NoopMetrics;
 
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.base.Preconditions;
@@ -35,8 +36,8 @@ import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 
 public class ScanServerMetrics implements MetricsProducer {
 
-  private Timer totalReservationTimer;
-  private Timer writeOutReservationTimer;
+  private Timer totalReservationTimer = NoopMetrics.useNoopTimer();
+  private Timer writeOutReservationTimer = NoopMetrics.useNoopTimer();
   private final AtomicLong busyTimeoutCount = new AtomicLong(0);
   private final AtomicLong reservationConflictCount = new AtomicLong(0);
 
