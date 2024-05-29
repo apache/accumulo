@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_POOL_PREFIX;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -120,8 +118,7 @@ public class VerifyTabletAssignments {
     }
 
     ExecutorService tp = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(METRICS_POOL_PREFIX + "util.check.tablet.server").numCoreThreads(20)
-        .build();
+        .getPoolBuilder("util.check.tablet.server").numCoreThreads(20).build();
 
     for (final Entry<HostAndPort,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
       Runnable r = () -> {

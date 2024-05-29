@@ -188,11 +188,10 @@ public class TabletServerResourceManager {
 
     scanExecQueues.put(sec.name, queue);
 
-    ThreadPoolExecutor es =
-        ThreadPools.getServerThreadPools().getPoolBuilder(METRICS_POOL_PREFIX + "scan." + sec.name)
-            .numCoreThreads(sec.getCurrentMaxThreads()).numMaxThreads(sec.getCurrentMaxThreads())
-            .withTimeOut(0L, MILLISECONDS).withQueue(queue).atPriority(sec.priority)
-            .enableThreadPoolMetrics(enableMetrics).build();
+    ThreadPoolExecutor es = ThreadPools.getServerThreadPools().getPoolBuilder("scan." + sec.name)
+        .numCoreThreads(sec.getCurrentMaxThreads()).numMaxThreads(sec.getCurrentMaxThreads())
+        .withTimeOut(0L, MILLISECONDS).withQueue(queue).atPriority(sec.priority)
+        .enableThreadPoolMetrics(enableMetrics).build();
     modifyThreadPoolSizesAtRuntime(sec::getCurrentMaxThreads,
         METRICS_POOL_PREFIX + "scan." + sec.name, es);
     return es;
@@ -313,17 +312,16 @@ public class TabletServerResourceManager {
         () -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
         METRICS_TSERVER_MINOR_COMPACTOR_POOL, minorCompactionThreadPool);
 
-    splitThreadPool =
-        ThreadPools.getServerThreadPools().getPoolBuilder(METRICS_POOL_PREFIX + "tserver.split")
-            .numCoreThreads(0).numMaxThreads(1).withTimeOut(1, SECONDS).build();
+    splitThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("tserver.split")
+        .numCoreThreads(0).numMaxThreads(1).withTimeOut(1, SECONDS).build();
 
-    defaultSplitThreadPool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(METRICS_POOL_PREFIX + "metadata.tablet.default.splitter").numCoreThreads(0)
-        .numMaxThreads(1).withTimeOut(60, SECONDS).build();
+    defaultSplitThreadPool =
+        ThreadPools.getServerThreadPools().getPoolBuilder("metadata.tablet.default.splitter")
+            .numCoreThreads(0).numMaxThreads(1).withTimeOut(60, SECONDS).build();
 
-    defaultMigrationPool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(METRICS_POOL_PREFIX + "metadata.tablet.migration").numCoreThreads(0)
-        .numMaxThreads(1).withTimeOut(60, SECONDS).build();
+    defaultMigrationPool =
+        ThreadPools.getServerThreadPools().getPoolBuilder("metadata.tablet.migration")
+            .numCoreThreads(0).numMaxThreads(1).withTimeOut(60, SECONDS).build();
 
     migrationPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
         Property.TSERV_MIGRATE_MAXCONCURRENT, enableMetrics);
@@ -342,9 +340,9 @@ public class TabletServerResourceManager {
         () -> context.getConfiguration().getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT),
         "tablet.assignment.pool", assignmentPool);
 
-    assignMetaDataPool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(METRICS_POOL_PREFIX + "metadata.tablet.assignment").numCoreThreads(0)
-        .numMaxThreads(1).withTimeOut(60, SECONDS).build();
+    assignMetaDataPool =
+        ThreadPools.getServerThreadPools().getPoolBuilder("metadata.tablet.assignment")
+            .numCoreThreads(0).numMaxThreads(1).withTimeOut(60, SECONDS).build();
 
     activeAssignments = new ConcurrentHashMap<>();
 

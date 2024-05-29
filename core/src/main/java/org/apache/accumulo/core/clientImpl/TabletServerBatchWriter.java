@@ -24,7 +24,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_POOL_PREFIX;
 
 import java.io.IOException;
 import java.lang.management.CompilationMXBean;
@@ -676,8 +675,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       sendThreadPool = context.threadPools().getPoolBuilder("tserver.batch.writer.send.pool")
           .numCoreThreads(numSendThreads).build();
       locators = new HashMap<>();
-      binningThreadPool = context.threadPools()
-          .getPoolBuilder(METRICS_POOL_PREFIX + "tserver.batch.writer.bin.mutations")
+      binningThreadPool = context.threadPools().getPoolBuilder("tserver.batch.writer.bin.mutations")
           .numCoreThreads(1).withQueue(new SynchronousQueue<>()).build();
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }

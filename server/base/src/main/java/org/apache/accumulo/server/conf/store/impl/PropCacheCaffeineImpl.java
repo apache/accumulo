@@ -19,7 +19,6 @@
 package org.apache.accumulo.server.conf.store.impl;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_POOL_PREFIX;
 
 import java.util.Objects;
 import java.util.concurrent.Executor;
@@ -45,9 +44,9 @@ public class PropCacheCaffeineImpl implements PropCache {
 
   public static final int EXPIRE_MIN = 60;
   private static final Logger log = LoggerFactory.getLogger(PropCacheCaffeineImpl.class);
-  private static final Executor executor = ThreadPools.getServerThreadPools()
-      .getPoolBuilder(METRICS_POOL_PREFIX + "caffeine.prop.cache.tasks").numCoreThreads(1)
-      .numMaxThreads(20).withTimeOut(60L, SECONDS).build();
+  private static final Executor executor =
+      ThreadPools.getServerThreadPools().getPoolBuilder("caffeine.prop.cache.tasks")
+          .numCoreThreads(1).numMaxThreads(20).withTimeOut(60L, SECONDS).build();
 
   private final LoadingCache<PropStoreKey<?>,VersionedProperties> cache;
 

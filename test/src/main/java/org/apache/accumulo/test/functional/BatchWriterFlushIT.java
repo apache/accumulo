@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_POOL_PREFIX;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -214,8 +213,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
       }
 
       ThreadPoolExecutor threads = ThreadPools.getServerThreadPools()
-          .getPoolBuilder(METRICS_POOL_PREFIX + "batch.writer.client.flush")
-          .numCoreThreads(NUM_THREADS).build();
+          .getPoolBuilder("batch.writer.client.flush").numCoreThreads(NUM_THREADS).build();
       threads.allowCoreThreadTimeOut(false);
       threads.prestartAllCoreThreads();
 

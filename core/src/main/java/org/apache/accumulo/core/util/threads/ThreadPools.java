@@ -98,8 +98,8 @@ public class ThreadPools {
     return new ThreadPools(ueh);
   }
 
-  private static final ThreadPoolExecutor SCHEDULED_FUTURE_CHECKER_POOL = getServerThreadPools()
-      .getPoolBuilder(METRICS_POOL_PREFIX + "scheduled.future.checker").numCoreThreads(1).build();
+  private static final ThreadPoolExecutor SCHEDULED_FUTURE_CHECKER_POOL =
+      getServerThreadPools().getPoolBuilder("scheduled.future.checker").numCoreThreads(1).build();
 
   private static final ConcurrentLinkedQueue<ScheduledFuture<?>> CRITICAL_RUNNING_TASKS =
       new ConcurrentLinkedQueue<>();
@@ -388,6 +388,11 @@ public class ThreadPools {
     }
   }
 
+  /**
+   * Fet a fluent-style pool builder.
+   *
+   * @param name the pool name - the name will be prepended with METRICS_POOL_PREFIX
+   */
   public ThreadPoolExecutorBuilder getPoolBuilder(@NonNull final String name) {
     return new ThreadPoolExecutorBuilder(name);
   }
@@ -404,10 +409,16 @@ public class ThreadPools {
 
     /**
      * A fluent-style build to create a ThreadPoolExecutor. The name is used when creating
-     * named-threads for the pool.
+     * named-threads for the pool. The name trimmed and prepended with the METRICS_POOL_PREFIX so
+     * that pool names begin with a consistent prefix.
      */
     ThreadPoolExecutorBuilder(@NonNull final String name) {
-      this.name = name;
+      String trimmed = name.trim();
+      if (trimmed.startsWith(METRICS_POOL_PREFIX)) {
+        this.name = trimmed;
+      } else {
+        this.name = METRICS_POOL_PREFIX + trimmed;
+      }
     }
 
     public ThreadPoolExecutor build() {

@@ -175,9 +175,8 @@ public class InternalCompactionExecutor implements CompactionExecutor {
     queue = new PriorityBlockingQueue<>(100, comparator);
 
     threadPool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(METRICS_POOL_PREFIX + "compaction.service.internal.compaction." + ceid)
-        .numCoreThreads(threads).numMaxThreads(threads).withTimeOut(60L, SECONDS).withQueue(queue)
-        .build();
+        .getPoolBuilder("compaction.service.internal.compaction." + ceid).numCoreThreads(threads)
+        .numMaxThreads(threads).withTimeOut(60L, SECONDS).withQueue(queue).build();
     metricCloser =
         ceMetrics.addExecutor(ceid, () -> threadPool.getActiveCount(), () -> queuedJob.size());
 
