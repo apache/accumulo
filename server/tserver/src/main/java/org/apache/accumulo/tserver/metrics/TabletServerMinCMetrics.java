@@ -21,14 +21,15 @@ package org.apache.accumulo.tserver.metrics;
 import java.time.Duration;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.server.metrics.NoopMetrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
 public class TabletServerMinCMetrics implements MetricsProducer {
 
-  private Timer activeMinc;
-  private Timer queuedMinc;
+  private Timer activeMinc = NoopMetrics.useNoopTimer();
+  private Timer queuedMinc = NoopMetrics.useNoopTimer();
 
   public void addActive(long value) {
     activeMinc.record(Duration.ofMillis(value));

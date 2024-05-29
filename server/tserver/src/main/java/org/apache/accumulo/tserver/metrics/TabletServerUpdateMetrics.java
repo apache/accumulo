@@ -22,7 +22,7 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.server.metrics.NoOpDistributionSummary;
+import org.apache.accumulo.server.metrics.NoopMetrics;
 
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.FunctionCounter;
@@ -34,10 +34,10 @@ public class TabletServerUpdateMetrics implements MetricsProducer {
   private final AtomicLong permissionErrorsCount = new AtomicLong();
   private final AtomicLong unknownTabletErrorsCount = new AtomicLong();
   private final AtomicLong constraintViolationsCount = new AtomicLong();
-  private Timer commitPrepStat;
-  private Timer walogWriteTimeStat;
-  private Timer commitTimeStat;
-  private DistributionSummary mutationArraySizeStat = new NoOpDistributionSummary();
+  private Timer commitPrepStat = NoopMetrics.useNoopTimer();
+  private Timer walogWriteTimeStat = NoopMetrics.useNoopTimer();
+  private Timer commitTimeStat = NoopMetrics.useNoopTimer();
+  private DistributionSummary mutationArraySizeStat = NoopMetrics.useNoopDistributionSummary();
 
   public void addPermissionErrors(long value) {
     permissionErrorsCount.addAndGet(value);

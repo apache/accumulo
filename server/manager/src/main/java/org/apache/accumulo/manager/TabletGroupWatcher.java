@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.logging.ConditionalLogger.EscalatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
@@ -101,6 +103,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
@@ -125,6 +128,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(TabletGroupWatcher.class);
+
+  private static final Logger TABLET_UNLOAD_LOGGER =
+      new EscalatingLogger(Manager.log, Duration.ofMinutes(5), 1000, Level.INFO);
+
   private final Manager manager;
   private final TabletStateStore store;
   private final TabletGroupWatcher dependentWatcher;
@@ -663,8 +670,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               TServerConnection client =
                   manager.tserverSet.getConnection(location.getServerInstance());
               if (client != null) {
-                LOG.debug("Requesting tserver {} unload tablet {}", location.getServerInstance(),
-                    tm.getExtent());
+                TABLET_UNLOAD_LOGGER.trace("[{}] Requesting TabletServer {} unload {} {}",
+                    store.name(), location.getServerInstance(), tm.getExtent(), goal.howUnload());
                 client.unloadTablet(manager.managerLock, tm.getExtent(), goal.howUnload(),
                     manager.getSteadyTime().getMillis());
                 tableMgmtStats.totalUnloaded++;
@@ -1026,12 +1033,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       flushLock.unlock();
     }
 
+    Set<KeyExtent> failedFuture = Set.of();
     if (!tLists.assignments.isEmpty()) {
       Manager.log.info(String.format("Assigning %d tablets", tLists.assignments.size()));
-      store.setFutureLocations(tLists.assignments);
+      failedFuture = store.setFutureLocations(tLists.assignments);
     }
     tLists.assignments.addAll(tLists.assigned);
     for (Assignment a : tLists.assignments) {
+      if (failedFuture.contains(a.tablet)) {
+        // do not ask a tserver to load a tablet where the future location could not be set
+        continue;
+      }
       try {
         TServerConnection client = manager.tserverSet.getConnection(a.server);
         if (client != null) {

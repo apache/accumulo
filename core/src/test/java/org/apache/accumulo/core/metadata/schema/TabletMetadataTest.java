@@ -43,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Constructor;
+import java.util.AbstractMap;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -53,6 +54,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -176,7 +178,9 @@ public class TabletMetadataTest {
     assertEquals(tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum(),
         tm.getFileSize());
     assertEquals(6L, tm.getFlushId().getAsLong());
-    assertEquals(rowMap, tm.getKeyValues());
+    SortedMap<Key,Value> actualRowMap = tm.getKeyValues().stream().collect(
+        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, TreeMap::new));
+    assertEquals(rowMap, actualRowMap);
     assertEquals(Map.of(new StoredTabletFile(bf1), fateId1, new StoredTabletFile(bf2), fateId2),
         tm.getLoaded());
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
@@ -410,7 +414,7 @@ public class TabletMetadataTest {
     b.loadedFile(stf, FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     b.compacted(FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     b.userCompactionsRequested(FateId.from(FateInstanceType.USER, UUID.randomUUID()));
-    b.keyValue(new Key(), new Value());
+    b.keyValue(new AbstractMap.SimpleImmutableEntry<>(new Key(), new Value()));
     var tm2 = b.build(EnumSet.allOf(ColumnType.class));
 
     assertEquals(1, tm2.getExternalCompactions().size());
@@ -430,8 +434,7 @@ public class TabletMetadataTest {
     assertThrows(UnsupportedOperationException.class,
         () -> tm2.getLoaded().put(stf, FateId.from(FateInstanceType.USER, UUID.randomUUID())));
     assertEquals(1, tm2.getKeyValues().size());
-    assertThrows(UnsupportedOperationException.class,
-        () -> tm2.getKeyValues().put(new Key(), new Value()));
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getKeyValues().remove(null));
     assertEquals(1, tm2.getCompacted().size());
     assertThrows(UnsupportedOperationException.class,
         () -> tm2.getCompacted().add(FateId.from(FateInstanceType.USER, UUID.randomUUID())));

@@ -444,9 +444,8 @@ public enum Property {
       "The number of threads used to inspect tablets files to find split points.", "4.0.0"),
 
   MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE("manager.compaction.major.service.queue.size",
-      // ELASTICITY_TODO: It might be good to note that there is a priority queue per compactor
-      // resource group
-      "10000", PropertyType.COUNT, "The max size of the priority queue.", "4.0"),
+      "10000", PropertyType.COUNT,
+      "The max size of each resource groups compaction job priority queue.", "4.0"),
   SPLIT_PREFIX("split.", null, PropertyType.PREFIX,
       "System wide properties related to splitting tablets.", "3.1.0"),
   SPLIT_MAXOPEN("split.files.max", "300", PropertyType.COUNT,
@@ -481,8 +480,17 @@ public enum Property {
       "3.0.0"),
   @Experimental
   SSERV_CACHED_TABLET_METADATA_EXPIRATION("sserver.cache.metadata.expiration", "5m",
-      PropertyType.TIMEDURATION, "The time after which cached tablet metadata will be refreshed.",
+      PropertyType.TIMEDURATION,
+      "The time after which cached tablet metadata will be expired if not previously refreshed.",
       "2.1.0"),
+  @Experimental
+  SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT("sserver.cache.metadata.refresh.percent", ".75",
+      PropertyType.FRACTION,
+      "The time after which cached tablet metadata will be refreshed, expressed as a "
+          + "percentage of the expiration time. Cache hits after this time, but before the "
+          + "expiration time, will trigger a background refresh for future hits. "
+          + "Value must be less than 100%. Set to 0 will disable refresh.",
+      "2.1.3"),
   @Experimental
   SSERV_PORTSEARCH("sserver.port.search", "true", PropertyType.BOOLEAN,
       "if the sserver.port.client ports are in use, search higher ports until one is available.",
