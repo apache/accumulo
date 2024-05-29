@@ -21,7 +21,7 @@ package org.apache.accumulo.tserver.metrics;
 import java.time.Duration;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.server.metrics.NoOpDistributionSummary;
+import org.apache.accumulo.server.metrics.NoopMetrics;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
@@ -30,13 +30,13 @@ import io.micrometer.core.instrument.Timer;
 
 public class TabletServerUpdateMetrics implements MetricsProducer {
 
-  private Counter permissionErrorsCounter;
-  private Counter unknownTabletErrorsCounter;
-  private Counter constraintViolationsCounter;
-  private Timer commitPrepStat;
-  private Timer walogWriteTimeStat;
-  private Timer commitTimeStat;
-  private DistributionSummary mutationArraySizeStat = new NoOpDistributionSummary();
+  private Counter permissionErrorsCounter = NoopMetrics.useNoopCounter();
+  private Counter unknownTabletErrorsCounter = NoopMetrics.useNoopCounter();
+  private Counter constraintViolationsCounter = NoopMetrics.useNoopCounter();
+  private Timer commitPrepStat = NoopMetrics.useNoopTimer();
+  private Timer walogWriteTimeStat = NoopMetrics.useNoopTimer();;
+  private Timer commitTimeStat = NoopMetrics.useNoopTimer();;
+  private DistributionSummary mutationArraySizeStat = NoopMetrics.useNoopDistributionSummary();
 
   public void addPermissionErrors(long value) {
     permissionErrorsCounter.increment(value);
