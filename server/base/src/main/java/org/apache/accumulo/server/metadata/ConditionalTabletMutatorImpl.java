@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -54,12 +55,12 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Us
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.metadata.iterators.LocationExistsIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
 import org.apache.accumulo.server.metadata.iterators.SetEncodingIterator;
 import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
@@ -101,21 +102,57 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   @Override
   public Ample.ConditionalTabletMutator requireAbsentLocation() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, LocationExistsIterator.class);
-    Condition c = new Condition("", "").setIterators(is);
-    mutation.addCondition(c);
+
+    // It is not expected the encoder will actually be called, so throw an exception if it is.
+    Function<Location,byte[]> encoder = l -> {
+      throw new UnsupportedOperationException();
+    };
+
+    // The column families for each location type should conceptually be an empty set, so create
+    // conditions that check for this.
+    var condition1 = SetEncodingIterator.createCondition(Set.of(), encoder,
+        getLocationFamilyText(LocationType.FUTURE));
+    var condition2 = SetEncodingIterator.createCondition(Set.of(), encoder,
+        getLocationFamilyText(LocationType.CURRENT));
+
+    // Add the conditions for both location column families, both conditions must be met for the
+    // mutation to be applied.
+    mutation.addCondition(condition1);
+    mutation.addCondition(condition2);
+
     return this;
   }
 
   @Override
   public Ample.ConditionalTabletMutator requireLocation(Location location) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    Preconditions.checkArgument(location.getType() == TabletMetadata.LocationType.FUTURE
-        || location.getType() == TabletMetadata.LocationType.CURRENT);
+    Preconditions.checkArgument(
+        location.getType() == LocationType.FUTURE || location.getType() == LocationType.CURRENT);
     sawOperationRequirement = true;
-    Condition c = new Condition(getLocationFamily(location.getType()), location.getSession())
-        .setValue(location.getHostPort());
-    mutation.addCondition(c);
+
+    Function<Location,Pair<byte[],byte[]>> encoder =
+        l -> new Pair<>(location.getSession().getBytes(UTF_8),
+            location.getHostPort().getBytes(UTF_8));
+
+    // The location column family can have multiple column qualifiers set. When requiring a location
+    // we want to check the location is set AND that no other location qualifiers are set on the
+    // column family. So the condition should conceptually check that the column family is a map of
+    // size one with only our expected location set in the map.
+    var condition1 = SetEncodingIterator.createConditionWithVal(Set.of(location), encoder,
+        getLocationFamilyText(location.getType()));
+
+    // Conceptually the column family for the other location type should be an empty map, so create
+    // a condition that checks this.
+    var otherLocType =
+        location.getType() == LocationType.CURRENT ? LocationType.FUTURE : LocationType.CURRENT;
+    var condition2 = SetEncodingIterator.createConditionWithVal(Set.of(), encoder,
+        getLocationFamilyText(otherLocType));
+
+    // Add the conditions for both location column families, both conditions must be met for the
+    // mutation to be applied.
+    mutation.addCondition(condition1);
+    mutation.addCondition(condition2);
+
     return this;
   }
 

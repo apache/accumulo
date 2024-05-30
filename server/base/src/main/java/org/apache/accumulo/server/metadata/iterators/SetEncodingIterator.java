@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
 import org.apache.hadoop.io.Text;
@@ -73,11 +74,19 @@ public class SetEncodingIterator implements SortedKeyValueIterator<Key,Value> {
   private Value topValue = null;
   private boolean concat = false;
 
+  static Text getTabletRow(Range range) {
+    var row = range.getStartKey().getRow();
+    // expecting this range to cover a single metadata row, so validate the range meets expectations
+    MetadataSchema.TabletsSection.validateRow(row);
+    Preconditions.checkArgument(row.equals(range.getEndKey().getRow()));
+    return range.getStartKey().getRow();
+  }
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
 
-    Text tabletRow = LocationExistsIterator.getTabletRow(range);
+    Text tabletRow = getTabletRow(range);
     Text family = range.getStartKey().getColumnFamily();
 
     Preconditions.checkArgument(
