@@ -422,6 +422,8 @@ public interface Ample {
 
     T deleteUnSplittable();
 
+    T putCloned();
+
     /**
      * By default the server lock is automatically added to mutations unless this method is set to
      * false.

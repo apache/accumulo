@@ -615,7 +615,7 @@ public class TabletMetadataTest {
         .putTabletAvailability(TabletAvailability.UNHOSTED).putLocation(Location.future(ser1))
         .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, loadedFateId1)
         .putBulkFile(rf2, loadedFateId2).putFlushId(27).putDirName("dir1").putScan(sf3).putScan(sf4)
-        .putCompacted(compactFateId1).putCompacted(compactFateId2)
+        .putCompacted(compactFateId1).putCompacted(compactFateId2).putCloned()
         .build(ECOMP, HOSTING_REQUESTED, MERGED, USER_COMPACTION_REQUESTED, UNSPLITTABLE);
 
     assertEquals(extent, tm.getExtent());
@@ -634,6 +634,7 @@ public class TabletMetadataTest {
     assertTrue(tm.getUserCompactionsRequested().isEmpty());
     assertFalse(tm.hasMerged());
     assertNull(tm.getUnSplittable());
+    assertEquals("OK", tm.getCloned());
     assertThrows(IllegalStateException.class, tm::getOperationId);
     assertThrows(IllegalStateException.class, tm::getSuspend);
     assertThrows(IllegalStateException.class, tm::getTime);
