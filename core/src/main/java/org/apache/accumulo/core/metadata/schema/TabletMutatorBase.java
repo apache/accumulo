@@ -165,6 +165,19 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     }
   }
 
+  protected Text getLocationFamilyText(LocationType type) {
+    switch (type) {
+      case CURRENT:
+        return CurrentLocationColumnFamily.NAME;
+      case FUTURE:
+        return FutureLocationColumnFamily.NAME;
+      case LAST:
+        return LastLocationColumnFamily.NAME;
+      default:
+        throw new IllegalArgumentException();
+    }
+  }
+
   @Override
   public T putLocation(Location location) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");

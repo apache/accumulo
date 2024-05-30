@@ -37,7 +37,7 @@ public class TabletExistsIterator extends WrappingIterator {
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
 
-    Text tabletRow = LocationExistsIterator.getTabletRow(range);
+    Text tabletRow = SetEncodingIterator.getTabletRow(range);
 
     Range r = new Range(tabletRow, true, tabletRow, false);
 

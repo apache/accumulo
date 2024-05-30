@@ -164,6 +164,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       assertEquals(Location.future(ts1), context.getAmple().readTablet(e1).getLocation());
 
+      // test require absent with a future location set
       ctmi = new ConditionalTabletsMutatorImpl(context);
       ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
           .putLocation(Location.future(ts2)).submit(tm -> false);
@@ -185,6 +186,15 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           .submit(tm -> false);
       results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+
+      assertEquals(Location.current(ts1), context.getAmple().readTablet(e1).getLocation());
+
+      // test require absent with a current location set
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.future(ts2)).submit(tm -> false);
+      results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
 
       assertEquals(Location.current(ts1), context.getAmple().readTablet(e1).getLocation());
 
@@ -220,6 +230,95 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
 
       assertNull(context.getAmple().readTablet(e1).getLocation());
+
+      // Set two current locations, this puts the tablet in a bad state as its only expected that
+      // single location should be set
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().putLocation(Location.current(ts1))
+          .putLocation(Location.current(ts2)).submit(tm -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+
+      // When a tablet has two locations reading it should throw an exception
+      assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
+
+      // Try to update the tablet requiring one of the locations that is set on the tablet. Even
+      // though the required location exists, the presence of the other location in the tablet
+      // metadata should cause the update to fail.
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(Location.current(ts1))
+          .deleteLocation(Location.current(ts1)).deleteLocation(Location.current(ts2))
+          .submit(tm -> false);
+      results = ctmi.process();
+      var finalResult1 = results.get(e1);
+      // The update should be rejected because of the two locations. When a conditional mutation is
+      // rejected an attempt is made to read the tablet metadata and examine. This read of the
+      // tablet metadata will fail because the tablet has two locations.
+      assertThrows(IllegalStateException.class, finalResult1::getStatus);
+
+      // tablet should still have two location set, so reading it should fail
+      assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
+
+      // Requiring an absent location should fail when two locations are set
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .deleteLocation(Location.current(ts1)).deleteLocation(Location.current(ts2))
+          .submit(tm -> false);
+      results = ctmi.process();
+      var finalResult2 = results.get(e1);
+      assertThrows(IllegalStateException.class, finalResult2::getStatus);
+
+      // tablet should still have two location set, so reading it should fail
+      assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
+
+      // Change the tablet to have a futre and current location set.
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().deleteLocation(Location.current(ts1))
+          .putLocation(Location.future(ts1)).submit(tm -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+
+      // tablet should still have two location set, so reading it should fail
+      assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
+
+      // Test requiring different locations. Some of the required locations are actually set and
+      // some are not. All should fail because the tablet has multiple locations set and/or the
+      // required location does not exist.
+      for (var loc : List.of(Location.current(ts1), Location.current(ts2), Location.future(ts1),
+          Location.future(ts2))) {
+        ctmi = new ConditionalTabletsMutatorImpl(context);
+        ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(loc)
+            .deleteLocation(Location.future(ts1)).deleteLocation(Location.current(ts2))
+            .submit(tm -> false);
+        results = ctmi.process();
+        var finalResult3 = results.get(e1);
+        // tablet should still have two location set, so reading it should fail
+        assertThrows(IllegalStateException.class, finalResult3::getStatus);
+      }
+
+      // Requiring an absent location should fail when a future and current location are set
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .deleteLocation(Location.current(ts1)).deleteLocation(Location.current(ts2))
+          .submit(tm -> false);
+      results = ctmi.process();
+      var finalResult4 = results.get(e1);
+      assertThrows(IllegalStateException.class, finalResult4::getStatus);
+
+      // tablet should still have two location set, so reading it should fail
+      assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
+
+      // Delete one of the locations w/o any location requirements, this should succeed.
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().deleteLocation(Location.future(ts1))
+          .submit(tm -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+
+      // This check validates the expected state of the tablet as some of the previous test were
+      // catching an exception and making assumption about the state of the tablet metadata based on
+      // the fact that an exception was thrown.
+      assertEquals(Location.current(ts2), context.getAmple().readTablet(e1).getLocation());
     }
   }
 
