@@ -312,8 +312,8 @@ public class TabletServerResourceManager {
         () -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
         METRICS_TSERVER_MINOR_COMPACTOR_POOL, minorCompactionThreadPool);
 
-    splitThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("tserver.split")
-        .numCoreThreads(0).numMaxThreads(1).withTimeOut(1, SECONDS).build();
+    splitThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("split").numCoreThreads(0)
+        .numMaxThreads(1).withTimeOut(1, SECONDS).build();
 
     defaultSplitThreadPool =
         ThreadPools.getServerThreadPools().getPoolBuilder("metadata.tablet.default.splitter")
