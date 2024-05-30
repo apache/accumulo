@@ -20,8 +20,10 @@ package org.apache.accumulo.tserver.metrics;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
+import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.tserver.TabletServer;
 
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -34,8 +36,25 @@ public class TabletServerMetrics implements MetricsProducer {
     util = new TabletServerMetricsUtil(tserver);
   }
 
+  private long getTotalEntriesRead() {
+    return FileCompactor.getTotalEntriesRead();
+  }
+
+  private long getTotalEntriesWritten() {
+    return FileCompactor.getTotalEntriesWritten();
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
+    FunctionCounter
+        .builder(METRICS_COMPACTOR_ENTRIES_READ, this, TabletServerMetrics::getTotalEntriesRead)
+        .description("Number of entries read by all compactions that have run on this tserver")
+        .register(registry);
+    FunctionCounter
+        .builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, this,
+            TabletServerMetrics::getTotalEntriesWritten)
+        .description("Number of entries written by all compactions that have run on this tserver")
+        .register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_TSERVER_MAJC_STUCK)
         .description("Number and duration of stuck major compactions").register(registry);
     CompactionWatcher.setTimer(timer);
