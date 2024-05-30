@@ -294,6 +294,8 @@ class LoadFiles extends ManagerRepo {
       results.forEach((extent, condResult) -> {
         if (condResult.getStatus() == Status.ACCEPTED) {
           loadingFiles.get(extent).forEach(file -> TabletLogger.bulkImported(extent, file));
+          // Trigger a check for compaction now that new files were added via bulk load
+          manager.getEventCoordinator().event(extent, "Bulk load completed on tablet %s", extent);
         } else {
           seenFailure.set(true);
           var metadata = condResult.readMetadata();
