@@ -124,8 +124,6 @@ public class TabletFileUpdateIT extends SharedMiniClusterBase {
   /**
    * This test ensures that a tablet will not add a new minor compacted file when the tablets
    * location is not as expected.
-   *
-   * @throws Exception
    */
   @Test
   public void testLocation() throws Exception {
@@ -179,8 +177,6 @@ public class TabletFileUpdateIT extends SharedMiniClusterBase {
   /**
    * This test exercises conditional mutations returning unknown and this causing reading of the
    * flush nonce.
-   *
-   * @throws Exception
    */
   @Test
   public void testFlushNonce() throws Exception {
