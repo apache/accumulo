@@ -28,8 +28,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -177,7 +179,7 @@ public class FateSummaryIT extends ConfigurableMacBase {
 
     String[] commandsToTest = {"--print", "--summary"};
     final int numTxns = 500;
-    final String table = getUniqueNames(1)[0];
+    final List<String> tableNames = new ArrayList<>(Arrays.asList(getUniqueNames(commandsToTest.length)));
 
     // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
@@ -187,6 +189,7 @@ public class FateSummaryIT extends ConfigurableMacBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       for (String command : commandsToTest) {
+        final String table = tableNames.remove(0);
         IteratorSetting is = new IteratorSetting(1, SlowIterator.class);
         is.addOption("sleepTime", "2");
 
