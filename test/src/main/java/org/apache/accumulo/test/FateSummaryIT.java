@@ -28,10 +28,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -178,9 +176,10 @@ public class FateSummaryIT extends ConfigurableMacBase {
     // tx no longer exists, it should just be ignored so the print/summary can complete).
 
     String[] commandsToTest = {"--print", "--summary"};
-    final int numTxns = 500;
-    final List<String> tableNames =
-        new ArrayList<>(Arrays.asList(getUniqueNames(commandsToTest.length)));
+    // We want to have enough transactions to give enough opportunity for a transaction to
+    // complete mid-print
+    final int numTxns = 250;
+    final String table = getUniqueNames(1)[0];
 
     // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
@@ -190,7 +189,6 @@ public class FateSummaryIT extends ConfigurableMacBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       for (String command : commandsToTest) {
-        final String table = tableNames.remove(0);
         IteratorSetting is = new IteratorSetting(1, SlowIterator.class);
         is.addOption("sleepTime", "2");
 
@@ -198,7 +196,7 @@ public class FateSummaryIT extends ConfigurableMacBase {
         cfg.attachIterator(is, EnumSet.of(IteratorUtil.IteratorScope.majc));
         client.tableOperations().create(table, cfg);
 
-        ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
+        ReadWriteIT.ingest(client, 10, 1, 10, 0, table);
         client.tableOperations().flush(table, null, null, true);
 
         // validate no transactions
@@ -207,10 +205,15 @@ public class FateSummaryIT extends ConfigurableMacBase {
         String result = p.readStdOut();
         assertTrue(noTransactions(result, command));
 
-        // create 500 txns each taking >= 20ms to complete >= 10 seconds total
+        // We want transactions which take some time to complete since we don't want them
+        // to complete before the call to print (hence the sleep time iterator), but we
+        // also don't want them to take too long to complete since in that case we
+        // may not see transactions complete mid-print
+
+        // create 250 txns each taking >= 20ms to complete >= 5 seconds total
         for (int i = 0; i < numTxns; i++) {
           // Initiate compaction to create txn. This compaction will take >= 20ms to complete
-          // ((10 rows) * (2ms sleep time / row))
+          // ((10 key values) * (2ms sleep time / key value))
           client.tableOperations().compact(table, null, null, false, false);
         }
 
