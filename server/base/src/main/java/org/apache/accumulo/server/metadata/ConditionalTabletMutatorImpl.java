@@ -141,8 +141,8 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     var condition1 = SetEncodingIterator.createConditionWithVal(Set.of(location), encoder,
         getLocationFamilyText(location.getType()));
 
-    // Conceptually the column family for the other location type to be an empty map, so create a
-    // condition that checks this.
+    // Conceptually the column family for the other location type should be an empty map, so create
+    // a condition that checks this.
     var otherLocType =
         location.getType() == LocationType.CURRENT ? LocationType.FUTURE : LocationType.CURRENT;
     var condition2 = SetEncodingIterator.createConditionWithVal(Set.of(), encoder,
