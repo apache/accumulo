@@ -107,6 +107,7 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
       for (int i = 0; i < fileCount; i++) {
         ScanServerIT.ingest(client, tableName, 10, 10, 0, "colf", true);
       }
+      assertEquals(0, ctx.getAmple().getScanServerFileReferences().count());
 
       for (int i = 0; i < 3; i++) {
         try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
