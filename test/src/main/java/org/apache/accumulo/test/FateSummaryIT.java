@@ -179,7 +179,8 @@ public class FateSummaryIT extends ConfigurableMacBase {
 
     String[] commandsToTest = {"--print", "--summary"};
     final int numTxns = 500;
-    final List<String> tableNames = new ArrayList<>(Arrays.asList(getUniqueNames(commandsToTest.length)));
+    final List<String> tableNames =
+        new ArrayList<>(Arrays.asList(getUniqueNames(commandsToTest.length)));
 
     // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
