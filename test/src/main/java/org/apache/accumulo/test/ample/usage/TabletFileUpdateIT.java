@@ -121,6 +121,55 @@ public class TabletFileUpdateIT extends SharedMiniClusterBase {
     }
   }
 
+  @Test
+  public void testNoTimeUpdate() throws Exception {
+    String[] tableNames = getUniqueNames(1);
+    String metadataTable = tableNames[0];
+
+    var tabletTime = TabletTime.getInstance(new MetadataTime(10, TimeType.LOGICAL));
+    long flushNonce = 42L;
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(metadataTable);
+      TestAmple.create(getCluster().getServerContext(),
+          Map.of(Ample.DataLevel.USER, metadataTable));
+
+      Ample testAmple = TestAmple.create(getCluster().getServerContext(),
+          Map.of(Ample.DataLevel.USER, metadataTable));
+
+      assertNull(testAmple.readTablet(extent));
+
+      // create tablet in the fake metadata table
+      testAmple.mutateTablet(extent).putDirName("dir1").putTime(tabletTime.getMetadataTime())
+          .putLocation(Location.current(tserverInstance)).putPrevEndRow(null).mutate();
+
+      // get the tablets metadata
+      var lastMetadata = testAmple.readTablet(extent);
+
+      var maxCommittedTime = tabletTime.getTime() + 2;
+
+      // Update the tablets time, simulating concurrent bulk imports updating the time field
+      // externally
+      testAmple.mutateTablet(extent).putTime(tabletTime.getMetadataTime(tabletTime.getTime() + 4))
+          .mutate();
+
+      // Test the case where external bulk imports have pushed tablet time in the metadata table
+      // higher than what was passed the function. In this case the time should not be updated.
+      updateTabletDataFile(testAmple, maxCommittedTime, newFile, dfv1, Set.of(), 7L,
+          MinorCompactionReason.SYSTEM, tserverInstance, extent, lastMetadata, tabletTime,
+          flushNonce);
+
+      var updatedMetadata = testAmple.readTablet(extent);
+      assertEquals(Set.of(newFile.insert()), updatedMetadata.getFiles());
+      // the time passed to updateTabletDataFile should not have been set because it was lower than
+      // what is in the metadata table
+      assertEquals(tabletTime.getMetadataTime(tabletTime.getTime() + 4), updatedMetadata.getTime());
+      assertEquals(flushNonce, updatedMetadata.getFlushNonce().orElse(-1));
+
+      client.tableOperations().delete(metadataTable);
+    }
+  }
+
   /**
    * This test ensures that a tablet will not add a new minor compacted file when the tablets
    * location is not as expected.
