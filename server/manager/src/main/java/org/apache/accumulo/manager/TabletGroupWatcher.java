@@ -264,7 +264,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
 
     EventHandler() {
-      rangesToProcess = new ArrayBlockingQueue<>(3000);
+      rangesToProcess = new ArrayBlockingQueue<>(10000);
 
       Threads
           .createThread("TGW [" + store.name() + "] event range processor", new RangeProccessor())
