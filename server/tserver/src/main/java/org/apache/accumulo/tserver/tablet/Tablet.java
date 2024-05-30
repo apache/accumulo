@@ -67,6 +67,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -111,6 +112,7 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -1343,7 +1345,7 @@ public class Tablet extends TabletBase {
   /**
    * Update tablet file data from flush. Returns a StoredTabletFile if there are data entries.
    */
-  public Optional<StoredTabletFile> updateTabletDataFile(long maxCommittedTime,
+  private Optional<StoredTabletFile> updateTabletDataFile(long maxCommittedTime,
       ReferencedTabletFile newDatafile, DataFileValue dfv, Set<LogEntry> unusedWalLogs,
       long flushId, MinorCompactionReason mincReason) {
 
@@ -1353,12 +1355,21 @@ public class Tablet extends TabletBase {
     // code is locking properly these should not change during this method.
     var lastTabletMetadata = getMetadata();
 
+    return updateTabletDataFile(getContext().getAmple(), maxCommittedTime, newDatafile, dfv,
+        unusedWalLogs, flushId, mincReason, tabletServer.getTabletSession(), extent,
+        lastTabletMetadata, tabletTime, RANDOM.get().nextLong());
+  }
+
+  @VisibleForTesting
+  public static Optional<StoredTabletFile> updateTabletDataFile(Ample ample, long maxCommittedTime,
+      ReferencedTabletFile newDatafile, DataFileValue dfv, Set<LogEntry> unusedWalLogs,
+      long flushId, MinorCompactionReason mincReason, TServerInstance tserverInstance,
+      KeyExtent extent, TabletMetadata lastTabletMetadata, TabletTime tabletTime, long flushNonce) {
     while (true) {
-      try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
+      try (var tabletsMutator = ample.conditionallyMutateTablets()) {
 
         var expectedLocation = mincReason == MinorCompactionReason.RECOVERY
-            ? Location.future(tabletServer.getTabletSession())
-            : Location.current(tabletServer.getTabletSession());
+            ? Location.future(tserverInstance) : Location.current(tserverInstance);
 
         var tablet = tabletsMutator.mutateTablet(extent).requireLocation(expectedLocation);
 
@@ -1382,7 +1393,6 @@ public class Tablet extends TabletBase {
 
         tablet.putFlushId(flushId);
 
-        long flushNonce = RANDOM.get().nextLong();
         tablet.putFlushNonce(flushNonce);
 
         unusedWalLogs.forEach(tablet::deleteWal);
@@ -1391,7 +1401,6 @@ public class Tablet extends TabletBase {
         // Can not check if the new file exists because of two reasons. First, it could be compacted
         // away between the write and check. Second, some flushes do not produce a file.
         tablet.submit(tabletMetadata -> {
-          // ELASTICITY_TODO need to test this, need a general way of testing these failure checks
           var persistedNonce = tabletMetadata.getFlushNonce();
           if (persistedNonce.isPresent()) {
             return persistedNonce.getAsLong() == flushNonce;
@@ -1400,13 +1409,12 @@ public class Tablet extends TabletBase {
         });
 
         var result = tabletsMutator.process().get(extent);
-        if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
+        if (result.getStatus() == Status.ACCEPTED) {
           return newFile;
         } else {
           var updatedTableMetadata = result.readMetadata();
           if (setTime && expectedLocation.equals(updatedTableMetadata.getLocation())
               && !lastTabletMetadata.getTime().equals(updatedTableMetadata.getTime())) {
-            // ELASTICITY_TODO need to test this
             // The update failed because the time changed, so lets try again.
             log.debug("Failed to add {} to {} because time changed {}!={}, will retry", newFile,
                 extent, lastTabletMetadata.getTime(), updatedTableMetadata.getTime());
