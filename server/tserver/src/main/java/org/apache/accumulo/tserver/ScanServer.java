@@ -199,7 +199,7 @@ public class ScanServer extends AbstractServer
   private final TabletServerResourceManager resourceManager;
   HostAndPort clientAddress;
 
-  private volatile boolean serverStopRequested = false;
+  protected volatile boolean serverStopRequested = false;
   private ServiceLock scanServerLock;
   protected TabletServerScanMetrics scanMetrics;
   private ScanServerMetrics scanServerMetrics;
