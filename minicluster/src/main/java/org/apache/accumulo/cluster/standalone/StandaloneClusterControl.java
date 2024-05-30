@@ -40,6 +40,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.tserver.ScanServer;
 import org.apache.hadoop.util.Shell.ExitCodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -386,4 +387,11 @@ public class StandaloneClusterControl implements ClusterControl {
       throws IOException {
     throw new UnsupportedOperationException("Not yet implemented.");
   }
+
+  @Override
+  public void startScanServer(Class<? extends ScanServer> scanServer, int limit, String groupName)
+      throws IOException {
+    throw new UnsupportedOperationException("Not yet implemented.");
+  }
+
 }
