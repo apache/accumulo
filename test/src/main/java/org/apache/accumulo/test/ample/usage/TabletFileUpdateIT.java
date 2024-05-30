@@ -150,7 +150,6 @@ public class TabletFileUpdateIT extends SharedMiniClusterBase {
       // get the tablets metadata
       var lastMetadata = testAmple.readTablet(extent);
 
-      // TODO open an issue about making requireLocation more strict
       testAmple.mutateTablet(extent).deleteLocation(Location.current(tserverInstance)).mutate();
 
       // try locations that differ in type, port, and session
