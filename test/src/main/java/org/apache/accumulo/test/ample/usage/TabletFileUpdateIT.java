@@ -24,6 +24,7 @@ import static org.apache.accumulo.test.ample.metadata.ConditionalWriterIntercept
 import static org.apache.accumulo.tserver.tablet.Tablet.updateTabletDataFile;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
 import java.util.Map;
@@ -45,7 +46,6 @@ import org.apache.accumulo.test.ample.metadata.TestAmple;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -160,7 +160,7 @@ public class TabletFileUpdateIT extends SharedMiniClusterBase {
         // set a location on the tablet that will not match
         testAmple.mutateTablet(extent).putLocation(location).mutate();
         // should fail to add file to tablet because tablet location is not as expected
-        Assertions.assertThrows(IllegalStateException.class,
+        assertThrows(IllegalStateException.class,
             () -> updateTabletDataFile(testAmple, tabletTime.getTime(), newFile, dfv1, Set.of(), 7L,
                 MinorCompactionReason.SYSTEM, tserverInstance, extent, lastMetadata, tabletTime,
                 flushNonce));
