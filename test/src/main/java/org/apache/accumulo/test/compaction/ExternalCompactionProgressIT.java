@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.compactor.Compactor;
@@ -129,12 +130,14 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       cluster.getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
       cluster.getClusterControl().startCoordinator(CompactionCoordinator.class);
 
-      final AtomicLong expectedEntriesRead = new AtomicLong(9216);
-      final AtomicLong expectedEntriesWritten = new AtomicLong(4096);
+      final long expectedEntriesRead = 9216;
+      final long expectedEntriesWritten = 4096;
       final AtomicLong totalEntriesRead = new AtomicLong(0);
       final AtomicLong totalEntriesWritten = new AtomicLong(0);
+      final AtomicInteger compactorBusy = new AtomicInteger(-1);
 
-      Thread checkerThread = getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten);
+      Thread checkerThread =
+          getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten, compactorBusy);
       checkerThread.start();
 
       IteratorSetting setting = new IteratorSetting(50, "Slow", SlowIterator.class);
@@ -142,21 +145,32 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       client.tableOperations().attachIterator(table, setting,
           EnumSet.of(IteratorUtil.IteratorScope.majc));
       log.info("Compacting table");
-      compact(client, table, 2, QUEUE1, true);
-      log.info("Done Compacting table");
-      verify(client, table, 2, ROWS);
+
+      Wait.waitFor(() -> compactorBusy.get() == 0, 30_000, 3_000,
+          "Compactor busy metric should be false initially");
+
+      compact(client, table, 2, QUEUE1, false);
+
+      Wait.waitFor(() -> compactorBusy.get() == 1, 30_000, 3_000,
+          "Compactor busy metric should be true after starting compaction");
 
       Wait.waitFor(() -> {
-        if (totalEntriesRead.get() == expectedEntriesRead.get()
-            && totalEntriesWritten.get() == expectedEntriesWritten.get()) {
+        if (totalEntriesRead.get() == expectedEntriesRead
+            && totalEntriesWritten.get() == expectedEntriesWritten) {
           return true;
         }
         log.info(
             "Waiting for entries read to be {} (currently {}) and entries written to be {} (currently {})",
-            expectedEntriesRead.get(), totalEntriesRead.get(), expectedEntriesWritten.get(),
+            expectedEntriesRead, totalEntriesRead.get(), expectedEntriesWritten,
             totalEntriesWritten.get());
         return false;
       }, 30000, 3000, "Entries read and written metrics values did not match expected values");
+
+      log.info("Done Compacting table");
+      verify(client, table, 2, ROWS);
+
+      Wait.waitFor(() -> compactorBusy.get() == 0, 30_000, 3_000,
+          "Compactor busy metric should be false once compaction completes");
 
       stopCheckerThread.set(true);
       checkerThread.join();
@@ -164,23 +178,24 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Get a thread that checks the metrics for entries read and written.
+   * Pulls metrics from the configured sink and updates the provided variables.
    *
    * @param totalEntriesRead this is set to the value of the entries read metric
    * @param totalEntriesWritten this is set to the value of the entries written metric
+   * @param compactorBusy this is set to the value of the compactor busy metric
    */
   private static Thread getMetricsCheckerThread(AtomicLong totalEntriesRead,
-      AtomicLong totalEntriesWritten) {
+      AtomicLong totalEntriesWritten, AtomicInteger compactorBusy) {
     return Threads.createThread("metric-tailer", () -> {
       log.info("Starting metric tailer");
 
       sink.getLines().clear();
 
-      while (!stopCheckerThread.get()) {
+      out: while (!stopCheckerThread.get()) {
         List<String> statsDMetrics = sink.getLines();
         for (String s : statsDMetrics) {
           if (stopCheckerThread.get()) {
-            break;
+            break out;
           }
           if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_ENTRIES_READ)) {
             TestStatsDSink.Metric e = TestStatsDSink.parseStatsDMetric(s);
@@ -192,6 +207,11 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
             int value = Integer.parseInt(e.getValue());
             totalEntriesWritten.addAndGet(value);
             log.info("Found entries.written metric: {} with value: {}", e.getName(), value);
+          } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_BUSY)) {
+            TestStatsDSink.Metric e = TestStatsDSink.parseStatsDMetric(s);
+            int value = Integer.parseInt(e.getValue());
+            compactorBusy.set(value);
+            log.info("Found compactor.busy metric: {} with value: {}", e.getName(), compactorBusy);
           }
         }
         sleepUninterruptibly(3000, TimeUnit.MILLISECONDS);
