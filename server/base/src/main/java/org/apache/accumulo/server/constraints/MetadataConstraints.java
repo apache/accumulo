@@ -416,7 +416,8 @@ public class MetadataConstraints implements Constraint {
     }
 
     if (violations != null) {
-      log.debug("violating metadata mutation : {}", new String(mutation.getRow(), UTF_8));
+      log.debug("violating metadata mutation : {} {}", new String(mutation.getRow(), UTF_8),
+          violations);
       for (ColumnUpdate update : mutation.getUpdates()) {
         log.debug(" update: {}:{} value {}", new String(update.getColumnFamily(), UTF_8),
             new String(update.getColumnQualifier(), UTF_8),

@@ -39,7 +39,7 @@ public class TabletExistsIterator extends WrappingIterator {
 
     Text tabletRow = SetEncodingIterator.getTabletRow(range);
 
-    Range r = new Range(tabletRow, true, tabletRow, false);
+    Range r = new Range(tabletRow);
 
     super.seek(r, Set.of(), false);
   }
