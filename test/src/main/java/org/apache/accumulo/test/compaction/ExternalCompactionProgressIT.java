@@ -122,6 +122,15 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
   public void testProgressViaMetrics() throws Exception {
     String table = this.getUniqueNames(1)[0];
 
+    final AtomicLong totalEntriesRead = new AtomicLong(0);
+    final AtomicLong totalEntriesWritten = new AtomicLong(0);
+    final AtomicInteger compactorBusy = new AtomicInteger(-1);
+    final long expectedEntriesRead = 9216;
+    final long expectedEntriesWritten = 4096;
+
+    Thread checkerThread =
+        getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten, compactorBusy);
+
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       createTable(client, table, "cs1");
@@ -130,14 +139,6 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       cluster.getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
       cluster.getClusterControl().startCoordinator(CompactionCoordinator.class);
 
-      final long expectedEntriesRead = 9216;
-      final long expectedEntriesWritten = 4096;
-      final AtomicLong totalEntriesRead = new AtomicLong(0);
-      final AtomicLong totalEntriesWritten = new AtomicLong(0);
-      final AtomicInteger compactorBusy = new AtomicInteger(-1);
-
-      Thread checkerThread =
-          getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten, compactorBusy);
       checkerThread.start();
 
       IteratorSetting setting = new IteratorSetting(50, "Slow", SlowIterator.class);
@@ -171,9 +172,11 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
 
       Wait.waitFor(() -> compactorBusy.get() == 0, 30_000, 3_000,
           "Compactor busy metric should be false once compaction completes");
-
+    } finally {
       stopCheckerThread.set(true);
       checkerThread.join();
+      getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
+      getCluster().getClusterControl().stopAllServers(ServerType.COMPACTION_COORDINATOR);
     }
   }
 
