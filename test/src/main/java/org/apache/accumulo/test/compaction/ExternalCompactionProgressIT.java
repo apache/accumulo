@@ -80,6 +80,7 @@ import org.slf4j.LoggerFactory;
 public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ExternalCompactionProgressIT.class);
   private static final int ROWS = 10_000;
+  public static final int CHECKER_THREAD_SLEEP_MS = 1_000;
 
   enum EC_PROGRESS {
     STARTED, QUARTER, HALF, THREE_QUARTERS, INVALID
@@ -147,12 +148,12 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           EnumSet.of(IteratorUtil.IteratorScope.majc));
       log.info("Compacting table");
 
-      Wait.waitFor(() -> compactorBusy.get() == 0, 30_000, 3_000,
+      Wait.waitFor(() -> compactorBusy.get() == 0, 30_000, CHECKER_THREAD_SLEEP_MS,
           "Compactor busy metric should be false initially");
 
       compact(client, table, 2, QUEUE1, false);
 
-      Wait.waitFor(() -> compactorBusy.get() == 1, 30_000, 3_000,
+      Wait.waitFor(() -> compactorBusy.get() == 1, 30_000, CHECKER_THREAD_SLEEP_MS,
           "Compactor busy metric should be true after starting compaction");
 
       Wait.waitFor(() -> {
@@ -165,12 +166,13 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
             expectedEntriesRead, totalEntriesRead.get(), expectedEntriesWritten,
             totalEntriesWritten.get());
         return false;
-      }, 30000, 3000, "Entries read and written metrics values did not match expected values");
+      }, 30_000, CHECKER_THREAD_SLEEP_MS,
+          "Entries read and written metrics values did not match expected values");
 
       log.info("Done Compacting table");
       verify(client, table, 2, ROWS);
 
-      Wait.waitFor(() -> compactorBusy.get() == 0, 30_000, 3_000,
+      Wait.waitFor(() -> compactorBusy.get() == 0, 30_000, CHECKER_THREAD_SLEEP_MS,
           "Compactor busy metric should be false once compaction completes");
     } finally {
       stopCheckerThread.set(true);
@@ -200,24 +202,25 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           if (stopCheckerThread.get()) {
             break out;
           }
-          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_ENTRIES_READ)) {
-            TestStatsDSink.Metric e = TestStatsDSink.parseStatsDMetric(s);
-            int value = Integer.parseInt(e.getValue());
-            totalEntriesRead.addAndGet(value);
-            log.info("Found entries.read metric: {} with value: {}", e.getName(), value);
-          } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_ENTRIES_WRITTEN)) {
-            TestStatsDSink.Metric e = TestStatsDSink.parseStatsDMetric(s);
-            int value = Integer.parseInt(e.getValue());
-            totalEntriesWritten.addAndGet(value);
-            log.info("Found entries.written metric: {} with value: {}", e.getName(), value);
-          } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_BUSY)) {
-            TestStatsDSink.Metric e = TestStatsDSink.parseStatsDMetric(s);
-            int value = Integer.parseInt(e.getValue());
-            compactorBusy.set(value);
-            log.info("Found compactor.busy metric: {} with value: {}", e.getName(), compactorBusy);
+          TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(s);
+          if (!metric.getName().startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX)) {
+            continue;
+          }
+          int value = Integer.parseInt(metric.getValue());
+          log.debug("Found metric: {} with value: {}", metric.getName(), value);
+          switch (metric.getName()) {
+            case MetricsProducer.METRICS_COMPACTOR_ENTRIES_READ:
+              totalEntriesRead.addAndGet(value);
+              break;
+            case MetricsProducer.METRICS_COMPACTOR_ENTRIES_WRITTEN:
+              totalEntriesWritten.addAndGet(value);
+              break;
+            case MetricsProducer.METRICS_COMPACTOR_BUSY:
+              compactorBusy.set(value);
+              break;
           }
         }
-        sleepUninterruptibly(3000, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(CHECKER_THREAD_SLEEP_MS, TimeUnit.MILLISECONDS);
       }
       log.info("Metric tailer thread finished");
     });
@@ -333,7 +336,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       try {
         while (!stopCheckerThread.get()) {
           checkRunning();
-          sleepUninterruptibly(1000, TimeUnit.MILLISECONDS);
+          sleepUninterruptibly(CHECKER_THREAD_SLEEP_MS, TimeUnit.MILLISECONDS);
         }
       } catch (TException e) {
         log.warn("{}", e.getMessage(), e);
