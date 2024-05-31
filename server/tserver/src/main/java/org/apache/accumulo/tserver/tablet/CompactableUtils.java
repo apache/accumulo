@@ -559,6 +559,7 @@ public class CompactableUtils {
       CompactableImpl.CompactionInfo cInfo, CompactionEnv cenv,
       Map<StoredTabletFile,DataFileValue> compactFiles, TabletFile tmpFileName)
       throws IOException, CompactionCanceledException {
+
     TableConfiguration tableConf = tablet.getTableConfiguration();
 
     AccumuloConfiguration compactionConfig = getCompactionConfig(tableConf,
@@ -568,6 +569,10 @@ public class CompactableUtils {
         compactFiles, tmpFileName, cInfo.propagateDeletes, cenv, cInfo.iters, compactionConfig,
         tableConf.getCryptoService());
 
+    if (Thread.currentThread().isInterrupted()) {
+      log.debug("Compaction for {} cancelled by interruption", tablet.getExtent());
+      throw new CompactionCanceledException();
+    }
     return compactor.call();
   }
 

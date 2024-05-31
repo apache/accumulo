@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.compaction;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -517,8 +518,10 @@ public class FileCompactor implements Callable<CompactionStats> {
         majCStats.add(lgMajcStats);
         writeSpan.end();
       }
-
     } catch (Exception e) {
+      if (e instanceof InterruptedIOException) {
+        throw new CompactionCanceledException();
+      }
       TraceUtil.setException(compactSpan, e, true);
       throw e;
     } finally {

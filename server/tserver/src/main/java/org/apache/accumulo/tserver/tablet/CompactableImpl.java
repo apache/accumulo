@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
@@ -1335,13 +1336,33 @@ public class CompactableImpl implements Compactable {
       tablet.incrementStatusMajor();
       var check = new CompactionCheck(service, kind, keepRunning, cInfo.checkCompactionId);
       TabletFile tmpFileName = tablet.getNextMapFilenameForMajc(cInfo.propagateDeletes);
-      var compactEnv = new MajCEnv(kind, check, readLimiter, writeLimiter, cInfo.propagateDeletes);
+      final var compactEnv =
+          new MajCEnv(kind, check, readLimiter, writeLimiter, cInfo.propagateDeletes);
 
       SortedMap<StoredTabletFile,DataFileValue> allFiles = tablet.getDatafiles();
       HashMap<StoredTabletFile,DataFileValue> compactFiles = new HashMap<>();
       cInfo.jobFiles.forEach(file -> compactFiles.put(file, allFiles.get(file)));
 
-      stats = CompactableUtils.compact(tablet, job, cInfo, compactEnv, compactFiles, tmpFileName);
+      final Thread compactionThread = Thread.currentThread();
+      final Runnable compactionCancellerTask = () -> {
+        if (!compactEnv.isCompactionEnabled()) {
+          compactionThread.interrupt();
+        }
+      };
+      final ScheduledFuture<?> future = tablet.getContext().getScheduledExecutor()
+          .schedule(compactionCancellerTask, 10, TimeUnit.SECONDS);
+      try {
+        stats = CompactableUtils.compact(tablet, job, cInfo, compactEnv, compactFiles, tmpFileName);
+      } catch (CompactionCanceledException e) {
+        if (Thread.currentThread().isInterrupted()) {
+          // Clear the interrupt status of this thread
+          Thread.interrupted();
+        }
+        throw e;
+      } finally {
+        tablet.getContext().getScheduledExecutor().remove(compactionCancellerTask);
+        future.cancel(true);
+      }
 
       newFile = CompactableUtils.bringOnline(tablet.getDatafileManager(), cInfo, stats,
           compactFiles, allFiles, kind, tmpFileName);

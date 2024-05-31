@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.iteratorsImpl.system;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.PriorityQueue;
 
 import org.apache.accumulo.core.data.Key;
@@ -70,6 +71,10 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
   public final void next() throws IOException {
     if (topIdx == null) {
       throw new IllegalStateException("Called next() when there is no top");
+    }
+
+    if (Thread.currentThread().isInterrupted()) {
+      throw new InterruptedIOException("thread interrupted while in next");
     }
 
     topIdx.next();

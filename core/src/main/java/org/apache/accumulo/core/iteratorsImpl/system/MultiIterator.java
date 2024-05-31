@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.iteratorsImpl.system;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -105,6 +106,9 @@ public class MultiIterator extends HeapIterator {
     }
 
     for (SortedKeyValueIterator<Key,Value> skvi : iters) {
+      if (Thread.currentThread().isInterrupted()) {
+        throw new InterruptedIOException("thread interrupted while seeking");
+      }
       skvi.seek(range, columnFamilies, inclusive);
       addSource(skvi);
     }
