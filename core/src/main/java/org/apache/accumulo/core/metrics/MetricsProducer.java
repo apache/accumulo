@@ -36,7 +36,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <a href="https://micrometer.io/docs/concepts#_naming_meters">naming convention</a> for the
  * metrics. The table below contains a mapping of the old to new metric names.
  * <table border="1">
- * <caption>Summary of Metric Changes</caption> <!-- fate -->
+ * <caption>Summary of Metric Changes</caption>
  * <tr>
  * <th>Old Name</th>
  * <th>Hadoop Metrics2 Type</th>
@@ -44,6 +44,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <th>Micrometer Type</th>
  * <th>Notes</th>
  * </tr>
+ * <!-- compactor -->
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
@@ -51,6 +52,28 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>LongTaskTimer</td>
  * <td></td>
  * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_ENTRIES_READ}</td>
+ * <td>FunctionCounter</td>
+ * <td>Number of entries read by all compactions that have run on a compactor or tserver</td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_ENTRIES_WRITTEN}</td>
+ * <td>FunctionCounter</td>
+ * <td>Number of entries written by all compactions that have run on a compactor or tserver</td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_BUSY}</td>
+ * <td>Gauge</td>
+ * <td>Indicates if the compactor is busy or not</td>
+ * </tr>
+ * <!-- fate -->
  * <tr>
  * <td>currentFateOps</td>
  * <td>Gauge</td>
