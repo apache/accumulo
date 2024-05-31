@@ -202,7 +202,7 @@ public class ScanServer extends AbstractServer
   HostAndPort clientAddress;
   private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
 
-  private volatile boolean serverStopRequested = false;
+  protected volatile boolean serverStopRequested = false;
   private ServiceLock scanServerLock;
   protected TabletServerScanMetrics scanMetrics;
   private ScanServerMetrics scanServerMetrics;
