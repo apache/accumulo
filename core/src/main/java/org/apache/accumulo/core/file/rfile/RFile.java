@@ -1808,8 +1808,12 @@ public class RFile {
     }
 
     @Override
-    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
-      return reader.estimateOverlappingEntries(extent);
+    public long estimateOverlappingEntries(KeyExtent c) throws IOException {
+      KeyExtent overlapping = c.clip(fence, true);
+      if (overlapping == null) {
+        return 0;
+      }
+      return reader.estimateOverlappingEntries(overlapping);
     }
 
     @Override
