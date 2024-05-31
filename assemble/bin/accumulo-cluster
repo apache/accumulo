@@ -29,9 +29,9 @@ Commands:
   stop                       Stops Accumulo cluster
   kill                       Kills Accumulo cluster
   start-non-tservers         Starts all services except tservers (Deprecated)
-  start-servers [--all|--tservers|--no-tservers|--sserver [group]|--compactors [queue]]
+  start-servers [--all|--tservers|--no-tservers|--sservers [group]|--compactors [queue]]
                              Starts various server types, can optionally specify a queue or group
-  stop-servers [--all|--tservers| --no-tservers|--sserver [group]|--compactors [queue]]
+  stop-servers [--all|--tservers| --no-tservers|--sservers [group]|--compactors [queue]]
                              Starts various server types, can optionally specify a queue or group
   start-tservers             Starts all tservers on cluster (Deprecated)
   stop-tservers              Stops all tservers on cluster (Deprecated)
@@ -698,7 +698,7 @@ EOF
         "--no-tservers")
           start_all --no-tservers
           ;;
-        "--sserver")
+        "--sservers")
           start_sservers "${@:3}"
           ;;
         "--compactors")
@@ -718,7 +718,7 @@ EOF
         "--tservers")
           stop_tservers
           ;;
-        "--sserver")
+        "--sservers")
           stop_sservers "${@:3}"
           ;;
         "--compactors")
