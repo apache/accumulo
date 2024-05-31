@@ -322,8 +322,7 @@ public class MergeTabletsTest {
     testUnexpectedColumn(tmb -> tmb.putSelectedFiles(selectedFiles),
         "has unexpected selected file");
 
-    // ELASTICITY_TODO need to test cloned marker, need to add it to TabletMetadataBuilder
-
+    testUnexpectedColumn(TabletMetadataBuilder::putCloned, "has unexpected cloned column");
   }
 
   private void testUnexpectedColumn(Consumer<TabletMetadataBuilder> badColumnSetter,

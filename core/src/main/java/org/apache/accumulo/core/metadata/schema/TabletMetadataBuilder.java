@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.CLONED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
@@ -302,6 +303,13 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   @Override
   public TabletMetadataBuilder deleteUnSplittable() {
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public TabletMetadataBuilder putCloned() {
+    fetched.add(CLONED);
+    internalBuilder.putCloned();
+    return this;
   }
 
   @Override
