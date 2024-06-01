@@ -144,11 +144,11 @@ public class UpdateTablets extends ManagerRepo {
           // this code validates the assumption that fileRange is within file.getRange()
           Preconditions.checkState(
               file.getRange().clip(new Range(fileInfo.getFirstRow()), false) != null,
-              "First row % computed for file % did not fall in its range", fileInfo.getFirstRow(),
+              "First row %s computed for file %s did not fall in its range", fileInfo.getFirstRow(),
               file);
           Preconditions.checkState(
               file.getRange().clip(new Range(fileInfo.getLastRow()), false) != null,
-              "Last row % computed for file % did not fall in its range", fileInfo.getLastRow(),
+              "Last row %s computed for file %s did not fall in its range", fileInfo.getLastRow(),
               file);
         }
       } else {
