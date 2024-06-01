@@ -100,7 +100,7 @@ public class RFile {
 
       public FencedPath(Path path, Range fence) {
         this.path = Objects.requireNonNull(path);
-        this.fence = RowRangeUtil.requireRowRange(fence);
+        this.fence = RowRangeUtil.requireKeyExtentDataRange(fence);
       }
 
       public Path getPath() {

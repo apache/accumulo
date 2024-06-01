@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import static org.apache.accumulo.core.util.RowRangeUtil.requireRowRange;
+import static org.apache.accumulo.core.util.RowRangeUtil.requireKeyExtentDataRange;
 import static org.apache.accumulo.core.util.RowRangeUtil.stripZeroTail;
 
 import java.util.Objects;
@@ -40,7 +40,7 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
 
   protected AbstractTabletFile(Path path, Range range) {
     this.path = Objects.requireNonNull(path);
-    this.range = requireRowRange(range);
+    this.range = requireKeyExtentDataRange(range);
   }
 
   @Override
