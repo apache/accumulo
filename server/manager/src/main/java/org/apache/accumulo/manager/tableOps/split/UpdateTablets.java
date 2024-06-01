@@ -136,6 +136,21 @@ public class UpdateTablets extends ManagerRepo {
       Range fileRange;
       if (fileInfo != null) {
         fileRange = new Range(fileInfo.getFirstRow(), fileInfo.getLastRow());
+        if (!file.getRange().isInfiniteStartKey() || !file.getRange().isInfiniteStopKey()) {
+          // Its expected that if a file has a range that the first row and last row will be clipped
+          // to be within that range. For that reason this code does not check the file range when
+          // making decisions about whether a file should go to a tablet, because its assumed this
+          // fileRange will cover that case. Since the range is not being checked this code
+          // validates the assumption.
+          Preconditions.checkState(
+              file.getRange().clip(new Range(fileInfo.getFirstRow()), false) != null,
+              "First row % computed for file % did not fall in its range", fileInfo.getFirstRow(),
+              file);
+          Preconditions.checkState(
+              file.getRange().clip(new Range(fileInfo.getLastRow()), false) != null,
+              "Last row % computed for file % did not fall in its range", fileInfo.getLastRow(),
+              file);
+        }
       } else {
         fileRange = new Range();
       }
