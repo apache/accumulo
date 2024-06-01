@@ -24,17 +24,52 @@ import org.apache.accumulo.core.data.Range;
 
 import com.google.common.base.Preconditions;
 
-public class RangeUtil {
+public class RowRangeUtil {
 
+  /**
+   * @param range
+   * @return
+   */
   public static Range requireRowRange(Range range) {
+    return requireRowRange(range, false, false);
+  }
+
+  /**
+   * Validates that the range is a row range. A row range is defined as:
+   *
+   * <ul>
+   * <li>A range that has an inclusive start and exclusive end</li>
+   * <li>A range that has an inclusive start and exclusive end</li>
+   * <li>A range that has an inclusive start and exclusive end</li>
+   * </ul>
+   *
+   * @param range
+   * @param expectInclusiveStart
+   * @param expectInclusiveEnd
+   * @return
+   */
+  public static Range requireRowRange(Range range, boolean expectInclusiveStart,
+      boolean expectInclusiveEnd) {
+    String errorMsg = "Range is not a row range";
+
     if (!range.isInfiniteStartKey()) {
-      Preconditions.checkArgument(range.isStartKeyInclusive() && isOnlyRowSet(range.getStartKey()),
-          "Range is not a row range %s", range);
+      Preconditions.checkArgument(range.isStartKeyInclusive(),
+          "%s, start key must be inclusive. %s", errorMsg, range);
+      Preconditions.checkArgument(isOnlyRowSet(range.getStartKey()),
+          "%s, start key must only contain a row. %s", errorMsg, range);
+      Preconditions.checkArgument(expectInclusiveStart != isExclusiveKey(range.getStartKey()),
+          "%s, start key does not match expectInclusiveStart[%s] state. %s, ", errorMsg,
+          expectInclusiveStart, range);
     }
 
     if (!range.isInfiniteStopKey()) {
-      Preconditions.checkArgument(!range.isEndKeyInclusive() && isOnlyRowSet(range.getEndKey())
-          && isExclusiveKey(range.getEndKey()), "Range is not a row range %s", range);
+      Preconditions.checkArgument(!range.isEndKeyInclusive(), "%s, end key must be exclusive. %s",
+          errorMsg, range);
+      Preconditions.checkArgument(isOnlyRowSet(range.getEndKey()),
+          "%s, end key must only contain a row. %s", errorMsg, range);
+      Preconditions.checkArgument(expectInclusiveEnd != isExclusiveKey(range.getEndKey()),
+          "%s, end key does not match expectInclusiveEnd[%s] state. %s, ", errorMsg,
+          expectInclusiveStart, range);
     }
 
     return range;

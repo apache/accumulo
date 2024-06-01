@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import static org.apache.accumulo.core.util.RangeUtil.requireRowRange;
+import static org.apache.accumulo.core.util.RowRangeUtil.requireRowRange;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;

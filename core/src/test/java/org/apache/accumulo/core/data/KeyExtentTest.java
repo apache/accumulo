@@ -218,6 +218,10 @@ public class KeyExtentTest {
         () -> ke.clip(new Range("r_0002", true, "r_0004", true)));
     assertThrows(IllegalArgumentException.class, () -> ke
         .clip(new Range(new Key("r_0002", "cf_0002"), false, new Key("r_0003", "cf_0003"), true)));
+    // Test empty row to make sure isExclusiveKey() checks length
+    assertThrows(IllegalArgumentException.class,
+        () -> ke.clip(new Range(new Key("r_0004").followingKey(PartialKey.ROW), true,
+            new Key("").followingKey(PartialKey.ROW), false)));
   }
 
 }
