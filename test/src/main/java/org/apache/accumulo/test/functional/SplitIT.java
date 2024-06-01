@@ -37,7 +37,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -149,7 +148,7 @@ public class SplitIT extends AccumuloClusterHarness {
 
       c.tableOperations().create(table, new NewTableConfiguration().setProperties(props));
 
-      Random random = new Random();
+      var random = RANDOM.get();
       byte[] data = new byte[1000];
 
       try (var writer = c.createBatchWriter(table)) {
