@@ -353,9 +353,8 @@ public class MetadataConstraintsTest {
     // required for an endRow so will fail validation
     m = new Mutation(new Text("0;foo"));
     m.put(BulkFileColumnFamily.NAME,
-        new Text(StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), new Range("a", "b"))
-            .getMetadata().replaceFirst("\"endRow\":\".*\"",
+        new Text(StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"),
+            new Range("a", false, "b", true)).getMetadata().replaceFirst("\"endRow\":\".*\"",
                 "\"endRow\":\"" + encodeRowForMetadata("bad") + "\"")),
         new Value("5"));
     assertViolation(mc, m, (short) 9);
@@ -439,9 +438,8 @@ public class MetadataConstraintsTest {
     // required for an endRow so this will fail validation
     m = new Mutation(new Text("0;foo"));
     m.put(columnFamily,
-        new Text(StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), new Range("a", "b"))
-            .getMetadata()
+        new Text(StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"),
+            new Range("a", false, "b", true)).getMetadata()
             .replaceFirst("\"endRow\":\".*\"", "\"endRow\":\"" + encodeRowForMetadata("b") + "\"")),
         value);
     assertViolation(mc, m, (short) 9);
@@ -467,9 +465,8 @@ public class MetadataConstraintsTest {
     // Should pass validation with range set
     m = new Mutation(new Text("0;foo"));
     m.put(columnFamily,
-        StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), new Range("a", "b"))
-            .getMetadataText(),
+        StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"),
+            new Range("a", false, "b", true)).getMetadataText(),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
     assertNull(violations);

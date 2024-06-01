@@ -439,7 +439,8 @@ public class CloneIT extends AccumuloClusterHarness {
           // Pass in up to 3 arguments of infinite ranges to test non-ranged files
           Arguments.of(new Range(), new Range(), new Range()),
           // For second run pass in up to 3 arguments with the first two non-infinite ranges
-          Arguments.of(new Range("row_0"), new Range("row_1"), new Range()));
+          Arguments.of(new Range(null, false, "row_0", true),
+              new Range("row_0", false, "row_1", true), new Range()));
     }
   }
 }

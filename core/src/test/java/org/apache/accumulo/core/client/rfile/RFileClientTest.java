@@ -232,7 +232,7 @@ public class RFileClientTest {
 
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
 
-    Range range = new Range(rowStr(3), true, rowStr(14), true);
+    Range range = new Range(rowStr(3), false, rowStr(14), true);
     Scanner scanner =
         RFile.newScanner().from(new FencedPath(new Path(new File(testFile).toURI()), range))
             .withFileSystem(localFs).build();
@@ -259,9 +259,10 @@ public class RFileClientTest {
     new FencedPath(new Path(new File(testFile).toURI()), new Range());
     // This constructor converts to the proper inclusive/exclusive rows
     new FencedPath(new Path(new File(testFile).toURI()),
-        new Range(rowStr(3), true, rowStr(14), true));
-    new FencedPath(new Path(new File(testFile).toURI()), new Range(new Key(rowStr(3)), true,
-        new Key(rowStr(14)).followingKey(PartialKey.ROW), false));
+        new Range(rowStr(3), false, rowStr(14), true));
+    new FencedPath(new Path(new File(testFile).toURI()),
+        new Range(new Key(rowStr(3)).followingKey(PartialKey.ROW), true,
+            new Key(rowStr(14)).followingKey(PartialKey.ROW), false));
 
     // Test invalid Row Ranges
     // Missing 0x00 byte
@@ -291,7 +292,7 @@ public class RFileClientTest {
 
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
 
-    Range range = new Range(rowStr(3), true, rowStr(14), true);
+    Range range = new Range(rowStr(3), false, rowStr(14), true);
 
     RFileSKVIterator reader =
         getReader(localFs, UnreferencedTabletFile.ofRanged(localFs, new File(testFile), range));
