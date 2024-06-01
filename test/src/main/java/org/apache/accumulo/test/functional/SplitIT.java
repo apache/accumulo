@@ -456,7 +456,7 @@ public class SplitIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName, new NewTableConfiguration()
           .setProperties(singletonMap(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K")));
 
-      Random random = new Random();
+      var random = RANDOM.get();
       byte[] val = new byte[100];
 
       String dir = getDir();
