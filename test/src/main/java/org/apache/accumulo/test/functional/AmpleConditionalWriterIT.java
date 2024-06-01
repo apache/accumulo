@@ -22,8 +22,10 @@ import static com.google.common.collect.MoreCollectors.onlyElement;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
@@ -75,13 +77,16 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
+import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -96,6 +101,8 @@ import org.apache.accumulo.core.metadata.schema.filters.HasCurrentFilter;
 import org.apache.accumulo.core.metadata.schema.filters.TabletMetadataFilter;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
+import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -115,8 +122,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
-
-  // ELASTICITY_TODO ensure that all conditional updates are tested
 
   private TableId tid;
   private KeyExtent e1;
@@ -485,11 +490,12 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     // Test adding a WAL to a tablet and verifying its presence
     String walFilePath =
         java.nio.file.Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
-    LogEntry originalLogEntry = LogEntry.fromPath(walFilePath);
+    final LogEntry originalLogEntry = LogEntry.fromPath(walFilePath);
     ConditionalTabletsMutatorImpl ctmi = new ConditionalTabletsMutatorImpl(context);
     // create a tablet metadata with no write ahead logs
     var tmEmptySet = TabletMetadata.builder(e1).build(LOGS);
     // tablet should not have any logs to start with so requireSame with the empty logs should pass
+    assertTrue(context.getAmple().readTablet(e1).getLogs().isEmpty());
     ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tmEmptySet, LOGS)
         .putWal(originalLogEntry).submit(tm -> false);
     var results = ctmi.process();
@@ -559,6 +565,23 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     // Verify that the update went through as expected
     assertEquals(List.of(newLogEntry), context.getAmple().readTablet(e1).getLogs(),
         "Only the new LogEntry should remain after deleting the original.");
+
+    // test the requireAbsentLogs() function when logs are not present in the tablet metadata
+    assertTrue(context.getAmple().readTablet(e2).getLogs().isEmpty());
+    ctmi = new ConditionalTabletsMutatorImpl(context);
+    ctmi.mutateTablet(e2).requireAbsentOperation().requireAbsentLogs().putWal(originalLogEntry)
+        .submit(tm -> false);
+    results = ctmi.process();
+    assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
+
+    // test the requireAbsentLogs() function when logs are present in the tablet metadata
+    assertFalse(context.getAmple().readTablet(e2).getLogs().isEmpty());
+    ctmi = new ConditionalTabletsMutatorImpl(context);
+    ctmi.mutateTablet(e2).requireAbsentOperation().requireAbsentLogs().deleteWal(originalLogEntry)
+        .submit(tm -> false);
+    results = ctmi.process();
+    assertEquals(Status.REJECTED, results.get(e2).getStatus());
+    assertFalse(context.getAmple().readTablet(e2).getLogs().isEmpty());
   }
 
   @Test
@@ -799,29 +822,38 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       assertEquals(Set.of(e1, e2), results.keySet());
 
+      var e5 = new KeyExtent(tid, new Text("yz"), new Text("ya"));
+      assertNull(context.getAmple().readTablet(e5));
+
+      // in addition to testing multiple tablets also testing requireAbsentTablet() which is
+      // currently not called elsewhere in this IT
       ctmi = new ConditionalTabletsMutatorImpl(context);
       ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
           .putLocation(Location.future(ts2)).submit(tm -> false);
-      ctmi.mutateTablet(e2).requireAbsentOperation().requireAbsentLocation()
-          .putLocation(Location.future(ts1)).submit(tm -> false);
+      ctmi.mutateTablet(e2).requireAbsentTablet().putLocation(Location.future(ts1))
+          .submit(tm -> false);
       ctmi.mutateTablet(e3).requireAbsentOperation().requireAbsentLocation()
           .putLocation(Location.future(ts1)).submit(tm -> false);
       ctmi.mutateTablet(e4).requireAbsentOperation().requireAbsentLocation()
           .putLocation(Location.future(ts2)).submit(tm -> false);
+      ctmi.mutateTablet(e5).requireAbsentTablet().putDirName("t-54321")
+          .putPrevEndRow(e5.prevEndRow()).putTabletAvailability(TabletAvailability.ONDEMAND)
+          .submit(tm -> false);
       results = ctmi.process();
 
       assertEquals(Status.REJECTED, results.get(e1).getStatus());
       assertEquals(Status.REJECTED, results.get(e2).getStatus());
       assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
       assertEquals(Status.ACCEPTED, results.get(e4).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e5).getStatus());
 
       assertEquals(Location.future(ts1), context.getAmple().readTablet(e1).getLocation());
       assertEquals(Location.future(ts2), context.getAmple().readTablet(e2).getLocation());
       assertEquals(Location.future(ts1), context.getAmple().readTablet(e3).getLocation());
       assertEquals(Location.future(ts2), context.getAmple().readTablet(e4).getLocation());
+      assertEquals("t-54321", context.getAmple().readTablet(e5).getDirName());
 
-      assertEquals(Set.of(e1, e2, e3, e4), results.keySet());
-
+      assertEquals(Set.of(e1, e2, e3, e4, e5), results.keySet());
     }
   }
 
@@ -874,6 +906,86 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
       assertNull(context.getAmple().readTablet(e1).getOperationId());
       assertNull(context.getAmple().readTablet(e2).getOperationId());
+    }
+  }
+
+  @Test
+  public void testCompaction() {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      var context = cluster.getServerContext();
+
+      ExternalCompactionId ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
+      ExternalCompactionId ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
+
+      FateInstanceType type = FateInstanceType.fromTableId(tid);
+      FateId fateId = FateId.from(type, UUID.randomUUID());
+
+      ReferencedTabletFile tmpFile =
+          ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
+      CompactorGroupId ceid = CompactorGroupId.of("G1");
+      Set<StoredTabletFile> jobFiles =
+          Set.of(StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf")));
+      CompactionMetadata ecMeta = new CompactionMetadata(jobFiles, tmpFile, "localhost:4444",
+          CompactionKind.SYSTEM, (short) 2, ceid, false, fateId);
+
+      // create a tablet metadata w/ en empty set of compactions
+      var tabletMetaNoCompactions = TabletMetadata.builder(e1).build(ECOMP);
+      var tabletMetaCompactions =
+          TabletMetadata.builder(e1).putExternalCompaction(ecid1, ecMeta).build();
+
+      // Test different compaction requirement scenarios for tablets w/o any compactions in the
+      // metadata table
+      var ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMetaNoCompactions, ECOMP)
+          .putExternalCompaction(ecid1, ecMeta).submit(tm -> false);
+      ctmi.mutateTablet(e2).requireAbsentOperation().requireCompaction(ecid2)
+          .putExternalCompaction(ecid1, ecMeta).submit(tm -> false);
+      ctmi.mutateTablet(e3).requireAbsentOperation().requireSame(tabletMetaNoCompactions, ECOMP)
+          .putExternalCompaction(ecid1, ecMeta).putExternalCompaction(ecid2, ecMeta)
+          .submit(tm -> false);
+      ctmi.mutateTablet(e4).requireAbsentOperation().requireSame(tabletMetaCompactions, ECOMP)
+          .putExternalCompaction(ecid1, ecMeta).submit(tm -> false);
+      var results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Status.REJECTED, results.get(e2).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
+      assertEquals(Status.REJECTED, results.get(e4).getStatus());
+      assertEquals(Set.of(ecid1),
+          context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+      assertEquals(Set.of(), context.getAmple().readTablet(e2).getExternalCompactions().keySet());
+      assertEquals(Set.of(ecid1, ecid2),
+          context.getAmple().readTablet(e3).getExternalCompactions().keySet());
+      assertEquals(Set.of(), context.getAmple().readTablet(e4).getExternalCompactions().keySet());
+
+      // Test compaction requirements that do not match the compaction ids that exists in the
+      // metadata table.
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireCompaction(ecid2)
+          .deleteExternalCompaction(ecid1).submit(tm -> false);
+      ctmi.mutateTablet(e3).requireAbsentOperation().requireSame(tabletMetaCompactions, ECOMP)
+          .deleteExternalCompaction(ecid1).submit(tm -> false);
+      results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      assertEquals(Status.REJECTED, results.get(e3).getStatus());
+      assertEquals(Set.of(ecid1),
+          context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+      assertEquals(Set.of(ecid1, ecid2),
+          context.getAmple().readTablet(e3).getExternalCompactions().keySet());
+
+      // Test compaction requirements that match the compaction ids that exists in the metadata
+      // table.
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMetaCompactions, ECOMP)
+          .deleteExternalCompaction(ecid1).submit(tm -> false);
+      ctmi.mutateTablet(e3).requireAbsentOperation().requireCompaction(ecid2)
+          .deleteExternalCompaction(ecid1).submit(tm -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
+      assertEquals(Set.of(), context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+      assertEquals(Set.of(ecid2),
+          context.getAmple().readTablet(e3).getExternalCompactions().keySet());
+
     }
   }
 
@@ -1509,7 +1621,19 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
         // and the current tablet metadata does.
         assertTrue(tabletsMutator.process().get(originalTM.getExtent()).getStatus()
             .equals(Status.REJECTED));
+      }
 
+      // test require same when the tablet metadata passed in has a suspend column set
+      var suspendedTM = getServerContext().getAmple().readTablet(originalTM.getExtent());
+      assertNotNull(suspendedTM.getSuspend());
+      try (var tabletsMutator = getServerContext().getAmple().conditionallyMutateTablets()) {
+        tabletsMutator.mutateTablet(originalTM.getExtent()).requireAbsentOperation()
+            .requireSame(suspendedTM, SUSPEND).putFlushNonce(6789).submit(tabletMetadata -> false);
+
+        // This should succeed because the tablet metadata does have a suspend column and the
+        // current tablet metadata does.
+        assertTrue(tabletsMutator.process().get(originalTM.getExtent()).getStatus()
+            .equals(Status.ACCEPTED));
       }
 
       cluster.getClusterControl().start(ServerType.TABLET_SERVER);
@@ -1539,4 +1663,67 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     }
   }
 
+  @Test
+  public void testTabletAvailability() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      var context = cluster.getServerContext();
+
+      assertEquals(TabletAvailability.ONDEMAND,
+          context.getAmple().readTablet(e1).getTabletAvailability());
+      assertEquals(TabletAvailability.ONDEMAND,
+          context.getAmple().readTablet(e2).getTabletAvailability());
+
+      var ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireTabletAvailability(TabletAvailability.HOSTED)
+          .putTabletAvailability(TabletAvailability.UNHOSTED).submit(tm -> false);
+      ctmi.mutateTablet(e2).requireAbsentOperation()
+          .requireTabletAvailability(TabletAvailability.ONDEMAND)
+          .putTabletAvailability(TabletAvailability.UNHOSTED).submit(tm -> false);
+      var results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
+
+      assertEquals(TabletAvailability.ONDEMAND,
+          context.getAmple().readTablet(e1).getTabletAvailability());
+      assertEquals(TabletAvailability.UNHOSTED,
+          context.getAmple().readTablet(e2).getTabletAvailability());
+    }
+  }
+
+  @Test
+  public void testErrors() {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      var context = cluster.getServerContext();
+
+      var ctmi1 = new ConditionalTabletsMutatorImpl(context);
+      ctmi1.mutateTablet(e1).requireAbsentTablet().putDirName("d1").submit(tm -> false);
+      // making multiple updates for the same tablet is not supported
+      assertThrows(IllegalStateException.class,
+          () -> ctmi1.mutateTablet(e1).requireAbsentTablet().putDirName("d2").submit(tm -> false));
+      // attempt to use a column that requireSame does not support
+      TabletMetadata tabletMetadata = TabletMetadata.builder(e2).build();
+      assertThrows(UnsupportedOperationException.class,
+          () -> ctmi1.mutateTablet(e2).requireAbsentOperation()
+              .requireSame(tabletMetadata, HOSTING_REQUESTED).putDirName("d2").submit(tm -> false));
+
+      var ctmi2 = new ConditionalTabletsMutatorImpl(context);
+      // the following end prev end row update should cause a constraint violation because a tablets
+      // prev end row must be less than its end row
+      ctmi2.mutateTablet(e1).requireAbsentOperation().putPrevEndRow(e1.endRow())
+          .submit(tm -> false);
+      var results = ctmi2.process();
+      // getting status when a constraint violation happened should throw an exception
+      assertThrows(IllegalStateException.class, () -> results.get(e1).getStatus());
+
+      var ctmi3 = new ConditionalTabletsMutatorImpl(context);
+      ctmi3.mutateTablet(e1).requireAbsentOperation().putFlushNonce(1234).submit(tm -> false);
+      var results2 = ctmi3.process();
+      assertEquals(Status.ACCEPTED, results2.get(e1).getStatus());
+
+      // attempting to use after calling proccess() should throw an exception
+      assertThrows(IllegalStateException.class, () -> ctmi3.mutateTablet(e1)
+          .requireAbsentOperation().putFlushNonce(1234).submit(tm -> false));
+    }
+  }
 }
