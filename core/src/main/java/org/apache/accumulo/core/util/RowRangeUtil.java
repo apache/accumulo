@@ -23,64 +23,47 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 
 import com.google.common.base.Preconditions;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 
 public class RowRangeUtil {
 
   /**
+   * Validates a range was created by calling {@code new Range(startRow, false, endRow, true);} which is what {@link KeyExtent#toDataRange()} does.
+   *
    * @param range
    * @return
    */
   public static Range requireRowRange(Range range) {
-    return requireRowRange(range, false, false);
-  }
 
-  /**
-   * Validates that the range is a row range. A row range is defined as:
-   *
-   * <ul>
-   * <li>A range that has an inclusive start and exclusive end</li>
-   * <li>A range that has an inclusive start and exclusive end</li>
-   * <li>A range that has an inclusive start and exclusive end</li>
-   * </ul>
-   *
-   * @param range
-   * @param expectInclusiveStart
-   * @param expectInclusiveEnd
-   * @return
-   */
-  public static Range requireRowRange(Range range, boolean expectInclusiveStart,
-      boolean expectInclusiveEnd) {
     String errorMsg = "Range is not a row range";
 
     if (!range.isInfiniteStartKey()) {
       Preconditions.checkArgument(range.isStartKeyInclusive(),
-          "%s, start key must be inclusive. %s", errorMsg, range);
+              "%s, start key must be inclusive. %s", errorMsg, range);
       Preconditions.checkArgument(isOnlyRowSet(range.getStartKey()),
-          "%s, start key must only contain a row. %s", errorMsg, range);
-      Preconditions.checkArgument(expectInclusiveStart != isExclusiveKey(range.getStartKey()),
-          "%s, start key does not match expectInclusiveStart[%s] state. %s, ", errorMsg,
-          expectInclusiveStart, range);
+              "%s, start key must only contain a row. %s", errorMsg, range);
+      Preconditions.checkArgument(isRowSuffixZeroByte(range.getStartKey()),
+              "%s, start key does not end with zero byte. %s, ", errorMsg, range);
     }
 
     if (!range.isInfiniteStopKey()) {
       Preconditions.checkArgument(!range.isEndKeyInclusive(), "%s, end key must be exclusive. %s",
-          errorMsg, range);
+              errorMsg, range);
       Preconditions.checkArgument(isOnlyRowSet(range.getEndKey()),
-          "%s, end key must only contain a row. %s", errorMsg, range);
-      Preconditions.checkArgument(expectInclusiveEnd != isExclusiveKey(range.getEndKey()),
-          "%s, end key does not match expectInclusiveEnd[%s] state. %s, ", errorMsg,
-          expectInclusiveStart, range);
+              "%s, end key must only contain a row. %s", errorMsg, range);
+      Preconditions.checkArgument(isRowSuffixZeroByte(range.getEndKey()),
+              "%s, end key does not end with a zero byte. %s, ", errorMsg, range);
     }
 
     return range;
   }
-
+  
   public static boolean isOnlyRowSet(Key key) {
     return key.getColumnFamilyData().length() == 0 && key.getColumnQualifierData().length() == 0
         && key.getColumnVisibilityData().length() == 0 && key.getTimestamp() == Long.MAX_VALUE;
   }
 
-  public static boolean isExclusiveKey(Key key) {
+  public static boolean isRowSuffixZeroByte(Key key) {
     var row = key.getRowData();
     return row.length() > 0 && row.byteAt(row.length() - 1) == (byte) 0x00;
   }
