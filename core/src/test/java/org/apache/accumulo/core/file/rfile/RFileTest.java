@@ -1513,6 +1513,39 @@ public class RFileTest extends AbstractRFileTest {
   }
 
   @Test
+  public void testEstimateOverlappingEntries() throws IOException {
+    TestRFile trf = new TestRFile(conf);
+    // lower block sizes so estimates are closer
+    trf.openWriter(true, 100, 100);
+
+    // generate 1024 entries
+    int count = 0;
+    for (int row = 0; row < 4; row++) {
+      String rowS = formatString("r_", row);
+      for (int cf = 0; cf < 4; cf++) {
+        String cfS = formatString("cf_", cf);
+        for (int cq = 0; cq < 4; cq++) {
+          String cqS = formatString("cq_", cq);
+          for (int cv = 'A'; cv < 'A' + 4; cv++) {
+            String cvS = "" + (char) cv;
+            for (int ts = 4; ts > 0; ts--) {
+              Key k = newKey(rowS, cfS, cqS, cvS, ts);
+              Value v = newValue("" + count);
+              trf.writer.append(k, v);
+              count++;
+            }
+          }
+        }
+      }
+    }
+    trf.closeWriter();
+
+    trf.openReader();
+    verifyEstimated(trf.reader);
+    trf.closeReader();
+  }
+
+  @Test
   public void testMissingUnreleasedVersions() {
     assertThrows(NullPointerException.class,
         () -> runVersionTest(5, getAccumuloConfig(ConfigMode.CRYPTO_OFF)));
