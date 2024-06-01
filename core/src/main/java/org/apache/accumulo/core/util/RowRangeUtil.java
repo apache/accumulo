@@ -37,6 +37,7 @@ public class RowRangeUtil {
    * <li>A range that has an inclusive start and exclusive end</li>
    * <li>A range that only has the row portion set</li>
    * <li>A range where both the start and end key end with a zero byte</li>
+   * </ul>
    *
    * @param range The range to validate
    * @return The original range
