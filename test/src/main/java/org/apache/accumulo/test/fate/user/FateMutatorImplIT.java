@@ -33,8 +33,11 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.user.FateMutator;
 import org.apache.accumulo.core.fate.user.FateMutatorImpl;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.FateIT;
 import org.junit.jupiter.api.AfterAll;
@@ -167,6 +170,100 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
 
     }
 
+  }
+
+  @Test
+  public void testReservations() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table, ntc);
+
+      ClientContext context = (ClientContext) client;
+
+      FateId fateId =
+          FateId.from(FateInstanceType.fromNamespaceOrTableName(table), UUID.randomUUID());
+      ZooUtil.LockID lockID = new ZooUtil.LockID("/locks", "L1", 50);
+      FateStore.FateReservation reservation =
+          FateStore.FateReservation.from(lockID, UUID.randomUUID());
+      FateStore.FateReservation wrongReservation =
+          FateStore.FateReservation.from(lockID, UUID.randomUUID());
+
+      // Ensure that we cannot do anything in the column until it is initialized
+      FateMutator.Status status =
+          new FateMutatorImpl<>(context, table, fateId).putReservedTx(reservation).tryMutate();
+      assertEquals(REJECTED, status);
+      status =
+          new FateMutatorImpl<>(context, table, fateId).putUnreserveTx(reservation).tryMutate();
+      assertEquals(REJECTED, status);
+      status =
+          new FateMutatorImpl<>(context, table, fateId).requireReserved(reservation).tryMutate();
+      assertEquals(REJECTED, status);
+      status = new FateMutatorImpl<>(context, table, fateId).requireReserved().tryMutate();
+      assertEquals(REJECTED, status);
+      status = new FateMutatorImpl<>(context, table, fateId).requireUnreserved().tryMutate();
+      assertEquals(REJECTED, status);
+
+      // Initialize the column and ensure we can't do it twice
+      status = new FateMutatorImpl<>(context, table, fateId).putInitReserveColVal().tryMutate();
+      assertEquals(ACCEPTED, status);
+      status = new FateMutatorImpl<>(context, table, fateId).putInitReserveColVal().tryMutate();
+      assertEquals(REJECTED, status);
+
+      // Ensure that reserving is the only thing we can do
+      status =
+          new FateMutatorImpl<>(context, table, fateId).putUnreserveTx(reservation).tryMutate();
+      assertEquals(REJECTED, status);
+      status =
+          new FateMutatorImpl<>(context, table, fateId).requireReserved(reservation).tryMutate();
+      assertEquals(REJECTED, status);
+      status = new FateMutatorImpl<>(context, table, fateId).requireReserved().tryMutate();
+      assertEquals(REJECTED, status);
+      // It is considered unreserved since it has been initialized
+      status = new FateMutatorImpl<>(context, table, fateId).requireUnreserved().tryMutate();
+      assertEquals(ACCEPTED, status);
+
+      // Should be able to reserve
+      status = new FateMutatorImpl<>(context, table, fateId).putReservedTx(reservation).tryMutate();
+      assertEquals(ACCEPTED, status);
+
+      // Ensure that it is reserved
+      status =
+          new FateMutatorImpl<>(context, table, fateId).requireReserved(reservation).tryMutate();
+      assertEquals(ACCEPTED, status);
+      status = new FateMutatorImpl<>(context, table, fateId).requireReserved(wrongReservation)
+          .tryMutate();
+      assertEquals(REJECTED, status);
+      status = new FateMutatorImpl<>(context, table, fateId).requireReserved().tryMutate();
+      assertEquals(ACCEPTED, status);
+      status = new FateMutatorImpl<>(context, table, fateId).requireUnreserved().tryMutate();
+      assertEquals(REJECTED, status);
+      // Should not be able to reserve when it is already reserved
+      status =
+          new FateMutatorImpl<>(context, table, fateId).putReservedTx(wrongReservation).tryMutate();
+      assertEquals(REJECTED, status);
+      status = new FateMutatorImpl<>(context, table, fateId).putReservedTx(reservation).tryMutate();
+      assertEquals(REJECTED, status);
+
+      // Should be able to unreserve
+      status = new FateMutatorImpl<>(context, table, fateId).putUnreserveTx(wrongReservation)
+          .tryMutate();
+      assertEquals(REJECTED, status);
+      status =
+          new FateMutatorImpl<>(context, table, fateId).putUnreserveTx(reservation).tryMutate();
+      assertEquals(ACCEPTED, status);
+      status =
+          new FateMutatorImpl<>(context, table, fateId).putUnreserveTx(reservation).tryMutate();
+      assertEquals(REJECTED, status);
+
+      // Ensure that it is unreserved
+      status =
+          new FateMutatorImpl<>(context, table, fateId).requireReserved(reservation).tryMutate();
+      assertEquals(REJECTED, status);
+      status = new FateMutatorImpl<>(context, table, fateId).requireReserved().tryMutate();
+      assertEquals(REJECTED, status);
+      status = new FateMutatorImpl<>(context, table, fateId).requireUnreserved().tryMutate();
+      assertEquals(ACCEPTED, status);
+    }
   }
 
   void logAllEntriesInTable(String tableName, AccumuloClient client) throws Exception {

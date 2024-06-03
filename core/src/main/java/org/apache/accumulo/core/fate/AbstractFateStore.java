@@ -31,7 +31,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -44,6 +43,9 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.time.NanoTime;
@@ -54,6 +56,10 @@ import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+// TODO 4131 should probably add support to AbstractFateStore, MetaFateStore,
+// and UserFateStore to accept null lockID and zooCache (maybe make these fields
+// Optional<>). This could replace the current createDummyLockID(). This support
+// is needed since MFS and UFS aren't always created in the context of a Manager.
 public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(AbstractFateStore.class);
@@ -70,6 +76,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
   };
 
+  // The ZooKeeper lock for the process that's running this store instance
+  protected final ZooUtil.LockID lockID;
+  protected final ZooCache zooCache;
   protected final Map<FateId,NanoTime> deferred;
   private final int maxDeferred;
   private final AtomicBoolean deferredOverflow = new AtomicBoolean();
@@ -82,13 +91,20 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   private final AtomicInteger concurrentStatusChangeCallers = new AtomicInteger(0);
 
   public AbstractFateStore() {
-    this(DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
+    this(null, null, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
-  public AbstractFateStore(int maxDeferred, FateIdGenerator fateIdGenerator) {
+  public AbstractFateStore(ZooUtil.LockID lockID, ZooCache zooCache) {
+    this(lockID, zooCache, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
+  }
+
+  public AbstractFateStore(ZooUtil.LockID lockID, ZooCache zooCache, int maxDeferred,
+      FateIdGenerator fateIdGenerator) {
     this.maxDeferred = maxDeferred;
     this.fateIdGenerator = Objects.requireNonNull(fateIdGenerator);
     this.deferred = Collections.synchronizedMap(new HashMap<>());
+    this.lockID = lockID;
+    this.zooCache = zooCache;
   }
 
   public static byte[] serialize(Object o) {
@@ -317,6 +333,11 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     return txStore;
   }
 
+  @Override
+  public boolean isDeadReservation(FateReservation reservation) {
+    return !ServiceLock.isLockHeld(zooCache, reservation.getLockID());
+  }
+
   protected abstract void create(FateId fateId, FateKey fateKey);
 
   protected abstract Pair<TStatus,Optional<FateKey>> getStatusAndKey(FateId fateId);
@@ -329,23 +350,28 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   protected abstract FateTxStore<T> newUnreservedFateTxStore(FateId fateId);
 
-  protected abstract boolean isReserved(FateId fateId);
-
-  // TODO 4131 is public fine for this? Public for tests
-  public abstract List<FateId> getReservedTxns();
-
   protected abstract class AbstractFateTxStoreImpl<T> implements FateTxStore<T> {
     protected final FateId fateId;
     protected boolean deleted;
+    protected FateReservation reservation;
 
     protected TStatus observedStatus = null;
 
     protected AbstractFateTxStoreImpl(FateId fateId) {
       this.fateId = fateId;
       this.deleted = false;
+      this.reservation = null;
     }
 
-    protected abstract boolean isReserved();
+    protected AbstractFateTxStoreImpl(FateId fateId, FateReservation reservation) {
+      this.fateId = fateId;
+      this.deleted = false;
+      this.reservation = Objects.requireNonNull(reservation);
+    }
+
+    protected boolean isReserved() {
+      return this.reservation != null;
+    }
 
     @Override
     public TStatus waitForStatusChange(EnumSet<TStatus> expected) {
@@ -481,5 +507,15 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     } else {
       throw new IllegalStateException("Bad node data " + txInfo);
     }
+  }
+
+  /**
+   * TODO 4131 this is a temporary method used to create a dummy lock when using a FateStore outside
+   * of the context of a Manager (one example is testing).
+   *
+   * @return a dummy {@link ZooUtil.LockID}
+   */
+  public static ZooUtil.LockID createDummyLockID() {
+    return new ZooUtil.LockID("/path", "node", 123);
   }
 }

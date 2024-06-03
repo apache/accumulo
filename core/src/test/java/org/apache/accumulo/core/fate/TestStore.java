@@ -82,6 +82,28 @@ public class TestStore implements FateStore<String> {
     }
   }
 
+  public boolean isReserved(FateId fateId) {
+    return reserved.contains(fateId);
+  }
+
+  @Override
+  public Map<FateId,FateReservation> getActiveReservations() {
+    // This method only makes sense for the FateStores that don't store their reservations in memory
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void deleteDeadReservations() {
+    // This method only makes sense for the FateStores that don't store their reservations in memory
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean isDeadReservation(FateReservation reservation) {
+    // This method only makes sense for the FateStores that don't store their reservations in memory
+    throw new UnsupportedOperationException();
+  }
+
   private class TestFateTxStore implements FateTxStore<String> {
 
     private final FateId fateId;

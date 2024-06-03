@@ -20,6 +20,7 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -62,7 +63,6 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
@@ -772,10 +772,9 @@ public class Admin implements KeywordExecutable {
     var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
     String fateZkPath = zkRoot + Constants.ZFATE;
     ZooReaderWriter zk = context.getZooReaderWriter();
-    // TODO 4131 dummy lock for now
     MetaFateStore<Admin> mfs =
-        new MetaFateStore<>(fateZkPath, zk, new ZooUtil.LockID("path", "node", 1234));
-    UserFateStore<Admin> ufs = new UserFateStore<>(context);
+        new MetaFateStore<>(fateZkPath, zk, context.getZooCache(), createDummyLockID());
+    UserFateStore<Admin> ufs = new UserFateStore<>(context, createDummyLockID());
     Map<FateInstanceType,FateStore<Admin>> fateStores =
         Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
     Map<FateInstanceType,ReadOnlyFateStore<Admin>> readOnlyFateStores =

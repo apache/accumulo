@@ -1085,9 +1085,9 @@ public class Manager extends AbstractServer
     try {
       var metaInstance =
           initializeFateInstance(context, new MetaFateStore<>(getZooKeeperRoot() + Constants.ZFATE,
-              context.getZooReaderWriter(), managerLock.getLockID()));
+              context.getZooReaderWriter(), context.getZooCache(), managerLock.getLockID()));
       var userInstance = initializeFateInstance(context,
-          new UserFateStore<>(context, AccumuloTable.FATE.tableName()));
+          new UserFateStore<>(context, AccumuloTable.FATE.tableName(), managerLock.getLockID()));
 
       if (!fateRefs.compareAndSet(null,
           Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userInstance))) {
@@ -1199,6 +1199,7 @@ public class Manager extends AbstractServer
 
     final Fate<Manager> fateInstance =
         new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
+    fateInstance.startDeadReservationCleaner();
 
     var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), System::nanoTime);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()

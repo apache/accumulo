@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
-import static org.apache.accumulo.test.fate.meta.MetaFateIT.createTestLockID;
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore;
@@ -34,6 +34,7 @@ public class MetaFateOpsCommandsIT extends FateOpsCommandsIT {
     ServerContext sctx = getCluster().getServerContext();
     String path = sctx.getZooKeeperRoot() + Constants.ZFATE;
     ZooReaderWriter zk = sctx.getZooReaderWriter();
-    testMethod.execute(new MetaFateStore<>(path, zk, createTestLockID()), sctx);
+    testMethod.execute(new MetaFateStore<>(path, zk, sctx.getZooCache(), createDummyLockID()),
+        sctx);
   }
 }

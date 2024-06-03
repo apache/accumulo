@@ -19,10 +19,11 @@
 package org.apache.accumulo.core.fate.user;
 
 import org.apache.accumulo.core.fate.Fate;
-import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.user.schema.FateSchema;
 
 public interface FateMutator<T> {
 
@@ -32,13 +33,54 @@ public interface FateMutator<T> {
 
   FateMutator<T> putCreateTime(long ctime);
 
-  FateMutator<T> putReservedTx(FateId fateId);
+  /**
+   * Add a conditional mutation to {@link FateSchema.TxColumnFamily#RESERVATION_COLUMN} that will
+   * put the reservation if there is not already a reservation present
+   *
+   * @param reservation the reservation to attempt to put
+   * @return the FateMutator with this added mutation
+   */
+  FateMutator<T> putReservedTx(FateStore.FateReservation reservation);
 
-  FateMutator<T> putUnreserveTx(FateId fateId);
+  /**
+   * Add a conditional mutation to {@link FateSchema.TxColumnFamily#RESERVATION_COLUMN} that will
+   * remove the given reservation if it matches what is present in the column.
+   *
+   * @param reservation the reservation to attempt to remove
+   * @return the FateMutator with this added mutation
+   */
+  FateMutator<T> putUnreserveTx(FateStore.FateReservation reservation);
 
-  FateMutator<T> putInitReserveColVal(FateId fateId);
+  /**
+   * Add a conditional mutation to {@link FateSchema.TxColumnFamily#RESERVATION_COLUMN} that will
+   * put the initial column value if it has not already been set yet
+   *
+   * @return the FateMutator with this added mutation
+   */
+  FateMutator<T> putInitReserveColVal();
 
-  FateMutator<T> requireReserved(FateId fateId);
+  /**
+   * Require that the transaction is reserved with a specific {@link FateStore.FateReservation}
+   *
+   * @param reservation the reservation
+   * @return the FateMutator with the added condition
+   */
+  FateMutator<T> requireReserved(FateStore.FateReservation reservation);
+
+  /**
+   * Require that the transaction is reserved (can be reserved with any
+   * {@link FateStore.FateReservation})
+   *
+   * @return the FateMutator with the added condition
+   */
+  FateMutator<T> requireReserved();
+
+  /**
+   * Require that the transaction is unreserved
+   *
+   * @return the FateMutator with the added condition
+   */
+  FateMutator<T> requireUnreserved();
 
   FateMutator<T> putName(byte[] data);
 

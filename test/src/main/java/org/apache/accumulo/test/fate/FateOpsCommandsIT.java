@@ -552,7 +552,9 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    return new Fate<>(new TestEnv(), store, Object::toString, config);
+    Fate<TestEnv> fate = new Fate<>(new TestEnv(), store, Object::toString, config);
+    fate.startDeadReservationCleaner();
+    return fate;
   }
 
   private boolean wordIsTStatus(String word) {

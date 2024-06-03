@@ -74,10 +74,14 @@ public class Fate<T> {
   private final ExecutorService executor;
 
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
+  private static boolean userDeadReservationCleanerRunning = false;
+  private static boolean metaDeadReservationCleanerRunning = false;
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final TransferQueue<FateId> workQueue;
   private final Thread workFinder;
+  // Will be null if this Fate instance is not running a DeadReservationCleaner
+  private Thread deadReservationCleaner;
 
   public enum TxInfo {
     TX_NAME, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
@@ -290,6 +294,26 @@ public class Fate<T> {
   }
 
   /**
+   * A thread that finds reservations held by dead processes and unreserves them. Only one thread
+   * runs per store type across all Fate instances (one to clean up dead reservations for
+   * {@link org.apache.accumulo.core.fate.user.UserFateStore UserFateStore} and one to clean up dead
+   * reservations for {@link MetaFateStore}).
+   */
+  private class DeadReservationCleaner implements Runnable {
+    // TODO 4131 periodic check runs every 30 seconds
+    // Should this be longer? Shorter? A configurable Property? A function of something?
+    private static final long INTERVAL_MILLIS = 30_000;
+
+    @Override
+    public void run() {
+      while (keepRunning.get()) {
+        store.deleteDeadReservations();
+        UtilWaitThread.sleep(INTERVAL_MILLIS);
+      }
+    }
+  }
+
+  /**
    * Creates a Fault-tolerant executor.
    *
    * @param toLogStrFunc A function that converts Repo to Strings that are suitable for logging
@@ -330,6 +354,33 @@ public class Fate<T> {
 
     this.workFinder = Threads.createThread("Fate work finder", new WorkFinder());
     this.workFinder.start();
+  }
+
+  /**
+   * Starts a thread that periodically cleans up "dead reservations" (see
+   * {@link FateStore#deleteDeadReservations()}). Only one thread is started per store type
+   * ({@link FateInstanceType}) for subsequent calls to this method.
+   */
+  public void startDeadReservationCleaner() {
+    // TODO 4131 this is not ideal starting this thread in its own start method, but the other
+    // threads in the constructor. However, starting this thread in the constructor causes
+    // a Maven build failure, and do not want to move starting the other threads into a
+    // method in this PR... should be done standalone (see issue#4609).
+
+    if ((store.type().equals(FateInstanceType.USER) && !userDeadReservationCleanerRunning)
+        || store.type().equals(FateInstanceType.META) && !metaDeadReservationCleanerRunning) {
+      if (store.type().equals(FateInstanceType.USER)) {
+        this.deadReservationCleaner =
+            Threads.createThread("USER dead reservation cleaner", new DeadReservationCleaner());
+        userDeadReservationCleanerRunning = true;
+      } else if (store.type().equals(FateInstanceType.META)) {
+        this.deadReservationCleaner =
+            Threads.createThread("META dead reservation cleaner", new DeadReservationCleaner());
+        metaDeadReservationCleanerRunning = true;
+      }
+      this.deadReservationCleaner.start();
+    }
+
   }
 
   // get a transaction id back to the requester before doing any work
@@ -498,13 +549,17 @@ public class Fate<T> {
       fatePoolWatcher.shutdown();
       executor.shutdown();
       workFinder.interrupt();
+      if (deadReservationCleaner != null) {
+        deadReservationCleaner.interrupt();
+      }
     }
 
     if (timeout > 0) {
       long start = System.nanoTime();
 
-      while ((System.nanoTime() - start) < timeUnit.toNanos(timeout)
-          && (workFinder.isAlive() || !executor.isTerminated())) {
+      while ((System.nanoTime() - start) < timeUnit.toNanos(timeout) && (workFinder.isAlive()
+          || (deadReservationCleaner != null && deadReservationCleaner.isAlive())
+          || !executor.isTerminated())) {
         try {
           if (!executor.awaitTermination(1, SECONDS)) {
             log.debug("Fate {} is waiting for worker threads to terminate", store.type());
@@ -516,19 +571,40 @@ public class Fate<T> {
             log.debug("Fate {} is waiting for work finder thread to terminate", store.type());
             workFinder.interrupt();
           }
+
+          if (deadReservationCleaner != null) {
+            deadReservationCleaner.join(1_000);
+          }
+          if (deadReservationCleaner != null && deadReservationCleaner.isAlive()) {
+            log.debug("Fate {} is waiting for dead reservation cleaner thread to terminate",
+                store.type());
+            deadReservationCleaner.interrupt();
+          }
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
       }
 
-      if (workFinder.isAlive() || !executor.isTerminated()) {
+      if (workFinder.isAlive()
+          || (deadReservationCleaner != null && deadReservationCleaner.isAlive())
+          || !executor.isTerminated()) {
         log.warn(
-            "Waited for {}ms for all fate {} background threads to stop, but some are still running. workFinder:{} executor:{}",
+            "Waited for {}ms for all fate {} background threads to stop, but some are still running. workFinder:{} deadReservationCleaner:{} executor:{}",
             TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), store.type(),
-            workFinder.isAlive(), !executor.isTerminated());
+            workFinder.isAlive(),
+            (deadReservationCleaner != null && deadReservationCleaner.isAlive()),
+            !executor.isTerminated());
       }
     }
 
+    // Update that USER/META dead reservation cleaner is no longer running
+    if (deadReservationCleaner != null && !deadReservationCleaner.isAlive()) {
+      if (store.type().equals(FateInstanceType.USER)) {
+        userDeadReservationCleanerRunning = false;
+      } else if (store.type().equals(FateInstanceType.META)) {
+        metaDeadReservationCleanerRunning = false;
+      }
+    }
     // interrupt the background threads
     executor.shutdownNow();
   }

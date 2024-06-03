@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP3;
@@ -31,7 +32,6 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.cr
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.row;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
-import static org.apache.accumulo.test.fate.meta.MetaFateIT.createTestLockID;
 import static org.apache.accumulo.test.util.FileMetadataUtil.countFencedFiles;
 import static org.apache.accumulo.test.util.FileMetadataUtil.splitFilesIntoRanges;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -234,7 +234,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   public void testCompactionCommitAndDeadDetectionRoot() throws Exception {
     var ctx = getCluster().getServerContext();
     FateStore<Manager> metaFateStore = new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE,
-        ctx.getZooReaderWriter(), createTestLockID());
+        ctx.getZooReaderWriter(), ctx.getZooCache(), createDummyLockID());
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       var tableId = ctx.getTableId(AccumuloTable.ROOT.tableName());
@@ -253,7 +253,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   public void testCompactionCommitAndDeadDetectionMeta() throws Exception {
     var ctx = getCluster().getServerContext();
     FateStore<Manager> metaFateStore = new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE,
-        ctx.getZooReaderWriter(), createTestLockID());
+        ctx.getZooReaderWriter(), ctx.getZooCache(), createDummyLockID());
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       // Metadata table by default already has 2 tablets
@@ -275,7 +275,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     final String tableName = getUniqueNames(1)[0];
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      UserFateStore<Manager> userFateStore = new UserFateStore<>(ctx);
+      UserFateStore<Manager> userFateStore = new UserFateStore<>(ctx, createDummyLockID());
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));
       c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
@@ -298,9 +298,10 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     final String userTable = getUniqueNames(1)[0];
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      UserFateStore<Manager> userFateStore = new UserFateStore<>(ctx);
-      FateStore<Manager> metaFateStore = new MetaFateStore<>(
-          ctx.getZooKeeperRoot() + Constants.ZFATE, ctx.getZooReaderWriter(), createTestLockID());
+      UserFateStore<Manager> userFateStore = new UserFateStore<>(ctx, createDummyLockID());
+      FateStore<Manager> metaFateStore =
+          new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE, ctx.getZooReaderWriter(),
+              ctx.getZooCache(), createDummyLockID());
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));

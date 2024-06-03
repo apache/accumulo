@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
@@ -76,12 +76,8 @@ public class MetaFateIT extends FateIT {
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(sctx);
 
-    testMethod.execute(new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk, createTestLockID(),
+    testMethod.execute(new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk, null, createDummyLockID(),
         maxDeferred, fateIdGenerator), sctx);
-  }
-
-  public static ZooUtil.LockID createTestLockID() {
-    return new ZooUtil.LockID("S1", "N1", 1234);
   }
 
   @Override

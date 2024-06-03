@@ -19,7 +19,9 @@
 package org.apache.accumulo.core.fate.user;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -45,6 +47,7 @@ import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.RepoColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxInfoColumnFamily;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -69,20 +72,20 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   private static final com.google.common.collect.Range<Integer> REPO_RANGE =
       com.google.common.collect.Range.closed(1, maxRepos);
 
-  public UserFateStore(ClientContext context, String tableName) {
-    this(context, tableName, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
+  public UserFateStore(ClientContext context, String tableName, ZooUtil.LockID lockID) {
+    this(context, tableName, lockID, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
   @VisibleForTesting
-  public UserFateStore(ClientContext context, String tableName, int maxDeferred,
-      FateIdGenerator fateIdGenerator) {
-    super(maxDeferred, fateIdGenerator);
+  public UserFateStore(ClientContext context, String tableName, ZooUtil.LockID lockID,
+      int maxDeferred, FateIdGenerator fateIdGenerator) {
+    super(lockID, context.getZooCache(), maxDeferred, fateIdGenerator);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
   }
 
-  public UserFateStore(ClientContext context) {
-    this(context, AccumuloTable.FATE.tableName());
+  public UserFateStore(ClientContext context, ZooUtil.LockID lockID) {
+    this(context, AccumuloTable.FATE.tableName(), lockID);
   }
 
   @Override
@@ -98,7 +101,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       }
 
       var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW)
-          .putCreateTime(System.currentTimeMillis()).putInitReserveColVal(fateId).tryMutate();
+          .putCreateTime(System.currentTimeMillis()).putInitReserveColVal().tryMutate();
 
       switch (status) {
         case ACCEPTED:
@@ -131,7 +134,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       }
 
       var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW).putKey(fateKey)
-          .putCreateTime(System.currentTimeMillis()).putInitReserveColVal(fateId).tryMutate();
+          .putCreateTime(System.currentTimeMillis()).putInitReserveColVal().tryMutate();
 
       switch (status) {
         case ACCEPTED:
@@ -152,34 +155,71 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
-    // TODO 4131 should this throw an exception if the id doesn't exist (status = UNKNOWN)?
-    FateMutator.Status status = newMutator(fateId).putReservedTx(fateId).tryMutate();
+    // Create a unique FateReservation for this reservation attempt
+    FateReservation reservation = FateReservation.from(lockID, UUID.randomUUID());
+
+    FateMutator.Status status = newMutator(fateId).putReservedTx(reservation).tryMutate();
     if (status.equals(FateMutator.Status.ACCEPTED)) {
-      return Optional.of(new FateTxStoreImpl(fateId, true));
-    } else {
-      return Optional.empty();
+      return Optional.of(new FateTxStoreImpl(fateId, reservation));
+    } else if (status.equals(FateMutator.Status.UNKNOWN)) {
+      // If the status is UNKNOWN, this means an error occurred after the mutation was
+      // sent to the TabletServer, and it is unknown if the mutation was written. We
+      // need to check if the mutation was written and if it was written by this
+      // attempt at reservation. If it was written by this reservation attempt,
+      // we can return the FateTxStore since it was successfully reserved in this
+      // attempt, otherwise we return empty (was written by another reservation
+      // attempt or was not written at all).
+      status = newMutator(fateId).requireReserved(reservation).tryMutate();
+      if (status.equals(FateMutator.Status.ACCEPTED)) {
+        return Optional.of(new FateTxStoreImpl(fateId, reservation));
+      }
     }
+    return Optional.empty();
   }
 
   @Override
-  protected boolean isReserved(FateId fateId) {
-    return newMutator(fateId).requireReserved(fateId).tryMutate()
-        .equals(FateMutator.Status.ACCEPTED);
+  public boolean isReserved(FateId fateId) {
+    return newMutator(fateId).requireReserved().tryMutate().equals(FateMutator.Status.ACCEPTED);
   }
 
-  // TODO 4131 is public fine for this? Public for tests
   @Override
-  public List<FateId> getReservedTxns() {
+  public Map<FateId,FateReservation> getActiveReservations() {
+    Map<FateId,FateReservation> activeReservations = new HashMap<>();
+
     try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
       scanner.setRange(new Range());
-      scanner.fetchColumn(TxColumnFamily.RESERVED_COLUMN.getColumnFamily(),
-          TxColumnFamily.RESERVED_COLUMN.getColumnQualifier());
-      return scanner.stream()
-          .filter(e -> e.getValue().toString().equals(FateMutatorImpl.IS_RESERVED))
-          .map(e -> FateId.from(fateInstanceType, e.getKey().getRow().toString()))
-          .collect(Collectors.toList());
+      scanner.fetchColumn(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+          TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+      scanner.stream()
+          .filter(entry -> FateReservation.isFateReservation(entry.getValue().toString()))
+          .forEach(entry -> {
+            String reservationColVal = entry.getValue().toString();
+            FateId fateId = FateId.from(fateInstanceType, entry.getKey().getRow().toString());
+            FateReservation reservation = FateReservation.from(reservationColVal);
+            activeReservations.put(fateId, reservation);
+          });
     } catch (TableNotFoundException e) {
       throw new IllegalStateException(tableName + " not found!", e);
+    }
+
+    return activeReservations;
+  }
+
+  @Override
+  public void deleteDeadReservations() {
+    for (Entry<FateId,FateReservation> entry : getActiveReservations().entrySet()) {
+      FateId fateId = entry.getKey();
+      FateReservation reservation = entry.getValue();
+      if (isDeadReservation(reservation)) {
+        newMutator(fateId).putUnreserveTx(reservation).tryMutate();
+        // No need to check the status... If it is ACCEPTED, we have successfully unreserved
+        // the dead transaction. If it is REJECTED, the reservation has changed (i.e.,
+        // has been unreserved so no need to do anything, or has been unreserved and reserved
+        // again in which case we don't want to change it). If it is UNKNOWN, the mutation
+        // may or may not have been written. If it was written, we have successfully unreserved
+        // the dead transaction. If it was not written, the next cycle/call to
+        // deleteDeadReservations() will try again.
+      }
     }
   }
 
@@ -268,7 +308,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   protected FateTxStore<T> newUnreservedFateTxStore(FateId fateId) {
-    return new FateTxStoreImpl(fateId, false);
+    return new FateTxStoreImpl(fateId);
   }
 
   static Range getRow(FateId fateId) {
@@ -297,16 +337,13 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   private class FateTxStoreImpl extends AbstractFateTxStoreImpl<T> {
-    private boolean isReserved;
 
-    private FateTxStoreImpl(FateId fateId, boolean isReserved) {
+    private FateTxStoreImpl(FateId fateId) {
       super(fateId);
-      this.isReserved = isReserved;
     }
 
-    @Override
-    protected boolean isReserved() {
-      return isReserved;
+    private FateTxStoreImpl(FateId fateId, FateReservation reservation) {
+      super(fateId, reservation);
     }
 
     @Override
@@ -450,13 +487,13 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     protected void unreserve() {
-      if (!this.deleted) {
-        FateMutator.Status status = newMutator(fateId).putUnreserveTx(fateId).tryMutate();
-        if (!status.equals(FateMutator.Status.ACCEPTED)) {
-          throw new IllegalStateException("Failed to unreserve " + fateId);
-        }
+      if (!deleted) {
+        FateMutator.Status status;
+        do {
+          status = newMutator(fateId).putUnreserveTx(reservation).tryMutate();
+        } while (status.equals(FateMutator.Status.UNKNOWN));
       }
-      this.isReserved = false;
+      reservation = null;
     }
   }
 
