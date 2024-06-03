@@ -39,6 +39,8 @@ public class MetaFateInterleavingIT extends FateInterleavingIT {
     String path = ZK_ROOT + Constants.ZFATE;
     ZooReaderWriter zk = sctx.getZooReaderWriter();
     zk.mkdirs(ZK_ROOT);
-    testMethod.execute(new MetaFateStore<>(path, zk), sctx);
+    testMethod.execute(
+        new MetaFateStore<>(path, zk, sctx.getZooCache(), AbstractFateStore.createDummyLockID()),
+        sctx);
   }
 }

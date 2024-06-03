@@ -121,10 +121,6 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
-    // return an empty option if the FateId doesn't exist
-    if (_getStatus(fateId).equals(TStatus.UNKNOWN)) {
-      return Optional.empty();
-    }
     // uniquely identify this attempt to reserve the fate operation data
     FateReservation reservation = FateReservation.from(lockID, UUID.randomUUID());
 

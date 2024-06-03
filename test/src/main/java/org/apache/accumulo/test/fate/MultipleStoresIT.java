@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -162,7 +163,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
       reservation.setStatus(ReadOnlyFateStore.TStatus.SUBMITTED);
       assertEquals(ReadOnlyFateStore.TStatus.SUBMITTED, reservation.getStatus());
       reservation.delete();
-      reservation.unreserve(0, TimeUnit.MILLISECONDS);
+      reservation.unreserve(Duration.ofMillis(0));
       // Attempt to set a status on a tx that has been unreserved (should throw exception)
       assertThrows(IllegalStateException.class,
           () -> reservation.setStatus(ReadOnlyFateStore.TStatus.NEW));
@@ -179,8 +180,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
 
   private void testReserveNonExistentTxn(FateInstanceType storeType) throws Exception {
     // Tests that reserve() doesn't hang indefinitely and instead throws an error
-    // on reserve() a non-existent transaction. Tests that tryReserve() will return
-    // an empty optional on non-existent transaction.
+    // on reserve() a non-existent transaction.
     final FateStore<SleepingTestEnv> store;
     final boolean isUserStore = storeType.equals(FateInstanceType.USER);
     final String tableName = getUniqueNames(1)[0];
@@ -195,7 +195,6 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     }
 
     assertThrows(IllegalStateException.class, () -> store.reserve(fakeFateId));
-    assertTrue(store.tryReserve(fakeFateId).isEmpty());
   }
 
   @Test
@@ -238,12 +237,11 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
 
     // Unreserve all the FateIds
     for (var reservation : reservations) {
-      reservation.unreserve(0, TimeUnit.MILLISECONDS);
+      reservation.unreserve(Duration.ofMillis(0));
     }
     // Try to unreserve again (should throw exception)
     for (var reservation : reservations) {
-      assertThrows(IllegalStateException.class,
-          () -> reservation.unreserve(0, TimeUnit.MILLISECONDS));
+      assertThrows(IllegalStateException.class, () -> reservation.unreserve(Duration.ofMillis(0)));
     }
   }
 
@@ -282,7 +280,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
 
     // Unreserve all
     for (var reservation : reservations) {
-      reservation.unreserve(0, TimeUnit.MILLISECONDS);
+      reservation.unreserve(Duration.ofMillis(0));
     }
 
     // Ensure they can be reserved again, and delete and unreserve this time
@@ -292,7 +290,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
       var reservation = store.tryReserve(fateId);
       assertFalse(reservation.isEmpty());
       reservation.orElseThrow().delete();
-      reservation.orElseThrow().unreserve(0, TimeUnit.MILLISECONDS);
+      reservation.orElseThrow().unreserve(Duration.ofMillis(0));
     }
 
     for (FateId fateId : allIds) {
