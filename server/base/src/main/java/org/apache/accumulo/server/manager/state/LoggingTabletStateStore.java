@@ -21,14 +21,16 @@ package org.apache.accumulo.server.manager.state;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.net.HostAndPort;
@@ -61,10 +63,15 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments)
+  public Set<KeyExtent> setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
-    wrapped.setFutureLocations(assignments);
-    assignments.forEach(assignment -> TabletLogger.assigned(assignment.tablet, assignment.server));
+    var failures = wrapped.setFutureLocations(assignments);
+    assignments.forEach(assignment -> {
+      if (!failures.contains(assignment.tablet)) {
+        TabletLogger.assigned(assignment.tablet, assignment.server);
+      }
+    });
+    return failures;
   }
 
   @Override
@@ -89,7 +96,7 @@ class LoggingTabletStateStore implements TabletStateStore {
 
   @Override
   public void suspend(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     wrapped.suspend(tablets, logsForDeadServers, suspensionTimestamp);
 
@@ -103,7 +110,7 @@ class LoggingTabletStateStore implements TabletStateStore {
       if (location != null) {
         server = location.getHostAndPort();
       }
-      TabletLogger.suspended(tm.getExtent(), server, suspensionTimestamp, TimeUnit.MILLISECONDS,
+      TabletLogger.suspended(tm.getExtent(), server, suspensionTimestamp,
           logsForDeadServers.size());
     }
   }

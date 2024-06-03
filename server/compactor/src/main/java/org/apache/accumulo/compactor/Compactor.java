@@ -22,7 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
+import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +65,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
@@ -79,11 +81,12 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
@@ -109,6 +112,7 @@ import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.tserver.log.LogSorter;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -119,6 +123,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -136,7 +141,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   private ServiceLock compactorLock;
   private ServerAddress compactorAddress = null;
-  private PausedCompactionMetrics pausedMetrics;
+  private final PausedCompactionMetrics pausedMetrics = new PausedCompactionMetrics();
 
   // Exposed for tests
   protected volatile boolean shutdown = false;
@@ -152,9 +157,24 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     return conf.get(Property.COMPACTOR_GROUP_NAME);
   }
 
+  private long getTotalEntriesRead() {
+    return FileCompactor.getTotalEntriesRead();
+  }
+
+  private long getTotalEntriesWritten() {
+    return FileCompactor.getTotalEntriesWritten();
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
+    FunctionCounter.builder(METRICS_COMPACTOR_ENTRIES_READ, this, Compactor::getTotalEntriesRead)
+        .description("Number of entries read by all compactions that have run on this compactor")
+        .register(registry);
+    FunctionCounter
+        .builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, this, Compactor::getTotalEntriesWritten)
+        .description("Number of entries written by all compactions that have run on this compactor")
+        .register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
         .description("Number and duration of stuck major compactions").register(registry);
     CompactionWatcher.setTimer(timer);
@@ -500,9 +520,15 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
         final Map<StoredTabletFile,DataFileValue> files = new TreeMap<>();
         job.getFiles().forEach(f -> {
-          files.put(new StoredTabletFile(f.getMetadataFileEntry()),
-              new DataFileValue(f.getSize(), f.getEntries(), f.getTimestamp()));
-          totalInputEntries.add(f.getEntries());
+          long estEntries = f.getEntries();
+          StoredTabletFile stf = new StoredTabletFile(f.getMetadataFileEntry());
+          // This happens with bulk import files
+          if (estEntries == 0) {
+            estEntries =
+                estimateOverlappingEntries(extent, stf, aConfig, tConfig.getCryptoService());
+          }
+          files.put(stf, new DataFileValue(f.getSize(), estEntries, f.getTimestamp()));
+          totalInputEntries.add(estEntries);
           totalInputBytes.add(f.getSize());
         });
 
@@ -542,6 +568,27 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         Preconditions.checkState(compactionRunning.compareAndSet(true, false));
       }
     };
+  }
+
+  /**
+   * @param extent the extent
+   * @param file the file to read from
+   * @param tableConf the table configuration
+   * @param cryptoService the crypto service
+   * @return an estimate of the number of key/value entries in the file that overlap the extent
+   */
+  private long estimateOverlappingEntries(KeyExtent extent, StoredTabletFile file,
+      AccumuloConfiguration tableConf, CryptoService cryptoService) {
+    FileOperations fileFactory = FileOperations.getInstance();
+    FileSystem fs = getContext().getVolumeManager().getFileSystemByPath(file.getPath());
+
+    try (FileSKVIterator reader =
+        fileFactory.newReaderBuilder().forFile(file, fs, fs.getConf(), cryptoService)
+            .withTableConfiguration(tableConf).dropCachesBehind().build()) {
+      return reader.estimateOverlappingEntries(extent);
+    } catch (IOException ioe) {
+      throw new UncheckedIOException(ioe);
+    }
   }
 
   /**
@@ -592,17 +639,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error registering compactor in ZooKeeper", e);
     }
+    this.getContext().setServiceLock(compactorLock);
 
-    try {
-      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          clientAddress, getContext().getInstanceName(), this.getResourceGroup());
-      pausedMetrics = new PausedCompactionMetrics();
-      MetricsUtil.initializeProducers(this, pausedMetrics);
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-        | SecurityException e1) {
-      LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
-    }
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addServiceTags(getApplicationName(), clientAddress, getResourceGroup());
+
+    metricsInfo.addMetricsProducers(this, pausedMetrics);
+    metricsInfo.init();
 
     var watcher = new CompactionWatcher(getConfiguration());
     var schedExecutor = ThreadPools.getServerThreadPools()
@@ -683,20 +726,21 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
               // Compaction has started. There should only be one in the list
               CompactionInfo info = running.get(0);
               if (info != null) {
+                final long entriesRead = info.getEntriesRead();
+                final long entriesWritten = info.getEntriesWritten();
                 if (inputEntries > 0) {
-                  percentComplete =
-                      Float.toString((info.getEntriesRead() / (float) inputEntries) * 100);
+                  percentComplete = Float.toString((entriesRead / (float) inputEntries) * 100);
                 }
                 String message = String.format(
                     "Compaction in progress, read %d of %d input entries ( %s %s ), written %d entries, paused %d times",
-                    info.getEntriesRead(), inputEntries, percentComplete, "%",
-                    info.getEntriesWritten(), info.getTimesPaused());
+                    entriesRead, inputEntries, percentComplete, "%", entriesWritten,
+                    info.getTimesPaused());
                 watcher.run();
                 try {
                   LOG.debug("Updating coordinator with compaction progress: {}.", message);
                   TCompactionStatusUpdate update =
                       new TCompactionStatusUpdate(TCompactionState.IN_PROGRESS, message,
-                          inputEntries, info.getEntriesRead(), info.getEntriesWritten());
+                          inputEntries, entriesRead, entriesWritten);
                   updateCompactionState(job, update);
                 } catch (RetriesExceededException e) {
                   LOG.warn("Error updating coordinator with compaction progress, error: {}",

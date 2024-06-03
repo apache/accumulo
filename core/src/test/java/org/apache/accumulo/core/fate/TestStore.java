@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.fate;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -28,15 +29,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.fate.FateStore.FateTxStore;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.ReadOnlyFateTxStore;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.util.Pair;
 
 /**
@@ -211,7 +207,7 @@ public class TestStore implements FateStore<String> {
     }
 
     @Override
-    public void unreserve(long deferTime, TimeUnit timeUnit) {
+    public void unreserve(Duration deferTime) {
       if (!reserved.remove(fateId)) {
         throw new IllegalStateException();
       }
@@ -236,6 +232,11 @@ public class TestStore implements FateStore<String> {
         return e.getValue().getFirst();
       }
     });
+  }
+
+  @Override
+  public Stream<FateIdStatus> list(Set<TStatus> statuses) {
+    return list().filter(fis -> statuses.contains(fis.getStatus()));
   }
 
   @Override

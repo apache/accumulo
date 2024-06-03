@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -109,6 +110,7 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CommitCompaction;
@@ -156,11 +158,12 @@ public class CompactionCoordinator
       new ConcurrentHashMap<>();
 
   /* Map of group name to last time compactor called to get a compaction job */
-  // ELASTICITY_TODO need to clean out groups that are no longer configured..
+  // ELASTICITY_TODO #4403 need to clean out groups that are no longer configured..
   private final Map<CompactorGroupId,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
 
   private final ServerContext ctx;
   private final SecurityOperation security;
+  private final String resourceGroupName;
   private final CompactionJobQueues jobQueues;
   private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
   // Exposed for tests
@@ -173,13 +176,17 @@ public class CompactionCoordinator
   private final Cache<Path,Integer> tabletDirCache;
   private final DeadCompactionDetector deadCompactionDetector;
 
-  private final QueueMetrics queueMetrics;
+  private QueueMetrics queueMetrics;
+  private final Manager manager;
 
   public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
-      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances) {
+      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances,
+      final String resourceGroupName, Manager manager) {
     this.ctx = ctx;
     this.schedExecutor = this.ctx.getScheduledExecutor();
     this.security = security;
+    this.resourceGroupName = resourceGroupName;
+    this.manager = Objects.requireNonNull(manager);
 
     this.jobQueues = new CompactionJobQueues(
         ctx.getConfiguration().getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE));
@@ -268,7 +275,6 @@ public class CompactionCoordinator
 
   @Override
   public void run() {
-
     startCompactionCleaner(schedExecutor);
     startRunningCleaner(schedExecutor);
 
@@ -421,7 +427,7 @@ public class CompactionCoordinator
 
   @VisibleForTesting
   public static boolean canReserveCompaction(TabletMetadata tablet, CompactionKind kind,
-      Set<StoredTabletFile> jobFiles, ServerContext ctx) {
+      Set<StoredTabletFile> jobFiles, ServerContext ctx, SteadyTime steadyTime) {
 
     if (tablet == null) {
       // the tablet no longer exist
@@ -455,13 +461,12 @@ public class CompactionCoordinator
               "Unable to reserve {} for system compaction, tablet has {} pending requested user compactions",
               tablet.getExtent(), userRequestedCompactions);
           return false;
-        } else if (tablet.getSelectedFiles() != null
-            && !Collections.disjoint(jobFiles, tablet.getSelectedFiles().getFiles())) {
+        } else if (!Collections.disjoint(jobFiles,
+            getFilesReservedBySelection(tablet, steadyTime, ctx))) {
           return false;
         }
         break;
       case USER:
-      case SELECTOR:
         if (tablet.getSelectedFiles() == null
             || !tablet.getSelectedFiles().getFiles().containsAll(jobFiles)) {
           return false;
@@ -509,7 +514,6 @@ public class CompactionCoordinator
         propDels = !compactingAll;
       }
         break;
-      case SELECTOR:
       case USER: {
         boolean compactingAll = tablet.getSelectedFiles().initiallySelectedAll()
             && tablet.getSelectedFiles().getFiles().equals(jobFiles);
@@ -549,7 +553,8 @@ public class CompactionCoordinator
       try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
         var extent = metaJob.getTabletMetadata().getExtent();
 
-        if (!canReserveCompaction(tabletMetadata, metaJob.getJob().getKind(), jobFiles, ctx)) {
+        if (!canReserveCompaction(tabletMetadata, metaJob.getJob().getKind(), jobFiles, ctx,
+            manager.getSteadyTime())) {
           return null;
         }
 
@@ -560,6 +565,21 @@ public class CompactionCoordinator
         // must be included in the requireSame call
         var tabletMutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
             .requireSame(tabletMetadata, FILES, SELECTED, ECOMP);
+
+        if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
+          var selectedFiles = tabletMetadata.getSelectedFiles();
+          var reserved = getFilesReservedBySelection(tabletMetadata, manager.getSteadyTime(), ctx);
+
+          // If there is a selectedFiles column, and the reserved set is empty this means that
+          // either no user jobs were completed yet or the selection expiration time has passed
+          // so the column is eligible to be deleted so a system job can run instead
+          if (selectedFiles != null && reserved.isEmpty()
+              && !Collections.disjoint(jobFiles, selectedFiles.getFiles())) {
+            LOG.debug("Deleting user compaction selected files for {} {}", extent,
+                externalCompactionId);
+            tabletMutator.deleteSelectedFiles();
+          }
+        }
 
         tabletMutator.putExternalCompaction(externalCompactionId, ecm);
         tabletMutator.submit(tm -> tm.getExternalCompactions().containsKey(externalCompactionId));
@@ -630,8 +650,10 @@ public class CompactionCoordinator
   @Override
   public void registerMetrics(MeterRegistry registry) {
     Gauge.builder(METRICS_MAJC_QUEUED, jobQueues, CompactionJobQueues::getQueuedJobCount)
+        .tag("subprocess", "compaction.coordinator")
         .description("Number of queued major compactions").register(registry);
     Gauge.builder(METRICS_MAJC_RUNNING, this, CompactionCoordinator::getNumRunningCompactions)
+        .tag("subprocess", "compaction.coordinator")
         .description("Number of running major compactions").register(registry);
 
     queueMetrics.registerMetrics(registry);
@@ -1050,4 +1072,24 @@ public class CompactionCoordinator
     }
   }
 
+  private static Set<StoredTabletFile> getFilesReservedBySelection(TabletMetadata tabletMetadata,
+      SteadyTime steadyTime, ServerContext ctx) {
+    if (tabletMetadata.getSelectedFiles() == null) {
+      return Set.of();
+    }
+
+    if (tabletMetadata.getSelectedFiles().getCompletedJobs() > 0) {
+      return tabletMetadata.getSelectedFiles().getFiles();
+    }
+
+    long selectedExpirationDuration = ctx.getTableConfiguration(tabletMetadata.getTableId())
+        .getTimeInMillis(Property.TABLE_COMPACTION_SELECTION_EXPIRATION);
+
+    if (steadyTime.minus(tabletMetadata.getSelectedFiles().getSelectedTime()).toMillis()
+        < selectedExpirationDuration) {
+      return tabletMetadata.getSelectedFiles().getFiles();
+    }
+
+    return Set.of();
+  }
 }

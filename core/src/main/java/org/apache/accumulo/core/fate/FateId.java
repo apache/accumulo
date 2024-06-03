@@ -18,14 +18,16 @@
  */
 package org.apache.accumulo.core.fate;
 
+import static org.apache.accumulo.core.util.UuidUtil.isUUID;
+
+import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
+
+import com.google.common.base.Preconditions;
 
 /**
  * A strongly typed FATE Transaction ID. This is used to uniquely identify a FATE transaction.
@@ -36,11 +38,16 @@ public class FateId extends AbstractId<FateId> {
 
   private static final long serialVersionUID = 1L;
   private static final String PREFIX = "FATE:";
-  private static final String UUID_REGEX = "[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}";
-  private static final Pattern UUID_PATTERN = Pattern.compile("^" + UUID_REGEX + "$");
-  private static final Pattern FATEID_PATTERN = Pattern.compile("^" + PREFIX + "("
-      + Stream.of(FateInstanceType.values()).map(Enum::name).collect(Collectors.joining("|")) + "):"
-      + UUID_REGEX + "$");
+
+  private static final String META_PREFIX = FateInstanceType.META.name() + ":";
+  private static final String USER_PREFIX = FateInstanceType.USER.name() + ":";
+
+  static {
+    // Validate the assumptions made by this class
+    Preconditions.checkState(Set.of(FateInstanceType.values())
+        .equals(Set.of(FateInstanceType.USER, FateInstanceType.META)));
+    Preconditions.checkState(META_PREFIX.length() == USER_PREFIX.length());
+  }
 
   private FateId(String canonical) {
     super(canonical);
@@ -86,7 +93,7 @@ public class FateId extends AbstractId<FateId> {
    * @return a new FateId object
    */
   public static FateId from(FateInstanceType type, String txUUIDStr) {
-    if (UUID_PATTERN.matcher(txUUIDStr).matches()) {
+    if (isUUID(txUUIDStr, 0)) {
       return new FateId(PREFIX + type + ":" + txUUIDStr);
     } else {
       throw new IllegalArgumentException("Invalid Transaction UUID: " + txUUIDStr);
@@ -98,7 +105,7 @@ public class FateId extends AbstractId<FateId> {
    * @return a new FateId object from the given string
    */
   public static FateId from(String fateIdStr) {
-    if (FATEID_PATTERN.matcher(fateIdStr).matches()) {
+    if (isFateId(fateIdStr)) {
       return new FateId(fateIdStr);
     } else {
       throw new IllegalArgumentException("Invalid Fate ID: " + fateIdStr);
@@ -110,7 +117,19 @@ public class FateId extends AbstractId<FateId> {
    * @return true if the string is a valid FateId, false otherwise
    */
   public static boolean isFateId(String fateIdStr) {
-    return FATEID_PATTERN.matcher(fateIdStr).matches();
+
+    if (!fateIdStr.startsWith(PREFIX)) {
+      return false;
+    }
+
+    if (!fateIdStr.startsWith(META_PREFIX, PREFIX.length())
+        && !fateIdStr.startsWith(USER_PREFIX, PREFIX.length())) {
+      return false;
+    }
+
+    // assuming that META_PREFIX and USER_PREFIX are the same length, so UUID always starts a same
+    // place
+    return isUUID(fateIdStr, PREFIX.length() + META_PREFIX.length());
   }
 
   /**
@@ -132,7 +151,7 @@ public class FateId extends AbstractId<FateId> {
         throw new IllegalArgumentException("Invalid TFateInstanceType: " + tFateId.getType());
     }
 
-    if (UUID_PATTERN.matcher(txUUIDStr).matches()) {
+    if (isUUID(txUUIDStr, 0)) {
       return new FateId(PREFIX + type + ":" + txUUIDStr);
     } else {
       throw new IllegalArgumentException("Invalid Transaction UUID: " + txUUIDStr);

@@ -38,6 +38,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
@@ -52,7 +53,9 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
@@ -67,6 +70,7 @@ import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
+import org.apache.accumulo.server.metrics.MetricsInfoImpl;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -103,6 +107,8 @@ public class ServerContext extends ClientContext {
   private final Supplier<AuditedSecurityOperation> securityOperation;
   private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
   private final Supplier<LowMemoryDetector> lowMemoryDetector;
+  private final AtomicReference<ServiceLock> serverLock = new AtomicReference<>();
+  private final Supplier<MetricsInfo> metricsInfoSupplier;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -129,6 +135,7 @@ public class ServerContext extends ClientContext {
         memoize(() -> new AuditedSecurityOperation(this, SecurityOperation.getAuthorizor(this),
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
     lowMemoryDetector = memoize(() -> new LowMemoryDetector());
+    metricsInfoSupplier = memoize(() -> new MetricsInfoImpl(this));
   }
 
   /**
@@ -459,4 +466,28 @@ public class ServerContext extends ClientContext {
     return lowMemoryDetector.get();
   }
 
+  public void setServiceLock(ServiceLock lock) {
+    if (!serverLock.compareAndSet(null, lock)) {
+      throw new IllegalStateException("ServiceLock already set on ServerContext");
+    }
+  }
+
+  public ServiceLock getServiceLock() {
+    return serverLock.get();
+  }
+
+  /** Intended to be called from MiniAccumuloClusterImpl only as can be restarted **/
+  public void clearServiceLock() {
+    serverLock.set(null);
+  }
+
+  public MetricsInfo getMetricsInfo() {
+    return metricsInfoSupplier.get();
+  }
+
+  @Override
+  public void close() {
+    getMetricsInfo().close();
+    super.close();
+  }
 }

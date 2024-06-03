@@ -103,19 +103,19 @@ public class ConfigurableScanServerSelectorTest {
     }
   }
 
-  static class DaParams implements ScanServerSelector.SelectorParameters {
+  static class SelectorParams implements ScanServerSelector.SelectorParameters {
 
     private final Collection<TabletId> tablets;
     private final Map<TabletId,Collection<? extends ScanServerAttempt>> attempts;
     private final Map<String,String> hints;
 
-    DaParams(TabletId tablet) {
+    SelectorParams(TabletId tablet) {
       this.tablets = Set.of(tablet);
       this.attempts = Map.of();
       this.hints = Map.of();
     }
 
-    DaParams(TabletId tablet, Map<TabletId,Collection<? extends ScanServerAttempt>> attempts,
+    SelectorParams(TabletId tablet, Map<TabletId,Collection<? extends ScanServerAttempt>> attempts,
         Map<String,String> hints) {
       this.tablets = Set.of(tablet);
       this.attempts = attempts;
@@ -182,7 +182,7 @@ public class ConfigurableScanServerSelectorTest {
     for (int i = 0; i < 100; i++) {
       var tabletId = nti("1", "m");
 
-      ScanServerSelections actions = selector.selectServers(new DaParams(tabletId));
+      ScanServerSelections actions = selector.selectServers(new SelectorParams(tabletId));
 
       servers.add(actions.getScanServer(tabletId));
     }
@@ -222,7 +222,7 @@ public class ConfigurableScanServerSelectorTest {
 
     for (int i = 0; i < 100 * numServers; i++) {
       ScanServerSelections actions =
-          selector.selectServers(new DaParams(tabletId, attempts, hints));
+          selector.selectServers(new SelectorParams(tabletId, attempts, hints));
 
       assertEquals(expectedBusyTimeout, actions.getBusyTimeout().toMillis());
       assertEquals(0, actions.getDelay().toMillis());
@@ -279,7 +279,7 @@ public class ConfigurableScanServerSelectorTest {
       var tabletId = t % 1000 == 0 ? nti("" + t, null) : nti("" + t, endRow);
 
       for (int i = 0; i < 100; i++) {
-        ScanServerSelections actions = selector.selectServers(new DaParams(tabletId));
+        ScanServerSelections actions = selector.selectServers(new SelectorParams(tabletId));
         serversSeen.add(actions.getScanServer(tabletId));
         allServersSeen.merge(actions.getScanServer(tabletId), 1L, Long::sum);
       }
@@ -395,7 +395,7 @@ public class ConfigurableScanServerSelectorTest {
     selector.init(new InitParams(Set.of()));
 
     var tabletId = nti("1", "m");
-    ScanServerSelections actions = selector.selectServers(new DaParams(tabletId));
+    ScanServerSelections actions = selector.selectServers(new SelectorParams(tabletId));
     assertNull(actions.getScanServer(tabletId));
     assertEquals(Duration.ZERO, actions.getDelay());
     assertEquals(Duration.ZERO, actions.getBusyTimeout());
@@ -428,7 +428,7 @@ public class ConfigurableScanServerSelectorTest {
     for (int i = 0; i < 1000; i++) {
       var tabletId = nti("1", "m" + i);
 
-      ScanServerSelections actions = selector.selectServers(new DaParams(tabletId));
+      ScanServerSelections actions = selector.selectServers(new SelectorParams(tabletId));
 
       servers.add(actions.getScanServer(tabletId));
     }
@@ -444,7 +444,7 @@ public class ConfigurableScanServerSelectorTest {
       var tabletId = nti("1", "m" + i);
 
       ScanServerSelections actions =
-          selector.selectServers(new DaParams(tabletId, Map.of(), hints));
+          selector.selectServers(new SelectorParams(tabletId, Map.of(), hints));
 
       servers.add(actions.getScanServer(tabletId));
     }
@@ -460,7 +460,7 @@ public class ConfigurableScanServerSelectorTest {
       var tabletId = nti("1", "m" + i);
 
       ScanServerSelections actions =
-          selector.selectServers(new DaParams(tabletId, Map.of(), hints));
+          selector.selectServers(new SelectorParams(tabletId, Map.of(), hints));
 
       servers.add(actions.getScanServer(tabletId));
     }
@@ -476,7 +476,7 @@ public class ConfigurableScanServerSelectorTest {
       var tabletId = nti("1", "m" + i);
 
       ScanServerSelections actions =
-          selector.selectServers(new DaParams(tabletId, Map.of(), hints));
+          selector.selectServers(new SelectorParams(tabletId, Map.of(), hints));
 
       servers.add(actions.getScanServer(tabletId));
     }
@@ -505,7 +505,7 @@ public class ConfigurableScanServerSelectorTest {
 
     var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
 
-    var params = new DaParams(tabletId, Map.of(), Map.of()) {
+    var params = new SelectorParams(tabletId, Map.of(), Map.of()) {
       @Override
       public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
           String description) {

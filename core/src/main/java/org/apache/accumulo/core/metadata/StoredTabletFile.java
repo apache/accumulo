@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static org.apache.accumulo.core.util.RowRangeUtil.requireKeyExtentDataRange;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -155,7 +157,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     // Validate the path
     ReferencedTabletFile.parsePath(deserialize(metadataEntry).path);
     // Validate the range
-    requireRowRange(tabletFileCq.range);
+    requireKeyExtentDataRange(tabletFileCq.range);
   }
 
   public static StoredTabletFile of(final Text metadataEntry) {
@@ -198,6 +200,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     // Recreate the exact Range that was originally stored in Metadata. Stored ranges are originally
     // constructed with inclusive/exclusive for the start and end key inclusivity settings.
     // (Except for Ranges with no start/endkey as then the inclusivity flags do not matter)
+    // The ranges must match the format of KeyExtent.toDataRange()
     //
     // With this particular constructor, when setting the startRowInclusive to true and
     // endRowInclusive to false, both the start and end row values will be taken as is
@@ -215,7 +218,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   }
 
   public static String serialize(String path, Range range) {
-    requireRowRange(range);
+    requireKeyExtentDataRange(range);
     final TabletFileCqMetadataGson metadata = new TabletFileCqMetadataGson();
     metadata.path = Objects.requireNonNull(path);
     metadata.startRow = encodeRow(range.getStartKey());

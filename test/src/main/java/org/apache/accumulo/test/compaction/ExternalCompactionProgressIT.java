@@ -18,12 +18,15 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getRunningCompactions;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -32,13 +35,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -46,9 +57,15 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
+import org.apache.accumulo.test.metrics.TestStatsDSink;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,18 +84,121 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
   private static final int ROWS = 10_000;
 
   enum EC_PROGRESS {
-    STARTED, QUARTER, HALF, THREE_QUARTERS
+    STARTED, QUARTER, HALF, THREE_QUARTERS, INVALID
   }
 
   Map<String,RunningCompactionInfo> runningMap = new HashMap<>();
   List<EC_PROGRESS> progressList = new ArrayList<>();
 
-  private final AtomicBoolean compactionFinished = new AtomicBoolean(false);
+  private static final AtomicBoolean stopCheckerThread = new AtomicBoolean(false);
+  private static TestStatsDSink sink;
+
+  @BeforeAll
+  public static void before() throws Exception {
+    sink = new TestStatsDSink();
+  }
+
+  @AfterAll
+  public static void after() throws Exception {
+    if (sink != null) {
+      sink.close();
+    }
+  }
+
+  @BeforeEach
+  public void setup() {
+    stopCheckerThread.set(false);
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
     ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
     cfg.getClusterServerConfiguration().addCompactorResourceGroup(GROUP1, 1);
+    cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
+    cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY, TestStatsDRegistryFactory.class.getName());
+    Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
+        TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));
+    cfg.setSystemProperties(sysProps);
+  }
+
+  @Test
+  public void testProgressViaMetrics() throws Exception {
+    String table = this.getUniqueNames(1)[0];
+
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+      createTable(client, table, "cs1");
+      writeData(client, table, ROWS);
+
+      final long expectedEntriesRead = 18432;
+      final long expectedEntriesWritten = 13312;
+      final AtomicLong totalEntriesRead = new AtomicLong(0);
+      final AtomicLong totalEntriesWritten = new AtomicLong(0);
+
+      Thread checkerThread = getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten);
+      checkerThread.start();
+
+      IteratorSetting setting = new IteratorSetting(50, "Slow", SlowIterator.class);
+      SlowIterator.setSleepTime(setting, 1);
+      client.tableOperations().attachIterator(table, setting,
+          EnumSet.of(IteratorUtil.IteratorScope.majc));
+      log.info("Compacting table");
+      compact(client, table, 2, GROUP1, true);
+      log.info("Done Compacting table");
+      verify(client, table, 2, ROWS);
+
+      Wait.waitFor(() -> {
+        if (totalEntriesRead.get() == expectedEntriesRead
+            && totalEntriesWritten.get() == expectedEntriesWritten) {
+          return true;
+        }
+        log.info(
+            "Waiting for entries read to be {} (currently {}) and entries written to be {} (currently {})",
+            expectedEntriesRead, totalEntriesRead.get(), expectedEntriesWritten,
+            totalEntriesWritten.get());
+        return false;
+      }, 30000, 3000, "Entries read and written metrics values did not match expected values");
+
+      stopCheckerThread.set(true);
+      checkerThread.join();
+    }
+  }
+
+  /**
+   * Get a thread that checks the metrics for entries read and written.
+   *
+   * @param totalEntriesRead this is set to the value of the entries read metric
+   * @param totalEntriesWritten this is set to the value of the entries written metric
+   */
+  private static Thread getMetricsCheckerThread(AtomicLong totalEntriesRead,
+      AtomicLong totalEntriesWritten) {
+    return Threads.createThread("metric-tailer", () -> {
+      log.info("Starting metric tailer");
+
+      sink.getLines().clear();
+
+      while (!stopCheckerThread.get()) {
+        List<String> statsDMetrics = sink.getLines();
+        for (String s : statsDMetrics) {
+          if (stopCheckerThread.get()) {
+            break;
+          }
+          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_ENTRIES_READ)) {
+            TestStatsDSink.Metric e = TestStatsDSink.parseStatsDMetric(s);
+            int value = Integer.parseInt(e.getValue());
+            totalEntriesRead.addAndGet(value);
+            log.info("Found entries.read metric: {} with value: {}", e.getName(), value);
+          } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_ENTRIES_WRITTEN)) {
+            TestStatsDSink.Metric e = TestStatsDSink.parseStatsDMetric(s);
+            int value = Integer.parseInt(e.getValue());
+            totalEntriesWritten.addAndGet(value);
+            log.info("Found entries.written metric: {} with value: {}", e.getName(), value);
+          }
+        }
+        sleepUninterruptibly(3000, TimeUnit.MILLISECONDS);
+      }
+      log.info("Metric tailer thread finished");
+    });
   }
 
   @Test
@@ -97,27 +217,93 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       client.tableOperations().attachIterator(table1, setting,
           EnumSet.of(IteratorUtil.IteratorScope.majc));
       log.info("Compacting table");
-      compact(client, table1, 2, "DCQ1", true);
+      compact(client, table1, 2, GROUP1, true);
       verify(client, table1, 2, ROWS);
 
       log.info("Done Compacting table");
-      compactionFinished.set(true);
+      stopCheckerThread.set(true);
       checkerThread.join();
 
       verifyProgress();
     }
   }
 
+  @Test
+  public void testProgressWithBulkImport() throws Exception {
+    /*
+     * Tests the progress of an external compaction done on a table with bulk imported files.
+     * Progress should stay 0-100. There was previously a bug with the Compactor showing a >100%
+     * progress for compactions with bulk import files.
+     */
+    String[] tableNames = getUniqueNames(2);
+    String tableName1 = tableNames[0];
+    String tableName2 = tableNames[1];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      log.info("Creating table " + tableName1);
+      createTable(client, tableName1, "cs1");
+      log.info("Creating table " + tableName2);
+      createTable(client, tableName2, "cs1");
+      log.info("Writing " + ROWS + " rows to table " + tableName1);
+      writeData(client, tableName1, ROWS);
+      log.info("Writing " + ROWS + " rows to table " + tableName2);
+      writeData(client, tableName2, ROWS);
+      // This is done to avoid system compactions
+      client.tableOperations().setProperty(tableName1, Property.TABLE_MAJC_RATIO.getKey(), "1000");
+      client.tableOperations().setProperty(tableName2, Property.TABLE_MAJC_RATIO.getKey(), "1000");
+
+      String dir = getDir(client, tableName1);
+
+      log.info("Bulk importing files in dir " + dir + " to table " + tableName2);
+      client.tableOperations().importDirectory(dir).to(tableName2).load();
+      log.info("Finished bulk import");
+
+      log.info("Starting a compaction progress checker thread");
+      Thread checkerThread = startChecker();
+      checkerThread.start();
+
+      log.info("Attaching a slow iterator to table " + tableName2);
+      IteratorSetting setting = new IteratorSetting(50, "Slow", SlowIterator.class);
+      SlowIterator.setSleepTime(setting, 1);
+
+      log.info("Compacting table " + tableName2);
+      client.tableOperations().compact(tableName2,
+          new CompactionConfig().setWait(true).setIterators(List.of(setting)));
+      log.info("Finished compacting table " + tableName2);
+      stopCheckerThread.set(true);
+
+      log.info("Waiting on progress checker thread");
+      checkerThread.join();
+
+      verifyProgress();
+    }
+  }
+
+  /**
+   * @param client an AccumuloClient
+   * @param tableName the table name
+   * @return the directory of the files for the table
+   */
+  private String getDir(AccumuloClient client, String tableName) {
+    var tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+
+    try (var tabletsMeta = TabletsMetadata.builder(client).forTable(tableId)
+        .fetch(TabletMetadata.ColumnType.FILES).build()) {
+      return tabletsMeta.iterator().next().getFiles().iterator().next().getPath().getParent()
+          .toUri().getRawPath();
+    }
+  }
+
   public Thread startChecker() {
     return Threads.createThread("RC checker", () -> {
       try {
-        while (!compactionFinished.get()) {
+        while (!stopCheckerThread.get()) {
           checkRunning();
           try {
             Thread.sleep(1000);
           } catch (InterruptedException ex) {
             log.debug("interrupted during sleep, forcing compaction finished as completed");
-            compactionFinished.set(true);
+            stopCheckerThread.set(true);
           }
         }
       } catch (TException e) {
@@ -160,6 +346,10 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
               progressList.add(EC_PROGRESS.HALF);
             } else if (rci.progress > 75 && rci.progress <= 100) {
               progressList.add(EC_PROGRESS.THREE_QUARTERS);
+            } else {
+              progressList.add(EC_PROGRESS.INVALID);
+              log.warn("An invalid progress {} has been seen. This should never occur.",
+                  rci.progress);
             }
           }
           if (!rci.status.equals(TCompactionState.IN_PROGRESS.name())) {
@@ -172,10 +362,12 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
 
   private void verifyProgress() {
     log.info("Verify Progress.");
-    assertTrue(progressList.contains(EC_PROGRESS.STARTED), "Missing start of progress");
-    assertTrue(progressList.contains(EC_PROGRESS.QUARTER), "Missing quarter progress");
-    assertTrue(progressList.contains(EC_PROGRESS.HALF), "Missing half progress");
-    assertTrue(progressList.contains(EC_PROGRESS.THREE_QUARTERS),
-        "Missing three quarters progress");
+    assertAll(
+        () -> assertTrue(progressList.contains(EC_PROGRESS.STARTED), "Missing start of progress"),
+        () -> assertTrue(progressList.contains(EC_PROGRESS.QUARTER), "Missing quarter progress"),
+        () -> assertTrue(progressList.contains(EC_PROGRESS.HALF), "Missing half progress"),
+        () -> assertTrue(progressList.contains(EC_PROGRESS.THREE_QUARTERS),
+            "Missing three quarters progress"),
+        () -> assertFalse(progressList.contains(EC_PROGRESS.INVALID), "Invalid progress seen"));
   }
 }

@@ -20,7 +20,6 @@ package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -75,7 +74,7 @@ public class ZooUtil {
         path = root + "/" + sa[0].substring(0, lastSlash);
       }
       node = sa[0].substring(lastSlash + 1);
-      eid = new BigInteger(sa[1], 16).longValue();
+      eid = Long.parseUnsignedLong(sa[1], 16);
     }
 
     public LockID(String path, String node, long eid) {

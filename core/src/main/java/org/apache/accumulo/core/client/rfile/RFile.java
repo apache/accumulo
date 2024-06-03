@@ -36,8 +36,8 @@ import org.apache.accumulo.core.client.summary.Summary.FileStatistics;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.RowRangeUtil;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -100,7 +100,7 @@ public class RFile {
 
       public FencedPath(Path path, Range fence) {
         this.path = Objects.requireNonNull(path);
-        this.fence = AbstractTabletFile.requireRowRange(fence);
+        this.fence = RowRangeUtil.requireKeyExtentDataRange(fence);
       }
 
       public Path getPath() {

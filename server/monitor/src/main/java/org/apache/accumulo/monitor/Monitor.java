@@ -65,6 +65,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
@@ -469,13 +470,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       log.debug("Monitor started on port {}", livePort);
     }
 
-    try {
-      getMonitorLock();
-    } catch (Exception e) {
-      log.error("Failed to get Monitor ZooKeeper lock");
-      throw new RuntimeException(e);
-    }
-
     String advertiseHost = getHostname();
     if (advertiseHost.equals("0.0.0.0")) {
       try {
@@ -484,7 +478,21 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         log.error("Unable to get hostname", e);
       }
     }
-    log.debug("Using {} to advertise monitor location in ZooKeeper", advertiseHost);
+    HostAndPort monitorHostAndPort = HostAndPort.fromParts(advertiseHost, livePort);
+    log.debug("Using {} to advertise monitor location in ZooKeeper", monitorHostAndPort);
+
+    try {
+      getMonitorLock(monitorHostAndPort);
+    } catch (Exception e) {
+      log.error("Failed to get Monitor ZooKeeper lock");
+      throw new RuntimeException(e);
+    }
+    getContext().setServiceLock(monitorLock);
+
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addServiceTags(getApplicationName(), monitorHostAndPort, getResourceGroup());
+    metricsInfo.addMetricsProducers(this);
+    metricsInfo.init();
 
     try {
       URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
@@ -786,7 +794,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   /**
    * Get the monitor lock in ZooKeeper
    */
-  private void getMonitorLock() throws KeeperException, InterruptedException {
+  private void getMonitorLock(HostAndPort monitorLocation)
+      throws KeeperException, InterruptedException {
     ServerContext context = getContext();
     final String zRoot = context.getZooKeeperRoot();
     final String monitorPath = zRoot + Constants.ZMONITOR;
@@ -823,8 +832,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     while (true) {
       MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
       monitorLock = new ServiceLock(zoo.getZooKeeper(), monitorLockPath, zooLockUUID);
-      monitorLock.lock(monitorLockWatcher, new ServiceLockData(zooLockUUID, getHostname(),
-          ThriftService.NONE, this.getResourceGroup()));
+      monitorLock.lock(monitorLockWatcher,
+          new ServiceLockData(zooLockUUID,
+              monitorLocation.getHost() + ":" + monitorLocation.getPort(), ThriftService.NONE,
+              this.getResourceGroup()));
 
       monitorLockWatcher.waitForChange();
 

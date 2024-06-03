@@ -69,11 +69,6 @@ public class PreSplit extends ManagerRepo {
   public long isReady(FateId fateId, Manager manager) throws Exception {
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
 
-    // ELASTICITY_TODO does FATE prioritize running Fate txs that have already started? If not would
-    // be good to look into this so we can finish things that are started before running new txs
-    // that have not completed their first step. Once splits starts running, would like it to move
-    // through as quickly as possible.
-
     var tabletMetadata = manager.getContext().getAmple().readTablet(splitInfo.getOriginal(),
         PREV_ROW, LOCATION, OPID, LOGS);
 

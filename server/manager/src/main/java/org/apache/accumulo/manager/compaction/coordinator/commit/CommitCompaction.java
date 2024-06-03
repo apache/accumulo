@@ -120,7 +120,7 @@ public class CommitCompaction extends ManagerRepo {
         var tabletMutator = tabletsMutator.mutateTablet(getExtent()).requireAbsentOperation()
             .requireCompaction(ecid).requireSame(tablet, FILES, LOCATION);
 
-        if (ecm.getKind() == CompactionKind.USER || ecm.getKind() == CompactionKind.SELECTOR) {
+        if (ecm.getKind() == CompactionKind.USER) {
           tabletMutator.requireSame(tablet, SELECTED, COMPACTED);
         }
 
@@ -197,9 +197,10 @@ public class CommitCompaction extends ManagerRepo {
               tablet.getExtent());
         }
 
-        tabletMutator.putSelectedFiles(
-            new SelectedFiles(newSelectedFileSet, tablet.getSelectedFiles().initiallySelectedAll(),
-                tablet.getSelectedFiles().getFateId()));
+        tabletMutator.putSelectedFiles(new SelectedFiles(newSelectedFileSet,
+            tablet.getSelectedFiles().initiallySelectedAll(), tablet.getSelectedFiles().getFateId(),
+            tablet.getSelectedFiles().getCompletedJobs() + 1,
+            tablet.getSelectedFiles().getSelectedTime()));
       }
     }
 
@@ -217,7 +218,6 @@ public class CommitCompaction extends ManagerRepo {
     }
   }
 
-  // ELASTICITY_TODO unit test this method
   public static boolean canCommitCompaction(ExternalCompactionId ecid,
       TabletMetadata tabletMetadata) {
 
@@ -242,7 +242,7 @@ public class CommitCompaction extends ManagerRepo {
       return false;
     }
 
-    if (ecm.getKind() == CompactionKind.USER || ecm.getKind() == CompactionKind.SELECTOR) {
+    if (ecm.getKind() == CompactionKind.USER) {
       if (tabletMetadata.getSelectedFiles() == null) {
         // when the compaction is canceled, selected files are deleted
         LOG.debug(
@@ -256,6 +256,7 @@ public class CommitCompaction extends ManagerRepo {
         LOG.debug(
             "Received completion notification for user compaction where its fate txid did not match the tablets {} {} {} {}",
             ecid, extent, ecm.getFateId(), tabletMetadata.getSelectedFiles().getFateId());
+        return false;
       }
 
       if (!tabletMetadata.getSelectedFiles().getFiles().containsAll(ecm.getJobFiles())) {

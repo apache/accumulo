@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -223,11 +224,11 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     }
   }
 
-  @Override
-  protected Stream<FateIdStatus> getTransactions() {
+  protected Stream<FateIdStatus> getTransactions(Set<TStatus> statuses) {
     try {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
+      FateStatusFilter.configureScanner(scanner, statuses);
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {
         String txUUIDStr = e.getKey().getRow().toString();
@@ -250,9 +251,9 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
       TxColumnFamily.TX_KEY_COLUMN.fetch(scanner);
+      FateKeyFilter.configureScanner(scanner, type);
       return scanner.stream().onClose(scanner::close)
-          .map(e -> FateKey.deserialize(e.getValue().get()))
-          .filter(fateKey -> fateKey.getType() == type);
+          .map(e -> FateKey.deserialize(e.getValue().get()));
     } catch (TableNotFoundException e) {
       throw new IllegalStateException(tableName + " not found!", e);
     }

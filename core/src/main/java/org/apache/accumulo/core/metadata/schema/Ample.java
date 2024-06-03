@@ -21,7 +21,6 @@ package org.apache.accumulo.core.metadata.schema;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -32,11 +31,11 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
@@ -45,6 +44,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -364,8 +364,6 @@ public interface Ample {
 
     T deleteLocation(Location location);
 
-    T putZooLock(String zookeeperRoot, ServiceLock zooLock);
-
     T putDirName(String dirName);
 
     T putWal(LogEntry logEntry);
@@ -378,7 +376,7 @@ public interface Ample {
 
     T deleteBulkFile(StoredTabletFile bulkref);
 
-    T putSuspension(TServerInstance tserver, long suspensionTime);
+    T putSuspension(TServerInstance tserver, SteadyTime suspensionTime);
 
     T deleteSuspension();
 
@@ -410,7 +408,7 @@ public interface Ample {
      * @throws IllegalArgumentException if rows in keys do not match tablet row or column visibility
      *         is not empty
      */
-    T deleteAll(Set<Key> keys);
+    T deleteAll(Collection<Map.Entry<Key,Value>> entries);
 
     T setMerged();
 
@@ -423,6 +421,14 @@ public interface Ample {
     T setUnSplittable(UnSplittableMetadata unSplittableMeta);
 
     T deleteUnSplittable();
+
+    T putCloned();
+
+    /**
+     * By default the server lock is automatically added to mutations unless this method is set to
+     * false.
+     */
+    T automaticallyPutServerLock(boolean b);
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {

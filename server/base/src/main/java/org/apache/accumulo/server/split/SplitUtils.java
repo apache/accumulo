@@ -29,8 +29,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -188,13 +186,6 @@ public class SplitUtils {
   }
 
   public static int calculateDesiredSplits(long esitimatedSize, long splitThreshold) {
-    // ELASTICITY_TODO tablets used to always split into 2 tablets. Now the split operation will
-    // split into many. How does this impact a tablet with many files and the estimated sizes after
-    // split vs the old method. Need to run test where we add lots of data to a single tablet,
-    // change the split thresh, wait for splits, then look at the estimated sizes, then compact and
-    // look at the sizes after. For example if a tablet has 10M of data and the split thesh is set
-    // to 100K, what will the est sizes look like across the tablets after splitting and then after
-    // compacting?
     return (int) Math.floor((double) esitimatedSize / (double) splitThreshold);
   }
 
@@ -298,12 +289,6 @@ public class SplitUtils {
   public static boolean needsSplit(ServerContext context, TabletMetadata tabletMetadata) {
     var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
     var splitThreshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
-    return needsSplit(splitThreshold, tabletMetadata);
-  }
-
-  public static boolean needsSplit(final Configuration tableConf, TabletMetadata tabletMetadata) {
-    var splitThreshold = ConfigurationTypeHelper
-        .getFixedMemoryAsBytes(tableConf.get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
     return needsSplit(splitThreshold, tabletMetadata);
   }
 

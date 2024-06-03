@@ -43,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Constructor;
+import java.util.AbstractMap;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -51,7 +52,9 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -87,6 +90,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -144,7 +148,7 @@ public class TabletMetadataTest {
         UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2));
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta.toBase64()));
 
-    long suspensionTime = System.currentTimeMillis();
+    SteadyTime suspensionTime = SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
     TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
     Value suspend = SuspendingTServer.toValue(ser1, suspensionTime);
     SUSPEND_COLUMN.put(mutation, suspend);
@@ -174,7 +178,9 @@ public class TabletMetadataTest {
     assertEquals(tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum(),
         tm.getFileSize());
     assertEquals(6L, tm.getFlushId().getAsLong());
-    assertEquals(rowMap, tm.getKeyValues());
+    SortedMap<Key,Value> actualRowMap = tm.getKeyValues().stream().collect(
+        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, TreeMap::new));
+    assertEquals(rowMap, actualRowMap);
     assertEquals(Map.of(new StoredTabletFile(bf1), fateId1, new StoredTabletFile(bf2), fateId2),
         tm.getLoaded());
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
@@ -303,13 +309,14 @@ public class TabletMetadataTest {
     // test SUSPENDED
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
     mutation.at().family(SUSPEND_COLUMN.getColumnFamily())
-        .qualifier(SUSPEND_COLUMN.getColumnQualifier()).put(SuspendingTServer.toValue(ser2, 1000L));
+        .qualifier(SUSPEND_COLUMN.getColumnQualifier())
+        .put(SuspendingTServer.toValue(ser2, SteadyTime.from(1000L, TimeUnit.MILLISECONDS)));
     rowMap = toRowMap(mutation);
 
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
 
     assertEquals(TabletState.SUSPENDED, TabletState.compute(tm, tservers));
-    assertEquals(1000L, tm.getSuspend().suspensionTime);
+    assertEquals(1000L, tm.getSuspend().suspensionTime.getMillis());
     assertEquals(ser2.getHostAndPort(), tm.getSuspend().server);
     assertNull(tm.getLocation());
     assertFalse(tm.hasCurrent());
@@ -407,7 +414,7 @@ public class TabletMetadataTest {
     b.loadedFile(stf, FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     b.compacted(FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     b.userCompactionsRequested(FateId.from(FateInstanceType.USER, UUID.randomUUID()));
-    b.keyValue(new Key(), new Value());
+    b.keyValue(new AbstractMap.SimpleImmutableEntry<>(new Key(), new Value()));
     var tm2 = b.build(EnumSet.allOf(ColumnType.class));
 
     assertEquals(1, tm2.getExternalCompactions().size());
@@ -427,8 +434,7 @@ public class TabletMetadataTest {
     assertThrows(UnsupportedOperationException.class,
         () -> tm2.getLoaded().put(stf, FateId.from(FateInstanceType.USER, UUID.randomUUID())));
     assertEquals(1, tm2.getKeyValues().size());
-    assertThrows(UnsupportedOperationException.class,
-        () -> tm2.getKeyValues().put(new Key(), new Value()));
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getKeyValues().remove(null));
     assertEquals(1, tm2.getCompacted().size());
     assertThrows(UnsupportedOperationException.class,
         () -> tm2.getCompacted().add(FateId.from(FateInstanceType.USER, UUID.randomUUID())));
@@ -476,8 +482,8 @@ public class TabletMetadataTest {
     StoredTabletFile sf2 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf2.rf"));
     StoredTabletFile sf3 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf3.rf"));
     // Same path as sf4 but with a range
-    StoredTabletFile sf4 =
-        StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf3.rf"), new Range("a", "b"));
+    StoredTabletFile sf4 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf3.rf"),
+        new Range("a", false, "b", true));
 
     // Test with files
     var unsplittableMeta1 =
@@ -531,10 +537,10 @@ public class TabletMetadataTest {
 
     // Files with same path and different ranges
     StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
-    StoredTabletFile sf2 =
-        StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"), new Range("a", "b"));
-    StoredTabletFile sf3 =
-        StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"), new Range("a", "d"));
+    StoredTabletFile sf2 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"),
+        new Range("a", false, "b", true));
+    StoredTabletFile sf3 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"),
+        new Range("a", false, "d", true));
 
     var meta1 = UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1));
     var meta2 = UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf2));
@@ -609,7 +615,7 @@ public class TabletMetadataTest {
         .putTabletAvailability(TabletAvailability.UNHOSTED).putLocation(Location.future(ser1))
         .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, loadedFateId1)
         .putBulkFile(rf2, loadedFateId2).putFlushId(27).putDirName("dir1").putScan(sf3).putScan(sf4)
-        .putCompacted(compactFateId1).putCompacted(compactFateId2)
+        .putCompacted(compactFateId1).putCompacted(compactFateId2).putCloned()
         .build(ECOMP, HOSTING_REQUESTED, MERGED, USER_COMPACTION_REQUESTED, UNSPLITTABLE);
 
     assertEquals(extent, tm.getExtent());
@@ -628,6 +634,7 @@ public class TabletMetadataTest {
     assertTrue(tm.getUserCompactionsRequested().isEmpty());
     assertFalse(tm.hasMerged());
     assertNull(tm.getUnSplittable());
+    assertEquals("OK", tm.getCloned());
     assertThrows(IllegalStateException.class, tm::getOperationId);
     assertThrows(IllegalStateException.class, tm::getSuspend);
     assertThrows(IllegalStateException.class, tm::getTime);
@@ -664,19 +671,21 @@ public class TabletMetadataTest {
     LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
 
     FateId selFilesFateId = FateId.from(type, UUID.randomUUID());
-    SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, selFilesFateId);
+    SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, selFilesFateId,
+        SteadyTime.from(100_000, TimeUnit.NANOSECONDS));
     var unsplittableMeta =
         UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2));
 
     TabletMetadata tm3 = TabletMetadata.builder(extent).putExternalCompaction(ecid1, ecm)
-        .putSuspension(ser1, 45L).putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1)
-        .putWal(le2).setHostingRequested().putSelectedFiles(selFiles).setMerged()
+        .putSuspension(ser1, SteadyTime.from(45L, TimeUnit.MILLISECONDS))
+        .putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1).putWal(le2)
+        .setHostingRequested().putSelectedFiles(selFiles).setMerged()
         .putUserCompactionRequested(selFilesFateId).setUnSplittable(unsplittableMeta).build();
 
     assertEquals(Set.of(ecid1), tm3.getExternalCompactions().keySet());
     assertEquals(Set.of(sf1, sf2), tm3.getExternalCompactions().get(ecid1).getJobFiles());
     assertEquals(ser1.getHostAndPort(), tm3.getSuspend().server);
-    assertEquals(45L, tm3.getSuspend().suspensionTime);
+    assertEquals(SteadyTime.from(45L, TimeUnit.MILLISECONDS), tm3.getSuspend().suspensionTime);
     assertEquals(new MetadataTime(479, TimeType.LOGICAL), tm3.getTime());
     assertTrue(tm3.getHostingRequested());
     assertEquals(Stream.of(le1, le2).map(LogEntry::toString).collect(toSet()),

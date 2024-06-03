@@ -160,8 +160,8 @@ public class SampleIT extends AccumuloClusterHarness {
         client.tableOperations().flush(tableName, null, null, true);
 
         // Fence off the data to a Range that is a subset of the original data
-        Range fenced = new Range(new Text(String.format("r_%06d", 3000)),
-            new Text(String.format("r_%06d", 6000)));
+        Range fenced = new Range(new Text(String.format("r_%06d", 2999)), false,
+            new Text(String.format("r_%06d", 6000)), true);
         FileMetadataUtil.splitFilesIntoRanges(getServerContext(), tableName, Set.of(fenced));
         assertEquals(1, countFiles(getServerContext(), tableName));
 
@@ -620,7 +620,7 @@ public class SampleIT extends AccumuloClusterHarness {
     for (int i = 0; i < splits; i++) {
       Text start = i > 0 ? new Text(String.format("r_%06d", i * 1000)) : null;
       Text end = i < splits - 1 ? new Text(String.format("r_%06d", (i + 1) * 1000)) : null;
-      ranges.add(new Range(start, end));
+      ranges.add(new Range(start, false, end, true));
     }
 
     return ranges;

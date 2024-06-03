@@ -22,7 +22,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
@@ -44,14 +43,12 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
   private final VersionedPropCodec propCodec;
   // used to set watcher, does not react to events.
   private final PropStoreWatcher propStoreWatcher;
-  private final PropStoreMetrics metrics;
 
   public ZooPropLoader(final ZooReaderWriter zrw, final VersionedPropCodec propCodec,
-      final PropStoreWatcher propStoreWatcher, final PropStoreMetrics metrics) {
+      final PropStoreWatcher propStoreWatcher) {
     this.zrw = zrw;
     this.propCodec = propCodec;
     this.propStoreWatcher = propStoreWatcher;
-    this.metrics = metrics;
   }
 
   @Override
@@ -59,26 +56,18 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
     try {
       log.trace("load called for {}", propStoreKey);
 
-      long startNanos = System.nanoTime();
-
       Stat stat = new Stat();
       byte[] bytes = zrw.getData(propStoreKey.getPath(), propStoreWatcher, stat);
       if (stat.getDataLength() == 0) {
         return new VersionedProperties();
       }
       VersionedProperties vProps = propCodec.fromBytes(stat.getVersion(), bytes);
-
-      metrics.addLoadTime(
-          TimeUnit.MILLISECONDS.convert(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS));
-
       return vProps;
     } catch (KeeperException.NoNodeException ex) {
-      metrics.incrZkError();
       log.debug("property node for {} does not exist - it may be being created", propStoreKey);
       propStoreWatcher.signalZkChangeEvent(propStoreKey);
       return null;
     } catch (Exception ex) {
-      metrics.incrZkError();
       log.info("Failed to load properties for: {} from ZooKeeper, returning null", propStoreKey,
           ex);
       propStoreWatcher.signalZkChangeEvent(propStoreKey);
@@ -97,8 +86,6 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
   public CompletableFuture<VersionedProperties> asyncReload(PropStoreKey<?> propStoreKey,
       VersionedProperties oldValue, Executor executor) throws Exception {
     log.trace("asyncReload called for key: {}", propStoreKey);
-    metrics.incrRefresh();
-
     return CompletableFuture.supplyAsync(() -> loadIfDifferentVersion(propStoreKey, oldValue),
         executor);
   }
@@ -107,7 +94,6 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
   public @Nullable VersionedProperties reload(PropStoreKey<?> propStoreKey,
       VersionedProperties oldValue) throws Exception {
     log.trace("reload called for: {}", propStoreKey);
-    metrics.incrRefresh();
     return loadIfDifferentVersion(propStoreKey, oldValue);
   }
 
@@ -141,8 +127,6 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
 
       var updatedValue = load(propCacheId);
 
-      metrics.incrRefreshLoad();
-
       // The cache will be updated - notify external listeners value changed.
       propStoreWatcher.signalCacheChangeEvent(propCacheId);
       log.trace("Updated value {}", updatedValue == null ? "null" : updatedValue.print(true));
@@ -150,7 +134,6 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
     } catch (RuntimeException | KeeperException | InterruptedException ex) {
       log.warn("async exception occurred reading properties from ZooKeeper for: {} returning null",
           propCacheId, ex);
-      metrics.incrZkError();
       propStoreWatcher.signalZkChangeEvent(propCacheId);
       return null;
     }

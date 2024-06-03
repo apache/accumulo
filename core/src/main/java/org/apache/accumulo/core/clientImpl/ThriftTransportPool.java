@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -76,7 +77,8 @@ public class ThriftTransportPool {
         final long minNanos = MILLISECONDS.toNanos(250);
         final long maxNanos = MINUTES.toNanos(1);
         long lastRun = System.nanoTime();
-        while (!connectionPool.shutdown) {
+        // loop often, to detect shutdowns quickly
+        while (!connectionPool.awaitShutdown(250)) {
           // don't close on every loop; instead, check based on configured max age, within bounds
           var threshold = Math.min(maxNanos,
               Math.max(minNanos, MILLISECONDS.toNanos(maxAgeMillis.getAsLong()) / 2));
@@ -85,8 +87,6 @@ public class ThriftTransportPool {
             closeExpiredConnections();
             lastRun = currentNanos;
           }
-          // loop often, to detect shutdowns quickly
-          Thread.sleep(250);
         }
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
@@ -323,7 +323,7 @@ public class ThriftTransportPool {
     final Lock[] locks;
     final ConcurrentHashMap<ThriftTransportKey,CachedConnections> connections =
         new ConcurrentHashMap<>();
-    private volatile boolean shutdown = false;
+    private final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
     ConnectionPool() {
       // intentionally using a prime number, don't use 31
@@ -418,16 +418,30 @@ public class ThriftTransportPool {
       // All locks are now acquired, so nothing else should be able to run concurrently...
       try {
         // Check if an shutdown has already been initiated.
-        if (shutdown) {
+        if (isShutdown()) {
           return;
         }
-        shutdown = true;
+        shutdownLatch.countDown();
         connections.values().forEach(CachedConnections::closeAllTransports);
       } finally {
         for (Lock lock : locks) {
           lock.unlock();
         }
       }
+    }
+
+    boolean isShutdown() {
+      return shutdownLatch.getCount() == 0;
+    }
+
+    /**
+     * Waits for shutdown for at most the specified number of milliseconds and returns whether
+     * shutdown happened.
+     *
+     * @return true if shutdown happened, false if the timeout was reached
+     */
+    boolean awaitShutdown(long timeoutMillis) throws InterruptedException {
+      return shutdownLatch.await(timeoutMillis, MILLISECONDS);
     }
 
     <T> T executeWithinLock(final ThriftTransportKey key, Supplier<T> function) {
@@ -453,7 +467,7 @@ public class ThriftTransportPool {
 
       lock.lock();
 
-      if (shutdown) {
+      if (isShutdown()) {
         lock.unlock();
         throw new TransportPoolShutdownException(
             "The Accumulo singleton for connection pooling is disabled.  This is likely caused by "

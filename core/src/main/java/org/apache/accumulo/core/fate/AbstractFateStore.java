@@ -34,8 +34,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -153,6 +153,10 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     return reserveAttempt.orElseThrow();
   }
 
+  private static final Set<TStatus> IN_PROGRESS_SET = Set.of(TStatus.IN_PROGRESS);
+  private static final Set<TStatus> OTHER_RUNNABLE_SET =
+      Set.of(TStatus.SUBMITTED, TStatus.FAILED_IN_PROGRESS);
+
   @Override
   public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
 
@@ -162,7 +166,11 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       final long beforeCount = unreservedRunnableCount.getCount();
       final boolean beforeDeferredOverflow = deferredOverflow.get();
 
-      try (Stream<FateIdStatus> transactions = getTransactions()) {
+      try (Stream<FateIdStatus> inProgress = getTransactions(IN_PROGRESS_SET);
+          Stream<FateIdStatus> other = getTransactions(OTHER_RUNNABLE_SET)) {
+        // read the in progress transaction first and then everything else in order to process those
+        // first
+        var transactions = Stream.concat(inProgress, other);
         transactions.filter(fateIdStatus -> isRunnable(fateIdStatus.getStatus()))
             .map(FateIdStatus::getFateId).filter(fateId -> {
               var deferredTime = deferred.get(fateId);
@@ -215,7 +223,12 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   @Override
   public Stream<FateIdStatus> list() {
-    return getTransactions();
+    return getTransactions(TStatus.ALL_STATUSES);
+  }
+
+  @Override
+  public Stream<FateIdStatus> list(Set<TStatus> statuses) {
+    return getTransactions(statuses);
   }
 
   @Override
@@ -342,7 +355,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   protected abstract Pair<TStatus,Optional<FateKey>> getStatusAndKey(FateId fateId);
 
-  protected abstract Stream<FateIdStatus> getTransactions();
+  protected abstract Stream<FateIdStatus> getTransactions(Set<TStatus> statuses);
 
   protected abstract TStatus _getStatus(FateId fateId);
 
@@ -413,12 +426,11 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
 
     @Override
-    public void unreserve(long deferTime, TimeUnit timeUnit) {
+    public void unreserve(Duration deferTime) {
       Preconditions.checkState(isReserved(),
           "Attempted to unreserve a transaction that was not reserved: " + fateId);
 
-      Duration deferDuration = Duration.of(deferTime, timeUnit.toChronoUnit());
-      if (deferDuration.isNegative()) {
+      if (deferTime.isNegative()) {
         throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
       }
 
@@ -426,7 +438,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       // and clear the map and set the flag. This will cause the next execution
       // of runnable to process all the transactions and to not defer as we
       // have a large backlog and want to make progress
-      if (deferDuration.compareTo(Duration.ZERO) > 0 && !isDeferredOverflow()) {
+      if (deferTime.compareTo(Duration.ZERO) > 0 && !isDeferredOverflow()) {
         if (deferred.size() >= maxDeferred) {
           log.info(
               "Deferred map overflowed with size {}, clearing and setting deferredOverflow to true",
@@ -434,7 +446,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
           deferredOverflow.set(true);
           deferred.clear();
         } else {
-          deferred.put(fateId, NanoTime.nowPlus(deferDuration));
+          deferred.put(fateId, NanoTime.nowPlus(deferTime));
         }
       }
 
