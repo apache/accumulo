@@ -75,6 +75,7 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -200,6 +201,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           // is running for some reason
           LOG.info("Cancelling compaction {} that no longer has a metadata entry at {}", ecid,
               extent);
+          JOB_HOLDER.cancel(job.getExternalCompactionId());
+          return;
+        }
+
+        var tableState = getContext().getTableState(extent.tableId());
+        if (tableState != TableState.ONLINE) {
+          LOG.info("Cancelling compaction {} because table state is {}", ecid, tableState);
           JOB_HOLDER.cancel(job.getExternalCompactionId());
           return;
         }

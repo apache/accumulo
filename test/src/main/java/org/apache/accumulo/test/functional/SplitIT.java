@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -42,6 +43,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -345,6 +348,15 @@ public class SplitIT extends AccumuloClusterHarness {
 
   @Test
   public void concurrentSplit() throws Exception {
+    concurrentSplit(false);
+  }
+
+  @Test
+  public void concurrentSplitAndOffline() throws Exception {
+    concurrentSplit(true);
+  }
+
+  public void concurrentSplit(boolean offlineTable) throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       final String tableName = getUniqueNames(1)[0];
@@ -364,15 +376,15 @@ public class SplitIT extends AccumuloClusterHarness {
       ExecutorService es = Executors.newFixedThreadPool(10);
       final int totalFutures = 100;
       final int splitsPerFuture = 4;
-      final Set<Text> totalSplits = new HashSet<>();
+      final Set<Text> totalSplits = new ConcurrentSkipListSet<>();
       List<Callable<Void>> tasks = new ArrayList<>(totalFutures);
       for (int i = 0; i < totalFutures; i++) {
         final Pair<Integer,Integer> splitBounds = getRandomSplitBounds(numRows);
         final TreeSet<Text> splits = TestIngest.getSplitPoints(splitBounds.getFirst().longValue(),
             splitBounds.getSecond().longValue(), splitsPerFuture);
-        totalSplits.addAll(splits);
         tasks.add(() -> {
           c.tableOperations().addSplits(tableName, splits);
+          totalSplits.addAll(splits);
           return null;
         });
       }
@@ -381,19 +393,49 @@ public class SplitIT extends AccumuloClusterHarness {
       List<Future<Void>> futures =
           tasks.parallelStream().map(es::submit).collect(Collectors.toList());
 
+      Set<Text> splitsAfterOffline = null;
+      if (offlineTable) {
+        // run offline concurrently with split operation
+        c.tableOperations().offline(tableName, true);
+        splitsAfterOffline = Set.copyOf(c.tableOperations().listSplits(tableName));
+      }
+
       log.debug("Waiting for futures to complete");
       for (Future<?> f : futures) {
-        f.get();
+        try {
+          f.get();
+        } catch (ExecutionException ee) {
+          if (offlineTable && ee.getMessage().contains("is offline")) {
+            // Some exceptions are expected when concurrently taking the table offline.
+            log.debug(ee.getMessage());
+          } else {
+            throw ee;
+          }
+        }
       }
-      es.shutdown();
+
+      if (offlineTable) {
+        // The splits seen immediately after offline() call should not change after all the futures
+        // complete. This ensures that nothing changes in the tablet after the offline+wait call
+        // returns.
+        assertEquals(splitsAfterOffline, new HashSet<>(c.tableOperations().listSplits(tableName)),
+            "Splits changed after offline");
+
+        // table will be scanned for verification, so bring it online
+        c.tableOperations().online(tableName);
+      } else {
+        assertFalse(totalSplits.isEmpty());
+      }
 
       log.debug("Checking that {} splits were created ", totalSplits.size());
-
       assertEquals(totalSplits, new HashSet<>(c.tableOperations().listSplits(tableName)),
           "Did not see expected splits");
 
       log.debug("Verifying {} rows ingested into {}", numRows, tableName);
       VerifyIngest.verifyIngest(c, params);
+
+      es.shutdown();
+
     }
   }
 
