@@ -740,6 +740,20 @@ public class CompactionCoordinator
     var tabletMeta =
         ctx.getAmple().readTablet(extent, ECOMP, SELECTED, LOCATION, FILES, COMPACTED, OPID);
 
+    var tableState = manager.getContext().getTableState(extent.tableId());
+    if (tableState != TableState.ONLINE) {
+      // Its important this check is done after the compaction id is set in the metadata table to
+      // avoid race conditions with the client code that waits for tables to go offline. That code
+      // looks for compaction ids in the metadata table after setting the table state. When that
+      // client code sees nothing for a tablet its important that nothing will changes the tablets
+      // files after that point in time which this check ensure.
+      LOG.debug("Not committing compaction {} for {} because of table state {}", ecid, extent,
+          tableState);
+      // cleanup metadata table and files related to the compaction
+      compactionsFailed(Map.of(ecid, extent));
+      return;
+    }
+
     if (!CommitCompaction.canCommitCompaction(ecid, tabletMeta)) {
       return;
     }

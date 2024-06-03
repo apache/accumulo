@@ -34,6 +34,7 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -43,9 +44,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
@@ -96,6 +100,7 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.accumulo.test.compaction.CompactionExecutorIT.TestPlanner;
@@ -1178,7 +1183,94 @@ public class CompactionIT extends AccumuloClusterHarness {
     ExternalCompactionTestUtils.assertNoCompactionMetadata(getServerContext(), table1);
   }
 
-  private void writeRows(ClientContext client, String tableName, int rows, boolean wait)
+  @Test
+  public void testOfflineAndCompactions() throws Exception {
+    var uniqueNames = getUniqueNames(1);
+    String table = uniqueNames[0];
+
+    // This test exercises concurrent compactions and table offline.
+
+    try (final AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 1; i < 32; i++) {
+        splits.add(new Text(String.format("r:%04d", i)));
+      }
+
+      client.tableOperations().create(table, new NewTableConfiguration().withSplits(splits));
+      writeRows(client, table, 33, true);
+      // create two files per tablet
+      writeRows(client, table, 33, true);
+
+      var ctx = getCluster().getServerContext();
+      var tableId = ctx.getTableId(table);
+
+      // verify assumptions of test, expect all tablets to have files
+      var files0 = getFiles(ctx, tableId);
+      assertEquals(32, files0.size());
+      assertFalse(files0.values().stream().anyMatch(Set::isEmpty));
+
+      // lower the tables compaction ratio to cause system compactions
+      client.tableOperations().setProperty(table, Property.TABLE_MAJC_RATIO.getKey(), "1");
+
+      // start a bunch of compactions in the background
+      var executor = Executors.newCachedThreadPool();
+      List<Future<?>> futures = new ArrayList<>();
+      // start user compactions on a subset of the tables tablets, system compactions should attempt
+      // to run on all tablets. With concurrency should get a mix.
+      for (int i = 1; i < 20; i++) {
+        var startRow = new Text(String.format("r:%04d", i - 1));
+        var endRow = new Text(String.format("r:%04d", i));
+        futures.add(executor.submit(() -> {
+          CompactionConfig config = new CompactionConfig();
+          config.setWait(true);
+          config.setStartRow(startRow);
+          config.setEndRow(endRow);
+          client.tableOperations().compact(table, config);
+          return null;
+        }));
+      }
+
+      log.debug("Waiting for offline");
+      // take tablet offline while there are concurrent compactions
+      client.tableOperations().offline(table, true);
+
+      // grab a snapshot of all the tablets files after waiting for offline, do not expect any
+      // tablets files to change at this point
+      var files1 = getFiles(ctx, tableId);
+
+      // wait for the background compactions
+      log.debug("Waiting for futures");
+      for (var future : futures) {
+        try {
+          future.get();
+        } catch (ExecutionException ee) {
+          // its ok if some of the compactions fail because the table was concurrently taken offline
+          assertTrue(ee.getMessage().contains("is offline"));
+        }
+      }
+
+      // grab a second snapshot of the tablets files after all the background operations completed
+      var files2 = getFiles(ctx, tableId);
+
+      // do not expect the files to have changed after the offline operation returned.
+      assertEquals(files1, files2);
+
+      executor.shutdown();
+    }
+  }
+
+  private Map<KeyExtent,Set<StoredTabletFile>> getFiles(ServerContext ctx, TableId tableId) {
+    Map<KeyExtent,Set<StoredTabletFile>> files = new HashMap<>();
+    try (var tablets = ctx.getAmple().readTablets().forTable(tableId).build()) {
+      for (var tablet : tablets) {
+        files.put(tablet.getExtent(), tablet.getFiles());
+      }
+    }
+    return files;
+  }
+
+  private void writeRows(AccumuloClient client, String tableName, int rows, boolean wait)
       throws Exception {
     try (BatchWriter bw = client.createBatchWriter(tableName)) {
       for (int i = 0; i < rows; i++) {
