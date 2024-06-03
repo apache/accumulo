@@ -559,6 +559,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         updateCompactionState(job, update2);
       } catch (FileCompactor.CompactionCanceledException cce) {
         LOG.debug("Compaction canceled {}", job.getExternalCompactionId());
+        err.set(cce);
       } catch (Exception e) {
         KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
         LOG.error("Compaction failed: id: {}, extent: {}", job.getExternalCompactionId(),
