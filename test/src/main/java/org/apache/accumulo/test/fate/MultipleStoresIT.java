@@ -437,7 +437,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     // Redefine what is considered "dead" as those whose locks match lock1
     Mockito.doAnswer(invocation -> {
       FateStore.FateReservation reservation =
-          invocation.getArgument(0, FateStore.FateReservation.class);
+          (FateStore.FateReservation) invocation.getArguments()[0];
       return FateStore.FateReservation.locksAreEqual(reservation.getLockID(), lock1);
     }).when(spyStore1).isDeadReservation(Mockito.any(FateStore.FateReservation.class));
 
