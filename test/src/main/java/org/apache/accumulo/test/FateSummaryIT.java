@@ -178,7 +178,7 @@ public class FateSummaryIT extends ConfigurableMacBase {
     String[] commandsToTest = {"--print", "--summary"};
     // We want to have enough transactions to give enough opportunity for a transaction to
     // complete mid-print
-    final int numTxns = 250;
+    final int numTxns = 150;
     final String table = getUniqueNames(1)[0];
 
     // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
@@ -210,7 +210,7 @@ public class FateSummaryIT extends ConfigurableMacBase {
         // also don't want them to take too long to complete since in that case we
         // may not see transactions complete mid-print
 
-        // create 250 txns each taking >= 20ms to complete >= 5 seconds total
+        // create 150 txns each taking >= 20ms to complete >= 3 seconds total
         for (int i = 0; i < numTxns; i++) {
           // Initiate compaction to create txn. This compaction will take >= 20ms to complete
           // ((10 key values) * (2ms sleep time / key value))
@@ -234,8 +234,8 @@ public class FateSummaryIT extends ConfigurableMacBase {
         if (noTransactions(result, command)) {
           // Fail since we printed until all transactions have completed and didn't see a
           // transaction complete mid-print.
-          // This is highly unlikely to have occurred.
-          fail();
+          // This can occur, and should be rerun in this case but shouldn't consistently fail
+          fail("This failure can occur. Re-run in this case. Should not consistently fail.");
         }
         // Otherwise, we saw 'Tried to get info on a since completed transaction - ignoring', so
         // test passes
