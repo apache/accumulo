@@ -224,6 +224,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     }
   }
 
+  @Override
   protected Stream<FateIdStatus> getTransactions(Set<TStatus> statuses) {
     try {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
