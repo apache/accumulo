@@ -576,13 +576,11 @@ public class CompactableUtils {
       }
     };
     final ScheduledFuture<?> future = tablet.getContext().getScheduledExecutor()
-        .schedule(compactionCancellerTask, 10, TimeUnit.SECONDS);
+        .scheduleWithFixedDelay(compactionCancellerTask, 10, 10, TimeUnit.SECONDS);
     try {
       return compactor.call();
     } finally {
       future.cancel(true);
-      tablet.getContext().getScheduledExecutor().remove(compactionCancellerTask);
-      tablet.getContext().getScheduledExecutor().purge();
     }
   }
 
