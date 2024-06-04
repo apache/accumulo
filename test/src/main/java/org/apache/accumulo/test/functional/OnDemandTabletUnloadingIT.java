@@ -267,6 +267,9 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
         scanner.setConsistencyLevel(ScannerBase.ConsistencyLevel.IMMEDIATE);
         assertEquals(100, scanner.stream().count());
       }
+
+      // delete table to unhost any tablets so they do not show up in counts for the next test
+      c.tableOperations().delete(tableName);
     }
   }
 }

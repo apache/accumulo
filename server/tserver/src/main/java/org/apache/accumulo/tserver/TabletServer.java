@@ -41,6 +41,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -87,7 +88,7 @@ import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -1180,6 +1181,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         return;
       }
     });
+
+    var myLocation = TabletMetadata.Location.current(getTabletSession());
+
     tableIds.forEach(tid -> {
       Map<KeyExtent,
           Long> subset = sortedOnDemandExtents.entrySet().stream()
@@ -1191,10 +1195,20 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       UnloaderParams params = new UnloaderParamsImpl(tid, new ServiceEnvironmentImpl(context),
           subset, onDemandTabletsToUnload);
       unloaders.get(tid).evaluate(params);
-      try (TabletsMutator tm = getContext().getAmple().mutateTablets()) {
+      try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
         onDemandTabletsToUnload.forEach(ke -> {
           log.debug("Unloading on-demand tablet: {} for table: {}", ke, tid);
-          tm.mutateTablet(ke).deleteHostingRequested().mutate();
+          tabletsMutator.mutateTablet(ke).requireLocation(myLocation).deleteHostingRequested()
+              .submit(tm -> !tm.getHostingRequested());
+        });
+
+        tabletsMutator.process().forEach((extent, result) -> {
+          if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
+            var loc = Optional.ofNullable(result.readMetadata()).map(TabletMetadata::getLocation)
+                .orElse(null);
+            log.debug("Failed to clear hosting request marker for {} location in metadata:{}",
+                extent, loc);
+          }
         });
       }
     });
