@@ -29,6 +29,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -40,6 +41,8 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
@@ -48,15 +51,19 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.net.HostAndPort;
 
 public class MetadataConstraintsTest {
 
@@ -141,6 +148,32 @@ public class MetadataConstraintsTest {
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 4), violations.get(0));
 
+  }
+
+  @Test
+  public void testSuspensionCheck() {
+    Mutation m = new Mutation(new Text("0;foo"));
+    MetadataConstraints mc = new MetadataConstraints();
+    TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
+
+    SuspendLocationColumn.SUSPEND_COLUMN.put(m, SuspendingTServer.toValue(ser1,
+        SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS)));
+    List<Short> violations = mc.check(createEnv(), m);
+    assertNull(violations);
+
+    m = new Mutation(new Text("0;foo"));
+    SuspendLocationColumn.SUSPEND_COLUMN.put(m,
+        SuspendingTServer.toValue(ser1, SteadyTime.from(0, TimeUnit.MILLISECONDS)));
+    violations = mc.check(createEnv(), m);
+    assertNull(violations);
+
+    m = new Mutation(new Text("0;foo"));
+    // We must encode manually since SteadyTime won't allow a negative
+    SuspendLocationColumn.SUSPEND_COLUMN.put(m, new Value(ser1.getHostPort() + "|" + -1L));
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 10), violations.get(0));
   }
 
   @Test
@@ -334,9 +367,8 @@ public class MetadataConstraintsTest {
     // required for an endRow so will fail validation
     m = new Mutation(new Text("0;foo"));
     m.put(BulkFileColumnFamily.NAME,
-        new Text(StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), new Range("a", "b"))
-            .getMetadata().replaceFirst("\"endRow\":\".*\"",
+        new Text(StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"),
+            new Range("a", false, "b", true)).getMetadata().replaceFirst("\"endRow\":\".*\"",
                 "\"endRow\":\"" + encodeRowForMetadata("bad") + "\"")),
         new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 12);
@@ -420,9 +452,8 @@ public class MetadataConstraintsTest {
     // required for an endRow so this will fail validation
     m = new Mutation(new Text("0;foo"));
     m.put(columnFamily,
-        new Text(StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), new Range("a", "b"))
-            .getMetadata()
+        new Text(StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"),
+            new Range("a", false, "b", true)).getMetadata()
             .replaceFirst("\"endRow\":\".*\"", "\"endRow\":\"" + encodeRowForMetadata("b") + "\"")),
         value);
     assertViolation(mc, m, (short) 12);
@@ -448,9 +479,8 @@ public class MetadataConstraintsTest {
     // Should pass validation with range set
     m = new Mutation(new Text("0;foo"));
     m.put(columnFamily,
-        StoredTabletFile
-            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), new Range("a", "b"))
-            .getMetadataText(),
+        StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"),
+            new Range("a", false, "b", true)).getMetadataText(),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
     assertNull(violations);
@@ -493,7 +523,8 @@ public class MetadataConstraintsTest {
     ServerColumnFamily.SELECTED_COLUMN.put(m,
         new Value(new SelectedFiles(Set.of(new ReferencedTabletFile(
             new Path("hdfs://nn.somewhere.com:86753/accumulo/tables/42/t-0000/F00001.rf"))
-            .insert()), true, fateId).getMetadataValue()));
+            .insert()), true, fateId, SteadyTime.from(100, TimeUnit.NANOSECONDS))
+            .getMetadataValue()));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
   }

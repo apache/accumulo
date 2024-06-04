@@ -20,6 +20,7 @@ package org.apache.accumulo.core.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -32,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
@@ -362,35 +362,53 @@ public class AdminUtil<T> {
         fateIds.forEach(fateId -> {
 
           ReadOnlyFateTxStore<T> txStore = store.read(fateId);
+          try {
+            String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
 
-          String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
+            List<String> hlocks = heldLocks.remove(fateId);
 
-          List<String> hlocks = heldLocks.remove(fateId);
+            if (hlocks == null) {
+              hlocks = Collections.emptyList();
+            }
 
-          if (hlocks == null) {
-            hlocks = Collections.emptyList();
-          }
+            List<String> wlocks = waitingLocks.remove(fateId);
 
-          List<String> wlocks = waitingLocks.remove(fateId);
+            if (wlocks == null) {
+              wlocks = Collections.emptyList();
+            }
 
-          if (wlocks == null) {
-            wlocks = Collections.emptyList();
-          }
+            String top = null;
+            ReadOnlyRepo<T> repo = txStore.top();
+            if (repo != null) {
+              top = repo.getName();
+            }
 
-          String top = null;
-          ReadOnlyRepo<T> repo = txStore.top();
-          if (repo != null) {
-            top = repo.getName();
-          }
+            TStatus status = txStore.getStatus();
 
-          TStatus status = txStore.getStatus();
+            long timeCreated = txStore.timeCreated();
 
-          long timeCreated = txStore.timeCreated();
-
-          if (includeByStatus(status, statusFilter) && includeByFateId(fateId, fateIdFilter)
-              && includeByInstanceType(fateId.getType(), typesFilter)) {
-            statuses.add(new TransactionStatus(fateId, type, status, txName, hlocks, wlocks, top,
-                timeCreated));
+            if (includeByStatus(status, statusFilter) && includeByFateId(fateId, fateIdFilter)
+                && includeByInstanceType(fateId.getType(), typesFilter)) {
+              statuses.add(new TransactionStatus(fateId, type, status, txName, hlocks, wlocks, top,
+                  timeCreated));
+            }
+          } catch (Exception e) {
+            // If the cause of the Exception is a NoNodeException, it should be ignored as this
+            // indicates the transaction has completed between the time the list of transactions was
+            // acquired and the time the transaction was probed for info.
+            boolean nne = false;
+            Throwable cause = e;
+            while (cause != null) {
+              if (cause instanceof KeeperException.NoNodeException) {
+                nne = true;
+                break;
+              }
+              cause = cause.getCause();
+            }
+            if (!nne) {
+              throw e;
+            }
+            log.debug("Tried to get info on a since completed transaction - ignoring {} ", fateId);
           }
         });
       }
@@ -482,7 +500,7 @@ public class AdminUtil<T> {
           break;
       }
     } finally {
-      txStore.unreserve(0, TimeUnit.MILLISECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
     return state;
   }
@@ -532,7 +550,7 @@ public class AdminUtil<T> {
           break;
       }
     } finally {
-      txStore.unreserve(0, TimeUnit.MILLISECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
 
     return state;

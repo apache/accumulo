@@ -23,6 +23,7 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -58,17 +59,18 @@ public class TabletManagement {
     NEEDS_VOLUME_REPLACEMENT;
   }
 
-  public static void addActions(final SortedMap<Key,Value> decodedRow,
+  public static void addActions(final BiConsumer<Key,Value> bic, final Text row,
       final Set<ManagementAction> actions) {
-    final Key reasonsKey = new Key(decodedRow.firstKey().getRow(), REASONS_COLUMN_NAME, EMPTY);
+    final Key reasonsKey = new Key(row, REASONS_COLUMN_NAME, EMPTY);
     final Value reasonsValue = new Value(Joiner.on(',').join(actions));
-    decodedRow.put(reasonsKey, reasonsValue);
+    bic.accept(reasonsKey, reasonsValue);
   }
 
-  public static void addError(final SortedMap<Key,Value> decodedRow, final Exception error) {
-    final Key errorKey = new Key(decodedRow.firstKey().getRow(), ERROR_COLUMN_NAME, EMPTY);
+  public static void addError(final BiConsumer<Key,Value> bic, final Text row,
+      final Exception error) {
+    final Key errorKey = new Key(row, ERROR_COLUMN_NAME, EMPTY);
     final Value errorValue = new Value(error.getMessage());
-    decodedRow.put(errorKey, errorValue);
+    bic.accept(errorKey, errorValue);
   }
 
   private final Set<ManagementAction> actions;

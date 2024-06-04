@@ -18,31 +18,32 @@
  */
 package org.apache.accumulo.server.compaction;
 
-import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MetricsUtil;
+import java.util.concurrent.atomic.AtomicLong;
 
-import io.micrometer.core.instrument.Counter;
+import org.apache.accumulo.core.metrics.MetricsProducer;
+
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class PausedCompactionMetrics implements MetricsProducer {
 
-  private Counter majcPauses;
-  private Counter mincPauses;
+  private final AtomicLong majcPauseCount = new AtomicLong(0);
+  private final AtomicLong mincPauseCount = new AtomicLong(0);
 
   public void incrementMinCPause() {
-    mincPauses.increment();
+    mincPauseCount.incrementAndGet();
   }
 
   public void incrementMajCPause() {
-    majcPauses.increment();
+    majcPauseCount.incrementAndGet();
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    majcPauses = Counter.builder(METRICS_MAJC_PAUSED).description("major compaction pause count")
-        .tags(MetricsUtil.getCommonTags()).register(registry);
-    mincPauses = Counter.builder(METRICS_MINC_PAUSED).description("minor compactor pause count")
-        .tags(MetricsUtil.getCommonTags()).register(registry);
+    FunctionCounter.builder(METRICS_MAJC_PAUSED, majcPauseCount, AtomicLong::get)
+        .description("major compaction pause count").register(registry);
+    FunctionCounter.builder(METRICS_MINC_PAUSED, mincPauseCount, AtomicLong::get)
+        .description("minor compactor pause count").register(registry);
   }
 
 }

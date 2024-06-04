@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -40,10 +41,13 @@ public class ZooTabletStateStoreTest {
 
   @Test
   public void testZooTabletStateStore() throws DistributedStoreException {
+
+    ServiceLock lock = EasyMock.createMock(ServiceLock.class);
     ServerContext context = MockServerContext.get();
     Ample ample = EasyMock.createMock(Ample.class);
     expect(context.getAmple()).andReturn(ample).anyTimes();
-    EasyMock.replay(context, ample);
+    expect(context.getServiceLock()).andReturn(lock).anyTimes();
+    EasyMock.replay(lock, context, ample);
     ZooTabletStateStore tstore = new ZooTabletStateStore(DataLevel.ROOT, context);
 
     String sessionId = "this is my unique session data";
@@ -60,5 +64,8 @@ public class ZooTabletStateStoreTest {
 
     final List<TabletMetadata> assignmentList1 = List.of(nonRootMeta);
     assertThrows(IllegalArgumentException.class, () -> tstore.unassign(assignmentList1, null));
+
+    EasyMock.verify(lock, context, ample);
+
   }
 }

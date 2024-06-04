@@ -208,7 +208,7 @@ public abstract class TabletBase {
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       this.lookupCount.incrementAndGet();
-      this.server.getScanMetrics().incrementLookupCount(1);
+      this.server.getScanMetrics().incrementLookupCount();
       result = lookup(iter, ranges, results, scanParams, maxResultSize);
       return result;
     } catch (IOException | RuntimeException e) {

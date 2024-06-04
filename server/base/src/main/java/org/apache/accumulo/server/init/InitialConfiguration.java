@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.fate.user.schema.FateSchema;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -85,6 +86,11 @@ class InitialConfiguration {
 
     initialFateTableConf.putAll(commonConfig);
     initialFateTableConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "256M");
+    // Create a locality group that contains status so its fast to scan. When fate looks for work is
+    // scans this family.
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "status",
+        FateSchema.TxColumnFamily.STR_NAME);
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "status");
 
     int max = hadoopConf.getInt("dfs.replication.max", 512);
     // Hadoop 0.23 switched the min value configuration name

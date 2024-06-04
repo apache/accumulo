@@ -36,25 +36,17 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
-import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -80,8 +72,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class SplitRecoveryIT extends ConfigurableMacBase {
 
   @Override
@@ -94,33 +84,11 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         prevEndRow == null ? null : new Text(prevEndRow));
   }
 
-  private void run(ServerContext c) throws Exception {
-    var zPath = ServiceLock.path(c.getZooKeeperRoot() + "/testLock");
-    ZooReaderWriter zoo = c.getZooReaderWriter();
-    zoo.putPersistentData(zPath.toString(), new byte[0], NodeExistsPolicy.OVERWRITE);
-    ServiceLock zl = new ServiceLock(zoo.getZooKeeper(), zPath, UUID.randomUUID());
-    boolean gotLock = zl.tryLock(new LockWatcher() {
+  @Test
+  public void run() throws Exception {
 
-      @SuppressFBWarnings(value = "DM_EXIT",
-          justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
-      @Override
-      public void lostLock(LockLossReason reason) {
-        System.exit(-1);
-
-      }
-
-      @SuppressFBWarnings(value = "DM_EXIT",
-          justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
-      @Override
-      public void unableToMonitorLockNode(Exception e) {
-        System.exit(-1);
-      }
-    }, new ServiceLockData(UUID.randomUUID(), "foo", ThriftService.TSERV,
-        Constants.DEFAULT_RESOURCE_GROUP_NAME));
-
-    if (!gotLock) {
-      System.err.println("Failed to get lock " + zPath);
-    }
+    ServerContext c = getCluster().getServerContext();
+    ServiceLock zl = c.getServiceLock();
 
     // run test for a table with one tablet
     runSplitRecoveryTest(c, 0, "sp", 0, zl, nke("foo0", null, null));
@@ -164,7 +132,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       String dirName = "dir_" + i;
       String tdir =
           context.getTablesDirs().iterator().next() + "/" + extent.tableId() + "/" + dirName;
-      addTablet(extent, dirName, context, TimeType.LOGICAL, zl);
+      addTablet(extent, dirName, context, TimeType.LOGICAL);
       SortedMap<ReferencedTabletFile,DataFileValue> dataFiles = new TreeMap<>();
       dataFiles.put(new ReferencedTabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
           new DataFileValue(1000017 + i, 10000 + i));
@@ -366,27 +334,16 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     }
   }
 
-  public static void main(String[] args) throws Exception {
-    new SplitRecoveryIT().run(new ServerContext(SiteConfiguration.auto()));
-  }
-
-  @Test
-  public void test() throws Exception {
-    assertEquals(0, exec(SplitRecoveryIT.class).waitFor());
-  }
-
-  public static void addTablet(KeyExtent extent, String path, ServerContext context,
-      TimeType timeType, ServiceLock zooLock) {
+  public void addTablet(KeyExtent extent, String path, ServerContext context, TimeType timeType) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.prevEndRow());
     tablet.putDirName(path);
     tablet.putTime(new MetadataTime(0, timeType));
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.mutate();
 
   }
 
-  public static void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
+  public void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
       TServerInstance tServerInstance, Map<StoredTabletFile,DataFileValue> datafileSizes,
       Map<FateId,? extends Collection<ReferencedTabletFile>> bulkLoadedFiles, MetadataTime time,
       long lastFlushID) {

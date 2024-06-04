@@ -100,6 +100,15 @@ public class FateKey {
     return new FateKey(serialized);
   }
 
+  public static FateKeyType deserializeType(byte[] serialized) {
+    try (DataInputBuffer buffer = new DataInputBuffer()) {
+      buffer.reset(serialized, serialized.length);
+      return FateKeyType.valueOf(buffer.readUTF());
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
   public static FateKey forSplit(KeyExtent extent) {
     return new FateKey(FateKeyType.SPLIT, extent);
   }

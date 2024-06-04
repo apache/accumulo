@@ -197,9 +197,10 @@ public class CommitCompaction extends ManagerRepo {
               tablet.getExtent());
         }
 
-        tabletMutator.putSelectedFiles(
-            new SelectedFiles(newSelectedFileSet, tablet.getSelectedFiles().initiallySelectedAll(),
-                tablet.getSelectedFiles().getFateId()));
+        tabletMutator.putSelectedFiles(new SelectedFiles(newSelectedFileSet,
+            tablet.getSelectedFiles().initiallySelectedAll(), tablet.getSelectedFiles().getFateId(),
+            tablet.getSelectedFiles().getCompletedJobs() + 1,
+            tablet.getSelectedFiles().getSelectedTime()));
       }
     }
 
@@ -217,7 +218,6 @@ public class CommitCompaction extends ManagerRepo {
     }
   }
 
-  // ELASTICITY_TODO unit test this method
   public static boolean canCommitCompaction(ExternalCompactionId ecid,
       TabletMetadata tabletMetadata) {
 
@@ -256,6 +256,7 @@ public class CommitCompaction extends ManagerRepo {
         LOG.debug(
             "Received completion notification for user compaction where its fate txid did not match the tablets {} {} {} {}",
             ecid, extent, ecm.getFateId(), tabletMetadata.getSelectedFiles().getFateId());
+        return false;
       }
 
       if (!tabletMetadata.getSelectedFiles().getFiles().containsAll(ecm.getJobFiles())) {

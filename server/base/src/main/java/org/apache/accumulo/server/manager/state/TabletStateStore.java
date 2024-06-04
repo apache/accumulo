@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 
@@ -64,8 +66,11 @@ public interface TabletStateStore {
 
   /**
    * Store the assigned locations in the data store.
+   *
+   * @return the failures, the extents that a future location could not be set for
    */
-  void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException;
+  Set<KeyExtent> setFutureLocations(Collection<Assignment> assignments)
+      throws DistributedStoreException;
 
   /**
    * Tablet servers will update the data store with the location when they bring the tablet online
@@ -86,7 +91,7 @@ public interface TabletStateStore {
    * previous tserver.
    */
   void suspend(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException;
 
   /**
@@ -101,7 +106,7 @@ public interface TabletStateStore {
   }
 
   public static void suspend(ServerContext context, TabletMetadata tm,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     getStoreForTablet(tm.getExtent(), context).suspend(Collections.singletonList(tm),
         logsForDeadServers, suspensionTimestamp);

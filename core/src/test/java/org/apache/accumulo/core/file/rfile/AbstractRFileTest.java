@@ -37,7 +37,9 @@ import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
@@ -61,6 +63,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.io.Text;
 
 public abstract class AbstractRFileTest {
 
@@ -94,6 +97,10 @@ public abstract class AbstractRFileTest {
     }
 
     public void openWriter(boolean startDLG, int blockSize) throws IOException {
+      openWriter(startDLG, blockSize, 1000);
+    }
+
+    public void openWriter(boolean startDLG, int blockSize, int indexBlockSize) throws IOException {
       baos = new ByteArrayOutputStream();
       dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
       CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
@@ -109,7 +116,7 @@ public abstract class AbstractRFileTest {
         sampler = SamplerFactory.newSampler(samplerConfig, accumuloConfiguration);
       }
 
-      writer = new RFile.Writer(_cbw, blockSize, 1000, samplerConfig, sampler);
+      writer = new RFile.Writer(_cbw, blockSize, indexBlockSize, samplerConfig, sampler);
 
       if (startDLG) {
         writer.startDefaultLocalityGroup();
@@ -260,5 +267,33 @@ public abstract class AbstractRFileTest {
 
     assertFalse(eki.hasNext());
     assertFalse(evi.hasNext());
+  }
+
+  protected void verifyEstimated(FileSKVIterator reader) throws IOException {
+    // Test estimated entries for 1 row
+    long estimated = reader.estimateOverlappingEntries(new KeyExtent(TableId.of("1"),
+        new Text(formatString("r_", 1)), new Text(formatString("r_", 0))));
+    // One row contains 256 but the estimate will be more with overlapping index entries
+    assertEquals(264, estimated);
+
+    // Test for 2 rows
+    estimated = reader.estimateOverlappingEntries(new KeyExtent(TableId.of("1"),
+        new Text(formatString("r_", 2)), new Text(formatString("r_", 0))));
+    // Two rows contains 512 but the estimate will be more with overlapping index entries
+    assertEquals(516, estimated);
+
+    // 3 rows
+    // Actual should be 768, estimate is 772
+    estimated = reader.estimateOverlappingEntries(
+        new KeyExtent(TableId.of("1"), null, new Text(formatString("r_", 0))));
+    assertEquals(772, estimated);
+
+    // Tests when full number of entries should return
+    estimated = reader.estimateOverlappingEntries(new KeyExtent(TableId.of("1"), null, null));
+    assertEquals(1024, estimated);
+
+    estimated = reader.estimateOverlappingEntries(
+        new KeyExtent(TableId.of("1"), new Text(formatString("r_", 4)), null));
+    assertEquals(1024, estimated);
   }
 }

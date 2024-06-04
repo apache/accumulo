@@ -46,6 +46,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -111,6 +112,11 @@ class CompactionDriver extends ManagerRepo {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OTHER,
           TableOperationsImpl.TABLE_DELETED_MSG);
+    }
+
+    if (manager.getContext().getTableState(tableId) != TableState.ONLINE) {
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
+          TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, "The table is not online.");
     }
 
     long t1 = System.currentTimeMillis();
@@ -241,17 +247,22 @@ class CompactionDriver extends ManagerRepo {
             noneSelected++;
           } else {
             var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED);
-            var selectedFiles =
-                new SelectedFiles(filesToCompact, tablet.getFiles().equals(filesToCompact), fateId);
+                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED, USER_COMPACTION_REQUESTED);
+            var selectedFiles = new SelectedFiles(filesToCompact,
+                tablet.getFiles().equals(filesToCompact), fateId, manager.getSteadyTime());
 
             mutator.putSelectedFiles(selectedFiles);
+
+            // We no longer need to include this marker if files are selected
+            if (tablet.getUserCompactionsRequested().contains(fateId)) {
+              mutator.deleteUserCompactionRequested(fateId);
+            }
 
             selectionsSubmitted.put(tablet.getExtent(), filesToCompact);
 
             mutator.submit(tabletMetadata -> tabletMetadata.getSelectedFiles() != null
-                && tabletMetadata.getSelectedFiles().getMetadataValue()
-                    .equals(selectedFiles.getMetadataValue()));
+                && tabletMetadata.getSelectedFiles().getFateId().equals(fateId)
+                || tabletMetadata.getCompacted().contains(fateId));
 
             if (minSelected == null || tablet.getExtent().compareTo(minSelected) < 0) {
               minSelected = tablet.getExtent();

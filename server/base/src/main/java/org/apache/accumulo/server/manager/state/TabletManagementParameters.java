@@ -32,7 +32,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -43,6 +45,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -75,13 +78,14 @@ public class TabletManagementParameters {
   private final Set<TServerInstance> onlineTservers;
   private final boolean canSuspendTablets;
   private final Map<Path,Path> volumeReplacements;
+  private final SteadyTime steadyTime;
 
   public TabletManagementParameters(ManagerState managerState,
       Map<Ample.DataLevel,Boolean> parentUpgradeMap, Set<TableId> onlineTables,
       LiveTServerSet.LiveTServersSnapshot liveTServersSnapshot,
       Set<TServerInstance> serversToShutdown, Map<KeyExtent,TServerInstance> migrations,
       Ample.DataLevel level, Map<FateId,Map<String,String>> compactionHints,
-      boolean canSuspendTablets, Map<Path,Path> volumeReplacements) {
+      boolean canSuspendTablets, Map<Path,Path> volumeReplacements, SteadyTime steadyTime) {
     this.managerState = managerState;
     this.parentUpgradeMap = Map.copyOf(parentUpgradeMap);
     // TODO could filter by level
@@ -103,6 +107,7 @@ public class TabletManagementParameters {
     });
     this.canSuspendTablets = canSuspendTablets;
     this.volumeReplacements = Map.copyOf(volumeReplacements);
+    this.steadyTime = Objects.requireNonNull(steadyTime);
   }
 
   private TabletManagementParameters(JsonData jdata) {
@@ -130,6 +135,7 @@ public class TabletManagementParameters {
     });
     this.canSuspendTablets = jdata.canSuspendTablets;
     this.volumeReplacements = Collections.unmodifiableMap(jdata.volumeReplacements);
+    this.steadyTime = SteadyTime.from(jdata.steadyTime, TimeUnit.NANOSECONDS);
   }
 
   public ManagerState getManagerState() {
@@ -188,6 +194,10 @@ public class TabletManagementParameters {
     return volumeReplacements;
   }
 
+  public SteadyTime getSteadyTime() {
+    return steadyTime;
+  }
+
   private static Map<FateId,Map<String,String>>
       makeImmutable(Map<FateId,Map<String,String>> compactionHints) {
     var copy = new HashMap<FateId,Map<String,String>>();
@@ -212,6 +222,7 @@ public class TabletManagementParameters {
 
     final boolean canSuspendTablets;
     final Map<Path,Path> volumeReplacements;
+    final long steadyTime;
 
     private static String toString(KeyExtent extent) {
       DataOutputBuffer buffer = new DataOutputBuffer();
@@ -255,6 +266,7 @@ public class TabletManagementParameters {
           .collect(Collectors.toMap(entry -> entry.getKey().canonical(), Map.Entry::getValue));
       canSuspendTablets = params.canSuspendTablets;
       volumeReplacements = params.volumeReplacements;
+      steadyTime = params.steadyTime.getNanos();
     }
 
   }

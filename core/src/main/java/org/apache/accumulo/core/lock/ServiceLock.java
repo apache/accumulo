@@ -32,6 +32,8 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.util.UuidUtil;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -187,10 +189,10 @@ public class ServiceLock implements Watcher {
    */
   public static List<String> validateAndSort(ServiceLockPath path, List<String> children) {
     LOG.trace("validating and sorting children at path {}", path);
-    List<String> validChildren = new ArrayList<>();
     if (children == null || children.isEmpty()) {
-      return validChildren;
+      return List.of();
     }
+    List<String> validChildren = new ArrayList<>(children.size());
     children.forEach(c -> {
       LOG.trace("Validating {}", c);
       if (c.startsWith(ZLOCK_PREFIX)) {
@@ -201,9 +203,7 @@ public class ServiceLock implements Watcher {
           String sequenceNum = candidate.substring(idx + 1);
           try {
             LOG.trace("Testing uuid format of {}", uuid);
-            // string check guards uuids like "1-1-1-1-1" that parse to
-            // "00000001-0001-0001-0001-000000000001"
-            if (!uuid.equals(UUID.fromString(uuid).toString())) {
+            if (!UuidUtil.isUUID(uuid, 0)) {
               throw new IllegalArgumentException(uuid + " is an invalid UUID");
             }
             if (sequenceNum.length() == 10) {
@@ -557,6 +557,17 @@ public class ServiceLock implements Watcher {
     final String pathToDelete = path + "/" + localLock;
     LOG.debug("[{}] Deleting all at path {} due to unlock", vmLockPrefix, pathToDelete);
     ZooUtil.recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
+
+    // Wait for the delete to happen on the server before exiting method
+    NanoTime start = NanoTime.now();
+    while (zooKeeper.exists(pathToDelete, null) != null) {
+      Thread.onSpinWait();
+      if (NanoTime.now().subtract(start).toSeconds() > 10) {
+        start = NanoTime.now();
+        LOG.debug("[{}] Still waiting for zookeeper to delete all at {}", vmLockPrefix,
+            pathToDelete);
+      }
+    }
 
     localLw.lostLock(LockLossReason.LOCK_DELETED);
   }

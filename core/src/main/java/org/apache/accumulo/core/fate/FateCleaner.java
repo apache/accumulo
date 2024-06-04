@@ -21,7 +21,6 @@ package org.apache.accumulo.core.fate;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
@@ -104,7 +103,7 @@ public class FateCleaner<T> {
   }
 
   public void ageOff() {
-    store.list().filter(ids -> AGE_OFF_STATUSES.contains(ids.getStatus()))
+    store.list(AGE_OFF_STATUSES)
         .forEach(idStatus -> store.tryReserve(idStatus.getFateId()).ifPresent(txStore -> {
           try {
             AgeOffInfo ageOffInfo = readAgeOffInfo(txStore);
@@ -122,7 +121,7 @@ public class FateCleaner<T> {
               log.debug("Aged off FATE tx {}", idStatus.getFateId());
             }
           } finally {
-            txStore.unreserve(0, TimeUnit.MILLISECONDS);
+            txStore.unreserve(Duration.ZERO);
           }
         }));
   }
