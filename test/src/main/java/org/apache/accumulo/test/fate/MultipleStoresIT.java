@@ -19,6 +19,9 @@
 package org.apache.accumulo.test.fate;
 
 import static org.apache.accumulo.test.fate.user.UserFateStoreIT.createFateTable;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -49,12 +52,13 @@ import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
-import org.apache.hadoop.shaded.org.mockito.Mockito;
+import org.easymock.EasyMock;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -378,7 +382,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
         Integer.parseInt(Property.MANAGER_FATE_THREADPOOL_SIZE.getDefaultValue());
     final boolean isUserStore = storeType.equals(FateInstanceType.USER);
     final Set<FateId> allIds = new HashSet<>();
-    final FateStore<LatchTestEnv> store1, store2, spyStore1;
+    final FateStore<LatchTestEnv> mockedStore1, store2;
     final LatchTestEnv testEnv1 = new LatchTestEnv();
     final LatchTestEnv testEnv2 = new LatchTestEnv();
     final ZooUtil.LockID lock1 = new ZooUtil.LockID("/locks", "L1", 50);
@@ -387,23 +391,29 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
 
     if (isUserStore) {
       createFateTable(client, tableName);
-      store1 = new UserFateStore<>(client, tableName, lock1);
+      mockedStore1 = EasyMock.createMockBuilder(UserFateStore.class)
+          .withConstructor(ClientContext.class, String.class, ZooUtil.LockID.class)
+          .withArgs(client, tableName, lock1).addMockedMethod("isDeadReservation").createMock();
     } else {
-      store1 = new MetaFateStore<>(FATE_DIR, zk, client.getZooCache(), lock1);
+      mockedStore1 = EasyMock.createMockBuilder(MetaFateStore.class)
+          .withConstructor(String.class, ZooReaderWriter.class, ZooCache.class,
+              ZooUtil.LockID.class)
+          .withArgs(FATE_DIR, zk, client.getZooCache(), lock1).addMockedMethod("isDeadReservation")
+          .createMock();
     }
-
-    // Redefine isDeadReservation() for store1 as always being false. We don't want fate1/store1 to
-    // delete any reservations yet (we are simulating that the Manager is alive right now)
-    spyStore1 = Mockito.spy(store1);
-    Mockito.doAnswer(invocation -> false).when(spyStore1)
-        .isDeadReservation(Mockito.any(FateStore.FateReservation.class));
+    // Define isDeadReservation() for mockedStore1 as always being false. We don't want
+    // fate1/mockedStore1 to delete any reservations yet (we are simulating that the
+    // Manager is alive right now)
+    expect(mockedStore1.isDeadReservation(anyObject(FateStore.FateReservation.class)))
+        .andReturn(false).anyTimes();
+    replay(mockedStore1);
 
     Fate<LatchTestEnv> fate1 =
-        new Fate<>(testEnv1, spyStore1, Object::toString, DefaultConfiguration.getInstance());
+        new Fate<>(testEnv1, mockedStore1, Object::toString, DefaultConfiguration.getInstance());
     fate1.startDeadReservationCleaner();
 
     // Ensure nothing is reserved yet
-    assertTrue(spyStore1.getActiveReservations().isEmpty());
+    assertTrue(mockedStore1.getActiveReservations().isEmpty());
 
     // Create transactions
     for (int i = 0; i < numFateIds; i++) {
@@ -418,8 +428,8 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     Wait.waitFor(() -> testEnv1.numWorkers.get() == numFateIds);
     // Each fate worker will be hung up working (IN_PROGRESS) on a single transaction
 
-    // Verify spyStore1 has the transactions reserved and that they were reserved with lock1
-    reservations = spyStore1.getActiveReservations();
+    // Verify mockedStore1 has the transactions reserved and that they were reserved with lock1
+    reservations = mockedStore1.getActiveReservations();
     assertEquals(allIds, reservations.keySet());
     reservations.values().forEach(
         res -> assertTrue(FateStore.FateReservation.locksAreEqual(lock1, res.getLockID())));
@@ -430,23 +440,26 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
       store2 = new MetaFateStore<>(FATE_DIR, zk, client.getZooCache(), lock2);
     }
 
+    // Verify store2 can see the reserved transactions even though they were reserved using
+    // mockedStore1
+    reservations = store2.getActiveReservations();
+    assertEquals(allIds, reservations.keySet());
+    reservations.values().forEach(
+        res -> assertTrue(FateStore.FateReservation.locksAreEqual(lock1, res.getLockID())));
+
     // Simulate what would happen if the Manager using the Fate object (fate1) died.
     // ServerLock.isLockHeld(...) would return false for the LockId of the Manager that died
     // (in this case, lock1).
 
     // Redefine what is considered "dead" as those whose locks match lock1
-    Mockito.doAnswer(invocation -> {
-      FateStore.FateReservation reservation =
-          (FateStore.FateReservation) invocation.getArguments()[0];
-      return FateStore.FateReservation.locksAreEqual(reservation.getLockID(), lock1);
-    }).when(spyStore1).isDeadReservation(Mockito.any(FateStore.FateReservation.class));
-
-    // Verify store2 can see the reserved transactions even though they were reserved using
-    // spyStore1
-    reservations = store2.getActiveReservations();
-    assertEquals(allIds, reservations.keySet());
-    reservations.values().forEach(
-        res -> assertTrue(FateStore.FateReservation.locksAreEqual(lock1, res.getLockID())));
+    EasyMock.reset(mockedStore1);
+    expect(mockedStore1.isDeadReservation(anyObject(FateStore.FateReservation.class)))
+        .andAnswer(() -> {
+          FateStore.FateReservation reservation =
+              (FateStore.FateReservation) EasyMock.getCurrentArguments()[0];
+          return FateStore.FateReservation.locksAreEqual(reservation.getLockID(), lock1);
+        }).anyTimes();
+    replay(mockedStore1);
 
     // Create the new Fate/start the Fate threads (the work finder and the workers).
     // The DeadReservationCleaner for fate2 should not run/have no effect since we
@@ -458,7 +471,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     // Wait for the "dead" reservations to be deleted and picked up again (reserved using
     // fate2/store2/lock2 now).
     // They are considered "dead" if they are held by lock1 in this test. We don't have to worry
-    // about fate1/spyStore1/lock1 being used to reserve the transactions again since all
+    // about fate1/mockedStore1/lock1 being used to reserve the transactions again since all
     // the workers for fate1 are hung up
     Wait.waitFor(() -> {
       Map<FateId,FateStore.FateReservation> store2Reservations = store2.getActiveReservations();
