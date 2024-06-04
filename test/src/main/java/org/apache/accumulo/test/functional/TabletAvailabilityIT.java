@@ -93,8 +93,8 @@ public class TabletAvailabilityIT extends AccumuloClusterHarness {
             availabilites.get(row(i)) == UNHOSTED || availabilites.get(row(i + 1)) == UNHOSTED;
 
         try (var writer = client.createBatchWriter(table)) {
-          writer.addMutation(newMuation(i, v++));
-          writer.addMutation(newMuation(i + 1, v++));
+          writer.addMutation(newMutation(i, v++));
+          writer.addMutation(newMutation(i + 1, v++));
           writer.flush();
           assertFalse(expectFail);
         } catch (MutationsRejectedException e) {
