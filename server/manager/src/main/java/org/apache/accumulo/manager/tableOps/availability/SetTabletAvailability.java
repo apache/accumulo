@@ -18,8 +18,13 @@
  */
 package org.apache.accumulo.manager.tableOps.availability;
 
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.PartialKey;
@@ -30,9 +35,11 @@ import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
+import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -60,14 +67,11 @@ public class SetTabletAvailability extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager manager) throws Exception {
-    return Utils.reserveNamespace(manager, namespaceId, fateId, LockType.READ, true,
-        TableOperation.SET_TABLET_AVAILABILITY)
-        + Utils.reserveTable(manager, tableId, fateId, LockType.WRITE, true,
-            TableOperation.SET_TABLET_AVAILABILITY);
-  }
 
-  @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+    if (manager.getContext().getTableState(tableId) != TableState.ONLINE) {
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
+          TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, "The table is not online.");
+    }
 
     final Range range = new Range(tRange);
     LOG.debug("Finding tablets in Range: {} for table:{}", range, tableId);
@@ -81,10 +85,21 @@ public class SetTabletAvailability extends ManagerRepo {
     // row is always inclusive.
     final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
 
+    AtomicLong notAccepted = new AtomicLong();
+
+    Consumer<Ample.ConditionalResult> resultsConsumer = result -> {
+      if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
+        notAccepted.incrementAndGet();
+        LOG.debug("{} failed to set tablet availability for {}", fateId, result.getExtent());
+      }
+    };
+
+    var start = NanoTime.now();
     try (
         TabletsMetadata m = manager.getContext().getAmple().readTablets().forTable(tableId)
             .overlapping(scanRangeStart, true, null).build();
-        TabletsMutator mutator = manager.getContext().getAmple().mutateTablets()) {
+        Ample.AsyncConditionalTabletsMutator mutator =
+            manager.getContext().getAmple().conditionallyMutateTablets(resultsConsumer)) {
       for (TabletMetadata tm : m) {
         final KeyExtent tabletExtent = tm.getExtent();
         LOG.trace("Evaluating tablet {} against range {}", tabletExtent, range);
@@ -114,18 +129,23 @@ public class SetTabletAvailability extends ManagerRepo {
 
         LOG.debug("Setting tablet availability to {} requested for: {} ", tabletAvailability,
             tabletExtent);
-        mutator.mutateTablet(tabletExtent).putTabletAvailability(tabletAvailability).mutate();
+        mutator.mutateTablet(tabletExtent).requireAbsentOperation()
+            .putTabletAvailability(tabletAvailability)
+            .submit(tabletMeta -> tabletMeta.getTabletAvailability() == tabletAvailability);
       }
     }
+
+    if (notAccepted.get() > 0) {
+      return Math.min(30000, Math.max(start.elapsed().toMillis(), 1));
+    } else {
+      return 0;
+    }
+  }
+
+  @Override
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.READ);
     Utils.unreserveTable(manager, tableId, fateId, LockType.WRITE);
     return null;
   }
-
-  @Override
-  public void undo(FateId fateId, Manager manager) throws Exception {
-    Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.READ);
-    Utils.unreserveTable(manager, tableId, fateId, LockType.WRITE);
-  }
-
 }
