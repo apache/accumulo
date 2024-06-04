@@ -153,7 +153,7 @@ public class TabletAvailabilityIT extends AccumuloClusterHarness {
     return new Text(row(i));
   }
 
-  private static Mutation newMuation(int row, int val) {
+  private static Mutation newMutation(int row, int val) {
     var m = new Mutation(row(row));
     m.put("f", "q", String.format("%010d", val));
     return m;
