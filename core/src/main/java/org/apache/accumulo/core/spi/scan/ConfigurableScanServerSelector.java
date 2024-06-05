@@ -83,13 +83,14 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * certain scans. Second groups can be used to have different hardware/VM types for scans, for
  * example could have some scans use expensive high memory VMs and others use cheaper burstable
  * VMs.</li>
- * <li><b>enableTabletServerFallback : </b> When there are no scans servers, this setting determines
- * if fallback to tablet servers is desired. Falling back to tablet servers may cause tablets to be
- * loaded that are not currently loaded. When this setting is false and there are no scan servers,
- * it will wait for scan servers to be available. This setting avoids loading tablets on tablet
- * servers when scans servers are temporarily unavailable which could be caused by normal cluster
- * activity. If not specified this setting defaults to true. Set to false to avoid tablet server
- * fallback. Waiting for scan servers is done via
+ * <li><b>timeToWaitForScanServers : </b> When there are no scans servers, this setting determines
+ * how long to wait for scan servers to load before falling back to tablet servers is desired.
+ * Falling back to tablet servers may cause tablets to be loaded that are not currently loaded. When
+ * this setting is given a wait time and there are no scan servers, it will wait for scan servers to
+ * be available. This setting avoids loading tablets on tablet servers when scans servers are
+ * temporarily unavailable which could be caused by normal cluster activity. If not specified this
+ * setting defaults to null. Set to a large enough duration to avoid tablet server fallback. Waiting
+ * for scan servers is done via
  * {@link org.apache.accumulo.core.spi.scan.ScanServerSelector.SelectorParameters#waitUntil(Supplier, Duration, String)}</li>
  * <li><b>attemptPlans : </b> A list of configuration to use for each scan attempt. Each list object
  * has the following fields:
@@ -124,7 +125,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *       "maxBusyTimeout":"20m",
  *       "busyTimeoutMultiplier":8,
  *       "group":"lowcost",
- *       "enableTabletServerFallback":false,
+ *       "timeToWaitForScanServers": "120ms,
  *       "attemptPlans":[
  *         {"servers":"1", "busyTimeout":"10s"},
  *         {"servers":"3", "busyTimeout":"30s","salt":"42"},
@@ -237,7 +238,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     int busyTimeoutMultiplier;
     String maxBusyTimeout;
     String group = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
-    boolean enableTabletServerFallback = true;
+    String timeToWaitForScanServers;
 
     transient boolean parsed = false;
     transient long parsedMaxBusyTimeout;
@@ -345,15 +346,13 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
         orderedScanServersSupplier.get().getOrDefault(profile.group, List.of());
 
     var finalProfile = profile;
-    if (orderedScanServers.isEmpty() && !profile.enableTabletServerFallback) {
+    if (orderedScanServers.isEmpty() && profile.timeToWaitForScanServers != null) {
       // Wait for scan servers in the configured group to be present.
-      orderedScanServers =
-          params
-              .waitUntil(
-                  () -> Optional
-                      .ofNullable(orderedScanServersSupplier.get().get(finalProfile.group)),
-                  Duration.ofMillis(Long.MAX_VALUE), "scan servers in group : " + profile.group)
-              .orElseThrow();
+      orderedScanServers = params.waitUntil(
+          () -> Optional.ofNullable(orderedScanServersSupplier.get().get(finalProfile.group)),
+          Duration
+              .ofMillis(ConfigurationTypeHelper.getTimeInMillis(profile.timeToWaitForScanServers)),
+          "scan servers in group : " + profile.group).orElseThrow();
       // at this point the list should be non empty unless there is a bug
       Preconditions.checkState(!orderedScanServers.isEmpty());
     }
