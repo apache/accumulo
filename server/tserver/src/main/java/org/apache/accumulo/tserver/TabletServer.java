@@ -1134,7 +1134,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       KeyExtent oldestKeyExtent = timeSortedOnDemandExtents.get(oldestAccessTime);
       log.warn("Unloading on-demand tablet: {} for table: {} due to low memory", oldestKeyExtent,
           oldestKeyExtent.tableId());
-      getContext().getAmple().mutateTablet(oldestKeyExtent).deleteHostingRequested().mutate();
+      removeHostingRequests(List.of(oldestKeyExtent));
       onDemandUnloadedLowMemory.addAndGet(1);
       return;
     }
@@ -1182,8 +1182,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
     });
 
-    var myLocation = TabletMetadata.Location.current(getTabletSession());
-
     tableIds.forEach(tid -> {
       Map<KeyExtent,
           Long> subset = sortedOnDemandExtents.entrySet().stream()
@@ -1195,23 +1193,28 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       UnloaderParams params = new UnloaderParamsImpl(tid, new ServiceEnvironmentImpl(context),
           subset, onDemandTabletsToUnload);
       unloaders.get(tid).evaluate(params);
-      try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
-        onDemandTabletsToUnload.forEach(ke -> {
-          log.debug("Unloading on-demand tablet: {} for table: {}", ke, tid);
-          tabletsMutator.mutateTablet(ke).requireLocation(myLocation).deleteHostingRequested()
-              .submit(tm -> !tm.getHostingRequested());
-        });
-
-        tabletsMutator.process().forEach((extent, result) -> {
-          if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
-            var loc = Optional.ofNullable(result.readMetadata()).map(TabletMetadata::getLocation)
-                .orElse(null);
-            log.debug("Failed to clear hosting request marker for {} location in metadata:{}",
-                extent, loc);
-          }
-        });
-      }
+      removeHostingRequests(onDemandTabletsToUnload);
     });
   }
 
+  private void removeHostingRequests(Collection<KeyExtent> extents) {
+    var myLocation = TabletMetadata.Location.current(getTabletSession());
+
+    try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
+      extents.forEach(ke -> {
+        log.debug("Unloading on-demand tablet: {}", ke);
+        tabletsMutator.mutateTablet(ke).requireLocation(myLocation).deleteHostingRequested()
+            .submit(tm -> !tm.getHostingRequested());
+      });
+
+      tabletsMutator.process().forEach((extent, result) -> {
+        if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
+          var loc = Optional.ofNullable(result.readMetadata()).map(TabletMetadata::getLocation)
+              .orElse(null);
+          log.debug("Failed to clear hosting request marker for {} location in metadata:{}", extent,
+              loc);
+        }
+      });
+    }
+  }
 }
