@@ -340,7 +340,7 @@ public class PrintInfo implements KeywordExecutable {
             + Key.toPrintableString(cryptoParams, 0, cryptoParams.length, cryptoParams.length));
       }
     } catch (IOException ioe) {
-      log.error("Error reading crypto params", ioe);
+      System.out.println("Unable to read crypto params");
     }
   }
 }
