@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
@@ -55,6 +56,7 @@ import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
@@ -141,6 +143,12 @@ public class FileCompactor implements Callable<CompactionStats> {
   private final long compactorID = nextCompactorID.getAndIncrement();
   protected volatile Thread thread;
   private final ServerContext context;
+
+  private final AtomicBoolean interruptFlag = new AtomicBoolean(false);
+
+  public void interrupt() {
+    interruptFlag.set(true);
+  }
 
   public long getCompactorID() {
     return compactorID;
@@ -350,6 +358,13 @@ public class FileCompactor implements Callable<CompactionStats> {
     } catch (CompactionCanceledException e) {
       log.debug("Compaction canceled {}", extent);
       throw e;
+    } catch (IterationInterruptedException iie) {
+      if (!env.isCompactionEnabled()) {
+        log.debug("Compaction canceled {}", extent);
+        throw new CompactionCanceledException();
+      }
+      log.debug("RFile interrupted {}", extent);
+      throw iie;
     } catch (IOException | RuntimeException e) {
       Collection<String> inputFileNames =
           Collections2.transform(getFilesToCompact(), StoredTabletFile::getFileName);
@@ -417,6 +432,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
         InterruptibleIterator iter = new ProblemReportingIterator(context, extent.tableId(),
             dataFile.getNormalizedPathStr(), false, reader);
+        iter.setInterruptFlag(interruptFlag);
 
         iter = filesToCompact.get(dataFile).wrapFileIterator(iter);
 
