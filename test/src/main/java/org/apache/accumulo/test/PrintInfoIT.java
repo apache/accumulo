@@ -43,7 +43,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -170,7 +170,7 @@ public class PrintInfoIT extends SharedMiniClusterBase {
     boolean foundFile = false;
     String rfileName = null;
     try (BatchScanner bscanner =
-        client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
+        client.createBatchScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY, 1)) {
       String tableId = client.tableOperations().tableIdMap().get(tableName);
       bscanner.setRanges(
           Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));
