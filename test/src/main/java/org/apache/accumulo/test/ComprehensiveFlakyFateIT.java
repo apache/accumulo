@@ -18,20 +18,23 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
-
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.test.fate.FlakyFateManager;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 
-@Tag(SUNNY_DAY)
-public class ComprehensiveIT extends ComprehensiveBaseIT {
+/**
+ * This test touches a lot of the Accumulo API, so it's a good candidate to run using
+ * {@link org.apache.accumulo.test.fate.FlakyFate} because it will run a lot of FATE operations.
+ */
+public class ComprehensiveFlakyFateIT extends ComprehensiveBaseIT {
   @BeforeAll
   public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniCluster();
+    SharedMiniClusterBase.startMiniClusterWithConfig(
+        (cfg, coreSite) -> cfg.setServerClass(ServerType.MANAGER, FlakyFateManager.class));
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.securityOperations().changeUserAuthorizations("root", AUTHORIZATIONS);
