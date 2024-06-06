@@ -110,7 +110,7 @@ public class CompactRange extends ManagerRepo {
       // find the tablet containing endRow and pass its end row to the CompactionDriver constructor.
       keyExtent = findContaining(env.getContext().getAmple(), tableId, new Text(endRow));
       endRowOfEndRowTablet =
-          keyExtent.endRow().getBytes() == null ? null : TextUtil.getBytes(keyExtent.endRow());
+          keyExtent.endRow() == null ? null : TextUtil.getBytes(keyExtent.endRow());
     }
     return new CompactionDriver(namespaceId, tableId, prevRowOfStartRowTablet,
         endRowOfEndRowTablet);
