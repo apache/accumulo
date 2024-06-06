@@ -57,21 +57,22 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>N/A</td>
  * <td>{@value #METRICS_COMPACTOR_ENTRIES_READ}</td>
  * <td>FunctionCounter</td>
- * <td>Number of entries read by all compactions that have run on a compactor or tserver</td>
+ * <td>Number of entries read by all threads performing compactions</td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
  * <td>{@value #METRICS_COMPACTOR_ENTRIES_WRITTEN}</td>
  * <td>FunctionCounter</td>
- * <td>Number of entries written by all compactions that have run on a compactor or tserver</td>
+ * <td>Number of entries written by all threads performing compactions</td>
  * </tr>
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
  * <td>{@value #METRICS_COMPACTOR_BUSY}</td>
  * <td>Gauge</td>
- * <td>Indicates if the compactor is busy or not</td>
+ * <td>Indicates if the compactor is busy or not. The value will be 0 when idle and 1 when
+ * busy.</td>
  * </tr>
  * <!-- fate -->
  * <tr>

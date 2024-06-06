@@ -188,7 +188,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     Gauge
         .builder(METRICS_COMPACTOR_BUSY, this.compactionRunning,
             isRunning -> isRunning.get() ? 1 : 0)
-        .description("Indicates whether the compactor is busy or not").register(registry);
+        .description(
+            "Indicates if the compactor is busy or not. The value will be 0 when idle and 1 when busy.")
+        .register(registry);
   }
 
   protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {
