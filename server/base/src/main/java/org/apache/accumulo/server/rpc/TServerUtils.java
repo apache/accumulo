@@ -181,7 +181,7 @@ public class TServerUtils {
       return TServerUtils.startTServer(serverType, timedProcessor, serverName, threadName,
           minThreads, threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
           context.getServerSslParams(), context.getSaslParams(), context.getClientTimeoutInMillis(),
-          backlog, addresses);
+          backlog, portSearch, addresses);
     } catch (TTransportException e) {
       if (portSearch) {
         // Build a list of reserved ports - as identified by properties of type PropertyType.PORT
@@ -206,7 +206,7 @@ public class TServerUtils {
             return TServerUtils.startTServer(serverType, timedProcessor, serverName, threadName,
                 minThreads, threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
                 context.getServerSslParams(), context.getSaslParams(),
-                context.getClientTimeoutInMillis(), backlog, addr);
+                context.getClientTimeoutInMillis(), backlog, portSearch, addr);
           } catch (TTransportException tte) {
             log.info("Unable to use port {}, retrying. (Thread Name = {})", port, threadName);
           }
@@ -569,7 +569,8 @@ public class TServerUtils {
       ThriftServerType serverType, TProcessor processor, String serverName, String threadName,
       int numThreads, long threadTimeOut, long timeBetweenThreadChecks, long maxMessageSize,
       SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
-      long serverSocketTimeout, int backlog, MetricsInfo metricsInfo, HostAndPort... addresses) {
+      long serverSocketTimeout, int backlog, MetricsInfo metricsInfo, boolean portSearch,
+      HostAndPort... addresses) {
 
     if (serverType == ThriftServerType.SASL) {
       processor = updateSaslProcessor(serverType, processor);
@@ -578,7 +579,7 @@ public class TServerUtils {
     try {
       return startTServer(serverType, new TimedProcessor(processor, metricsInfo), serverName,
           threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize,
-          sslParams, saslParams, serverSocketTimeout, backlog, addresses);
+          sslParams, saslParams, serverSocketTimeout, backlog, portSearch, addresses);
     } catch (TTransportException e) {
       throw new IllegalStateException(e);
     }
@@ -595,7 +596,8 @@ public class TServerUtils {
       String serverName, String threadName, int numThreads, long threadTimeOut,
       final AccumuloConfiguration conf, long timeBetweenThreadChecks, long maxMessageSize,
       SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
-      long serverSocketTimeout, int backlog, HostAndPort... addresses) throws TTransportException {
+      long serverSocketTimeout, int backlog, boolean portSearch, HostAndPort... addresses)
+      throws TTransportException {
     TProtocolFactory protocolFactory = ThriftUtil.protocolFactory();
     // This is presently not supported. It's hypothetically possible, I believe, to work, but it
     // would require changes in how the transports
@@ -642,7 +644,11 @@ public class TServerUtils {
         }
         break;
       } catch (TTransportException e) {
-        log.warn("Error attempting to create server at {}. Error: {}", address, e.getMessage());
+        if (portSearch) {
+          log.debug("Failed attempting to create server at {}. {}", address, e.getMessage());
+        } else {
+          log.warn("Error attempting to create server at {}. Error: {}", address, e.getMessage());
+        }
       }
     }
     if (serverAddress == null) {
