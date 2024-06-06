@@ -120,6 +120,7 @@ import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 
 import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -193,6 +194,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
         .description("Number and duration of stuck major compactions").register(registry);
     CompactionWatcher.setTimer(timer);
+
+    Gauge
+        .builder(METRICS_COMPACTOR_BUSY, this.compactionRunning,
+            isRunning -> isRunning.get() ? 1 : 0)
+        .description(
+            "Indicates if the compactor is busy or not. The value will be 0 when idle and 1 when busy.")
+        .register(registry);
   }
 
   protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {
