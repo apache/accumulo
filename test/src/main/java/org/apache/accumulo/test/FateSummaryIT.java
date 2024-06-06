@@ -19,31 +19,42 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.getCompactorAddrs;
+import static org.easymock.EasyMock.anyLong;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -52,6 +63,8 @@ import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException;
+import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
 public class FateSummaryIT extends ConfigurableMacBase {
@@ -174,93 +187,32 @@ public class FateSummaryIT extends ConfigurableMacBase {
     // between getting the list and probing for info on that transaction, a NoNodeException would
     // occur causing the cmd to fail. This test ensures that this problem has been fixed (if the
     // tx no longer exists, it should just be ignored so the print/summary can complete).
+    ServerContext sctx = getCluster().getServerContext();
 
-    String[] commandsToTest = {"--print", "--summary"};
-    // We want to have enough transactions to give enough opportunity for a transaction to
-    // complete mid-print
-    final int numTxns = 250;
-    final String table = getUniqueNames(1)[0];
+    // This error was occurring in AdminUtil.getTransactionStatus(). One of the methods that is
+    // called which may throw the NNE is top(), so we will mock this method to always throw a NNE
+    // and ensure it is handled/ignored within getTransactionStatus()
+    ZooStore<String> zs = EasyMock.createMockBuilder(ZooStore.class)
+        .withConstructor(String.class, ZooReaderWriter.class)
+        .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter())
+        .addMockedMethod("top").createMock();
+    expect(zs.top(anyLong())).andThrow(new RuntimeException(new KeeperException.NoNodeException()))
+        .atLeastOnce();
+    replay(zs);
+    zs.create();
 
-    // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
-    // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
-    // this issue.
-    getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
-
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      for (String command : commandsToTest) {
-        IteratorSetting is = new IteratorSetting(1, SlowIterator.class);
-        is.addOption("sleepTime", "2");
-
-        NewTableConfiguration cfg = new NewTableConfiguration();
-        cfg.attachIterator(is, EnumSet.of(IteratorUtil.IteratorScope.majc));
-        client.tableOperations().create(table, cfg);
-
-        ReadWriteIT.ingest(client, 10, 1, 10, 0, table);
-        client.tableOperations().flush(table, null, null, true);
-
-        // validate no transactions
-        ProcessInfo p = execAdminFateCommand(command);
-        assertEquals(0, p.getProcess().waitFor());
-        String result = p.readStdOut();
-        assertTrue(noTransactions(result, command));
-
-        // We want transactions which take some time to complete since we don't want them
-        // to complete before the call to print (hence the sleep time iterator), but we
-        // also don't want them to take too long to complete since in that case we
-        // may not see transactions complete mid-print
-
-        // create 250 txns each taking >= 20ms to complete >= 5 seconds total
-        for (int i = 0; i < numTxns; i++) {
-          // Initiate compaction to create txn. This compaction will take >= 20ms to complete
-          // ((10 key values) * (2ms sleep time / key value))
-          client.tableOperations().compact(table, null, null, false, false);
-        }
-
-        // Keep printing until we see a transaction complete mid-print or until we run out of
-        // transactions (they all complete).
-        // Realistically, should only take 1 or 2 iterations to see a transaction complete
-        // mid-print.
-        do {
-          // Execute the command when transactions are currently running and may complete mid-print
-          p = execAdminFateCommand(command);
-          // Previously, this check could fail due to a ZK NoNodeException
-          assertEquals(0, p.getProcess().waitFor());
-          result = p.readStdOut();
-          // A transaction should have completed mid-print and been ignored
-        } while (!result.contains("Tried to get info on a since completed transaction - ignoring")
-            && !noTransactions(result, command));
-
-        if (noTransactions(result, command)) {
-          // Fail since we printed until all transactions have completed and didn't see a
-          // transaction complete mid-print.
-          // This is highly unlikely to have occurred.
-          fail();
-        }
-        // Otherwise, we saw 'Tried to get info on a since completed transaction - ignoring', so
-        // test passes
-        client.tableOperations().delete(table);
-      }
+    Class<?> clazz = AdminUtil.class;
+    Object adminUtil = clazz.getDeclaredConstructor(boolean.class).newInstance(true);
+    Method getTransactionStatus = clazz.getDeclaredMethod("getTransactionStatus",
+        ReadOnlyTStore.class, Set.class, EnumSet.class, Map.class, Map.class);
+    getTransactionStatus.setAccessible(true);
+    try {
+      getTransactionStatus.invoke(adminUtil, zs, null, null, new HashMap<>(), new HashMap<>());
+    } catch (InvocationTargetException e) {
+      fail(
+          "Either an unexpected error occurred in getTransactionStatus() or the NoNodeException which is expected to be handled in getTransactionStatus() was not handled. Error:\n"
+              + e.getCause());
     }
-  }
-
-  private boolean noTransactions(String result, String command) {
-    if (command.equals("--print")) {
-      return result.contains(" 0 transactions");
-    } else { // --summary
-      result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
-      FateSummaryReport report = FateSummaryReport.fromJson(result);
-      return report != null && report.getReportTime() != 0 && report.getStatusCounts().isEmpty()
-          && report.getStepCounts().isEmpty() && report.getCmdCounts().isEmpty()
-          && report.getStatusFilterNames().isEmpty() && report.getFateDetails().isEmpty();
-    }
-  }
-
-  private ProcessInfo execAdminFateCommand(String command) throws Exception {
-    if (command.equals("--print")) {
-      return getCluster().exec(Admin.class, "fate", command);
-    } else { // --summary
-      return getCluster().exec(Admin.class, "fate", command, "-j");
-    }
+    verify(zs);
   }
 }
