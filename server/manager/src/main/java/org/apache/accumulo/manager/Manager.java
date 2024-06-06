@@ -452,7 +452,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  Manager(ConfigOpts opts, String[] args) throws IOException {
+  protected Manager(ConfigOpts opts, String[] args) throws IOException {
     super("manager", opts, args);
     ServerContext context = super.getContext();
     balancerEnvironment = new BalancerEnvironmentImpl(context);
@@ -1257,7 +1257,7 @@ public class Manager extends AbstractServer
     log.info("exiting");
   }
 
-  private Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
+  protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
 
     final Fate<Manager> fateInstance =
         new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
