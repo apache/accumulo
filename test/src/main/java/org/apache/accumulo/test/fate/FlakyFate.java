@@ -41,7 +41,9 @@ public class FlakyFate<T> extends Fate<T> {
   @Override
   protected Repo<T> executeCall(FateId fateId, Repo<T> repo) throws Exception {
     /*
-     * This function call assumes that isRead was already called once.  So it runs call(),isReady(),call() to simulate a situation like isReady(), call(), fault, isReady() again, call() again.
+     * This function call assumes that isRead was already called once. So it runs
+     * call(),isReady(),call() to simulate a situation like isReady(), call(), fault, isReady()
+     * again, call() again.
      */
     var next1 = super.executeCall(fateId, repo);
     Preconditions.checkState(super.executeIsReady(fateId, repo) == 0);
