@@ -102,6 +102,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     // @formatter:off
     Set<String> unexpectedMetrics =
             Set.of(METRICS_COMPACTOR_MAJC_STUCK,
+                    METRICS_COMPACTOR_BUSY,
                     METRICS_REPLICATION_QUEUE,
                     METRICS_SCAN_YIELDS,
                     METRICS_UPDATE_ERRORS);
