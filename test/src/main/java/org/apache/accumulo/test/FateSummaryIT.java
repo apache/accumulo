@@ -27,19 +27,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -47,10 +48,11 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.fate.AdminUtil;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -190,29 +192,70 @@ public class FateSummaryIT extends ConfigurableMacBase {
     ServerContext sctx = getCluster().getServerContext();
 
     // This error was occurring in AdminUtil.getTransactionStatus(). One of the methods that is
-    // called which may throw the NNE is top(), so we will mock this method to always throw a NNE
-    // and ensure it is handled/ignored within getTransactionStatus()
+    // called which may throw the NNE is top(), so we will mock this method to sometimes throw a
+    // NNE and ensure it is handled/ignored within getTransactionStatus()
     ZooStore<String> zs = EasyMock.createMockBuilder(ZooStore.class)
         .withConstructor(String.class, ZooReaderWriter.class)
         .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter())
-        .addMockedMethod("top").createMock();
-    expect(zs.top(anyLong())).andThrow(new RuntimeException(new KeeperException.NoNodeException()))
-        .atLeastOnce();
-    replay(zs);
-    zs.create();
+        .addMockedMethod("top").addMockedMethod("list").createMock();
+    // Create 3 transactions, when iterating through the list of transactions in
+    // getTransactionStatus(), the 2nd transaction should cause a NNE which should be
+    // handled/ignored in getTransactionStatus(). The other two transactions should still
+    // be returned.
+    long tx1 = zs.create();
+    long tx2 = zs.create();
+    long tx3 = zs.create();
+    // Mock list() to ensure same order every run
+    expect(zs.list()).andReturn(List.of(tx1, tx2, tx3)).once();
 
-    Class<?> clazz = AdminUtil.class;
-    Object adminUtil = clazz.getDeclaredConstructor(boolean.class).newInstance(true);
-    Method getTransactionStatus = clazz.getDeclaredMethod("getTransactionStatus",
-        ReadOnlyTStore.class, Set.class, EnumSet.class, Map.class, Map.class);
-    getTransactionStatus.setAccessible(true);
+    expect(zs.top(anyLong())).andReturn(new TestRepo()).once();
+    expect(zs.top(anyLong())).andThrow(new RuntimeException(new KeeperException.NoNodeException()))
+        .once();
+    expect(zs.top(anyLong())).andReturn(new TestRepo()).once();
+    replay(zs);
+
+    AdminUtil.FateStatus status = null;
     try {
-      getTransactionStatus.invoke(adminUtil, zs, null, null, new HashMap<>(), new HashMap<>());
-    } catch (InvocationTargetException e) {
+      status = AdminUtil.getTransactionStatus(zs, null, null, new HashMap<>(), new HashMap<>());
+    } catch (Exception e) {
       fail(
-          "Either an unexpected error occurred in getTransactionStatus() or the NoNodeException which is expected to be handled in getTransactionStatus() was not handled. Error:\n"
-              + e.getCause());
+          "Either an unexpected error occurred in getTransactionStatus() or the NoNodeException which"
+              + " is expected to be handled in getTransactionStatus() was not handled. Error:\n"
+              + e);
     }
     verify(zs);
+    assertNotNull(status);
+    assertEquals(2, status.getTransactions().size());
+    assertTrue(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTxid)
+        .collect(Collectors.toList())
+        .containsAll(List.of(FastFormat.toHexString(tx1), FastFormat.toHexString(tx3))));
+  }
+
+  private static class TestRepo implements Repo<String> {
+
+    @Override
+    public long isReady(long tid, String environment) throws Exception {
+      return 0;
+    }
+
+    @Override
+    public String getName() {
+      return null;
+    }
+
+    @Override
+    public Repo<String> call(long tid, String environment) throws Exception {
+      return null;
+    }
+
+    @Override
+    public void undo(long tid, String environment) throws Exception {
+
+    }
+
+    @Override
+    public String getReturn() {
+      return null;
+    }
   }
 }
