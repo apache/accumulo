@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.scan;
+package org.apache.accumulo.core.metadata;
 
 import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Stream;
-
-import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 
 public interface ScanServerRefStore {
 
