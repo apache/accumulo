@@ -112,6 +112,15 @@ class FileSystemInitializer {
     String fateTableDefaultTabletDirUri =
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
             + AccumuloTable.FATE.tableId() + Path.SEPARATOR + fateTableDefaultTabletDirName;
+
+    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
+        AccumuloTable.SCAN_REF.tableId(), null, context);
+    String scanRefTableDefaultTabletDirName =
+        MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
+    String scanRefTableDefaultTabletDirUri =
+        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + AccumuloTable.SCAN_REF.tableId() + Path.SEPARATOR + scanRefTableDefaultTabletDirName;
+
     chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
         AccumuloTable.METADATA.tableId(), null, context);
     String defaultMetadataTabletDirName =
@@ -122,15 +131,17 @@ class FileSystemInitializer {
 
     // create table and default tablets directories
     createDirectories(fs, rootTabletDirUri, tableMetadataTabletDirUri, defaultMetadataTabletDirUri,
-        fateTableDefaultTabletDirUri);
+        fateTableDefaultTabletDirUri, scanRefTableDefaultTabletDirUri);
 
     String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
 
-    // populate the metadata tablet with info about the fate tablet
+    // populate the metadata tablet with info about the fate and scan ref tablets
     String metadataFileName = tableMetadataTabletDirUri + Path.SEPARATOR + "0_1." + ext;
     Tablet fateTablet =
         new Tablet(AccumuloTable.FATE.tableId(), fateTableDefaultTabletDirName, null, null);
-    createMetadataFile(fs, metadataFileName, siteConfig, fateTablet);
+    Tablet scanRefTablet =
+        new Tablet(AccumuloTable.SCAN_REF.tableId(), scanRefTableDefaultTabletDirName, null, null);
+    createMetadataFile(fs, metadataFileName, siteConfig, fateTablet, scanRefTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
     Tablet tablesTablet = new Tablet(AccumuloTable.METADATA.tableId(), tableMetadataTabletDirName,
@@ -166,6 +177,7 @@ class FileSystemInitializer {
     setTableProperties(context, AccumuloTable.METADATA.tableId(), initConfig.getRootMetaConf());
     setTableProperties(context, AccumuloTable.METADATA.tableId(), initConfig.getMetaTableConf());
     setTableProperties(context, AccumuloTable.FATE.tableId(), initConfig.getFateTableConf());
+    setTableProperties(context, AccumuloTable.SCAN_REF.tableId(), initConfig.getScanRefTableConf());
   }
 
   private void setTableProperties(final ServerContext context, TableId tableId,
