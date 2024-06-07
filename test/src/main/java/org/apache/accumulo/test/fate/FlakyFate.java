@@ -39,20 +39,14 @@ public class FlakyFate<T> extends Fate<T> {
   }
 
   @Override
-  protected long executeIsReady(FateId fateId, Repo<T> repo) throws Exception {
-    var deferTime = super.executeIsReady(fateId, repo);
-    if (deferTime == 0) {
-      // run again when zero is returned to ensure idempotent
-      deferTime = super.executeIsReady(fateId, repo);
-      Preconditions.checkState(deferTime == 0);
-    }
-    return deferTime;
-  }
-
-  @Override
   protected Repo<T> executeCall(FateId fateId, Repo<T> repo) throws Exception {
-    // Always run the call function twice to ensure its idempotent
+    /*
+     * This function call assumes that isRead was already called once. So it runs
+     * call(),isReady(),call() to simulate a situation like isReady(), call(), fault, isReady()
+     * again, call() again.
+     */
     var next1 = super.executeCall(fateId, repo);
+    Preconditions.checkState(super.executeIsReady(fateId, repo) == 0);
     var next2 = super.executeCall(fateId, repo);
     // do some basic checks to ensure similar things were returned
     if (next1 == null) {
