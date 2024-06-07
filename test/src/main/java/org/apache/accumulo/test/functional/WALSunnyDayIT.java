@@ -148,8 +148,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       Thread.sleep(SECONDS.toMillis(5));
       Map<KeyExtent,List<String>> markers = getRecoveryMarkers(c);
       // log.debug("markers " + markers);
-      // There should be markers for the created table and also the FateTable
-      assertEquals(2, markers.size(), "two tablets should have markers");
+      // There should be markers for the created table and also the Fate and ScanRef tables
+      assertEquals(3, markers.size(), "two tablets should have markers");
       assertTrue(
           markers.keySet().stream().anyMatch(extent -> extent.tableId().canonical().equals("1")),
           "tableId of the keyExtent should be 1");
