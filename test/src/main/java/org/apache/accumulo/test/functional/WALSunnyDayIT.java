@@ -148,8 +148,10 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       Thread.sleep(SECONDS.toMillis(5));
       Map<KeyExtent,List<String>> markers = getRecoveryMarkers(c);
       // log.debug("markers " + markers);
-      assertEquals(1, markers.size(), "one tablet should have markers");
-      assertEquals("1", markers.keySet().iterator().next().tableId().canonical(),
+      // There should be markers for the created table and also the ScanRef table
+      assertEquals(2, markers.size(), "two tablets should have markers");
+      assertTrue(
+          markers.keySet().stream().anyMatch(extent -> extent.tableId().canonical().equals("1")),
           "tableId of the keyExtent should be 1");
 
       // put some data in the WAL

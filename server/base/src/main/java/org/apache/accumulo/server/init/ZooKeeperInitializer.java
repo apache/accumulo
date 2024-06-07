@@ -118,12 +118,11 @@ public class ZooKeeperInitializer {
     TableManager.prepareNewNamespaceState(context, Namespace.ACCUMULO.id(),
         Namespace.ACCUMULO.name(), ZooUtil.NodeExistsPolicy.FAIL);
 
-    TableManager.prepareNewTableState(context, AccumuloTable.ROOT.tableId(),
-        Namespace.ACCUMULO.id(), AccumuloTable.ROOT.tableName(), TableState.ONLINE,
-        ZooUtil.NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(context, AccumuloTable.METADATA.tableId(),
-        Namespace.ACCUMULO.id(), AccumuloTable.METADATA.tableName(), TableState.ONLINE,
-        ZooUtil.NodeExistsPolicy.FAIL);
+    for (AccumuloTable table : AccumuloTable.values()) {
+      TableManager.prepareNewTableState(context, table.tableId(), Namespace.ACCUMULO.id(),
+          table.tableName(), TableState.ONLINE, ZooUtil.NodeExistsPolicy.FAIL);
+    }
+
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY,

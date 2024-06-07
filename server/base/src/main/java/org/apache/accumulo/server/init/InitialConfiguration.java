@@ -42,38 +42,44 @@ class InitialConfiguration {
   private final HashMap<String,String> initialRootMetaConf = new HashMap<>();
   // config for only metadata table
   private final HashMap<String,String> initialMetaConf = new HashMap<>();
+  // config for only scan ref table
+  private final HashMap<String,String> initialScanRefTableConf = new HashMap<>();
   private final Configuration hadoopConf;
   private final SiteConfiguration siteConf;
 
   InitialConfiguration(Configuration hadoopConf, SiteConfiguration siteConf) {
     this.hadoopConf = hadoopConf;
     this.siteConf = siteConf;
+
+    // config common to all Accumulo tables
+    Map<String,String> commonConfig = new HashMap<>();
+    commonConfig.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
+    commonConfig.put(Property.TABLE_FILE_REPLICATION.getKey(), "5");
+    commonConfig.put(Property.TABLE_DURABILITY.getKey(), "sync");
+    commonConfig.put(Property.TABLE_MAJC_RATIO.getKey(), "1");
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers",
+        "10," + VersioningIterator.class.getName());
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions", "1");
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers",
+        "10," + VersioningIterator.class.getName());
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions", "1");
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers",
+        "10," + VersioningIterator.class.getName());
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions", "1");
+    commonConfig.put(Property.TABLE_FAILURES_IGNORE.getKey(), "false");
+    commonConfig.put(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
+    commonConfig.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
+    commonConfig.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
+
+    initialRootMetaConf.putAll(commonConfig);
     initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
         SimpleCompactionDispatcher.class.getName());
     initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root");
-
-    initialRootMetaConf.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
-    initialRootMetaConf.put(Property.TABLE_FILE_REPLICATION.getKey(), "5");
-    initialRootMetaConf.put(Property.TABLE_DURABILITY.getKey(), "sync");
-    initialRootMetaConf.put(Property.TABLE_MAJC_RATIO.getKey(), "1");
     initialRootMetaConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "64M");
     initialRootMetaConf.put(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1",
         MetadataConstraints.class.getName());
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers",
-        "10," + VersioningIterator.class.getName());
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions",
-        "1");
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers",
-        "10," + VersioningIterator.class.getName());
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions",
-        "1");
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers",
-        "10," + VersioningIterator.class.getName());
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions",
-        "1");
     initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter",
         "20," + MetadataBulkLoadFilter.class.getName());
-    initialRootMetaConf.put(Property.TABLE_FAILURES_IGNORE.getKey(), "false");
     initialRootMetaConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
         String.format("%s,%s", MetadataSchema.TabletsSection.TabletColumnFamily.NAME,
             MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME));
@@ -83,13 +89,12 @@ class InitialConfiguration {
             MetadataSchema.TabletsSection.ServerColumnFamily.NAME,
             MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME));
     initialRootMetaConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "tablet,server");
-    initialRootMetaConf.put(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
-    initialRootMetaConf.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
-    initialRootMetaConf.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
 
     initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
         SimpleCompactionDispatcher.class.getName());
     initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
+
+    initialScanRefTableConf.putAll(commonConfig);
 
     int max = hadoopConf.getInt("dfs.replication.max", 512);
     // Hadoop 0.23 switched the min value configuration name
@@ -128,6 +133,10 @@ class InitialConfiguration {
 
   HashMap<String,String> getMetaTableConf() {
     return initialMetaConf;
+  }
+
+  HashMap<String,String> getScanRefTableConf() {
+    return initialScanRefTableConf;
   }
 
   Configuration getHadoopConf() {
