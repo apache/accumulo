@@ -31,7 +31,7 @@ public interface ScanServerRefStore {
    *
    * @param scanRefs set of scan server ref table file objects
    */
-  default void putScanServerFileReferences(Collection<ScanServerRefTabletFile> scanRefs) {
+  default void put(Collection<ScanServerRefTabletFile> scanRefs) {
     throw new UnsupportedOperationException();
   }
 
@@ -40,7 +40,7 @@ public interface ScanServerRefStore {
    *
    * @return stream of scan server references
    */
-  default Stream<ScanServerRefTabletFile> getScanServerFileReferences() {
+  default Stream<ScanServerRefTabletFile> list() {
     throw new UnsupportedOperationException();
   }
 
@@ -49,7 +49,7 @@ public interface ScanServerRefStore {
    *
    * @param refsToDelete set of scan server references to delete
    */
-  default void deleteScanServerFileReferences(Collection<ScanServerRefTabletFile> refsToDelete) {
+  default void delete(Collection<ScanServerRefTabletFile> refsToDelete) {
     throw new UnsupportedOperationException();
   }
 
@@ -59,7 +59,7 @@ public interface ScanServerRefStore {
    * @param serverAddress address of server, cannot be null
    * @param serverSessionId server session id, cannot be null
    */
-  default void deleteScanServerFileReferences(String serverAddress, UUID serverSessionId) {
+  default void delete(String serverAddress, UUID serverSessionId) {
     throw new UnsupportedOperationException();
   }
 

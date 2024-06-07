@@ -450,7 +450,7 @@ public class ScanServer extends AbstractServer
       address.server.stop();
 
       LOG.info("Removing server scan references");
-      this.getContext().getAmple().deleteScanServerFileReferences(clientAddress.toString(),
+      this.getContext().getAmple().scanServerRefs().delete(clientAddress.toString(),
           serverLockUUID);
 
       try {
@@ -659,7 +659,7 @@ public class ScanServer extends AbstractServer
 
       if (!filesToReserve.isEmpty()) {
         scanServerMetrics.recordWriteOutReservationTime(
-            () -> getContext().getAmple().putScanServerFileReferences(refs));
+            () -> getContext().getAmple().scanServerRefs().put(refs));
 
         // After we insert the scan server refs we need to check and see if the tablet is still
         // using the file. As long as the tablet is still using the files then the Accumulo GC
@@ -692,7 +692,7 @@ public class ScanServer extends AbstractServer
         if (!filesToReserve.isEmpty()) {
           LOG.info("RFFS {} tablet files changed while attempting to reference files {}",
               myReservationId, filesToReserve);
-          getContext().getAmple().deleteScanServerFileReferences(refs);
+          getContext().getAmple().scanServerRefs().delete(refs);
           scanServerMetrics.incrementReservationConflictCount();
           return null;
         }
@@ -869,7 +869,7 @@ public class ScanServer extends AbstractServer
       if (!confirmed.isEmpty()) {
         try {
           // Do this metadata operation is done w/o holding the lock
-          getContext().getAmple().deleteScanServerFileReferences(refsToDelete);
+          getContext().getAmple().scanServerRefs().delete(refsToDelete);
           if (LOG.isTraceEnabled()) {
             confirmed.forEach(refToDelete -> LOG.trace(
                 "RFFS referenced files has not been used recently, removing reference {}",

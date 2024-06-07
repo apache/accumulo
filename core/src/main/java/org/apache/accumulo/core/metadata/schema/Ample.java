@@ -69,7 +69,7 @@ import org.apache.hadoop.io.Text;
  * of an effort to remove this specialized code. See #936
  * </ul>
  */
-public interface Ample extends ScanServerRefStore {
+public interface Ample {
 
   /**
    * Accumulo is a distributed tree with three levels. This enum is used to communicate to Ample
@@ -651,6 +651,10 @@ public interface Ample extends ScanServerRefStore {
    * @param path The bulk directory filepath
    */
   default void removeBulkLoadInProgressFlag(String path) {
+    throw new UnsupportedOperationException();
+  }
+
+  default ScanServerRefStore scanServerRefs() {
     throw new UnsupportedOperationException();
   }
 }

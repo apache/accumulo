@@ -51,7 +51,7 @@ public class ScanServerRefStoreImpl implements ScanServerRefStore {
   }
 
   @Override
-  public void putScanServerFileReferences(Collection<ScanServerRefTabletFile> scanRefs) {
+  public void put(Collection<ScanServerRefTabletFile> scanRefs) {
     try (BatchWriter writer = context.createBatchWriter(tableName)) {
       for (ScanServerRefTabletFile ref : scanRefs) {
         Mutation m = new Mutation(ref.getRow());
@@ -65,7 +65,7 @@ public class ScanServerRefStoreImpl implements ScanServerRefStore {
   }
 
   @Override
-  public Stream<ScanServerRefTabletFile> getScanServerFileReferences() {
+  public Stream<ScanServerRefTabletFile> list() {
     try {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       return scanner.stream().onClose(scanner::close)
@@ -77,7 +77,7 @@ public class ScanServerRefStoreImpl implements ScanServerRefStore {
   }
 
   @Override
-  public void deleteScanServerFileReferences(String serverAddress, UUID scanServerLockUUID) {
+  public void delete(String serverAddress, UUID scanServerLockUUID) {
     Objects.requireNonNull(serverAddress, "Server address must be supplied");
     Objects.requireNonNull(scanServerLockUUID, "Server uuid must be supplied");
     try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
@@ -89,7 +89,7 @@ public class ScanServerRefStoreImpl implements ScanServerRefStore {
           .collect(Collectors.toSet());
 
       if (!refsToDelete.isEmpty()) {
-        this.deleteScanServerFileReferences(refsToDelete);
+        this.delete(refsToDelete);
       }
     } catch (TableNotFoundException e) {
       throw new IllegalStateException(tableName + " not found!", e);
@@ -97,7 +97,7 @@ public class ScanServerRefStoreImpl implements ScanServerRefStore {
   }
 
   @Override
-  public void deleteScanServerFileReferences(Collection<ScanServerRefTabletFile> refsToDelete) {
+  public void delete(Collection<ScanServerRefTabletFile> refsToDelete) {
     try (BatchWriter writer = context.createBatchWriter(tableName)) {
       for (ScanServerRefTabletFile ref : refsToDelete) {
         Mutation m = new Mutation(ref.getRow());

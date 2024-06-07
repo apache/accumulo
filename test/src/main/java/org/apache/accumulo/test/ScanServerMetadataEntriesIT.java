@@ -117,24 +117,24 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
     ServerContext ctx = getCluster().getServerContext();
 
-    ctx.getAmple().putScanServerFileReferences(scanRefs);
-    assertEquals(scanRefs.size(), ctx.getAmple().getScanServerFileReferences().count());
+    ctx.getAmple().scanServerRefs().put(scanRefs);
+    assertEquals(scanRefs.size(), ctx.getAmple().scanServerRefs().list().count());
 
     Set<ScanServerRefTabletFile> scanRefs2 =
-        ctx.getAmple().getScanServerFileReferences().collect(Collectors.toSet());
+        ctx.getAmple().scanServerRefs().list().collect(Collectors.toSet());
 
     assertEquals(scanRefs, scanRefs2);
 
     // attempt to delete file references then make sure they were deleted
-    ctx.getAmple().deleteScanServerFileReferences(server.toString(), serverLockUUID);
-    assertFalse(ctx.getAmple().getScanServerFileReferences().findAny().isPresent());
+    ctx.getAmple().scanServerRefs().delete(server.toString(), serverLockUUID);
+    assertFalse(ctx.getAmple().scanServerRefs().list().findAny().isPresent());
 
-    ctx.getAmple().putScanServerFileReferences(scanRefs);
-    assertEquals(scanRefs.size(), ctx.getAmple().getScanServerFileReferences().count());
+    ctx.getAmple().scanServerRefs().put(scanRefs);
+    assertEquals(scanRefs.size(), ctx.getAmple().scanServerRefs().list().count());
 
     // attempt to delete file references then make sure they were deleted
-    ctx.getAmple().deleteScanServerFileReferences(scanRefs);
-    assertFalse(ctx.getAmple().getScanServerFileReferences().findAny().isPresent());
+    ctx.getAmple().scanServerRefs().delete(scanRefs);
+    assertFalse(ctx.getAmple().scanServerRefs().list().findAny().isPresent());
   }
 
   @Test
@@ -161,12 +161,12 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         assertTrue(iter.hasNext());
         assertNotNull(iter.next());
 
-        assertEquals(fileCount, ctx.getAmple().getScanServerFileReferences().count());
+        assertEquals(fileCount, ctx.getAmple().scanServerRefs().list().count());
 
       }
 
       // close happens asynchronously. Let the test fail by timeout
-      while (ctx.getAmple().getScanServerFileReferences().findAny().isPresent()) {
+      while (ctx.getAmple().scanServerRefs().list().findAny().isPresent()) {
         Thread.sleep(1000);
       }
     }
@@ -195,12 +195,12 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         assertTrue(iter.hasNext());
         assertNotNull(iter.next());
 
-        assertEquals(fileCount, ctx.getAmple().getScanServerFileReferences().count());
+        assertEquals(fileCount, ctx.getAmple().scanServerRefs().list().count());
 
       }
 
       // close happens asynchronously. Let the test fail by timeout
-      while (ctx.getAmple().getScanServerFileReferences().findAny().isPresent()) {
+      while (ctx.getAmple().scanServerRefs().list().findAny().isPresent()) {
         Thread.sleep(1000);
       }
     }
@@ -247,7 +247,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         });
         assertEquals(fileCount, metadataScanFileRefs.size());
 
-        assertEquals(fileCount, ctx.getAmple().getScanServerFileReferences().count());
+        assertEquals(fileCount, ctx.getAmple().scanServerRefs().list().count());
         List<Reference> refs;
         try (Stream<Reference> references = gc.getReferences()) {
           refs = references.collect(Collectors.toList());
@@ -271,7 +271,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
       client.tableOperations().delete(tableName);
     }
     // close happens asynchronously. Let the test fail by timeout
-    while (ctx.getAmple().getScanServerFileReferences().findAny().isPresent()) {
+    while (ctx.getAmple().scanServerRefs().list().findAny().isPresent()) {
       Thread.sleep(1000);
     }
 

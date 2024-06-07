@@ -25,10 +25,8 @@ import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -44,7 +42,6 @@ import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -280,23 +277,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void putScanServerFileReferences(Collection<ScanServerRefTabletFile> scanRefs) {
-    scanServerRefStore.putScanServerFileReferences(scanRefs);
-  }
-
-  @Override
-  public Stream<ScanServerRefTabletFile> getScanServerFileReferences() {
-    return scanServerRefStore.getScanServerFileReferences();
-  }
-
-  @Override
-  public void deleteScanServerFileReferences(String serverAddress, UUID scanServerLockUUID) {
-    scanServerRefStore.deleteScanServerFileReferences(serverAddress, scanServerLockUUID);
-  }
-
-  @Override
-  public void deleteScanServerFileReferences(Collection<ScanServerRefTabletFile> refsToDelete) {
-    scanServerRefStore.deleteScanServerFileReferences(refsToDelete);
+  public ScanServerRefStore scanServerRefs() {
+    return scanServerRefStore;
   }
 
   @VisibleForTesting
