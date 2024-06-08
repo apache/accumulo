@@ -195,14 +195,14 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     start(server, Collections.emptyMap(), Integer.MAX_VALUE);
   }
 
-  @SuppressWarnings("removal,unchecked")
+  @SuppressWarnings(value = {"removal", "unchecked"})
   public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit)
       throws IOException {
     if (limit <= 0) {
       return;
     }
 
-    var classToUse = cluster.getConfig().getServerClass(server);
+    Class<?> classToUse = cluster.getConfig().getServerClass(server);
 
     switch (server) {
       case TABLET_SERVER:

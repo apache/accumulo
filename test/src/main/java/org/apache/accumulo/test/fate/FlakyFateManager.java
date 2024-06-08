@@ -35,7 +35,7 @@ public class FlakyFateManager extends Manager {
   }
 
   @Override
-  protected Fate<Manager> initializeFateInstance(ServerContext context, TStore<Manager> store) {
+  protected Fate<Manager> initializeFateInstance(TStore<Manager> store) {
     LoggerFactory.getLogger(FlakyFateManager.class).info("Creating Flaky Fate");
     return new FlakyFate<>(this, store, TraceRepo::toLogString);
   }

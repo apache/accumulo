@@ -1240,7 +1240,7 @@ public class Manager extends AbstractServer
               context.getZooReaderWriter()),
           HOURS.toMillis(8), System::currentTimeMillis);
 
-      Fate<Manager> f = initializeFateInstance(context, store);
+      Fate<Manager> f = initializeFateInstance(store);
       f.startTransactionRunners(getConfiguration());
       fateRef.set(f);
       fateReadyLatch.countDown();
@@ -1373,7 +1373,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  protected Fate<Manager> initializeFateInstance(ServerContext context, TStore<Manager> store) {
+  protected Fate<Manager> initializeFateInstance(TStore<Manager> store) {
     return new Fate<>(this, store, TraceRepo::toLogString);
   }
 
