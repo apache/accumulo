@@ -76,11 +76,10 @@ public class MiniAccumuloConfigImpl {
   private Map<String,String> configuredSiteConig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
-  private final EnumMap<ServerType,
-      Class<?>> serverTypeClasses = new EnumMap<ServerType,Class<?>>(
-          Map.of(MANAGER, Manager.class, GARBAGE_COLLECTOR, SimpleGarbageCollector.class, MONITOR,
-              Monitor.class, ZOOKEEPER, ZooKeeperServerMain.class, TABLET_SERVER,
-              TabletServer.class, SCAN_SERVER, ScanServer.class, COMPACTOR, Compactor.class));
+  private final EnumMap<ServerType,Class<?>> serverTypeClasses =
+      new EnumMap<>(Map.of(MANAGER, Manager.class, GARBAGE_COLLECTOR, SimpleGarbageCollector.class,
+          MONITOR, Monitor.class, ZOOKEEPER, ZooKeeperServerMain.class, TABLET_SERVER,
+          TabletServer.class, SCAN_SERVER, ScanServer.class, COMPACTOR, Compactor.class));
   private boolean jdwpEnabled = false;
   private Map<String,String> systemProperties = new HashMap<>();
 
