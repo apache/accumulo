@@ -44,17 +44,12 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
-import org.apache.accumulo.gc.SimpleGarbageCollector;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
-import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.tserver.ScanServer;
-import org.apache.accumulo.tserver.TabletServer;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
-import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -200,12 +195,14 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     start(server, Collections.emptyMap(), Integer.MAX_VALUE);
   }
 
-  @SuppressWarnings("removal")
+  @SuppressWarnings(value = {"removal", "unchecked"})
   public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit)
       throws IOException {
     if (limit <= 0) {
       return;
     }
+
+    Class<?> classToUse = cluster.getConfig().getServerClass(server);
 
     switch (server) {
       case TABLET_SERVER:
@@ -214,31 +211,31 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           for (int i = tabletServerProcesses.size();
               count < limit && i < cluster.getConfig().getNumTservers(); i++, ++count) {
             tabletServerProcesses
-                .add(cluster._exec(TabletServer.class, server, configOverrides).getProcess());
+                .add(cluster._exec(classToUse, server, configOverrides).getProcess());
           }
         }
         break;
       case MASTER:
       case MANAGER:
         if (managerProcess == null) {
-          managerProcess = cluster._exec(Manager.class, server, configOverrides).getProcess();
+          managerProcess = cluster._exec(classToUse, server, configOverrides).getProcess();
         }
         break;
       case ZOOKEEPER:
         if (zooKeeperProcess == null) {
-          zooKeeperProcess = cluster._exec(ZooKeeperServerMain.class, server, configOverrides,
-              cluster.getZooCfgFile().getAbsolutePath()).getProcess();
+          zooKeeperProcess = cluster
+              ._exec(classToUse, server, configOverrides, cluster.getZooCfgFile().getAbsolutePath())
+              .getProcess();
         }
         break;
       case GARBAGE_COLLECTOR:
         if (gcProcess == null) {
-          gcProcess =
-              cluster._exec(SimpleGarbageCollector.class, server, configOverrides).getProcess();
+          gcProcess = cluster._exec(classToUse, server, configOverrides).getProcess();
         }
         break;
       case MONITOR:
         if (monitor == null) {
-          monitor = cluster._exec(Monitor.class, server, configOverrides).getProcess();
+          monitor = cluster._exec(classToUse, server, configOverrides).getProcess();
         }
         break;
       case SCAN_SERVER:
@@ -247,16 +244,16 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           for (int i = scanServerProcesses.size();
               count < limit && i < cluster.getConfig().getNumScanServers(); i++, ++count) {
             scanServerProcesses
-                .add(cluster._exec(ScanServer.class, server, configOverrides).getProcess());
+                .add(cluster._exec(classToUse, server, configOverrides).getProcess());
           }
         }
         break;
       case COMPACTION_COORDINATOR:
-        startCoordinator(CompactionCoordinator.class);
+        startCoordinator((Class<? extends CompactionCoordinator>) classToUse);
         break;
       case COMPACTOR:
-        startCompactors(Compactor.class, cluster.getConfig().getNumCompactors(),
-            configOverrides.get("QUEUE_NAME"));
+        startCompactors((Class<? extends Compactor>) classToUse,
+            cluster.getConfig().getNumCompactors(), configOverrides.get("QUEUE_NAME"));
         break;
       default:
         throw new UnsupportedOperationException("Cannot start process for " + server);
