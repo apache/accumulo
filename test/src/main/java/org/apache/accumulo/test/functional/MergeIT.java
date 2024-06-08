@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
@@ -55,8 +56,17 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerOpts;
+import org.apache.accumulo.server.manager.state.MergeInfo;
+import org.apache.accumulo.server.manager.state.MergeState;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class MergeIT extends AccumuloClusterHarness {
@@ -275,6 +285,81 @@ public class MergeIT extends AccumuloClusterHarness {
         for (var tablet : tablets) {
           assertTrue(tablet.getExternalCompactions().isEmpty());
         }
+      }
+    }
+  }
+
+  // TODO: Remove disabled once we figure out how to assert this test and not hang
+  @Disabled
+  @Test
+  public void testMergeValidateLinkedList() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = MergeITManager.TEST_VALIDATE_TABLE;
+      var ntc = new NewTableConfiguration().withSplits(splits("a b c d e f g h i j k".split(" ")));
+      c.tableOperations().create(tableName, ntc);
+
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (String row : "a b c d e f g h i j k".split(" ")) {
+          Mutation m = new Mutation(row);
+          m.put("cf", "cq", "value");
+          bw.addMutation(m);
+        }
+      }
+      c.tableOperations().flush(tableName, null, null, true);
+
+      // This should fail with an IllegalStateException in the manager log because
+      // the prevEndRow of one of the tablets in the merge range has been manually changed
+      // to be wrong.
+
+      // TODO: How do we verify this? Right now it just hangs and there's an error in the log
+      c.tableOperations().merge(tableName, new Text("c1"), new Text("h1"));
+    }
+  }
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setServerClass(ServerType.MANAGER, MergeITManager.class);
+  }
+
+  public static class MergeITManager extends Manager {
+
+    private static final String TEST_VALIDATE_TABLE = "MergeIT_testMergeValidateLinkedList";
+
+    protected MergeITManager(ServerOpts opts, String[] args) throws IOException {
+      super(opts, args);
+    }
+
+    @Override
+    public void setMergeState(MergeInfo info, MergeState state)
+        throws KeeperException, InterruptedException {
+
+      var context = super.getContext();
+      var tableName = context.getTableIdToNameMap().get(info.getExtent().tableId());
+
+      // If this is the test table then mutate one tablet a bad prevEndRow. This table will
+      // only exist for the testMergeValidateLinkedList test. For other tests just call
+      // the parent method. The tablet is mutated here because the state being set to
+      // MERGING means the mergeMetadataRecords() method is ready to be called in
+      // TabletGroupWatcher, and we can verify the tablets form a linked list. Trying
+      // to change the metadata or delete a tablet in the merge range before this point
+      // was not working for testing because chop compactions were not finishing so
+      // the method was never called.
+      if (tableName.equals(TEST_VALIDATE_TABLE) && state == MergeState.MERGING) {
+        try {
+          var tablet = context.getAmple().mutateTablet(
+              new KeyExtent(info.getExtent().tableId(), new Text("f"), new Text("e")));
+          tablet.putPrevEndRow(new Text("d"));
+          tablet.mutate();
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+      super.setMergeState(info, state);
+    }
+
+    public static void main(String[] args) throws Exception {
+      try (MergeITManager manager = new MergeITManager(new ServerOpts(), args)) {
+        manager.runServer();
       }
     }
   }
