@@ -524,7 +524,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       }
     }
 
-    // metadata should be stable with only 9 rows (2 for each table) + 1 for the FateTable
+    // metadata should be stable with only 9 rows (2 for each table)
+    // + 2 for the FateTable and ScanRef table
     log.debug("Gathered {} rows to create copy {}", mutations.size(), copy);
     assertEquals(9, mutations.size(),
         "Metadata should have 8 rows (2 for each table) + one row for "
