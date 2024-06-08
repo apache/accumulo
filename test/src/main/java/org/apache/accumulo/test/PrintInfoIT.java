@@ -24,33 +24,26 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
-import java.util.Collections;
-import java.util.Map;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
-import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
-import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.commons.io.FileUtils;
-import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -165,23 +158,22 @@ public class PrintInfoIT extends SharedMiniClusterBase {
   }
 
   // Get the name of the RFile associated with a table.
-  private String getRFileName(final AccumuloClient client, final String tableName)
-      throws Exception {
+  private String getRFileName(final AccumuloClient client, final String tableName) {
     boolean foundFile = false;
     String rfileName = null;
-    try (BatchScanner bscanner =
-        client.createBatchScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY, 1)) {
-      String tableId = client.tableOperations().tableIdMap().get(tableName);
-      bscanner.setRanges(
-          Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));
-      bscanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-
-      for (Map.Entry<Key,Value> entry : bscanner) {
-        foundFile = true;
-        rfileName = entry.getKey().getColumnQualifier().toString();
+    var ample = ((ClientContext) client).getAmple();
+    var tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+    try (var tablets = ample.readTablets().forTable(tableId).build()) {
+      for (var tablet : tablets) {
+        var files = tablet.getFiles();
+        if (!files.isEmpty()) {
+          foundFile = true;
+          rfileName = files.iterator().next().getNormalizedPathStr();
+        }
       }
       assertTrue(foundFile);
     }
+
     return rfileName;
   }
 
