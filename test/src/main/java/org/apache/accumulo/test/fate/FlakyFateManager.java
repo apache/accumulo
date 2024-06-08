@@ -24,7 +24,6 @@ import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.TStore;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.slf4j.LoggerFactory;
 
