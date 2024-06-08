@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.availability;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -90,7 +91,9 @@ public class SetTabletAvailability extends ManagerRepo {
     Consumer<Ample.ConditionalResult> resultsConsumer = result -> {
       if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
         notAccepted.incrementAndGet();
-        LOG.debug("{} failed to set tablet availability for {}", fateId, result.getExtent());
+        LOG.debug("{} failed to set tablet availability for {} '{}'", fateId, result.getExtent(),
+            Optional.ofNullable(result.readMetadata()).map(TabletMetadata::getOperationId)
+                .orElse(null));
       }
     };
 
