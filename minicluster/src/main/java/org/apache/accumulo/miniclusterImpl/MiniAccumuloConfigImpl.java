@@ -18,26 +18,43 @@
  */
 package org.apache.accumulo.miniclusterImpl;
 
+import static org.apache.accumulo.minicluster.ServerType.COMPACTOR;
+import static org.apache.accumulo.minicluster.ServerType.GARBAGE_COLLECTOR;
+import static org.apache.accumulo.minicluster.ServerType.MANAGER;
+import static org.apache.accumulo.minicluster.ServerType.MONITOR;
+import static org.apache.accumulo.minicluster.ServerType.SCAN_SERVER;
+import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
+import static org.apache.accumulo.minicluster.ServerType.ZOOKEEPER;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.HadoopCredentialProvider;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.gc.SimpleGarbageCollector;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.PortUtils;
+import org.apache.accumulo.tserver.ScanServer;
+import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +79,10 @@ public class MiniAccumuloConfigImpl {
   private int numScanServers = 0;
   private int numCompactors = 1;
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
+  private final EnumMap<ServerType,Class<?>> serverTypeClasses =
+      new EnumMap<>(Map.of(MANAGER, Manager.class, GARBAGE_COLLECTOR, SimpleGarbageCollector.class,
+          MONITOR, Monitor.class, ZOOKEEPER, ZooKeeperServerMain.class, TABLET_SERVER,
+          TabletServer.class, SCAN_SERVER, ScanServer.class, COMPACTOR, Compactor.class));
   private boolean jdwpEnabled = false;
   private Map<String,String> systemProperties = new HashMap<>();
 
@@ -412,6 +433,25 @@ public class MiniAccumuloConfigImpl {
   public MiniAccumuloConfigImpl setDefaultMemory(long memory, MemoryUnit memoryUnit) {
     this.defaultMemorySize = memoryUnit.toBytes(memory);
     return this;
+  }
+
+  /**
+   * Sets the class that will be used to instantiate this server type.
+   */
+  public MiniAccumuloConfigImpl setServerClass(ServerType type, Class<?> serverClass) {
+    serverTypeClasses.put(type, Objects.requireNonNull(serverClass));
+    return this;
+  }
+
+  /**
+   * @return the class to use to instantiate this server type.
+   */
+  public Class<?> getServerClass(ServerType type) {
+    var clazz = serverTypeClasses.get(type);
+    if (clazz == null) {
+      throw new IllegalStateException("Server type " + type + " has no class");
+    }
+    return clazz;
   }
 
   /**
