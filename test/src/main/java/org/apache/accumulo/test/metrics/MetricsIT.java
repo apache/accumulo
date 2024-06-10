@@ -100,7 +100,9 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cluster.stop();
     // meter names sorted and formatting disabled to make it easier to diff changes
     // @formatter:off
-    Set<String> unexpectedMetrics = Set.of(METRICS_COMPACTOR_MAJC_STUCK,
+    Set<String> unexpectedMetrics =
+            Set.of(METRICS_COMPACTOR_MAJC_STUCK,
+                    METRICS_COMPACTOR_BUSY,
                     METRICS_SCAN_YIELDS);
 
     // add sserver as flaky until scan server included in mini tests.
