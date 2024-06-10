@@ -497,6 +497,40 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     assertEquals(2, migrationsOut.size());
   }
 
+  /**
+   * Test that balance will only process 1 table at a time if migrations are found before returning
+   */
+  @Test
+  public void testBalanceConcurrentTablesFalse() throws InterruptedException {
+    List<TabletMigration> migrationsOut = new ArrayList<>();
+    HashMap<String,String> props = new HashMap<>(DEFAULT_TABLE_PROPERTIES);
+    // Only balance 1 table at a time
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_REGEX_CONCURRENT_TABLES_KEY, "false");
+    // Disable max migrations for this test
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY, "0");
+    init(props);
+    Set<TabletId> migrations = new HashSet<>();
+
+    long wait =
+        this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
+            migrations, migrationsOut));
+    assertEquals(20000, wait);
+    // should oly balance four tablets we are only balancing one table at a time.
+    assertEquals(4, migrationsOut.size());
+
+    // now balance again passing in the new migrations
+    for (TabletMigration m : migrationsOut) {
+      migrations.add(m.getTablet());
+    }
+
+    migrationsOut.clear();
+    wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
+        migrations, migrationsOut));
+    assertEquals(20000, wait);
+    // should not balance due to existing migrations and concurrent is false
+    assertEquals(0, migrationsOut.size());
+  }
+
   @Override
   public List<TabletStatistics> getOnlineTabletsForTable(TabletServerId tserver, TableId tableId) {
     // Report incorrect information so that balance will create an assignment
