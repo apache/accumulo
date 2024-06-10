@@ -333,7 +333,7 @@ public class AdminUtil<T> {
    * @param waitingLocks populated list of locks held by transaction - or an empty map if none.
    * @return current fate and lock status
    */
-  private FateStatus getTransactionStatus(ReadOnlyTStore<T> zs, Set<Long> filterTxid,
+  public static <T> FateStatus getTransactionStatus(ReadOnlyTStore<T> zs, Set<Long> filterTxid,
       EnumSet<TStatus> filterStatus, Map<Long,List<String>> heldLocks,
       Map<Long,List<String>> waitingLocks) {
 
@@ -399,11 +399,11 @@ public class AdminUtil<T> {
 
   }
 
-  private boolean includeByStatus(TStatus status, EnumSet<TStatus> filterStatus) {
+  private static boolean includeByStatus(TStatus status, EnumSet<TStatus> filterStatus) {
     return (filterStatus == null) || filterStatus.contains(status);
   }
 
-  private boolean includeByTxid(Long tid, Set<Long> filterTxid) {
+  private static boolean includeByTxid(Long tid, Set<Long> filterTxid) {
     return (filterTxid == null) || filterTxid.isEmpty() || filterTxid.contains(tid);
   }
 
