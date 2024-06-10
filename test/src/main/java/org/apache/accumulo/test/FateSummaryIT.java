@@ -233,6 +233,8 @@ public class FateSummaryIT extends ConfigurableMacBase {
 
   private static class TestRepo implements Repo<String> {
 
+    private static final long serialVersionUID = 1L;
+
     @Override
     public long isReady(long tid, String environment) throws Exception {
       return 0;
