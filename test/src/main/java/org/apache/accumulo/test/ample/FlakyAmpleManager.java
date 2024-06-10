@@ -16,32 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate;
+package org.apache.accumulo.test.ample;
 
 import java.io.IOException;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.fate.Fate;
-import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.TraceRepo;
-import org.apache.accumulo.server.ServerContext;
-import org.slf4j.LoggerFactory;
 
-public class FlakyFateManager extends Manager {
-  protected FlakyFateManager(ConfigOpts opts, String[] args) throws IOException {
-    super(opts, ServerContext::new, args);
-  }
+public class FlakyAmpleManager extends Manager {
 
-  @Override
-  protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
-    LoggerFactory.getLogger(FlakyFateManager.class).info("Creating Flaky Fate for {}",
-        store.type());
-    return new FlakyFate<>(this, store, TraceRepo::toLogString, getConfiguration());
+  protected FlakyAmpleManager(ConfigOpts opts, String[] args) throws IOException {
+    super(opts, FlakyAmpleServerContext::new, args);
   }
 
   public static void main(String[] args) throws Exception {
-    try (FlakyFateManager manager = new FlakyFateManager(new ConfigOpts(), args)) {
+    try (FlakyAmpleManager manager = new FlakyAmpleManager(new ConfigOpts(), args)) {
       manager.runServer();
     }
   }

@@ -57,6 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -223,13 +224,14 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final ServerContext context;
 
   public static void main(String[] args) throws Exception {
-    try (TabletServer tserver = new TabletServer(new ConfigOpts(), args)) {
+    try (TabletServer tserver = new TabletServer(new ConfigOpts(), ServerContext::new, args)) {
       tserver.runServer();
     }
   }
 
-  protected TabletServer(ConfigOpts opts, String[] args) {
-    super("tserver", opts, args);
+  protected TabletServer(ConfigOpts opts,
+      Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
+    super("tserver", opts, serverContextFactory, args);
     context = super.getContext();
     this.managerLockCache = new ZooCache(context.getZooReader(), null);
     final AccumuloConfiguration aconf = getConfiguration();

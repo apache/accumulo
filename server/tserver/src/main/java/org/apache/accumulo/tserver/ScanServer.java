@@ -207,7 +207,7 @@ public class ScanServer extends AbstractServer
   private ZooCache managerLockCache;
 
   public ScanServer(ConfigOpts opts, String[] args) {
-    super("sserver", opts, args);
+    super("sserver", opts, ServerContext::new, args);
 
     context = super.getContext();
     log.info("Version " + Constants.VERSION);

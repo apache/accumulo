@@ -99,6 +99,7 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionInfo;
@@ -161,7 +162,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
   protected Compactor(ConfigOpts opts, String[] args) {
-    super("compactor", opts, args);
+    super("compactor", opts, ServerContext::new, args);
   }
 
   @Override
