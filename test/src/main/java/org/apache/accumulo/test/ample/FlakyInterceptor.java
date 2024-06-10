@@ -36,6 +36,7 @@ public class FlakyInterceptor implements ConditionalWriterInterceptor {
 
   private static final Logger log = LoggerFactory.getLogger(FlakyInterceptor.class);
 
+  @Override
   public Iterator<ConditionalWriter.Result> write(ConditionalWriter writer,
       Iterator<ConditionalMutation> mutations) {
     ArrayList<ConditionalWriter.Result> results = new ArrayList<>();
@@ -85,6 +86,7 @@ public class FlakyInterceptor implements ConditionalWriterInterceptor {
     return results.iterator();
   }
 
+  @Override
   public ConditionalWriter.Result write(ConditionalWriter writer, ConditionalMutation mutation) {
     return write(writer, List.of(mutation).iterator()).next();
   }
