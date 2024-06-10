@@ -29,7 +29,8 @@ import org.junit.jupiter.api.BeforeAll;
 
 /**
  * This test touches a lot of the Accumulo API, so it's a good candidate to run using
- * {@link org.apache.accumulo.test.fate.FlakyFate} because it will run a lot of FATE operations.
+ * {@link org.apache.accumulo.test.ample.FlakyAmpleServerContext} because it will make a lot of
+ * metadata updates using Ample.
  */
 public class ComprehensiveFlakyAmpleIT extends ComprehensiveBaseIT {
   @BeforeAll
