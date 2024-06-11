@@ -490,7 +490,7 @@ public class ConfigurableScanServerSelectorTest {
     // will wait for scan servers
 
     String defaultProfile =
-        "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4,'timeToWaitForScanServers':120ms,"
+        "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4,'timeToWaitForScanServers':120s,"
             + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'60s'}]}";
 
     var opts = Map.of("profiles", "[" + defaultProfile + "]".replace('\'', '"'));

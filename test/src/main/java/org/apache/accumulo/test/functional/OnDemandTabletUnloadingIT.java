@@ -190,7 +190,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
   public static final String SCAN_SERVER_SELECTOR_CONFIG =
       "[{'isDefault':true,'maxBusyTimeout':'5m',"
-          + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':120ms"
+          + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':120s"
           + "'attemptPlans':[{'servers':'3', 'busyTimeout':'33ms', 'salt':'one'},"
           + "{'servers':'13', 'busyTimeout':'33ms', 'salt':'two'},"
           + "{'servers':'100%', 'busyTimeout':'33ms'}]}]";
@@ -204,7 +204,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
     var clientProps = new Properties();
     clientProps.putAll(getClientProps());
     String scanServerSelectorProfiles = "[{'isDefault':true,'maxBusyTimeout':'5m',"
-        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':120ms,"
+        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':120s,"
         + "'attemptPlans':[{'servers':'3', 'busyTimeout':'1s'}]}]";
     clientProps.put("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName());
     clientProps.put("scan.server.selector.opts.profiles",

@@ -88,9 +88,20 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Falling back to tablet servers may cause tablets to be loaded that are not currently loaded. When
  * this setting is given a wait time and there are no scan servers, it will wait for scan servers to
  * be available. This setting avoids loading tablets on tablet servers when scans servers are
- * temporarily unavailable which could be caused by normal cluster activity. If not specified this
- * setting defaults to null. Set to a large enough duration to avoid tablet server fallback. Waiting
- * for scan servers is done via
+ * temporarily unavailable which could be caused by normal cluster activity. You can specify the
+ * wait time using different units to precisely control the wait duration. The supported units are:
+ * <ul>
+ * <li>"d" for days</li>
+ * <li>"h" for hours</li>
+ * <li>"m" for minutes</li>
+ * <li>"s" for seconds</li>
+ * <li>"ms" for milliseconds</li>
+ * </ul>
+ * If duration is not specified this setting defaults to 0s, and will disable the wait for scan
+ * servers. When set to a large value, the system will effectively wait for scan servers to become
+ * scan servers to be available before falling back to tablet servers. To ensure the scan servers
+ * does not fall back to tablet servers and continuously waits for scan servers a wait time of
+ * 10000d should be sufficient. Setting Waiting for scan servers is done via
  * {@link org.apache.accumulo.core.spi.scan.ScanServerSelector.SelectorParameters#waitUntil(Supplier, Duration, String)}</li>
  * <li><b>attemptPlans : </b> A list of configuration to use for each scan attempt. Each list object
  * has the following fields:
@@ -125,7 +136,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *       "maxBusyTimeout":"20m",
  *       "busyTimeoutMultiplier":8,
  *       "group":"lowcost",
- *       "timeToWaitForScanServers": "120ms,
+ *       "timeToWaitForScanServers": "120s,
  *       "attemptPlans":[
  *         {"servers":"1", "busyTimeout":"10s"},
  *         {"servers":"3", "busyTimeout":"30s","salt":"42"},
@@ -227,6 +238,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       parse();
       return parsedBusyTimeout;
     }
+
   }
 
   @SuppressFBWarnings(value = {"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_FIELD"},
@@ -238,10 +250,12 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     int busyTimeoutMultiplier;
     String maxBusyTimeout;
     String group = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
-    String timeToWaitForScanServers;
+    String timeToWaitForScanServers = "0s";
 
     transient boolean parsed = false;
     transient long parsedMaxBusyTimeout;
+
+    transient long parsedTimeToWaitForScanServers;
 
     int getNumServers(int attempt, int totalServers) {
       int index = Math.min(attempt, attemptPlans.size() - 1);
@@ -253,6 +267,8 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
         return;
       }
       parsedMaxBusyTimeout = ConfigurationTypeHelper.getTimeInMillis(maxBusyTimeout);
+      parsedTimeToWaitForScanServers =
+          ConfigurationTypeHelper.getTimeInMillis(timeToWaitForScanServers);
       parsed = true;
     }
 
@@ -272,6 +288,11 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     public String getSalt(int attempts) {
       int index = Math.min(attempts, attemptPlans.size() - 1);
       return attemptPlans.get(index).salt;
+    }
+
+    long getTimeToWaitForScanServers() {
+      parse();
+      return parsedTimeToWaitForScanServers;
     }
   }
 
@@ -345,14 +366,14 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     List<String> orderedScanServers =
         orderedScanServersSupplier.get().getOrDefault(profile.group, List.of());
 
+    Duration scanServerWaitTIme = Duration.ofMillis(profile.getTimeToWaitForScanServers());
+
     var finalProfile = profile;
-    if (orderedScanServers.isEmpty() && profile.timeToWaitForScanServers != null) {
+    if (orderedScanServers.isEmpty() && !scanServerWaitTIme.isZero()) {
       // Wait for scan servers in the configured group to be present.
       orderedScanServers = params.waitUntil(
           () -> Optional.ofNullable(orderedScanServersSupplier.get().get(finalProfile.group)),
-          Duration
-              .ofMillis(ConfigurationTypeHelper.getTimeInMillis(profile.timeToWaitForScanServers)),
-          "scan servers in group : " + profile.group).orElseThrow();
+          scanServerWaitTIme, "scan servers in group : " + profile.group).orElseThrow();
       // at this point the list should be non empty unless there is a bug
       Preconditions.checkState(!orderedScanServers.isEmpty());
     }
