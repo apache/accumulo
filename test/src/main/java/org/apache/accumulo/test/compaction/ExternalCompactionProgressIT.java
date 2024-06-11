@@ -169,11 +169,11 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       }, 30_000, CHECKER_THREAD_SLEEP_MS,
           "Entries read and written metrics values did not match expected values");
 
-      log.info("Done Compacting table");
-      verify(client, table, 2, ROWS);
-
       Wait.waitFor(() -> compactorBusy.get() == 0, 30_000, CHECKER_THREAD_SLEEP_MS,
           "Compactor busy metric should be false once compaction completes");
+
+      log.info("Done Compacting table");
+      verify(client, table, 2, ROWS);
     } finally {
       stopCheckerThread.set(true);
       checkerThread.join();
