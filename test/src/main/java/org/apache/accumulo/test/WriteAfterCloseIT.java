@@ -175,7 +175,7 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
         assertTrue(errorCount > 0);
       } else {
         assertEquals(0, errorCount);
-        // give out of order writes that may be on a tserer a chance to run
+        // allow potential out-of-order writes on a tserver to run
         Thread.sleep(SleepyConstraint.SLEEP_TIME);
         try (Scanner scanner = c.createScanner(table)) {
           // every insertion was deleted so table should be empty unless there were out of order
