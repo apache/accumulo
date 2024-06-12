@@ -126,8 +126,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   private final AtomicLong currentEntriesRead = new AtomicLong(0);
   private final AtomicLong currentEntriesWritten = new AtomicLong(0);
-  private final AtomicLong currentCompactionStartTime = new AtomicLong(0);
-  private final AtomicLong currentCompactionAgeNanos = new AtomicLong(0);
+  private final AtomicLong currentCompactionStartTime = new AtomicLong(-1);
 
   // These track the cumulative count of entries (read and written) that has been recorded in
   // the global counts. Their purpose is to avoid double counting of metrics during the update of
@@ -168,13 +167,11 @@ public class FileCompactor implements Callable<CompactionStats> {
     currentEntriesRead.set(0);
     currentEntriesWritten.set(0);
     currentCompactionStartTime.set(System.nanoTime());
-    currentCompactionAgeNanos.set(0);
   }
 
-  private void updateGlobalStats() {
+  private void updateGlobalEntryCounts() {
     updateTotalEntries(currentEntriesRead, lastRecordedEntriesRead, totalEntriesRead);
     updateTotalEntries(currentEntriesWritten, lastRecordedEntriesWritten, totalEntriesWritten);
-    currentCompactionAgeNanos.set(System.nanoTime() - currentCompactionStartTime.get());
   }
 
   /**
@@ -220,7 +217,7 @@ public class FileCompactor implements Callable<CompactionStats> {
     if (currentTime - lastUpdateTime < Duration.ofMillis(100).toNanos()) {
       return;
     }
-    runningCompactions.forEach(FileCompactor::updateGlobalStats);
+    runningCompactions.forEach(FileCompactor::updateGlobalEntryCounts);
     lastUpdateTime = currentTime;
   }
 
@@ -383,7 +380,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         runningCompactions.remove(this);
       }
 
-      updateGlobalStats();
+      updateGlobalEntryCounts();
 
       try {
         if (mfw != null) {
@@ -576,7 +573,12 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   public long getCompactionAge() {
-    return currentCompactionAgeNanos.get();
+    long startTime = currentCompactionStartTime.get();
+    if (startTime == -1) {
+      // compaction hasn't started yet
+      return 0;
+    }
+    return System.nanoTime() - startTime;
   }
 
   long getStartTime() {
