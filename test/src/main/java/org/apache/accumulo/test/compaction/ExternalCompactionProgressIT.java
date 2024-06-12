@@ -126,8 +126,13 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
 
   private static long computeBusyCount(String resourceGroup,
       ConcurrentHashMap<String,Long> compactorBusy) {
-    return compactorBusy.entrySet().stream().filter(e -> e.getKey().startsWith(resourceGroup + ":"))
-        .mapToLong(Map.Entry::getValue).sum();
+    var stats =
+        compactorBusy.entrySet().stream().filter(e -> e.getKey().startsWith(resourceGroup + ":"))
+            .mapToLong(Map.Entry::getValue).summaryStatistics();
+    if (stats.getCount() == 0)
+      return -1; // signifies nothing was present, this differentiates between the case where things
+                 // are present w/ a zero value
+    return stats.getSum();
   }
 
   @Test
