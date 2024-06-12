@@ -923,27 +923,29 @@ public class TabletClientHandler implements TabletClientService.Iface {
       Map<TKeyExtent,List<TConditionalMutation>> mutations, List<String> symbols)
       throws NoSuchScanIDException, TException {
 
-    ConditionalSession cs = (ConditionalSession) server.sessionManager.reserveSession(sessID);
-
-    if (cs == null || cs.interruptFlag.get()) {
-      throw new NoSuchScanIDException();
-    }
-
-    if (!cs.tableId.equals(MetadataTable.ID) && !cs.tableId.equals(RootTable.ID)) {
-      try {
-        server.resourceManager.waitUntilCommitsAreEnabled();
-      } catch (HoldTimeoutException hte) {
-        // Assumption is that the client has timed out and is gone. If that's not the case throw
-        // an exception that will cause it to retry.
-        log.debug("HoldTimeoutException during conditionalUpdate, reporting no such session");
-        throw new NoSuchScanIDException();
-      }
-    }
-
-    TableId tid = cs.tableId;
-    long opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
+    ConditionalSession cs = null;
+    Long opid = null;
 
     try {
+      cs = (ConditionalSession) server.sessionManager.reserveSession(sessID);
+      if (cs == null || cs.interruptFlag.get()) {
+        throw new NoSuchScanIDException();
+      }
+
+      if (!cs.tableId.equals(MetadataTable.ID) && !cs.tableId.equals(RootTable.ID)) {
+        try {
+          server.resourceManager.waitUntilCommitsAreEnabled();
+        } catch (HoldTimeoutException hte) {
+          // Assumption is that the client has timed out and is gone. If that's not the case throw
+          // an exception that will cause it to retry.
+          log.debug("HoldTimeoutException during conditionalUpdate, reporting no such session");
+          throw new NoSuchScanIDException();
+        }
+      }
+
+      TableId tid = cs.tableId;
+      opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
+
       // @formatter:off
       Map<KeyExtent, List<ServerConditionalMutation>> updates = mutations.entrySet().stream().collect(Collectors.toMap(
                       entry -> KeyExtent.fromThrift(entry.getKey()),
@@ -972,21 +974,30 @@ public class TabletClientHandler implements TabletClientService.Iface {
       log.warn("Exception returned for conditionalUpdate {}", e);
       throw e;
     } finally {
-      writeTracker.finishWrite(opid);
-      server.sessionManager.unreserveSession(sessID);
+      if (opid != null) {
+        writeTracker.finishWrite(opid);
+      }
+      if (cs != null) {
+        server.sessionManager.unreserveSession(sessID);
+      }
     }
   }
 
   @Override
   public void invalidateConditionalUpdate(TInfo tinfo, long sessID) {
-    // this method should wait for any running conditional update to complete
-    // after this method returns a conditional update should not be able to start
+    // For the given session, this method should wait for any running conditional update to
+    // complete. After this method returns a conditional update should not be able to start against
+    // this session and nothing should be running.
 
     ConditionalSession cs = (ConditionalSession) server.sessionManager.getSession(sessID);
     if (cs != null) {
+      // Setting this may cause anything running to fail. Setting this will prevent anything from
+      // starting.
       cs.interruptFlag.set(true);
     }
 
+    // If a thread is currently running and working on the update, then this should block until it
+    // un-reserves the session.
     cs = (ConditionalSession) server.sessionManager.reserveSession(sessID, true);
     if (cs != null) {
       server.sessionManager.removeSession(sessID, true);
