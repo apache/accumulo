@@ -46,6 +46,7 @@ struct TCompactionStatusUpdate {
   3:i64 entriesToBeCompacted
   4:i64 entriesRead
   5:i64 entriesWritten
+  6:i64 compactionAgeNanos
 }
 
 struct TExternalCompaction {

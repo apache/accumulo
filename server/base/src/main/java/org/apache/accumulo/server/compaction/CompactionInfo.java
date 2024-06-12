@@ -39,6 +39,7 @@ public class CompactionInfo {
   private final long entriesRead;
   private final long entriesWritten;
   private final TCompactionReason reason;
+  private final long compactionAge;
 
   CompactionInfo(FileCompactor compactor) {
     this.localityGroup = compactor.getCurrentLocalityGroup();
@@ -46,6 +47,7 @@ public class CompactionInfo {
     this.entriesWritten = compactor.getEntriesWritten();
     this.reason = compactor.getReason();
     this.compactor = compactor;
+    this.compactionAge = compactor.getCompactionAge();
   }
 
   public long getID() {
@@ -70,6 +72,10 @@ public class CompactionInfo {
 
   public String getOutputFile() {
     return compactor.getOutputFile();
+  }
+
+  public long getCompactionAge() {
+    return compactionAge;
   }
 
   public ActiveCompaction toThrift() {

@@ -122,10 +122,12 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   // things to report
   private String currentLocalityGroup = "";
-  private final long startTime;
+  private final long compactorStartTime;
 
   private final AtomicLong currentEntriesRead = new AtomicLong(0);
   private final AtomicLong currentEntriesWritten = new AtomicLong(0);
+  private final AtomicLong currentCompactionStartTime = new AtomicLong(0);
+  private final AtomicLong currentCompactionAgeNanos = new AtomicLong(0);
 
   // These track the cumulative count of entries (read and written) that has been recorded in
   // the global counts. Their purpose is to avoid double counting of metrics during the update of
@@ -162,14 +164,17 @@ public class FileCompactor implements Callable<CompactionStats> {
     return currentLocalityGroup;
   }
 
-  private void clearCurrentEntryCounts() {
+  private void resetCompactionStats() {
     currentEntriesRead.set(0);
     currentEntriesWritten.set(0);
+    currentCompactionStartTime.set(System.nanoTime());
+    currentCompactionAgeNanos.set(0);
   }
 
-  private void updateGlobalEntryCounts() {
+  private void updateGlobalStats() {
     updateTotalEntries(currentEntriesRead, lastRecordedEntriesRead, totalEntriesRead);
     updateTotalEntries(currentEntriesWritten, lastRecordedEntriesWritten, totalEntriesWritten);
+    currentCompactionAgeNanos.set(System.nanoTime() - currentCompactionStartTime.get());
   }
 
   /**
@@ -215,7 +220,7 @@ public class FileCompactor implements Callable<CompactionStats> {
     if (currentTime - lastUpdateTime < Duration.ofMillis(100).toNanos()) {
       return;
     }
-    runningCompactions.forEach(FileCompactor::updateGlobalEntryCounts);
+    runningCompactions.forEach(FileCompactor::updateGlobalStats);
     lastUpdateTime = currentTime;
   }
 
@@ -249,7 +254,7 @@ public class FileCompactor implements Callable<CompactionStats> {
     this.iterators = iterators;
     this.cryptoService = cs;
 
-    startTime = System.currentTimeMillis();
+    compactorStartTime = System.currentTimeMillis();
   }
 
   public VolumeManager getVolumeManager() {
@@ -284,7 +289,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     String threadStartDate = dateFormatter.format(new Date());
 
-    clearCurrentEntryCounts();
+    resetCompactionStats();
 
     String oldThreadName = Thread.currentThread().getName();
     String newThreadName =
@@ -378,7 +383,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         runningCompactions.remove(this);
       }
 
-      updateGlobalEntryCounts();
+      updateGlobalStats();
 
       try {
         if (mfw != null) {
@@ -570,8 +575,12 @@ public class FileCompactor implements Callable<CompactionStats> {
     return currentEntriesWritten.get();
   }
 
+  public long getCompactionAge() {
+    return currentCompactionAgeNanos.get();
+  }
+
   long getStartTime() {
-    return startTime;
+    return compactorStartTime;
   }
 
   Iterable<IteratorSetting> getIterators() {
