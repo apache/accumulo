@@ -62,7 +62,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -670,14 +669,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       case EVENTUAL:
         return getRootMetadata(zkRoot, ctx.getZooCache());
       case IMMEDIATE:
-        ZooReader zooReader = ctx.getZooReader();
         try {
-          var path = zkRoot + RootTable.ZROOT_TABLET;
-          // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from
-          // zookeeper
-          zooReader.sync(path);
-          byte[] bytes = zooReader.getData(path);
-          return new RootTabletMetadata(new String(bytes, UTF_8)).toTabletMetadata();
+          return RootTabletMetadata.read(ctx).toTabletMetadata();
         } catch (InterruptedException | KeeperException e) {
           throw new IllegalStateException(e);
         }

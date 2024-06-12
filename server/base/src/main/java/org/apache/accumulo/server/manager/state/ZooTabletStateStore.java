@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.manager.state;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.AbstractMap;
@@ -77,16 +75,13 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
       TabletManagementParameters parameters) {
     Preconditions.checkArgument(parameters.getLevel() == getLevel());
 
-    final String zpath = ctx.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
     final TabletIteratorEnvironment env = new TabletIteratorEnvironment(ctx, IteratorScope.scan,
         ctx.getTableConfiguration(AccumuloTable.ROOT.tableId()), AccumuloTable.ROOT.tableId());
     final TabletManagementIterator tmi = new TabletManagementIterator();
     final AtomicBoolean closed = new AtomicBoolean(false);
 
     try {
-      final byte[] rootTabletMetadata =
-          ctx.getZooReaderWriter().getZooKeeper().getData(zpath, false, null);
-      final RootTabletMetadata rtm = new RootTabletMetadata(new String(rootTabletMetadata, UTF_8));
+      final RootTabletMetadata rtm = RootTabletMetadata.read(ctx);
       final SortedMapIterator iter = new SortedMapIterator(rtm.toKeyValues());
       tmi.init(iter,
           Map.of(TabletManagementIterator.TABLET_GOAL_STATE_PARAMS_OPTION, parameters.serialize()),
