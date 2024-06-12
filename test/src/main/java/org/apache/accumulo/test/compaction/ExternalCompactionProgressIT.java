@@ -204,7 +204,8 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       assertTrue(reportedVsMeasuredDiff <= tolerance.toNanos(),
           String.format(
               "Reported duration (%s) and elapsed time (%s) differ by more than the tolerance (%s)",
-              reportedCompactionDuration.toSeconds(), measuredCompactionDuration.toSeconds(),tolerance.toSeconds()));
+              reportedCompactionDuration.toSeconds(), measuredCompactionDuration.toSeconds(),
+              tolerance.toSeconds()));
     } finally {
       getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
       getCluster().getClusterControl().stopAllServers(ServerType.COMPACTION_COORDINATOR);
