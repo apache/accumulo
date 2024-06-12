@@ -99,9 +99,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * </ul>
  * If duration is not specified this setting defaults to 0s, and will disable the wait for scan
  * servers. When set to a large value, the system will effectively wait for scan servers to become
- * scan servers to be available before falling back to tablet servers. To ensure the scan servers
- * does not fall back to tablet servers and continuously waits for scan servers a wait time of
- * 10000d should be sufficient. Setting Waiting for scan servers is done via
+ * available before falling back to tablet servers. To ensure the scan servers does not fall back to
+ * tablet servers and continuously waits for scan servers a wait time of 10000d should be
+ * sufficient. Setting Waiting for scan servers is done via
  * {@link org.apache.accumulo.core.spi.scan.ScanServerSelector.SelectorParameters#waitUntil(Supplier, Duration, String)}</li>
  * <li><b>attemptPlans : </b> A list of configuration to use for each scan attempt. Each list object
  * has the following fields:
@@ -136,7 +136,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *       "maxBusyTimeout":"20m",
  *       "busyTimeoutMultiplier":8,
  *       "group":"lowcost",
- *       "timeToWaitForScanServers": "120s,
+ *       "timeToWaitForScanServers": "120s",
  *       "attemptPlans":[
  *         {"servers":"1", "busyTimeout":"10s"},
  *         {"servers":"3", "busyTimeout":"30s","salt":"42"},
@@ -255,7 +255,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     transient boolean parsed = false;
     transient long parsedMaxBusyTimeout;
 
-    transient long parsedTimeToWaitForScanServers;
+    transient Duration parsedTimeToWaitForScanServers;
 
     int getNumServers(int attempt, int totalServers) {
       int index = Math.min(attempt, attemptPlans.size() - 1);
@@ -268,7 +268,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       }
       parsedMaxBusyTimeout = ConfigurationTypeHelper.getTimeInMillis(maxBusyTimeout);
       parsedTimeToWaitForScanServers =
-          ConfigurationTypeHelper.getTimeInMillis(timeToWaitForScanServers);
+          Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(timeToWaitForScanServers));
       parsed = true;
     }
 
@@ -290,7 +290,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       return attemptPlans.get(index).salt;
     }
 
-    long getTimeToWaitForScanServers() {
+    Duration getTimeToWaitForScanServers() {
       parse();
       return parsedTimeToWaitForScanServers;
     }
@@ -366,14 +366,14 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     List<String> orderedScanServers =
         orderedScanServersSupplier.get().getOrDefault(profile.group, List.of());
 
-    Duration scanServerWaitTIme = Duration.ofMillis(profile.getTimeToWaitForScanServers());
+    Duration scanServerWaitTime = profile.getTimeToWaitForScanServers();
 
     var finalProfile = profile;
-    if (orderedScanServers.isEmpty() && !scanServerWaitTIme.isZero()) {
+    if (orderedScanServers.isEmpty() && !scanServerWaitTime.isZero()) {
       // Wait for scan servers in the configured group to be present.
       orderedScanServers = params.waitUntil(
           () -> Optional.ofNullable(orderedScanServersSupplier.get().get(finalProfile.group)),
-          scanServerWaitTIme, "scan servers in group : " + profile.group).orElseThrow();
+          scanServerWaitTime, "scan servers in group : " + profile.group).orElseThrow();
       // at this point the list should be non empty unless there is a bug
       Preconditions.checkState(!orderedScanServers.isEmpty());
     }

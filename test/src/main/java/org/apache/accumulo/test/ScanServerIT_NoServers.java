@@ -139,7 +139,7 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
     var clientProps = new Properties();
     clientProps.putAll(getClientProps());
     String scanServerSelectorProfiles = "[{'isDefault':true,'maxBusyTimeout':'5m',"
-        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':120s,"
+        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':'120s',"
         + "'attemptPlans':[{'servers':'3', 'busyTimeout':'1s'}]}]";
     clientProps.put("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName());
     clientProps.put("scan.server.selector.opts.profiles",
@@ -167,7 +167,7 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
     var clientProps = new Properties();
     clientProps.putAll(getClientProps());
     String scanServerSelectorProfiles = "[{'isDefault':true,'maxBusyTimeout':'5m',"
-        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':120s,"
+        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':'120s',"
         + "'attemptPlans':[{'servers':'3', 'busyTimeout':'1s'}]}]";
     clientProps.put("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName());
     clientProps.put("scan.server.selector.opts.profiles",
