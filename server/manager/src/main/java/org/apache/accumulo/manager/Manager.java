@@ -1262,7 +1262,7 @@ public class Manager extends AbstractServer
     final Fate<Manager> fateInstance =
         new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
 
-    var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), System::nanoTime);
+    var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), this::getSteadyTime);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(fateCleaner::ageOff, 10, 4 * 60, MINUTES));
 
