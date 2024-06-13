@@ -122,11 +122,10 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   // things to report
   private String currentLocalityGroup = "";
-  private final long compactorStartTime;
+  private final long startTime;
 
   private final AtomicLong currentEntriesRead = new AtomicLong(0);
   private final AtomicLong currentEntriesWritten = new AtomicLong(0);
-  private final AtomicLong currentCompactionStartTime = new AtomicLong(-1);
 
   // These track the cumulative count of entries (read and written) that has been recorded in
   // the global counts. Their purpose is to avoid double counting of metrics during the update of
@@ -163,10 +162,9 @@ public class FileCompactor implements Callable<CompactionStats> {
     return currentLocalityGroup;
   }
 
-  private void resetCompactionStats() {
+  private void clearCurrentEntryCounts() {
     currentEntriesRead.set(0);
     currentEntriesWritten.set(0);
-    currentCompactionStartTime.set(System.nanoTime());
   }
 
   private void updateGlobalEntryCounts() {
@@ -251,7 +249,7 @@ public class FileCompactor implements Callable<CompactionStats> {
     this.iterators = iterators;
     this.cryptoService = cs;
 
-    compactorStartTime = System.currentTimeMillis();
+    startTime = System.currentTimeMillis();
   }
 
   public VolumeManager getVolumeManager() {
@@ -286,7 +284,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     String threadStartDate = dateFormatter.format(new Date());
 
-    resetCompactionStats();
+    clearCurrentEntryCounts();
 
     String oldThreadName = Thread.currentThread().getName();
     String newThreadName =
@@ -572,17 +570,8 @@ public class FileCompactor implements Callable<CompactionStats> {
     return currentEntriesWritten.get();
   }
 
-  public long getCompactionAge() {
-    long startTime = currentCompactionStartTime.get();
-    if (startTime == -1) {
-      // compaction hasn't started yet
-      return 0;
-    }
-    return System.nanoTime() - startTime;
-  }
-
   long getStartTime() {
-    return compactorStartTime;
+    return startTime;
   }
 
   Iterable<IteratorSetting> getIterators() {
