@@ -48,6 +48,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -97,6 +98,7 @@ import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
@@ -853,50 +855,47 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
+  /**
+   * Read tablet metadata entries for tablet that have multiple locations. Not using Ample because
+   * it throws an exception when tablets have multiple locations.
+   */
+  private Stream<? extends Entry<Key,Value>> getMetaEntries(KeyExtent extent)
+      throws TableNotFoundException, InterruptedException, KeeperException {
+    Ample.DataLevel level = Ample.DataLevel.of(extent.tableId());
+    if (level == Ample.DataLevel.ROOT) {
+      return RootTabletMetadata.read(manager.getContext()).getKeyValues();
+    } else {
+      Scanner scanner = manager.getContext().createScanner(level.metaTable(), Authorizations.EMPTY);
+      scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
+      scanner.setRange(new Range(extent.toMetaRow()));
+      return scanner.stream().onClose(scanner::close);
+    }
+  }
+
   private void logIncorrectTabletLocations(TabletMetadata tabletMetadata) {
     try {
-      Map<Key,Value> future = new HashMap<>();
-      Map<Key,Value> assigned = new HashMap<>();
+      Map<Key,Value> locations = new HashMap<>();
       KeyExtent extent = tabletMetadata.getExtent();
-      var level = Ample.DataLevel.of(extent.tableId());
 
-      Stream<? extends Entry<Key,Value>> entries;
-      if (level == Ample.DataLevel.ROOT) {
-        // Not using ample to read root tablet metadata because it would throw an exception if a
-        // tablet had multiple locations.
-        RootTabletMetadata rtm = RootTabletMetadata.read(manager.getContext());
-        entries = rtm.getKeyValues();
-      } else {
-        Scanner scanner =
-            manager.getContext().createScanner(level.metaTable(), Authorizations.EMPTY);
-        scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
-        scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
-        scanner.setRange(new Range(extent.toMetaRow()));
-        entries = scanner.stream();
+      try (Stream<? extends Entry<Key,Value>> entries = getMetaEntries(extent)) {
+        entries.forEach(entry -> {
+          var family = entry.getKey().getColumnFamily();
+          if (family.equals(CurrentLocationColumnFamily.NAME)
+              || family.equals(FutureLocationColumnFamily.NAME)) {
+            locations.put(entry.getKey(), entry.getValue());
+          }
+        });
       }
 
-      entries.forEach(entry -> {
-        if (entry.getKey().getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
-          assigned.put(entry.getKey(), entry.getValue());
-        } else if (entry.getKey().getColumnFamily().equals(FutureLocationColumnFamily.NAME)) {
-          future.put(entry.getKey(), entry.getValue());
-        }
-      });
-
-      var count = future.size() + assigned.size();
-      if (count <= 1) {
+      if (locations.size() <= 1) {
         Manager.log.trace("Tablet {} seems to have correct location based on inspection",
             tabletMetadata.getExtent());
       } else {
-        for (Map.Entry<Key,Value> entry : future.entrySet()) {
+        for (Map.Entry<Key,Value> entry : locations.entrySet()) {
           TServerInstance alive = manager.tserverSet.find(entry.getValue().toString());
-          Manager.log.debug("Saw duplicate future location key:{} value:{} alive:{} ",
-              entry.getKey(), entry.getValue(), alive != null);
-        }
-        for (Map.Entry<Key,Value> entry : assigned.entrySet()) {
-          TServerInstance alive = manager.tserverSet.find(entry.getValue().toString());
-          Manager.log.debug("Saw duplicate current location key:{} value:{} alive:{} ",
-              entry.getKey(), entry.getValue(), alive != null);
+          Manager.log.debug("Saw duplicate location key:{} value:{} alive:{} ", entry.getKey(),
+              entry.getValue(), alive != null);
         }
       }
     } catch (Exception e) {
