@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -80,7 +81,28 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * specified, the set of scan servers that did not specify a group will be used. Grouping scan
  * servers supports at least two use cases. First groups can be used to dedicate resources for
  * certain scans. Second groups can be used to have different hardware/VM types for scans, for
- * example could have some scans use expensive high memory VMs and others use cheaper burstable VMs.
+ * example could have some scans use expensive high memory VMs and others use cheaper burstable
+ * VMs.</li>
+ * <li><b>timeToWaitForScanServers : </b> When there are no scans servers, this setting determines
+ * how long to wait for scan servers to load before falling back to tablet servers is desired.
+ * Falling back to tablet servers may cause tablets to be loaded that are not currently loaded. When
+ * this setting is given a wait time and there are no scan servers, it will wait for scan servers to
+ * be available. This setting avoids loading tablets on tablet servers when scans servers are
+ * temporarily unavailable which could be caused by normal cluster activity. You can specify the
+ * wait time using different units to precisely control the wait duration. The supported units are:
+ * <ul>
+ * <li>"d" for days</li>
+ * <li>"h" for hours</li>
+ * <li>"m" for minutes</li>
+ * <li>"s" for seconds</li>
+ * <li>"ms" for milliseconds</li>
+ * </ul>
+ * If duration is not specified this setting defaults to 0s, and will disable the wait for scan
+ * servers. When set to a large value, the selector will effectively wait for scan servers to become
+ * available before falling back to tablet servers. To ensure the selector never falls back to
+ * scanning tablet servers an unrealistic wait time can be set. For instance 10000d should be
+ * sufficient. Setting Waiting for scan servers is done via
+ * {@link org.apache.accumulo.core.spi.scan.ScanServerSelector.SelectorParameters#waitUntil(Supplier, Duration, String)}</li>
  * <li><b>attemptPlans : </b> A list of configuration to use for each scan attempt. Each list object
  * has the following fields:
  * <ul>
@@ -114,6 +136,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *       "maxBusyTimeout":"20m",
  *       "busyTimeoutMultiplier":8,
  *       "group":"lowcost",
+ *       "timeToWaitForScanServers": "120s",
  *       "attemptPlans":[
  *         {"servers":"1", "busyTimeout":"10s"},
  *         {"servers":"3", "busyTimeout":"30s","salt":"42"},
@@ -133,16 +156,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * </p>
  *
  * <p>
- * For the profile activated by {@code scan_type=slow} it start off by choosing randomly from 1 scan
- * server based on a hash of the tablet with no salt and a busy timeout of 10s. The second attempt
- * will choose from 3 scan servers based on a hash of the tablet plus the salt {@literal 42}.
- * Without the salt, the single scan servers from the first attempt would always be included in the
- * set of 3. With the salt the single scan server from the first attempt may not be included. The
- * third attempt will choose a scan server from 9 using the salt {@literal 84} and a busy timeout of
- * 60s. The different salt means the set of servers that attempts 2 and 3 choose from may be
- * disjoint. Attempt 4 and greater will continue to choose from the same 9 servers as attempt 3 and
- * will keep increasing the busy timeout by multiplying 8 until the maximum of 20 minutes is
- * reached. For this profile it will choose from scan servers in the group {@literal lowcost}.
+ * For the profile activated by {@code scan_type=slow} it starts off by choosing randomly from 1
+ * scan server based on a hash of the tablet with no salt and a busy timeout of 10s. The second
+ * attempt will choose from 3 scan servers based on a hash of the tablet plus the salt
+ * {@literal 42}. Without the salt, the single scan servers from the first attempt would always be
+ * included in the set of 3. With the salt the single scan server from the first attempt may not be
+ * included. The third attempt will choose a scan server from 9 using the salt {@literal 84} and a
+ * busy timeout of 60s. The different salt means the set of servers that attempts 2 and 3 choose
+ * from may be disjoint. Attempt 4 and greater will continue to choose from the same 9 servers as
+ * attempt 3 and will keep increasing the busy timeout by multiplying 8 until the maximum of 20
+ * minutes is reached. For this profile it will choose from scan servers in the group
+ * {@literal lowcost}. This profile also will not fallback to tablet servers when there are
+ * currently no scan servers, it will wait for scan servers to become available.
  * </p>
  *
  * @since 2.1.0
@@ -225,9 +250,12 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     int busyTimeoutMultiplier;
     String maxBusyTimeout;
     String group = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
+    String timeToWaitForScanServers = "0s";
 
     transient boolean parsed = false;
     transient long parsedMaxBusyTimeout;
+
+    transient Duration parsedTimeToWaitForScanServers;
 
     int getNumServers(int attempt, int totalServers) {
       int index = Math.min(attempt, attemptPlans.size() - 1);
@@ -239,6 +267,8 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
         return;
       }
       parsedMaxBusyTimeout = ConfigurationTypeHelper.getTimeInMillis(maxBusyTimeout);
+      parsedTimeToWaitForScanServers =
+          Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(timeToWaitForScanServers));
       parsed = true;
     }
 
@@ -258,6 +288,11 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     public String getSalt(int attempts) {
       int index = Math.min(attempts, attemptPlans.size() - 1);
       return attemptPlans.get(index).salt;
+    }
+
+    Duration getTimeToWaitForScanServers() {
+      parse();
+      return parsedTimeToWaitForScanServers;
     }
   }
 
@@ -332,7 +367,20 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     List<String> orderedScanServers =
         orderedScanServersSupplier.get().getOrDefault(profile.group, List.of());
 
+    Duration scanServerWaitTime = profile.getTimeToWaitForScanServers();
+
+    var finalProfile = profile;
+    if (orderedScanServers.isEmpty() && !scanServerWaitTime.isZero()) {
+      // Wait for scan servers in the configured group to be present.
+      orderedScanServers = params.waitUntil(
+          () -> Optional.ofNullable(orderedScanServersSupplier.get().get(finalProfile.group)),
+          scanServerWaitTime, "scan servers in group : " + profile.group).orElseThrow();
+      // at this point the list should be non empty unless there is a bug
+      Preconditions.checkState(!orderedScanServers.isEmpty());
+    }
+
     if (orderedScanServers.isEmpty()) {
+      // there are no scan servers so fall back to the tablet server
       return new ScanServerSelections() {
         @Override
         public String getScanServer(TabletId tabletId) {
