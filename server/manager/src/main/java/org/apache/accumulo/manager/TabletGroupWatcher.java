@@ -862,6 +862,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       Stream<? extends Entry<Key,Value>> entries;
       if (level == Ample.DataLevel.ROOT) {
+        // Not using ample to read root tablet metadata because it would throw an exception if a
+        // tablet had multiple locations.
         RootTabletMetadata rtm = RootTabletMetadata.read(manager.getContext());
         entries = rtm.getKeyValues();
       } else {
