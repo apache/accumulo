@@ -95,7 +95,6 @@ public class TestDualAssignment extends ConfigurableMacBase {
           .mutate();
 
       try (var scanner = c.createScanner(table)) {
-        // should not be able to scan the table when a tablet has multiple locations
         assertEquals(0, scanner.stream().count());
       }
 
