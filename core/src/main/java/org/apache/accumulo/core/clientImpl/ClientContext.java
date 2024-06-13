@@ -24,7 +24,6 @@ import static com.google.common.base.Suppliers.memoizeWithExpiration;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -85,12 +84,8 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.Authorizations;
@@ -473,38 +468,6 @@ public class ClientContext implements AccumuloClient {
     }
 
     return rpcCreds;
-  }
-
-  /**
-   * Returns the location of the tablet server that is serving the root tablet.
-   *
-   * @return location in "hostname:port" form
-   */
-  public String getRootTabletLocation() {
-    ensureOpen();
-
-    OpTimer timer = null;
-
-    if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up root tablet location in zookeeper.",
-          Thread.currentThread().getId());
-      timer = new OpTimer().start();
-    }
-
-    Location loc =
-        getAmple().readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL, LOCATION).getLocation();
-
-    if (timer != null) {
-      timer.stop();
-      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
-          String.format("%.3f secs", timer.scale(SECONDS)));
-    }
-
-    if (loc == null || loc.getType() != LocationType.CURRENT) {
-      return null;
-    }
-
-    return loc.getHostPort();
   }
 
   /**

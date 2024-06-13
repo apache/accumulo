@@ -200,6 +200,8 @@ public class ClientTabletCacheImplTest {
   private ClientContext context;
   private InstanceId iid;
 
+  private static String rootTabletLoc;
+
   @BeforeEach
   public void setUp() throws AccumuloException, TableNotFoundException {
     context = EasyMock.createMock(ClientContext.class);
@@ -218,9 +220,9 @@ public class ClientTabletCacheImplTest {
     EasyMock.expect(tops.isOnline("1")).andReturn(true).anyTimes();
     EasyMock.expect(tops.isOnline("tab1")).andReturn(true).anyTimes();
     iid = InstanceId.of("instance1");
-    EasyMock.expect(context.getRootTabletLocation()).andReturn("tserver1").anyTimes();
     EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
     replay(context, tops);
+    rootTabletLoc = "tserver1";
   }
 
   private void runTest(List<Range> ranges, ClientTabletCacheImpl tab1TabletCache,
@@ -613,8 +615,8 @@ public class ClientTabletCacheImplTest {
 
     @Override
     protected CachedTablet getRootTabletLocation(ClientContext context) {
-      return new CachedTablet(RootTable.EXTENT, context.getRootTabletLocation(), "1",
-          TabletAvailability.HOSTED, false);
+      return new CachedTablet(RootTable.EXTENT, rootTabletLoc, "1", TabletAvailability.HOSTED,
+          false);
     }
 
     @Override
@@ -811,7 +813,7 @@ public class ClientTabletCacheImplTest {
     EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
     EasyMock.expect(context.getTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
     iid = InstanceId.of("instance1");
-    EasyMock.expect(context.getRootTabletLocation()).andReturn("tserver4").anyTimes();
+    rootTabletLoc = "tserver4";
     EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
     replay(context, tops);
 
