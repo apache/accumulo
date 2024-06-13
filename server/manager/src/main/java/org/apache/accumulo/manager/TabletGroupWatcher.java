@@ -883,17 +883,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       var count = future.size() + assigned.size();
       if (count <= 1) {
-        Manager.log.info("Tablet {} seems to have correct location based on inspection",
+        Manager.log.trace("Tablet {} seems to have correct location based on inspection",
             tabletMetadata.getExtent());
       } else {
         for (Map.Entry<Key,Value> entry : future.entrySet()) {
           TServerInstance alive = manager.tserverSet.find(entry.getValue().toString());
-          Manager.log.warn("Saw duplicate future location key:{} value:{} alive:{} ",
+          Manager.log.debug("Saw duplicate future location key:{} value:{} alive:{} ",
               entry.getKey(), entry.getValue(), alive != null);
         }
         for (Map.Entry<Key,Value> entry : assigned.entrySet()) {
           TServerInstance alive = manager.tserverSet.find(entry.getValue().toString());
-          Manager.log.warn("Saw duplicate current location key:{} value:{} alive:{} ",
+          Manager.log.debug("Saw duplicate current location key:{} value:{} alive:{} ",
               entry.getKey(), entry.getValue(), alive != null);
         }
       }
