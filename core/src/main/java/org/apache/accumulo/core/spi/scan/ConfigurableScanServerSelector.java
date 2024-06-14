@@ -98,9 +98,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <li>"ms" for milliseconds</li>
  * </ul>
  * If duration is not specified this setting defaults to 0s, and will disable the wait for scan
- * servers. When set to a large value, the system will effectively wait for scan servers to become
- * available before falling back to tablet servers. To ensure the scan servers does not fall back to
- * tablet servers and continuously waits for scan servers a wait time of 10000d should be
+ * servers. When set to a large value, the selector will effectively wait for scan servers to become
+ * available before falling back to tablet servers. To ensure the selector never falls back to scanning
+ * tablet servers an unrealistic wait time can be set. For instance 10000d should be
  * sufficient. Setting Waiting for scan servers is done via
  * {@link org.apache.accumulo.core.spi.scan.ScanServerSelector.SelectorParameters#waitUntil(Supplier, Duration, String)}</li>
  * <li><b>attemptPlans : </b> A list of configuration to use for each scan attempt. Each list object
