@@ -20,7 +20,6 @@ package org.apache.accumulo.manager;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Math.min;
-import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 
@@ -46,13 +45,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -65,17 +64,16 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
@@ -99,33 +97,16 @@ import org.apache.accumulo.server.manager.state.TabletManagementParameters;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterators;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
-
-  public static class BadLocationStateException extends Exception {
-    private static final long serialVersionUID = 2L;
-
-    // store as byte array because Text isn't Serializable
-    private final byte[] metadataTableEntry;
-
-    public BadLocationStateException(String msg, Text row) {
-      super(msg);
-      this.metadataTableEntry = TextUtil.getBytes(requireNonNull(row));
-    }
-
-    public Text getEncodedEndRow() {
-      return new Text(metadataTableEntry);
-    }
-  }
 
   private static final Logger LOG = LoggerFactory.getLogger(TabletGroupWatcher.class);
 
@@ -430,8 +411,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private TableMgmtStats manageTablets(Iterator<TabletManagement> iter,
       TabletManagementParameters tableMgmtParams,
       SortedMap<TServerInstance,TabletServerStatus> currentTServers, boolean isFullScan)
-      throws BadLocationStateException, TException, DistributedStoreException, WalMarkerException,
-      IOException {
+      throws TException, DistributedStoreException, WalMarkerException, IOException {
 
     final TableMgmtStats tableMgmtStats = new TableMgmtStats();
     final boolean shuttingDownAllTabletServers =
@@ -564,9 +544,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       }
 
       if (actions.contains(ManagementAction.BAD_STATE) && tm.isFutureAndCurrentLocationSet()) {
-        throw new BadLocationStateException(
-            tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
-            tm.getExtent().toMetaRow());
+        Manager.log.error("{}, saw tablet with multiple locations, which should not happen",
+            tm.getExtent());
+        logIncorrectTabletLocations(tm);
+        // take no further action for this tablet
+        continue;
       }
 
       final Location location = tm.getLocation();
@@ -785,9 +767,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // Create an event at the store level, this will force the next scan to be a full scan
           manager.nextEvent.event(store.getLevel(), "Set of tablet servers changed");
         }
-      } catch (BadLocationStateException e) {
-        Manager.log.error("{}, attempting to repair", e.getMessage());
-        repairMetadata(e.getEncodedEndRow());
       } catch (Exception ex) {
         Manager.log.error("Error processing table state for store " + store.name(), ex);
         sleepUninterruptibly(Manager.WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);
@@ -876,61 +855,52 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
-  private void repairMetadata(Text row) {
-    Manager.log.debug("Attempting repair on {}", row);
-    // ACCUMULO-2261 if a dying tserver writes a location before its lock information propagates, it
-    // may cause duplicate assignment.
-    // Attempt to find the dead server entry and remove it.
-    try {
-      Map<Key,Value> future = new HashMap<>();
-      Map<Key,Value> assigned = new HashMap<>();
-      KeyExtent extent = KeyExtent.fromMetaRow(row);
-      String table = AccumuloTable.METADATA.tableName();
-      if (extent.isMeta()) {
-        table = AccumuloTable.ROOT.tableName();
-      }
-      Scanner scanner = manager.getContext().createScanner(table, Authorizations.EMPTY);
+  /**
+   * Read tablet metadata entries for tablet that have multiple locations. Not using Ample because
+   * it throws an exception when tablets have multiple locations.
+   */
+  private Stream<? extends Entry<Key,Value>> getMetaEntries(KeyExtent extent)
+      throws TableNotFoundException, InterruptedException, KeeperException {
+    Ample.DataLevel level = Ample.DataLevel.of(extent.tableId());
+    if (level == Ample.DataLevel.ROOT) {
+      return RootTabletMetadata.read(manager.getContext()).getKeyValues();
+    } else {
+      Scanner scanner = manager.getContext().createScanner(level.metaTable(), Authorizations.EMPTY);
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
-      scanner.setRange(new Range(row));
-      for (Entry<Key,Value> entry : scanner) {
-        if (entry.getKey().getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
-          assigned.put(entry.getKey(), entry.getValue());
-        } else if (entry.getKey().getColumnFamily().equals(FutureLocationColumnFamily.NAME)) {
-          future.put(entry.getKey(), entry.getValue());
-        }
+      scanner.setRange(new Range(extent.toMetaRow()));
+      return scanner.stream().onClose(scanner::close);
+    }
+  }
+
+  private void logIncorrectTabletLocations(TabletMetadata tabletMetadata) {
+    try {
+      Map<Key,Value> locations = new HashMap<>();
+      KeyExtent extent = tabletMetadata.getExtent();
+
+      try (Stream<? extends Entry<Key,Value>> entries = getMetaEntries(extent)) {
+        entries.forEach(entry -> {
+          var family = entry.getKey().getColumnFamily();
+          if (family.equals(CurrentLocationColumnFamily.NAME)
+              || family.equals(FutureLocationColumnFamily.NAME)) {
+            locations.put(entry.getKey(), entry.getValue());
+          }
+        });
       }
-      if (!future.isEmpty() && !assigned.isEmpty()) {
-        Manager.log.warn("Found a tablet assigned and hosted, attempting to repair");
-      } else if (future.size() > 1 && assigned.isEmpty()) {
-        Manager.log.warn("Found a tablet assigned to multiple servers, attempting to repair");
-      } else if (future.isEmpty() && assigned.size() > 1) {
-        Manager.log.warn("Found a tablet hosted on multiple servers, attempting to repair");
+
+      if (locations.size() <= 1) {
+        Manager.log.trace("Tablet {} seems to have correct location based on inspection",
+            tabletMetadata.getExtent());
       } else {
-        Manager.log.info("Attempted a repair, but nothing seems to be obviously wrong. {} {}",
-            assigned, future);
-        return;
-      }
-      Iterator<Entry<Key,Value>> iter =
-          Iterators.concat(future.entrySet().iterator(), assigned.entrySet().iterator());
-      while (iter.hasNext()) {
-        Entry<Key,Value> entry = iter.next();
-        TServerInstance alive = manager.tserverSet.find(entry.getValue().toString());
-        if (alive == null) {
-          Manager.log.info("Removing entry  {}", entry);
-          BatchWriter bw = manager.getContext().createBatchWriter(table);
-          Mutation m = new Mutation(entry.getKey().getRow());
-          m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
-          bw.addMutation(m);
-          bw.close();
-          return;
+        for (Map.Entry<Key,Value> entry : locations.entrySet()) {
+          TServerInstance alive = manager.tserverSet.find(entry.getValue().toString());
+          Manager.log.debug("Saw duplicate location key:{} value:{} alive:{} ", entry.getKey(),
+              entry.getValue(), alive != null);
         }
       }
-      Manager.log.error(
-          "Metadata table is inconsistent at {} and all assigned/future tservers are still online.",
-          row);
     } catch (Exception e) {
-      Manager.log.error("Error attempting repair of metadata " + row + ": " + e, e);
+      Manager.log.error("Error attempting investigation of metadata {}: {}",
+          tabletMetadata == null ? null : tabletMetadata.getExtent(), e, e);
     }
   }
 
