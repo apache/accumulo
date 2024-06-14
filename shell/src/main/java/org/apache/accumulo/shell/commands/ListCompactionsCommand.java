@@ -55,7 +55,7 @@ public class ListCompactionsCommand extends Command {
       activeCompactionStream = ActiveCompactionHelper
           .activeCompactionsForServer(cl.getOptionValue(tserverOption.getOpt()), instanceOps);
     } else {
-      activeCompactionStream = ActiveCompactionHelper.stream(instanceOps);
+      activeCompactionStream = ActiveCompactionHelper.activeCompactions(instanceOps);
     }
 
     if (cl.hasOption(filterOption.getOpt())) {
