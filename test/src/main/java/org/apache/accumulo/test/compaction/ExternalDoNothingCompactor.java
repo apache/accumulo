@@ -73,7 +73,7 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
 
       @Override
       public Duration getCompactionAge() {
-        return null;
+        return Duration.ZERO;
       }
 
       @Override

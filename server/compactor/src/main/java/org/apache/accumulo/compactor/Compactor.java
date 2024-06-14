@@ -519,7 +519,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     return new FileCompactorRunnable() {
 
       private final AtomicReference<FileCompactor> compactor = new AtomicReference<>();
-      private long startTimeNanos = -1;
+      private volatile long startTimeNanos = -1;
 
       @Override
       public void initialize() throws RetriesExceededException {

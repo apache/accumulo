@@ -110,7 +110,7 @@ public class CompactorTest {
 
     @Override
     public Duration getCompactionAge() {
-      return null;
+      return Duration.ZERO;
     }
 
     @Override
