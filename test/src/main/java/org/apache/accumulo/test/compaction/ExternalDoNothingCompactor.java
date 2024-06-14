@@ -20,6 +20,7 @@ package org.apache.accumulo.test.compaction;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
@@ -69,6 +70,11 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
       @Override
       public AtomicReference<FileCompactor> getFileCompactor() {
         return ref;
+      }
+
+      @Override
+      public Duration getCompactionAge() {
+        return Duration.ZERO;
       }
 
       @Override
