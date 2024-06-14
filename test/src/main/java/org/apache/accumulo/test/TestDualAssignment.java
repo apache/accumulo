@@ -90,12 +90,29 @@ public class TestDualAssignment extends ConfigurableMacBase {
         assertThrows(IllegalStateException.class, () -> scanner.stream().count());
       }
 
+      // The following check ensures that Ample throws an exception when a tablet has multiple
+      // locations and the location is being read.
+      try (var tabletsMeta = serverContext.getAmple().readTablets().forTable(tableId).build()) {
+        assertThrows(IllegalStateException.class, () -> tabletsMeta.stream().count());
+      }
+
+      // should fail when reading an individual tablet
+      assertThrows(IllegalStateException.class, () -> serverContext.getAmple().readTablet(extent1));
+      // when not reading a tablets location, ample should not fail
+      assertEquals(extent1, serverContext.getAmple()
+          .readTablet(extent1, TabletMetadata.ColumnType.FILES).getExtent());
+
       // fix the tablet metadata
       serverContext.getAmple().mutateTablet(extent1).deleteLocation(loc1).deleteLocation(loc2)
           .mutate();
 
       try (var scanner = c.createScanner(table)) {
         assertEquals(0, scanner.stream().count());
+      }
+
+      // should be able to scan using ample now
+      try (var tabletsMeta = serverContext.getAmple().readTablets().forTable(tableId).build()) {
+        assertEquals(27, tabletsMeta.stream().count());
       }
 
       // this should no longer fail
