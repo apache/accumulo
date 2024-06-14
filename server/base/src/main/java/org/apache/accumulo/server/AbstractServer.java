@@ -21,6 +21,7 @@ package org.apache.accumulo.server;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
@@ -50,14 +51,15 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   protected final long idleReportingPeriodNanos;
   private volatile long idlePeriodStartNanos = 0L;
 
-  protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
+  protected AbstractServer(String appName, ConfigOpts opts,
+      Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
     this.applicationName = appName;
     opts.parseArgs(appName, args);
     var siteConfig = opts.getSiteConfiguration();
     this.hostname = siteConfig.get(Property.GENERAL_PROCESS_BIND_ADDRESS);
     this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
     SecurityUtil.serverLogin(siteConfig);
-    context = new ServerContext(siteConfig);
+    context = serverContextFactory.apply(siteConfig);
     Logger log = LoggerFactory.getLogger(getClass());
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());

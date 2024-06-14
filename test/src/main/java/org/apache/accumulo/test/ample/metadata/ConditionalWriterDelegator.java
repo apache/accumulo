@@ -35,14 +35,12 @@ class ConditionalWriterDelegator implements ConditionalWriter {
 
   @Override
   public Iterator<Result> write(Iterator<ConditionalMutation> mutations) {
-    mutations = interceptor.beforeWrite(mutations);
-    return interceptor.afterWrite(delegate.write(mutations));
+    return interceptor.write(delegate, mutations);
   }
 
   @Override
   public Result write(ConditionalMutation mutation) {
-    mutation = interceptor.beforeWrite(mutation);
-    return interceptor.afterWrite(delegate.write(mutation));
+    return interceptor.write(delegate, mutation);
   }
 
   @Override
