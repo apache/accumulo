@@ -47,7 +47,6 @@ import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.hadoop.fs.Path;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +86,7 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
           Map.of(TabletManagementIterator.TABLET_GOAL_STATE_PARAMS_OPTION, parameters.serialize()),
           env);
       tmi.seek(new Range(), null, true);
-    } catch (KeeperException | InterruptedException | IOException e2) {
+    } catch (IOException e2) {
       throw new IllegalStateException(
           "Error setting up TabletManagementIterator for the root tablet", e2);
     }

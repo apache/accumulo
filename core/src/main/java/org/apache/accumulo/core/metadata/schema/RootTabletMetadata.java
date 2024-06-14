@@ -61,18 +61,25 @@ public class RootTabletMetadata {
 
   private static final int VERSION = 1;
 
+  public static String zooPath(ClientContext ctx) {
+    return ctx.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
+  }
+
   /**
    * Reads the tablet metadata for the root tablet from zookeeper
    */
-  public static RootTabletMetadata read(ClientContext ctx)
-      throws InterruptedException, KeeperException {
-    final String zpath = ctx.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
-    ZooReader zooReader = ctx.getZooReader();
-    // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from
-    // zookeeper
-    zooReader.sync(zpath);
-    byte[] bytes = zooReader.getData(zpath);
-    return new RootTabletMetadata(new String(bytes, UTF_8));
+  public static RootTabletMetadata read(ClientContext ctx) {
+    try {
+      final String zpath = zooPath(ctx);
+      ZooReader zooReader = ctx.getZooReader();
+      // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from
+      // zookeeper
+      zooReader.sync(zpath);
+      byte[] bytes = zooReader.getData(zpath);
+      return new RootTabletMetadata(new String(bytes, UTF_8));
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
