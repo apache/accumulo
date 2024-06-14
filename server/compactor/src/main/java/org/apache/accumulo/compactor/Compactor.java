@@ -97,6 +97,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.CompactionInfo;
@@ -510,12 +511,12 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     return new FileCompactorRunnable() {
 
       private final AtomicReference<FileCompactor> compactor = new AtomicReference<>();
-      private volatile long startTimeNanos = -1;
+      private volatile NanoTime compactionStartTime;
 
       @Override
       public void initialize() throws RetriesExceededException {
         LOG.info("Starting up compaction runnable for job: {}", job);
-        this.startTimeNanos = System.nanoTime();
+        this.compactionStartTime = NanoTime.now();
         TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.STARTED,
             "Compaction started", -1, -1, -1, getCompactionAge().toNanos());
         updateCompactionState(job, update);
@@ -605,11 +606,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
       @Override
       public Duration getCompactionAge() {
-        if (startTimeNanos == -1) {
+        if (compactionStartTime == null) {
           // compaction hasn't started yet
           return Duration.ZERO;
         }
-        return Duration.ofNanos(System.nanoTime() - startTimeNanos);
+        return compactionStartTime.elapsed();
       }
 
     };

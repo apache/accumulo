@@ -125,7 +125,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   // things to report
   private String currentLocalityGroup = "";
-  private volatile long startTime = -1;
+  private volatile NanoTime startTime;
 
   private final AtomicInteger timesPaused = new AtomicInteger(0);
 
@@ -284,7 +284,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     CompactionStats majCStats = new CompactionStats();
 
-    startTime = System.nanoTime();
+    startTime = NanoTime.now();
 
     boolean remove = runningCompactions.add(this);
 
@@ -605,11 +605,11 @@ public class FileCompactor implements Callable<CompactionStats> {
    * @return the duration since {@link #call()} was called
    */
   Duration getAge() {
-    if (startTime == -1) {
+    if (startTime == null) {
       // call() has not been called yet
       return Duration.ZERO;
     }
-    return Duration.ofNanos(System.nanoTime() - startTime);
+    return startTime.elapsed();
   }
 
   Iterable<IteratorSetting> getIterators() {
