@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.core.client.summary.summarizers;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.access.AccessExpression;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -81,8 +81,10 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
       if (vis.length() > 0) {
         Set<ByteSequence> auths = cache.get(vis);
         if (auths == null) {
-          auths = AccessExpression.of(vis.toArray()).getAuthorizations().asSet().stream()
-              .map(ArrayByteSequence::new).collect(Collectors.toSet());
+          auths = new HashSet<>();
+          for (String auth : AccessExpression.of(vis.toArray()).getAuthorizations().asSet()) {
+            auths.add(new ArrayByteSequence(auth));
+          }
           cache.put(new ArrayByteSequence(vis), auths);
         }
 

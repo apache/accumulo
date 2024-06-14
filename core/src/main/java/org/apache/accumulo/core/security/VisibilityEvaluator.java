@@ -18,10 +18,9 @@
  */
 package org.apache.accumulo.core.security;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.IllegalAccessExpressionException;
+import org.apache.accumulo.core.clientImpl.AccumuloAccessUtils;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 
 /**
@@ -87,9 +86,7 @@ public class VisibilityEvaluator {
    * @param authorizations authorizations object
    */
   public VisibilityEvaluator(Authorizations authorizations) {
-    var authsArray = authorizations.getAuthorizations().stream()
-        .map(auth -> new String(auth, UTF_8)).toArray(String[]::new);
-    this.accessEvaluator = AccessEvaluator.of(authsArray);
+    this.accessEvaluator = AccessEvaluator.of(AccumuloAccessUtils.convert(authorizations));
   }
 
   /**
