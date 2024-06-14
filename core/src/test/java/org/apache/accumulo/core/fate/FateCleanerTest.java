@@ -227,7 +227,8 @@ public class FateCleanerTest {
 
   @Test
   public void testNewCleaner() {
-    // this test ensures that a new cleaner instance ignores data from another cleaner instance
+    // this test ensures that a new cleaner instance uses persisted data from a previous cleaner
+    // instance
 
     TestTimeSource tts = new TestTimeSource();
     TestStore testStore = new TestStore();
@@ -272,8 +273,6 @@ public class FateCleanerTest {
 
   @Test
   public void testErrors() {
-    // this test ensures that a new cleaner instance ignores data from another cleaner instance
-
     TestTimeSource tts = new TestTimeSource();
     TestStore testStore = new TestStore();
     assertThrows(IllegalArgumentException.class,
