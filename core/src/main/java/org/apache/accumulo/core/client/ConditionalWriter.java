@@ -107,7 +107,7 @@ public interface ConditionalWriter extends AutoCloseable {
      */
     VIOLATED,
     /**
-     * error occurred after mutation was sent to server, its unknown if the mutation was written.
+     * Error occurred after mutation was sent to server, its unknown if the mutation was written.
      * Although the status of the mutation is unknown, Accumulo guarantees the mutation will not be
      * written at a later point in time.
      */

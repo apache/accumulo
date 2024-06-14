@@ -558,10 +558,9 @@ public class VolumeIT extends ConfigurableMacBase {
       final DataFileValue newValue = new DataFileValue(Integer.max(1, (int) (value.getSize() / 2)),
           Integer.max(1, (int) (value.getNumEntries() / 2)));
       mutator.putFile(StoredTabletFile.of(file.getPath(),
-          new Range(tm.getExtent().prevEndRow(), tabletMidPoint)), newValue);
-      mutator.putFile(
-          StoredTabletFile.of(file.getPath(), new Range(tabletMidPoint, tm.getExtent().endRow())),
-          newValue);
+          new Range(tm.getExtent().prevEndRow(), false, tabletMidPoint, true)), newValue);
+      mutator.putFile(StoredTabletFile.of(file.getPath(),
+          new Range(tabletMidPoint, false, tm.getExtent().endRow(), true)), newValue);
     });
   }
 

@@ -39,6 +39,7 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
+import org.apache.accumulo.core.util.compaction.DeprecatedCompactionKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,7 +111,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * [
  *  {"name":"small", "type": "internal", "maxSize":"100M","numThreads":3},
  *  {"name":"medium", "type": "internal", "maxSize":"500M","numThreads":3},
- *  {"name": "large", "type": "external", "queue", "Queue1"}
+ *  {"name":"large", "type":"external", "queue":"Queue1"}
  * ]}
  * </pre>
  *
@@ -339,7 +340,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       if (!group.isEmpty() && group.size() < params.getCandidates().size()
           && params.getCandidates().size() <= maxFilesToCompact
           && (params.getKind() == CompactionKind.USER
-              || params.getKind() == CompactionKind.SELECTOR)) {
+              || params.getKind() == DeprecatedCompactionKind.SELECTOR)) {
         // USER and SELECTOR compactions must eventually compact all files. When a subset of files
         // that meets the compaction ratio is selected, look ahead and see if the next compaction
         // would also meet the compaction ratio. If not then compact everything to avoid doing
@@ -384,7 +385,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
 
     if (group.isEmpty()) {
-      if ((params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR)
+      if ((params.getKind() == CompactionKind.USER
+          || params.getKind() == DeprecatedCompactionKind.SELECTOR)
           && params.getRunningCompactions().stream()
               .noneMatch(job -> job.getKind() == params.getKind())) {
         group = findMaximalRequiredSetToCompact(params.getCandidates(), maxFilesToCompact);

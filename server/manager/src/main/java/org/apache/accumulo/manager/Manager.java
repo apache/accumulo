@@ -28,7 +28,6 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -40,6 +39,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -72,6 +72,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.TStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -97,8 +99,10 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
@@ -112,6 +116,8 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.time.NanoTime;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
@@ -156,6 +162,7 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Comparators;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -175,7 +182,7 @@ public class Manager extends AbstractServer
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
   static final int ONE_SECOND = 1000;
-  private static final long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
+  private static final long CLEANUP_INTERVAL_MINUTES = 5;
   static final long WAIT_BETWEEN_ERRORS = ONE_SECOND;
   private static final long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
   private static final int MAX_CLEANUP_WAIT_TIME = ONE_SECOND;
@@ -416,7 +423,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  Manager(ConfigOpts opts, String[] args) throws IOException {
+  protected Manager(ConfigOpts opts, String[] args) throws IOException {
     super("manager", opts, args);
     ServerContext context = super.getContext();
     balancerEnvironment = new BalancerEnvironmentImpl(context);
@@ -690,7 +697,7 @@ public class Manager extends AbstractServer
             log.error("Error cleaning up migrations", ex);
           }
         }
-        sleepUninterruptibly(TIME_BETWEEN_MIGRATION_CLEANUPS, MILLISECONDS);
+        sleepUninterruptibly(CLEANUP_INTERVAL_MINUTES, MINUTES);
       }
     }
 
@@ -704,14 +711,17 @@ public class Manager extends AbstractServer
       Scanner scanner =
           accumuloClient.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-      Set<KeyExtent> found = new HashSet<>();
+      scanner.setRange(MetadataSchema.TabletsSection.getRange());
+      Set<KeyExtent> notSeen;
+      synchronized (migrations) {
+        notSeen = new HashSet<>(migrations.keySet());
+      }
       for (Entry<Key,Value> entry : scanner) {
         KeyExtent extent = KeyExtent.fromMetaPrevRow(entry);
-        if (migrations.containsKey(extent)) {
-          found.add(extent);
-        }
+        notSeen.remove(extent);
       }
-      migrations.keySet().retainAll(found);
+      // remove tablets that used to be in migrations and were not seen in the metadata table
+      migrations.keySet().removeAll(notSeen);
     }
 
     /**
@@ -728,6 +738,49 @@ public class Manager extends AbstractServer
         }
       }
     }
+  }
+
+  private class ScanServerZKCleaner implements Runnable {
+
+    @Override
+    public void run() {
+
+      final ZooReaderWriter zrw = getContext().getZooReaderWriter();
+      final String sserverZNodePath = getContext().getZooKeeperRoot() + Constants.ZSSERVERS;
+
+      while (stillManager()) {
+        try {
+          for (String sserverClientAddress : zrw.getChildren(sserverZNodePath)) {
+
+            final String sServerZPath = sserverZNodePath + "/" + sserverClientAddress;
+            final var zLockPath = ServiceLock.path(sServerZPath);
+            ZcStat stat = new ZcStat();
+            Optional<ServiceLockData> lockData =
+                ServiceLock.getLockData(getContext().getZooCache(), zLockPath, stat);
+
+            if (lockData.isEmpty()) {
+              try {
+                log.debug("Deleting empty ScanServer ZK node {}", sServerZPath);
+                zrw.delete(sServerZPath);
+              } catch (KeeperException.NotEmptyException e) {
+                log.debug(
+                    "Failed to delete ScanServer ZK node {} its not empty, likely an expected race condition.",
+                    sServerZPath);
+              }
+            }
+          }
+        } catch (KeeperException e) {
+          log.error("Exception trying to delete empty scan server ZNodes, will retry", e);
+        } catch (InterruptedException e) {
+          Thread.interrupted();
+          log.error("Interrupted trying to delete empty scan server ZNodes, will retry", e);
+        } finally {
+          // sleep for 5 mins
+          sleepUninterruptibly(CLEANUP_INTERVAL_MINUTES, MINUTES);
+        }
+      }
+    }
+
   }
 
   private class StatusThread implements Runnable {
@@ -1022,11 +1075,12 @@ public class Manager extends AbstractServer
       }));
     }
     // wait at least 10 seconds
-    final long nanosToWait = Math.max(SECONDS.toNanos(10), MILLISECONDS.toNanos(rpcTimeout) / 3);
-    final long startTime = System.nanoTime();
+    final Duration timeToWait =
+        Comparators.max(Duration.ofSeconds(10), Duration.ofMillis(rpcTimeout / 3));
+    final NanoTime startTime = NanoTime.now();
     // Wait for all tasks to complete
     while (!tasks.isEmpty()) {
-      boolean cancel = ((System.nanoTime() - startTime) > nanosToWait);
+      boolean cancel = (startTime.elapsed().compareTo(timeToWait) > 0);
       Iterator<Future<?>> iter = tasks.iterator();
       while (iter.hasNext()) {
         Future<?> f = iter.next();
@@ -1101,16 +1155,12 @@ public class Manager extends AbstractServer
       managerUpgrading.set(true);
     }
 
-    try {
-      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          sa.getAddress(), getContext().getInstanceName());
-      ManagerMetrics mm = new ManagerMetrics(getConfiguration(), this);
-      MetricsUtil.initializeProducers(this, mm);
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-        | SecurityException e1) {
-      log.error("Error initializing metrics, metrics will not be emitted.", e1);
-    }
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addServiceTags(getApplicationName(), sa.getAddress());
+
+    var producers = ManagerMetrics.getProducers(getConfiguration(), this);
+    metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
+    metricsInfo.init();
 
     recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
@@ -1125,6 +1175,8 @@ public class Manager extends AbstractServer
     Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
 
     tserverSet.startListeningForTabletServerChanges();
+
+    Threads.createThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
     try {
       blockForTservers();
@@ -1202,7 +1254,7 @@ public class Manager extends AbstractServer
               context.getZooReaderWriter()),
           HOURS.toMillis(8), System::currentTimeMillis);
 
-      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
+      Fate<Manager> f = initializeFateInstance(store, getConfiguration());
       fateRef.set(f);
       fateReadyLatch.countDown();
 
@@ -1295,6 +1347,11 @@ public class Manager extends AbstractServer
       }
     }
     log.info("exiting");
+  }
+
+  protected Fate<Manager> initializeFateInstance(TStore<Manager> store,
+      AccumuloConfiguration conf) {
+    return new Fate<>(this, store, TraceRepo::toLogString, conf);
   }
 
   /**
@@ -1723,11 +1780,11 @@ public class Manager extends AbstractServer
   }
 
   /**
-   * Return how long (in milliseconds) there has been a manager overseeing this cluster. This is an
-   * approximately monotonic clock, which will be approximately consistent between different
-   * managers or different runs of the same manager.
+   * Return how long there has been a manager overseeing this cluster. This is an approximately
+   * monotonic clock, which will be approximately consistent between different managers or different
+   * runs of the same manager. SteadyTime supports both nanoseconds and milliseconds.
    */
-  public Long getSteadyTime() {
+  public SteadyTime getSteadyTime() {
     return timeKeeper.getTime();
   }
 

@@ -44,6 +44,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.keyfunctor.KeyFunctor;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -80,10 +81,9 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      loadThreadPool = ThreadPools.getServerThreadPools().createThreadPool(0, maxLoadThreads, 60,
-          SECONDS, "bloom-loader", false);
+      loadThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("bloom-loader")
+          .numCoreThreads(0).numMaxThreads(maxLoadThreads).withTimeOut(60L, SECONDS).build();
     }
-
     return loadThreadPool;
   }
 
@@ -427,6 +427,11 @@ public class BloomFilterLayer {
     @Override
     public DataInputStream getMetaStore(String name) throws IOException {
       return reader.getMetaStore(name);
+    }
+
+    @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
+      throw new UnsupportedOperationException();
     }
 
     @Override

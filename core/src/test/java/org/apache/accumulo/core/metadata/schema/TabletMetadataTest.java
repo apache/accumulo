@@ -26,8 +26,12 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -35,13 +39,19 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Constructor;
+import java.util.AbstractMap;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -49,6 +59,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -57,14 +68,19 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Bu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Builder;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -114,6 +130,24 @@ public class TabletMetadataTest {
 
     MERGED_COLUMN.put(mutation, new Value());
 
+    OLD_PREV_ROW_COLUMN.put(mutation, TabletColumnFamily.encodePrevEndRow(new Text("oldPrev")));
+    SteadyTime suspensionTime = SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+    TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
+    Value suspend = SuspendingTServer.toValue(ser1, suspensionTime);
+    SUSPEND_COLUMN.put(mutation, suspend);
+    double splitRatio = .3;
+    SPLIT_RATIO_COLUMN.put(mutation, new Value(Double.toString(splitRatio)));
+
+    ExternalCompactionId ecid = ExternalCompactionId.generate(UUID.randomUUID());
+    ReferencedTabletFile tmpFile =
+        ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
+    CompactionExecutorId ceid = CompactionExecutorIdImpl.externalId("G1");
+    Set<StoredTabletFile> jobFiles =
+        Set.of(StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf")));
+    ExternalCompactionMetadata ecMeta = new ExternalCompactionMetadata(jobFiles, jobFiles, tmpFile,
+        "localhost:4444", CompactionKind.SYSTEM, (short) 2, ceid, false, false, 44L);
+    mutation.put(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical(), ecMeta.toJson());
+
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
@@ -127,7 +161,9 @@ public class TabletMetadataTest {
     assertEquals(Set.of(tf1, tf2), Set.copyOf(tm.getFiles()));
     assertEquals(Map.of(tf1, dfv1, tf2, dfv2), tm.getFilesMap());
     assertEquals(6L, tm.getFlushId().getAsLong());
-    assertEquals(rowMap, tm.getKeyValues());
+    TreeMap<Key,Value> actualRowMap = new TreeMap<>();
+    tm.getKeyValues().forEach(entry -> actualRowMap.put(entry.getKey(), entry.getValue()));
+    assertEquals(rowMap, actualRowMap);
     assertEquals(Map.of(new StoredTabletFile(bf1), 56L, new StoredTabletFile(bf2), 59L),
         tm.getLoaded());
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
@@ -144,6 +180,11 @@ public class TabletMetadataTest {
     assertEquals("M123456789", tm.getTime().encode());
     assertEquals(Set.of(sf1, sf2), Set.copyOf(tm.getScans()));
     assertTrue(tm.hasMerged());
+    assertEquals(new Text("oldPrev"), tm.getOldPrevEndRow());
+    assertTrue(tm.sawOldPrevEndRow());
+    assertEquals(SuspendingTServer.fromValue(suspend), tm.getSuspend());
+    assertEquals(splitRatio, tm.getSplitRatio());
+    assertEquals(ecMeta.toJson(), tm.getExternalCompactions().get(ecid).toJson());
   }
 
   @Test
@@ -196,6 +237,13 @@ public class TabletMetadataTest {
         .put(ser1.getHostPort());
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
+    // PREV_ROW was not fetched
+    final var missingPrevRow =
+        TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
+    assertThrows(IllegalStateException.class, () -> missingPrevRow.getTabletState(tservers));
+
+    // This should now work as PREV_ROW has been included
+    colsToFetch = EnumSet.of(LOCATION, LAST, SUSPEND, PREV_ROW);
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
     TabletState state = tm.getTabletState(tservers);
 
@@ -245,15 +293,15 @@ public class TabletMetadataTest {
 
     // test SUSPENDED
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    mutation.at().family(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily())
-        .qualifier(SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier())
-        .put(SuspendingTServer.toValue(ser2, 1000L));
+    mutation.at().family(SUSPEND_COLUMN.getColumnFamily())
+        .qualifier(SUSPEND_COLUMN.getColumnQualifier())
+        .put(SuspendingTServer.toValue(ser2, SteadyTime.from(1000L, TimeUnit.MILLISECONDS)));
     rowMap = toRowMap(mutation);
 
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
 
     assertEquals(TabletState.SUSPENDED, tm.getTabletState(tservers));
-    assertEquals(1000L, tm.getSuspend().suspensionTime);
+    assertEquals(1000L, tm.getSuspend().suspensionTime.getMillis());
     assertEquals(ser2.getHostAndPort(), tm.getSuspend().server);
     assertNull(tm.getLocation());
     assertFalse(tm.hasCurrent());
@@ -281,6 +329,89 @@ public class TabletMetadataTest {
     tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
         EnumSet.of(ColumnType.PREV_ROW), true);
     assertThrows(IllegalStateException.class, tm::hasMerged);
+  }
+
+  @Test
+  public void testTabletsMetadataAutoClose() throws Exception {
+    AtomicBoolean closeCalled = new AtomicBoolean();
+    AutoCloseable autoCloseable = () -> closeCalled.set(true);
+    Constructor<TabletsMetadata> tmConstructor =
+        TabletsMetadata.class.getDeclaredConstructor(AutoCloseable.class, Iterable.class);
+    tmConstructor.setAccessible(true);
+
+    try (TabletsMetadata ignored = tmConstructor.newInstance(autoCloseable, List.of())) {
+      // test autoCloseable used directly on TabletsMetadata
+    }
+    assertTrue(closeCalled.get());
+
+    closeCalled.set(false);
+    try (Stream<TabletMetadata> ignored =
+        tmConstructor.newInstance(autoCloseable, List.of()).stream()) {
+      // test stream delegates to close on TabletsMetadata
+    }
+    assertTrue(closeCalled.get());
+  }
+
+  @Test
+  public void testTmBuilderImmutable() {
+    TabletMetadata.Builder b = new Builder();
+    var tm = b.build(EnumSet.allOf(ColumnType.class));
+
+    ExternalCompactionId ecid = ExternalCompactionId.generate(UUID.randomUUID());
+    ReferencedTabletFile tmpFile =
+        ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
+    CompactionExecutorId ceid = CompactionExecutorIdImpl.externalId("G1");
+    StoredTabletFile stf = StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf"));
+    Set<StoredTabletFile> jobFiles = Set.of(stf);
+    ExternalCompactionMetadata ecMeta = new ExternalCompactionMetadata(jobFiles, jobFiles, tmpFile,
+        "localhost:4444", CompactionKind.SYSTEM, (short) 2, ceid, false, false, 44L);
+
+    // Verify the various collections are immutable and non-null (except for getKeyValues) if
+    // nothing set on the builder
+    assertTrue(tm.getExternalCompactions().isEmpty());
+    assertThrows(UnsupportedOperationException.class,
+        () -> tm.getExternalCompactions().put(ecid, ecMeta));
+    assertTrue(tm.getFiles().isEmpty());
+    assertTrue(tm.getFilesMap().isEmpty());
+    assertThrows(UnsupportedOperationException.class, () -> tm.getFiles().add(stf));
+    assertThrows(UnsupportedOperationException.class,
+        () -> tm.getFilesMap().put(stf, new DataFileValue(0, 0, 0)));
+    assertTrue(tm.getLogs().isEmpty());
+    assertThrows(UnsupportedOperationException.class,
+        () -> tm.getLogs().add(LogEntry.fromPath("localhost+8020/" + UUID.randomUUID())));
+    assertTrue(tm.getScans().isEmpty());
+    assertThrows(UnsupportedOperationException.class, () -> tm.getScans().add(stf));
+    assertTrue(tm.getLoaded().isEmpty());
+    assertThrows(UnsupportedOperationException.class, () -> tm.getLoaded().put(stf, 0L));
+    assertThrows(IllegalStateException.class, tm::getKeyValues);
+
+    // Set some data in the collections and very they are not empty but still immutable
+    b.extCompaction(ecid, ecMeta);
+    b.file(stf, new DataFileValue(0, 0, 0));
+    b.log(LogEntry.fromPath("localhost+8020/" + UUID.randomUUID()));
+    b.scan(stf);
+    b.loadedFile(stf, 0L);
+    b.keyValue(new AbstractMap.SimpleImmutableEntry<>(new Key(), new Value()));
+    var tm2 = b.build(EnumSet.allOf(ColumnType.class));
+
+    assertEquals(1, tm2.getExternalCompactions().size());
+    assertThrows(UnsupportedOperationException.class,
+        () -> tm2.getExternalCompactions().put(ecid, ecMeta));
+    assertEquals(1, tm2.getFiles().size());
+    assertEquals(1, tm2.getFilesMap().size());
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getFiles().add(stf));
+    assertThrows(UnsupportedOperationException.class,
+        () -> tm2.getFilesMap().put(stf, new DataFileValue(0, 0, 0)));
+    assertEquals(1, tm2.getLogs().size());
+    assertThrows(UnsupportedOperationException.class,
+        () -> tm2.getLogs().add(LogEntry.fromPath("localhost+8020/" + UUID.randomUUID())));
+    assertEquals(1, tm2.getScans().size());
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getScans().add(stf));
+    assertEquals(1, tm2.getLoaded().size());
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getLoaded().put(stf, 0L));
+    assertEquals(1, tm2.getKeyValues().size());
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getKeyValues().remove(null));
+
   }
 
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {

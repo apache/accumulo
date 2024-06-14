@@ -102,8 +102,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   private final EvictionThread evictionThread;
 
   /** Statistics thread schedule pool (for heavy debugging, could remove) */
-  private final ScheduledExecutorService scheduleThreadPool = ThreadPools.getServerThreadPools()
-      .createScheduledExecutorService(1, "LRUBlockCacheStats", false);
+  private final ScheduledExecutorService scheduleThreadPool =
+      ThreadPools.getServerThreadPools().createScheduledExecutorService(1, "LRUBlockCacheStats");
 
   /** Current size of cache */
   private final AtomicLong size;
@@ -577,14 +577,14 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     float freeMB = ((float) freeSize) / ((float) (1024 * 1024));
     float maxMB = ((float) this.conf.getMaxSize()) / ((float) (1024 * 1024));
     log.debug(
-        "Cache Stats: Sizes: Total={}MB ({}), Free={}MB ({}), Max={}MB"
+        "Cache Stats: {} Sizes: Total={}MB ({}), Free={}MB ({}), Max={}MB"
             + " ({}), Counts: Blocks={}, Access={}, Hit={}, Miss={}, Evictions={},"
             + " Evicted={},Ratios: Hit Ratio={}%, Miss Ratio={}%, Evicted/Run={},"
             + " Duplicate Reads={}",
-        sizeMB, totalSize, freeMB, freeSize, maxMB, this.conf.getMaxSize(), size(),
-        stats.requestCount(), stats.hitCount(), stats.getMissCount(), stats.getEvictionCount(),
-        stats.getEvictedCount(), stats.getHitRatio() * 100, stats.getMissRatio() * 100,
-        stats.evictedPerEviction(), stats.getDuplicateReads());
+        conf.getCacheType(), sizeMB, totalSize, freeMB, freeSize, maxMB, this.conf.getMaxSize(),
+        size(), stats.requestCount(), stats.hitCount(), stats.getMissCount(),
+        stats.getEvictionCount(), stats.getEvictedCount(), stats.getHitRatio() * 100,
+        stats.getMissRatio() * 100, stats.evictedPerEviction(), stats.getDuplicateReads());
   }
 
   /**
@@ -631,6 +631,11 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     @Override
     public long requestCount() {
       return accessCount.get();
+    }
+
+    @Override
+    public long evictionCount() {
+      return getEvictedCount();
     }
 
     public long getMissCount() {

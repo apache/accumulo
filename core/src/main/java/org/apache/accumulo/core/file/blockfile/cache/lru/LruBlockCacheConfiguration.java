@@ -238,6 +238,10 @@ public final class LruBlockCacheConfiguration {
     return conf.getMaxSize(type);
   }
 
+  public CacheType getCacheType() {
+    return type;
+  }
+
   public long getBlockSize() {
     return conf.getBlockSize();
   }

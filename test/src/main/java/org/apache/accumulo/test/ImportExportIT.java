@@ -463,8 +463,11 @@ public class ImportExportIT extends AccumuloClusterHarness {
   private Set<Range> createRanges() {
     // Split file into ranges of 10000, 20000, and 5000 for a total of 35000
     return Set.of(
-        new Range("row_" + String.format("%010d", 100), "row_" + String.format("%010d", 199)),
-        new Range("row_" + String.format("%010d", 300), "row_" + String.format("%010d", 499)),
-        new Range("row_" + String.format("%010d", 700), "row_" + String.format("%010d", 749)));
+        new Range("row_" + String.format("%010d", 99), false, "row_" + String.format("%010d", 199),
+            true),
+        new Range("row_" + String.format("%010d", 299), false, "row_" + String.format("%010d", 499),
+            true),
+        new Range("row_" + String.format("%010d", 699), false, "row_" + String.format("%010d", 749),
+            true));
   }
 }

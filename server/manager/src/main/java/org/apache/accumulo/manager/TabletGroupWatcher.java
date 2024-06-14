@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.lang.Math.min;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.logging.ConditionalLogger.EscalatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -107,6 +109,8 @@ import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.event.Level;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -115,8 +119,9 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
-  // Constants used to make sure assignment logging isn't excessive in quantity or size
 
+  private static final Logger TABLET_UNLOAD_LOGGER =
+      new EscalatingLogger(Manager.log, Duration.ofMinutes(5), 1000, Level.INFO);
   private final Manager manager;
   private final TabletStateStore store;
   private final TabletGroupWatcher dependentWatcher;
@@ -351,12 +356,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 TServerConnection client =
                     manager.tserverSet.getConnection(location.getServerInstance());
                 if (client != null) {
-                  Manager.log.trace("[{}] Requesting TabletServer {} unload {} {}", store.name(),
-                      location.getServerInstance(), tls.extent, goal.howUnload());
-                  client.unloadTablet(manager.managerLock, tls.extent, goal.howUnload(),
-                      manager.getSteadyTime());
-                  unloaded++;
-                  totalUnloaded++;
+                  try {
+                    TABLET_UNLOAD_LOGGER.trace("[{}] Requesting TabletServer {} unload {} {}",
+                        store.name(), location.getServerInstance(), tls.extent, goal.howUnload());
+                    client.unloadTablet(manager.managerLock, tls.extent, goal.howUnload(),
+                        manager.getSteadyTime().getMillis());
+                    unloaded++;
+                    totalUnloaded++;
+                  } catch (TException tException) {
+                    Manager.log.warn("[{}] Failed to request tablet unload {} {} {}", store.name(),
+                        location.getServerInstance(), tls.extent, goal.howUnload(), tException);
+                  }
                 } else {
                   Manager.log.warn("Could not connect to server {}", location);
                 }
@@ -449,7 +459,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private void hostSuspendedTablet(TabletLists tLists, TabletLocationState tls, Location location,
       TableConfiguration tableConf) {
-    if (manager.getSteadyTime() - tls.suspend.suspensionTime
+    if (manager.getSteadyTime().minus(tls.suspend.suspensionTime).toMillis()
         < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
       // Tablet is suspended. See if its tablet server is back.
       TServerInstance returnInstance = null;
@@ -1444,13 +1454,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
     tLists.assignments.addAll(tLists.assigned);
     for (Assignment a : tLists.assignments) {
-      TServerConnection client = manager.tserverSet.getConnection(a.server);
-      if (client != null) {
-        client.assignTablet(manager.managerLock, a.tablet);
-      } else {
-        Manager.log.warn("Could not connect to server {}", a.server);
+      try {
+        TServerConnection client = manager.tserverSet.getConnection(a.server);
+        if (client != null) {
+          client.assignTablet(manager.managerLock, a.tablet);
+          manager.assignedTablet(a.tablet);
+        } else {
+          Manager.log.warn("Could not connect to server {} for assignment of {}", a.server,
+              a.tablet);
+        }
+      } catch (TException tException) {
+        Manager.log.warn("Could not connect to server {} for assignment of {}", a.server, a.tablet,
+            tException);
       }
-      manager.assignedTablet(a.tablet);
     }
   }
 

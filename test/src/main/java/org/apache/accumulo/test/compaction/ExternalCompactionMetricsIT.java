@@ -41,6 +41,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -70,8 +71,11 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
       // to push all metrics to the sink we started.
       cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
-      cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY,
-          TestStatsDRegistryFactory.class.getName());
+      cfg.setProperty("general.custom.metrics.opts.logging.step", "5s");
+      String clazzList = LoggingMeterRegistryFactory.class.getName() + ","
+          + TestStatsDRegistryFactory.class.getName();
+      cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY, clazzList);
+
       Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
           TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));
       cfg.setSystemProperties(sysProps);

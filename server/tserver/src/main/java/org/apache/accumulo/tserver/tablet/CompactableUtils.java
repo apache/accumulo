@@ -27,6 +27,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -65,6 +67,7 @@ import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
+import org.apache.accumulo.core.util.compaction.DeprecatedCompactionKind;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.FileCompactor;
@@ -128,7 +131,7 @@ public class CompactableUtils {
 
       @Override
       public Set<CompactableFile> getSelectedFiles() {
-        if (kind == CompactionKind.USER || kind == CompactionKind.SELECTOR) {
+        if (kind == CompactionKind.USER || kind == DeprecatedCompactionKind.SELECTOR) {
           var dataFileSizes = tablet.getDatafileManager().getDatafileSizes();
           return selectedFiles.stream().map(f -> new CompactableFileImpl(f, dataFileSizes.get(f)))
               .collect(Collectors.toSet());
@@ -331,19 +334,23 @@ public class CompactableUtils {
     }
   }
 
+  @SuppressWarnings("deprecation")
+  private static final Property SELECTOR_PROP = Property.TABLE_COMPACTION_SELECTOR;
+  @SuppressWarnings("deprecation")
+  private static final Property SELECTOR_OPTS_PROP = Property.TABLE_COMPACTION_SELECTOR_OPTS;
+
   public static CompactionHelper getHelper(CompactionKind kind, Tablet tablet, Long compactionId,
       CompactionConfig compactionConfig) {
     if (kind == CompactionKind.USER) {
       return new UserCompactionHelper(compactionConfig, tablet, compactionId);
-    } else if (kind == CompactionKind.SELECTOR) {
+    } else if (kind == DeprecatedCompactionKind.SELECTOR) {
       var tconf = tablet.getTableConfiguration();
-      var selectorClassName = tconf.get(Property.TABLE_COMPACTION_SELECTOR);
+      var selectorClassName = tconf.get(SELECTOR_PROP);
 
       PluginConfig cselCfg = null;
 
       if (selectorClassName != null && !selectorClassName.isBlank()) {
-        var opts =
-            tconf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_SELECTOR_OPTS);
+        var opts = tconf.getAllPropertiesWithPrefixStripped(SELECTOR_OPTS_PROP);
         cselCfg = new PluginConfig(selectorClassName, opts);
       }
 
@@ -361,7 +368,7 @@ public class CompactableUtils {
 
     Map<String,String> overrides = null;
 
-    if (kind == CompactionKind.USER || kind == CompactionKind.SELECTOR) {
+    if (kind == CompactionKind.USER || kind == DeprecatedCompactionKind.SELECTOR) {
       overrides = driver.getConfigOverrides(inputFiles, selectedFiles, kind);
     }
 
@@ -401,11 +408,22 @@ public class CompactableUtils {
         getCompactionConfig(tableConf, getOverrides(job.getKind(), tablet, cInfo.localHelper,
             job.getFiles(), cInfo.selectedFiles));
 
-    FileCompactor compactor = new FileCompactor(tablet.getContext(), tablet.getExtent(),
+    final FileCompactor compactor = new FileCompactor(tablet.getContext(), tablet.getExtent(),
         compactFiles, tmpFileName, cInfo.propagateDeletes, cenv, cInfo.iters, compactionConfig,
         tableConf.getCryptoService(), tablet.getPausedCompactionMetrics());
 
-    return compactor.call();
+    final Runnable compactionCancellerTask = () -> {
+      if (!cenv.isCompactionEnabled()) {
+        compactor.interrupt();
+      }
+    };
+    final ScheduledFuture<?> future = tablet.getContext().getScheduledExecutor()
+        .scheduleWithFixedDelay(compactionCancellerTask, 10, 10, TimeUnit.SECONDS);
+    try {
+      return compactor.call();
+    } finally {
+      future.cancel(true);
+    }
   }
 
   /**

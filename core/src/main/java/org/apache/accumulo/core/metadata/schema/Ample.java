@@ -37,6 +37,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -299,7 +300,7 @@ public interface Ample {
 
     TabletMutator deleteBulkFile(StoredTabletFile bulkref);
 
-    TabletMutator putSuspension(TServerInstance tserver, long suspensionTime);
+    TabletMutator putSuspension(TServerInstance tserver, SteadyTime suspensionTime);
 
     TabletMutator deleteSuspension();
 
