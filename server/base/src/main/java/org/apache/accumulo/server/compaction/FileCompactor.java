@@ -122,7 +122,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   // things to report
   private String currentLocalityGroup = "";
-  private final long startTime;
+  private volatile long startTime = -1;
 
   private final AtomicLong currentEntriesRead = new AtomicLong(0);
   private final AtomicLong currentEntriesWritten = new AtomicLong(0);
@@ -248,8 +248,6 @@ public class FileCompactor implements Callable<CompactionStats> {
     this.env = env;
     this.iterators = iterators;
     this.cryptoService = cs;
-
-    startTime = System.currentTimeMillis();
   }
 
   public VolumeManager getVolumeManager() {
@@ -279,6 +277,8 @@ public class FileCompactor implements Callable<CompactionStats> {
     FileSKVWriter mfw = null;
 
     CompactionStats majCStats = new CompactionStats();
+
+    startTime = System.nanoTime();
 
     boolean remove = runningCompactions.add(this);
 
@@ -570,8 +570,15 @@ public class FileCompactor implements Callable<CompactionStats> {
     return currentEntriesWritten.get();
   }
 
-  long getStartTime() {
-    return startTime;
+  /**
+   * @return the duration since {@link #call()} was called
+   */
+  Duration getAge() {
+    if (startTime == -1) {
+      // call() has not been called yet
+      return Duration.ZERO;
+    }
+    return Duration.ofNanos(System.nanoTime() - startTime);
   }
 
   Iterable<IteratorSetting> getIterators() {

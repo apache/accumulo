@@ -24,6 +24,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -105,6 +106,11 @@ public class CompactorTest {
     @Override
     public AtomicReference<FileCompactor> getFileCompactor() {
       return new AtomicReference<>(compactor);
+    }
+
+    @Override
+    public Duration getCompactionAge() {
+      return Duration.ZERO;
     }
 
     @Override
