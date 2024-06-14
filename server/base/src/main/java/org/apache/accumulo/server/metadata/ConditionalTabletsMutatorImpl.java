@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.metadata;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -141,6 +143,16 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
       try {
         if (result.getStatus() == ConditionalWriter.Status.UNKNOWN) {
+          if (log.isTraceEnabled()) {
+            // log detailed information about the mutation
+            log.trace("Saw {} status for conditional mutation {} {}", result.getStatus(),
+                result.getTabletServer(), result.getMutation().prettyPrint());
+          } else if (log.isDebugEnabled()) {
+            // log a single line of info that makes it apparent this happened and gives enough
+            // information to investigate
+            log.debug("Saw {} status for conditional mutation {} {}", result.getStatus(),
+                result.getTabletServer(), new String(result.getMutation().getRow(), UTF_8));
+          }
           unknownResults.add(result);
         } else {
           resultsList.add(result);
@@ -241,10 +253,22 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
               var handler = rejectedHandlers.get(extent);
               if (tabletMetadata == null && handler.callWhenTabletDoesNotExists()
                   && handler.test(null)) {
-                return Status.ACCEPTED;
+                status = Status.ACCEPTED;
               }
               if (tabletMetadata != null && handler.test(tabletMetadata)) {
-                return Status.ACCEPTED;
+                status = Status.ACCEPTED;
+              }
+
+              if (log.isTraceEnabled()) {
+                // log detailed info about tablet metadata and mutation
+                log.trace("Mutation was rejected, status:{} {} {}", status, tabletMetadata,
+                    result.getMutation().prettyPrint());
+              } else if (log.isDebugEnabled()) {
+                // log a single line of info that makes it apparent this happened and gives enough
+                // information to investigate
+                log.debug("Mutation was rejected, status:{} extent:{} row:{}", status,
+                    tabletMetadata == null ? null : tabletMetadata.getExtent(),
+                    new String(result.getMutation().getRow(), UTF_8));
               }
             }
 
