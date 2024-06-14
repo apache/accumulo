@@ -46,14 +46,11 @@ public class AmpleImpl implements Ample {
   }
 
   @Override
-  public TabletMetadata readTablet(KeyExtent extent, ReadConsistency readConsistency,
-      ColumnType... colsToFetch) {
+  public TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch) {
     Options builder = newBuilder().forTablet(extent);
     if (colsToFetch.length > 0) {
       builder.fetch(colsToFetch);
     }
-
-    builder.readConsistency(readConsistency);
 
     try (TabletsMetadata tablets = builder.build()) {
       return tablets.stream().collect(onlyElement());
