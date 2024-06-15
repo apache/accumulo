@@ -33,6 +33,7 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
   private static final org.apache.thrift.protocol.TField ENTRIES_TO_BE_COMPACTED_FIELD_DESC = new org.apache.thrift.protocol.TField("entriesToBeCompacted", org.apache.thrift.protocol.TType.I64, (short)3);
   private static final org.apache.thrift.protocol.TField ENTRIES_READ_FIELD_DESC = new org.apache.thrift.protocol.TField("entriesRead", org.apache.thrift.protocol.TType.I64, (short)4);
   private static final org.apache.thrift.protocol.TField ENTRIES_WRITTEN_FIELD_DESC = new org.apache.thrift.protocol.TField("entriesWritten", org.apache.thrift.protocol.TType.I64, (short)5);
+  private static final org.apache.thrift.protocol.TField COMPACTION_AGE_NANOS_FIELD_DESC = new org.apache.thrift.protocol.TField("compactionAgeNanos", org.apache.thrift.protocol.TType.I64, (short)6);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TCompactionStatusUpdateStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TCompactionStatusUpdateTupleSchemeFactory();
@@ -46,6 +47,7 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
   public long entriesToBeCompacted; // required
   public long entriesRead; // required
   public long entriesWritten; // required
+  public long compactionAgeNanos; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -57,7 +59,8 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
     MESSAGE((short)2, "message"),
     ENTRIES_TO_BE_COMPACTED((short)3, "entriesToBeCompacted"),
     ENTRIES_READ((short)4, "entriesRead"),
-    ENTRIES_WRITTEN((short)5, "entriesWritten");
+    ENTRIES_WRITTEN((short)5, "entriesWritten"),
+    COMPACTION_AGE_NANOS((short)6, "compactionAgeNanos");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -83,6 +86,8 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
           return ENTRIES_READ;
         case 5: // ENTRIES_WRITTEN
           return ENTRIES_WRITTEN;
+        case 6: // COMPACTION_AGE_NANOS
+          return COMPACTION_AGE_NANOS;
         default:
           return null;
       }
@@ -129,6 +134,7 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
   private static final int __ENTRIESTOBECOMPACTED_ISSET_ID = 0;
   private static final int __ENTRIESREAD_ISSET_ID = 1;
   private static final int __ENTRIESWRITTEN_ISSET_ID = 2;
+  private static final int __COMPACTIONAGENANOS_ISSET_ID = 3;
   private byte __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -143,6 +149,8 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.ENTRIES_WRITTEN, new org.apache.thrift.meta_data.FieldMetaData("entriesWritten", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+    tmpMap.put(_Fields.COMPACTION_AGE_NANOS, new org.apache.thrift.meta_data.FieldMetaData("compactionAgeNanos", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TCompactionStatusUpdate.class, metaDataMap);
   }
@@ -155,7 +163,8 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
     java.lang.String message,
     long entriesToBeCompacted,
     long entriesRead,
-    long entriesWritten)
+    long entriesWritten,
+    long compactionAgeNanos)
   {
     this();
     this.state = state;
@@ -166,6 +175,8 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
     setEntriesReadIsSet(true);
     this.entriesWritten = entriesWritten;
     setEntriesWrittenIsSet(true);
+    this.compactionAgeNanos = compactionAgeNanos;
+    setCompactionAgeNanosIsSet(true);
   }
 
   /**
@@ -182,6 +193,7 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
     this.entriesToBeCompacted = other.entriesToBeCompacted;
     this.entriesRead = other.entriesRead;
     this.entriesWritten = other.entriesWritten;
+    this.compactionAgeNanos = other.compactionAgeNanos;
   }
 
   @Override
@@ -199,6 +211,8 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
     this.entriesRead = 0;
     setEntriesWrittenIsSet(false);
     this.entriesWritten = 0;
+    setCompactionAgeNanosIsSet(false);
+    this.compactionAgeNanos = 0;
   }
 
   /**
@@ -328,6 +342,29 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
     __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __ENTRIESWRITTEN_ISSET_ID, value);
   }
 
+  public long getCompactionAgeNanos() {
+    return this.compactionAgeNanos;
+  }
+
+  public TCompactionStatusUpdate setCompactionAgeNanos(long compactionAgeNanos) {
+    this.compactionAgeNanos = compactionAgeNanos;
+    setCompactionAgeNanosIsSet(true);
+    return this;
+  }
+
+  public void unsetCompactionAgeNanos() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __COMPACTIONAGENANOS_ISSET_ID);
+  }
+
+  /** Returns true if field compactionAgeNanos is set (has been assigned a value) and false otherwise */
+  public boolean isSetCompactionAgeNanos() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __COMPACTIONAGENANOS_ISSET_ID);
+  }
+
+  public void setCompactionAgeNanosIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __COMPACTIONAGENANOS_ISSET_ID, value);
+  }
+
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
@@ -371,6 +408,14 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
       }
       break;
 
+    case COMPACTION_AGE_NANOS:
+      if (value == null) {
+        unsetCompactionAgeNanos();
+      } else {
+        setCompactionAgeNanos((java.lang.Long)value);
+      }
+      break;
+
     }
   }
 
@@ -392,6 +437,9 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
 
     case ENTRIES_WRITTEN:
       return getEntriesWritten();
+
+    case COMPACTION_AGE_NANOS:
+      return getCompactionAgeNanos();
 
     }
     throw new java.lang.IllegalStateException();
@@ -415,6 +463,8 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
       return isSetEntriesRead();
     case ENTRIES_WRITTEN:
       return isSetEntriesWritten();
+    case COMPACTION_AGE_NANOS:
+      return isSetCompactionAgeNanos();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -477,6 +527,15 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
         return false;
     }
 
+    boolean this_present_compactionAgeNanos = true;
+    boolean that_present_compactionAgeNanos = true;
+    if (this_present_compactionAgeNanos || that_present_compactionAgeNanos) {
+      if (!(this_present_compactionAgeNanos && that_present_compactionAgeNanos))
+        return false;
+      if (this.compactionAgeNanos != that.compactionAgeNanos)
+        return false;
+    }
+
     return true;
   }
 
@@ -497,6 +556,8 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
     hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(entriesRead);
 
     hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(entriesWritten);
+
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(compactionAgeNanos);
 
     return hashCode;
   }
@@ -559,6 +620,16 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
         return lastComparison;
       }
     }
+    lastComparison = java.lang.Boolean.compare(isSetCompactionAgeNanos(), other.isSetCompactionAgeNanos());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetCompactionAgeNanos()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.compactionAgeNanos, other.compactionAgeNanos);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -609,6 +680,10 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
     if (!first) sb.append(", ");
     sb.append("entriesWritten:");
     sb.append(this.entriesWritten);
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("compactionAgeNanos:");
+    sb.append(this.compactionAgeNanos);
     first = false;
     sb.append(")");
     return sb.toString();
@@ -697,6 +772,14 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 6: // COMPACTION_AGE_NANOS
+            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+              struct.compactionAgeNanos = iprot.readI64();
+              struct.setCompactionAgeNanosIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -732,6 +815,9 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
       oprot.writeFieldBegin(ENTRIES_WRITTEN_FIELD_DESC);
       oprot.writeI64(struct.entriesWritten);
       oprot.writeFieldEnd();
+      oprot.writeFieldBegin(COMPACTION_AGE_NANOS_FIELD_DESC);
+      oprot.writeI64(struct.compactionAgeNanos);
+      oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -766,7 +852,10 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
       if (struct.isSetEntriesWritten()) {
         optionals.set(4);
       }
-      oprot.writeBitSet(optionals, 5);
+      if (struct.isSetCompactionAgeNanos()) {
+        optionals.set(5);
+      }
+      oprot.writeBitSet(optionals, 6);
       if (struct.isSetState()) {
         oprot.writeI32(struct.state.getValue());
       }
@@ -782,12 +871,15 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
       if (struct.isSetEntriesWritten()) {
         oprot.writeI64(struct.entriesWritten);
       }
+      if (struct.isSetCompactionAgeNanos()) {
+        oprot.writeI64(struct.compactionAgeNanos);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TCompactionStatusUpdate struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(5);
+      java.util.BitSet incoming = iprot.readBitSet(6);
       if (incoming.get(0)) {
         struct.state = org.apache.accumulo.core.compaction.thrift.TCompactionState.findByValue(iprot.readI32());
         struct.setStateIsSet(true);
@@ -807,6 +899,10 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
       if (incoming.get(4)) {
         struct.entriesWritten = iprot.readI64();
         struct.setEntriesWrittenIsSet(true);
+      }
+      if (incoming.get(5)) {
+        struct.compactionAgeNanos = iprot.readI64();
+        struct.setCompactionAgeNanosIsSet(true);
       }
     }
   }

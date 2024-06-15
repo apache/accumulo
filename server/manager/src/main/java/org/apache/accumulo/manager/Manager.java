@@ -69,6 +69,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.TStore;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
@@ -415,7 +416,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  Manager(ServerOpts opts, String[] args) throws IOException {
+  protected Manager(ServerOpts opts, String[] args) throws IOException {
     super("manager", opts, args);
     ServerContext context = super.getContext();
     balancerEnvironment = new BalancerEnvironmentImpl(context);
@@ -1239,7 +1240,7 @@ public class Manager extends AbstractServer
               context.getZooReaderWriter()),
           HOURS.toMillis(8), System::currentTimeMillis);
 
-      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString);
+      Fate<Manager> f = initializeFateInstance(store);
       f.startTransactionRunners(getConfiguration());
       fateRef.set(f);
       fateReadyLatch.countDown();
@@ -1370,6 +1371,10 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
     }
+  }
+
+  protected Fate<Manager> initializeFateInstance(TStore<Manager> store) {
+    return new Fate<>(this, store, TraceRepo::toLogString);
   }
 
   /**

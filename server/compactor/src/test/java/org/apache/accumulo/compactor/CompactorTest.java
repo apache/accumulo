@@ -24,6 +24,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -34,6 +35,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.compactor.Compactor.FileCompactorRunnable;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -53,11 +55,13 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
+import org.easymock.EasyMock;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.easymock.PowerMock;
@@ -76,7 +80,7 @@ import org.slf4j.LoggerFactory;
     "com.sun.org.apache.xerces.*"})
 public class CompactorTest {
 
-  public class SuccessfulCompaction implements Runnable {
+  public class SuccessfulCompaction implements FileCompactorRunnable {
 
     protected final Logger LOG = LoggerFactory.getLogger(this.getClass());
 
@@ -85,6 +89,7 @@ public class CompactorTest {
     protected final CountDownLatch started;
     protected final CountDownLatch stopped;
     protected final AtomicReference<Throwable> err;
+    private final FileCompactor compactor = EasyMock.createMock(FileCompactor.class);
 
     public SuccessfulCompaction(LongAdder totalInputEntries, LongAdder totalInputBytes,
         CountDownLatch started, CountDownLatch stopped, AtomicReference<Throwable> err) {
@@ -93,6 +98,19 @@ public class CompactorTest {
       this.err = err;
       this.started = started;
       this.stopped = stopped;
+    }
+
+    @Override
+    public void initialize() throws RetriesExceededException {}
+
+    @Override
+    public AtomicReference<FileCompactor> getFileCompactor() {
+      return new AtomicReference<>(compactor);
+    }
+
+    @Override
+    public Duration getCompactionAge() {
+      return Duration.ZERO;
     }
 
     @Override
@@ -106,6 +124,7 @@ public class CompactorTest {
         stopped.countDown();
       }
     }
+
   }
 
   public class FailedCompaction extends SuccessfulCompaction {
@@ -214,9 +233,9 @@ public class CompactorTest {
     protected synchronized void checkIfCanceled() {}
 
     @Override
-    protected Runnable createCompactionJob(TExternalCompactionJob job, LongAdder totalInputEntries,
-        LongAdder totalInputBytes, CountDownLatch started, CountDownLatch stopped,
-        AtomicReference<Throwable> err) {
+    protected FileCompactorRunnable createCompactionJob(TExternalCompactionJob job,
+        LongAdder totalInputEntries, LongAdder totalInputBytes, CountDownLatch started,
+        CountDownLatch stopped, AtomicReference<Throwable> err) {
       return new SuccessfulCompaction(totalInputEntries, totalInputBytes, started, stopped, err);
     }
 
@@ -265,9 +284,9 @@ public class CompactorTest {
     }
 
     @Override
-    protected Runnable createCompactionJob(TExternalCompactionJob job, LongAdder totalInputEntries,
-        LongAdder totalInputBytes, CountDownLatch started, CountDownLatch stopped,
-        AtomicReference<Throwable> err) {
+    protected FileCompactorRunnable createCompactionJob(TExternalCompactionJob job,
+        LongAdder totalInputEntries, LongAdder totalInputBytes, CountDownLatch started,
+        CountDownLatch stopped, AtomicReference<Throwable> err) {
       return new FailedCompaction(totalInputEntries, totalInputBytes, started, stopped, err);
     }
   }
@@ -280,9 +299,9 @@ public class CompactorTest {
     }
 
     @Override
-    protected Runnable createCompactionJob(TExternalCompactionJob job, LongAdder totalInputEntries,
-        LongAdder totalInputBytes, CountDownLatch started, CountDownLatch stopped,
-        AtomicReference<Throwable> err) {
+    protected FileCompactorRunnable createCompactionJob(TExternalCompactionJob job,
+        LongAdder totalInputEntries, LongAdder totalInputBytes, CountDownLatch started,
+        CountDownLatch stopped, AtomicReference<Throwable> err) {
       return new InterruptedCompaction(totalInputEntries, totalInputBytes, started, stopped, err);
     }
 

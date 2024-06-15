@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -53,6 +54,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -120,7 +122,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   // things to report
   private String currentLocalityGroup = "";
-  private final long startTime;
+  private volatile long startTime = -1;
 
   private final AtomicLong currentEntriesRead = new AtomicLong(0);
   private final AtomicLong currentEntriesWritten = new AtomicLong(0);
@@ -141,6 +143,12 @@ public class FileCompactor implements Callable<CompactionStats> {
   private final long compactorID = nextCompactorID.getAndIncrement();
   protected volatile Thread thread;
   private final ServerContext context;
+
+  private final AtomicBoolean interruptFlag = new AtomicBoolean(false);
+
+  public void interrupt() {
+    interruptFlag.set(true);
+  }
 
   public long getCompactorID() {
     return compactorID;
@@ -240,8 +248,6 @@ public class FileCompactor implements Callable<CompactionStats> {
     this.env = env;
     this.iterators = iterators;
     this.cryptoService = cs;
-
-    startTime = System.currentTimeMillis();
   }
 
   public VolumeManager getVolumeManager() {
@@ -271,6 +277,8 @@ public class FileCompactor implements Callable<CompactionStats> {
     FileSKVWriter mfw = null;
 
     CompactionStats majCStats = new CompactionStats();
+
+    startTime = System.nanoTime();
 
     boolean remove = runningCompactions.add(this);
 
@@ -347,6 +355,13 @@ public class FileCompactor implements Callable<CompactionStats> {
     } catch (CompactionCanceledException e) {
       log.debug("Compaction canceled {}", extent);
       throw e;
+    } catch (IterationInterruptedException iie) {
+      if (!env.isCompactionEnabled()) {
+        log.debug("Compaction canceled {}", extent);
+        throw new CompactionCanceledException();
+      }
+      log.debug("RFile interrupted {}", extent);
+      throw iie;
     } catch (IOException | RuntimeException e) {
       Collection<String> inputFileNames =
           Collections2.transform(getFilesToCompact(), StoredTabletFile::getFileName);
@@ -416,6 +431,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
         SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(context,
             extent.tableId(), mapFile.getPathStr(), false, reader);
+        ((ProblemReportingIterator) iter).setInterruptFlag(interruptFlag);
 
         if (filesToCompact.get(mapFile).isTimeSet()) {
           iter = new TimeSettingIterator(iter, filesToCompact.get(mapFile).getTime());
@@ -554,8 +570,15 @@ public class FileCompactor implements Callable<CompactionStats> {
     return currentEntriesWritten.get();
   }
 
-  long getStartTime() {
-    return startTime;
+  /**
+   * @return the duration since {@link #call()} was called
+   */
+  Duration getAge() {
+    if (startTime == -1) {
+      // call() has not been called yet
+      return Duration.ZERO;
+    }
+    return Duration.ofNanos(System.nanoTime() - startTime);
   }
 
   Iterable<IteratorSetting> getIterators() {

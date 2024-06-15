@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.security.SecureRandom;
@@ -37,11 +38,16 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ColumnUpdate;
+import org.apache.accumulo.core.data.Condition;
+import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
@@ -51,7 +57,8 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 public class WriteAfterCloseIT extends AccumuloClusterHarness {
 
@@ -59,6 +66,7 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.MANAGER_RECOVERY_DELAY, "1s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
+    cfg.setProperty(Property.TSERV_MINTHREADS, "256");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
@@ -70,6 +78,8 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
   public static class SleepyConstraint implements Constraint {
 
     private static final SecureRandom rand = new SecureRandom();
+
+    private static final long SLEEP_TIME = 4000;
 
     @Override
     public String getViolationDescription(short violationCode) {
@@ -86,36 +96,29 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
 
       // the purpose of this constraint is to just randomly hold up inserts on the server side
       if (rand.nextBoolean()) {
-        UtilWaitThread.sleep(4000);
+        UtilWaitThread.sleep(SLEEP_TIME);
       }
 
       return null;
     }
   }
 
-  @Test
-  public void testWriteAfterCloseMillisTime() throws Exception {
-    runTest(TimeType.MILLIS, false, 0, false);
-  }
-
-  @Test
-  public void testWriteAfterCloseLogicalTime() throws Exception {
-    runTest(TimeType.LOGICAL, false, 0, false);
-  }
-
-  @Test
-  public void testWriteAfterCloseKillTservers() throws Exception {
-    runTest(TimeType.MILLIS, true, 0, false);
-  }
-
-  @Test
-  public void testWriteAfterCloseTimeout() throws Exception {
-    // ensure that trying to close seesions does not interfere with timeout
-    runTest(TimeType.MILLIS, false, 2000, true);
-  }
-
-  private void runTest(TimeType timeType, boolean killTservers, long timeout, boolean expectErrors)
-      throws Exception {
+  // @formatter:off
+  @ParameterizedTest
+  @CsvSource(
+      value = {"time,   kill,  timeout, conditional",
+              "MILLIS,  false, 0,       false",
+              "LOGICAL, false, 0,       false",
+              "MILLIS,  true,  0,       false",
+              "MILLIS,  false, 2000,    false",
+              "MILLIS,  false, 0,       true",
+              "LOGICAL, false, 0,       true",
+              "MILLIS,  true,  0,       true",
+              "MILLIS,  false, 2000,    true"},
+      useHeadersInDisplayName = true)
+  // @formatter:on
+  public void testWriteAfterClose(TimeType timeType, boolean killTservers, long timeout,
+      boolean useConditionalWriter) throws Exception {
     // re #3721 test that tries to cause a write event to happen after a batch writer is closed
     String table = getUniqueNames(1)[0];
     var props = new Properties();
@@ -138,7 +141,8 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
       List<Future<?>> futures = new ArrayList<>();
 
       for (int i = 0; i < 100; i++) {
-        futures.add(executor.submit(createWriteTask(i * 1000, c, table, timeout)));
+        futures.add(
+            executor.submit(createWriteTask(i * 1000, c, table, timeout, useConditionalWriter)));
       }
 
       if (killTservers) {
@@ -156,15 +160,23 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
         try {
           future.get();
         } catch (ExecutionException e) {
+          var cause = e.getCause();
+          while (cause != null && !(cause instanceof TimedOutException)) {
+            cause = cause.getCause();
+          }
+
+          assertNotNull(cause);
           errorCount++;
         }
       }
 
+      boolean expectErrors = timeout > 0;
       if (expectErrors) {
         assertTrue(errorCount > 0);
       } else {
         assertEquals(0, errorCount);
-
+        // allow potential out-of-order writes on a tserver to run
+        Thread.sleep(SleepyConstraint.SLEEP_TIME);
         try (Scanner scanner = c.createScanner(table)) {
           // every insertion was deleted so table should be empty unless there were out of order
           // writes
@@ -177,17 +189,28 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
   }
 
   private static Callable<Void> createWriteTask(int row, AccumuloClient c, String table,
-      long timeout) {
+      long timeout, boolean useConditionalWriter) {
     return () -> {
-
-      BatchWriterConfig bwc = new BatchWriterConfig().setTimeout(timeout, TimeUnit.MILLISECONDS);
-
-      try (BatchWriter writer = c.createBatchWriter(table, bwc)) {
-        Mutation m = new Mutation("r" + row);
-        m.put("f1", "q1", new Value("v1"));
-        writer.addMutation(m);
+      if (useConditionalWriter) {
+        ConditionalWriterConfig cwc =
+            new ConditionalWriterConfig().setTimeout(timeout, TimeUnit.MILLISECONDS);
+        try (ConditionalWriter writer = c.createConditionalWriter(table, cwc)) {
+          ConditionalMutation m = new ConditionalMutation("r" + row);
+          m.addCondition(new Condition("f1", "q1"));
+          m.put("f1", "q1", new Value("v1"));
+          ConditionalWriter.Result result = writer.write(m);
+          var status = result.getStatus();
+          assertTrue(status == ConditionalWriter.Status.ACCEPTED
+              || status == ConditionalWriter.Status.UNKNOWN);
+        }
+      } else {
+        BatchWriterConfig bwc = new BatchWriterConfig().setTimeout(timeout, TimeUnit.MILLISECONDS);
+        try (BatchWriter writer = c.createBatchWriter(table, bwc)) {
+          Mutation m = new Mutation("r" + row);
+          m.put("f1", "q1", new Value("v1"));
+          writer.addMutation(m);
+        }
       }
-
       // Relying on the internal retries of the batch writer, trying to create a situation where
       // some of the writes from above actually happen after the delete below which would negate the
       // delete.
