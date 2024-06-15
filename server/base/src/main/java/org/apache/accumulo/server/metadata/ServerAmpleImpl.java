@@ -63,6 +63,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactio
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.UuidUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -364,6 +365,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       scanner.setRange(ScanServerFileReferenceSection.getRange());
       int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
       return StreamSupport.stream(scanner.spliterator(), false)
+          .filter(e -> UuidUtil.isUUID(e.getKey().getRowData().toString(), pLen))
           .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
               e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()));
     } catch (TableNotFoundException e) {

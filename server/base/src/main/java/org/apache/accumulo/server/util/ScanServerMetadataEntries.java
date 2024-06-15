@@ -43,12 +43,7 @@ public class ScanServerMetadataEntries {
 
     // collect all uuids that are currently in the metadata table
     context.getAmple().getScanServerFileReferences().forEach(ssrtf -> {
-      try {
         uuidsToDelete.add(UUID.fromString(ssrtf.getRowSuffix()));
-      } catch (Exception e) {
-        // Malformed entry on metadata table.
-        LOG.warn("Found Malformed Scan Server file ref: {}", ssrtf);
-      }
     });
 
     // gather the list of current live scan servers, its important that this is done after the above
@@ -64,13 +59,8 @@ public class ScanServerMetadataEntries {
       final Set<ScanServerRefTabletFile> refsToDelete = new HashSet<>();
 
       context.getAmple().getScanServerFileReferences().forEach(ssrtf -> {
-        UUID uuid = null;
-        try {
-          uuid = UUID.fromString(ssrtf.getRowSuffix());
-        } catch (Exception e) {
-          // Malformed entry on metadata table.
-          LOG.warn("Found Malformed Scan Server file ref: {}", ssrtf);
-        }
+
+        var uuid = UUID.fromString(ssrtf.getRowSuffix());
 
         if (uuidsToDelete.contains(uuid)) {
           refsToDelete.add(ssrtf);
