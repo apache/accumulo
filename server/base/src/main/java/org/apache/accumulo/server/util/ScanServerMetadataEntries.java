@@ -26,15 +26,12 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This utility will remove scan server file references from the metadata table where the scan
  * server in the metadata entry is not currently running.
  */
 public class ScanServerMetadataEntries {
-  public static final Logger LOG = LoggerFactory.getLogger(ScanServerMetadataEntries.class);
 
   public static void clean(ServerContext context) {
 
