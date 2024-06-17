@@ -41,6 +41,7 @@ import java.util.function.BiConsumer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -65,6 +66,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -196,6 +198,7 @@ public class Upgrader9to10 implements Upgrader {
     upgradeRelativePaths(context, Ample.DataLevel.METADATA);
     upgradeDirColumns(context, Ample.DataLevel.METADATA);
     upgradeFileDeletes(context, Ample.DataLevel.METADATA);
+    removeAllScanServerRefs(context, Ample.DataLevel.METADATA);
   }
 
   @Override
@@ -203,6 +206,7 @@ public class Upgrader9to10 implements Upgrader {
     upgradeRelativePaths(context, Ample.DataLevel.USER);
     upgradeDirColumns(context, Ample.DataLevel.USER);
     upgradeFileDeletes(context, Ample.DataLevel.USER);
+    removeAllScanServerRefs(context, Ample.DataLevel.USER);
   }
 
   /**
@@ -578,6 +582,17 @@ public class Upgrader9to10 implements Upgrader {
         }
         writer.flush();
       }
+    } catch (TableNotFoundException | MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void removeAllScanServerRefs(ServerContext context, Ample.DataLevel level) {
+    log.info("Removing all Scan Server Refs from table {}", level.metaTable());
+    try (BatchDeleter batchDeleter =
+        context.createBatchDeleter(level.metaTable(), Authorizations.EMPTY, 4)) {
+      batchDeleter.setRanges(List.of(MetadataSchema.ScanServerFileReferenceSection.getRange()));
+      batchDeleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException e) {
       throw new RuntimeException(e);
     }
