@@ -142,7 +142,6 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
       String tableName = getUniqueNames(1)[0];
 
       createTableAndIngest(client, tableName, null, 10, 10, "colf");
-      client.tableOperations().offline(tableName, true);
 
       assertThrows(TimedOutException.class, () -> {
         try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
