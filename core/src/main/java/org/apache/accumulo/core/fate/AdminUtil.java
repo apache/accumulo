@@ -351,10 +351,10 @@ public class AdminUtil<T> {
    * @param waitingLocks populated list of locks held by transaction - or an empty map if none.
    * @return current fate and lock status
    */
-  private FateStatus getTransactionStatus(Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores,
-      Set<FateId> fateIdFilter, EnumSet<TStatus> statusFilter,
-      EnumSet<FateInstanceType> typesFilter, Map<FateId,List<String>> heldLocks,
-      Map<FateId,List<String>> waitingLocks) {
+  public static <T> FateStatus getTransactionStatus(
+      Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, Set<FateId> fateIdFilter,
+      EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter,
+      Map<FateId,List<String>> heldLocks, Map<FateId,List<String>> waitingLocks) {
     final List<TransactionStatus> statuses = new ArrayList<>();
 
     fateStores.forEach((type, store) -> {
@@ -394,8 +394,8 @@ public class AdminUtil<T> {
             }
           } catch (Exception e) {
             // If the cause of the Exception is a NoNodeException, it should be ignored as this
-            // indicates the transaction has completed between the time the list of transactions was
-            // acquired and the time the transaction was probed for info.
+            // indicates the META transaction has completed between the time the list of
+            // transactions was acquired and the time the transaction was probed for info.
             boolean nne = false;
             Throwable cause = e;
             while (cause != null) {
@@ -416,15 +416,15 @@ public class AdminUtil<T> {
     return new FateStatus(statuses, heldLocks, waitingLocks);
   }
 
-  private boolean includeByStatus(TStatus status, EnumSet<TStatus> statusFilter) {
+  private static boolean includeByStatus(TStatus status, EnumSet<TStatus> statusFilter) {
     return statusFilter == null || statusFilter.isEmpty() || statusFilter.contains(status);
   }
 
-  private boolean includeByFateId(FateId fateId, Set<FateId> fateIdFilter) {
+  private static boolean includeByFateId(FateId fateId, Set<FateId> fateIdFilter) {
     return fateIdFilter == null || fateIdFilter.isEmpty() || fateIdFilter.contains(fateId);
   }
 
-  private boolean includeByInstanceType(FateInstanceType type,
+  private static boolean includeByInstanceType(FateInstanceType type,
       EnumSet<FateInstanceType> typesFilter) {
     return typesFilter == null || typesFilter.isEmpty() || typesFilter.contains(type);
   }

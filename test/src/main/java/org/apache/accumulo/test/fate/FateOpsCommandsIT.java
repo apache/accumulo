@@ -19,6 +19,9 @@
 package org.apache.accumulo.test.fate;
 
 import static org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.getCompactorAddrs;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -26,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,23 +37,34 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.ReadOnlyRepo;
+import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -62,6 +77,8 @@ import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.zookeeper.KeeperException;
+import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -592,6 +609,122 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     fate.shutdown(10, TimeUnit.MINUTES);
   }
 
+  @Test
+  public void testFatePrintAndSummaryCommandsWithInProgressTxns() throws Exception {
+    executeTest(this::testFatePrintAndSummaryCommandsWithInProgressTxns);
+  }
+
+  protected void testFatePrintAndSummaryCommandsWithInProgressTxns(FateStore<TestEnv> store,
+      ServerContext sctx) {
+    // This test was written for an issue with the 'admin fate --print' and 'admin fate --summary'
+    // commands where ZK NoNodeExceptions could occur. These commands first get a list of the
+    // transactions and then probe for info on these transactions. If a transaction completes
+    // between getting the list and probing for info on that transaction, a NoNodeException would
+    // occur causing the cmd to fail. This test ensures that this problem has been fixed (if the
+    // tx no longer exists, it should just be ignored so the print/summary can complete).
+    FateStore<TestEnv> mockedStore;
+    boolean isUserStore = store.type().equals(FateInstanceType.USER);
+
+    if (isUserStore) {
+      // The NNE can only occur for META transactions. For USER transactions, the transactions are
+      // stored in a table. Transactions can still complete mid-print, but an exception will
+      // not be thrown/need to be ignored. The equivalent for USER transactions would be
+      // the transaction returns an UNKNOWN status. So, we will ensure transactions with
+      // UNKNOWN status' are included in the output and don't cause any errors.
+      mockedStore = EasyMock.createMockBuilder(UserFateStore.class)
+          .withConstructor(ClientContext.class).withArgs(sctx)
+          .addMockedMethod("list", new Class[] {}).addMockedMethod("read").createMock();
+    } else {
+      // This error was occurring in AdminUtil.getTransactionStatus(). One of the methods that is
+      // called which may throw the NNE is top(), so we will mock this method to sometimes throw a
+      // NNE and ensure it is handled/ignored within getTransactionStatus() and that the rest
+      // of the transactions are returned.
+      mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
+          .withConstructor(String.class, ZooReaderWriter.class)
+          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter())
+          .addMockedMethod("list", new Class[] {}).addMockedMethod("read").createMock();
+    }
+
+    FateId tx1 = mockedStore.create();
+    FateId tx2 = mockedStore.create();
+    FateId tx3 = mockedStore.create();
+    // Mock list() to ensure same order every run
+    List<ReadOnlyFateStore.FateIdStatus> fateIdStatusList =
+        List.of(createFateIdStatus(tx1), createFateIdStatus(tx2), createFateIdStatus(tx3));
+    expect(mockedStore.list()).andReturn(fateIdStatusList.stream()).once();
+
+    ReadOnlyFateStore.ReadOnlyFateTxStore<TestEnv> mockedFateTxStore1, mockedFateTxStore2,
+        mockedFateTxStore3;
+    if (isUserStore) {
+      mockedFateTxStore1 = EasyMock.createMockBuilder(TestFateTxStore.class)
+          .addMockedMethod("getStatus").createMock();
+      mockedFateTxStore2 = EasyMock.createMockBuilder(TestFateTxStore.class)
+          .addMockedMethod("getStatus").createMock();
+      mockedFateTxStore3 = EasyMock.createMockBuilder(TestFateTxStore.class)
+          .addMockedMethod("getStatus").createMock();
+
+      expect(mockedFateTxStore1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.NEW).once();
+      expect(mockedFateTxStore2.getStatus()).andReturn(ReadOnlyFateStore.TStatus.UNKNOWN).once();
+      expect(mockedFateTxStore3.getStatus()).andReturn(ReadOnlyFateStore.TStatus.NEW).once();
+    } else {
+      mockedFateTxStore1 =
+          EasyMock.createMockBuilder(TestFateTxStore.class).addMockedMethod("top").createMock();
+      mockedFateTxStore2 =
+          EasyMock.createMockBuilder(TestFateTxStore.class).addMockedMethod("top").createMock();
+      mockedFateTxStore3 =
+          EasyMock.createMockBuilder(TestFateTxStore.class).addMockedMethod("top").createMock();
+
+      expect(mockedFateTxStore1.top()).andReturn(null).once();
+      expect(mockedFateTxStore2.top())
+          .andThrow(new RuntimeException(new KeeperException.NoNodeException())).once();
+      expect(mockedFateTxStore3.top()).andReturn(null).once();
+    }
+
+    expect(mockedStore.read(tx1)).andReturn(mockedFateTxStore1).once();
+    expect(mockedStore.read(tx2)).andReturn(mockedFateTxStore2).once();
+    expect(mockedStore.read(tx3)).andReturn(mockedFateTxStore3).once();
+
+    replay(mockedStore, mockedFateTxStore1, mockedFateTxStore2, mockedFateTxStore3);
+
+    AdminUtil.FateStatus status = null;
+    try {
+      status = AdminUtil.getTransactionStatus(Map.of(store.type(), mockedStore), null, null, null,
+          new HashMap<>(), new HashMap<>());
+    } catch (Exception e) {
+      fail(
+          "Either an unexpected error occurred in getTransactionStatus() or the NoNodeException which"
+              + " is expected to be handled in getTransactionStatus() was not handled. Error:\n"
+              + e);
+    }
+
+    verify(mockedStore, mockedFateTxStore1, mockedFateTxStore2, mockedFateTxStore3);
+    assertNotNull(status);
+
+    if (isUserStore) {
+      assertEquals(3, status.getTransactions().size());
+      assertTrue(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateId)
+          .collect(Collectors.toList()).containsAll(List.of(tx1, tx2, tx3)));
+      assertEquals(
+          status.getTransactions().stream().map(AdminUtil.TransactionStatus::getStatus)
+              .collect(Collectors.toList()),
+          List.of(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.UNKNOWN,
+              ReadOnlyFateStore.TStatus.NEW));
+    } else {
+      assertEquals(2, status.getTransactions().size());
+      assertTrue(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateId)
+          .collect(Collectors.toList()).containsAll(List.of(tx1, tx3)));
+    }
+  }
+
+  private ReadOnlyFateStore.FateIdStatus createFateIdStatus(FateId fateId) {
+    return new AbstractFateStore.FateIdStatusBase(fateId) {
+      @Override
+      public ReadOnlyFateStore.TStatus getStatus() {
+        return null;
+      }
+    };
+  }
+
   /**
    *
    * @param printResult the output of the --print fate command
@@ -670,5 +803,54 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       return false;
     }
     return true;
+  }
+
+  private static class TestFateTxStore implements ReadOnlyFateStore.ReadOnlyFateTxStore<TestEnv> {
+
+    @Override
+    public ReadOnlyRepo<TestEnv> top() {
+      return null;
+    }
+
+    @Override
+    public List<ReadOnlyRepo<TestEnv>> getStack() {
+      return null;
+    }
+
+    @Override
+    public ReadOnlyFateStore.TStatus getStatus() {
+      return null;
+    }
+
+    @Override
+    public Optional<FateKey> getKey() {
+      return Optional.empty();
+    }
+
+    @Override
+    public Pair<ReadOnlyFateStore.TStatus,Optional<FateKey>> getStatusAndKey() {
+      return null;
+    }
+
+    @Override
+    public ReadOnlyFateStore.TStatus
+        waitForStatusChange(EnumSet<ReadOnlyFateStore.TStatus> expected) {
+      return null;
+    }
+
+    @Override
+    public Serializable getTransactionInfo(Fate.TxInfo txInfo) {
+      return null;
+    }
+
+    @Override
+    public long timeCreated() {
+      return 0;
+    }
+
+    @Override
+    public FateId getID() {
+      return null;
+    }
   }
 }
