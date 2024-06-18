@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -615,7 +616,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
   }
 
   protected void testFatePrintAndSummaryCommandsWithInProgressTxns(FateStore<TestEnv> store,
-      ServerContext sctx) {
+      ServerContext sctx) throws Exception {
     // This test was written for an issue with the 'admin fate --print' and 'admin fate --summary'
     // commands where ZK NoNodeExceptions could occur. These commands first get a list of the
     // transactions and then probe for info on these transactions. If a transaction completes
@@ -631,18 +632,20 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       // not be thrown/need to be ignored. The equivalent for USER transactions would be
       // the transaction returns an UNKNOWN status. So, we will ensure transactions with
       // UNKNOWN status' are included in the output and don't cause any errors.
+      Method listMethod = UserFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(UserFateStore.class)
           .withConstructor(ClientContext.class).withArgs(sctx)
-          .addMockedMethod("list", new Class[] {}).addMockedMethod("read").createMock();
+          .addMockedMethod(listMethod).addMockedMethod("read").createMock();
     } else {
       // This error was occurring in AdminUtil.getTransactionStatus(). One of the methods that is
       // called which may throw the NNE is top(), so we will mock this method to sometimes throw a
       // NNE and ensure it is handled/ignored within getTransactionStatus() and that the rest
       // of the transactions are returned.
+      Method listMethod = MetaFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
           .withConstructor(String.class, ZooReaderWriter.class)
           .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter())
-          .addMockedMethod("list", new Class[] {}).addMockedMethod("read").createMock();
+          .addMockedMethod(listMethod).addMockedMethod("read").createMock();
     }
 
     FateId tx1 = mockedStore.create();
