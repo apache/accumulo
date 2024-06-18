@@ -55,6 +55,7 @@ import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.C
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
+import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -464,13 +465,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    * @return CompactionJob
    * @throws RetriesExceededException thrown when retries have been exceeded
    */
-  protected TExternalCompactionJob getNextJob(Supplier<UUID> uuid) throws RetriesExceededException {
+  protected TNextCompactionJob getNextJob(Supplier<UUID> uuid) throws RetriesExceededException {
     final long startingWaitTime =
         getConfiguration().getTimeInMillis(Property.COMPACTOR_MIN_JOB_WAIT_TIME);
     final long maxWaitTime =
         getConfiguration().getTimeInMillis(Property.COMPACTOR_MAX_JOB_WAIT_TIME);
 
-    RetryableThriftCall<TExternalCompactionJob> nextJobThriftCall =
+    RetryableThriftCall<TNextCompactionJob> nextJobThriftCall =
         new RetryableThriftCall<>(startingWaitTime, maxWaitTime, 0, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
@@ -667,10 +668,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     return UUID::randomUUID;
   }
 
-  protected long getWaitTimeBetweenCompactionChecks() {
-    // get the total number of compactors assigned to this group
-    int numCompactors =
-        ExternalCompactionUtil.countCompactors(this.getResourceGroup(), getContext());
+  protected long getWaitTimeBetweenCompactionChecks(int numCompactors) {
     long minWait = getConfiguration().getTimeInMillis(Property.COMPACTOR_MIN_JOB_WAIT_TIME);
     // Aim for around 3 compactors checking in per min wait time.
     long sleepTime = numCompactors * minWait / 3;
@@ -746,10 +744,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
         TExternalCompactionJob job;
         try {
-          job = getNextJob(getNextId());
+          TNextCompactionJob next = getNextJob(getNextId());
+          job = next.getJob();
           if (!job.isSetExternalCompactionId()) {
             LOG.trace("No external compactions in group {}", this.getResourceGroup());
-            UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks());
+            UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks(next.getCompactorCount()));
             continue;
           }
           if (!job.getExternalCompactionId().equals(currentCompactionId.get().toString())) {

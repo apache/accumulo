@@ -59,6 +59,13 @@ struct TExternalCompactionList {
   1:map<string,TExternalCompaction> compactions
 }
 
+struct TNextCompactionJob {
+  1:tabletserver.TExternalCompactionJob job
+  // The total number of compactors servicing the queue this job was requested for
+  2:i32 compactorCount
+}
+
+
 exception UnknownCompactionIdException {}
 
 service CompactionCoordinatorService {
@@ -77,7 +84,7 @@ service CompactionCoordinatorService {
   /*
    * Called by Compactor to get the next compaction job
    */
-  tabletserver.TExternalCompactionJob getCompactionJob(
+  TNextCompactionJob getCompactionJob(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string groupName

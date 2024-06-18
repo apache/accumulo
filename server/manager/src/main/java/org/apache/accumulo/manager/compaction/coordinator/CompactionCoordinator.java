@@ -69,6 +69,7 @@ import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -179,6 +180,8 @@ public class CompactionCoordinator
   private QueueMetrics queueMetrics;
   private final Manager manager;
 
+  private final LoadingCache<String,Integer> compactorCounts;
+
   public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
       AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances,
       final String resourceGroupName, Manager manager) {
@@ -217,7 +220,14 @@ public class CompactionCoordinator
 
     deadCompactionDetector =
         new DeadCompactionDetector(this.ctx, this, schedExecutor, fateInstances);
+
+    compactorCounts = ctx.getCaches().createNewBuilder(CacheName.COMPACTOR_COUNTS, false)
+        .expireAfterWrite(30, TimeUnit.SECONDS).build(this::countCompactors);
     // At this point the manager does not have its lock so no actions should be taken yet
+  }
+
+  protected int countCompactors(String groupName) {
+    return ExternalCompactionUtil.countCompactors(groupName, ctx);
   }
 
   private volatile Thread serviceThread = null;
@@ -359,7 +369,7 @@ public class CompactionCoordinator
    * @return compaction job
    */
   @Override
-  public TExternalCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
+  public TNextCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
       String groupName, String compactorAddress, String externalCompactionId)
       throws ThriftSecurityException {
 
@@ -421,8 +431,7 @@ public class CompactionCoordinator
       result = new TExternalCompactionJob();
     }
 
-    return result;
-
+    return new TNextCompactionJob(result, compactorCounts.get(groupName));
   }
 
   @VisibleForTesting
