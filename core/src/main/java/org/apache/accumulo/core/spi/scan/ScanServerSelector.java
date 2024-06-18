@@ -18,8 +18,11 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.ScannerBase;
@@ -77,7 +80,6 @@ public interface ScanServerSelector {
      *         made using a consistent set of scan servers.
      */
     Supplier<Collection<ScanServerInfo>> getScanServers();
-
   }
 
   /**
@@ -105,11 +107,46 @@ public interface ScanServerSelector {
      *         were set, an empty map is returned.
      */
     Map<String,String> getHints();
+
+    /**
+     * This function helps a scan server selector wait for an optional to become non-empty (like
+     * waiting for scan servers to be present) and throws exceptions when waiting is no longer
+     * possible OR returning false if the max wait time was exceeded. The passed in condition will
+     * be periodically called and as long as it returns an empty optional the function will continue
+     * to wait.
+     *
+     * @param condition periodically calls this to see if it is non-empty.
+     * @param maxWaitTime the maximum time to wait for the condition to become non-empty
+     * @param description a description of what is being waited on, used for error messages and
+     *        logging
+     * @return The first non-empty optional returned by the condition. An empty optional if the
+     *         maxWaitTime was exceeded without the condition ever returning a non-empty optional.
+     *
+     * @throws org.apache.accumulo.core.client.TableDeletedException if the table is deleted while
+     *         waiting for the condition to become non-empty. Do not catch this exception, let it
+     *         escape.
+     * @throws org.apache.accumulo.core.client.TimedOutException if the timeout specified by
+     *         {@link ScannerBase#setTimeout(long, TimeUnit)} is exceeded while waiting. Do not
+     *         catch this exception, let it escape.
+     *
+     * @since 4.0.0
+     */
+    public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
+        String description);
   }
 
   /**
+   * <p>
    * Uses the {@link SelectorParameters} to determine which, if any, ScanServer should be used for
    * scanning a tablet.
+   * </p>
+   *
+   * <p>
+   * In the case where there are zero scan servers available and an implementation does not want to
+   * fall back to tablet servers, its ok to wait and poll for scan servers. When waiting its best to
+   * use {@link SelectorParameters#waitUntil(Supplier, Duration, String)} as this allows Accumulo to
+   * know about the wait and cancel it via exceptions when it no longer makes sense to wait.
+   * </p>
    *
    * @param params parameters for the calculation
    * @return results
