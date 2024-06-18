@@ -84,7 +84,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * example could have some scans use expensive high memory VMs and others use cheaper burstable
  * VMs.</li>
  * <li><b>timeToWaitForScanServers : </b> When there are no scans servers, this setting determines
- * how long to wait for scan servers to load before falling back to tablet servers is desired.
+ * how long to wait for scan servers to become available before falling back to tablet servers.
  * Falling back to tablet servers may cause tablets to be loaded that are not currently loaded. When
  * this setting is given a wait time and there are no scan servers, it will wait for scan servers to
  * be available. This setting avoids loading tablets on tablet servers when scans servers are
@@ -98,10 +98,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <li>"ms" for milliseconds</li>
  * </ul>
  * If duration is not specified this setting defaults to 0s, and will disable the wait for scan
- * servers. When set to a large value, the selector will effectively wait for scan servers to become
- * available before falling back to tablet servers. To ensure the selector never falls back to
- * scanning tablet servers an unrealistic wait time can be set. For instance 10000d should be
- * sufficient. Setting Waiting for scan servers is done via
+ * servers and will fall back to tablet servers immediately. When set to a large value, the selector
+ * will effectively wait for scan servers to become available before falling back to tablet servers.
+ * To ensure the selector never falls back to scanning tablet servers an unrealistic wait time can
+ * be set. For instance 10000d should be sufficient. Setting Waiting for scan servers is done via
  * {@link org.apache.accumulo.core.spi.scan.ScanServerSelector.SelectorParameters#waitUntil(Supplier, Duration, String)}</li>
  * <li><b>attemptPlans : </b> A list of configuration to use for each scan attempt. Each list object
  * has the following fields:
