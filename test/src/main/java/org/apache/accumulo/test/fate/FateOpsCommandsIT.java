@@ -633,9 +633,9 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       // the transaction returns an UNKNOWN status. So, we will ensure transactions with
       // UNKNOWN status' are included in the output and don't cause any errors.
       Method listMethod = UserFateStore.class.getMethod("list");
-      mockedStore = EasyMock.createMockBuilder(UserFateStore.class)
-          .withConstructor(ClientContext.class).withArgs(sctx)
-          .addMockedMethod(listMethod).addMockedMethod("read").createMock();
+      mockedStore =
+          EasyMock.createMockBuilder(UserFateStore.class).withConstructor(ClientContext.class)
+              .withArgs(sctx).addMockedMethod(listMethod).addMockedMethod("read").createMock();
     } else {
       // This error was occurring in AdminUtil.getTransactionStatus(). One of the methods that is
       // called which may throw the NNE is top(), so we will mock this method to sometimes throw a
