@@ -30,9 +30,11 @@ import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -40,6 +42,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -74,6 +77,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
@@ -262,6 +266,44 @@ public class ThriftScanner {
     }
   }
 
+  static <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
+      String description, Duration timeoutLeft, ClientContext context, TableId tableId,
+      Logger log) {
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
+        .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(1)).backOffFactor(1.5)
+        .logInterval(Duration.ofMinutes(3)).createRetry();
+
+    long startTime = System.nanoTime();
+    Optional<T> optional = condition.get();
+    while (optional.isEmpty()) {
+      log.trace("For tableId {} scan server selector is waiting for '{}'", tableId, description);
+
+      var elapsedTime = Duration.ofNanos(System.nanoTime() - startTime);
+
+      if (elapsedTime.compareTo(timeoutLeft) > 0) {
+        throw new TimedOutException("While waiting for '" + description
+            + "' in order to select a scan server, the scan timed out. ");
+      }
+
+      if (elapsedTime.compareTo(maxWaitTime) > 0) {
+        return Optional.empty();
+      }
+
+      context.requireNotDeleted(tableId);
+
+      try {
+        retry.waitForNextAttempt(log, String.format(
+            "For tableId %s scan server selector is waiting for '%s'", tableId, description));
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+
+      optional = condition.get();
+    }
+
+    return optional;
+  }
+
   public static class ScanTimedOutException extends IOException {
 
     private static final long serialVersionUID = 1L;
@@ -370,7 +412,7 @@ public class ThriftScanner {
         Span child2 = TraceUtil.startSpan(ThriftScanner.class, "scan::location",
             Map.of("tserver", loc.getTserverLocation()));
         try (Scope scanLocation = child2.makeCurrent()) {
-          results = scan(loc, scanState, context);
+          results = scan(loc, scanState, context, timeOut, startTime);
         } catch (AccumuloSecurityException e) {
           context.clearTableListCache();
           context.requireNotDeleted(scanState.tableId);
@@ -510,9 +552,9 @@ public class ThriftScanner {
     }
   }
 
-  private static List<KeyValue> scan(TabletLocation loc, ScanState scanState, ClientContext context)
-      throws AccumuloSecurityException, NotServingTabletException, TException,
-      NoSuchScanIDException, TooManyFilesException, TSampleNotPresentException {
+  private static List<KeyValue> scan(TabletLocation loc, ScanState scanState, ClientContext context,
+      long timeOut, long startTime) throws AccumuloSecurityException, NotServingTabletException,
+      TException, NoSuchScanIDException, TooManyFilesException, TSampleNotPresentException {
     if (scanState.finished) {
       return null;
     }
@@ -536,6 +578,9 @@ public class ThriftScanner {
         // obtain a snapshot once and only expose this snapshot to the plugin for consistency
         var attempts = scanState.scanAttempts.snapshot();
 
+        Duration timeoutLeft = Duration.ofSeconds(timeOut)
+            .minus(Duration.ofMillis(System.currentTimeMillis() - startTime));
+
         var params = new ScanServerSelector.SelectorParameters() {
 
           @Override
@@ -554,6 +599,13 @@ public class ThriftScanner {
               return Map.of();
             }
             return scanState.executionHints;
+          }
+
+          @Override
+          public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
+              String description) {
+            return ThriftScanner.waitUntil(condition, maxWaitTime, description, timeoutLeft,
+                context, loc.getExtent().tableId(), log);
           }
         };
 
