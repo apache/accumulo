@@ -154,7 +154,6 @@ public class CompactionCoordinator extends AbstractServer
     printStartupMsg();
     startCompactionCleaner(schedExecutor);
     startRunningCleaner(schedExecutor);
-    // TODO use refresh mechanism to avoid RPCs blocking on getting this count when it expires
     compactorCounts = Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.SECONDS)
         .build(queue -> ExternalCompactionUtil.countCompactors(queue, getContext()));
   }
