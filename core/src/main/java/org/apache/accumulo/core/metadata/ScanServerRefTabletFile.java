@@ -60,14 +60,9 @@ public class ScanServerRefTabletFile extends TabletFile {
   }
 
   public Mutation putMutation() {
-    Mutation mutation;
-    if (Objects.equals(prefix, oldPrefix)) {
-      mutation = new Mutation(prefix + this.getPath().toString());
-      mutation.put(serverAddress, uuid, getValue());
-    } else {
-      mutation = new Mutation(prefix + uuid.toString());
-      mutation.put(serverAddress, getFilePath(), getValue());
-    }
+    // Only write scan refs in the new format
+    Mutation mutation = new Mutation(prefix + uuid.toString());
+    mutation.put(serverAddress, getFilePath(), getValue());
     return mutation;
   }
 
