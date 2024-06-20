@@ -50,6 +50,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -242,7 +243,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         Set<String> metadataScanFileRefs = new HashSet<>();
         metadataEntries.forEach(m -> {
           String row = m.getKey().getRow().toString();
-          assertTrue(row.startsWith("~sserv"));
+          assertTrue(row.startsWith(MetadataSchema.ScanServerFileReferenceSection.getRowPrefix()));
           String file = m.getKey().getColumnQualifier().toString();
           metadataScanFileRefs.add(file);
         });

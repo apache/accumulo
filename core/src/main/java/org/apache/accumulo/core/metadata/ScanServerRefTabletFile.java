@@ -27,13 +27,16 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.OldScanServerFileReferenceSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
+import org.apache.accumulo.core.util.UuidUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Preconditions;
 
 public class ScanServerRefTabletFile extends TabletFile {
 
   @SuppressWarnings("deprecation")
-  private static final String oldPrefix = OldScanServerFileReferenceSection.getRowPrefix();
+  private static final String OLD_PREFIX = OldScanServerFileReferenceSection.getRowPrefix();
   private final String prefix;
   private final Value NULL_VALUE = new Value(new byte[0]);
   private final Text serverAddress;
@@ -51,11 +54,15 @@ public class ScanServerRefTabletFile extends TabletFile {
     super(new Path(URI.create(extractFile(k))));
     serverAddress = k.getColumnFamily();
     if (isOldPrefix(k)) {
-      prefix = oldPrefix;
+      prefix = OLD_PREFIX;
       uuid = new Text(k.getColumnQualifier().toString());
     } else {
       prefix = ScanServerFileReferenceSection.getRowPrefix();
-      uuid = new Text(k.getRow().toString().substring(prefix.length()));
+      var row = k.getRow().toString();
+      Preconditions.checkArgument(row.startsWith(prefix), "Unexpected row prefix %s ", row);
+      uuid = new Text(row.substring(prefix.length()));
+      Preconditions.checkArgument(UuidUtil.isUUID(uuid.toString(), 0), "Row suffix is not uuid %s",
+          row);
     }
   }
 
@@ -68,7 +75,7 @@ public class ScanServerRefTabletFile extends TabletFile {
 
   public Mutation putDeleteMutation() {
     Mutation mutation;
-    if (Objects.equals(prefix, oldPrefix)) {
+    if (Objects.equals(prefix, OLD_PREFIX)) {
       mutation = new Mutation(prefix + this.getPath().toString());
       mutation.putDelete(serverAddress, uuid);
     } else {
@@ -80,14 +87,14 @@ public class ScanServerRefTabletFile extends TabletFile {
 
   private static String extractFile(Key k) {
     if (isOldPrefix(k)) {
-      return k.getRow().toString().substring(oldPrefix.length());
+      return k.getRow().toString().substring(OLD_PREFIX.length());
     } else {
       return k.getColumnQualifier().toString();
     }
   }
 
   private static boolean isOldPrefix(Key k) {
-    return k.getRow().toString().startsWith(oldPrefix);
+    return k.getRow().toString().startsWith(OLD_PREFIX);
   }
 
   public UUID getServerLockUUID() {

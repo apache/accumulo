@@ -489,7 +489,7 @@ public class MetadataSchema {
 
   public static class ScanServerFileReferenceSection {
     private static final Section section =
-        new Section(RESERVED_PREFIX + "scanr", true, RESERVED_PREFIX + "scans", false);
+        new Section(RESERVED_PREFIX + "scanfileref", true, RESERVED_PREFIX + "scanfilereg", false);
 
     public static Range getRange() {
       return section.getRange();
