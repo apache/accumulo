@@ -50,8 +50,8 @@ class ClonePermissions extends ManagerRepo {
     for (TablePermission permission : TablePermission.values()) {
       try {
         environment.getContext().getSecurityOperation().grantTablePermission(
-            environment.getContext().rpcCreds(), cloneInfo.user, cloneInfo.tableId, permission,
-            cloneInfo.namespaceId);
+            environment.getContext().rpcCreds(), cloneInfo.user, cloneInfo.tableId,
+            cloneInfo.tableName, permission, cloneInfo.namespaceId);
       } catch (ThriftSecurityException e) {
         LoggerFactory.getLogger(ClonePermissions.class).error("{}", e.getMessage(), e);
         throw e;
