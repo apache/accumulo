@@ -859,6 +859,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             Preconditions.checkState(previousKeyExtent == null,
                 "previousKeyExtent was unexpectedly set when scanning metadata table %s %s %s",
                 previousKeyExtent, keyExtent, value);
+            Manager.log.debug("prevRow entry for lowest tablet is {}", value);
             firstPrevRowValue = value;
             // Handle other tablets, besides the first tablet. This will process every tablet in the
             // merge range except for the last tablet as that tablet is not part of the scan range.
