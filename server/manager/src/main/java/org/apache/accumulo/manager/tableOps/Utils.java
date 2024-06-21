@@ -59,12 +59,18 @@ public class Utils {
   public static void checkTableDoesNotExist(ServerContext context, String tableName,
       TableId tableId, TableOperation operation) throws AcceptableThriftTableOperationException {
 
-    TableId id = context.getTableNameToIdMap().get(tableName);
-
-    if (id != null && !id.equals(tableId)) {
-      throw new AcceptableThriftTableOperationException(null, tableName, operation,
-          TableOperationExceptionType.EXISTS, null);
+    try {
+      if (context.getZooReader()
+          .exists(context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId.canonical())) {
+        throw new AcceptableThriftTableOperationException(null, tableName, operation,
+            TableOperationExceptionType.EXISTS, null);
+      }
+    } catch (KeeperException | InterruptedException e) {
+      log.error("Error checking to see if tableId {} exists in ZooKeeper", tableId, e);
+      throw new AcceptableThriftTableOperationException(null, tableName, TableOperation.CREATE,
+          TableOperationExceptionType.OTHER, e.getMessage());
     }
+
   }
 
   public static <T extends AbstractId<T>> T getNextId(String name, ServerContext context,
