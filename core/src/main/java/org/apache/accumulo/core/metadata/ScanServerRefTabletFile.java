@@ -61,9 +61,8 @@ public class ScanServerRefTabletFile extends TabletFile {
       var row = k.getRow().toString();
       Preconditions.checkArgument(row.startsWith(prefix), "Unexpected row prefix %s ", row);
       var uuidStr = row.substring(prefix.length());
-      Preconditions.checkArgument(UuidUtil.isUUID(uuidStr, 0), "Row suffix is not uuid %s",
-          row);
-      uuid = new Text(uuidStr);    
+      Preconditions.checkArgument(UuidUtil.isUUID(uuidStr, 0), "Row suffix is not uuid %s", row);
+      uuid = new Text(uuidStr);
     }
   }
 
