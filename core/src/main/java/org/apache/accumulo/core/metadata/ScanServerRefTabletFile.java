@@ -24,7 +24,9 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.OldScanServerFileReferenceSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.util.UuidUtil;
@@ -91,6 +93,17 @@ public class ScanServerRefTabletFile extends TabletFile {
     } else {
       return k.getColumnQualifier().toString();
     }
+  }
+
+  /**
+   * Returns the correctly formatted range for a unique uuid
+   *
+   * @param uuid ServerLockUUID of a Scan Server
+   * @return Range for a single scan server
+   */
+  public static Range getRange(UUID uuid) {
+    Objects.requireNonNull(uuid);
+    return new Range(MetadataSchema.ScanServerFileReferenceSection.getRowPrefix() + uuid);
   }
 
   private static boolean isOldPrefix(Key k) {

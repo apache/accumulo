@@ -377,8 +377,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     Objects.requireNonNull(scanServerLockUUID, "Server uuid must be supplied");
     try (
         Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY)) {
-      scanner
-          .setRange(new Range(ScanServerFileReferenceSection.getRowPrefix() + scanServerLockUUID));
+      scanner.setRange(ScanServerRefTabletFile.getRange(scanServerLockUUID));
 
       Set<ScanServerRefTabletFile> refsToDelete = StreamSupport.stream(scanner.spliterator(), false)
           .map(e -> new ScanServerRefTabletFile(e.getKey())).collect(Collectors.toSet());
