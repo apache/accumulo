@@ -425,9 +425,13 @@ public class ScanServer extends AbstractServer
       LOG.info("Stopping Thrift Servers");
       address.server.stop();
 
-      LOG.info("Removing server scan references");
-      this.getContext().getAmple().deleteScanServerFileReferences(clientAddress.toString(),
-          serverLockUUID);
+      try {
+        LOG.info("Removing server scan references");
+        this.getContext().getAmple().deleteScanServerFileReferences(clientAddress.toString(),
+            serverLockUUID);
+      } catch (Exception e) {
+        LOG.warn("Failed to remove scan server refs from metadata location", e);
+      }
 
       try {
         LOG.debug("Closing filesystems");
@@ -625,7 +629,7 @@ public class ScanServer extends AbstractServer
 
       for (StoredTabletFile file : allFiles.keySet()) {
         if (!reservedFiles.containsKey(file)) {
-          refs.add(new ScanServerRefTabletFile(file.getPathStr(), serverAddress, serverLockUUID));
+          refs.add(new ScanServerRefTabletFile(serverLockUUID, serverAddress, file.getPathStr()));
           filesToReserve.add(file);
           tabletsToCheck.add(Objects.requireNonNull(allFiles.get(file)));
           LOG.trace("RFFS {} need to add scan ref for file {}", myReservationId, file);
@@ -829,7 +833,7 @@ public class ScanServer extends AbstractServer
             influxFiles.add(file);
             confirmed.add(file);
             refsToDelete
-                .add(new ScanServerRefTabletFile(file.getPathStr(), serverAddress, serverLockUUID));
+                .add(new ScanServerRefTabletFile(serverLockUUID, serverAddress, file.getPathStr()));
 
             // remove the entry from the map while holding the write lock ensuring no new
             // reservations are added to the map values while the metadata operation to delete is

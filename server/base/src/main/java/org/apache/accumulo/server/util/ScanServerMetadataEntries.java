@@ -40,7 +40,7 @@ public class ScanServerMetadataEntries {
 
     // collect all uuids that are currently in the metadata table
     context.getAmple().getScanServerFileReferences().forEach(ssrtf -> {
-      uuidsToDelete.add(UUID.fromString(ssrtf.getServerLockUUID().toString()));
+      uuidsToDelete.add(ssrtf.getServerLockUUID());
     });
 
     // gather the list of current live scan servers, its important that this is done after the above
@@ -56,8 +56,7 @@ public class ScanServerMetadataEntries {
       final Set<ScanServerRefTabletFile> refsToDelete = new HashSet<>();
 
       context.getAmple().getScanServerFileReferences().forEach(ssrtf -> {
-
-        var uuid = UUID.fromString(ssrtf.getServerLockUUID().toString());
+        var uuid = ssrtf.getServerLockUUID();
 
         if (uuidsToDelete.contains(uuid)) {
           refsToDelete.add(ssrtf);
