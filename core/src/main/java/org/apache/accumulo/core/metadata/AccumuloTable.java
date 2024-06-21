@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
 
@@ -42,5 +46,12 @@ public enum AccumuloTable {
   AccumuloTable(String name, String id) {
     this.name = Namespace.ACCUMULO.name() + "." + name;
     this.tableId = TableId.of(id);
+  }
+
+  private static final Set<TableId> ALL_IDS =
+      Arrays.stream(values()).map(AccumuloTable::tableId).collect(Collectors.toUnmodifiableSet());
+
+  public static Set<TableId> allTableIds() {
+    return ALL_IDS;
   }
 }
