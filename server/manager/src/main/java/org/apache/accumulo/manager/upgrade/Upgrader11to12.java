@@ -24,10 +24,12 @@ import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -35,6 +37,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -64,6 +67,8 @@ public class Upgrader11to12 implements Upgrader {
 
   @SuppressWarnings("deprecation")
   private static final Text CHOPPED = ChoppedColumnFamily.NAME;
+
+  public static final Range OLD_SCAN_SERVERS_RANGE = new Range("~sserv", "~sserx");
 
   @VisibleForTesting
   static final Set<Text> UPGRADE_FAMILIES =
@@ -124,6 +129,7 @@ public class Upgrader11to12 implements Upgrader {
     log.debug("Upgrade root: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var rootName = Ample.DataLevel.METADATA.metaTable();
     upgradeTabletsMetadata(context, rootName);
+    removeScanServerRange(context, Ample.DataLevel.METADATA.metaTable());
   }
 
   @Override
@@ -131,6 +137,7 @@ public class Upgrader11to12 implements Upgrader {
     log.debug("Upgrade metadata: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var metaName = Ample.DataLevel.USER.metaTable();
     upgradeTabletsMetadata(context, metaName);
+    removeScanServerRange(context, Ample.DataLevel.USER.metaTable());
   }
 
   private void upgradeTabletsMetadata(@NonNull ServerContext context, String metaName) {
@@ -214,6 +221,18 @@ public class Upgrader11to12 implements Upgrader {
       m.at().family(DataFileColumnFamily.STR_NAME).qualifier(fileJson).put(value);
       m.at().family(DataFileColumnFamily.STR_NAME).qualifier(file).delete();
     }
+  }
+
+  public void removeScanServerRange(ServerContext context, String tableName) {
+    log.info("Removing Scan Server Range from table {}", tableName);
+    try (BatchDeleter batchDeleter =
+        context.createBatchDeleter(tableName, Authorizations.EMPTY, 4)) {
+      batchDeleter.setRanges(List.of(OLD_SCAN_SERVERS_RANGE));
+      batchDeleter.delete();
+    } catch (TableNotFoundException | MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
+    log.info("Scan Server Range removed from table {}", tableName);
   }
 
 }
