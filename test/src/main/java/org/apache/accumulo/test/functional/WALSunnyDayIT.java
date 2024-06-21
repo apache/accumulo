@@ -149,14 +149,18 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       Map<KeyExtent,List<String>> markers = getRecoveryMarkers(c);
       // log.debug("markers " + markers);
       // There should be markers for the created table and also the Fate and ScanRef tables
-      assertEquals(3, markers.size(), "two tablets should have markers");
+      assertEquals(3, markers.size(), "three tablets should have markers");
       assertTrue(
           markers.keySet().stream().anyMatch(extent -> extent.tableId().canonical().equals("1")),
           "tableId of the keyExtent should be 1");
       assertTrue(
           markers.keySet().stream()
               .anyMatch(extent -> extent.tableId().equals(AccumuloTable.FATE.tableId())),
-          "tableId of the FateTable can't be found");
+          "tableId of the Fate table can't be found");
+      assertTrue(
+          markers.keySet().stream()
+              .anyMatch(extent -> extent.tableId().equals(AccumuloTable.SCAN_REF.tableId())),
+          "tableId of the ScanRef table can't be found");
 
       // put some data in the WAL
       assertEquals(0, cluster.exec(SetGoalState.class, "NORMAL").getProcess().waitFor());

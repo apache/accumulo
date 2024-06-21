@@ -94,7 +94,6 @@ class InitialConfiguration {
         FateSchema.TxColumnFamily.STR_NAME);
     initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "status");
 
-    // TODO: What other configs do we want for this table?
     initialScanRefTableConf.putAll(commonConfig);
 
     int max = hadoopConf.getInt("dfs.replication.max", 512);
