@@ -191,8 +191,8 @@ public class MetaSplitIT extends AccumuloClusterHarness {
     var expectedExtents = tables.entrySet().stream()
         .filter(e -> !e.getKey().startsWith("accumulo.")).map(Map.Entry::getValue).map(TableId::of)
         .map(tid -> new KeyExtent(tid, null, null)).collect(Collectors.toSet());
-    // Verify we have 10 tablets for metadata
-    assertEquals(10, expectedExtents.size());
+    // Verify we have 11 tablets for metadata
+    assertEquals(11, expectedExtents.size());
 
     // Scan each tablet to verify data exists
     var ample = ((ClientContext) client).getAmple();

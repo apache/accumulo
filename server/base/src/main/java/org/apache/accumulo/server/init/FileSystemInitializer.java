@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
@@ -42,6 +43,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -100,6 +102,15 @@ class FileSystemInitializer {
     String tableMetadataTabletDirUri =
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
             + AccumuloTable.METADATA.tableId() + Path.SEPARATOR + tableMetadataTabletDirName;
+
+    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
+        AccumuloTable.SCAN_REF.tableId(), null, context);
+    String scanRefTableDefaultTabletDirName =
+        MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
+    String scanRefTableDefaultTabletDirUri =
+        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + AccumuloTable.SCAN_REF.tableId() + Path.SEPARATOR + scanRefTableDefaultTabletDirName;
+
     chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
         AccumuloTable.METADATA.tableId(), null, context);
     String defaultMetadataTabletDirName =
@@ -109,11 +120,20 @@ class FileSystemInitializer {
             + AccumuloTable.METADATA.tableId() + Path.SEPARATOR + defaultMetadataTabletDirName;
 
     // create table and default tablets directories
-    createDirectories(fs, rootTabletDirUri, tableMetadataTabletDirUri, defaultMetadataTabletDirUri);
+    createDirectories(fs, rootTabletDirUri, tableMetadataTabletDirUri, defaultMetadataTabletDirUri,
+        scanRefTableDefaultTabletDirUri);
+
+    String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
+
+    // populate the metadata tablet with info about scan ref tablets
+    String metadataFileName = tableMetadataTabletDirUri + Path.SEPARATOR + "0_1." + ext;
+    Tablet scanRefTablet =
+        new Tablet(AccumuloTable.SCAN_REF.tableId(), scanRefTableDefaultTabletDirName, null, null);
+    createMetadataFile(fs, metadataFileName, siteConfig, scanRefTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
-    Tablet tablesTablet =
-        new Tablet(AccumuloTable.METADATA.tableId(), tableMetadataTabletDirName, null, splitPoint);
+    Tablet tablesTablet = new Tablet(AccumuloTable.METADATA.tableId(), tableMetadataTabletDirName,
+        null, splitPoint, StoredTabletFile.of(new Path(metadataFileName)).getMetadata());
     Tablet defaultTablet = new Tablet(AccumuloTable.METADATA.tableId(),
         defaultMetadataTabletDirName, splitPoint, null);
     createMetadataFile(fs, rootTabletFileUri, siteConfig, tablesTablet, defaultTablet);
@@ -144,6 +164,7 @@ class FileSystemInitializer {
     setTableProperties(context, AccumuloTable.ROOT.tableId(), initConfig.getRootMetaConf());
     setTableProperties(context, AccumuloTable.METADATA.tableId(), initConfig.getRootMetaConf());
     setTableProperties(context, AccumuloTable.METADATA.tableId(), initConfig.getMetaTableConf());
+    setTableProperties(context, AccumuloTable.SCAN_REF.tableId(), initConfig.getScanRefTableConf());
   }
 
   private void setTableProperties(final ServerContext context, TableId tableId,
