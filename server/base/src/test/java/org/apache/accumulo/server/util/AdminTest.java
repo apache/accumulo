@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -178,7 +180,7 @@ public class AdminTest {
         Set.of(fateIds[7])), found);
 
     // run test where some of the fate ids are active
-    var active = Set.of(fateIds[0], fateIds[2], fateIds[4], fateIds[6]);
+    Set<FateId> active = Set.of(fateIds[0], fateIds[2], fateIds[4], fateIds[6]);
     found.clear();
     Admin.findDanglingFateOperations(tablets1.values(), tabletLookup, active::contains, found::put,
         3);
@@ -199,10 +201,21 @@ public class AdminTest {
         3);
     assertEquals(Map.of(tm7.getExtent(), Set.of(fateIds[7])), found);
     found.clear();
+
+    // run a test where all are active on second look
     var tm7_1 = TabletMetadata.builder(tm7.getExtent()).putSelectedFiles(sf1).build(OPID, LOADED);
     tablets2.put(tm7_1.getExtent(), tm7_1);
     Admin.findDanglingFateOperations(tablets1.values(), tabletLookup, active::contains, found::put,
         3);
+    assertEquals(Map.of(), found);
+
+    // run a test where all active on the first look
+    active = Arrays.stream(fateIds).collect(Collectors.toSet());
+    found.clear();
+    Admin.findDanglingFateOperations(tablets1.values(), le -> {
+      assertTrue(le.isEmpty());
+      return Map.of();
+    }, active::contains, found::put, 3);
     assertEquals(Map.of(), found);
   }
 }
