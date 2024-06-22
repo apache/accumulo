@@ -132,7 +132,8 @@ public class Admin implements KeywordExecutable {
     List<String> args = new ArrayList<>();
   }
 
-  @Parameters(commandDescription = "print tablets that are offline in online tables")
+  @Parameters(commandDescription = "Looks for tablets that are unexpectedly offline, tablets that "
+      + "reference missing files, or tablets that reference absent fate operations.")
   static class CheckTabletsCommand {
     @Parameter(names = "--fixFiles", description = "Remove dangling file pointers")
     boolean fixFiles = false;
