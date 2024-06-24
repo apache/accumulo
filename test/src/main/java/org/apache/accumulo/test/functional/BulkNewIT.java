@@ -847,7 +847,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
         return loc != null && loc.getType() == TabletMetadata.LocationType.CURRENT;
       }));
     }
-  };
+  }
 
   /**
    * @return Map w/ keys that are end rows of tablets and the value is the tablets availability.
