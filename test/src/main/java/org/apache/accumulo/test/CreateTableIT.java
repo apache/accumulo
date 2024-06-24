@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -56,6 +58,9 @@ public class CreateTableIT extends SharedMiniClusterBase {
         client.tableOperations().create(tableNames[i]);
         System.out.println("Table creation took: " + (System.currentTimeMillis() - start) + "ms");
       }
+      // Confirm all 1000 user tables exist in addition to Root, Metadata,
+      // and ScanRef tables
+      assertEquals(1003, client.tableOperations().list().size());
     }
   }
 
