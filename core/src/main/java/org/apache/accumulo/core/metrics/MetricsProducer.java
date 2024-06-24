@@ -573,6 +573,19 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Distribution Summary</td>
  * <td></td>
  * </tr>
+ * <!-- Balancing -->
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value METRICS_MANAGER_BALANCER_MIGRATIONS_IN_PROGRESS}</td>
+ * <td>Gauge</td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED}</td>
+ * <td>Gauge</td>
+ * </tr>
  * </table>
  *
  * @since 2.1.0
@@ -682,8 +695,9 @@ public interface MetricsProducer {
       METRICS_BLOCKCACHE_PREFIX + "summary.requestcount";
 
   // balancer
-  String METRICS_MANAGER_BALANCER_MIGRATING = "manager.balancer.migrations.in_progress";
-  String METRICS_MANAGER_BALANCER_NEED_MIGRATION = "manager.balancer.migrations.needed";
+  String METRICS_MANAGER_BALANCER_MIGRATIONS_IN_PROGRESS =
+      "accumulo.manager.balancer.migrations.in.progress";
+  String METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED = "accumulo.manager.balancer.migrations.needed";
 
   /**
    * Build Micrometer Meter objects and register them with the registry

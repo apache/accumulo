@@ -48,10 +48,12 @@ public class BalancerMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder(METRICS_MANAGER_BALANCER_MIGRATING, this, BalancerMetrics::getMigratingCount)
+    Gauge
+        .builder(METRICS_MANAGER_BALANCER_MIGRATIONS_IN_PROGRESS, this,
+            BalancerMetrics::getMigratingCount)
         .description("Snapshot count of tablets currently being migrated").register(registry);
     Gauge
-        .builder(METRICS_MANAGER_BALANCER_NEED_MIGRATION, this,
+        .builder(METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED, this,
             BalancerMetrics::getNeedMigrationCount)
         .description("Snapshot count of tablets that need to be migrated").register(registry);
   }
