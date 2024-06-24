@@ -30,6 +30,10 @@ public class BalancerMetrics implements MetricsProducer {
   AtomicLong migratingCount = new AtomicLong();
   AtomicLong needMigrationCount = new AtomicLong();
 
+  public long incrementMigratingCount() {
+    return migratingCount.incrementAndGet();
+  }
+
   public long getMigratingCount() {
     return migratingCount.get();
   }
@@ -51,10 +55,10 @@ public class BalancerMetrics implements MetricsProducer {
     Gauge
         .builder(METRICS_MANAGER_BALANCER_MIGRATIONS_IN_PROGRESS, this,
             BalancerMetrics::getMigratingCount)
-        .description("Snapshot count of tablets currently being migrated").register(registry);
+        .description("Count of migrations in progress from last balancer call").register(registry);
     Gauge
         .builder(METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED, this,
             BalancerMetrics::getNeedMigrationCount)
-        .description("Snapshot count of tablets that need to be migrated").register(registry);
+        .description("Overall migrations that need to be completed").register(registry);
   }
 }

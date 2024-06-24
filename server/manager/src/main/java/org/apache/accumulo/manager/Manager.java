@@ -967,6 +967,8 @@ public class Manager extends AbstractServer
       BalanceParamsImpl params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer,
           tserverStatus, migrationsSnapshot());
       long wait = tabletBalancer.balance(params);
+      // Get current migrations before in-progress migrations are added
+      balancerMetrics.setNeedMigrationCount(migrations.size());
 
       for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
           params.migrationsOut())) {
@@ -978,19 +980,18 @@ public class Manager extends AbstractServer
         TServerInstance tserverInstance = TabletServerIdImpl.toThrift(m.getNewTabletServer());
         migrations.put(ke, tserverInstance);
         log.debug("migration {}", m);
+        // Now count latest in-progress migrations
+        balancerMetrics.incrementMigratingCount();
       }
       if (params.migrationsOut().isEmpty()) {
         synchronized (balancedNotifier) {
           balancedNotifier.notifyAll();
         }
         balancerMetrics.setMigratingCount(0);
-        balancerMetrics.setNeedMigrationCount(0);
+        if (migrations.isEmpty()) {
+          balancerMetrics.setNeedMigrationCount(0);
+        }
       } else {
-        log.debug("Balance stats: Migrations: {}, Current Migrations: {}, MigrationsOut: {}",
-            migrations.size(), params.currentMigrations().size(), params.migrationsOut().size());
-
-        balancerMetrics.setMigratingCount(params.migrationsOut().size());
-        balancerMetrics.setNeedMigrationCount(migrations.size());
         nextEvent.event("Migrating %d more tablets, %d total", params.migrationsOut().size(),
             migrations.size());
       }
