@@ -20,6 +20,7 @@ package org.apache.accumulo.core.util.compaction;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.util.TreeMap;
 
@@ -62,37 +63,34 @@ public class RunningCompactionInfo {
 
     // parse the updates map
     long nowMillis = System.currentTimeMillis();
-    long startedMillis = nowMillis;
     float percent = 0f;
     long updateMillis;
     TCompactionStatusUpdate last;
 
     // sort updates by key, which is a timestamp
     TreeMap<Long,TCompactionStatusUpdate> sorted = new TreeMap<>(updates);
-    var firstEntry = sorted.firstEntry();
     var lastEntry = sorted.lastEntry();
-    if (firstEntry != null) {
-      startedMillis = firstEntry.getKey();
-    }
-    duration = nowMillis - startedMillis;
-    long durationMinutes = MILLISECONDS.toMinutes(duration);
-    if (durationMinutes > 15) {
-      log.warn("Compaction {} has been running for {} minutes", ecid, durationMinutes);
-    }
 
     // last entry is all we care about so bail if null
     if (lastEntry != null) {
       last = lastEntry.getValue();
       updateMillis = lastEntry.getKey();
+      duration = last.getCompactionAgeNanos();
     } else {
       log.debug("No updates found for {}", ecid);
       lastUpdate = 1;
       progress = percent;
       status = "na";
+      duration = 0;
       return;
     }
+    long durationMinutes = NANOSECONDS.toMinutes(duration);
+    if (durationMinutes > 15) {
+      log.warn("Compaction {} has been running for {} minutes", ecid, durationMinutes);
+    }
 
-    long sinceLastUpdateSeconds = MILLISECONDS.toSeconds(nowMillis - updateMillis);
+    lastUpdate = nowMillis - updateMillis;
+    long sinceLastUpdateSeconds = MILLISECONDS.toSeconds(lastUpdate);
     log.debug("Time since Last update {} - {} = {} seconds", nowMillis, updateMillis,
         sinceLastUpdateSeconds);
 
@@ -100,7 +98,6 @@ public class RunningCompactionInfo {
     if (total > 0) {
       percent = (last.getEntriesRead() / (float) total) * 100;
     }
-    lastUpdate = nowMillis - updateMillis;
     progress = percent;
 
     if (updates.isEmpty()) {

@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -69,24 +70,27 @@ class MoveExportedFiles extends ManagerRepo {
 
       Function<FileStatus,String> fileStatusName = fstat -> fstat.getPath().getName();
 
-      Set<String> importing = Arrays.stream(exportedFiles).map(fileStatusName)
-          .map(fileNameMappings::get).collect(Collectors.toSet());
+      Set<Path> importing =
+          Arrays.stream(exportedFiles).map(fileStatusName).map(fileNameMappings::get)
+              .filter(Objects::nonNull).map(Path::new).collect(Collectors.toSet());
 
-      Set<String> imported =
-          Arrays.stream(importedFiles).map(fileStatusName).collect(Collectors.toSet());
+      Set<Path> imported =
+          Arrays.stream(importedFiles).map(FileStatus::getPath).collect(Collectors.toSet());
 
       if (log.isDebugEnabled()) {
         log.debug("{} files already present in imported (target) directory: {}", fateId,
-            String.join(",", imported));
+            imported.stream().map(Path::getName).collect(Collectors.joining(",")));
       }
 
-      Set<String> missingFiles = Sets.difference(new HashSet<>(fileNameMappings.values()),
+      Set<Path> missingFiles = Sets.difference(
+          fileNameMappings.values().stream().map(Path::new).collect(Collectors.toSet()),
           new HashSet<>(Sets.union(importing, imported)));
 
       if (!missingFiles.isEmpty()) {
         throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
             tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-            "Missing source files corresponding to files " + String.join(",", missingFiles));
+            "Missing source files corresponding to files "
+                + missingFiles.stream().map(Path::getName).collect(Collectors.joining(",")));
       }
 
       for (FileStatus fileStatus : exportedFiles) {

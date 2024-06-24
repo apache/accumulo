@@ -19,9 +19,11 @@
 package org.apache.accumulo.test.ample.metadata;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Result;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.data.ConditionalMutation;
@@ -31,20 +33,13 @@ import com.google.common.collect.Streams;
 
 public interface ConditionalWriterInterceptor {
 
-  default Iterator<ConditionalMutation> beforeWrite(Iterator<ConditionalMutation> mutations) {
-    return mutations;
+  default Iterator<Result> write(ConditionalWriter writer,
+      Iterator<ConditionalMutation> mutations) {
+    return writer.write(mutations);
   }
 
-  default Iterator<Result> afterWrite(Iterator<Result> results) {
-    return results;
-  }
-
-  default ConditionalMutation beforeWrite(ConditionalMutation mutation) {
-    return mutation;
-  }
-
-  default Result afterWrite(Result result) {
-    return result;
+  default Result write(ConditionalWriter writer, ConditionalMutation mutation) {
+    return writer.write(mutation);
   }
 
   default void beforeClose() {
@@ -62,8 +57,19 @@ public interface ConditionalWriterInterceptor {
   static ConditionalWriterInterceptor withStatus(Status firstExpected, Status replaced, int times) {
     final AtomicInteger count = new AtomicInteger();
     return new ConditionalWriterInterceptor() {
+
       @Override
-      public Iterator<Result> afterWrite(Iterator<Result> results) {
+      public Iterator<Result> write(ConditionalWriter writer,
+          Iterator<ConditionalMutation> mutations) {
+        return afterWrite(writer.write(mutations));
+      }
+
+      @Override
+      public Result write(ConditionalWriter writer, ConditionalMutation mutation) {
+        return afterWrite(List.of(writer.write(mutation)).iterator()).next();
+      }
+
+      private Iterator<Result> afterWrite(Iterator<Result> results) {
         if (count.getAndIncrement() < times) {
           // For the first run only, make sure each state matches firstExpected if not null
           // for other runs don't check since we are changing state so future runs may not match

@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.client.admin.TabletAvailability.HOSTED;
 import static org.apache.accumulo.core.client.admin.TabletAvailability.UNHOSTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
@@ -37,6 +38,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -45,6 +48,17 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class TabletAvailabilityIT extends AccumuloClusterHarness {
+
+  @Test
+  public void testOffline() throws Exception {
+    String table = getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table, new NewTableConfiguration().createOffline());
+
+      assertThrows(TableOfflineException.class,
+          () -> client.tableOperations().setTabletAvailability(table, new Range(), HOSTED));
+    }
+  }
 
   @Test
   public void testBoundries() throws Exception {
@@ -158,5 +172,4 @@ public class TabletAvailabilityIT extends AccumuloClusterHarness {
     m.put("f", "q", String.format("%010d", val));
     return m;
   }
-
 }

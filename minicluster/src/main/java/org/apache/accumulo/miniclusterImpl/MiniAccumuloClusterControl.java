@@ -33,17 +33,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.ClusterControl;
-import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.gc.SimpleGarbageCollector;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
-import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
-import org.apache.accumulo.tserver.ScanServer;
-import org.apache.accumulo.tserver.TabletServer;
-import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,31 +138,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     if (classOverride != null) {
       classToUse = classOverride;
     } else {
-      switch (server) {
-        case COMPACTOR:
-          classToUse = Compactor.class;
-          break;
-        case SCAN_SERVER:
-          classToUse = ScanServer.class;
-          break;
-        case TABLET_SERVER:
-          classToUse = TabletServer.class;
-          break;
-        case GARBAGE_COLLECTOR:
-          classToUse = SimpleGarbageCollector.class;
-          break;
-        case MANAGER:
-          classToUse = Manager.class;
-          break;
-        case MONITOR:
-          classToUse = Monitor.class;
-          break;
-        case ZOOKEEPER:
-          classToUse = ZooKeeperServerMain.class;
-          break;
-        default:
-          throw new IllegalArgumentException("Unhandled server type: " + server);
-      }
+      classToUse = cluster.getConfig().getServerClass(server);
     }
 
     switch (server) {

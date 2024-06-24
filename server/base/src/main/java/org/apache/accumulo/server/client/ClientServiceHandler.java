@@ -108,21 +108,6 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public String getInstanceId() {
-    return context.getInstanceID().canonical();
-  }
-
-  @Override
-  public String getRootTabletLocation() {
-    return context.getRootTabletLocation();
-  }
-
-  @Override
-  public String getZooKeepers() {
-    return context.getZooKeepers();
-  }
-
-  @Override
   public void ping(TCredentials credentials) {
     // anybody can call this; no authentication check
     log.info("Manager reports: I just got pinged!");

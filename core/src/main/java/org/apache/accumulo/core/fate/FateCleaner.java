@@ -20,10 +20,12 @@ package org.apache.accumulo.core.fate;
 
 import java.time.Duration;
 import java.util.EnumSet;
-import java.util.UUID;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,54 +38,45 @@ import com.google.common.base.Preconditions;
  * field is used to track fate transactions that are candidates for cleanup.
  *
  * <p>
- * No external time source is used. It starts tracking idle time when its created.
- *
- * <p>
  * The {@link #ageOff()} method on this class must be periodically called inorder to cleanup to
  * happen.
  */
 public class FateCleaner<T> {
 
   public interface TimeSource {
-    long currentTimeNanos();
+    SteadyTime steadyTime();
   }
 
   // Statuses that can be aged off if idle for a prolonged period.
   private static final EnumSet<TStatus> AGE_OFF_STATUSES =
       EnumSet.of(TStatus.NEW, TStatus.FAILED, TStatus.SUCCESSFUL);
 
-  // This is used to determine if age off data was persisted by another instance of this object.
-  private final UUID instanceId = UUID.randomUUID();
-
   private static final Logger log = LoggerFactory.getLogger(FateCleaner.class);
 
   private final FateStore<T> store;
 
-  private final long ageOffTime;
+  private final Duration ageOffTime;
   private final TimeSource timeSource;
 
   private static class AgeOffInfo {
-    final UUID instanceId;
-    final long setTime;
+    final SteadyTime setTime;
     final TStatus status;
 
     public AgeOffInfo(String ageOffStr) {
       var tokens = ageOffStr.split(":");
-      Preconditions.checkArgument(tokens.length == 3, "Malformed input %s", ageOffStr);
-      instanceId = UUID.fromString(tokens[0]);
-      setTime = Long.parseLong(tokens[1]);
-      status = TStatus.valueOf(tokens[2]);
+      Preconditions.checkArgument(tokens.length == 2, "Malformed input %s", ageOffStr);
+      setTime = SteadyTime.from(Long.parseLong(tokens[0]), TimeUnit.NANOSECONDS);
+      status = TStatus.valueOf(tokens[1]);
     }
 
-    public AgeOffInfo(UUID instanceId, long time, TStatus status) {
-      this.instanceId = instanceId;
+    public AgeOffInfo(SteadyTime time, TStatus status) {
       this.setTime = time;
       this.status = status;
     }
 
     @Override
     public String toString() {
-      return instanceId + ":" + setTime + ":" + status;
+      return setTime.getNanos() + ":" + status;
     }
   }
 
@@ -97,9 +90,12 @@ public class FateCleaner<T> {
   }
 
   private boolean shouldAgeOff(TStatus currStatus, AgeOffInfo ageOffInfo) {
+    SteadyTime currSteadyTime = timeSource.steadyTime();
+    Duration elapsed = currSteadyTime.minus(ageOffInfo.setTime);
+    Preconditions.checkState(!elapsed.isNegative(), "Elapsed steady time is negative : %s %s %s",
+        currSteadyTime, ageOffInfo.setTime, elapsed);
     return AGE_OFF_STATUSES.contains(currStatus) && currStatus == ageOffInfo.status
-        && ageOffInfo.instanceId.equals(instanceId)
-        && timeSource.currentTimeNanos() - ageOffInfo.setTime >= ageOffTime;
+        && elapsed.compareTo(ageOffTime) > 0;
   }
 
   public void ageOff() {
@@ -108,12 +104,10 @@ public class FateCleaner<T> {
           try {
             AgeOffInfo ageOffInfo = readAgeOffInfo(txStore);
             TStatus currStatus = txStore.getStatus();
-            if (ageOffInfo == null || !ageOffInfo.instanceId.equals(instanceId)
-                || currStatus != ageOffInfo.status) {
+            if (ageOffInfo == null || currStatus != ageOffInfo.status) {
               // set or reset the age off info because it does not exists or it exists but is no
               // longer valid
-              var newAgeOffInfo =
-                  new AgeOffInfo(instanceId, timeSource.currentTimeNanos(), currStatus);
+              var newAgeOffInfo = new AgeOffInfo(timeSource.steadyTime(), currStatus);
               txStore.setTransactionInfo(Fate.TxInfo.TX_AGEOFF, newAgeOffInfo.toString());
               log.trace("Set age off data {} {}", idStatus.getFateId(), newAgeOffInfo);
             } else if (shouldAgeOff(currStatus, ageOffInfo)) {
@@ -127,8 +121,9 @@ public class FateCleaner<T> {
   }
 
   public FateCleaner(FateStore<T> store, Duration duration, TimeSource timeSource) {
-    this.store = store;
-    this.ageOffTime = duration.toNanos();
-    this.timeSource = timeSource;
+    this.store = Objects.requireNonNull(store);
+    this.ageOffTime = Objects.requireNonNull(duration);
+    this.timeSource = Objects.requireNonNull(timeSource);
+    Preconditions.checkArgument(!duration.isNegative() && !duration.isZero());
   }
 }

@@ -119,7 +119,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   }
 
   Monitor(ConfigOpts opts, String[] args) {
-    super("monitor", opts, args);
+    super("monitor", opts, ServerContext::new, args);
     START_TIME = System.currentTimeMillis();
   }
 

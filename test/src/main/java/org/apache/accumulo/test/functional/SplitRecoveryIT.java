@@ -74,6 +74,22 @@ import org.junit.jupiter.api.Test;
 
 public class SplitRecoveryIT extends ConfigurableMacBase {
 
+  public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(FateId fateId,
+      KeyExtent extent, Map<ReferencedTabletFile,DataFileValue> estSizes, MetadataTime time,
+      ServerContext context, ServiceLock zooLock) {
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    tablet.putTime(time);
+
+    Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>(estSizes.size());
+    estSizes.forEach((tf, dfv) -> {
+      tablet.putFile(tf, dfv);
+      tablet.putBulkFile(tf, fateId);
+      newFiles.put(tf.insert(), dfv);
+    });
+    tablet.mutate();
+    return newFiles;
+  }
+
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
@@ -140,7 +156,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       FateId fateId =
           FateId.from(FateInstanceType.fromTableId(extent.tableId()), UUID.randomUUID());
       SortedMap<StoredTabletFile,DataFileValue> storedFiles =
-          new TreeMap<>(MetadataTableUtil.updateTabletDataFile(fateId, extent, dataFiles,
+          new TreeMap<>(updateTabletDataFile(fateId, extent, dataFiles,
               new MetadataTime(0, TimeType.LOGICAL), context, zl));
       if (i == extentToSplit) {
         splitDataFiles = storedFiles;

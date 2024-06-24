@@ -16,19 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata;
+package org.apache.accumulo.test.ample;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.tserver.TabletServer;
 
-/**
- * A metadata servicer for user tables.<br>
- * Metadata for user tables are serviced in the metadata table.
- */
-class ServicerForUserTables extends TableMetadataServicer {
-
-  public ServicerForUserTables(ClientContext context, TableId tableId) {
-    super(context, AccumuloTable.METADATA.tableName(), tableId);
+public class FlakyAmpleTserver extends TabletServer {
+  protected FlakyAmpleTserver(ConfigOpts opts, String[] args) {
+    super(opts, FlakyAmpleServerContext::new, args);
   }
 
+  public static void main(String[] args) throws Exception {
+    try (FlakyAmpleTserver tserver = new FlakyAmpleTserver(new ConfigOpts(), args)) {
+      tserver.runServer();
+    }
+  }
 }

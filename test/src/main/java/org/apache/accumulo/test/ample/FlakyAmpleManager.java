@@ -16,18 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata;
+package org.apache.accumulo.test.ample;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
+import java.io.IOException;
 
-/**
- * A metadata servicer for the metadata table (which holds metadata for user tables).<br>
- * The metadata table's metadata is serviced in the root table.
- */
-class ServicerForMetadataTable extends TableMetadataServicer {
+import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.manager.Manager;
 
-  public ServicerForMetadataTable(ClientContext context) {
-    super(context, AccumuloTable.ROOT.tableName(), AccumuloTable.METADATA.tableId());
+public class FlakyAmpleManager extends Manager {
+
+  protected FlakyAmpleManager(ConfigOpts opts, String[] args) throws IOException {
+    super(opts, FlakyAmpleServerContext::new, args);
   }
 
+  public static void main(String[] args) throws Exception {
+    try (FlakyAmpleManager manager = new FlakyAmpleManager(new ConfigOpts(), args)) {
+      manager.runServer();
+    }
+  }
 }
