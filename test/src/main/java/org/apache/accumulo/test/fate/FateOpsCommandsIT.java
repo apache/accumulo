@@ -624,23 +624,17 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // occur causing the cmd to fail. This test ensures that this problem has been fixed (if the
     // tx no longer exists, it should just be ignored so the print/summary can complete).
     FateStore<TestEnv> mockedStore;
-    boolean isUserStore = store.type().equals(FateInstanceType.USER);
 
-    if (isUserStore) {
-      // The NNE can only occur for META transactions. For USER transactions, the transactions are
-      // stored in a table. Transactions can still complete mid-print, but an exception will
-      // not be thrown/need to be ignored. The equivalent for USER transactions would be
-      // the transaction returns an UNKNOWN status. So, we will ensure transactions with
-      // UNKNOWN status' are included in the output and don't cause any errors.
+    // This error was occurring in AdminUtil.getTransactionStatus(). One of the methods that is
+    // called which may throw the NNE is top(), so we will mock this method to sometimes throw a
+    // NNE and ensure it is handled/ignored within getTransactionStatus() and that the rest
+    // of the transactions are returned.
+    if (store.type().equals(FateInstanceType.USER)) {
       Method listMethod = UserFateStore.class.getMethod("list");
       mockedStore =
           EasyMock.createMockBuilder(UserFateStore.class).withConstructor(ClientContext.class)
               .withArgs(sctx).addMockedMethod(listMethod).addMockedMethod("read").createMock();
     } else {
-      // This error was occurring in AdminUtil.getTransactionStatus(). One of the methods that is
-      // called which may throw the NNE is top(), so we will mock this method to sometimes throw a
-      // NNE and ensure it is handled/ignored within getTransactionStatus() and that the rest
-      // of the transactions are returned.
       Method listMethod = MetaFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
           .withConstructor(String.class, ZooReaderWriter.class)
@@ -658,30 +652,21 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
 
     ReadOnlyFateStore.ReadOnlyFateTxStore<TestEnv> mockedFateTxStore1, mockedFateTxStore2,
         mockedFateTxStore3;
-    if (isUserStore) {
-      mockedFateTxStore1 = EasyMock.createMockBuilder(TestFateTxStore.class)
-          .addMockedMethod("getStatus").createMock();
-      mockedFateTxStore2 = EasyMock.createMockBuilder(TestFateTxStore.class)
-          .addMockedMethod("getStatus").createMock();
-      mockedFateTxStore3 = EasyMock.createMockBuilder(TestFateTxStore.class)
-          .addMockedMethod("getStatus").createMock();
+    mockedFateTxStore1 =
+        EasyMock.createMockBuilder(TestFateTxStore.class).addMockedMethod("top").createMock();
+    mockedFateTxStore2 =
+        EasyMock.createMockBuilder(TestFateTxStore.class).addMockedMethod("top").createMock();
+    mockedFateTxStore3 =
+        EasyMock.createMockBuilder(TestFateTxStore.class).addMockedMethod("top").createMock();
 
-      expect(mockedFateTxStore1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.NEW).once();
-      expect(mockedFateTxStore2.getStatus()).andReturn(ReadOnlyFateStore.TStatus.UNKNOWN).once();
-      expect(mockedFateTxStore3.getStatus()).andReturn(ReadOnlyFateStore.TStatus.NEW).once();
-    } else {
-      mockedFateTxStore1 =
-          EasyMock.createMockBuilder(TestFateTxStore.class).addMockedMethod("top").createMock();
-      mockedFateTxStore2 =
-          EasyMock.createMockBuilder(TestFateTxStore.class).addMockedMethod("top").createMock();
-      mockedFateTxStore3 =
-          EasyMock.createMockBuilder(TestFateTxStore.class).addMockedMethod("top").createMock();
-
-      expect(mockedFateTxStore1.top()).andReturn(null).once();
-      expect(mockedFateTxStore2.top())
-          .andThrow(new RuntimeException(new KeeperException.NoNodeException())).once();
-      expect(mockedFateTxStore3.top()).andReturn(null).once();
-    }
+    expect(mockedFateTxStore1.top()).andReturn(null).once();
+    // Technically, the NNE doesn't make sense for UserFateStore, but for the simplicity of the
+    // test and since the NNE is what was causing the print and summary commands to fail (and
+    // nothing equivalent for UserFateStore) we will just make the test the same for both types
+    // of stores.
+    expect(mockedFateTxStore2.top())
+        .andThrow(new RuntimeException(new KeeperException.NoNodeException())).once();
+    expect(mockedFateTxStore3.top()).andReturn(null).once();
 
     expect(mockedStore.read(tx1)).andReturn(mockedFateTxStore1).once();
     expect(mockedStore.read(tx2)).andReturn(mockedFateTxStore2).once();
@@ -703,20 +688,9 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     verify(mockedStore, mockedFateTxStore1, mockedFateTxStore2, mockedFateTxStore3);
     assertNotNull(status);
 
-    if (isUserStore) {
-      assertEquals(3, status.getTransactions().size());
-      assertTrue(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateId)
-          .collect(Collectors.toList()).containsAll(List.of(tx1, tx2, tx3)));
-      assertEquals(
-          status.getTransactions().stream().map(AdminUtil.TransactionStatus::getStatus)
-              .collect(Collectors.toList()),
-          List.of(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.UNKNOWN,
-              ReadOnlyFateStore.TStatus.NEW));
-    } else {
-      assertEquals(2, status.getTransactions().size());
-      assertTrue(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateId)
-          .collect(Collectors.toList()).containsAll(List.of(tx1, tx3)));
-    }
+    assertEquals(2, status.getTransactions().size());
+    assertTrue(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateId)
+        .collect(Collectors.toList()).containsAll(List.of(tx1, tx3)));
   }
 
   private ReadOnlyFateStore.FateIdStatus createFateIdStatus(FateId fateId) {
