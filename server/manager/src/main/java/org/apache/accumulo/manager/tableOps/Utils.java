@@ -56,14 +56,22 @@ public class Utils {
   private static final byte[] ZERO_BYTE = {'0'};
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
-  public static void checkTableDoesNotExist(ServerContext context, String tableName,
+  public static void checkTableNameDoesNotExist(ServerContext context, String tableName,
       TableId tableId, TableOperation operation) throws AcceptableThriftTableOperationException {
 
     try {
-      if (context.getZooReader()
-          .exists(context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId.canonical())) {
-        throw new AcceptableThriftTableOperationException(null, tableName, operation,
-            TableOperationExceptionType.EXISTS, null);
+      for (String tid : context.getZooReader()
+          .getChildren(context.getZooKeeperRoot() + Constants.ZTABLES)) {
+        String zTablePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tid;
+        byte[] tname = context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAME);
+        if (tname == null) {
+          log.warn("Malformed table entry in ZooKeeper at {}", zTablePath);
+          continue;
+        }
+        if (tableName.equals(new String(tname, UTF_8))) {
+          throw new AcceptableThriftTableOperationException(tid, tableName, operation,
+              TableOperationExceptionType.EXISTS, null);
+        }
       }
     } catch (KeeperException | InterruptedException e) {
       log.error("Error checking to see if tableId {} exists in ZooKeeper", tableId, e);
