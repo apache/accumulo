@@ -780,14 +780,18 @@ public class BulkNewIT extends SharedMiniClusterBase {
           TabletAvailability.UNHOSTED);
 
       // verify tablet availabilities are as expected
-      var seenAvailabilites = c.tableOperations().getTabletInformation(tableName, new Range())
-          .collect(Collectors.toMap(ti -> {
-            var er = ti.getTabletId().getEndRow();
-            return er == null ? "NULL" : er.toString();
-          }, TabletInformation::getTabletAvailability));
-      assertEquals(Map.of("0100", TabletAvailability.ONDEMAND, "0200", TabletAvailability.HOSTED,
-          "0300", TabletAvailability.ONDEMAND, "0400", TabletAvailability.HOSTED, "0500",
-          TabletAvailability.UNHOSTED, "NULL", TabletAvailability.UNHOSTED), seenAvailabilites);
+      var expectedAvailabilites =
+          Map.of("0100", TabletAvailability.ONDEMAND, "0200", TabletAvailability.HOSTED, "0300",
+              TabletAvailability.ONDEMAND, "0400", TabletAvailability.HOSTED, "0500",
+              TabletAvailability.UNHOSTED, "NULL", TabletAvailability.UNHOSTED);
+      assertEquals(expectedAvailabilites, getTabletAvailabilities(c, tableName));
+
+      var expectedHosting = expectedAvailabilites.entrySet().stream()
+          .collect(Collectors.toMap(Entry::getKey, e -> e.getValue() == TabletAvailability.HOSTED));
+
+      // Wait for the tablets w/ a TabletAvailability of HOSTED to have a location. Waiting for this
+      // ensures when the bulk import runs that some tablets will be hosted and others will not.
+      Wait.waitFor(() -> getLocationStatus(c, tableName).equals(expectedHosting));
 
       // create files that straddle tables w/ different Availability settings
       writeData(dir + "/f1.", aconf, 0, 150);
@@ -797,6 +801,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
       writeData(dir + "/f5.", aconf, 451, 550);
 
       c.tableOperations().importDirectory(dir).to(tableName).load();
+
+      // Verify bulk import operation did not change anything w.r.t. tablet hosting, should not
+      // cause ondemand tablets to be hosted.
+      assertEquals(expectedAvailabilites, getTabletAvailabilities(c, tableName));
+      assertEquals(expectedHosting, getLocationStatus(c, tableName));
 
       // after import data should be visible
       try (var scanner = c.createScanner(tableName)) {
@@ -818,6 +827,38 @@ public class BulkNewIT extends SharedMiniClusterBase {
             .collect(Collectors.toSet());
         assertEquals(expected, seen);
       }
+    }
+  }
+
+  /**
+   * @return Map w/ keys that are end rows of tablets and the value is a true when the tablet has a
+   *         current location.
+   */
+  private static Map<String,Boolean> getLocationStatus(AccumuloClient c, String tableName)
+      throws Exception {
+    ClientContext ctx = (ClientContext) c;
+    var tableId = ctx.getTableId(tableName);
+    try (var tablets = ctx.getAmple().readTablets().forTable(tableId).build()) {
+      return tablets.stream().collect(Collectors.toMap(tm -> {
+        var er = tm.getExtent().endRow();
+        return er == null ? "NULL" : er.toString();
+      }, tm -> {
+        var loc = tm.getLocation();
+        return loc != null && loc.getType() == TabletMetadata.LocationType.CURRENT;
+      }));
+    }
+  };
+
+  /**
+   * @return Map w/ keys that are end rows of tablets and the value is the tablets availability.
+   */
+  private static Map<String,TabletAvailability> getTabletAvailabilities(AccumuloClient c,
+      String tableName) throws TableNotFoundException {
+    try (var tabletsInfo = c.tableOperations().getTabletInformation(tableName, new Range())) {
+      return tabletsInfo.collect(Collectors.toMap(ti -> {
+        var er = ti.getTabletId().getEndRow();
+        return er == null ? "NULL" : er.toString();
+      }, TabletInformation::getTabletAvailability));
     }
   }
 
