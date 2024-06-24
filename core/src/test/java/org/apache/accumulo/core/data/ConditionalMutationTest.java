@@ -25,18 +25,29 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.HashMap;
 import java.util.List;
 
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.iterators.user.SummingCombiner;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ConditionalMutationTest {
   private static final byte[] ROW = "row".getBytes(UTF_8);
+  private static final String VALUE = "val01";
   private static final String FAMILY = "family";
+  private static final String FAMILY2 = "family2";
+  private static final String FAMILY3 = "family3";
   private static final String QUALIFIER = "qualifier";
   private static final String QUALIFIER2 = "qualifier2";
   private static final String QUALIFIER3 = "qualifier3";
+  private static final ColumnVisibility CVIS1 = new ColumnVisibility("A");
+  private static final ColumnVisibility CVIS2 = new ColumnVisibility("B|C");
+  private static final long TIMESTAMP = 1234567890;
 
   private Condition c1, c2;
   private ConditionalMutation cm;
@@ -114,6 +125,87 @@ public class ConditionalMutationTest {
     assertEquals(c1, cs.get(0));
     assertEquals(c2, cs.get(1));
     assertEquals(c3, cs.get(2));
+  }
+
+  @Test
+  public void testPrettyPrint() {
+    c1 = new Condition(FAMILY, QUALIFIER);
+    cm = new ConditionalMutation(ROW, c1);
+    cm.put("name", "last", CVIS1, "doe");
+    cm.put("name", "first", CVIS1, "john");
+    cm.put("tx", "seq", CVIS1, "1");
+    String pp = cm.prettyPrint();
+    assertTrue(pp.contains("mutation: " + new String(ROW, UTF_8)));
+    assertTrue(pp.contains("update: name:last value doe"));
+    assertTrue(pp.contains("update: name:first value john"));
+    assertTrue(pp.contains("update: tx:seq value 1"));
+    assertTrue(pp.contains("condition: " + FAMILY + ":" + QUALIFIER));
+    assertFalse(pp.contains("value:"));
+    // add a value
+    c1.setValue(VALUE);
+    pp = cm.prettyPrint();
+    assertTrue(pp.contains("condition: " + FAMILY + ":" + QUALIFIER + " value: " + VALUE));
+
+    // multiple conditions
+    c1 = new Condition(FAMILY, QUALIFIER).setValue(VALUE);
+    c2 = new Condition(FAMILY2, QUALIFIER2).setTimestamp(TIMESTAMP);
+    Condition c3 = new Condition(FAMILY3, QUALIFIER3).setVisibility(CVIS1);
+    cm = new ConditionalMutation(ROW, c1, c2, c3);
+    cm.put("name", "last", CVIS1, "doe");
+    cm.put("name", "first", CVIS1, "john");
+    pp = cm.prettyPrint();
+    assertTrue(pp.contains("mutation: " + new String(ROW, UTF_8)));
+    assertTrue(pp.contains("update: name:last value doe"));
+    assertTrue(pp.contains("update: name:first value john"));
+    assertTrue(pp.contains("condition: " + FAMILY + ":" + QUALIFIER + " value: " + VALUE));
+    assertTrue(pp
+        .contains("condition: " + FAMILY2 + ":" + QUALIFIER2 + " timestamp: '" + TIMESTAMP + "'"));
+    assertTrue(pp.contains(
+        "condition: " + FAMILY3 + ":" + QUALIFIER3 + " visibility: '" + c3.getVisibility() + "'"));
+
+    // iterators
+    IteratorSetting is1 = new IteratorSetting(5, VersioningIterator.class);
+    c1.setIterators(is1);
+    cm = new ConditionalMutation(ROW, c1);
+    cm.put("name", "last", CVIS1, "doe");
+    cm.put("name", "first", CVIS1, "john");
+    pp = cm.prettyPrint();
+    assertTrue(pp.contains("mutation: " + new String(ROW, UTF_8)));
+    assertTrue(pp.contains("update: name:last value doe"));
+    assertTrue(pp.contains("update: name:first value john"));
+    IteratorSetting[] iters = c1.getIterators();
+    assertTrue(pp.contains("condition: " + FAMILY + ":" + QUALIFIER + " value: " + VALUE
+        + " iterator: '" + iters[0] + "'"));
+
+    // multiple iterators
+    IteratorSetting is2 = new IteratorSetting(6, SummingCombiner.class);
+    HashMap<String,String> map = new HashMap<>();
+    map.put("prop1", "val1");
+    map.put("prop2", "val2");
+    is2.addOptions(map);
+    c1.setIterators(is1, is2);
+    pp = cm.prettyPrint();
+    assertTrue(pp.contains("mutation: " + new String(ROW, UTF_8)));
+    assertTrue(pp.contains("update: name:last value doe"));
+    assertTrue(pp.contains("update: name:first value john"));
+    iters = c1.getIterators();
+    assertTrue(pp.contains("condition: " + FAMILY + ":" + QUALIFIER + " value: " + VALUE
+        + " iterator: '" + iters[0] + "' '" + iters[1] + "'"));
+
+    // all conditions together
+    c1 = new Condition(FAMILY2, QUALIFIER2).setValue(VALUE).setVisibility(CVIS2)
+        .setTimestamp(TIMESTAMP).setIterators(is2);
+    cm = new ConditionalMutation(ROW, c1);
+    cm.put("name", "last", CVIS1, "doe");
+    cm.put("name", "first", CVIS1, "john");
+    pp = cm.prettyPrint();
+    assertTrue(pp.contains("mutation: " + new String(ROW, UTF_8)));
+    assertTrue(pp.contains("update: name:last value doe"));
+    assertTrue(pp.contains("update: name:first value john"));
+    iters = c1.getIterators();
+    assertTrue(pp.contains("condition: " + FAMILY2 + ":" + QUALIFIER2 + " value: " + VALUE
+        + " visibility: '" + c1.getVisibility() + "' timestamp: '" + TIMESTAMP + "' iterator: '"
+        + iters[0] + "'"));
   }
 
   @Test
