@@ -63,7 +63,12 @@ public class Utils {
       for (String tid : context.getZooReader()
           .getChildren(context.getZooKeeperRoot() + Constants.ZTABLES)) {
         String zTablePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tid;
-        byte[] tname = context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAME);
+        try{
+           byte[] tname = context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAME);
+         } catch(NoNodeException nne){
+             log.trace("ignoring node that was deleted",nne);
+             continue;
+         }
         if (tname == null) {
           log.warn("Malformed table entry in ZooKeeper at {}", zTablePath);
           continue;
