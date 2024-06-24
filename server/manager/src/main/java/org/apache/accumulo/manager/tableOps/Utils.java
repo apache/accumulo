@@ -49,8 +49,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class Utils {
   private static final byte[] ZERO_BYTE = {'0'};
@@ -63,19 +66,17 @@ public class Utils {
       for (String tid : context.getZooReader()
           .getChildren(context.getZooKeeperRoot() + Constants.ZTABLES)) {
         String zTablePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tid;
-        try{
-           byte[] tname = context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAME);
-         } catch(NoNodeException nne){
-             log.trace("ignoring node that was deleted",nne);
-             continue;
-         }
-        if (tname == null) {
-          log.warn("Malformed table entry in ZooKeeper at {}", zTablePath);
+        try {
+          byte[] tname = context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAME);
+          Preconditions.checkState(tname != null, "Malformed table entry in ZooKeeper at %s",
+              zTablePath);
+          if (tableName.equals(new String(tname, UTF_8))) {
+            throw new AcceptableThriftTableOperationException(tid, tableName, operation,
+                TableOperationExceptionType.EXISTS, null);
+          }
+        } catch (NoNodeException nne) {
+          log.trace("skipping tableId {}, either being created or has been deleted.", tid, nne);
           continue;
-        }
-        if (tableName.equals(new String(tname, UTF_8))) {
-          throw new AcceptableThriftTableOperationException(tid, tableName, operation,
-              TableOperationExceptionType.EXISTS, null);
         }
       }
     } catch (KeeperException | InterruptedException e) {
