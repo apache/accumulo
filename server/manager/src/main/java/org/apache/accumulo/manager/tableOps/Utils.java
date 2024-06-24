@@ -51,22 +51,42 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class Utils {
   private static final byte[] ZERO_BYTE = {'0'};
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
-  public static void checkTableDoesNotExist(ServerContext context, String tableName,
+  public static void checkTableNameDoesNotExist(ServerContext context, String tableName,
       TableId tableId, TableOperation operation) throws AcceptableThriftTableOperationException {
 
-    TableId id = context.getTableNameToIdMap().get(tableName);
-
-    if (id != null && !id.equals(tableId)) {
-      throw new AcceptableThriftTableOperationException(null, tableName, operation,
-          TableOperationExceptionType.EXISTS, null);
+    try {
+      for (String tid : context.getZooReader()
+          .getChildren(context.getZooKeeperRoot() + Constants.ZTABLES)) {
+        String zTablePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tid;
+        try {
+          byte[] tname = context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAME);
+          Preconditions.checkState(tname != null, "Malformed table entry in ZooKeeper at %s",
+              zTablePath);
+          if (tableName.equals(new String(tname, UTF_8))) {
+            throw new AcceptableThriftTableOperationException(tid, tableName, operation,
+                TableOperationExceptionType.EXISTS, null);
+          }
+        } catch (NoNodeException nne) {
+          log.trace("skipping tableId {}, either being created or has been deleted.", tid, nne);
+          continue;
+        }
+      }
+    } catch (KeeperException | InterruptedException e) {
+      log.error("Error checking to see if tableId {} exists in ZooKeeper", tableId, e);
+      throw new AcceptableThriftTableOperationException(null, tableName, TableOperation.CREATE,
+          TableOperationExceptionType.OTHER, e.getMessage());
     }
+
   }
 
   public static <T extends AbstractId<T>> T getNextId(String name, ServerContext context,

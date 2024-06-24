@@ -519,7 +519,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       migrationsFromLastPass.put(migration.getTablet(), migration);
     }
 
-    LOG.info("Migrating tablets for balance: {}", migrationsOut);
+    LOG.info("Migrating {} tablets for balance.", migrationsOut.size());
+    LOG.debug("Tablets currently migrating: {}", migrationsOut);
     return minBalanceTime;
   }
 
