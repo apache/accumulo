@@ -57,6 +57,12 @@ public class TabletOperationId extends AbstractId<TabletOperationId> {
     return TabletOperationType.valueOf(fields[0]);
   }
 
+  public FateId getFateId() {
+    var fields = canonical().split(":", 2);
+    Preconditions.checkState(fields.length == 2);
+    return FateId.from(fields[1]);
+  }
+
   public static TabletOperationId from(String opid) {
     return new TabletOperationId(validate(opid));
   }
@@ -64,4 +70,5 @@ public class TabletOperationId extends AbstractId<TabletOperationId> {
   public static TabletOperationId from(TabletOperationType type, FateId fateId) {
     return new TabletOperationId(type + ":" + fateId);
   }
+
 }
