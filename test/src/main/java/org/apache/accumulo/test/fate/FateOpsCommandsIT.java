@@ -29,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -38,7 +37,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -57,15 +55,12 @@ import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
-import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -78,7 +73,6 @@ import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.zookeeper.KeeperException;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -618,79 +612,76 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
   protected void testFatePrintAndSummaryCommandsWithInProgressTxns(FateStore<TestEnv> store,
       ServerContext sctx) throws Exception {
     // This test was written for an issue with the 'admin fate --print' and 'admin fate --summary'
-    // commands where ZK NoNodeExceptions could occur. These commands first get a list of the
-    // transactions and then probe for info on these transactions. If a transaction completes
-    // between getting the list and probing for info on that transaction, a NoNodeException would
-    // occur causing the cmd to fail. This test ensures that this problem has been fixed (if the
-    // tx no longer exists, it should just be ignored so the print/summary can complete).
+    // commands where transactions could complete mid-print causing the command to fail. These
+    // commands first get a list of the transactions and then probe for info on the transactions.
+    // If a transaction completed between getting the list and probing for info on that
+    // transaction, the command would fail. This test ensures that this problem has been fixed
+    // (if the tx no longer exists, it should just be ignored so the print/summary can complete).
     FateStore<TestEnv> mockedStore;
 
-    // This error was occurring in AdminUtil.getTransactionStatus(). One of the methods that is
-    // called which may throw the NNE is top(), so we will mock this method to sometimes throw a
-    // NNE and ensure it is handled/ignored within getTransactionStatus() and that the rest
-    // of the transactions are returned.
+    // This error was occurring in AdminUtil.getTransactionStatus(), so we will test this method.
     if (store.type().equals(FateInstanceType.USER)) {
       Method listMethod = UserFateStore.class.getMethod("list");
       mockedStore =
           EasyMock.createMockBuilder(UserFateStore.class).withConstructor(ClientContext.class)
-              .withArgs(sctx).addMockedMethod(listMethod).addMockedMethod("read").createMock();
+              .withArgs(sctx).addMockedMethod(listMethod).createMock();
     } else {
       Method listMethod = MetaFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
           .withConstructor(String.class, ZooReaderWriter.class)
           .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter())
-          .addMockedMethod(listMethod).addMockedMethod("read").createMock();
+          .addMockedMethod(listMethod).createMock();
     }
 
-    FateId tx1 = mockedStore.create();
-    FateId tx2 = mockedStore.create();
-    FateId tx3 = mockedStore.create();
-    // Mock list() to ensure same order every run
+    // 3 FateIds, two that exist and one that does not. We are simulating that a transaction that
+    // doesn't exist is accessed in getTransactionStatus() and ensuring that this doesn't cause
+    // the method to fail or have any unexpected behavior.
+    FateId tx1 = store.create();
+    FateId tx2 = FateId.from(store.type(), UUID.randomUUID());
+    FateId tx3 = store.create();
+
     List<ReadOnlyFateStore.FateIdStatus> fateIdStatusList =
         List.of(createFateIdStatus(tx1), createFateIdStatus(tx2), createFateIdStatus(tx3));
     expect(mockedStore.list()).andReturn(fateIdStatusList.stream()).once();
 
-    ReadOnlyFateStore.ReadOnlyFateTxStore<TestEnv> mockedFateTxStore1, mockedFateTxStore2,
-        mockedFateTxStore3;
-    mockedFateTxStore1 =
-        EasyMock.createMockBuilder(TestFateTxStore.class).addMockedMethod("top").createMock();
-    mockedFateTxStore2 =
-        EasyMock.createMockBuilder(TestFateTxStore.class).addMockedMethod("top").createMock();
-    mockedFateTxStore3 =
-        EasyMock.createMockBuilder(TestFateTxStore.class).addMockedMethod("top").createMock();
-
-    expect(mockedFateTxStore1.top()).andReturn(null).once();
-    // Technically, the NNE doesn't make sense for UserFateStore, but for the simplicity of the
-    // test and since the NNE is what was causing the print and summary commands to fail (and
-    // nothing equivalent for UserFateStore) we will just make the test the same for both types
-    // of stores.
-    expect(mockedFateTxStore2.top())
-        .andThrow(new RuntimeException(new KeeperException.NoNodeException())).once();
-    expect(mockedFateTxStore3.top()).andReturn(null).once();
-
-    expect(mockedStore.read(tx1)).andReturn(mockedFateTxStore1).once();
-    expect(mockedStore.read(tx2)).andReturn(mockedFateTxStore2).once();
-    expect(mockedStore.read(tx3)).andReturn(mockedFateTxStore3).once();
-
-    replay(mockedStore, mockedFateTxStore1, mockedFateTxStore2, mockedFateTxStore3);
+    replay(mockedStore);
 
     AdminUtil.FateStatus status = null;
     try {
       status = AdminUtil.getTransactionStatus(Map.of(store.type(), mockedStore), null, null, null,
           new HashMap<>(), new HashMap<>());
     } catch (Exception e) {
-      fail(
-          "Either an unexpected error occurred in getTransactionStatus() or the NoNodeException which"
-              + " is expected to be handled in getTransactionStatus() was not handled. Error:\n"
-              + e);
+      fail("An unexpected error occurred in getTransactionStatus():\n" + e);
     }
 
-    verify(mockedStore, mockedFateTxStore1, mockedFateTxStore2, mockedFateTxStore3);
-    assertNotNull(status);
+    verify(mockedStore);
 
-    assertEquals(2, status.getTransactions().size());
-    assertTrue(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateId)
-        .collect(Collectors.toList()).containsAll(List.of(tx1, tx3)));
+    assertNotNull(status);
+    // All three should be returned
+    assertEquals(3, status.getTransactions().size());
+    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateId)
+        .collect(Collectors.toList()), List.of(tx1, tx2, tx3));
+    // The two real FateIds should have NEW status and the fake one should be UNKNOWN
+    assertEquals(
+        status.getTransactions().stream().map(AdminUtil.TransactionStatus::getStatus)
+            .collect(Collectors.toList()),
+        List.of(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.UNKNOWN,
+            ReadOnlyFateStore.TStatus.NEW));
+    // None of them should have a name since none of them were seeded with work
+    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTxName)
+        .collect(Collectors.toList()), Arrays.asList(null, null, null));
+    // None of them should have a Repo since none of them were seeded with work
+    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTop)
+        .collect(Collectors.toList()), Arrays.asList(null, null, null));
+    // The FateId that doesn't exist should have a creation time of 0, the others should not
+    List<Long> timeCreated = status.getTransactions().stream()
+        .map(AdminUtil.TransactionStatus::getTimeCreated).collect(Collectors.toList());
+    assertNotEquals(timeCreated.get(0), 0);
+    assertEquals(timeCreated.get(1), 0);
+    assertNotEquals(timeCreated.get(2), 0);
+    // All should have the store.type() type
+    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getInstanceType)
+        .collect(Collectors.toList()), List.of(store.type(), store.type(), store.type()));
   }
 
   private ReadOnlyFateStore.FateIdStatus createFateIdStatus(FateId fateId) {
@@ -780,54 +771,5 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       return false;
     }
     return true;
-  }
-
-  private static class TestFateTxStore implements ReadOnlyFateStore.ReadOnlyFateTxStore<TestEnv> {
-
-    @Override
-    public ReadOnlyRepo<TestEnv> top() {
-      return null;
-    }
-
-    @Override
-    public List<ReadOnlyRepo<TestEnv>> getStack() {
-      return null;
-    }
-
-    @Override
-    public ReadOnlyFateStore.TStatus getStatus() {
-      return null;
-    }
-
-    @Override
-    public Optional<FateKey> getKey() {
-      return Optional.empty();
-    }
-
-    @Override
-    public Pair<ReadOnlyFateStore.TStatus,Optional<FateKey>> getStatusAndKey() {
-      return null;
-    }
-
-    @Override
-    public ReadOnlyFateStore.TStatus
-        waitForStatusChange(EnumSet<ReadOnlyFateStore.TStatus> expected) {
-      return null;
-    }
-
-    @Override
-    public Serializable getTransactionInfo(Fate.TxInfo txInfo) {
-      return null;
-    }
-
-    @Override
-    public long timeCreated() {
-      return 0;
-    }
-
-    @Override
-    public FateId getID() {
-      return null;
-    }
   }
 }
