@@ -35,6 +35,7 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -55,6 +56,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -440,6 +442,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return _exec(Main.class, serverType, configOverrides, modifiedArgs);
   }
 
+  private static final long RANDOM_ID = new SecureRandom().nextLong();
+  private static AtomicInteger processCounter = new AtomicInteger(0);
+
+
   public ProcessInfo _exec(Class<?> clazz, ServerType serverType,
       Map<String,String> configOverrides, String... args) throws IOException {
     List<String> jvmOpts = new ArrayList<>();
@@ -448,6 +454,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       // and won't work with reload4j or log4j2
       jvmOpts.add("-Dzookeeper.jmx.log4j.disable=true");
     }
+
+    if(System.getenv("MAC_JACOCO") != null) {
+      var MAC_JACOCO = System.getenv("MAC_JACOCO");
+      var processName = String.format("%s-%016x-%03d", serverType.name().toLowerCase(), RANDOM_ID, processCounter.incrementAndGet());
+      jvmOpts.add(MAC_JACOCO.replace("processName", processName));
+    }
+
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
     if (configOverrides != null && !configOverrides.isEmpty()) {
       File siteFile =
