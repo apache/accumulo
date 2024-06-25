@@ -67,6 +67,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
@@ -493,32 +495,42 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Map<KeyExtent,List<Text>> tabletSplits =
           mapSplitsToTablets(tableName, tableId, tabLocator, splitsTodo);
 
-      ArrayList<Pair<TFateId,List<Text>>> opids = new ArrayList<>(tabletSplits.size());
+      List<CompletableFuture<Pair<TFateId,List<Text>>>> futures = new ArrayList<>();
 
       final ByteBuffer EMPTY = ByteBuffer.allocate(0);
 
+      ExecutorService executor =
+          context.threadPools().getPoolBuilder("addSplits").numCoreThreads(16).build();
+
       // begin the fate operation for each tablet without waiting for the operation to complete
       for (Entry<KeyExtent,List<Text>> splitsForTablet : tabletSplits.entrySet()) {
-        var extent = splitsForTablet.getKey();
+        CompletableFuture<Pair<TFateId,List<Text>>> future = CompletableFuture.supplyAsync(() -> {
+          var extent = splitsForTablet.getKey();
 
-        List<ByteBuffer> args = new ArrayList<>();
-        args.add(ByteBuffer.wrap(extent.tableId().canonical().getBytes(UTF_8)));
-        args.add(extent.endRow() == null ? EMPTY : TextUtil.getByteBuffer(extent.endRow()));
-        args.add(extent.prevEndRow() == null ? EMPTY : TextUtil.getByteBuffer(extent.prevEndRow()));
-        splitsForTablet.getValue().forEach(split -> args.add(TextUtil.getByteBuffer(split)));
+          List<ByteBuffer> args = new ArrayList<>();
+          args.add(ByteBuffer.wrap(extent.tableId().canonical().getBytes(UTF_8)));
+          args.add(extent.endRow() == null ? EMPTY : TextUtil.getByteBuffer(extent.endRow()));
+          args.add(
+              extent.prevEndRow() == null ? EMPTY : TextUtil.getByteBuffer(extent.prevEndRow()));
+          splitsForTablet.getValue().forEach(split -> args.add(TextUtil.getByteBuffer(split)));
 
-        try {
-          handleFateOperation(() -> {
-            TFateInstanceType t = FateInstanceType.fromNamespaceOrTableName(tableName).toThrift();
-            TFateId opid = beginFateOperation(t);
-            executeFateOperation(opid, FateOperation.TABLE_SPLIT, args, Map.of(), false);
-            opids.add(new Pair<>(opid, splitsForTablet.getValue()));
-            return null;
-          }, tableName);
-        } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException e) {
-          throw new RuntimeException(e);
-        }
+          try {
+            return handleFateOperation(() -> {
+              TFateInstanceType t = FateInstanceType.fromNamespaceOrTableName(tableName).toThrift();
+              TFateId opid = beginFateOperation(t);
+              executeFateOperation(opid, FateOperation.TABLE_SPLIT, args, Map.of(), false);
+              return new Pair<>(opid, splitsForTablet.getValue());
+            }, tableName);
+          } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException
+              | AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
+            throw new RuntimeException(e);
+          }
+        }, executor);
+        futures.add(future);
       }
+
+      List<Pair<TFateId,List<Text>>> opids =
+          futures.stream().map(CompletableFuture::join).collect(Collectors.toList());
 
       // after all operations have been started, wait for them to complete
       for (Pair<TFateId,List<Text>> entry : opids) {
