@@ -529,11 +529,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
         futures.add(future);
       }
 
-      List<Pair<TFateId,List<Text>>> opids =
-          futures.stream().map(CompletableFuture::join).collect(Collectors.toList());
-
       // after all operations have been started, wait for them to complete
-      for (Pair<TFateId,List<Text>> entry : opids) {
+      for (CompletableFuture<Pair<TFateId,List<Text>>> future : futures) {
+        Pair<TFateId,List<Text>> entry = future.join();
         final TFateId opid = entry.getFirst();
         final List<Text> completedSplits = entry.getSecond();
 
