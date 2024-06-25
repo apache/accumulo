@@ -151,7 +151,16 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
    * time an assignment scan was started.
    */
   synchronized boolean isSameTserversAsLastScan(Set<TServerInstance> candidates) {
-    return candidates.equals(lastScanServers);
+    boolean same = candidates.equals(lastScanServers);
+    if (!same && Manager.log.isTraceEnabled()) {
+      Manager.log.trace("{} set difference candidates-lastScanServers : {}", store.name(),
+          Sets.difference(candidates, lastScanServers));
+      Manager.log.trace("{} set difference lastScanServers-candidates : {}", store.name(),
+          Sets.difference(lastScanServers, candidates));
+      Manager.log.trace("{} set intersection(lastScanServers,candidates) size : {}", store.name(),
+          Sets.intersection(lastScanServers, candidates).size());
+    }
+    return same;
   }
 
   /**
