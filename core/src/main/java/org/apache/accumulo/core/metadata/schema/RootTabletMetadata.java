@@ -33,13 +33,16 @@ import java.util.TreeMap;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * This class is used to serialize and deserialize root tablet metadata using GSon. The only data
@@ -57,6 +60,27 @@ public class RootTabletMetadata {
   };
 
   private static final int VERSION = 1;
+
+  public static String zooPath(ClientContext ctx) {
+    return ctx.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
+  }
+
+  /**
+   * Reads the tablet metadata for the root tablet from zookeeper
+   */
+  public static RootTabletMetadata read(ClientContext ctx) {
+    try {
+      final String zpath = zooPath(ctx);
+      ZooReader zooReader = ctx.getZooReader();
+      // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from
+      // zookeeper
+      zooReader.sync(zpath);
+      byte[] bytes = zooReader.getData(zpath);
+      return new RootTabletMetadata(new String(bytes, UTF_8));
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
+  }
 
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
@@ -187,5 +211,4 @@ public class RootTabletMetadata {
   public String toJson() {
     return GSON.get().toJson(data);
   }
-
 }

@@ -545,17 +545,4 @@ public class MetadataSchema {
     }
 
   }
-
-  public static class ScanServerFileReferenceSection {
-    private static final Section section =
-        new Section(RESERVED_PREFIX + "sserv", true, RESERVED_PREFIX + "sserx", false);
-
-    public static Range getRange() {
-      return section.getRange();
-    }
-
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
-    }
-  }
 }

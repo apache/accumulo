@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13.OLD_PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13.SPLIT_RATIO_COLUMN;
 
@@ -29,9 +30,13 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -40,6 +45,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -203,7 +209,7 @@ public class SplitRecovery12to13 {
     Mutation m = TabletsSection.TabletColumnFamily.createPrevRowMutation(ke);
     SPLIT_RATIO_COLUMN.putDelete(m);
     OLD_PREV_ROW_COLUMN.putDelete(m);
-    MetadataTableUtil.update(context, null, m, KeyExtent.fromMetaRow(metadataEntry));
+    update(context, null, m, KeyExtent.fromMetaRow(metadataEntry));
   }
 
   public static void splitTablet(KeyExtent extent, Text oldPrevEndRow, double splitRatio,
@@ -217,7 +223,7 @@ public class SplitRecovery12to13 {
     ecids.forEach(ecid -> m.putDelete(TabletsSection.ExternalCompactionColumnFamily.STR_NAME,
         ecid.canonical()));
 
-    MetadataTableUtil.update(context, null, m, extent);
+    update(context, null, m, extent);
   }
 
   public static void finishSplit(Text metadataEntry,
@@ -236,7 +242,7 @@ public class SplitRecovery12to13 {
       m.putDelete(DataFileColumnFamily.NAME, pathToRemove.getMetadataText());
     }
 
-    MetadataTableUtil.update(context, null, m, KeyExtent.fromMetaRow(metadataEntry));
+    update(context, null, m, KeyExtent.fromMetaRow(metadataEntry));
   }
 
   public static void finishSplit(KeyExtent extent,
@@ -245,4 +251,34 @@ public class SplitRecovery12to13 {
     finishSplit(extent.toMetaRow(), datafileSizes, highDatafilesToRemove, context);
   }
 
+  public static void update(ServerContext context, ServiceLock zooLock, Mutation m,
+      KeyExtent extent) {
+
+    if (zooLock != null) {
+      MetadataTableUtil.putLockID(context, zooLock, m);
+    }
+
+    String metaTable = Ample.DataLevel.of(extent.tableId()).metaTable();
+    while (true) {
+      try (BatchWriter writer = context.createBatchWriter(metaTable)) {
+        writer.addMutation(m);
+        writer.flush();
+        return;
+      } catch (MutationsRejectedException e) {
+
+        if (!e.getConstraintViolationSummaries().isEmpty()) {
+          // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
+          throw new IllegalArgumentException(e);
+        }
+      } catch (TableNotFoundException e) {
+        logUpdateFailure(m, extent, e);
+      }
+
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
+    }
+  }
+
+  private static void logUpdateFailure(Mutation m, KeyExtent extent, Exception e) {
+    log.error("Failed to write metadata updates for extent {} {}", extent, m.prettyPrint(), e);
+  }
 }

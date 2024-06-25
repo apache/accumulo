@@ -108,21 +108,6 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public String getInstanceId() {
-    return context.getInstanceID().canonical();
-  }
-
-  @Override
-  public String getRootTabletLocation() {
-    return context.getRootTabletLocation();
-  }
-
-  @Override
-  public String getZooKeepers() {
-    return context.getZooKeepers();
-  }
-
-  @Override
   public void ping(TCredentials credentials) {
     // anybody can call this; no authentication check
     log.info("Manager reports: I just got pinged!");
@@ -208,12 +193,11 @@ public class ClientServiceHandler implements ClientService.Iface {
     NamespaceId namespaceId;
     try {
       namespaceId = context.getNamespaceId(tableId);
+      security.grantTablePermission(credentials, user, tableId, tableName,
+          TablePermission.getPermissionById(permission), namespaceId);
     } catch (TableNotFoundException e) {
       throw new TException(e);
     }
-
-    security.grantTablePermission(credentials, user, tableId,
-        TablePermission.getPermissionById(permission), namespaceId);
   }
 
   @Override

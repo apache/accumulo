@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.compaction;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
@@ -34,7 +35,9 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -44,6 +47,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil;
@@ -82,6 +87,7 @@ import com.google.common.net.HostAndPort;
 public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ExternalCompactionProgressIT.class);
   private static final int ROWS = 10_000;
+  public static final int CHECKER_THREAD_SLEEP_MS = 1_000;
 
   enum EC_PROGRESS {
     STARTED, QUARTER, HALF, THREE_QUARTERS, INVALID
@@ -121,21 +127,37 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
     cfg.setSystemProperties(sysProps);
   }
 
+  private static long computeBusyCount(String resourceGroup,
+      ConcurrentHashMap<String,Long> compactorBusy) {
+    var stats =
+        compactorBusy.entrySet().stream().filter(e -> e.getKey().startsWith(resourceGroup + ":"))
+            .mapToLong(Map.Entry::getValue).summaryStatistics();
+    if (stats.getCount() == 0) {
+      // signifies nothing was present, this differentiates between the case where things are
+      // present w/ a zero value
+      return -1;
+    }
+    return stats.getSum();
+  }
+
   @Test
   public void testProgressViaMetrics() throws Exception {
     String table = this.getUniqueNames(1)[0];
+
+    final AtomicLong totalEntriesRead = new AtomicLong(0);
+    final AtomicLong totalEntriesWritten = new AtomicLong(0);
+    final ConcurrentHashMap<String,Long> compactorBusy = new ConcurrentHashMap<>();
+    final long expectedEntriesRead = 18432;
+    final long expectedEntriesWritten = 13312;
+
+    Thread checkerThread =
+        getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten, compactorBusy);
 
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       createTable(client, table, "cs1");
       writeData(client, table, ROWS);
 
-      final long expectedEntriesRead = 18432;
-      final long expectedEntriesWritten = 13312;
-      final AtomicLong totalEntriesRead = new AtomicLong(0);
-      final AtomicLong totalEntriesWritten = new AtomicLong(0);
-
-      Thread checkerThread = getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten);
       checkerThread.start();
 
       IteratorSetting setting = new IteratorSetting(50, "Slow", SlowIterator.class);
@@ -143,9 +165,15 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       client.tableOperations().attachIterator(table, setting,
           EnumSet.of(IteratorUtil.IteratorScope.majc));
       log.info("Compacting table");
-      compact(client, table, 2, GROUP1, true);
-      log.info("Done Compacting table");
-      verify(client, table, 2, ROWS);
+
+      Wait.waitFor(() -> computeBusyCount(GROUP1, compactorBusy) == 0, 30_000,
+          CHECKER_THREAD_SLEEP_MS, "Compactor busy metric should be false initially");
+
+      compact(client, table, 2, GROUP1, false);
+
+      Wait.waitFor(() -> computeBusyCount(GROUP1, compactorBusy) == 1, 30_000,
+          CHECKER_THREAD_SLEEP_MS,
+          "Compactor busy metric should be true after starting compaction");
 
       Wait.waitFor(() -> {
         if (totalEntriesRead.get() == expectedEntriesRead
@@ -157,45 +185,66 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
             expectedEntriesRead, totalEntriesRead.get(), expectedEntriesWritten,
             totalEntriesWritten.get());
         return false;
-      }, 30000, 3000, "Entries read and written metrics values did not match expected values");
+      }, 30_000, CHECKER_THREAD_SLEEP_MS,
+          "Entries read and written metrics values did not match expected values");
 
+      Wait.waitFor(() -> computeBusyCount(GROUP1, compactorBusy) == 0, 30_000,
+          CHECKER_THREAD_SLEEP_MS,
+          "Compactor busy metric should be false once compaction completes");
+
+      log.info("Done Compacting table");
+      verify(client, table, 2, ROWS);
+    } finally {
       stopCheckerThread.set(true);
       checkerThread.join();
     }
   }
 
   /**
-   * Get a thread that checks the metrics for entries read and written.
+   * Pulls metrics from the configured sink and updates the provided variables.
    *
    * @param totalEntriesRead this is set to the value of the entries read metric
    * @param totalEntriesWritten this is set to the value of the entries written metric
+   * @param compactorBusy this is set to the value of the compactor busy metric
    */
   private static Thread getMetricsCheckerThread(AtomicLong totalEntriesRead,
-      AtomicLong totalEntriesWritten) {
+      AtomicLong totalEntriesWritten, ConcurrentHashMap<String,Long> compactorBusy) {
     return Threads.createThread("metric-tailer", () -> {
       log.info("Starting metric tailer");
 
       sink.getLines().clear();
 
-      while (!stopCheckerThread.get()) {
+      out: while (!stopCheckerThread.get()) {
         List<String> statsDMetrics = sink.getLines();
         for (String s : statsDMetrics) {
           if (stopCheckerThread.get()) {
-            break;
+            break out;
           }
-          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_ENTRIES_READ)) {
-            TestStatsDSink.Metric e = TestStatsDSink.parseStatsDMetric(s);
-            int value = Integer.parseInt(e.getValue());
-            totalEntriesRead.addAndGet(value);
-            log.info("Found entries.read metric: {} with value: {}", e.getName(), value);
-          } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_ENTRIES_WRITTEN)) {
-            TestStatsDSink.Metric e = TestStatsDSink.parseStatsDMetric(s);
-            int value = Integer.parseInt(e.getValue());
-            totalEntriesWritten.addAndGet(value);
-            log.info("Found entries.written metric: {} with value: {}", e.getName(), value);
+          TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(s);
+          if (!metric.getName().startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX)) {
+            continue;
+          }
+          int value = Integer.parseInt(metric.getValue());
+          log.debug("Found metric: {} with value: {}", metric.getName(), value);
+          switch (metric.getName()) {
+            case MetricsProducer.METRICS_COMPACTOR_ENTRIES_READ:
+              totalEntriesRead.addAndGet(value);
+              break;
+            case MetricsProducer.METRICS_COMPACTOR_ENTRIES_WRITTEN:
+              totalEntriesWritten.addAndGet(value);
+              break;
+            case MetricsProducer.METRICS_COMPACTOR_BUSY:
+              // expect these tags to be present, so have the test fail w/ NPE if they are not
+              var host = Objects.requireNonNull(metric.getTags().get("host"));
+              var port = Objects.requireNonNull(metric.getTags().get("port"));
+              var resourceGroup = Objects.requireNonNull(metric.getTags().get("resource.group"));
+              var key = resourceGroup + ":" + host + ":" + port;
+              log.debug("setting busy count {} {}", key, value);
+              compactorBusy.put(key, (long) value);
+              break;
           }
         }
-        sleepUninterruptibly(3000, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(CHECKER_THREAD_SLEEP_MS, TimeUnit.MILLISECONDS);
       }
       log.info("Metric tailer thread finished");
     });
@@ -299,12 +348,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       try {
         while (!stopCheckerThread.get()) {
           checkRunning();
-          try {
-            Thread.sleep(1000);
-          } catch (InterruptedException ex) {
-            log.debug("interrupted during sleep, forcing compaction finished as completed");
-            stopCheckerThread.set(true);
-          }
+          sleepUninterruptibly(CHECKER_THREAD_SLEEP_MS, TimeUnit.MILLISECONDS);
         }
       } catch (TException e) {
         log.warn("{}", e.getMessage(), e);
@@ -316,20 +360,21 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
    * Check running compaction progress.
    */
   private void checkRunning() throws TException {
-
     ServerContext ctx = getCluster().getServerContext();
     Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
 
-    var ecList = getRunningCompactions(ctx, coordinatorHost);
-    var ecMap = ecList.getCompactions();
+    TExternalCompactionList ecList = getRunningCompactions(ctx, coordinatorHost);
+    Map<String,TExternalCompaction> ecMap = ecList.getCompactions();
     if (ecMap != null) {
       ecMap.forEach((ecid, ec) -> {
         // returns null if it's a new mapping
         RunningCompactionInfo rci = new RunningCompactionInfo(ec);
         RunningCompactionInfo previousRci = runningMap.put(ecid, rci);
+        log.debug("ECID {} has been running for {} seconds", ecid,
+            NANOSECONDS.toSeconds(rci.duration));
         if (previousRci == null) {
           log.debug("New ECID {} with inputFiles: {}", ecid, rci.numFiles);
         } else {

@@ -212,10 +212,7 @@ public class Fate<T> {
     private void execute(final FateTxStore<T> txStore, final ExecutionState state)
         throws Exception {
       while (state.op != null && state.deferTime == 0) {
-        var startTime = NanoTime.now();
-        state.deferTime = state.op.isReady(txStore.getID(), environment);
-        log.debug("Running {}.isReady() {} took {} ms and returned {}", state.op.getName(),
-            txStore.getID(), startTime.elapsed().toMillis(), state.deferTime);
+        state.deferTime = executeIsReady(txStore.getID(), state.op);
 
         if (state.deferTime == 0) {
           if (state.status == SUBMITTED) {
@@ -224,11 +221,7 @@ public class Fate<T> {
           }
 
           state.prevOp = state.op;
-          startTime = NanoTime.now();
-          state.op = state.op.call(txStore.getID(), environment);
-          log.debug("Running {}.call() {} took {} ms and returned {}", state.prevOp.getName(),
-              txStore.getID(), startTime.elapsed().toMillis(),
-              state.op == null ? "null" : state.op.getName());
+          state.op = executeCall(txStore.getID(), state.op);
 
           if (state.op != null) {
             // persist the completion of this step before starting to run the next so in the case of
@@ -315,6 +308,23 @@ public class Fate<T> {
       }
     }
 
+  }
+
+  protected long executeIsReady(FateId fateId, Repo<T> op) throws Exception {
+    var startTime = NanoTime.now();
+    var deferTime = op.isReady(fateId, environment);
+    log.debug("Running {}.isReady() {} took {} ms and returned {}", op.getName(), fateId,
+        startTime.elapsed().toMillis(), deferTime);
+    return deferTime;
+  }
+
+  protected Repo<T> executeCall(FateId fateId, Repo<T> op) throws Exception {
+    var startTime = NanoTime.now();
+    var next = op.call(fateId, environment);
+    log.debug("Running {}.call() {} took {} ms and returned {}", op.getName(), fateId,
+        startTime.elapsed().toMillis(), next == null ? "null" : next.getName());
+
+    return next;
   }
 
   /**

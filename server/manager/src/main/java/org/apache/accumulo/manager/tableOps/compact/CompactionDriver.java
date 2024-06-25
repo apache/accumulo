@@ -46,6 +46,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -111,6 +112,11 @@ class CompactionDriver extends ManagerRepo {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OTHER,
           TableOperationsImpl.TABLE_DELETED_MSG);
+    }
+
+    if (manager.getContext().getTableState(tableId) != TableState.ONLINE) {
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
+          TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, "The table is not online.");
     }
 
     long t1 = System.currentTimeMillis();

@@ -23,20 +23,14 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedSet;
 
-import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -44,7 +38,6 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,15 +82,6 @@ public class PreSplit extends ManagerRepo {
         return 1000;
       }
     } else {
-      // do not set the operation id on the tablet if the table is offline
-      if (manager.getContext().getTableState(splitInfo.getOriginal().tableId())
-          != TableState.ONLINE) {
-        throw new AcceptableThriftTableOperationException(
-            splitInfo.getOriginal().tableId().canonical(), null, TableOperation.SPLIT,
-            TableOperationExceptionType.OFFLINE,
-            "Unable to split tablet because the table is offline");
-      }
-
       try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
 
         tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireAbsentOperation()
@@ -155,18 +139,7 @@ public class PreSplit extends ManagerRepo {
         "Tablet unexpectedly had walogs %s %s %s", fateId, tabletMetadata.getLogs(),
         tabletMetadata.getExtent());
 
-    // Create the dir name here for the next step. If the next step fails it will always have the
-    // same dir name each time it runs again making it idempotent.
-
-    List<String> dirs = new ArrayList<>();
-
-    splitInfo.getSplits().forEach(split -> {
-      String dirName = TabletNameGenerator.createTabletDirectoryName(manager.getContext(), split);
-      dirs.add(dirName);
-      log.trace("{} allocated dir name {}", fateId, dirName);
-    });
-
-    return new UpdateTablets(splitInfo, dirs);
+    return new AllocateDirsAndEnsureOnline(splitInfo);
   }
 
   @Override

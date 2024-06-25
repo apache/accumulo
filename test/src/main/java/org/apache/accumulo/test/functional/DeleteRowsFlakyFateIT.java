@@ -16,33 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata;
+package org.apache.accumulo.test.functional;
 
-import java.util.SortedMap;
-
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.fate.FlakyFateManager;
+import org.apache.hadoop.conf.Configuration;
 
 /**
- * A metadata servicer for the root table.<br>
- * The root table's metadata is serviced in zookeeper.
+ * Run all delete rows using {@link org.apache.accumulo.test.fate.FlakyFate} to verify delete rows
+ * fate steps are idempotent.
  */
-class ServicerForRootTable extends MetadataServicer {
-
-  private final ClientContext context;
-
-  public ServicerForRootTable(ClientContext context) {
-    this.context = context;
-  }
-
+public class DeleteRowsFlakyFateIT extends DeleteRowsIT {
   @Override
-  public TableId getServicedTableId() {
-    return AccumuloTable.ROOT.tableId();
-  }
-
-  @Override
-  public void getTabletLocations(SortedMap<KeyExtent,String> tablets) {
-    tablets.put(RootTable.EXTENT, context.getRootTabletLocation());
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setServerClass(ServerType.MANAGER, FlakyFateManager.class);
   }
 }

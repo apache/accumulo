@@ -20,13 +20,16 @@ package org.apache.accumulo.core.fate;
 
 import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.FateCleaner.TimeSource;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.Test;
 
@@ -36,10 +39,9 @@ public class FateCleanerTest {
     long time = 0;
 
     @Override
-    public long currentTimeNanos() {
-      return time;
+    public SteadyTime steadyTime() {
+      return SteadyTime.from(time, TimeUnit.NANOSECONDS);
     }
-
   }
 
   @Test
@@ -225,7 +227,8 @@ public class FateCleanerTest {
 
   @Test
   public void testNewCleaner() {
-    // this test ensures that a new cleaner instance ignores data from another cleaner instance
+    // this test ensures that a new cleaner instance uses persisted data from a previous cleaner
+    // instance
 
     TestTimeSource tts = new TestTimeSource();
     TestStore testStore = new TestStore();
@@ -250,24 +253,45 @@ public class FateCleanerTest {
     assertEquals(Set.of(fateId2, fateId3),
         testStore.list().map(FateIdStatus::getFateId).collect(toSet()));
 
-    // create a new cleaner, it should ignore any data stored by previous cleaner
+    // create a new cleaner, it should use the steady times persisted by previous cleaner instance
     FateCleaner<String> cleaner2 = new FateCleaner<>(testStore, Duration.ofHours(10), tts);
 
     tts.time += Duration.ofHours(5).toNanos();
-    // since this is a new cleaner instance, it should reset the clock
-    cleaner2.ageOff();
-    assertEquals(Set.of(fateId2, fateId3),
-        testStore.list().map(FateIdStatus::getFateId).collect(toSet()));
 
-    // since the clock was reset, advancing time should not age anything off
-    tts.time += Duration.ofHours(9).toNanos();
     cleaner2.ageOff();
-    assertEquals(Set.of(fateId2, fateId3),
-        testStore.list().map(FateIdStatus::getFateId).collect(toSet()));
+    assertEquals(Set.of(fateId3), testStore.list().map(FateIdStatus::getFateId).collect(toSet()));
+
+    tts.time += Duration.ofHours(4).toNanos();
+    cleaner2.ageOff();
+    assertEquals(Set.of(fateId3), testStore.list().map(FateIdStatus::getFateId).collect(toSet()));
 
     // this should advance time enough to age everything off
     tts.time += Duration.ofHours(2).toNanos();
     cleaner2.ageOff();
     assertEquals(Set.of(), testStore.list().map(FateIdStatus::getFateId).collect(toSet()));
+  }
+
+  @Test
+  public void testErrors() {
+    TestTimeSource tts = new TestTimeSource();
+    TestStore testStore = new TestStore();
+    assertThrows(IllegalArgumentException.class,
+        () -> new FateCleaner<>(testStore, Duration.ofHours(-10), tts));
+    assertThrows(IllegalArgumentException.class,
+        () -> new FateCleaner<>(testStore, Duration.ZERO, tts));
+    assertThrows(NullPointerException.class,
+        () -> new FateCleaner<>(null, Duration.ofHours(10), tts));
+    assertThrows(NullPointerException.class, () -> new FateCleaner<>(testStore, null, tts));
+    assertThrows(NullPointerException.class,
+        () -> new FateCleaner<>(testStore, Duration.ofHours(10), null));
+
+    tts.time += Duration.ofHours(6).toNanos();
+
+    FateCleaner<String> cleaner1 = new FateCleaner<>(testStore, Duration.ofHours(10), tts);
+    FateId fateId1 = testStore.create();
+    cleaner1.ageOff();
+    tts.time -= Duration.ofHours(3).toNanos();
+    // steady time going backwards should cause an error
+    assertThrows(IllegalStateException.class, () -> cleaner1.ageOff());
   }
 }

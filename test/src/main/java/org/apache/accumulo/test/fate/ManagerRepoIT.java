@@ -28,13 +28,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -55,10 +58,13 @@ import org.apache.accumulo.manager.tableOps.merge.MergeInfo;
 import org.apache.accumulo.manager.tableOps.merge.MergeInfo.Operation;
 import org.apache.accumulo.manager.tableOps.merge.MergeTablets;
 import org.apache.accumulo.manager.tableOps.merge.ReserveTablets;
+import org.apache.accumulo.manager.tableOps.split.AllocateDirsAndEnsureOnline;
 import org.apache.accumulo.manager.tableOps.split.FindSplits;
 import org.apache.accumulo.manager.tableOps.split.PreSplit;
+import org.apache.accumulo.manager.tableOps.split.SplitInfo;
 import org.apache.accumulo.test.ample.metadata.TestAmple;
 import org.apache.accumulo.test.ample.metadata.TestAmple.TestServerAmpleImpl;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -131,6 +137,52 @@ public class ManagerRepoIT extends SharedMiniClusterBase {
       // Repo should throw an exception due to the WAL existence
       var thrown = assertThrows(IllegalStateException.class, () -> repo.call(fateId, manager));
       assertTrue(thrown.getMessage().contains("has unexpected walogs"));
+    }
+  }
+
+  @Test
+  public void testSplitOffline() throws Exception {
+    String[] tableNames = getUniqueNames(2);
+    String metadataTable = tableNames[0];
+    String userTable = tableNames[1];
+
+    // This test ensures a repo involved in splitting a tablet handles an offline table correctly
+
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+      TestAmple.createMetadataTable(client, metadataTable);
+
+      // create a new table that is initially offline
+      client.tableOperations().create(userTable, new NewTableConfiguration().createOffline());
+
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(userTable));
+
+      TestServerAmpleImpl testAmple = (TestServerAmpleImpl) TestAmple
+          .create(getCluster().getServerContext(), Map.of(DataLevel.USER, metadataTable));
+
+      testAmple.createMetadataFromExisting(client, tableId,
+          not(SplitColumnFamily.UNSPLITTABLE_COLUMN));
+
+      var fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+      KeyExtent extent = new KeyExtent(tableId, null, null);
+
+      // manually set an operation id on the tablet
+      var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
+      testAmple.mutateTablet(extent)
+          .putOperation(TabletOperationId.from(TabletOperationType.SPLITTING, fateId)).mutate();
+
+      Manager manager = mockWithAmple(getCluster().getServerContext(), testAmple);
+
+      assertEquals(opid, testAmple.readTablet(extent).getOperationId());
+
+      var eoRepo = new AllocateDirsAndEnsureOnline(
+          new SplitInfo(extent, new TreeSet<>(List.of(new Text("sp1")))));
+
+      // The repo should delete the opid and throw an exception
+      assertThrows(ThriftTableOperationException.class, () -> eoRepo.call(fateId, manager));
+
+      // the operation id should have been cleaned up before the exception was thrown
+      assertNull(testAmple.readTablet(extent).getOperationId());
     }
   }
 
