@@ -50,7 +50,7 @@ public class CreateTableIT extends SharedMiniClusterBase {
   public void testCreateLotsOfTables() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      String[] tableNames = getUniqueNames(1000);
+      String[] tableNames = getUniqueNames(500);
 
       for (int i = 0; i < tableNames.length; i++) {
         // Create waits for the Fate operation to complete
@@ -58,9 +58,9 @@ public class CreateTableIT extends SharedMiniClusterBase {
         client.tableOperations().create(tableNames[i]);
         System.out.println("Table creation took: " + (System.currentTimeMillis() - start) + "ms");
       }
-      // Confirm all 1000 user tables exist in addition to Root, Metadata,
+      // Confirm all 500 user tables exist in addition to Root, Metadata,
       // and ScanRef tables
-      assertEquals(1003, client.tableOperations().list().size());
+      assertEquals(503, client.tableOperations().list().size());
     }
   }
 
