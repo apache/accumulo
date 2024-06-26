@@ -488,6 +488,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     SortedSet<Text> splitsTodo = new TreeSet<>(splits);
 
+    final ByteBuffer EMPTY = ByteBuffer.allocate(0);
+
+    ExecutorService startExecutor =
+        context.threadPools().getPoolBuilder("addSplitsStart").numCoreThreads(16).build();
+    ExecutorService waitExecutor =
+        context.threadPools().getPoolBuilder("addSplitsWait").numCoreThreads(16).build();
+
     while (!splitsTodo.isEmpty()) {
 
       tabLocator.invalidateCache();
@@ -495,16 +502,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Map<KeyExtent,List<Text>> tabletSplits =
           mapSplitsToTablets(tableName, tableId, tabLocator, splitsTodo);
 
-      List<CompletableFuture<Pair<TFateId,List<Text>>>> futures = new ArrayList<>();
-
-      final ByteBuffer EMPTY = ByteBuffer.allocate(0);
-
-      ExecutorService executor =
-          context.threadPools().getPoolBuilder("addSplits").numCoreThreads(16).build();
+      List<CompletableFuture<Void>> futures = new ArrayList<>();
 
       // begin the fate operation for each tablet without waiting for the operation to complete
       for (Entry<KeyExtent,List<Text>> splitsForTablet : tabletSplits.entrySet()) {
-        CompletableFuture<Pair<TFateId,List<Text>>> future = CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<Void> future = CompletableFuture.supplyAsync(() -> {
           var extent = splitsForTablet.getKey();
 
           List<ByteBuffer> args = new ArrayList<>();
@@ -525,37 +527,41 @@ public class TableOperationsImpl extends TableOperationsHelper {
               | AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
             throw new RuntimeException(e);
           }
-        }, executor);
+          // wait for the fate operation to complete in a separate thread pool
+        }, startExecutor).thenApplyAsync(pair -> {
+          final TFateId opid = pair.getFirst();
+          final List<Text> completedSplits = pair.getSecond();
+
+          try {
+            String status = handleFateOperation(() -> waitForFateOperation(opid), tableName);
+
+            if (SPLIT_SUCCESS_MSG.equals(status)) {
+              synchronized (splitsTodo) {
+                completedSplits.forEach(splitsTodo::remove);
+              }
+            }
+          } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException
+              | AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
+            throw new RuntimeException(e);
+          } finally {
+            // always finish table op, even when exception
+            if (opid != null) {
+              try {
+                finishFateOperation(opid);
+              } catch (Exception e) {
+                log.warn("Exception thrown while finishing fate table operation", e);
+              }
+            }
+          }
+          return null;
+        }, waitExecutor);
         futures.add(future);
       }
 
-      // after all operations have been started, wait for them to complete
-      for (CompletableFuture<Pair<TFateId,List<Text>>> future : futures) {
-        Pair<TFateId,List<Text>> entry = future.join();
-        final TFateId opid = entry.getFirst();
-        final List<Text> completedSplits = entry.getSecond();
-
-        try {
-          String status = handleFateOperation(() -> waitForFateOperation(opid), tableName);
-
-          if (SPLIT_SUCCESS_MSG.equals(status)) {
-            completedSplits.forEach(splitsTodo::remove);
-          }
-        } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException e) {
-          throw new RuntimeException(e);
-        } finally {
-          context.clearTableListCache();
-          // always finish table op, even when exception
-          if (opid != null) {
-            try {
-              finishFateOperation(opid);
-            } catch (Exception e) {
-              log.warn("Exception thrown while finishing fate table operation", e);
-            }
-          }
-        }
-      }
+      futures.forEach(CompletableFuture::join);
     }
+    startExecutor.shutdown();
+    waitExecutor.shutdown();
   }
 
   private Map<KeyExtent,List<Text>> mapSplitsToTablets(String tableName, TableId tableId,
