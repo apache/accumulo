@@ -265,6 +265,9 @@
               <org.apache.accumulo.test.functional.useSslForIT>${useSslForIT}</org.apache.accumulo.test.functional.useSslForIT>
               <org.apache.accumulo.test.functional.useKrbForIT>${useKrbForIT}</org.apache.accumulo.test.functional.useKrbForIT>
             </systemPropertyVariables>
+            <environmentVariables>
+              <MAC_JVM_ARGS>${jacocoArgs}</MAC_JVM_ARGS>
+            </environmentVariables>
           </configuration>
         </plugin>
         <plugin>

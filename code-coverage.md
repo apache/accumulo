@@ -1,20 +1,29 @@
+<!--
 
-To get code coverage for serverside processed started by Mini Accumulo need to
-set the following env variable before running maven.  Mini Accumulo will set
-`MAC_JACOCO` as a jvm argument on java processes it starts.  Mini Accumulo will
-replace `processName` with unique information so that a file per process is
-created.  May need to change the jacoco version to match what is in the pom.
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+
+This branch has changes for code coverage that include server side processes started by mini accumulo. Running an IT like below generate reports.
 
 ```bash
-MAVEN_REPO=$HOME/.m2/repository
-SOURCE_DIR=<dir where your accumulo source is>
-export MAC_JACOCO="-javaagent:$MAVEN_REPO/org/jacoco/org.jacoco.agent/0.8.12/org.jacoco.agent-0.8.12-runtime.jar=destfile=$SOURCE_DIR/accumulo/test/target/jacoco-processName.exec"
-```
-
-With the above set can use a command like the following to run an IT and see
-client and server side code coverage.  Look under `accumulo/test/target/site/`
-
-```baash
 mvn clean -PskipQA -DskipTests=false -DskipITs=false -Dit.test=ComprehensiveIT -Dtest=nothing -DfailIfNoTests=false verify
 ```
+
+Report can be found at `test/target/site/jacoco-aggregate/index.html`.  If using intellij can load the coverage data from `test/target/jacoco-it.exec` as outlined [here](https://www.jetbrains.com/help/idea/code-coverage.html#read_the_coverage_data).
 
