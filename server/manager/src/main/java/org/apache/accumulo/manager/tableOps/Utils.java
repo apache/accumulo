@@ -64,6 +64,9 @@ public class Utils {
   private static final byte[] ZERO_BYTE = {'0'};
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
+  /**
+   * Checks that a table name is only used by the specified table id or not used at all.
+   */
   public static void checkTableNameDoesNotExist(ServerContext context, String tableName,
       TableId tableId, TableOperation operation) throws AcceptableThriftTableOperationException {
 
@@ -72,6 +75,7 @@ public class Utils {
     try {
       for (String tid : context.getZooReader()
           .getChildren(context.getZooKeeperRoot() + Constants.ZTABLES)) {
+
         final String zTablePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tid;
         try {
           final byte[] tname = context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAME);
@@ -101,7 +105,8 @@ public class Utils {
             }
           }
 
-          if (tableName.equals(TableNameUtil.qualified(new String(tname, UTF_8), namespaceName))) {
+          if (tableName.equals(TableNameUtil.qualified(new String(tname, UTF_8), namespaceName))
+              && !tableId.equals(TableId.of(tid))) {
             throw new AcceptableThriftTableOperationException(tid, tableName, operation,
                 TableOperationExceptionType.EXISTS, null);
           }
