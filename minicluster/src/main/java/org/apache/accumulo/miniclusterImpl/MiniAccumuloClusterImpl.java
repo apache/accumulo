@@ -445,7 +445,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private static final long RANDOM_ID = new SecureRandom().nextLong();
   private static AtomicInteger processCounter = new AtomicInteger(0);
 
-
   public ProcessInfo _exec(Class<?> clazz, ServerType serverType,
       Map<String,String> configOverrides, String... args) throws IOException {
     List<String> jvmOpts = new ArrayList<>();
@@ -455,9 +454,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       jvmOpts.add("-Dzookeeper.jmx.log4j.disable=true");
     }
 
-    if(System.getenv("MAC_JACOCO") != null) {
+    if (System.getenv("MAC_JACOCO") != null) {
       var MAC_JACOCO = System.getenv("MAC_JACOCO");
-      var processName = String.format("%s-%016x-%03d", serverType.name().toLowerCase(), RANDOM_ID, processCounter.incrementAndGet());
+      var processName = String.format("%s-%016x-%03d", serverType.name().toLowerCase(), RANDOM_ID,
+          processCounter.incrementAndGet());
       jvmOpts.add(MAC_JACOCO.replace("processName", processName));
     }
 
