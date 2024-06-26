@@ -61,7 +61,9 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -98,8 +100,11 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.MoreCollectors;
+import com.google.common.collect.Sets;
 
 /**
  * The purpose of this test is to exercise a large amount of Accumulo's features in a single test.
@@ -111,6 +116,8 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
   public static final String DOG_AND_CAT = "DOG&CAT";
   static final Authorizations AUTHORIZATIONS = new Authorizations("CAT", "DOG");
+
+  private static final Logger log = LoggerFactory.getLogger(ComprehensiveIT.class);
 
   @BeforeAll
   public static void setup() throws Exception {
@@ -865,6 +872,90 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     }
   }
 
+  public static class NotThreeHundredSelector implements CompactionSelector {
+
+    @Override
+    public void init(InitParameters iparams) {}
+
+    @Override
+    public Selection select(SelectionParameters sparams) {
+      var endRow = sparams.getTabletId().getEndRow();
+      if (endRow == null || !endRow.toString().equals(row(300))) {
+        return new Selection(sparams.getAvailableFiles());
+      } else {
+        return new Selection(Set.of());
+      }
+
+    }
+  }
+
+  @Test
+  public void testCompaction() throws Exception {
+    String table = getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      var splits =
+          new TreeSet<>(List.of(new Text(row(100)), new Text(row(200)), new Text(row(300))));
+
+      client.tableOperations().create(table, new NewTableConfiguration().withSplits(splits));
+      write(client, table, generateMutations(0, 100, tr -> true));
+      // write no data to the tablet (100,200]
+      write(client, table, generateMutations(201, 400, tr -> true));
+
+      CompactionConfig compactionConfig = new CompactionConfig();
+      compactionConfig.setSelector(new PluginConfig(NotThreeHundredSelector.class.getName()));
+      var iterSetting = new IteratorSetting(200, "fam3", FamFilter.class);
+      iterSetting.addOption("family", "3");
+      compactionConfig.setIterators(List.of(iterSetting));
+      compactionConfig.setWait(true);
+      compactionConfig.setFlush(true);
+
+      // This compaction will have one empty tablet and one tablet that is skipped by the selector.
+      // There is special code for handling tablets with no files and marking them as compacted in
+      // the fate operation which is why this case is tested. There is also special code in the fate
+      // operation for handling tablets were the CompactionSelector plugin selects no files, so
+      // testing that also.
+      client.tableOperations().compact(table, compactionConfig);
+
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 400, tr -> {
+        if (tr.row < 100) {
+          return tr.fam != 3;
+        } else if (tr.row <= 200) {
+          // this is the empty tablet
+          return false;
+        } else if (tr.row <= 300) {
+          // this tablet was skipped by the selector, so the compaction should not have filtered any
+          // of its data
+          return true;
+        } else {
+          return tr.fam != 3;
+        }
+      }));
+
+      // Test compaction over row range, should not filter anything outside of range.
+      compactionConfig = new CompactionConfig();
+      iterSetting = new IteratorSetting(200, "fam5", FamFilter.class);
+      iterSetting.addOption("family", "5");
+      compactionConfig.setIterators(List.of(iterSetting));
+      compactionConfig.setStartRow(new Text(row(201))).setEndRow(new Text(row(300)));
+      compactionConfig.setWait(true);
+      client.tableOperations().compact(table, compactionConfig);
+
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 400, tr -> {
+        if (tr.row < 100) {
+          return tr.fam != 3;
+        } else if (tr.row <= 200) {
+          return false;
+        } else if (tr.row <= 300) {
+          // the most recent compaction filtered out family 5 in only this tablet
+          return tr.fam != 5;
+        } else {
+          return tr.fam != 3;
+        }
+      }));
+    }
+  }
+
   private static final SortedSet<Text> everythingSplits =
       new TreeSet<>(List.of(new Text(row(33)), new Text(row(66))));
   private static final Map<String,Set<Text>> everythingLocalityGroups =
@@ -1001,7 +1092,12 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       SortedMap<Key,Value> expectedData, Consumer<ScannerBase> scannerConsumer) throws Exception {
     try (var scanner = client.createScanner(table, auths)) {
       scannerConsumer.accept(scanner);
-      assertEquals(expectedData, scan(scanner));
+      var seen = scan(scanner);
+      if (!expectedData.equals(seen)) {
+        log.info("expected - seen : {}", Sets.difference(expectedData.keySet(), seen.keySet()));
+        log.info("seen - expected : {}", Sets.difference(seen.keySet(), expectedData.keySet()));
+      }
+      assertEquals(expectedData, seen);
     }
 
     try (var scanner = client.createBatchScanner(table, auths)) {
