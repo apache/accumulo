@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toMap;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -93,7 +94,6 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.LazySingletons;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileUtil;
@@ -175,7 +175,7 @@ public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
               "4K", Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K"));
       client.tableOperations().create(table, newTableConfig);
 
-      var random = LazySingletons.RANDOM.get();
+      var random = RANDOM.get();
       byte[] data = new byte[1024];
 
       assertEquals(0, client.tableOperations().listSplits(table).size());
