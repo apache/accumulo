@@ -351,10 +351,10 @@ public class AdminUtil<T> {
    * @param waitingLocks populated list of locks held by transaction - or an empty map if none.
    * @return current fate and lock status
    */
-  private FateStatus getTransactionStatus(Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores,
-      Set<FateId> fateIdFilter, EnumSet<TStatus> statusFilter,
-      EnumSet<FateInstanceType> typesFilter, Map<FateId,List<String>> heldLocks,
-      Map<FateId,List<String>> waitingLocks) {
+  public static <T> FateStatus getTransactionStatus(
+      Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, Set<FateId> fateIdFilter,
+      EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter,
+      Map<FateId,List<String>> heldLocks, Map<FateId,List<String>> waitingLocks) {
     final List<TransactionStatus> statuses = new ArrayList<>();
 
     fateStores.forEach((type, store) -> {
@@ -362,53 +362,34 @@ public class AdminUtil<T> {
         fateIds.forEach(fateId -> {
 
           ReadOnlyFateTxStore<T> txStore = store.read(fateId);
-          try {
-            String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
+          String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
 
-            List<String> hlocks = heldLocks.remove(fateId);
+          List<String> hlocks = heldLocks.remove(fateId);
 
-            if (hlocks == null) {
-              hlocks = Collections.emptyList();
-            }
+          if (hlocks == null) {
+            hlocks = Collections.emptyList();
+          }
 
-            List<String> wlocks = waitingLocks.remove(fateId);
+          List<String> wlocks = waitingLocks.remove(fateId);
 
-            if (wlocks == null) {
-              wlocks = Collections.emptyList();
-            }
+          if (wlocks == null) {
+            wlocks = Collections.emptyList();
+          }
 
-            String top = null;
-            ReadOnlyRepo<T> repo = txStore.top();
-            if (repo != null) {
-              top = repo.getName();
-            }
+          String top = null;
+          ReadOnlyRepo<T> repo = txStore.top();
+          if (repo != null) {
+            top = repo.getName();
+          }
 
-            TStatus status = txStore.getStatus();
+          TStatus status = txStore.getStatus();
 
-            long timeCreated = txStore.timeCreated();
+          long timeCreated = txStore.timeCreated();
 
-            if (includeByStatus(status, statusFilter) && includeByFateId(fateId, fateIdFilter)
-                && includeByInstanceType(fateId.getType(), typesFilter)) {
-              statuses.add(new TransactionStatus(fateId, type, status, txName, hlocks, wlocks, top,
-                  timeCreated));
-            }
-          } catch (Exception e) {
-            // If the cause of the Exception is a NoNodeException, it should be ignored as this
-            // indicates the transaction has completed between the time the list of transactions was
-            // acquired and the time the transaction was probed for info.
-            boolean nne = false;
-            Throwable cause = e;
-            while (cause != null) {
-              if (cause instanceof KeeperException.NoNodeException) {
-                nne = true;
-                break;
-              }
-              cause = cause.getCause();
-            }
-            if (!nne) {
-              throw e;
-            }
-            log.debug("Tried to get info on a since completed transaction - ignoring {} ", fateId);
+          if (includeByStatus(status, statusFilter) && includeByFateId(fateId, fateIdFilter)
+              && includeByInstanceType(fateId.getType(), typesFilter)) {
+            statuses.add(new TransactionStatus(fateId, type, status, txName, hlocks, wlocks, top,
+                timeCreated));
           }
         });
       }
@@ -416,15 +397,15 @@ public class AdminUtil<T> {
     return new FateStatus(statuses, heldLocks, waitingLocks);
   }
 
-  private boolean includeByStatus(TStatus status, EnumSet<TStatus> statusFilter) {
+  private static boolean includeByStatus(TStatus status, EnumSet<TStatus> statusFilter) {
     return statusFilter == null || statusFilter.isEmpty() || statusFilter.contains(status);
   }
 
-  private boolean includeByFateId(FateId fateId, Set<FateId> fateIdFilter) {
+  private static boolean includeByFateId(FateId fateId, Set<FateId> fateIdFilter) {
     return fateIdFilter == null || fateIdFilter.isEmpty() || fateIdFilter.contains(fateId);
   }
 
-  private boolean includeByInstanceType(FateInstanceType type,
+  private static boolean includeByInstanceType(FateInstanceType type,
       EnumSet<FateInstanceType> typesFilter) {
     return typesFilter == null || typesFilter.isEmpty() || typesFilter.contains(type);
   }

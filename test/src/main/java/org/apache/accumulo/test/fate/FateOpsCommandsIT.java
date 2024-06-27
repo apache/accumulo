@@ -19,6 +19,9 @@
 package org.apache.accumulo.test.fate;
 
 import static org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.getCompactorAddrs;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -26,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,17 +42,24 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
@@ -62,6 +73,7 @@ import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
+import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -590,6 +602,95 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertEquals(Map.of(fateId2.canonical(), "NEW"), fateIdsFromSummary);
 
     fate.shutdown(10, TimeUnit.MINUTES);
+  }
+
+  @Test
+  public void testFatePrintAndSummaryCommandsWithInProgressTxns() throws Exception {
+    executeTest(this::testFatePrintAndSummaryCommandsWithInProgressTxns);
+  }
+
+  protected void testFatePrintAndSummaryCommandsWithInProgressTxns(FateStore<TestEnv> store,
+      ServerContext sctx) throws Exception {
+    // This test was written for an issue with the 'admin fate --print' and 'admin fate --summary'
+    // commands where transactions could complete mid-print causing the command to fail. These
+    // commands first get a list of the transactions and then probe for info on the transactions.
+    // If a transaction completed between getting the list and probing for info on that
+    // transaction, the command would fail. This test ensures that this problem has been fixed
+    // (if the tx no longer exists, it should just be ignored so the print/summary can complete).
+    FateStore<TestEnv> mockedStore;
+
+    // This error was occurring in AdminUtil.getTransactionStatus(), so we will test this method.
+    if (store.type().equals(FateInstanceType.USER)) {
+      Method listMethod = UserFateStore.class.getMethod("list");
+      mockedStore =
+          EasyMock.createMockBuilder(UserFateStore.class).withConstructor(ClientContext.class)
+              .withArgs(sctx).addMockedMethod(listMethod).createMock();
+    } else {
+      Method listMethod = MetaFateStore.class.getMethod("list");
+      mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
+          .withConstructor(String.class, ZooReaderWriter.class)
+          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter())
+          .addMockedMethod(listMethod).createMock();
+    }
+
+    // 3 FateIds, two that exist and one that does not. We are simulating that a transaction that
+    // doesn't exist is accessed in getTransactionStatus() and ensuring that this doesn't cause
+    // the method to fail or have any unexpected behavior.
+    FateId tx1 = store.create();
+    FateId tx2 = FateId.from(store.type(), UUID.randomUUID());
+    FateId tx3 = store.create();
+
+    List<ReadOnlyFateStore.FateIdStatus> fateIdStatusList =
+        List.of(createFateIdStatus(tx1), createFateIdStatus(tx2), createFateIdStatus(tx3));
+    expect(mockedStore.list()).andReturn(fateIdStatusList.stream()).once();
+
+    replay(mockedStore);
+
+    AdminUtil.FateStatus status = null;
+    try {
+      status = AdminUtil.getTransactionStatus(Map.of(store.type(), mockedStore), null, null, null,
+          new HashMap<>(), new HashMap<>());
+    } catch (Exception e) {
+      fail("An unexpected error occurred in getTransactionStatus():\n" + e);
+    }
+
+    verify(mockedStore);
+
+    assertNotNull(status);
+    // All three should be returned
+    assertEquals(3, status.getTransactions().size());
+    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateId)
+        .collect(Collectors.toList()), List.of(tx1, tx2, tx3));
+    // The two real FateIds should have NEW status and the fake one should be UNKNOWN
+    assertEquals(
+        status.getTransactions().stream().map(AdminUtil.TransactionStatus::getStatus)
+            .collect(Collectors.toList()),
+        List.of(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.UNKNOWN,
+            ReadOnlyFateStore.TStatus.NEW));
+    // None of them should have a name since none of them were seeded with work
+    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTxName)
+        .collect(Collectors.toList()), Arrays.asList(null, null, null));
+    // None of them should have a Repo since none of them were seeded with work
+    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTop)
+        .collect(Collectors.toList()), Arrays.asList(null, null, null));
+    // The FateId that doesn't exist should have a creation time of 0, the others should not
+    List<Long> timeCreated = status.getTransactions().stream()
+        .map(AdminUtil.TransactionStatus::getTimeCreated).collect(Collectors.toList());
+    assertNotEquals(timeCreated.get(0), 0);
+    assertEquals(timeCreated.get(1), 0);
+    assertNotEquals(timeCreated.get(2), 0);
+    // All should have the store.type() type
+    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getInstanceType)
+        .collect(Collectors.toList()), List.of(store.type(), store.type(), store.type()));
+  }
+
+  private ReadOnlyFateStore.FateIdStatus createFateIdStatus(FateId fateId) {
+    return new AbstractFateStore.FateIdStatusBase(fateId) {
+      @Override
+      public ReadOnlyFateStore.TStatus getStatus() {
+        return null;
+      }
+    };
   }
 
   /**
