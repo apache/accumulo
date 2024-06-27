@@ -163,6 +163,11 @@ public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
       client.tableOperations().merge(table, null, null);
       assertEquals(Set.of(), new TreeSet<>(client.tableOperations().listSplits(table)));
       verifyData(client, table, AUTHORIZATIONS, expectedData);
+
+      // The previous merge operations should create files with finite fence ranges. The following
+      // will test compactions of files with finite fences.
+      client.tableOperations().compact(table, new CompactionConfig().setWait(true));
+      verifyData(client, table, AUTHORIZATIONS, expectedData);
     }
   }
 
