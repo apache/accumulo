@@ -486,7 +486,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     ClientTabletCache tabLocator = ClientTabletCache.getInstance(context, tableId);
 
-    SortedSet<Text> splitsTodo = new TreeSet<>(splits);
+    SortedSet<Text> splitsTodo = Collections.synchronizedSortedSet(new TreeSet<>(splits));
 
     final ByteBuffer EMPTY = ByteBuffer.allocate(0);
 
@@ -536,9 +536,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             String status = handleFateOperation(() -> waitForFateOperation(opid), tableName);
 
             if (SPLIT_SUCCESS_MSG.equals(status)) {
-              synchronized (splitsTodo) {
-                completedSplits.forEach(splitsTodo::remove);
-              }
+              completedSplits.forEach(splitsTodo::remove);
             }
           } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException
               | AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
