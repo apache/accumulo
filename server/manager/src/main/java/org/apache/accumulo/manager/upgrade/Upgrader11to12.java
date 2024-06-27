@@ -22,8 +22,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
 import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_ENCODING;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +52,10 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.init.FileSystemInitializer;
+import org.apache.accumulo.server.init.InitialConfiguration;
+import org.apache.accumulo.server.init.ZooKeeperInitializer;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -68,7 +74,8 @@ public class Upgrader11to12 implements Upgrader {
   @SuppressWarnings("deprecation")
   private static final Text CHOPPED = ChoppedColumnFamily.NAME;
 
-  public static final Range OLD_SCAN_SERVERS_RANGE = new Range("~sserv", "~sserx");
+  public static final Collection<Range> OLD_SCAN_SERVERS_RANGES =
+      List.of(new Range("~sserv", "~sserx"), new Range("~scanref", "~scanreg"));
 
   @VisibleForTesting
   static final Set<Text> UPGRADE_FAMILIES =
@@ -129,7 +136,7 @@ public class Upgrader11to12 implements Upgrader {
     log.debug("Upgrade root: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var rootName = Ample.DataLevel.METADATA.metaTable();
     upgradeTabletsMetadata(context, rootName);
-    removeScanServerRange(context, Ample.DataLevel.METADATA.metaTable());
+    removeScanServerRange(context, rootName);
   }
 
   @Override
@@ -137,7 +144,8 @@ public class Upgrader11to12 implements Upgrader {
     log.debug("Upgrade metadata: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var metaName = Ample.DataLevel.USER.metaTable();
     upgradeTabletsMetadata(context, metaName);
-    removeScanServerRange(context, Ample.DataLevel.USER.metaTable());
+    removeScanServerRange(context, metaName);
+    createScanServerRefTable(context);
   }
 
   private void upgradeTabletsMetadata(@NonNull ServerContext context, String metaName) {
@@ -227,12 +235,24 @@ public class Upgrader11to12 implements Upgrader {
     log.info("Removing Scan Server Range from table {}", tableName);
     try (BatchDeleter batchDeleter =
         context.createBatchDeleter(tableName, Authorizations.EMPTY, 4)) {
-      batchDeleter.setRanges(List.of(OLD_SCAN_SERVERS_RANGE));
+      batchDeleter.setRanges(OLD_SCAN_SERVERS_RANGES);
       batchDeleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException e) {
       throw new RuntimeException(e);
     }
-    log.info("Scan Server Range removed from table {}", tableName);
+    log.info("Scan Server Ranges {} removed from table {}", OLD_SCAN_SERVERS_RANGES, tableName);
   }
 
+  public void createScanServerRefTable(ServerContext context) {
+    ZooKeeperInitializer zkInit = new ZooKeeperInitializer();
+    zkInit.initScanRefTableState(context);
+
+    try (var fs = VolumeManagerImpl.get(context.getSiteConfiguration(), context.getHadoopConf())) {
+      FileSystemInitializer initializer = new FileSystemInitializer(
+          new InitialConfiguration(context.getHadoopConf(), context.getSiteConfiguration()));
+      initializer.createScanRefTablet(context, fs);
+    } catch (IOException e) {
+      log.error("Problem attempting to create ScanRef Table");
+    }
+  }
 }

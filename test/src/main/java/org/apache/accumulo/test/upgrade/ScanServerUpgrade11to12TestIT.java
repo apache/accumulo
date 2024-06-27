@@ -20,6 +20,7 @@ package org.apache.accumulo.test.upgrade;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Map;
 import java.util.Set;
@@ -31,14 +32,16 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.security.Authorizations;
@@ -47,6 +50,8 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.upgrade.Upgrader11to12;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -83,9 +88,9 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
 
   private Stream<Map.Entry<Key,Value>> getOldScanServerRefs(String tableName) {
     try {
-      Scanner scanner =
-          getCluster().getServerContext().createScanner(tableName, Authorizations.EMPTY);
-      scanner.setRange(Upgrader11to12.OLD_SCAN_SERVERS_RANGE);
+      BatchScanner scanner =
+          getCluster().getServerContext().createBatchScanner(tableName, Authorizations.EMPTY);
+      scanner.setRanges(Upgrader11to12.OLD_SCAN_SERVERS_RANGES);
       return scanner.stream().onClose(scanner::close);
     } catch (TableNotFoundException e) {
       throw new IllegalStateException("Unable to find table " + tableName);
@@ -114,9 +119,14 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
 
     try (BatchWriter writer = ctx.createBatchWriter(tableName)) {
       for (ScanServerRefTabletFile ref : scanRefs) {
-        Mutation m = new Mutation("~sserv" + ref.getServerLockUUID().toString());
-        m.put(ref.getServerAddress(), ref.getFilePath(), new Value(""));
-        writer.addMutation(m);
+        Mutation sservMutation = new Mutation("~sserv" + ref.getFilePath());
+        sservMutation.put(ref.getServerAddress(), new Text(ref.getServerLockUUID().toString()),
+            new Value(""));
+        writer.addMutation(sservMutation);
+
+        Mutation scanRefMutation = new Mutation("~scanref" + ref.getServerLockUUID().toString());
+        scanRefMutation.put(ref.getServerAddress(), ref.getFilePath(), new Value(""));
+        writer.addMutation(scanRefMutation);
       }
       writer.flush();
     } catch (TableNotFoundException | MutationsRejectedException e) {
@@ -128,13 +138,33 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     assertEquals(0, ctx.getAmple().scanServerRefs().list().count());
 
     // Ensure they exist on the metadata table
-    assertEquals(scanRefs.size(), getOldScanServerRefs(tableName).count());
+    assertEquals(scanRefs.size() * 2L, getOldScanServerRefs(tableName).count());
 
     var upgrader = new Upgrader11to12();
     upgrader.removeScanServerRange(ctx, tableName);
 
     // Ensure entries are now removed from the metadata table
     assertEquals(0, getOldScanServerRefs(tableName).count());
+  }
+
+  @Test
+  public void testScanRefTableCreation() {
+    ServerContext ctx = getCluster().getServerContext();
+    // Remove the scan server table that was created as part of init
+    try {
+      ctx.getTableManager().removeTable(AccumuloTable.SCAN_REF.tableId());
+      Thread.sleep(10_000);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Removal of scan ref table failed" + e);
+    }
+
+    TableState scanRefTableState =
+        ctx.getTableManager().getTableState(AccumuloTable.SCAN_REF.tableId());
+    assertNull(scanRefTableState);
+    var upgrader = new Upgrader11to12();
+    upgrader.createScanServerRefTable(ctx);
+    scanRefTableState = ctx.getTableManager().getTableState(AccumuloTable.SCAN_REF.tableId());
+    assertEquals(TableState.ONLINE, scanRefTableState);
   }
 
   @Test
