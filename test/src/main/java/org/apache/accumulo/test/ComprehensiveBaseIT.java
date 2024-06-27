@@ -33,6 +33,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,6 +44,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -91,6 +93,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.LazySingletons;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileUtil;
@@ -160,6 +163,47 @@ public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
       client.tableOperations().merge(table, null, null);
       assertEquals(Set.of(), new TreeSet<>(client.tableOperations().listSplits(table)));
       verifyData(client, table, AUTHORIZATIONS, expectedData);
+    }
+  }
+
+  @Test
+  public void testAutoSplit() throws Exception {
+    String table = getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      var newTableConfig =
+          new NewTableConfiguration().setProperties(Map.of(Property.TABLE_SPLIT_THRESHOLD.getKey(),
+              "4K", Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K"));
+      client.tableOperations().create(table, newTableConfig);
+
+      var random = LazySingletons.RANDOM.get();
+      byte[] data = new byte[1024];
+
+      assertEquals(0, client.tableOperations().listSplits(table).size());
+
+      Map<String,Text> expectedValues = new HashMap<>();
+
+      try (var writer = client.createBatchWriter(table)) {
+        for (int i = 0; i < 100; i++) {
+          String row = String.format("%016x", random.nextLong());
+          Mutation m = new Mutation(row);
+          random.nextBytes(data);
+          m.at().family("data").qualifier("random").put(data);
+          writer.addMutation(m);
+          expectedValues.put(row, new Text(data));
+        }
+      }
+
+      client.tableOperations().flush(table, null, null, true);
+
+      // ensure table automatically splits
+      Wait.waitFor(() -> client.tableOperations().listSplits(table).size() > 20);
+
+      try (var scanner = client.createScanner(table)) {
+        var seenValues = scanner.stream().collect(Collectors
+            .toMap(e -> e.getKey().getRowData().toString(), e -> new Text(e.getValue().get())));
+        assertEquals(expectedValues, seenValues);
+      }
+
     }
   }
 
