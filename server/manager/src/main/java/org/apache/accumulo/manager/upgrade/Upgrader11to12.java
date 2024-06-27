@@ -69,13 +69,22 @@ public class Upgrader11to12 implements Upgrader {
   static final Set<Text> UPGRADE_FAMILIES =
       Set.of(DataFileColumnFamily.NAME, CHOPPED, ExternalCompactionColumnFamily.NAME);
 
+  public static final String ZTRACERS = "/tracers";
+  public static final String ZCONF_LEGACY = "/conf";
+
   @Override
   public void upgradeZookeeper(@NonNull ServerContext context) {
     log.debug("Upgrade ZooKeeper: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
-    var rootBase = ZooUtil.getRoot(context.getInstanceID()) + ZROOT_TABLET;
+    var zooRoot = ZooUtil.getRoot(context.getInstanceID());
+    var rootBase = zooRoot + ZROOT_TABLET;
 
     try {
       var zrw = context.getZooReaderWriter();
+
+      // clean up nodes no longer in use
+      zrw.recursiveDelete(zooRoot + ZTRACERS, ZooUtil.NodeMissingPolicy.SKIP);
+      zrw.recursiveDelete(zooRoot + ZCONF_LEGACY, ZooUtil.NodeMissingPolicy.SKIP);
+
       Stat stat = new Stat();
       byte[] rootData = zrw.getData(rootBase, stat);
 
