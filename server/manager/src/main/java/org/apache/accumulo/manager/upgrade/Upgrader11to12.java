@@ -136,7 +136,6 @@ public class Upgrader11to12 implements Upgrader {
     log.debug("Upgrade root: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var rootName = Ample.DataLevel.METADATA.metaTable();
     upgradeTabletsMetadata(context, rootName);
-    removeScanServerRange(context, rootName);
   }
 
   @Override

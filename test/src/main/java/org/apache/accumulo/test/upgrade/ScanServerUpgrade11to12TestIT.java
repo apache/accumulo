@@ -172,8 +172,4 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     testMetadataScanServerRefRemoval(Ample.DataLevel.USER.metaTable());
   }
 
-  @Test
-  public void testRootScanServerRefs() {
-    testMetadataScanServerRefRemoval(Ample.DataLevel.METADATA.metaTable());
-  }
 }
