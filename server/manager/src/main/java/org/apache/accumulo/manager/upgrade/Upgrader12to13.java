@@ -69,8 +69,8 @@ public class Upgrader12to13 implements Upgrader {
   public void upgradeZookeeper(ServerContext context) {
     LOG.info("setting root table stored hosting availability");
     addHostingGoalToRootTable(context);
-    LOG.info("Removing compact-id paths from ZooKeeper");
-    removeZKCompactIdPaths(context);
+    LOG.info("Removing nodes no longer used from ZooKeeper");
+    removeUnusedZKNodes(context);
     LOG.info("Removing compact columns from root tablet");
     removeCompactColumnsFromRootTabletMetadata(context);
   }
@@ -184,22 +184,29 @@ public class Upgrader12to13 implements Upgrader {
     }
   }
 
-  private void removeZKCompactIdPaths(ServerContext context) {
-    final String ZTABLE_COMPACT_ID = "/compact-id";
-    final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
+  private void removeUnusedZKNodes(ServerContext context) {
+    try {
+      final String zkRoot = ZooUtil.getRoot(context.getInstanceID());
+      final var zrw = context.getZooReaderWriter();
 
-    for (Entry<String,String> e : context.tableOperations().tableIdMap().entrySet()) {
-      final String tName = e.getKey();
-      final String tId = e.getValue();
-      final String zTablePath = Constants.ZROOT + "/" + context.getInstanceID().canonical()
-          + Constants.ZTABLES + "/" + tId;
-      try {
-        context.getZooReaderWriter().delete(zTablePath + ZTABLE_COMPACT_ID);
-        context.getZooReaderWriter().delete(zTablePath + ZTABLE_COMPACT_CANCEL_ID);
-      } catch (KeeperException | InterruptedException e1) {
-        throw new IllegalStateException(
-            "Error removing compaction ids from ZooKeeper for table: " + tName);
+      final String ZCOORDINATOR = "/coordinators";
+      final String BULK_ARBITRATOR_TYPE = "bulkTx";
+
+      zrw.recursiveDelete(zkRoot + ZCOORDINATOR, ZooUtil.NodeMissingPolicy.SKIP);
+      zrw.recursiveDelete(zkRoot + "/" + BULK_ARBITRATOR_TYPE, ZooUtil.NodeMissingPolicy.SKIP);
+
+      final String ZTABLE_COMPACT_ID = "/compact-id";
+      final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
+
+      for (Entry<String,String> e : context.tableOperations().tableIdMap().entrySet()) {
+        final String tName = e.getKey();
+        final String tId = e.getValue();
+        final String zTablePath = zkRoot + Constants.ZTABLES + "/" + tId;
+        zrw.delete(zTablePath + ZTABLE_COMPACT_ID);
+        zrw.delete(zTablePath + ZTABLE_COMPACT_CANCEL_ID);
       }
+    } catch (KeeperException | InterruptedException e1) {
+      throw new IllegalStateException(e1);
     }
   }
 
