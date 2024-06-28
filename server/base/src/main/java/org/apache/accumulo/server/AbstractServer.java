@@ -19,12 +19,16 @@
 package org.apache.accumulo.server;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +39,9 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
   protected final String applicationName;
   private final String hostname;
   private final Logger log;
+  private final ProcessMetrics processMetrics;
+  protected final long idleReportingPeriodNanos;
+  private volatile long idlePeriodStartNanos = 0L;
 
   protected AbstractServer(String appName, ServerOpts opts, String[] args) {
     this.log = LoggerFactory.getLogger(getClass().getName());
@@ -52,6 +59,24 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
     if (context.getSaslParams() != null) {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       context.enforceKerberosLogin();
+    }
+    processMetrics = new ProcessMetrics();
+    idleReportingPeriodNanos = TimeUnit.MILLISECONDS.toNanos(
+        context.getConfiguration().getTimeInMillis(Property.GENERAL_IDLE_PROCESS_INTERVAL));
+  }
+
+  protected void idleProcessCheck(Supplier<Boolean> idleCondition) {
+    boolean idle = idleCondition.get();
+    if (!idle || idleReportingPeriodNanos == 0) {
+      idlePeriodStartNanos = 0;
+    } else if (idlePeriodStartNanos == 0) {
+      idlePeriodStartNanos = System.nanoTime();
+    } else if ((System.nanoTime() - idlePeriodStartNanos) > idleReportingPeriodNanos) {
+      // increment the counter and reset the start of the idle period.
+      processMetrics.incrementIdleCounter();
+      idlePeriodStartNanos = 0;
+    } else {
+      // idleStartPeriod is non-zero, but we have not hit the idleStopPeriod yet
     }
   }
 
