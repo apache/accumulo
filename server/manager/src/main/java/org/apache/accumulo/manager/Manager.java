@@ -996,8 +996,7 @@ public class Manager extends AbstractServer
             migrations.put(ke, tserverInstance);
             log.debug("migration {}", m);
           }
-        } while (!params.migrationsOut().isEmpty()
-            && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
+        } while (totalMigrationsOut > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
       }
 
       if (totalMigrationsOut == 0) {
