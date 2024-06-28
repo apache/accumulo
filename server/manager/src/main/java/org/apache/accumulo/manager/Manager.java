@@ -923,7 +923,7 @@ public class Manager extends AbstractServer
             return DEFAULT_WAIT_FOR_WATCHER;
           }
         }
-        return balanceTablets(notHosted() == 0);
+        return balanceTablets();
       }
       return DEFAULT_WAIT_FOR_WATCHER;
     }
@@ -956,7 +956,7 @@ public class Manager extends AbstractServer
       }
     }
 
-    private long balanceTablets(boolean balanceUserTables) {
+    private long balanceTablets() {
 
       Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
           new HashMap<>(DataLevel.values().length);
@@ -965,23 +965,26 @@ public class Manager extends AbstractServer
             .add(ke);
       });
 
+      final int tabletsNotHosted = notHosted();
       BalanceParamsImpl params = null;
       long wait = 0;
-      for (DataLevel dl : new DataLevel[] {DataLevel.ROOT, DataLevel.METADATA, DataLevel.USER}) {
+      long totalMigrationsOut = 0;
+      for (DataLevel dl : DataLevel.values()) {
         Set<KeyExtent> migrationsForLevel = partitionedMigrations.get(dl);
         if (migrationsForLevel == null) {
           continue;
         }
-        if (dl == DataLevel.USER && !balanceUserTables) {
+        if (dl == DataLevel.USER && tabletsNotHosted > 0) {
           log.debug("not balancing user tablets because there are {} unhosted tablets",
-              notHosted());
+              tabletsNotHosted);
           continue;
         }
         params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer, tserverStatus,
             migrationsSnapshot());
+        totalMigrationsOut += params.migrationsOut().size();
         do {
           log.debug("Balancing for tables at level: {}", dl);
-          wait = tabletBalancer.balance(params);
+          wait = Math.max(tabletBalancer.balance(params), wait);
           for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
               params.migrationsOut())) {
             KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
@@ -996,12 +999,13 @@ public class Manager extends AbstractServer
         } while (!params.migrationsOut().isEmpty()
             && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
       }
-      if (params == null || params.migrationsOut().isEmpty()) {
+
+      if (totalMigrationsOut == 0) {
         synchronized (balancedNotifier) {
           balancedNotifier.notifyAll();
         }
       } else {
-        nextEvent.event("Migrating %d more tablets, %d total", params.migrationsOut().size(),
+        nextEvent.event("Migrating %d more tablets, %d total", totalMigrationsOut,
             migrations.size());
       }
       return wait;
