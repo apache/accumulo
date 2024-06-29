@@ -743,8 +743,9 @@ public class SecurityOperation {
     }
   }
 
-  public void grantTablePermission(TCredentials c, String user, TableId tableId,
-      TablePermission permission, NamespaceId namespaceId) throws ThriftSecurityException {
+  public void grantTablePermission(TCredentials c, String user, TableId tableId, String tableName,
+      TablePermission permission, NamespaceId namespaceId)
+      throws ThriftSecurityException, TableNotFoundException {
     if (!canGrantTable(c, user, tableId, namespaceId)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
