@@ -62,12 +62,24 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+    </dependency>
+    <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
     </dependency>
     <dependency>
       <groupId>commons-logging</groupId>
       <artifactId>commons-logging</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-protobuf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-stub</artifactId>
     </dependency>
     <dependency>
       <groupId>io.micrometer</groupId>
@@ -142,6 +154,17 @@
     <dependency>
       <groupId>org.yaml</groupId>
       <artifactId>snakeyaml</artifactId>
+    </dependency>
+    <dependency>
+      <!-- necessary for protobuf and Java 9+ -->
+      <groupId>org.apache.tomcat</groupId>
+      <artifactId>annotations-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-netty-shaded</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -258,12 +281,14 @@
               <excludes>
                 <exclude>.*[.]impl[.].*</exclude>
                 <exclude>.*[.]thrift[.].*</exclude>
+                <exclude>.*[.]protobuf[.].*</exclude>
                 <exclude>org[.]apache[.]accumulo[.]core[.]security[.]crypto[.].*</exclude>
               </excludes>
               <allows>
                 <!--Allow API data types to reference thrift types, but do not
 		     analyze thrift types -->
                 <allow>org[.]apache[.]accumulo[.].*[.]thrift[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.].*[.]protobuf[.].*</allow>
                 <!--Type from hadoop used in API. If adding a new type from
 		     Hadoop to the Accumulo API ensure its annotated as
 		     stable.-->
@@ -393,6 +418,13 @@
         </executions>
       </plugin>
     </plugins>
+    <extensions>
+      <extension>
+        <groupId>kr.motd.maven</groupId>
+        <artifactId>os-maven-plugin</artifactId>
+        <version>1.7.1</version>
+      </extension>
+    </extensions>
   </build>
   <profiles>
     <profile>
@@ -411,6 +443,43 @@
                 <phase>generate-sources</phase>
                 <configuration>
                   <executable>${basedir}/src/main/scripts/generate-thrift.sh</executable>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>protobuf</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.xolstice.maven.plugins</groupId>
+            <artifactId>protobuf-maven-plugin</artifactId>
+            <version>0.6.1</version>
+            <configuration>
+              <protocArtifact>com.google.protobuf:protoc:3.25.3:exe:${os.detected.classifier}</protocArtifact>
+              <pluginId>grpc-java</pluginId>
+              <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.64.0:exe:${os.detected.classifier}</pluginArtifact>
+              <outputDirectory>src/main/protobuf-gen-java/</outputDirectory>
+            </configuration>
+            <executions>
+              <execution>
+                <id>generate-protobuf</id>
+                <goals>
+                  <goal>compile</goal>
+                </goals>
+                <phase>generate-sources</phase>
+              </execution>
+              <execution>
+                <id>generate-grpc</id>
+                <goals>
+                  <goal>compile-custom</goal>
+                </goals>
+                <phase>generate-sources</phase>
+                <configuration>
+                  <clearOutputDirectory>false</clearOutputDirectory>
                 </configuration>
               </execution>
             </executions>

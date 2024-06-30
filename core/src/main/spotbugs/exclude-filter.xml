@@ -41,6 +41,12 @@
     </Or>
   </Match>
   <Match>
+    <!-- ignore protobuf-generated files -->
+    <Or>
+      <Package name="org.apache.accumulo.core.compaction.protobuf" />
+    </Or>
+  </Match>
+  <Match>
     <!-- More convenient to ignore these everywhere, because it's very common and unimportant -->
     <Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
   </Match>

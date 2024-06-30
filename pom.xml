@@ -165,6 +165,13 @@
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>1.65.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
         <version>1.12.2</version>
@@ -287,6 +294,11 @@
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>33.0.0-jre</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>3.25.3</version>
       </dependency>
       <dependency>
         <groupId>com.lmax</groupId>
@@ -509,6 +521,12 @@
             <artifactId>httpclient</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <!-- necessary for protobuf and Java 9+ -->
+        <groupId>org.apache.tomcat</groupId>
+        <artifactId>annotations-api</artifactId>
+        <version>6.0.53</version>
       </dependency>
       <dependency>
         <groupId>org.apache.zookeeper</groupId>
@@ -840,6 +858,7 @@
             <configFile>${rootlocation}/src/build/eclipse-codestyle.xml</configFile>
             <excludes>
               <exclude>**/thrift/*.java</exclude>
+              <exclude>**/protobuf/*.java</exclude>
             </excludes>
             <lineEnding>LF</lineEnding>
             <skipCssFormatting>true</skipCssFormatting>
@@ -879,6 +898,7 @@
             <groups>java.,javax.,jakarta.,org.,com.</groups>
             <excludes>
               <exclude>**/thrift/*.java</exclude>
+              <exclude>**/protobuf/*.java</exclude>
             </excludes>
           </configuration>
         </plugin>
@@ -908,6 +928,11 @@
                 <undeclared>org.apache.httpcomponents:httpcore:jar:*</undeclared>
                 <undeclared>org.powermock:powermock-core:jar:*</undeclared>
                 <undeclared>org.powermock:powermock-reflect:jar:*</undeclared>
+                <!-- brought in by grpc -->
+                <undeclared>com.google.protobuf:protobuf-java:*</undeclared>
+                <!-- brought in by other grpc dependencies and version handled by grpc-bom -->
+                <undeclared>io.grpc:grpc-api:*</undeclared>
+                <undeclared>io.grpc:grpc-stub:*</undeclared>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't used in every module -->
@@ -932,6 +957,10 @@
                 <!-- ignore log4j dep used for annotations and needed for compile time linting -->
                 <unused>biz.aQute.bnd:biz.aQute.bnd.annotation:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
+                <!-- Used by generated protobuf -->
+                <undeclared>org.apache.tomcat:annotations-api:jar:*</undeclared>
+                <!-- Used by grpc at runtime -->
+                <undeclared>io.grpc:grpc-netty-shaded:jar:*</undeclared>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
@@ -1104,7 +1133,7 @@
           </checkstyleRules>
           <violationSeverity>warning</violationSeverity>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <excludes>**/thrift/*.java</excludes>
+          <excludes>**/thrift/*.java,**/protobuf/*.java</excludes>
         </configuration>
         <dependencies>
           <dependency>
@@ -1533,6 +1562,36 @@
       </build>
     </profile>
     <profile>
+      <id>add-protobuf-java-source</id>
+      <activation>
+        <file>
+          <exists>src/main/protobuf-gen-java</exists>
+        </file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>add-protobuf-java-source</id>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <phase>generate-sources</phase>
+                <configuration>
+                  <sources>
+                    <source>src/main/protobuf-gen-java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <id>add-spotbugs-excludes</id>
       <activation>
         <file>
@@ -1606,7 +1665,7 @@
                 <arg>-XDcompilePolicy=simple</arg>
                 <arg>
                   -Xplugin:ErrorProne \
-                  -XepExcludedPaths:.*/(thrift|generated-sources|src/test)/.* \
+                  -XepExcludedPaths:.*/(thrift|protobuf|generated-sources|src/test)/.* \
                   -XepDisableWarningsInGeneratedCode \
                   -XepDisableAllWarnings \
                   <!-- ERROR patterns to specifically ignore -->

@@ -101,7 +101,7 @@
                 <exclude>.*[.]impl[.].*</exclude>
               </excludes>
               <allows>
-                <allow>org[.]apache[.]accumulo[.]core[.](?:client|data|security)[.](?!.*(impl|thrift|crypto).*).*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.](?:client|data|security)[.](?!.*(impl|thrift|protobuf|crypto).*).*</allow>
                 <!-- Not public API, but hard to get rid of. Pair is just so useful. -->
                 <allow>org[.]apache[.]accumulo[.]core[.]util[.]Pair</allow>
                 <!--Types from hadoop used in API. If adding a new type from
