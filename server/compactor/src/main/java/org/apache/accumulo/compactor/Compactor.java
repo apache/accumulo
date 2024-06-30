@@ -19,6 +19,7 @@
 package org.apache.accumulo.compactor;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.core.rpc.ThriftProtobufUtil.convert;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
@@ -50,6 +51,9 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceGrpc;
+import org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceGrpc.CompactionCoordinatorServiceBlockingStub;
+import org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Client;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
@@ -128,6 +132,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.LongTaskTimer;
@@ -473,20 +479,32 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     RetryableThriftCall<TNextCompactionJob> nextJobThriftCall =
         new RetryableThriftCall<>(startingWaitTime, maxWaitTime, 0, () -> {
-          Client coordinatorClient = getCoordinatorClient();
+          var grpcClient = getGrpcCoordinatorClient();
           try {
             ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
             LOG.trace("Attempting to get next job, eci = {}", eci);
             currentCompactionId.set(eci);
-            return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
-                getContext().rpcCreds(), this.getResourceGroup(),
-                ExternalCompactionUtil.getHostPortString(compactorAddress.getAddress()),
-                eci.toString());
+            /*
+             * GRPC is now used to make the compaction job request. We keep using the Thrift objects
+             * and convert to/from the equivalent protocol buffer objects for now to keep the
+             * changes isolated from the rest of the code.
+             */
+            var request = CompactionJobRequest.newBuilder().setPinfo(convert(TraceUtil.traceInfo()))
+                .setCredentials(convert(getContext().rpcCreds()))
+                .setGroupName(this.getResourceGroup())
+                .setCompactor(
+                    ExternalCompactionUtil.getHostPortString(compactorAddress.getAddress()))
+                .setExternalCompactionId(eci.toString()).build();
+            // The client is making a blocking sync call here and waiting for a response
+            // but this could be async
+            return convert(grpcClient.getCompactionJob(request));
           } catch (Exception e) {
             currentCompactionId.set(null);
             throw e;
           } finally {
-            ThriftUtil.returnClient(coordinatorClient, getContext());
+            // TODO: We'd likely want to re-use channels in pool like we do with thrift
+            ManagedChannel managedChannel = (ManagedChannel) grpcClient.getChannel();
+            managedChannel.shutdown();
           }
         });
     return nextJobThriftCall.run();
@@ -506,6 +524,18 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     LOG.trace("CompactionCoordinator address is: {}", coordinatorHost.orElseThrow());
     return ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(),
         getContext());
+  }
+
+  protected CompactionCoordinatorServiceBlockingStub getGrpcCoordinatorClient()
+      throws TTransportException {
+    var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(getContext());
+    if (coordinatorHost.isEmpty()) {
+      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
+    }
+    // TODO: The port is just hardcoded for now and will need to be configurable
+    ManagedChannel channel = ManagedChannelBuilder
+        .forAddress(coordinatorHost.orElseThrow().getHost(), 8980).usePlaintext().build();
+    return CompactionCoordinatorServiceGrpc.newBlockingStub(channel);
   }
 
   /**

@@ -27,6 +27,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.rpc.ThriftProtobufUtil.convert;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -64,6 +65,9 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceGrpc;
+import org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest;
+import org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
@@ -140,6 +144,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
+import io.grpc.stub.StreamObserver;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -181,6 +186,8 @@ public class CompactionCoordinator
   private final Manager manager;
 
   private final LoadingCache<String,Integer> compactorCounts;
+
+  private final GrpcCompactionCoordinatorService grpcService;
 
   public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
       AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances,
@@ -224,6 +231,8 @@ public class CompactionCoordinator
     compactorCounts = ctx.getCaches().createNewBuilder(CacheName.COMPACTOR_COUNTS, false)
         .expireAfterWrite(30, TimeUnit.SECONDS).build(this::countCompactors);
     // At this point the manager does not have its lock so no actions should be taken yet
+
+    grpcService = new GrpcCompactionCoordinatorService();
   }
 
   protected int countCompactors(String groupName) {
@@ -429,6 +438,8 @@ public class CompactionCoordinator
       LOG.trace("No jobs found for group {}, returning empty job to compactor {}", groupName,
           compactorAddress);
       result = new TExternalCompactionJob();
+    } else {
+      LOG.info("Found job {}", result.externalCompactionId);
     }
 
     return new TNextCompactionJob(result, compactorCounts.get(groupName));
@@ -1114,5 +1125,45 @@ public class CompactionCoordinator
     }
 
     return Set.of();
+  }
+
+  public CompactionCoordinatorServiceGrpc.CompactionCoordinatorServiceImplBase getGrpcService() {
+    return new GrpcCompactionCoordinatorService();
+  }
+
+  private class GrpcCompactionCoordinatorService
+      extends CompactionCoordinatorServiceGrpc.CompactionCoordinatorServiceImplBase {
+
+    @Override
+    public void getCompactionJob(CompactionJobRequest request,
+        StreamObserver<PNextCompactionJob> responseObserver) {
+
+      var tinfo = convert(request.getPinfo());
+      var credentials = convert(request.getCredentials());
+
+      try {
+        LOG.debug("Received compaction job grpc {}", request.getExternalCompactionId());
+
+        // TODO: This is a sync blocking call for now which replicates the current version with
+        // Thrift
+        // Eventually can return a CompletableFuture so it is completed async or we could
+        // offload this onto another thread and get a future because it will potentially wait
+        // for a long time for a job to be assigned
+        var result = CompactionCoordinator.this.getCompactionJob(tinfo, credentials,
+            request.getGroupName(), request.getCompactor(), request.getExternalCompactionId());
+        LOG.debug("Result {}", result);
+
+        // TODO: this can be offloaded to a new thread and completed async when we have a result
+        // or we can bind the to CompletableFuture to process when the future completes so we
+        // can free up the grpc io threads
+        responseObserver.onNext(convert(result));
+        responseObserver.onCompleted();
+      } catch (ThriftSecurityException e) {
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
+    }
   }
 }

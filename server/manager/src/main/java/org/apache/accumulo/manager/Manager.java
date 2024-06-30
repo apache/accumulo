@@ -138,6 +138,7 @@ import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.grpc.CompactionCoordinatorServiceServer;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.LiveTServersSnapshot;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -220,6 +221,8 @@ public class Manager extends AbstractServer
 
   ServiceLock managerLock = null;
   private TServer clientService = null;
+  private CompactionCoordinatorServiceServer grpcClientService = null;
+
   protected volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
 
@@ -331,6 +334,7 @@ public class Manager extends AbstractServer
       ScheduledFuture<?> future = getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
         // This frees the main thread and will cause the manager to exit
         clientService.stop();
+        grpcClientService.stop();
         Manager.this.nextEvent.event("stopped event loop");
       }, 100L, 1000L, MILLISECONDS);
       ThreadPools.watchNonCriticalScheduledTask(future);
@@ -1030,6 +1034,18 @@ public class Manager extends AbstractServer
     clientService = sa.server;
     log.info("Started Manager client service at {}", sa.address);
 
+    final CompactionCoordinatorServiceServer grpcService;
+    try {
+      // Start up the grpc compaction service
+      // TODO: The port is just hardcoded for now and will need to be configurable
+      grpcService =
+          new CompactionCoordinatorServiceServer(compactionCoordinator.getGrpcService(), 8980);
+      grpcService.start();
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to start grpc server on host " + getHostname(), e);
+    }
+    grpcClientService = grpcService;
+
     // block until we can obtain the ZK lock for the manager
     ServiceLockData sld;
     try {
@@ -1219,6 +1235,7 @@ public class Manager extends AbstractServer
     while (clientService.isServing()) {
       sleepUninterruptibly(500, MILLISECONDS);
     }
+
     log.info("Shutting down fate.");
     getFateRefs().keySet().forEach(type -> fate(type).shutdown(0, MINUTES));
 
