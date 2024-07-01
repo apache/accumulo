@@ -771,8 +771,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     blockCacheMetrics = new BlockCacheMetrics(this.resourceManager.getIndexCache(),
         this.resourceManager.getDataCache(), this.resourceManager.getSummaryCache());
 
-    metricsInfo.addMetricsProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics,
-        blockCacheMetrics);
+    metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
+        ceMetrics, blockCacheMetrics);
     metricsInfo.init();
 
     this.compactionManager = new CompactionManager(() -> Iterators

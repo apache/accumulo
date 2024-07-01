@@ -18,42 +18,46 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.time.Duration;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.compactor.Compactor;
+import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.compaction.ExternalCompactionTestUtils;
 import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IdleProcessMetricsIT extends SharedMiniClusterBase {
+
+  private static final Logger log = LoggerFactory.getLogger(IdleProcessMetricsIT.class);
 
   public static class IdleStopITConfig implements MiniClusterConfigurationCallback {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
 
-      // Configure all compaction planners to use the default resource group so
-      // that only 1 compactor is started by MiniAccumuloCluster
-      cfg.setProperty("tserver.compaction.major.service.root.planner.opts.executors",
-          "[{'name':'all','type':'external','group':'default'}]".replaceAll("'", "\""));
-      cfg.setProperty("tserver.compaction.major.service.meta.planner.opts.executors",
-          "[{'name':'all','type':'external','group':'default'}]".replaceAll("'", "\""));
-      cfg.setProperty("tserver.compaction.major.service.default.planner.opts.executors",
-          "[{'name':'all','type':'external','group':'default'}]".replaceAll("'", "\""));
-
-      // Add servers in a resource group that will not get any work. These
+      // TODO Add servers in a resource group that will not get any work. These
       // are the servers that should stop because they are idle.
-      // TODO
+      ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
+      cfg.setNumCompactors(1);
+      cfg.setNumTservers(1);
+      cfg.setNumScanServers(1);
 
       cfg.setProperty(Property.GENERAL_IDLE_PROCESS_INTERVAL, "10s");
 
@@ -72,11 +76,6 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
 
   private static TestStatsDSink sink;
 
-  @Override
-  protected Duration defaultTimeout() {
-    return Duration.ofMinutes(3);
-  }
-
   @BeforeAll
   public static void before() throws Exception {
     sink = new TestStatsDSink();
@@ -92,32 +91,40 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
   @Test
   public void testIdleStopMetrics() throws Exception {
 
+    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
+    getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
+    getCluster().getClusterControl().start(ServerType.SCAN_SERVER, "localhost");
+    getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+
     // The server processes in the IDLE_PROCESS_TEST resource group
     // should emit the idle metric after 10s of being idle based
     // on the configuration for this test. Wait 20s before checking
     // for it.
-    Thread.sleep(20_000);
-
-    List<String> statsDMetrics;
+    Thread.sleep(10_000);
 
     AtomicBoolean sawCompactor = new AtomicBoolean(false);
     AtomicBoolean sawSServer = new AtomicBoolean(false);
     AtomicBoolean sawTServer = new AtomicBoolean(false);
-    // loop until we run out of lines or until we see all expected metrics
-    while (!(statsDMetrics = sink.getLines()).isEmpty() && !sawCompactor.get() && !sawSServer.get()
-        && !sawTServer.get()) {
+    Wait.waitFor(() -> {
+      List<String> statsDMetrics = sink.getLines();
       statsDMetrics.stream().filter(line -> line.startsWith(MetricsProducer.METRICS_SERVER_IDLE))
-          .map(TestStatsDSink::parseStatsDMetric).forEach(a -> {
+          .peek(log::info).map(TestStatsDSink::parseStatsDMetric).forEach(a -> {
             String processName = a.getTags().get("process.name");
-            if (processName.equals("tserver")) {
-              sawTServer.set(true);
-            } else if (processName.equals("sserver")) {
-              sawSServer.set(true);
-            } else if (processName.equals("compactor")) {
-              sawCompactor.set(true);
+            switch (processName) {
+              case "tserver":
+                sawTServer.set(true);
+                break;
+              case "sserver":
+                sawSServer.set(true);
+                break;
+              case "compactor":
+                sawCompactor.set(true);
+                break;
             }
           });
-    }
+      // Return true when all metrics are seen, false otherwise
+      return sawCompactor.get() && sawSServer.get() && sawTServer.get();
+    }, Wait.MAX_WAIT_MILLIS, Wait.SLEEP_MILLIS, "Did not see all expected metrics");
   }
 
 }
