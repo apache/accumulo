@@ -31,7 +31,6 @@ import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -39,9 +38,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ConfigCheckUtil;
-import org.apache.accumulo.core.fate.MetaFateStore;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore;
-import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
@@ -309,19 +305,14 @@ public class UpgradeCoordinator {
       justification = "Want to immediately stop all manager threads on upgrade error")
   private void abortIfFateTransactions(ServerContext context) {
     try {
-      final ReadOnlyFateStore<UpgradeCoordinator> mfs = new MetaFateStore<>(
-          context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter());
-      final ReadOnlyFateStore<UpgradeCoordinator> ufs = new UserFateStore<>(context);
-      try (var mfsList = mfs.list(); var ufsList = ufs.list();
-          var idStream = Stream.concat(mfsList, ufsList)) {
-        if (idStream.findFirst().isPresent()) {
-          throw new AccumuloException("Aborting upgrade because there are"
-              + " outstanding FATE transactions from a previous Accumulo version."
-              + " You can start the tservers and then use the shell to delete completed "
-              + " transactions. If there are incomplete transactions, you will need to roll"
-              + " back and fix those issues. Please see the following page for more information: "
-              + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
-        }
+      if (!context.getZooReader().getChildren(context.getZooKeeperRoot() + Constants.ZFATE)
+          .isEmpty()) {
+        throw new AccumuloException("Aborting upgrade because there are"
+            + " outstanding FATE transactions from a previous Accumulo version."
+            + " You can start the tservers and then use the shell to delete completed "
+            + " transactions. If there are incomplete transactions, you will need to roll"
+            + " back and fix those issues. Please see the following page for more information: "
+            + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
       }
     } catch (Exception exception) {
       log.error("Problem verifying Fate readiness", exception);

@@ -1037,7 +1037,6 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
-    this.getContext().setServiceLock(getManagerLock());
 
     // If UpgradeStatus is not at complete by this moment, then things are currently
     // upgrading.
@@ -1132,6 +1131,7 @@ public class Manager extends AbstractServer
             return false;
           }
         });
+
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
     }
@@ -1463,6 +1463,7 @@ public class Manager extends AbstractServer
       sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, MILLISECONDS);
     }
 
+    this.getContext().setServiceLock(getManagerLock());
     setManagerState(ManagerState.HAVE_LOCK);
     return sld;
   }
