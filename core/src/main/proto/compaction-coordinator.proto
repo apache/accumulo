@@ -27,14 +27,7 @@ package compaction_coordinator;
 
 // Interface exported by the server.
 service CompactionCoordinatorService {
-  // A simple RPC.
-  //
-  // Obtains the feature at a given position.
-  //
-  // A feature with an empty name is returned if there's no feature at the given
-  // position.
   rpc GetCompactionJob(CompactionJobRequest) returns (PNextCompactionJob) {}
-
 }
 
 message PInfo {
