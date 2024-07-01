@@ -305,6 +305,11 @@ public class UpgradeCoordinator {
       justification = "Want to immediately stop all manager threads on upgrade error")
   private void abortIfFateTransactions(ServerContext context) {
     try {
+      // The current version of the code creates the new accumulo.fate table on upgrade, so no
+      // attempt is made to read it here. Attempting to read it this point would likely cause a hang
+      // as not tablets are assigned when this is called. The Fate code is not used to read from
+      // zookeeper below because the serialization format changed in zookeeper, that is why a direct
+      // read is performed.
       if (!context.getZooReader().getChildren(context.getZooKeeperRoot() + Constants.ZFATE)
           .isEmpty()) {
         throw new AccumuloException("Aborting upgrade because there are"
