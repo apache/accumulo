@@ -18,3 +18,4 @@
 #
 
 core/src/main/thrift-gen-java/** linguist-generated=true
+core/src/main/protobuf-gen-java/** linguist-generated=true

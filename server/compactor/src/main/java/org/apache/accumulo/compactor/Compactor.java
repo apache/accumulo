@@ -485,7 +485,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             LOG.trace("Attempting to get next job, eci = {}", eci);
             currentCompactionId.set(eci);
             /*
-             * GRPC is now used to make the compaction job request. We keep using the Thrift objects
+             * gRPC is now used to make the compaction job request. We keep using the Thrift objects
              * and convert to/from the equivalent protocol buffer objects for now to keep the
              * changes isolated from the rest of the code.
              */

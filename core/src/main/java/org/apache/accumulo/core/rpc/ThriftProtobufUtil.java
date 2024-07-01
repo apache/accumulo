@@ -51,17 +51,17 @@ import com.google.protobuf.ByteString;
 
 /**
  * This is a utility class for converting between the equivalent Thrift and Protobuf versions of the
- * objects needed using the GRPC service.
+ * objects needed using the gRPC service.
  *
  * TODO: This code may eventually be able to be removed
  *
  * This class is designed mostly just for this prototype/proof of concept and would probably not be
- * needed if we plan to keep using protocol buffers and GRPC going forward. The Thrift API is used
+ * needed if we plan to keep using protocol buffers and gRPC going forward. The Thrift API is used
  * by the rest of the compaction code in the Compactor and Compaction Coordinator, so doing a
- * conversion made it easy to isolate the GRPC changes to the one getCompactionJob() RPC call
+ * conversion made it easy to isolate the gRPC changes to the one getCompactionJob() RPC call
  * without having to impact the rest of the code for this prototype.
  *
- * Ideally, if we decide to go with GRPC and keep protocol buffers, then we would want to remove the
+ * Ideally, if we decide to go with gRPC and keep protocol buffers, then we would want to remove the
  * Thrift conversion entirely for performance reasons and just go between the native objects and
  * protocol buffer versions.
  *
