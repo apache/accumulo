@@ -970,7 +970,7 @@ public class Manager extends AbstractServer
       long wait = 0;
       long totalMigrationsOut = 0;
       for (DataLevel dl : DataLevel.values()) {
-        Set<KeyExtent> migrationsForLevel = partitionedMigrations.get(dl);
+        final Set<KeyExtent> migrationsForLevel = partitionedMigrations.get(dl);
         if (migrationsForLevel == null) {
           continue;
         }
@@ -979,21 +979,20 @@ public class Manager extends AbstractServer
               tabletsNotHosted);
           continue;
         }
-        params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer, tserverStatus,
-            migrationsSnapshot());
-        totalMigrationsOut += params.migrationsOut().size();
+        log.debug("Balancing for tables at level: {}", dl);
         do {
-          log.debug("Balancing for tables at level: {}", dl);
+          params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer, tserverStatus,
+              migrationsForLevel);
           wait = Math.max(tabletBalancer.balance(params), wait);
+          totalMigrationsOut += params.migrationsOut().size();
           for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
               params.migrationsOut())) {
-            KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
+            final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
             if (migrations.containsKey(ke)) {
               log.warn("balancer requested migration more than once, skipping {}", m);
               continue;
             }
-            TServerInstance tserverInstance = TabletServerIdImpl.toThrift(m.getNewTabletServer());
-            migrations.put(ke, tserverInstance);
+            migrations.put(ke, TabletServerIdImpl.toThrift(m.getNewTabletServer()));
             log.debug("migration {}", m);
           }
         } while (totalMigrationsOut > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
