@@ -68,6 +68,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -525,7 +526,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             }, tableName);
           } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException
               | AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
-            throw new RuntimeException(e);
+            throw new CompletionException(e);
           }
           // wait for the fate operation to complete in a separate thread pool
         }, startExecutor).thenApplyAsync(pair -> {
@@ -540,7 +541,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             }
           } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException
               | AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
-            throw new RuntimeException(e);
+            throw new CompletionException(e);
           } finally {
             // always finish table op, even when exception
             if (opid != null) {
@@ -556,7 +557,33 @@ public class TableOperationsImpl extends TableOperationsHelper {
         futures.add(future);
       }
 
-      futures.forEach(CompletableFuture::join);
+      try {
+        futures.forEach(CompletableFuture::join);
+      } catch (CompletionException ee) {
+        Throwable excep = ee.getCause();
+        // Below all exceptions are wrapped and rethrown. This is done so that the user knows
+        // what code path got them here. If the wrapping was not done, the user would only
+        // have the stack trace for the background thread.
+        if (excep instanceof TableNotFoundException) {
+          TableNotFoundException tnfe = (TableNotFoundException) excep;
+          throw new TableNotFoundException(tableId.canonical(), tableName,
+              "Table not found by background thread", tnfe);
+        } else if (excep instanceof TableOfflineException) {
+          log.debug("TableOfflineException occurred in background thread. Throwing new exception",
+              excep);
+          throw new TableOfflineException(tableId, tableName);
+        } else if (excep instanceof AccumuloSecurityException) {
+          // base == background accumulo security exception
+          AccumuloSecurityException base = (AccumuloSecurityException) excep;
+          throw new AccumuloSecurityException(base.getUser(), base.asThriftException().getCode(),
+              base.getTableInfo(), excep);
+        } else if (excep instanceof AccumuloServerException) {
+          throw new AccumuloServerException((AccumuloServerException) excep);
+        } else {
+          throw new AccumuloException(excep);
+        }
+      }
+
     }
     startExecutor.shutdown();
     waitExecutor.shutdown();
