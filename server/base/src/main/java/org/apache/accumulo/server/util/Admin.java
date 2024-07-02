@@ -1000,9 +1000,9 @@ public class Admin implements KeywordExecutable {
       }
     };
 
-    UserFateStore<?> ufs = new UserFateStore<>(context);
+    UserFateStore<?> ufs = new UserFateStore<>(context, null, null);
     MetaFateStore<?> mfs = new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
-        context.getZooReaderWriter());
+        context.getZooReaderWriter(), null, null);
     LoadingCache<FateId,ReadOnlyFateStore.TStatus> fateStatusCache = Caffeine.newBuilder()
         .maximumSize(100_000).expireAfterWrite(10, TimeUnit.SECONDS).build(fateId -> {
           if (fateId.getType() == FateInstanceType.META) {
