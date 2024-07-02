@@ -27,18 +27,27 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Formatter;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -53,6 +62,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -66,6 +76,8 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
@@ -89,6 +101,8 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
@@ -118,7 +132,8 @@ public class Admin implements KeywordExecutable {
     List<String> args = new ArrayList<>();
   }
 
-  @Parameters(commandDescription = "print tablets that are offline in online tables")
+  @Parameters(commandDescription = "Looks for tablets that are unexpectedly offline, tablets that "
+      + "reference missing files, or tablets that reference absent fate operations.")
   static class CheckTabletsCommand {
     @Parameter(names = "--fixFiles", description = "Remove dangling file pointers")
     boolean fixFiles = false;
@@ -367,7 +382,10 @@ public class Admin implements KeywordExecutable {
             rc = 6;
           }
         }
-
+        System.out.println("\n*** Looking for dangling fate operations ***\n");
+        if (printDanglingFateOperations(context, checkTabletsCommand.tableName) > 0) {
+          rc = 7;
+        }
       } else if (cl.getParsedCommand().equals("stop")) {
         stopTabletServer(context, stopOpts.args, opts.force);
       } else if (cl.getParsedCommand().equals("dumpConfig")) {
@@ -947,5 +965,152 @@ public class Admin implements KeywordExecutable {
       }
     }
     return typesFilter;
+  }
+
+  private static long printDanglingFateOperations(ServerContext context, String tableName)
+      throws Exception {
+    long totalDanglingSeen = 0;
+    if (tableName == null) {
+      for (var dataLevel : Ample.DataLevel.values()) {
+        try (var tablets = context.getAmple().readTablets().forLevel(dataLevel).build()) {
+          totalDanglingSeen += printDanglingFateOperations(context, tablets);
+        }
+      }
+    } else {
+      var tableId = context.getTableId(tableName);
+      try (var tablets = context.getAmple().readTablets().forTable(tableId).build()) {
+        totalDanglingSeen += printDanglingFateOperations(context, tablets);
+      }
+    }
+
+    System.out.printf("\nFound %,d dangling references to fate operations\n", totalDanglingSeen);
+
+    return totalDanglingSeen;
+  }
+
+  private static long printDanglingFateOperations(ServerContext context,
+      Iterable<TabletMetadata> tablets) throws Exception {
+    Function<Collection<KeyExtent>,Map<KeyExtent,TabletMetadata>> tabletLookup = extents -> {
+      try (var lookedupTablets =
+          context.getAmple().readTablets().forTablets(extents, Optional.empty()).build()) {
+        Map<KeyExtent,TabletMetadata> tabletMap = new HashMap<>();
+        lookedupTablets
+            .forEach(tabletMetadata -> tabletMap.put(tabletMetadata.getExtent(), tabletMetadata));
+        return tabletMap;
+      }
+    };
+
+    UserFateStore<?> ufs = new UserFateStore<>(context);
+    MetaFateStore<?> mfs = new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
+        context.getZooReaderWriter());
+    LoadingCache<FateId,ReadOnlyFateStore.TStatus> fateStatusCache = Caffeine.newBuilder()
+        .maximumSize(100_000).expireAfterWrite(10, TimeUnit.SECONDS).build(fateId -> {
+          if (fateId.getType() == FateInstanceType.META) {
+            return mfs.read(fateId).getStatus();
+          } else {
+            return ufs.read(fateId).getStatus();
+          }
+        });
+
+    Predicate<FateId> activePredicate = fateId -> {
+      var status = fateStatusCache.get(fateId);
+      switch (status) {
+        case NEW:
+        case IN_PROGRESS:
+        case SUBMITTED:
+        case FAILED_IN_PROGRESS:
+          return true;
+        case FAILED:
+        case SUCCESSFUL:
+        case UNKNOWN:
+          return false;
+        default:
+          throw new IllegalStateException("Unexpected status: " + status);
+      }
+    };
+
+    AtomicLong danglingSeen = new AtomicLong();
+    BiConsumer<KeyExtent,Set<FateId>> danglingConsumer = (extent, fateIds) -> {
+      danglingSeen.addAndGet(fateIds.size());
+      fateIds.forEach(fateId -> System.out.println(fateId + " " + extent));
+    };
+
+    findDanglingFateOperations(tablets, tabletLookup, activePredicate, danglingConsumer, 10_000);
+    return danglingSeen.get();
+  }
+
+  /**
+   * Finds tablets that point to fate operations that do not exists or are complete.
+   *
+   * @param tablets the tablets to inspect
+   * @param tabletLookup a function that can lookup a tablets latest metadata
+   * @param activePredicate a predicate that can determine if a fate id is currently active
+   * @param danglingConsumer a consumer that tablets with inactive fate ids will be sent to
+   */
+  static void findDanglingFateOperations(Iterable<TabletMetadata> tablets,
+      Function<Collection<KeyExtent>,Map<KeyExtent,TabletMetadata>> tabletLookup,
+      Predicate<FateId> activePredicate, BiConsumer<KeyExtent,Set<FateId>> danglingConsumer,
+      int bufferSize) {
+
+    ArrayList<FateId> fateIds = new ArrayList<>();
+    Map<KeyExtent,Set<FateId>> candidates = new HashMap<>();
+    for (TabletMetadata tablet : tablets) {
+      fateIds.clear();
+      getAllFateIds(tablet, fateIds::add);
+      fateIds.removeIf(activePredicate);
+      if (!fateIds.isEmpty()) {
+        candidates.put(tablet.getExtent(), new HashSet<>(fateIds));
+        if (candidates.size() > bufferSize) {
+          processCandidates(candidates, tabletLookup, danglingConsumer);
+          candidates.clear();
+        }
+      }
+    }
+
+    processCandidates(candidates, tabletLookup, danglingConsumer);
+  }
+
+  private static void processCandidates(Map<KeyExtent,Set<FateId>> candidates,
+      Function<Collection<KeyExtent>,Map<KeyExtent,TabletMetadata>> tabletLookup,
+      BiConsumer<KeyExtent,Set<FateId>> danglingConsumer) {
+    // Perform a 2nd check of the tablet to avoid race conditions like the following.
+    // 1. THREAD 1 : TabletMetadata is read and points to active fate operation
+    // 2. THREAD 2 : The fate operation is deleted from the tablet
+    // 3. THREAD 2 : The fate operation completes
+    // 4. THREAD 1 : Checks if the fate operation read in step 1 is active and finds it is not
+
+    Map<KeyExtent,TabletMetadata> currentTablets = tabletLookup.apply(candidates.keySet());
+    HashSet<FateId> currentFateIds = new HashSet<>();
+    candidates.forEach((extent, fateIds) -> {
+      var currentTablet = currentTablets.get(extent);
+      if (currentTablet != null) {
+        currentFateIds.clear();
+        getAllFateIds(currentTablet, currentFateIds::add);
+        // Only keep fate ids that are still present in the tablet. Any new fate ids in
+        // currentFateIds that were not seen on the first pass are not considered here. To check
+        // those new ones, the entire two-step process would need to be rerun.
+        fateIds.retainAll(currentFateIds);
+
+        if (!fateIds.isEmpty()) {
+          // the fateIds in this set were found to be inactive and still exist in the tablet
+          // metadata after being found inactive
+          danglingConsumer.accept(extent, fateIds);
+        }
+      } // else the tablet no longer exist so nothing to report
+    });
+  }
+
+  /**
+   * Extracts all fate ids that a tablet points to from any field.
+   */
+  private static void getAllFateIds(TabletMetadata tabletMetadata,
+      Consumer<FateId> fateIdConsumer) {
+    tabletMetadata.getLoaded().values().forEach(fateIdConsumer);
+    if (tabletMetadata.getSelectedFiles() != null) {
+      fateIdConsumer.accept(tabletMetadata.getSelectedFiles().getFateId());
+    }
+    if (tabletMetadata.getOperationId() != null) {
+      fateIdConsumer.accept(tabletMetadata.getOperationId().getFateId());
+    }
   }
 }

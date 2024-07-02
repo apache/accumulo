@@ -59,9 +59,12 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -70,6 +73,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.LoadPlan.RangeType;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
@@ -752,6 +756,109 @@ public class BulkNewIT extends SharedMiniClusterBase {
       // verifty the data was bulk imported
       verifyData(c, tableName, 0, 333, false);
       verifyMetadata(c, tableName, Map.of("null", Set.of(h1)));
+    }
+  }
+
+  /*
+   * Test bulk importing to tablets with different availability settings. For hosted tablets bulk
+   * import should refresh them.
+   */
+  @Test
+  public void testAvailability() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String dir = getDir("/testBulkFile-");
+      FileSystem fs = getCluster().getFileSystem();
+      fs.mkdirs(new Path(dir));
+
+      addSplits(c, tableName, "0100 0200 0300 0400 0500");
+
+      c.tableOperations().setTabletAvailability(tableName, new Range("0100", false, "0200", true),
+          TabletAvailability.HOSTED);
+      c.tableOperations().setTabletAvailability(tableName, new Range("0300", false, "0400", true),
+          TabletAvailability.HOSTED);
+      c.tableOperations().setTabletAvailability(tableName, new Range("0400", false, null, true),
+          TabletAvailability.UNHOSTED);
+
+      // verify tablet availabilities are as expected
+      var expectedAvailabilites =
+          Map.of("0100", TabletAvailability.ONDEMAND, "0200", TabletAvailability.HOSTED, "0300",
+              TabletAvailability.ONDEMAND, "0400", TabletAvailability.HOSTED, "0500",
+              TabletAvailability.UNHOSTED, "NULL", TabletAvailability.UNHOSTED);
+      assertEquals(expectedAvailabilites, getTabletAvailabilities(c, tableName));
+
+      var expectedHosting = expectedAvailabilites.entrySet().stream()
+          .collect(Collectors.toMap(Entry::getKey, e -> e.getValue() == TabletAvailability.HOSTED));
+
+      // Wait for the tablets w/ a TabletAvailability of HOSTED to have a location. Waiting for this
+      // ensures when the bulk import runs that some tablets will be hosted and others will not.
+      Wait.waitFor(() -> getLocationStatus(c, tableName).equals(expectedHosting));
+
+      // create files that straddle tables w/ different Availability settings
+      writeData(dir + "/f1.", aconf, 0, 150);
+      writeData(dir + "/f2.", aconf, 151, 250);
+      writeData(dir + "/f3.", aconf, 251, 350);
+      writeData(dir + "/f4.", aconf, 351, 450);
+      writeData(dir + "/f5.", aconf, 451, 550);
+
+      c.tableOperations().importDirectory(dir).to(tableName).load();
+
+      // Verify bulk import operation did not change anything w.r.t. tablet hosting, should not
+      // cause ondemand tablets to be hosted.
+      assertEquals(expectedAvailabilites, getTabletAvailabilities(c, tableName));
+      assertEquals(expectedHosting, getLocationStatus(c, tableName));
+
+      // after import data should be visible
+      try (var scanner = c.createScanner(tableName)) {
+        var expected = IntStream.range(0, 401).mapToObj(i -> String.format("%04d", i))
+            .collect(Collectors.toSet());
+        // scan up to the unhosted tablet
+        scanner.setRange(new Range("0000", true, "0400", true));
+        var seen = scanner.stream().map(e -> e.getKey().getRowData().toString())
+            .collect(Collectors.toSet());
+        assertEquals(expected, seen);
+      }
+
+      try (var scanner = c.createScanner(tableName)) {
+        var expected = IntStream.range(0, 551).mapToObj(i -> String.format("%04d", i))
+            .collect(Collectors.toSet());
+        // with eventual scan should see data imported into unhosted tablets
+        scanner.setConsistencyLevel(ScannerBase.ConsistencyLevel.EVENTUAL);
+        var seen = scanner.stream().map(e -> e.getKey().getRowData().toString())
+            .collect(Collectors.toSet());
+        assertEquals(expected, seen);
+      }
+    }
+  }
+
+  /**
+   * @return Map w/ keys that are end rows of tablets and the value is a true when the tablet has a
+   *         current location.
+   */
+  private static Map<String,Boolean> getLocationStatus(AccumuloClient c, String tableName)
+      throws Exception {
+    ClientContext ctx = (ClientContext) c;
+    var tableId = ctx.getTableId(tableName);
+    try (var tablets = ctx.getAmple().readTablets().forTable(tableId).build()) {
+      return tablets.stream().collect(Collectors.toMap(tm -> {
+        var er = tm.getExtent().endRow();
+        return er == null ? "NULL" : er.toString();
+      }, tm -> {
+        var loc = tm.getLocation();
+        return loc != null && loc.getType() == TabletMetadata.LocationType.CURRENT;
+      }));
+    }
+  }
+
+  /**
+   * @return Map w/ keys that are end rows of tablets and the value is the tablets availability.
+   */
+  private static Map<String,TabletAvailability> getTabletAvailabilities(AccumuloClient c,
+      String tableName) throws TableNotFoundException {
+    try (var tabletsInfo = c.tableOperations().getTabletInformation(tableName, new Range())) {
+      return tabletsInfo.collect(Collectors.toMap(ti -> {
+        var er = ti.getTabletId().getEndRow();
+        return er == null ? "NULL" : er.toString();
+      }, TabletInformation::getTabletAvailability));
     }
   }
 
