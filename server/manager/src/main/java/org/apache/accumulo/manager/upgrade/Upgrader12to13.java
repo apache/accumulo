@@ -175,7 +175,6 @@ public class Upgrader12to13 implements Upgrader {
 
   private void removeCompactColumnsFromTable(ServerContext context, String tableName) {
 
-    // TODO if empty auths are not passed then this blows up
     try (var scanner = context.createScanner(tableName, Authorizations.EMPTY);
         var writer = context.createBatchWriter(tableName)) {
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
