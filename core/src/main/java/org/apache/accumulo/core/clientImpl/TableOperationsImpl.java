@@ -526,6 +526,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
             }, tableName);
           } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException
               | AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
+            // This exception type is used because it makes it easier in the foreground thread to do
+            // exception analysis when using CompletableFuture.
             throw new CompletionException(e);
           }
           // wait for the fate operation to complete in a separate thread pool
@@ -541,6 +543,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
             }
           } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException
               | AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
+            // This exception type is used because it makes it easier in the foreground thread to do
+            // exception analysis when using CompletableFuture.
             throw new CompletionException(e);
           } finally {
             // always finish table op, even when exception
