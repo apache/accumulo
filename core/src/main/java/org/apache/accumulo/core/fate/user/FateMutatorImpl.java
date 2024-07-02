@@ -110,28 +110,6 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   }
 
   @Override
-  public FateMutator<T> requireReserved(FateStore.FateReservation reservation) {
-    Condition condition = new Condition(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
-        TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier()).setValue(reservation.toString());
-    mutation.addCondition(condition);
-    return this;
-  }
-
-  @Override
-  public FateMutator<T> requireReserved() {
-    Condition condition = ReservationMappingIterator.createRequireReservedCondition();
-    mutation.addCondition(condition);
-    return this;
-  }
-
-  @Override
-  public FateMutator<T> requireUnreserved() {
-    Condition condition = ReservationMappingIterator.createRequireUnreservedCondition();
-    mutation.addCondition(condition);
-    return this;
-  }
-
-  @Override
   public FateMutator<T> putName(byte[] data) {
     TxInfoColumnFamily.TX_NAME_COLUMN.put(mutation, new Value(data));
     return this;

@@ -19,9 +19,6 @@
 package org.apache.accumulo.test.fate;
 
 import static org.apache.accumulo.test.fate.user.UserFateStoreIT.createFateTable;
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,6 +36,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -52,13 +50,11 @@ import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
-import org.easymock.EasyMock;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -127,11 +123,11 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
 
     if (isUserStore) {
       createFateTable(client, tableName);
-      store1 = new UserFateStore<>(client, tableName, lock1);
-      store2 = new UserFateStore<>(client, tableName, lock2);
+      store1 = new UserFateStore<>(client, tableName, lock1, null);
+      store2 = new UserFateStore<>(client, tableName, lock2, null);
     } else {
-      store1 = new MetaFateStore<>(FATE_DIR, zk, client.getZooCache(), lock1);
-      store2 = new MetaFateStore<>(FATE_DIR, zk, client.getZooCache(), lock2);
+      store1 = new MetaFateStore<>(FATE_DIR, zk, lock1, null);
+      store2 = new MetaFateStore<>(FATE_DIR, zk, lock2, null);
     }
 
     // Create the fate ids using store1
@@ -193,9 +189,9 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
 
     if (isUserStore) {
       createFateTable(client, tableName);
-      store = new UserFateStore<>(client, tableName, lock);
+      store = new UserFateStore<>(client, tableName, lock, null);
     } else {
-      store = new MetaFateStore<>(FATE_DIR, zk, client.getZooCache(), lock);
+      store = new MetaFateStore<>(FATE_DIR, zk, lock, null);
     }
 
     assertThrows(IllegalStateException.class, () -> store.reserve(fakeFateId));
@@ -219,9 +215,9 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
 
     if (isUserStore) {
       createFateTable(client, tableName);
-      store = new UserFateStore<>(client, tableName, lock);
+      store = new UserFateStore<>(client, tableName, lock, null);
     } else {
-      store = new MetaFateStore<>(FATE_DIR, zk, client.getZooCache(), lock);
+      store = new MetaFateStore<>(FATE_DIR, zk, lock, null);
     }
 
     // Create some FateIds and ensure that they can be reserved
@@ -267,9 +263,9 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
 
     if (isUserStore) {
       createFateTable(client, tableName);
-      store = new UserFateStore<>(client, tableName, lock);
+      store = new UserFateStore<>(client, tableName, lock, null);
     } else {
-      store = new MetaFateStore<>(FATE_DIR, zk, client.getZooCache(), lock);
+      store = new MetaFateStore<>(FATE_DIR, zk, lock, null);
     }
 
     // Create some FateIds and ensure that they can be reserved
@@ -321,22 +317,24 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     final SleepingTestEnv testEnv2 = new SleepingTestEnv(50);
     final ZooUtil.LockID lock1 = new ZooUtil.LockID("/locks", "L1", 50);
     final ZooUtil.LockID lock2 = new ZooUtil.LockID("/locks", "L2", 52);
+    final Set<ZooUtil.LockID> liveLocks = new HashSet<>();
+    final Predicate<ZooUtil.LockID> isLockHeld = liveLocks::contains;
 
     if (isUserStore) {
       createFateTable(client, tableName);
-      store1 = new UserFateStore<>(client, tableName, lock1);
-      store2 = new UserFateStore<>(client, tableName, lock2);
+      store1 = new UserFateStore<>(client, tableName, lock1, isLockHeld);
+      store2 = new UserFateStore<>(client, tableName, lock2, isLockHeld);
     } else {
-      store1 = new MetaFateStore<>(FATE_DIR, zk, client.getZooCache(), lock1);
-      store2 = new MetaFateStore<>(FATE_DIR, zk, client.getZooCache(), lock2);
+      store1 = new MetaFateStore<>(FATE_DIR, zk, lock1, isLockHeld);
+      store2 = new MetaFateStore<>(FATE_DIR, zk, lock2, isLockHeld);
     }
+    liveLocks.add(lock1);
+    liveLocks.add(lock2);
 
     Fate<SleepingTestEnv> fate1 =
         new Fate<>(testEnv1, store1, Object::toString, DefaultConfiguration.getInstance());
-    fate1.startDeadReservationCleaner();
     Fate<SleepingTestEnv> fate2 =
         new Fate<>(testEnv2, store2, Object::toString, DefaultConfiguration.getInstance());
-    fate2.startDeadReservationCleaner();
 
     for (int i = 0; i < numFateIds; i++) {
       FateId fateId;
@@ -382,38 +380,28 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
         Integer.parseInt(Property.MANAGER_FATE_THREADPOOL_SIZE.getDefaultValue());
     final boolean isUserStore = storeType.equals(FateInstanceType.USER);
     final Set<FateId> allIds = new HashSet<>();
-    final FateStore<LatchTestEnv> mockedStore1, store2;
+    final FateStore<LatchTestEnv> store1, store2;
     final LatchTestEnv testEnv1 = new LatchTestEnv();
     final LatchTestEnv testEnv2 = new LatchTestEnv();
     final ZooUtil.LockID lock1 = new ZooUtil.LockID("/locks", "L1", 50);
     final ZooUtil.LockID lock2 = new ZooUtil.LockID("/locks", "L2", 52);
+    final Set<ZooUtil.LockID> liveLocks = new HashSet<>();
+    final Predicate<ZooUtil.LockID> isLockHeld = liveLocks::contains;
     Map<FateId,FateStore.FateReservation> reservations;
 
     if (isUserStore) {
       createFateTable(client, tableName);
-      mockedStore1 = EasyMock.createMockBuilder(UserFateStore.class)
-          .withConstructor(ClientContext.class, String.class, ZooUtil.LockID.class)
-          .withArgs(client, tableName, lock1).addMockedMethod("isDeadReservation").createMock();
+      store1 = new UserFateStore<>(client, tableName, lock1, isLockHeld);
     } else {
-      mockedStore1 = EasyMock.createMockBuilder(MetaFateStore.class)
-          .withConstructor(String.class, ZooReaderWriter.class, ZooCache.class,
-              ZooUtil.LockID.class)
-          .withArgs(FATE_DIR, zk, client.getZooCache(), lock1).addMockedMethod("isDeadReservation")
-          .createMock();
+      store1 = new MetaFateStore<>(FATE_DIR, zk, lock1, isLockHeld);
     }
-    // Define isDeadReservation() for mockedStore1 as always being false. We don't want
-    // fate1/mockedStore1 to delete any reservations yet (we are simulating that the
-    // Manager is alive right now)
-    expect(mockedStore1.isDeadReservation(anyObject(FateStore.FateReservation.class)))
-        .andReturn(false).anyTimes();
-    replay(mockedStore1);
+    liveLocks.add(lock1);
 
     Fate<LatchTestEnv> fate1 =
-        new Fate<>(testEnv1, mockedStore1, Object::toString, DefaultConfiguration.getInstance());
-    fate1.startDeadReservationCleaner();
+        new Fate<>(testEnv1, store1, Object::toString, DefaultConfiguration.getInstance());
 
     // Ensure nothing is reserved yet
-    assertTrue(mockedStore1.getActiveReservations().isEmpty());
+    assertTrue(store1.getActiveReservations().isEmpty());
 
     // Create transactions
     for (int i = 0; i < numFateIds; i++) {
@@ -428,50 +416,41 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     Wait.waitFor(() -> testEnv1.numWorkers.get() == numFateIds);
     // Each fate worker will be hung up working (IN_PROGRESS) on a single transaction
 
-    // Verify mockedStore1 has the transactions reserved and that they were reserved with lock1
-    reservations = mockedStore1.getActiveReservations();
+    // Verify store1 has the transactions reserved and that they were reserved with lock1
+    reservations = store1.getActiveReservations();
     assertEquals(allIds, reservations.keySet());
     reservations.values().forEach(
         res -> assertTrue(FateStore.FateReservation.locksAreEqual(lock1, res.getLockID())));
 
     if (isUserStore) {
-      store2 = new UserFateStore<>(client, tableName, lock2);
+      store2 = new UserFateStore<>(client, tableName, lock2, isLockHeld);
     } else {
-      store2 = new MetaFateStore<>(FATE_DIR, zk, client.getZooCache(), lock2);
+      store2 = new MetaFateStore<>(FATE_DIR, zk, lock2, isLockHeld);
     }
 
     // Verify store2 can see the reserved transactions even though they were reserved using
-    // mockedStore1
+    // store1
     reservations = store2.getActiveReservations();
     assertEquals(allIds, reservations.keySet());
     reservations.values().forEach(
         res -> assertTrue(FateStore.FateReservation.locksAreEqual(lock1, res.getLockID())));
 
     // Simulate what would happen if the Manager using the Fate object (fate1) died.
-    // ServerLock.isLockHeld(...) would return false for the LockId of the Manager that died
-    // (in this case, lock1).
-
-    // Redefine what is considered "dead" as those whose locks match lock1
-    EasyMock.reset(mockedStore1);
-    expect(mockedStore1.isDeadReservation(anyObject(FateStore.FateReservation.class)))
-        .andAnswer(() -> {
-          FateStore.FateReservation reservation =
-              (FateStore.FateReservation) EasyMock.getCurrentArguments()[0];
-          return FateStore.FateReservation.locksAreEqual(reservation.getLockID(), lock1);
-        }).anyTimes();
-    replay(mockedStore1);
+    // isLockHeld would return false for the LockId of the Manager that died (in this case, lock1)
+    // and true for the new Manager's lock (lock2)
+    liveLocks.remove(lock1);
+    liveLocks.add(lock2);
 
     // Create the new Fate/start the Fate threads (the work finder and the workers).
     // The DeadReservationCleaner for fate2 should not run/have no effect since we
     // already have a DeadReservationCleaner for storeType running from fate1.
     Fate<LatchTestEnv> fate2 =
         new Fate<>(testEnv2, store2, Object::toString, DefaultConfiguration.getInstance());
-    fate2.startDeadReservationCleaner();
 
     // Wait for the "dead" reservations to be deleted and picked up again (reserved using
     // fate2/store2/lock2 now).
     // They are considered "dead" if they are held by lock1 in this test. We don't have to worry
-    // about fate1/mockedStore1/lock1 being used to reserve the transactions again since all
+    // about fate1/store1/lock1 being used to reserve the transactions again since all
     // the workers for fate1 are hung up
     Wait.waitFor(() -> {
       Map<FateId,FateStore.FateReservation> store2Reservations = store2.getActiveReservations();

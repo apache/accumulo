@@ -84,6 +84,7 @@ import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
@@ -1149,11 +1150,13 @@ public class Manager extends AbstractServer
     }
 
     try {
+      Predicate<ZooUtil.LockID> isLockHeld =
+          lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
       var metaInstance =
           initializeFateInstance(context, new MetaFateStore<>(getZooKeeperRoot() + Constants.ZFATE,
-              context.getZooReaderWriter(), context.getZooCache(), managerLock.getLockID()));
-      var userInstance = initializeFateInstance(context,
-          new UserFateStore<>(context, AccumuloTable.FATE.tableName(), managerLock.getLockID()));
+              context.getZooReaderWriter(), managerLock.getLockID(), isLockHeld));
+      var userInstance = initializeFateInstance(context, new UserFateStore<>(context,
+          AccumuloTable.FATE.tableName(), managerLock.getLockID(), isLockHeld));
 
       if (!fateRefs.compareAndSet(null,
           Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userInstance))) {
@@ -1265,7 +1268,6 @@ public class Manager extends AbstractServer
 
     final Fate<Manager> fateInstance =
         new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
-    fateInstance.startDeadReservationCleaner();
 
     var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), this::getSteadyTime);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()

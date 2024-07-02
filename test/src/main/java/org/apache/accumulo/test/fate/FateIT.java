@@ -492,9 +492,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    Fate<TestEnv> fate = new Fate<>(new TestEnv(), store, r -> r + "", config);
-    fate.startDeadReservationCleaner();
-    return fate;
+    return new Fate<>(new TestEnv(), store, r -> r + "", config);
   }
 
   protected abstract TStatus getTxStatus(ServerContext sctx, FateId fateId);

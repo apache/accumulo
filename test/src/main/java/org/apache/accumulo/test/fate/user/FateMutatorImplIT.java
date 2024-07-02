@@ -195,13 +195,6 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
       status =
           new FateMutatorImpl<>(context, table, fateId).putUnreserveTx(reservation).tryMutate();
       assertEquals(REJECTED, status);
-      status =
-          new FateMutatorImpl<>(context, table, fateId).requireReserved(reservation).tryMutate();
-      assertEquals(REJECTED, status);
-      status = new FateMutatorImpl<>(context, table, fateId).requireReserved().tryMutate();
-      assertEquals(REJECTED, status);
-      status = new FateMutatorImpl<>(context, table, fateId).requireUnreserved().tryMutate();
-      assertEquals(REJECTED, status);
 
       // Initialize the column and ensure we can't do it twice
       status = new FateMutatorImpl<>(context, table, fateId).putInitReserveColVal().tryMutate();
@@ -213,30 +206,9 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
       status =
           new FateMutatorImpl<>(context, table, fateId).putUnreserveTx(reservation).tryMutate();
       assertEquals(REJECTED, status);
-      status =
-          new FateMutatorImpl<>(context, table, fateId).requireReserved(reservation).tryMutate();
-      assertEquals(REJECTED, status);
-      status = new FateMutatorImpl<>(context, table, fateId).requireReserved().tryMutate();
-      assertEquals(REJECTED, status);
-      // It is considered unreserved since it has been initialized
-      status = new FateMutatorImpl<>(context, table, fateId).requireUnreserved().tryMutate();
-      assertEquals(ACCEPTED, status);
-
-      // Should be able to reserve
       status = new FateMutatorImpl<>(context, table, fateId).putReservedTx(reservation).tryMutate();
       assertEquals(ACCEPTED, status);
 
-      // Ensure that it is reserved
-      status =
-          new FateMutatorImpl<>(context, table, fateId).requireReserved(reservation).tryMutate();
-      assertEquals(ACCEPTED, status);
-      status = new FateMutatorImpl<>(context, table, fateId).requireReserved(wrongReservation)
-          .tryMutate();
-      assertEquals(REJECTED, status);
-      status = new FateMutatorImpl<>(context, table, fateId).requireReserved().tryMutate();
-      assertEquals(ACCEPTED, status);
-      status = new FateMutatorImpl<>(context, table, fateId).requireUnreserved().tryMutate();
-      assertEquals(REJECTED, status);
       // Should not be able to reserve when it is already reserved
       status =
           new FateMutatorImpl<>(context, table, fateId).putReservedTx(wrongReservation).tryMutate();
@@ -254,15 +226,6 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
       status =
           new FateMutatorImpl<>(context, table, fateId).putUnreserveTx(reservation).tryMutate();
       assertEquals(REJECTED, status);
-
-      // Ensure that it is unreserved
-      status =
-          new FateMutatorImpl<>(context, table, fateId).requireReserved(reservation).tryMutate();
-      assertEquals(REJECTED, status);
-      status = new FateMutatorImpl<>(context, table, fateId).requireReserved().tryMutate();
-      assertEquals(REJECTED, status);
-      status = new FateMutatorImpl<>(context, table, fateId).requireUnreserved().tryMutate();
-      assertEquals(ACCEPTED, status);
     }
   }
 

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.fate.user;
 
-import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -87,7 +86,7 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
 
     // use the list of fateIds to simulate collisions on fateIds
     public TestUserFateStore(ClientContext context, String tableName, List<FateId> fateIds) {
-      super(context, tableName, createDummyLockID());
+      super(context, tableName, null, null);
       this.fateIdIterator = fateIds.iterator();
     }
 

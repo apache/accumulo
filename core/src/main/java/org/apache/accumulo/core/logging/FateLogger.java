@@ -191,11 +191,6 @@ public class FateLogger {
       public void deleteDeadReservations() {
         store.deleteDeadReservations();
       }
-
-      @Override
-      public boolean isDeadReservation(FateReservation reservation) {
-        return store.isDeadReservation(reservation);
-      }
     };
   }
 }

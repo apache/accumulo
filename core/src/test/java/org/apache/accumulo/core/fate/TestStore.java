@@ -94,12 +94,6 @@ public class TestStore implements FateStore<String> {
     throw new UnsupportedOperationException();
   }
 
-  @Override
-  public boolean isDeadReservation(FateReservation reservation) {
-    // This method only makes sense for the FateStores that don't store their reservations in memory
-    throw new UnsupportedOperationException();
-  }
-
   private class TestFateTxStore implements FateTxStore<String> {
 
     private final FateId fateId;

@@ -40,12 +40,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.time.NanoTime;
@@ -78,7 +77,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   // The ZooKeeper lock for the process that's running this store instance
   protected final ZooUtil.LockID lockID;
-  protected final ZooCache zooCache;
+  protected final Predicate<ZooUtil.LockID> isLockHeld;
   protected final Map<FateId,NanoTime> deferred;
   private final int maxDeferred;
   private final AtomicBoolean deferredOverflow = new AtomicBoolean();
@@ -94,17 +93,18 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     this(null, null, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
-  public AbstractFateStore(ZooUtil.LockID lockID, ZooCache zooCache) {
-    this(lockID, zooCache, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
+  public AbstractFateStore(ZooUtil.LockID lockID, Predicate<ZooUtil.LockID> isLockHeld) {
+    this(lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
-  public AbstractFateStore(ZooUtil.LockID lockID, ZooCache zooCache, int maxDeferred,
-      FateIdGenerator fateIdGenerator) {
+  public AbstractFateStore(ZooUtil.LockID lockID, Predicate<ZooUtil.LockID> isLockHeld,
+      int maxDeferred, FateIdGenerator fateIdGenerator) {
     this.maxDeferred = maxDeferred;
     this.fateIdGenerator = Objects.requireNonNull(fateIdGenerator);
     this.deferred = Collections.synchronizedMap(new HashMap<>());
-    this.lockID = lockID;
-    this.zooCache = zooCache;
+    this.lockID = Objects.requireNonNullElseGet(lockID, AbstractFateStore::createDummyLockID);
+    // If the store is used for a Fate object, this should be non-null, otherwise null is fine
+    this.isLockHeld = isLockHeld;
   }
 
   public static byte[] serialize(Object o) {
@@ -344,11 +344,6 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
 
     return txStore;
-  }
-
-  @Override
-  public boolean isDeadReservation(FateReservation reservation) {
-    return !ServiceLock.isLockHeld(zooCache, reservation.getLockID());
   }
 
   protected abstract void create(FateId fateId, FateKey fateKey);

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
-import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -76,8 +75,8 @@ public class MetaFateIT extends FateIT {
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(sctx);
 
-    testMethod.execute(new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk, null, createDummyLockID(),
-        maxDeferred, fateIdGenerator), sctx);
+    testMethod.execute(new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk, null, null, maxDeferred,
+        fateIdGenerator), sctx);
   }
 
   @Override

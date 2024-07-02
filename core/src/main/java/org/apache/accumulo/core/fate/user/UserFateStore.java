@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -73,20 +74,22 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   private static final com.google.common.collect.Range<Integer> REPO_RANGE =
       com.google.common.collect.Range.closed(1, maxRepos);
 
-  public UserFateStore(ClientContext context, String tableName, ZooUtil.LockID lockID) {
-    this(context, tableName, lockID, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
+  public UserFateStore(ClientContext context, String tableName, ZooUtil.LockID lockID,
+      Predicate<ZooUtil.LockID> isLockHeld) {
+    this(context, tableName, lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
   @VisibleForTesting
   public UserFateStore(ClientContext context, String tableName, ZooUtil.LockID lockID,
-      int maxDeferred, FateIdGenerator fateIdGenerator) {
-    super(lockID, context.getZooCache(), maxDeferred, fateIdGenerator);
+      Predicate<ZooUtil.LockID> isLockHeld, int maxDeferred, FateIdGenerator fateIdGenerator) {
+    super(lockID, isLockHeld, maxDeferred, fateIdGenerator);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
   }
 
-  public UserFateStore(ClientContext context, ZooUtil.LockID lockID) {
-    this(context, AccumuloTable.FATE.tableName(), lockID);
+  public UserFateStore(ClientContext context, ZooUtil.LockID lockID,
+      Predicate<ZooUtil.LockID> isLockHeld) {
+    this(context, AccumuloTable.FATE.tableName(), lockID, isLockHeld);
   }
 
   @Override
@@ -170,9 +173,19 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       // we can return the FateTxStore since it was successfully reserved in this
       // attempt, otherwise we return empty (was written by another reservation
       // attempt or was not written at all).
-      status = newMutator(fateId).requireReserved(reservation).tryMutate();
-      if (status.equals(FateMutator.Status.ACCEPTED)) {
-        return Optional.of(new FateTxStoreImpl(fateId, reservation));
+      try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(getRow(fateId));
+        scanner.fetchColumn(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+            TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+        FateReservation persistedRes = scanner.stream()
+            .filter(entry -> FateReservation.isFateReservation(entry.getValue().toString()))
+            .map(entry -> FateReservation.from(entry.getValue().toString())).findFirst()
+            .orElse(null);
+        if (persistedRes != null && persistedRes.equals(reservation)) {
+          return Optional.of(new FateTxStoreImpl(fateId, reservation));
+        }
+      } catch (TableNotFoundException e) {
+        throw new IllegalStateException(tableName + " not found!", e);
       }
     }
     return Optional.empty();
@@ -180,7 +193,16 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   public boolean isReserved(FateId fateId) {
-    return newMutator(fateId).requireReserved().tryMutate().equals(FateMutator.Status.ACCEPTED);
+    try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setRange(getRow(fateId));
+      scanner.fetchColumn(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+          TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+      return scanner.stream()
+          .map(entry -> FateReservation.isFateReservation(entry.getValue().toString())).findFirst()
+          .orElse(false);
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException(tableName + " not found!", e);
+    }
   }
 
   @Override
@@ -211,7 +233,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     for (Entry<FateId,FateReservation> entry : getActiveReservations().entrySet()) {
       FateId fateId = entry.getKey();
       FateReservation reservation = entry.getValue();
-      if (isDeadReservation(reservation)) {
+      if (!isLockHeld.test(reservation.getLockID())) {
         newMutator(fateId).putUnreserveTx(reservation).tryMutate();
         // No need to check the status... If it is ACCEPTED, we have successfully unreserved
         // the dead transaction. If it is REJECTED, the reservation has changed (i.e.,

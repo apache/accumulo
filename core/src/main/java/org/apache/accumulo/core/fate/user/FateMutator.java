@@ -59,29 +59,6 @@ public interface FateMutator<T> {
    */
   FateMutator<T> putInitReserveColVal();
 
-  /**
-   * Require that the transaction is reserved with a specific {@link FateStore.FateReservation}
-   *
-   * @param reservation the reservation
-   * @return the FateMutator with the added condition
-   */
-  FateMutator<T> requireReserved(FateStore.FateReservation reservation);
-
-  /**
-   * Require that the transaction is reserved (can be reserved with any
-   * {@link FateStore.FateReservation})
-   *
-   * @return the FateMutator with the added condition
-   */
-  FateMutator<T> requireReserved();
-
-  /**
-   * Require that the transaction is unreserved
-   *
-   * @return the FateMutator with the added condition
-   */
-  FateMutator<T> requireUnreserved();
-
   FateMutator<T> putName(byte[] data);
 
   FateMutator<T> putAutoClean(byte[] data);

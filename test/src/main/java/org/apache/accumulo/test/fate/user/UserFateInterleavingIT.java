@@ -34,8 +34,9 @@ public class UserFateInterleavingIT extends FateInterleavingIT {
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       createFateTable(client, table);
-      testMethod.execute(new UserFateStore<>(client, table, AbstractFateStore.createDummyLockID(),
-          maxDeferred, fateIdGenerator), getCluster().getServerContext());
+      testMethod.execute(
+          new UserFateStore<>(client, table, null, null, maxDeferred, fateIdGenerator),
+          getCluster().getServerContext());
       client.tableOperations().delete(table);
     }
   }

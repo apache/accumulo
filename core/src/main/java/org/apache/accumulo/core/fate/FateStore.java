@@ -175,7 +175,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
 
     /**
      *
-     * @param fateReservationStr the string from a call to FateReservations toString()
+     * @param fateReservationStr the string from a call to {@link FateReservation#toString()}
      * @return true if the string represents a valid FateReservation object, false otherwise
      */
     public static boolean isFateReservation(String fateReservationStr) {
@@ -260,14 +260,6 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    * worked on again.
    */
   void deleteDeadReservations();
-
-  /**
-   * The way dead reservations are determined for {@link #deleteDeadReservations()}
-   *
-   * @param reservation the fate reservation
-   * @return true if reservation held by a dead Manager, false otherwise
-   */
-  boolean isDeadReservation(FateReservation reservation);
 
   /**
    * Attempt to reserve the fate transaction.
