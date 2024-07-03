@@ -98,13 +98,23 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
     doWorkToGenerateMetrics();
     cluster.stop();
+    // meter names sorted and formatting disabled to make it easier to diff changes
+    // @formatter:off
+    Set<String> unexpectedMetrics =
+            Set.of(METRICS_COMPACTOR_MAJC_STUCK,
+                    METRICS_COMPACTOR_BUSY,
+                    METRICS_REPLICATION_QUEUE,
+                    METRICS_SCAN_YIELDS,
+                    METRICS_UPDATE_ERRORS);
 
-    Set<String> unexpectedMetrics = Set.of(METRICS_SCAN_YIELDS, METRICS_UPDATE_ERRORS,
-        METRICS_REPLICATION_QUEUE, METRICS_COMPACTOR_MAJC_STUCK, METRICS_SCAN_BUSY_TIMEOUT_COUNTER);
     // add sserver as flaky until scan server included in mini tests.
-    Set<String> flakyMetrics = Set.of(METRICS_GC_WAL_ERRORS, METRICS_FATE_TYPE_IN_PROGRESS,
-        METRICS_SCAN_BUSY_TIMEOUT_COUNTER, METRICS_SCAN_RESERVATION_TIMER,
-        METRICS_SCAN_TABLET_METADATA_CACHE);
+    Set<String> flakyMetrics = Set.of(METRICS_FATE_TYPE_IN_PROGRESS,
+            METRICS_SCAN_BUSY_TIMEOUT_COUNTER,
+            METRICS_SCAN_RESERVATION_CONFLICT_COUNTER,
+            METRICS_SCAN_RESERVATION_TOTAL_TIMER,
+            METRICS_SCAN_RESERVATION_WRITEOUT_TIMER,
+            METRICS_SCAN_TABLET_METADATA_CACHE);
+    // @formatter:on
 
     Map<String,String> expectedMetricNames = this.getMetricFields();
     flakyMetrics.forEach(expectedMetricNames::remove); // might not see these

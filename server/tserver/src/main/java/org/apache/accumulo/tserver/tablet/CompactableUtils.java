@@ -29,6 +29,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -564,11 +566,22 @@ public class CompactableUtils {
     AccumuloConfiguration compactionConfig = getCompactionConfig(tableConf,
         getOverrides(job.getKind(), tablet, cInfo.localHelper, job.getFiles()));
 
-    FileCompactor compactor = new FileCompactor(tablet.getContext(), tablet.getExtent(),
+    final FileCompactor compactor = new FileCompactor(tablet.getContext(), tablet.getExtent(),
         compactFiles, tmpFileName, cInfo.propagateDeletes, cenv, cInfo.iters, compactionConfig,
         tableConf.getCryptoService());
 
-    return compactor.call();
+    final Runnable compactionCancellerTask = () -> {
+      if (!cenv.isCompactionEnabled()) {
+        compactor.interrupt();
+      }
+    };
+    final ScheduledFuture<?> future = tablet.getContext().getScheduledExecutor()
+        .scheduleWithFixedDelay(compactionCancellerTask, 10, 10, TimeUnit.SECONDS);
+    try {
+      return compactor.call();
+    } finally {
+      future.cancel(true);
+    }
   }
 
   /**

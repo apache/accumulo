@@ -39,6 +39,9 @@ class ActiveCompactionHelper {
 
   private static final Logger log = LoggerFactory.getLogger(ActiveCompactionHelper.class);
 
+  private static final Comparator<ActiveCompaction> COMPACTION_AGE_DESCENDING =
+      Comparator.comparingLong(ActiveCompaction::getAge).reversed();
+
   private static String maxDecimal(double count) {
     if (count < 9.995) {
       return String.format("%.2f", count);
@@ -113,34 +116,25 @@ class ActiveCompactionHelper {
 
   public static Stream<String> activeCompactionsForServer(String tserver,
       InstanceOperations instanceOps) {
-    List<String> compactions = new ArrayList<>();
     try {
-      List<ActiveCompaction> acl = new ArrayList<>(instanceOps.getActiveCompactions(tserver));
-      acl.sort((o1, o2) -> (int) (o2.getAge() - o1.getAge()));
-      for (ActiveCompaction ac : acl) {
-        compactions.add(formatActiveCompactionLine(ac));
-      }
+      return instanceOps.getActiveCompactions(tserver).stream().sorted(COMPACTION_AGE_DESCENDING)
+          .map(ActiveCompactionHelper::formatActiveCompactionLine);
     } catch (Exception e) {
       log.debug("Failed to list active compactions for server {}", tserver, e);
-      compactions.add(tserver + " ERROR " + e.getMessage());
+      return Stream.of(tserver + " ERROR " + e.getMessage());
     }
-    return compactions.stream();
   }
 
-  public static Stream<String> stream(InstanceOperations instanceOps) {
-    List<ActiveCompaction> activeCompactions;
+  public static Stream<String> activeCompactions(InstanceOperations instanceOps) {
+    Comparator<ActiveCompaction> comparator =
+        Comparator.comparing((ActiveCompaction ac) -> ac.getHost().getAddress())
+            .thenComparing(ac -> ac.getHost().getPort()).thenComparing(COMPACTION_AGE_DESCENDING);
     try {
-      activeCompactions = instanceOps.getActiveCompactions();
+      return instanceOps.getActiveCompactions().stream().sorted(comparator)
+          .map(ActiveCompactionHelper::formatActiveCompactionLine);
     } catch (AccumuloException | AccumuloSecurityException e) {
       return Stream.of("ERROR " + e.getMessage());
     }
-    Comparator<ActiveCompaction> comparator = Comparator.comparing(ac -> ac.getHost().getAddress());
-    comparator = comparator.thenComparing(ac -> ac.getHost().getPort())
-        .thenComparing((o1, o2) -> (int) (o2.getAge() - o1.getAge()));
-
-    activeCompactions.sort(comparator);
-
-    return activeCompactions.stream().map(ac -> formatActiveCompactionLine(ac));
   }
 
 }

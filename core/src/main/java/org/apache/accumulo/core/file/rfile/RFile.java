@@ -50,6 +50,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.NoSuchMetaStoreException;
@@ -385,10 +386,10 @@ public class RFile {
     private List<SampleEntry> entries = new ArrayList<>();
     private long dataSize = 0;
 
-    private LocalityGroupWriter lgr;
+    private LocalityGroupWriter lgw;
 
-    public SampleLocalityGroupWriter(LocalityGroupWriter lgr, Sampler sampler) {
-      this.lgr = lgr;
+    public SampleLocalityGroupWriter(LocalityGroupWriter lgw, Sampler sampler) {
+      this.lgw = lgw;
       this.sampler = sampler;
     }
 
@@ -401,10 +402,10 @@ public class RFile {
 
     public void close() throws IOException {
       for (SampleEntry se : entries) {
-        lgr.append(se.key, se.val);
+        lgw.append(se.key, se.val);
       }
 
-      lgr.close();
+      lgw.close();
     }
 
     public void flushIfNeeded() throws IOException {
@@ -415,10 +416,10 @@ public class RFile {
 
         if (!subList.isEmpty()) {
           for (SampleEntry se : subList) {
-            lgr.append(se.key, se.val);
+            lgw.append(se.key, se.val);
           }
 
-          lgr.closeBlock(subList.get(subList.size() - 1).key, false);
+          lgw.closeBlock(subList.get(subList.size() - 1).key, false);
 
           subList.clear();
           dataSize = 0;
@@ -1158,6 +1159,11 @@ public class RFile {
     public void setCacheProvider(CacheProvider cacheProvider) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
+      throw new UnsupportedOperationException();
+    }
   }
 
   public static class Reader extends HeapIterator implements FileSKVIterator {
@@ -1554,6 +1560,36 @@ public class RFile {
     @Override
     public void setCacheProvider(CacheProvider cacheProvider) {
       reader.setCacheProvider(cacheProvider);
+    }
+
+    @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
+      long totalEntries = 0;
+      Key startKey = extent.toDataRange().getStartKey();
+      IndexEntry indexEntry;
+
+      for (LocalityGroupReader lgr : currentReaders) {
+        boolean prevEntryOverlapped = false;
+        var indexIter = startKey == null ? lgr.getIndex() : lgr.index.lookup(startKey);
+
+        while (indexIter.hasNext()) {
+          indexEntry = indexIter.next();
+          if (extent.contains(indexEntry.getKey().getRow())) {
+            totalEntries += indexEntry.getNumEntries();
+            prevEntryOverlapped = true;
+          } else if (prevEntryOverlapped) {
+            // The last index entry included in the count is the one after the last contained by the
+            // extent. This is because it is possible for the extent to overlap this index entry
+            // but there is no way to check whether it does or not. The index entry only contains
+            // info about the last key, but the extent may overlap but not with the last key.
+            totalEntries += indexEntry.getNumEntries();
+            prevEntryOverlapped = false;
+            break;
+          }
+        }
+      }
+
+      return totalEntries;
     }
   }
 }

@@ -39,6 +39,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -525,6 +526,7 @@ public class CompactionCoordinatorTest {
     expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
     expect(ExternalCompactionUtil.getCompactorAddrs(context)).andReturn(Map.of()).anyTimes();
+    expect(ExternalCompactionUtil.countCompactors("R2DQ", context)).andReturn(3).anyTimes();
 
     CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
     LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
@@ -587,8 +589,10 @@ public class CompactionCoordinatorTest {
     assertEquals(0, coordinator.getRunning().size());
 
     // Get the next job
-    TExternalCompactionJob createdJob =
+    TNextCompactionJob next =
         coordinator.getCompactionJob(trace, creds, "R2DQ", "localhost:10241", eci.toString());
+    assertEquals(3, next.getCompactorCount());
+    var createdJob = next.getJob();
     assertEquals(eci.toString(), createdJob.getExternalCompactionId());
 
     assertEquals(1, coordinator.getQueues().size());
@@ -628,12 +632,17 @@ public class CompactionCoordinatorTest {
     AuditedSecurityOperation security = PowerMock.createNiceMock(AuditedSecurityOperation.class);
     expect(security.canPerformSystemActions(creds)).andReturn(true);
 
+    PowerMock.mockStatic(ExternalCompactionUtil.class);
+    expect(ExternalCompactionUtil.countCompactors("R2DQ", context)).andReturn(1).anyTimes();
+
     PowerMock.replayAll();
 
     var coordinator = new TestCoordinator(finalizer, tservers, client, tsc, context, security);
     coordinator.resetInternals();
-    TExternalCompactionJob job = coordinator.getCompactionJob(TraceUtil.traceInfo(), creds, "R2DQ",
-        "localhost:10240", UUID.randomUUID().toString());
+    var next = coordinator.getCompactionJob(TraceUtil.traceInfo(), creds, "R2DQ", "localhost:10240",
+        UUID.randomUUID().toString());
+    assertEquals(1, next.getCompactorCount());
+    var job = next.getJob();
     assertNull(job.getExternalCompactionId());
 
     PowerMock.verifyAll();
