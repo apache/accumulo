@@ -50,7 +50,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.AvailabilityForTablet;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -63,6 +62,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -309,7 +309,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
     try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
       Map<Key,Value> actual = new TreeMap<>();
-      for (Map.Entry<Key,Value> entry : scanner) {
+      for (Entry<Key,Value> entry : scanner) {
         actual.put(entry.getKey(), entry.getValue());
       }
       assertTrue(actual.isEmpty(), "Should be empty. Actual is " + actual);
@@ -425,20 +425,20 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
       Map<String,String> idMap = accumuloClient.tableOperations().tableIdMap();
 
-      List<AvailabilityForTablet> expectedTabletAvailability = new ArrayList<>();
+      Map<TabletId,TabletAvailability> expectedTabletAvailability = new HashMap<>();
       setExpectedTabletAvailability(expectedTabletAvailability, idMap.get(tableOnDemand), null,
           null, TabletAvailability.ONDEMAND);
-      verifyTabletAvailabilites(tableOnDemand, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(tableOnDemand, new Range(), expectedTabletAvailability);
 
       expectedTabletAvailability.clear();
       setExpectedTabletAvailability(expectedTabletAvailability, idMap.get(tableHosted), null, null,
           TabletAvailability.HOSTED);
-      verifyTabletAvailabilites(tableHosted, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(tableHosted, new Range(), expectedTabletAvailability);
 
       expectedTabletAvailability.clear();
       setExpectedTabletAvailability(expectedTabletAvailability, idMap.get(tableUnhosted), null,
           null, TabletAvailability.UNHOSTED);
-      verifyTabletAvailabilites(tableUnhosted, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(tableUnhosted, new Range(), expectedTabletAvailability);
 
       verifyTablesWithSplits(tableOnDemandWithSplits, idMap, splits, TabletAvailability.ONDEMAND);
       verifyTablesWithSplits(tableHostedWithSplits, idMap, splits, TabletAvailability.HOSTED);
@@ -462,7 +462,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       TableExistsException, AccumuloSecurityException, TableNotFoundException {
 
     String tableName = getUniqueNames(1)[0];
-    List<AvailabilityForTablet> expectedTabletAvailability;
+    Map<TabletId,TabletAvailability> expectedTabletAvailability;
     SortedSet<Text> splits =
         Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("s")));
 
@@ -483,7 +483,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
           TabletAvailability.UNHOSTED);
 
       Map<String,String> idMap = accumuloClient.tableOperations().tableIdMap();
-      expectedTabletAvailability = new ArrayList<>();
+      expectedTabletAvailability = new HashMap<>();
       String tableId = idMap.get(tableName);
       setExpectedTabletAvailability(expectedTabletAvailability, tableId, "d", null,
           TabletAvailability.UNHOSTED);
@@ -495,7 +495,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
           TabletAvailability.HOSTED);
       setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "s",
           TabletAvailability.UNHOSTED);
-      verifyTabletAvailabilites(tableName, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(tableName, new Range(), expectedTabletAvailability);
     } finally {
       accumuloClient.tableOperations().delete(tableName);
     }
@@ -510,7 +510,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     SortedSet<Text> splits =
         Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("s")));
-    List<AvailabilityForTablet> expectedTabletAvailability = new ArrayList<>();
+    Map<TabletId,TabletAvailability> expectedTabletAvailability = new HashMap<>();
     Map<String,String> idMap;
     String tableId;
 
@@ -534,11 +534,11 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       setExpectedTabletAvailability(expectedTabletAvailability, tableId, "d", null,
           TabletAvailability.HOSTED);
       // test using row as range constructor
-      verifyTabletAvailabilites(tableName, new Range("a"), expectedTabletAvailability);
+      verifyTabletAvailabilities(tableName, new Range("a"), expectedTabletAvailability);
 
       // test using startRowInclusive set to true
       Range range = new Range(new Text("c"), true, new Text("c"), true);
-      verifyTabletAvailabilites(tableName, range, expectedTabletAvailability);
+      verifyTabletAvailabilities(tableName, range, expectedTabletAvailability);
 
       expectedTabletAvailability.clear();
       setExpectedTabletAvailability(expectedTabletAvailability, tableId, "m", "d",
@@ -547,7 +547,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
           TabletAvailability.HOSTED);
 
       range = new Range(new Text("m"), new Text("p"));
-      verifyTabletAvailabilites(tableName, range, expectedTabletAvailability);
+      verifyTabletAvailabilities(tableName, range, expectedTabletAvailability);
 
       expectedTabletAvailability.clear();
       setExpectedTabletAvailability(expectedTabletAvailability, tableId, "d", null,
@@ -560,7 +560,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
           TabletAvailability.ONDEMAND);
 
       range = new Range("b", false, "t", true);
-      verifyTabletAvailabilites(tableName, range, expectedTabletAvailability);
+      verifyTabletAvailabilities(tableName, range, expectedTabletAvailability);
 
     } finally {
       accumuloClient.tableOperations().delete(tableName);
@@ -583,11 +583,11 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       accumuloClient.tableOperations().setTabletAvailability(tableName, new Range(),
           TabletAvailability.HOSTED);
 
-      List<AvailabilityForTablet> expectedTabletAvailability = new ArrayList<>();
+      Map<TabletId,TabletAvailability> expectedTabletAvailability = new HashMap<>();
       String tableId = idMap.get(tableName);
       setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, null,
           TabletAvailability.HOSTED);
-      verifyTabletAvailabilites(tableName, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(tableName, new Range(), expectedTabletAvailability);
 
       // Add splits after the fact
       SortedSet<Text> splits =
@@ -603,7 +603,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
           TabletAvailability.HOSTED);
       setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "r",
           TabletAvailability.HOSTED);
-      verifyTabletAvailabilites(tableName, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(tableName, new Range(), expectedTabletAvailability);
     } finally {
       accumuloClient.tableOperations().delete(tableName);
     }
@@ -639,14 +639,14 @@ public class TableOperationsIT extends AccumuloClusterHarness {
           TabletAvailability.HOSTED);
 
       // verify
-      List<AvailabilityForTablet> expectedTabletAvailability = new ArrayList<>();
+      Map<TabletId,TabletAvailability> expectedTabletAvailability = new HashMap<>();
       setExpectedTabletAvailability(expectedTabletAvailability, tableId, "h", null,
           TabletAvailability.ONDEMAND);
       setExpectedTabletAvailability(expectedTabletAvailability, tableId, "q", "h",
           TabletAvailability.UNHOSTED);
       setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "q",
           TabletAvailability.HOSTED);
-      verifyTabletAvailabilites(tableName, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(tableName, new Range(), expectedTabletAvailability);
 
       // Add a split within each of the existing tablets. Adding 'd', 'm', and 'v'
       splits = Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("v")));
@@ -666,7 +666,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
           TabletAvailability.HOSTED);
       setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "v",
           TabletAvailability.HOSTED);
-      verifyTabletAvailabilites(tableName, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(tableName, new Range(), expectedTabletAvailability);
     } finally {
       accumuloClient.tableOperations().delete(tableName);
     }
@@ -675,7 +675,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   private void verifyTablesWithSplits(String tableName, Map<String,String> idMap,
       SortedSet<Text> splits, TabletAvailability tabletAvailability) throws TableNotFoundException {
 
-    List<AvailabilityForTablet> expectedTabletAvailability = new ArrayList<>();
+    Map<TabletId,TabletAvailability> expectedTabletAvailability = new HashMap<>();
     String tableId = idMap.get(tableName);
     String[] splitPts = splits.stream().map(Text::toString).toArray(String[]::new);
 
@@ -688,33 +688,33 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         tabletAvailability);
     setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, splitPts[2],
         tabletAvailability);
-    verifyTabletAvailabilites(tableName, new Range(), expectedTabletAvailability);
+    verifyTabletAvailabilities(tableName, new Range(), expectedTabletAvailability);
 
     // verify individual tablets can be retrieved
     expectedTabletAvailability.clear();
     setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[0], null,
         tabletAvailability);
-    verifyTabletAvailabilites(tableName, new Range(null, new Text(splitPts[0])),
+    verifyTabletAvailabilities(tableName, new Range(null, new Text(splitPts[0])),
         expectedTabletAvailability);
 
     expectedTabletAvailability.clear();
     setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[1], splitPts[0],
         tabletAvailability);
-    verifyTabletAvailabilites(tableName,
+    verifyTabletAvailabilities(tableName,
         new Range(new Text(splitPts[0]), false, new Text(splitPts[1]), true),
         expectedTabletAvailability);
 
     expectedTabletAvailability.clear();
     setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[2], splitPts[1],
         tabletAvailability);
-    verifyTabletAvailabilites(tableName,
+    verifyTabletAvailabilities(tableName,
         new Range(new Text(splitPts[1]), false, new Text(splitPts[2]), true),
         expectedTabletAvailability);
 
     expectedTabletAvailability.clear();
     setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, splitPts[2],
         tabletAvailability);
-    verifyTabletAvailabilites(tableName, new Range(new Text(splitPts[2]), false, null, true),
+    verifyTabletAvailabilities(tableName, new Range(new Text(splitPts[2]), false, null, true),
         expectedTabletAvailability);
 
     expectedTabletAvailability.clear();
@@ -722,33 +722,34 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         tabletAvailability);
     setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[2], splitPts[1],
         tabletAvailability);
-    verifyTabletAvailabilites(tableName,
+    verifyTabletAvailabilities(tableName,
         new Range(new Text(splitPts[0]), false, new Text(splitPts[2]), true),
         expectedTabletAvailability);
   }
 
-  public static void verifyTabletAvailabilites(String tableName, Range range,
-      List<AvailabilityForTablet> expectedAvailability) throws TableNotFoundException {
-    verifyTabletAvailabilites(accumuloClient, tableName, range, expectedAvailability);
+  public static void verifyTabletAvailabilities(String tableName, Range range,
+      Map<TabletId,TabletAvailability> expectedAvailability) throws TableNotFoundException {
+    verifyTabletAvailabilities(accumuloClient, tableName, range, expectedAvailability);
   }
 
-  public static void verifyTabletAvailabilites(AccumuloClient client, String tableName, Range range,
-      List<AvailabilityForTablet> expectedAvailability) throws TableNotFoundException {
+  public static void verifyTabletAvailabilities(AccumuloClient client, String tableName,
+      Range range, Map<TabletId,TabletAvailability> expectedAvailability)
+      throws TableNotFoundException {
     List<TabletInformation> tabletInfo = client.tableOperations()
         .getTabletInformation(tableName, range).collect(Collectors.toList());
     assertEquals(expectedAvailability.size(), tabletInfo.size());
     for (var i = 0; i < expectedAvailability.size(); i++) {
-      assertEquals(expectedAvailability.get(i).getTabletId(), tabletInfo.get(i).getTabletId());
-      assertEquals(expectedAvailability.get(i).getTabletAvailability(),
+      assertTrue(expectedAvailability.containsKey(tabletInfo.get(i).getTabletId()));
+      assertEquals(expectedAvailability.get(tabletInfo.get(i).getTabletId()),
           tabletInfo.get(i).getTabletAvailability());
     }
   }
 
-  public static void setExpectedTabletAvailability(List<AvailabilityForTablet> expected, String id,
-      String endRow, String prevEndRow, TabletAvailability availability) {
+  public static void setExpectedTabletAvailability(Map<TabletId,TabletAvailability> expected,
+      String id, String endRow, String prevEndRow, TabletAvailability availability) {
     KeyExtent ke = new KeyExtent(TableId.of(id), endRow == null ? null : new Text(endRow),
         prevEndRow == null ? null : new Text(prevEndRow));
-    expected.add(new AvailabilityForTablet(new TabletIdImpl(ke), availability));
+    expected.put(new TabletIdImpl(ke), availability);
   }
 
 }
