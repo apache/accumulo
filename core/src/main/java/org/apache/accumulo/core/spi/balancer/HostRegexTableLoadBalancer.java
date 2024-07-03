@@ -19,11 +19,11 @@
 package org.apache.accumulo.core.spi.balancer;
 
 import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MINUTES;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,6 +46,7 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.logging.ConditionalLogger.EscalatingLogger;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
@@ -59,9 +60,8 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -100,6 +100,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
 
   private static final Logger LOG = LoggerFactory.getLogger(HostRegexTableLoadBalancer.class);
+  private static final Logger MIGRATIONS_LOGGER =
+      new EscalatingLogger(LOG, Duration.ofMinutes(5), 1000, Level.INFO);
   public static final String HOST_BALANCER_PREFIX = PROP_PREFIX + "balancer.host.regex.";
   public static final String HOST_BALANCER_OOB_CHECK_KEY =
       PROP_PREFIX + "balancer.host.regex.oob.period";
@@ -186,7 +188,6 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   private Supplier<HrtlbConf> hrtlbConf;
   private LoadingCache<TableId,Supplier<Map<String,String>>> tablesRegExCache;
-  private Cache<TableId,Long> migrationLimitExceededWarningCache;
 
   /**
    * Group the set of current tservers by pool name. Tservers that don't match a regex are put into
@@ -333,8 +334,6 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
                 .getDerived(HostRegexTableLoadBalancer::getRegexes);
           }
         });
-
-    migrationLimitExceededWarningCache = Caffeine.newBuilder().expireAfterWrite(5, MINUTES).build();
 
     LOG.info("{}", this);
   }
@@ -524,16 +523,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
       migrationsOut.addAll(newMigrations);
       if (migrationsOut.size() >= myConf.maxTServerMigrations) {
-        var last = migrationLimitExceededWarningCache.getIfPresent(tableId);
-
-        if (last == null) {
-          LOG.warn("Table {} migration size : {} is over tserver migration max: {}", tableName,
-              migrationsOut.size(), myConf.maxTServerMigrations);
-        } else {
-          LOG.debug("Table {} migration size : {} is over tserver migration max: {}", tableName,
-              migrationsOut.size(), myConf.maxTServerMigrations);
-        }
-        migrationLimitExceededWarningCache.put(tableId, System.currentTimeMillis());
+        MIGRATIONS_LOGGER.debug("Table {} migration size : {} is over tserver migration max: {}",
+            tableName, migrationsOut.size(), myConf.maxTServerMigrations);
         break;
       }
     }
@@ -542,8 +533,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       migrationsFromLastPass.put(migration.getTablet(), migration);
     }
 
-    LOG.info("Migrating {} tablets for balance.", migrationsOut.size());
-    LOG.debug("Tablets currently migrating: {}", migrationsOut);
+    LOG.info("Migrating tablets for balance: {}", migrationsOut);
     return minBalanceTime;
   }
 
