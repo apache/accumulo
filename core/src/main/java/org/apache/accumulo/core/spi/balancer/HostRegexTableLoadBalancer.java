@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.spi.balancer;
 
 import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -59,6 +60,8 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -183,6 +186,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   private Supplier<HrtlbConf> hrtlbConf;
   private LoadingCache<TableId,Supplier<Map<String,String>>> tablesRegExCache;
+  private Cache<TableId,Long> migrationLimitExceededWarningCache;
 
   /**
    * Group the set of current tservers by pool name. Tservers that don't match a regex are put into
@@ -329,6 +333,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
                 .getDerived(HostRegexTableLoadBalancer::getRegexes);
           }
         });
+
+    migrationLimitExceededWarningCache = Caffeine.newBuilder().expireAfterWrite(5, MINUTES).build();
 
     LOG.info("{}", this);
   }
@@ -518,8 +524,16 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
       migrationsOut.addAll(newMigrations);
       if (migrationsOut.size() >= myConf.maxTServerMigrations) {
-        LOG.warn("Table {} migration size : {} is over tserver migration max: {}", tableId,
-            migrationsOut.size(), myConf.maxTServerMigrations);
+        var last = migrationLimitExceededWarningCache.getIfPresent(tableId);
+
+        if (last == null) {
+          LOG.warn("Table {} migration size : {} is over tserver migration max: {}", tableName,
+              migrationsOut.size(), myConf.maxTServerMigrations);
+        } else {
+          LOG.debug("Table {} migration size : {} is over tserver migration max: {}", tableName,
+              migrationsOut.size(), myConf.maxTServerMigrations);
+        }
+        migrationLimitExceededWarningCache.put(tableId, System.currentTimeMillis());
         break;
       }
     }
