@@ -103,6 +103,8 @@ public class Upgrader12to13 implements Upgrader {
     removeMetaDataBulkLoadFilter(context, AccumuloTable.METADATA.tableId());
     LOG.info("Removing compact columns from user tables");
     removeCompactColumnsFromTable(context, AccumuloTable.METADATA.tableName());
+    LOG.info("Removing bulk file columns from metadata table");
+    removeBulkFileColumnsFromTable(context, AccumuloTable.METADATA.tableName());
   }
 
   private void createFateTable(ServerContext context) {
@@ -178,6 +180,31 @@ public class Upgrader12to13 implements Upgrader {
           COMPACT_COL.putDelete(m);
           writer.addMutation(m);
         }
+      }
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private void removeBulkFileColumnsFromTable(ServerContext context, String tableName) {
+    // FATE transaction ids have changed from 3.x to 4.x which are used as the value for the bulk
+    // file column. FATE ops won't persist through upgrade, so these columns can be safely deleted
+    // if they exist.
+    try (var scanner = context.createScanner(tableName);
+        var writer = context.createBatchWriter(tableName)) {
+      scanner.setRange(MetadataSchema.TabletsSection.getRange());
+      scanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
+      for (Map.Entry<Key,Value> entry : scanner) {
+        var key = entry.getKey();
+        Mutation m = new Mutation(key.getRow());
+        Preconditions.checkState(
+            key.getColumnFamily().equals(TabletsSection.BulkFileColumnFamily.NAME),
+            "Expected family %s, saw %s ", TabletsSection.BulkFileColumnFamily.NAME,
+            key.getColumnFamily());
+        Preconditions.checkState(key.getColumnVisibilityData().length() == 0,
+            "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
+        m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
+        writer.addMutation(m);
       }
     } catch (Exception e) {
       throw new IllegalStateException(e);
@@ -283,7 +310,7 @@ public class Upgrader12to13 implements Upgrader {
         Mutation m = new Mutation(key.getRow());
         Preconditions.checkState(key.getColumnFamily().equals(ExternalCompactionColumnFamily.NAME),
             "Expected family %s, saw %s ", ExternalCompactionColumnFamily.NAME,
-            key.getColumnVisibilityData());
+            key.getColumnFamily());
         Preconditions.checkState(key.getColumnVisibilityData().length() == 0,
             "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
         m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
