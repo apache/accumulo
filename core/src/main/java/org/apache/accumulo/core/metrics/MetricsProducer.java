@@ -44,6 +44,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <th>Micrometer Type</th>
  * <th>Notes</th>
  * </tr>
+ * <!-- general server metrics -->
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_SERVER_IDLE}</td>
+ * <td>Gauge</td>
+ * <td>Indicates if the server is idle or not. The value will be 1 when idle and 0 when not idle.
  * <!-- compactor -->
  * <tr>
  * <td>N/A</td>
