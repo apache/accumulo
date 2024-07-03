@@ -18,25 +18,26 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.accumulo.core.metrics.MetricsProducer;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class ProcessMetrics implements MetricsProducer {
 
-  private Counter idleCounter;
+  private final AtomicInteger isIdle;
 
-  public ProcessMetrics() {}
+  public ProcessMetrics() {
+    this.isIdle = new AtomicInteger(-1);
+  }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    idleCounter = registry.counter(METRICS_SERVER_IDLE);
+    registry.gauge(METRICS_SERVER_IDLE, isIdle, AtomicInteger::get);
   }
 
-  public void incrementIdleCounter() {
-    if (idleCounter != null) {
-      idleCounter.increment();
-    }
+  public void setIdleValue(boolean isIdle) {
+    this.isIdle.set(isIdle ? 1 : 0);
   }
 }

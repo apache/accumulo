@@ -19,7 +19,9 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,19 +49,19 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(IdleProcessMetricsIT.class);
 
+  static final Duration idleProcessInterval = Duration.ofSeconds(10);
+
   public static class IdleStopITConfig implements MiniClusterConfigurationCallback {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-
-      // TODO Add servers in a resource group that will not get any work. These
-      // are the servers that should stop because they are idle.
       ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
       cfg.setNumCompactors(1);
       cfg.setNumTservers(1);
       cfg.setNumScanServers(1);
 
-      cfg.setProperty(Property.GENERAL_IDLE_PROCESS_INTERVAL, "10s");
+      cfg.setProperty(Property.GENERAL_IDLE_PROCESS_INTERVAL,
+          idleProcessInterval.toSeconds() + "s");
 
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
       // to push all metrics to the sink we started.
@@ -96,11 +98,8 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
     getCluster().getClusterControl().start(ServerType.SCAN_SERVER, "localhost");
     getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
-    // The server processes in the IDLE_PROCESS_TEST resource group
-    // should emit the idle metric after 10s of being idle based
-    // on the configuration for this test. Wait 20s before checking
-    // for it.
-    Thread.sleep(10_000);
+    // should emit the idle metric after the configured duration of GENERAL_IDLE_PROCESS_INTERVAL
+    Thread.sleep(idleProcessInterval.toMillis());
 
     AtomicBoolean sawCompactor = new AtomicBoolean(false);
     AtomicBoolean sawSServer = new AtomicBoolean(false);
@@ -110,21 +109,22 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
       statsDMetrics.stream().filter(line -> line.startsWith(MetricsProducer.METRICS_SERVER_IDLE))
           .peek(log::info).map(TestStatsDSink::parseStatsDMetric).forEach(a -> {
             String processName = a.getTags().get("process.name");
-            switch (processName) {
-              case "tserver":
-                sawTServer.set(true);
-                break;
-              case "sserver":
-                sawSServer.set(true);
-                break;
-              case "compactor":
-                sawCompactor.set(true);
-                break;
+            int value = Integer.parseInt(a.getValue());
+            assertTrue(value == 0 || value == 1 || value == -1, "Unexpected value " + value);
+            if ("tserver".equals(processName) && value == 0) {
+              // Expect tserver to never be idle
+              sawTServer.set(true);
+            } else if ("sserver".equals(processName) && value == 1) {
+              // Expect scan server to be idle
+              sawSServer.set(true);
+            } else if ("compactor".equals(processName) && value == 1) {
+              // Expect compactor to be idle
+              sawCompactor.set(true);
             }
+
           });
-      // Return true when all metrics are seen, false otherwise
       return sawCompactor.get() && sawSServer.get() && sawTServer.get();
-    }, Wait.MAX_WAIT_MILLIS, Wait.SLEEP_MILLIS, "Did not see all expected metrics");
+    });
   }
 
 }
