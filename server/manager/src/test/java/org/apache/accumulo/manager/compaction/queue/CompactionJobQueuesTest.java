@@ -385,6 +385,6 @@ public class CompactionJobQueuesTest {
     // since future5 was canceled, this addition should go to future6
     jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
     assertTrue(future6.isDone());
-    assertEquals(extent1, future6.getNow(null).getTabletMetadata().getExtent());
+    assertEquals(extent1, future6.get().getTabletMetadata().getExtent());
   }
 }
