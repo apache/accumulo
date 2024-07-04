@@ -336,7 +336,7 @@ public class CompactionJobQueuesTest {
   }
 
   @Test
-  public void testGetAsync() throws URISyntaxException {
+  public void testGetAsync() throws Exception {
     CompactionJobQueues jobQueues = new CompactionJobQueues(100);
 
     var tid = TableId.of("1");
@@ -371,10 +371,10 @@ public class CompactionJobQueuesTest {
     assertTrue(future3.isDone());
     assertTrue(future4.isDone());
 
-    assertEquals(extent1, future1.getNow(null).getTabletMetadata().getExtent());
-    assertEquals(extent2, future2.getNow(null).getTabletMetadata().getExtent());
-    assertEquals(extent4, future3.getNow(null).getTabletMetadata().getExtent());
-    assertEquals(extent3, future4.getNow(null).getTabletMetadata().getExtent());
+    assertEquals(extent1, future1.get().getTabletMetadata().getExtent());
+    assertEquals(extent2, future2.get().getTabletMetadata().getExtent());
+    assertEquals(extent4, future3.get().getTabletMetadata().getExtent());
+    assertEquals(extent3, future4.get().getTabletMetadata().getExtent());
 
     // test cancelling a future
     var future5 = jobQueues.getAsync(cg1);
