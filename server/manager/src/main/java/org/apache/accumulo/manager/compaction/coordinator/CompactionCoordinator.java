@@ -145,6 +145,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -1201,10 +1203,16 @@ public class CompactionCoordinator
             request.getGroupName(), request.getCompactor(), request.getExternalCompactionId());
 
         // Async send back to the compactor when a new job is ready
-        result.thenAccept(ecj -> {
+        // Need the unused var for errorprone
+        var unused = result.thenAccept(ecj -> {
           LOG.debug("Received next compaction job {}", ecj);
           responseObserver.onNext(convert(ecj));
           responseObserver.onCompleted();
+        }).exceptionally(e -> {
+          LOG.warn("Received exception processing compaction job {}", e.getMessage());
+          LOG.debug(e.getMessage(), e);
+          responseObserver.onError(new StatusRuntimeException(Status.INTERNAL));
+          return null;
         });
 
       } catch (ThriftSecurityException e) {
