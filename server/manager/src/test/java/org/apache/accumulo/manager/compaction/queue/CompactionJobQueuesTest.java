@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -45,6 +46,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -376,15 +378,22 @@ public class CompactionJobQueuesTest {
     assertEquals(extent4, future3.get().getTabletMetadata().getExtent());
     assertEquals(extent3, future4.get().getTabletMetadata().getExtent());
 
-    // test cancelling a future
+    // test cancelling a future and having a future timeout
     var future5 = jobQueues.getAsync(cg1);
     assertFalse(future5.isDone());
     future5.cancel(false);
     var future6 = jobQueues.getAsync(cg1);
     assertFalse(future6.isDone());
-    // since future5 was canceled, this addition should go to future6
+    future6.orTimeout(10, TimeUnit.MILLISECONDS);
+    // sleep for 20 millis, this should cause future6 to be timed out
+    UtilWaitThread.sleep(20);
+    var future7 = jobQueues.getAsync(cg1);
+    assertFalse(future7.isDone());
+    // since future5 was canceled and future6 timed out, this addition should go to future7
     jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
-    assertTrue(future6.isDone());
-    assertEquals(extent1, future6.get().getTabletMetadata().getExtent());
+    assertTrue(future7.isDone());
+    assertEquals(extent1, future7.get().getTabletMetadata().getExtent());
+    assertTrue(future5.isDone());
+    assertTrue(future6.isCompletedExceptionally());
   }
 }
