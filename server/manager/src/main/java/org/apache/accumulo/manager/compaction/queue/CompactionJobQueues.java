@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.concurrent.atomic.AtomicLong;
@@ -33,8 +34,6 @@ import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 public class CompactionJobQueues {
 
@@ -157,23 +156,25 @@ public class CompactionJobQueues {
     }
   }
 
+  /**
+   * Asynchronously get a compaction job from the queue. If the queue currently has jobs then a
+   * completed future will be returned containing the highest priority job in the queue. If the
+   * queue is currently empty, then an uncompleted future will be returned and later when something
+   * is added to the queue the future will be completed.
+   */
+  public CompletableFuture<MetaJob> getAsync(CompactorGroupId groupId) {
+    var pq = priorityQueues.computeIfAbsent(groupId,
+        gid -> new CompactionJobPriorityQueue(gid, queueSize));
+    return pq.getAsync();
+  }
+
   public MetaJob poll(CompactorGroupId groupId) {
     var prioQ = priorityQueues.get(groupId);
     if (prioQ == null) {
       return null;
     }
-    MetaJob mj = prioQ.poll();
 
-    if (mj == null) {
-      priorityQueues.computeIfPresent(groupId, (eid, pq) -> {
-        if (pq.closeIfEmpty()) {
-          return null;
-        } else {
-          return pq;
-        }
-      });
-    }
-    return mj;
+    return prioQ.poll();
   }
 
   private void add(TabletMetadata tabletMetadata, CompactorGroupId groupId,
@@ -187,14 +188,7 @@ public class CompactionJobQueues {
 
     var pq = priorityQueues.computeIfAbsent(groupId,
         gid -> new CompactionJobPriorityQueue(gid, queueSize));
-    while (pq.add(tabletMetadata, jobs,
-        currentGenerations.get(DataLevel.of(tabletMetadata.getTableId())).get()) < 0) {
-      // When entering this loop its expected the queue is closed
-      Preconditions.checkState(pq.isClosed());
-      // This loop handles race condition where poll() closes empty priority queues. The queue could
-      // be closed after its obtained from the map and before add is called.
-      pq = priorityQueues.computeIfAbsent(groupId,
-          gid -> new CompactionJobPriorityQueue(gid, queueSize));
-    }
+    pq.add(tabletMetadata, jobs,
+        currentGenerations.get(DataLevel.of(tabletMetadata.getTableId())).get());
   }
 }

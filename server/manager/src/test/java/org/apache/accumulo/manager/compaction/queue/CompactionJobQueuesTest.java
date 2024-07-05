@@ -19,7 +19,9 @@
 package org.apache.accumulo.manager.compaction.queue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -331,5 +333,58 @@ public class CompactionJobQueuesTest {
 
     // The background threads should have seen every job that was added
     assertEquals(numToAdd, totalSeen);
+  }
+
+  @Test
+  public void testGetAsync() throws Exception {
+    CompactionJobQueues jobQueues = new CompactionJobQueues(100);
+
+    var tid = TableId.of("1");
+    var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));
+    var extent2 = new KeyExtent(tid, new Text("q"), new Text("l"));
+    var extent3 = new KeyExtent(tid, new Text("l"), new Text("c"));
+    var extent4 = new KeyExtent(tid, new Text("c"), new Text("a"));
+
+    var tm1 = TabletMetadata.builder(extent1).build();
+    var tm2 = TabletMetadata.builder(extent2).build();
+    var tm3 = TabletMetadata.builder(extent3).build();
+    var tm4 = TabletMetadata.builder(extent4).build();
+
+    var cg1 = CompactorGroupId.of("CG1");
+
+    var future1 = jobQueues.getAsync(cg1);
+    var future2 = jobQueues.getAsync(cg1);
+
+    assertFalse(future1.isDone());
+    assertFalse(future2.isDone());
+
+    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
+    jobQueues.add(tm2, List.of(newJob((short) 2, 6, cg1)));
+    jobQueues.add(tm3, List.of(newJob((short) 3, 7, cg1)));
+    jobQueues.add(tm4, List.of(newJob((short) 4, 8, cg1)));
+
+    var future3 = jobQueues.getAsync(cg1);
+    var future4 = jobQueues.getAsync(cg1);
+
+    assertTrue(future1.isDone());
+    assertTrue(future2.isDone());
+    assertTrue(future3.isDone());
+    assertTrue(future4.isDone());
+
+    assertEquals(extent1, future1.get().getTabletMetadata().getExtent());
+    assertEquals(extent2, future2.get().getTabletMetadata().getExtent());
+    assertEquals(extent4, future3.get().getTabletMetadata().getExtent());
+    assertEquals(extent3, future4.get().getTabletMetadata().getExtent());
+
+    // test cancelling a future
+    var future5 = jobQueues.getAsync(cg1);
+    assertFalse(future5.isDone());
+    future5.cancel(false);
+    var future6 = jobQueues.getAsync(cg1);
+    assertFalse(future6.isDone());
+    // since future5 was canceled, this addition should go to future6
+    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
+    assertTrue(future6.isDone());
+    assertEquals(extent1, future6.get().getTabletMetadata().getExtent());
   }
 }
