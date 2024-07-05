@@ -42,6 +42,7 @@ import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 /**
@@ -58,6 +59,9 @@ public class CompactionJobPriorityQueue {
   private static final Logger log = LoggerFactory.getLogger(CompactionJobPriorityQueue.class);
 
   private final CompactorGroupId groupId;
+
+  @VisibleForTesting
+  static final int FUTURE_CHECK_THRESHOLD = 10_000;
 
   private class CjpqKey implements Comparable<CjpqKey> {
     private final CompactionJob job;
@@ -107,6 +111,7 @@ public class CompactionJobPriorityQueue {
   private final AtomicLong rejectedJobs;
   private final AtomicLong dequeuedJobs;
   private final ArrayDeque<CompletableFuture<CompactionJobQueues.MetaJob>> futures;
+  private long futuresAdded = 0;
 
   private static class TabletJobs {
     final long generation;
@@ -244,7 +249,24 @@ public class CompactionJobPriorityQueue {
     // be completed when something does arrive.
     CompletableFuture<CompactionJobQueues.MetaJob> future = new CompletableFuture<>();
     futures.add(future);
+    futuresAdded++;
+    // Handle the case where nothing is ever being added to this queue and futures are constantly
+    // being obtained and cancelled. If nothing is done these canceled futures would just keep
+    // building up in memory. The following code periodically checks to see if there are canceled
+    // futures to remove.
+    if (futuresAdded % FUTURE_CHECK_THRESHOLD == 0
+        && futures.size() >= 2 * FUTURE_CHECK_THRESHOLD) {
+      futures.removeIf(CompletableFuture::isDone);
+      // It is not expected that the future we just created would be done, if it were it would have
+      // been removed.
+      Preconditions.checkState(!future.isDone());
+    }
     return future;
+  }
+
+  @VisibleForTesting
+  synchronized int futuresSize() {
+    return futures.size();
   }
 
   // exists for tests
