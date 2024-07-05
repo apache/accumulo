@@ -19,9 +19,7 @@
 package org.apache.accumulo.manager.compaction.queue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.List;
@@ -206,58 +204,6 @@ public class CompactionJobPriorityQueueTest {
     job = queue.poll();
     assertNull(job);
     assertEquals(2, queue.getDequeuedJobs());
-
-  }
-
-  @Test
-  public void testAddAfterClose() {
-
-    CompactableFile file1 = EasyMock.createMock(CompactableFileImpl.class);
-    CompactableFile file2 = EasyMock.createMock(CompactableFileImpl.class);
-    CompactableFile file3 = EasyMock.createMock(CompactableFileImpl.class);
-    CompactableFile file4 = EasyMock.createMock(CompactableFileImpl.class);
-
-    KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("z"), new Text("a"));
-    TabletMetadata tm = EasyMock.createMock(TabletMetadata.class);
-    EasyMock.expect(tm.getExtent()).andReturn(extent).anyTimes();
-
-    CompactionJob cj1 = EasyMock.createMock(CompactionJob.class);
-    EasyMock.expect(cj1.getGroup()).andReturn(GROUP).anyTimes();
-    EasyMock.expect(cj1.getPriority()).andReturn((short) 10).anyTimes();
-    EasyMock.expect(cj1.getFiles()).andReturn(Set.of(file1)).anyTimes();
-
-    CompactionJob cj2 = EasyMock.createMock(CompactionJob.class);
-    EasyMock.expect(cj2.getGroup()).andReturn(GROUP).anyTimes();
-    EasyMock.expect(cj2.getPriority()).andReturn((short) 5).anyTimes();
-    EasyMock.expect(cj2.getFiles()).andReturn(Set.of(file2, file3, file4)).anyTimes();
-
-    EasyMock.replay(tm, cj1, cj2);
-
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
-    assertEquals(2, queue.add(tm, List.of(cj1, cj2), 1L));
-
-    assertFalse(queue.closeIfEmpty());
-
-    EasyMock.verify(tm, cj1, cj2);
-
-    assertEquals(5L, queue.getLowestPriority());
-    assertEquals(2, queue.getMaxSize());
-    assertEquals(0, queue.getDequeuedJobs());
-    assertEquals(0, queue.getRejectedJobs());
-    assertEquals(2, queue.getQueuedJobs());
-    MetaJob job = queue.poll();
-    assertEquals(cj1, job.getJob());
-    assertEquals(tm, job.getTabletMetadata());
-    assertEquals(1, queue.getDequeuedJobs());
-
-    MetaJob job2 = queue.poll();
-    assertEquals(cj2, job2.getJob());
-    assertEquals(tm, job2.getTabletMetadata());
-    assertEquals(2, queue.getDequeuedJobs());
-
-    assertTrue(queue.closeIfEmpty());
-
-    assertEquals(-1, queue.add(tm, List.of(cj1, cj2), 1L));
 
   }
 

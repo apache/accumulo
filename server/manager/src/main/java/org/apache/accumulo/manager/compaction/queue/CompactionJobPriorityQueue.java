@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.compaction.queue;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,7 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -105,6 +106,7 @@ public class CompactionJobPriorityQueue {
   private final int maxSize;
   private final AtomicLong rejectedJobs;
   private final AtomicLong dequeuedJobs;
+  private final ArrayDeque<CompletableFuture<CompactionJobQueues.MetaJob>> futures;
 
   private static class TabletJobs {
     final long generation;
@@ -122,8 +124,6 @@ public class CompactionJobPriorityQueue {
 
   private final AtomicLong nextSeq = new AtomicLong(0);
 
-  private final AtomicBoolean closed = new AtomicBoolean(false);
-
   public CompactionJobPriorityQueue(CompactorGroupId groupId, int maxSize) {
     this.jobQueue = new TreeMap<>();
     this.maxSize = maxSize;
@@ -131,13 +131,10 @@ public class CompactionJobPriorityQueue {
     this.groupId = groupId;
     this.rejectedJobs = new AtomicLong(0);
     this.dequeuedJobs = new AtomicLong(0);
+    this.futures = new ArrayDeque<>();
   }
 
   public synchronized void removeOlderGenerations(Ample.DataLevel level, long currGeneration) {
-    if (closed.get()) {
-      return;
-    }
-
     List<KeyExtent> removals = new ArrayList<>();
 
     tabletJobs.forEach((extent, jobs) -> {
@@ -160,16 +157,26 @@ public class CompactionJobPriorityQueue {
   public synchronized int add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs,
       long generation) {
     Preconditions.checkArgument(jobs.stream().allMatch(job -> job.getGroup().equals(groupId)));
-    if (closed.get()) {
-      return -1;
-    }
 
     removePreviousSubmissions(tabletMetadata.getExtent());
 
     HashSet<CjpqKey> newEntries = new HashSet<>(jobs.size());
 
     int jobsAdded = 0;
-    for (CompactionJob job : jobs) {
+    outer: for (CompactionJob job : jobs) {
+      var future = futures.poll();
+      while (future != null) {
+        // its expected that if futures are present then the queue is empty, if this is not true
+        // then there is a bug
+        Preconditions.checkState(jobQueue.isEmpty());
+        if (future.complete(new CompactionJobQueues.MetaJob(job, tabletMetadata))) {
+          // successfully completed a future with this job, so do not need to queue the job
+          jobsAdded++;
+          continue outer;
+        } // else the future was canceled or timed out so could not complete it
+        future = futures.poll();
+      }
+
       CjpqKey cjqpKey = addJobToQueue(tabletMetadata, job);
       if (cjqpKey != null) {
         checkState(newEntries.add(cjqpKey));
@@ -227,23 +234,23 @@ public class CompactionJobPriorityQueue {
     return first == null ? null : first.getValue();
   }
 
+  public synchronized CompletableFuture<CompactionJobQueues.MetaJob> getAsync() {
+    var job = jobQueue.pollFirstEntry();
+    if (job != null) {
+      return CompletableFuture.completedFuture(job.getValue());
+    }
+
+    // There is currently nothing in the queue, so create an uncompleted future and queue it up to
+    // be completed when something does arrive.
+    CompletableFuture<CompactionJobQueues.MetaJob> future = new CompletableFuture<>();
+    futures.add(future);
+    return future;
+  }
+
   // exists for tests
   synchronized CompactionJobQueues.MetaJob peek() {
     var firstEntry = jobQueue.firstEntry();
     return firstEntry == null ? null : firstEntry.getValue();
-  }
-
-  public boolean isClosed() {
-    return closed.get();
-  }
-
-  public synchronized boolean closeIfEmpty() {
-    if (jobQueue.isEmpty()) {
-      closed.set(true);
-      return true;
-    }
-
-    return false;
   }
 
   private void removePreviousSubmissions(KeyExtent extent) {
