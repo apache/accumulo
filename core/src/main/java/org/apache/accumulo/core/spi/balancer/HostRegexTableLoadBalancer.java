@@ -101,7 +101,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   private static final Logger LOG = LoggerFactory.getLogger(HostRegexTableLoadBalancer.class);
   private static final Logger MIGRATIONS_LOGGER =
-      new EscalatingLogger(LOG, Duration.ofMinutes(5), 1000, Level.INFO);
+      new EscalatingLogger(LOG, Duration.ofMinutes(5), 1000, Level.WARN);
   public static final String HOST_BALANCER_PREFIX = PROP_PREFIX + "balancer.host.regex.";
   public static final String HOST_BALANCER_OOB_CHECK_KEY =
       PROP_PREFIX + "balancer.host.regex.oob.period";
