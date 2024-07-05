@@ -345,6 +345,10 @@ public class Manager extends AbstractServer
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
       for (TableCounts counts : watcher.getStats().values()) {
+        log.debug(
+            "Watcher: {}: Assigned Tablets: {}, Dead tserver assignments: {}, Suspended Tablets: {}",
+            watcher.getName(), counts.assigned(), counts.assignedToDeadServers(),
+            counts.suspended());
         result += counts.assigned() + counts.hosted();
       }
     }
