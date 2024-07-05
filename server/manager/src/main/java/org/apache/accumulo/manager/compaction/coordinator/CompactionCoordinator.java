@@ -44,6 +44,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
@@ -443,6 +444,58 @@ public class CompactionCoordinator
     }
 
     return new TNextCompactionJob(result, compactorCounts.get(groupName));
+  }
+
+  protected CompletableFuture<TNextCompactionJob> getAsyncCompactionJob(TCredentials credentials,
+      String groupName, String compactorAddress, String externalCompactionId)
+      throws ThriftSecurityException {
+
+    // do not expect users to call this directly, expect compactors to call this method
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+    CompactorGroupId groupId = CompactorGroupId.of(groupName);
+    LOG.trace("getCompactionJob called for group {} by compactor {}", groupId, compactorAddress);
+    TIME_COMPACTOR_LAST_CHECKED.put(groupId, System.currentTimeMillis());
+
+    return jobQueues.getAsync(groupId).thenApply(metaJob -> {
+      LOG.trace("Next metaJob is ready {}", metaJob.getJob());
+      Optional<CompactionConfig> compactionConfig = getCompactionConfig(metaJob);
+
+      // this method may reread the metadata, do not use the metadata in metaJob for anything after
+      // this method
+      CompactionMetadata ecm = null;
+
+      var kind = metaJob.getJob().getKind();
+
+      // Only reserve user compactions when the config is present. When compactions are canceled the
+      // config is deleted.
+      var cid = ExternalCompactionId.from(externalCompactionId);
+      if (kind == CompactionKind.SYSTEM
+          || (kind == CompactionKind.USER && compactionConfig.isPresent())) {
+        ecm = reserveCompaction(metaJob, compactorAddress, cid);
+      }
+
+      final TExternalCompactionJob result;
+      if (ecm != null) {
+        result = createThriftJob(externalCompactionId, ecm, metaJob, compactionConfig);
+        // It is possible that by the time this added that the the compactor that made this request
+        // is dead. In this cases the compaction is not actually running.
+        RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
+            new RunningCompaction(result, compactorAddress, groupName));
+        TabletLogger.compacting(metaJob.getTabletMetadata(), cid, compactorAddress,
+            metaJob.getJob());
+        LOG.info("Found job {}", result.externalCompactionId);
+      } else {
+        LOG.debug("Unable to reserve compaction job for {}, returning empty job to compactor {}",
+            metaJob.getTabletMetadata().getExtent(), compactorAddress);
+        result = new TExternalCompactionJob();
+      }
+
+      return new TNextCompactionJob(result, compactorCounts.get(groupName));
+    });
+
   }
 
   @VisibleForTesting
@@ -1138,26 +1191,23 @@ public class CompactionCoordinator
     public void getCompactionJob(CompactionJobRequest request,
         StreamObserver<PNextCompactionJob> responseObserver) {
 
-      var tinfo = convert(request.getPinfo());
       var credentials = convert(request.getCredentials());
 
       try {
         LOG.debug("Received compaction job grpc {}", request.getExternalCompactionId());
 
-        // TODO: This is a sync blocking call for now which replicates the current version with
-        // Thrift
-        // Eventually can return a CompletableFuture so it is completed async or we could
-        // offload this onto another thread and get a future because it will potentially wait
-        // for a long time for a job to be assigned
-        var result = CompactionCoordinator.this.getCompactionJob(tinfo, credentials,
+        // Get the next job as a future as we need to wait until something is available
+        var result = CompactionCoordinator.this.getAsyncCompactionJob(credentials,
             request.getGroupName(), request.getCompactor(), request.getExternalCompactionId());
-        LOG.debug("Result {}", result);
 
-        // TODO: this can be offloaded to a new thread and completed async when we have a result
-        // or we can bind the to CompletableFuture to process when the future completes so we
-        // can free up the grpc io threads
-        responseObserver.onNext(convert(result));
-        responseObserver.onCompleted();
+        // Async send back to the compactor when a new job is ready
+        result.thenApply(ecj -> {
+          LOG.debug("Received next compaction job {}", ecj);
+          responseObserver.onNext(convert(ecj));
+          responseObserver.onCompleted();
+          return ecj;
+        });
+
       } catch (ThriftSecurityException e) {
         throw new RuntimeException(e);
       } catch (Exception e) {
