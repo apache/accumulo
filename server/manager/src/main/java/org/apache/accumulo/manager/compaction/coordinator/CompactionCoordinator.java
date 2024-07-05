@@ -1201,11 +1201,10 @@ public class CompactionCoordinator
             request.getGroupName(), request.getCompactor(), request.getExternalCompactionId());
 
         // Async send back to the compactor when a new job is ready
-        result.thenApply(ecj -> {
+        result.thenAccept(ecj -> {
           LOG.debug("Received next compaction job {}", ecj);
           responseObserver.onNext(convert(ecj));
           responseObserver.onCompleted();
-          return ecj;
         });
 
       } catch (ThriftSecurityException e) {
