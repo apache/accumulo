@@ -57,7 +57,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
@@ -191,7 +190,6 @@ public class CompactorTest {
     private volatile boolean completedCalled = false;
     private volatile boolean failedCalled = false;
     private TCompactionStatusUpdate latestState = null;
-    private ProcessMetrics processMetrics;
 
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci) {
@@ -201,7 +199,6 @@ public class CompactorTest {
       this.job = job;
       this.context = context;
       this.eci = eci;
-      this.processMetrics = new ProcessMetrics();
     }
 
     @Override
