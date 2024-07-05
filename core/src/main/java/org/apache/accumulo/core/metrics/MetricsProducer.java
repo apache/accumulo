@@ -73,14 +73,6 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>FunctionCounter</td>
  * <td>Number of entries written by all threads performing compactions</td>
  * </tr>
- * <tr>
- * <td>N/A</td>
- * <td>N/A</td>
- * <td>{@value #METRICS_COMPACTOR_BUSY}</td>
- * <td>Gauge</td>
- * <td>Indicates if the compactor is busy or not. The value will be 0 when idle and 1 when
- * busy.</td>
- * </tr>
  * <!-- fate -->
  * <tr>
  * <td>currentFateOps</td>
@@ -618,7 +610,6 @@ public interface MetricsProducer {
   String METRICS_COMPACTOR_MAJC_STUCK = METRICS_COMPACTOR_PREFIX + "majc.stuck";
   String METRICS_COMPACTOR_ENTRIES_READ = METRICS_COMPACTOR_PREFIX + "entries.read";
   String METRICS_COMPACTOR_ENTRIES_WRITTEN = METRICS_COMPACTOR_PREFIX + "entries.written";
-  String METRICS_COMPACTOR_BUSY = METRICS_COMPACTOR_PREFIX + "busy";
 
   String METRICS_FATE_PREFIX = "accumulo.fate.";
   String METRICS_FATE_TYPE_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in.progress.by.type";
