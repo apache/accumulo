@@ -395,5 +395,6 @@ public class CompactionJobQueuesTest {
     assertEquals(extent1, future7.get().getTabletMetadata().getExtent());
     assertTrue(future5.isDone());
     assertTrue(future6.isCompletedExceptionally());
+    assertTrue(future6.isDone());
   }
 }
