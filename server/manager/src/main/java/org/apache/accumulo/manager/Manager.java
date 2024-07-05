@@ -979,12 +979,15 @@ public class Manager extends AbstractServer
               tabletsNotHosted);
           continue;
         }
-        log.debug("Balancing for tables at level: {}", dl);
+        long migrationsOutForLevel = 0;
+        int i = 0;
         do {
+          i++;
+          log.debug("Balancing for tables at level {}, times-in-loop: {}", dl, i);
           params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer, tserverStatus,
               migrationsForLevel);
           wait = Math.max(tabletBalancer.balance(params), wait);
-          totalMigrationsOut += params.migrationsOut().size();
+          migrationsOutForLevel = params.migrationsOut().size();
           for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
               params.migrationsOut())) {
             final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
@@ -995,7 +998,8 @@ public class Manager extends AbstractServer
             migrations.put(ke, TabletServerIdImpl.toThrift(m.getNewTabletServer()));
             log.debug("migration {}", m);
           }
-        } while (totalMigrationsOut > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
+        } while (migrationsOutForLevel > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
+        totalMigrationsOut += migrationsOutForLevel;
       }
 
       if (totalMigrationsOut == 0) {
