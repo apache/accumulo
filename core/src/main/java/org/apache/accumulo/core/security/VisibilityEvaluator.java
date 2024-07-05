@@ -20,7 +20,6 @@ package org.apache.accumulo.core.security;
 
 import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.IllegalAccessExpressionException;
-import org.apache.accumulo.core.clientImpl.AccumuloAccessUtils;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 
 /**
@@ -86,7 +85,7 @@ public class VisibilityEvaluator {
    * @param authorizations authorizations object
    */
   public VisibilityEvaluator(Authorizations authorizations) {
-    this.accessEvaluator = AccessEvaluator.of(AccumuloAccessUtils.convert(authorizations));
+    this.accessEvaluator = AccessEvaluator.of(authorizations.toAccessAuthorizations());
   }
 
   /**

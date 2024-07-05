@@ -372,8 +372,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       ConditionalWriterConfig config) {
     this.context = context;
     this.auths = config.getAuthorizations();
-    this.accessEvaluator =
-        AccessEvaluator.of(AccumuloAccessUtils.convert(config.getAuthorizations()));
+    this.accessEvaluator = AccessEvaluator.of(config.getAuthorizations().toAccessAuthorizations());
     this.threadPool = context.threadPools().createScheduledExecutorService(
         config.getMaxWriteThreads(), this.getClass().getSimpleName());
     this.locator = new SyncingTabletLocator(context, tableId);

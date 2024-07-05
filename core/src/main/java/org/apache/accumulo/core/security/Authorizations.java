@@ -385,4 +385,17 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
     return sb.toString();
   }
+
+  /**
+   * Converts to an Accumulo Access Authorizations object.
+   *
+   * @since 3.1.0
+   */
+  public org.apache.accumulo.access.Authorizations toAccessAuthorizations() {
+    String[] auths = new String[authsList.size()];
+    for (int i = 0; i < auths.length; i++) {
+      auths[i] = new String(authsList.get(i), UTF_8);
+    }
+    return org.apache.accumulo.access.Authorizations.of(auths);
+  }
 }

@@ -27,7 +27,6 @@ import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.AccessExpression;
 import org.apache.accumulo.access.IllegalAccessExpressionException;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.clientImpl.AccumuloAccessUtils;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -67,7 +66,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
       Authorizations authObj = auths == null || auths.isEmpty() ? new Authorizations()
           : new Authorizations(auths.getBytes(UTF_8));
 
-      this.accessEvaluator = AccessEvaluator.of(AccumuloAccessUtils.convert(authObj));
+      this.accessEvaluator = AccessEvaluator.of(authObj.toAccessAuthorizations());
     }
     this.cache = new LRUMap<>(1000);
   }

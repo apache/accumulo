@@ -34,7 +34,6 @@ import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.AccessExpression;
 import org.apache.accumulo.access.IllegalAccessExpressionException;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.clientImpl.AccumuloAccessUtils;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -118,8 +117,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     if (scanning) {
       String auths = options.get(AUTH_OPT);
       if (auths != null && !auths.isEmpty()) {
-        ve = AccessEvaluator
-            .of(AccumuloAccessUtils.convert(new Authorizations(auths.getBytes(UTF_8))));
+        ve = AccessEvaluator.of(new Authorizations(auths.getBytes(UTF_8)).toAccessAuthorizations());
         visibleCache = new LRUMap<>(100);
       }
     }

@@ -20,7 +20,6 @@ package org.apache.accumulo.core.iteratorsImpl.system;
 
 import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.IllegalAccessExpressionException;
-import org.apache.accumulo.core.clientImpl.AccumuloAccessUtils;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -52,7 +51,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
   private VisibilityFilter(SortedKeyValueIterator<Key,Value> iterator,
       Authorizations authorizations, byte[] defaultVisibility) {
     super(iterator);
-    this.ve = AccessEvaluator.of(AccumuloAccessUtils.convert(authorizations));
+    this.ve = AccessEvaluator.of(authorizations.toAccessAuthorizations());
     this.authorizations = authorizations;
     this.defaultVisibility = new ArrayByteSequence(defaultVisibility);
     this.cache = new LRUMap<>(1000);
