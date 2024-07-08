@@ -295,7 +295,7 @@ public enum Property {
       PropertyType.TIMEDURATION, "The length of time between generation of new secret keys.",
       "1.7.0"),
   GENERAL_IDLE_PROCESS_INTERVAL("general.metrics.process.idle", "5m", PropertyType.TIMEDURATION,
-      "Amount of time a process must be idle before the accumulo.server.idle metric is incremented.",
+      "Amount of time a process must be idle before it is considered to be idle by the metrics system.",
       "2.1.3"),
   GENERAL_MAX_SCANNER_RETRY_PERIOD("general.max.scanner.retry.period", "5s",
       PropertyType.TIMEDURATION,
