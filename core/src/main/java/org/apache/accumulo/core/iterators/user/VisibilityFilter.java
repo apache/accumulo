@@ -23,6 +23,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.accumulo.access.AccessEvaluator;
+import org.apache.accumulo.access.AccessExpression;
+import org.apache.accumulo.access.IllegalAccessExpressionException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -32,10 +35,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.VisibilityEvaluator;
-import org.apache.accumulo.core.security.VisibilityParseException;
-import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +44,7 @@ import org.slf4j.LoggerFactory;
  */
 public class VisibilityFilter extends Filter implements OptionDescriber {
 
-  protected VisibilityEvaluator ve;
+  private AccessEvaluator accessEvaluator;
   protected Map<ByteSequence,Boolean> cache;
 
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
@@ -66,7 +65,8 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
       String auths = options.get(AUTHS);
       Authorizations authObj = auths == null || auths.isEmpty() ? new Authorizations()
           : new Authorizations(auths.getBytes(UTF_8));
-      this.ve = new VisibilityEvaluator(authObj);
+
+      this.accessEvaluator = AccessEvaluator.of(authObj.toAccessAuthorizations());
     }
     this.cache = new LRUMap<>(1000);
   }
@@ -80,10 +80,10 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         return b;
       }
       try {
-        new ColumnVisibility(testVis.toArray());
+        AccessExpression.validate(testVis.toArray());
         cache.put(testVis, true);
         return true;
-      } catch (BadArgumentException e) {
+      } catch (IllegalAccessExpressionException e) {
         cache.put(testVis, false);
         return false;
       }
@@ -98,10 +98,10 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
       }
 
       try {
-        boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));
+        boolean bb = accessEvaluator.canAccess(testVis.toArray());
         cache.put(testVis, bb);
         return bb;
-      } catch (VisibilityParseException | BadArgumentException e) {
+      } catch (IllegalAccessExpressionException e) {
         log.error("Parse Error", e);
         return false;
       }

@@ -24,12 +24,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.accumulo.access.AccessEvaluator;
+import org.apache.accumulo.access.IllegalAccessExpressionException;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.VisibilityEvaluator;
-import org.apache.accumulo.core.security.VisibilityParseException;
-import org.apache.accumulo.core.util.BadArgumentException;
 
 /**
  * A constraint that checks the visibility of columns against the actor's authorizations. Violation
@@ -64,7 +63,7 @@ public class VisibilityConstraint implements Constraint {
       ok = new HashSet<>();
     }
 
-    VisibilityEvaluator ve = null;
+    AccessEvaluator ve = null;
 
     for (ColumnUpdate update : updates) {
 
@@ -78,14 +77,15 @@ public class VisibilityConstraint implements Constraint {
         try {
 
           if (ve == null) {
-            ve = new VisibilityEvaluator(env.getAuthorizationsContainer());
+            var authContainer = env.getAuthorizationsContainer();
+            ve = AccessEvaluator.of(auth -> authContainer.contains(new ArrayByteSequence(auth)));
           }
 
-          if (!ve.evaluate(new ColumnVisibility(cv))) {
+          if (!ve.canAccess(cv)) {
             return Collections.singletonList((short) 2);
           }
 
-        } catch (BadArgumentException | VisibilityParseException bae) {
+        } catch (IllegalAccessExpressionException iaee) {
           return Collections.singletonList((short) 1);
         }
 
