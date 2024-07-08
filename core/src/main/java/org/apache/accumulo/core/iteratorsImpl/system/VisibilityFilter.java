@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.iteratorsImpl.system;
 
+import org.apache.accumulo.access.AccessEvaluator;
+import org.apache.accumulo.access.IllegalAccessExpressionException;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -26,10 +28,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SynchronizedServerFilter;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.VisibilityEvaluator;
-import org.apache.accumulo.core.security.VisibilityParseException;
-import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +41,7 @@ import org.slf4j.LoggerFactory;
  * class.
  */
 public class VisibilityFilter extends SynchronizedServerFilter {
-  protected VisibilityEvaluator ve;
+  protected AccessEvaluator ve;
   protected ByteSequence defaultVisibility;
   protected LRUMap<ByteSequence,Boolean> cache;
   protected Authorizations authorizations;
@@ -53,7 +51,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
   private VisibilityFilter(SortedKeyValueIterator<Key,Value> iterator,
       Authorizations authorizations, byte[] defaultVisibility) {
     super(iterator);
-    this.ve = new VisibilityEvaluator(authorizations);
+    this.ve = AccessEvaluator.of(authorizations.toAccessAuthorizations());
     this.authorizations = authorizations;
     this.defaultVisibility = new ArrayByteSequence(defaultVisibility);
     this.cache = new LRUMap<>(1000);
@@ -80,14 +78,11 @@ public class VisibilityFilter extends SynchronizedServerFilter {
     }
 
     try {
-      boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));
+      boolean bb = ve.canAccess(testVis.toArray());
       cache.put(testVis, bb);
       return bb;
-    } catch (VisibilityParseException e) {
-      log.error("VisibilityParseException with visibility of Key: {}", k, e);
-      return false;
-    } catch (BadArgumentException e) {
-      log.error("BadArgumentException with visibility of Key: {}", k, e);
+    } catch (IllegalAccessExpressionException e) {
+      log.error("IllegalAccessExpressionException with visibility of Key: {}", k, e);
       return false;
     }
   }
