@@ -386,6 +386,9 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     return sb.toString();
   }
 
+  private static final org.apache.accumulo.access.Authorizations EMPTY_ACCESS_AUTH =
+      org.apache.accumulo.access.Authorizations.of(Set.of());
+
   /**
    * Converts to an Accumulo Access Authorizations object.
    *
@@ -393,7 +396,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    */
   public org.apache.accumulo.access.Authorizations toAccessAuthorizations() {
     if (auths.isEmpty()) {
-      return org.apache.accumulo.access.Authorizations.of(Set.of());
+      return EMPTY_ACCESS_AUTH;
     } else {
       Set<String> auths = new HashSet<>(authsList.size());
       for (var auth : authsList) {
