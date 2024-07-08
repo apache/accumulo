@@ -1281,6 +1281,10 @@ public class CompactableImpl implements Compactable {
 
       cInfo.localHelper = this.chelper;
       cInfo.localCompactionCfg = this.compactionConfig;
+      // don't include execution hints, which may have been previously set, for system compactions
+      if (job.getKind() == CompactionKind.SYSTEM) {
+        cInfo.localCompactionCfg.setExecutionHints(Collections.emptyMap());
+      }
     }
 
     // Check to ensure the tablet actually has these files now that they are reserved. Compaction
