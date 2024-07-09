@@ -964,36 +964,41 @@ public class Manager extends AbstractServer
 
       Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
           new HashMap<>(DataLevel.values().length);
+      // populate to prevent NPE
+      for (DataLevel dl : DataLevel.values()) {
+        partitionedMigrations.put(dl, new HashSet<>());
+      }
       migrationsSnapshot().forEach(ke -> {
-        partitionedMigrations.computeIfAbsent(DataLevel.of(ke.tableId()), f -> new HashSet<>())
-            .add(ke);
+        partitionedMigrations.get(DataLevel.of(ke.tableId())).add(ke);
       });
+      log.trace("migrations snapshot: {}", partitionedMigrations);
 
       final int tabletsNotHosted = notHosted();
       BalanceParamsImpl params = null;
       long wait = 0;
       long totalMigrationsOut = 0;
       for (DataLevel dl : DataLevel.values()) {
-        final Set<KeyExtent> migrationsForLevel = partitionedMigrations.get(dl);
-        if (migrationsForLevel == null) {
-          continue;
-        }
         if (dl == DataLevel.USER && tabletsNotHosted > 0) {
           log.debug("not balancing user tablets because there are {} unhosted tablets",
               tabletsNotHosted);
           continue;
         }
-        long migrationsOutForLevel = 0;
+        List<TabletMigration> migrationsOutForLevel = new ArrayList<>();
         int i = 0;
         do {
           i++;
           log.debug("Balancing for tables at level {}, times-in-loop: {}", dl, i);
           params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer, tserverStatus,
-              migrationsForLevel);
+              partitionedMigrations.get(dl));
           wait = Math.max(tabletBalancer.balance(params), wait);
-          migrationsOutForLevel = params.migrationsOut().size();
+          // Only process migrations returned by the balancer for the current level
+          for (TabletMigration tm : params.migrationsOut()) {
+            if (dl == DataLevel.of(tm.getTablet().getTable())) {
+              migrationsOutForLevel.add(tm);
+            }
+          }
           for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
-              params.migrationsOut())) {
+              migrationsOutForLevel)) {
             final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
             if (migrations.containsKey(ke)) {
               log.warn("balancer requested migration more than once, skipping {}", m);
@@ -1002,8 +1007,9 @@ public class Manager extends AbstractServer
             migrations.put(ke, TabletServerIdImpl.toThrift(m.getNewTabletServer()));
             log.debug("migration {}", m);
           }
-        } while (migrationsOutForLevel > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
-        totalMigrationsOut += migrationsOutForLevel;
+        } while (migrationsOutForLevel.size() > 0
+            && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
+        totalMigrationsOut += migrationsOutForLevel.size();
       }
 
       if (totalMigrationsOut == 0) {
