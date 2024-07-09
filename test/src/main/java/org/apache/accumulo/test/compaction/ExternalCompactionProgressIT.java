@@ -36,7 +36,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -126,26 +125,12 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
     cfg.setSystemProperties(sysProps);
   }
 
-  private static long computeBusyCount(String resourceGroup,
-      ConcurrentHashMap<String,Long> compactorBusy) {
-    var stats =
-        compactorBusy.entrySet().stream().filter(e -> e.getKey().startsWith(resourceGroup + ":"))
-            .mapToLong(Map.Entry::getValue).summaryStatistics();
-    if (stats.getCount() == 0) {
-      // signifies nothing was present, this differentiates between the case where things are
-      // present w/ a zero value
-      return -1;
-    }
-    return stats.getSum();
-  }
-
   @Test
   public void testProgressViaMetrics() throws Exception {
     String table = this.getUniqueNames(1)[0];
 
     final AtomicLong totalEntriesRead = new AtomicLong(0);
     final AtomicLong totalEntriesWritten = new AtomicLong(0);
-    final ConcurrentHashMap<String,Long> compactorBusy = new ConcurrentHashMap<>();
     final long expectedEntriesRead = 18432;
     final long expectedEntriesWritten = 13312;
 
