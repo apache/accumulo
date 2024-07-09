@@ -220,7 +220,6 @@ public class Manager extends AbstractServer
   private final AtomicReference<Fate<Manager>> fateRef = new AtomicReference<>(null);
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
-  volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
@@ -908,9 +907,7 @@ public class Manager extends AbstractServer
 
     private long updateStatus() {
       Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
-      TreeMap<TabletServerId,TServerStatus> temp = new TreeMap<>();
-      tserverStatus = gatherTableInformation(currentServers, temp);
-      tserverStatusForBalancer = Collections.unmodifiableSortedMap(temp);
+      tserverStatus = gatherTableInformation(currentServers);
       checkForHeldServer(tserverStatus);
 
       if (!badServers.isEmpty()) {
@@ -960,45 +957,96 @@ public class Manager extends AbstractServer
       }
     }
 
-    private long balanceTablets() {
-
-      Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
+    /**
+     * balanceTablets() balances tables by DataLevel. Return the current set of migrations
+     * partitioned by DataLevel
+     */
+    private Map<DataLevel,Set<KeyExtent>> partitionMigrations(final Set<KeyExtent> migrations) {
+      final Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
           new HashMap<>(DataLevel.values().length);
       // populate to prevent NPE
       for (DataLevel dl : DataLevel.values()) {
         partitionedMigrations.put(dl, new HashSet<>());
       }
-      migrationsSnapshot().forEach(ke -> {
+      migrations.forEach(ke -> {
         partitionedMigrations.get(DataLevel.of(ke.tableId())).add(ke);
       });
-      log.trace("migrations snapshot: {}", partitionedMigrations);
+      return partitionedMigrations;
+    }
+
+    /**
+     * Given the current tserverStatus map and a DataLevel, return a view of the tserverStatus map
+     * that only contains entries for tables in the DataLevel
+     */
+    private SortedMap<TServerInstance,TabletServerStatus> createTServerStatusView(
+        final DataLevel dl, final SortedMap<TServerInstance,TabletServerStatus> status) {
+      final SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel = new TreeMap<>();
+      status.forEach((k, v) -> {
+        TabletServerStatus copy = v.deepCopy();
+        Set<String> removals = new HashSet<>();
+        if (dl == DataLevel.USER) {
+          removals.add(RootTable.NAME);
+          removals.add(MetadataTable.NAME);
+        } else {
+          copy.getTableMap().keySet().forEach(tableName -> {
+            if (dl == DataLevel.ROOT && !tableName.equals(RootTable.NAME)) {
+              removals.add(tableName);
+            } else if (dl == DataLevel.METADATA && !tableName.equals(MetadataTable.NAME)) {
+              removals.add(tableName);
+            }
+          });
+        }
+        removals.forEach(copy.getTableMap()::remove);
+        tserverStatusForLevel.put(k, copy);
+      });
+      return tserverStatusForLevel;
+    }
+
+    private long balanceTablets() {
 
       final int tabletsNotHosted = notHosted();
       BalanceParamsImpl params = null;
       long wait = 0;
       long totalMigrationsOut = 0;
+      final Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
+          partitionMigrations(migrationsSnapshot());
+
       for (DataLevel dl : DataLevel.values()) {
         if (dl == DataLevel.USER && tabletsNotHosted > 0) {
           log.debug("not balancing user tablets because there are {} unhosted tablets",
               tabletsNotHosted);
           continue;
         }
-        List<TabletMigration> migrationsOutForLevel = new ArrayList<>();
-        int i = 0;
+        // Create a view of the tserver status such that it only contains the tables
+        // for this level in the tableMap.
+        final SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel =
+            createTServerStatusView(dl, tserverStatus);
+        // Construct the Thrift variant of the map above for the BalancerParams
+        final SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancerLevel =
+            new TreeMap<>();
+        tserverStatusForLevel.forEach((tsi, status) -> tserverStatusForBalancerLevel
+            .put(new TabletServerIdImpl(tsi), TServerStatusImpl.fromThrift(status)));
+
+        long migrationsOutCount = 0;
+        long migrationsOutForLevel = 0;
+        int attemptNum = 0;
         do {
-          i++;
-          log.debug("Balancing for tables at level {}, times-in-loop: {}", dl, i);
-          params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer, tserverStatus,
-              partitionedMigrations.get(dl));
+          log.debug("Balancing for tables at level {}, times-in-loop: {}", dl, ++attemptNum);
+          params = BalanceParamsImpl.fromThrift(tserverStatusForBalancerLevel,
+              tserverStatusForLevel, partitionedMigrations.get(dl));
           wait = Math.max(tabletBalancer.balance(params), wait);
-          // Only process migrations returned by the balancer for the current level
+          // The balancer may emit migrations for tables outside of the
+          // current level. We want to honor all migration requests, but
+          // need to keep track of the total for this level as well for
+          // the do-while loop condition.
+          migrationsOutCount = params.migrationsOut().size();
           for (TabletMigration tm : params.migrationsOut()) {
             if (dl == DataLevel.of(tm.getTablet().getTable())) {
-              migrationsOutForLevel.add(tm);
+              migrationsOutForLevel++;
             }
           }
-          for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
-              migrationsOutForLevel)) {
+          for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancerLevel.keySet(),
+              params.migrationsOut())) {
             final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
             if (migrations.containsKey(ke)) {
               log.warn("balancer requested migration more than once, skipping {}", m);
@@ -1007,9 +1055,8 @@ public class Manager extends AbstractServer
             migrations.put(ke, TabletServerIdImpl.toThrift(m.getNewTabletServer()));
             log.debug("migration {}", m);
           }
-        } while (migrationsOutForLevel.size() > 0
-            && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
-        totalMigrationsOut += migrationsOutForLevel.size();
+        } while (migrationsOutForLevel > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
+        totalMigrationsOut += migrationsOutCount;
       }
 
       if (totalMigrationsOut == 0) {
@@ -1046,8 +1093,8 @@ public class Manager extends AbstractServer
 
   }
 
-  private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation(
-      Set<TServerInstance> currentServers, SortedMap<TabletServerId,TServerStatus> balancerMap) {
+  private SortedMap<TServerInstance,TabletServerStatus>
+      gatherTableInformation(Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MANAGER_STATUS_THREAD_POOL_SIZE);
     ExecutorService tp = ThreadPools.getServerThreadPools()
@@ -1125,8 +1172,6 @@ public class Manager extends AbstractServer
 
     // Threads may still modify map after shutdownNow is called, so create an immutable snapshot.
     SortedMap<TServerInstance,TabletServerStatus> info = ImmutableSortedMap.copyOf(result);
-    tserverStatus.forEach((tsi, status) -> balancerMap.put(new TabletServerIdImpl(tsi),
-        TServerStatusImpl.fromThrift(status)));
 
     synchronized (badServers) {
       badServers.keySet().retainAll(currentServers);
