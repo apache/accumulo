@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -249,9 +250,20 @@ public class Upgrader11to12 implements Upgrader {
     try (var fs = VolumeManagerImpl.get(context.getSiteConfiguration(), context.getHadoopConf())) {
       FileSystemInitializer initializer = new FileSystemInitializer(
           new InitialConfiguration(context.getHadoopConf(), context.getSiteConfiguration()));
-      initializer.createScanRefTablet(context, fs);
+      FileSystemInitializer.InitialTablet scanRefTablet =
+          initializer.createScanRefTablet(context, fs);
+
+      // Add references to the Metadata Table
+      try (BatchWriter writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+        writer.addMutation(scanRefTablet.createMutation());
+        writer.flush();
+      } catch (MutationsRejectedException | TableNotFoundException e) {
+        log.error("Failed to write tablet refs to metadata table");
+        throw new RuntimeException(e);
+      }
     } catch (IOException e) {
-      log.error("Problem attempting to create ScanRef Table");
+      log.error("Problem attempting to create ScanServerRef table", e);
     }
+    log.info("Created ScanServerRef table");
   }
 }

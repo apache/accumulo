@@ -34,6 +34,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
@@ -59,6 +60,8 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class FileSystemInitializer {
   private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
   private static final Logger log = LoggerFactory.getLogger(FileSystemInitializer.class);
@@ -72,19 +75,50 @@ public class FileSystemInitializer {
     this.initConfig = initConfig;
   }
 
-  private static class Tablet {
+  public static class InitialTablet {
     TableId tableId;
     String dirName;
-    Text prevEndRow, endRow;
+    Text prevEndRow, endRow, extent;
     String[] files;
 
-    Tablet(TableId tableId, String dirName, Text prevEndRow, Text endRow, String... files) {
+    InitialTablet(TableId tableId, String dirName, Text prevEndRow, Text endRow, String... files) {
       this.tableId = tableId;
       this.dirName = dirName;
       this.prevEndRow = prevEndRow;
       this.endRow = endRow;
       this.files = files;
+      this.extent = new Text(MetadataSchema.TabletsSection.encodeRow(this.tableId, this.endRow));
     }
+
+    private TreeMap<Key,Value> createEntries() {
+      TreeMap<Key,Value> sorted = new TreeMap<>();
+      Value EMPTY_SIZE = new DataFileValue(0, 0).encodeAsValue();
+      sorted.put(new Key(this.extent, DIRECTORY_COLUMN.getColumnFamily(),
+          DIRECTORY_COLUMN.getColumnQualifier(), 0), new Value(this.dirName));
+      sorted.put(
+          new Key(this.extent, TIME_COLUMN.getColumnFamily(), TIME_COLUMN.getColumnQualifier(), 0),
+          new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
+      sorted.put(
+          new Key(this.extent, PREV_ROW_COLUMN.getColumnFamily(),
+              PREV_ROW_COLUMN.getColumnQualifier(), 0),
+          MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow(this.prevEndRow));
+      for (String file : this.files) {
+        var col =
+            new ColumnFQ(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME, new Text(file));
+        sorted.put(new Key(extent, col.getColumnFamily(), col.getColumnQualifier()), EMPTY_SIZE);
+      }
+      return sorted;
+    }
+
+    public Mutation createMutation() {
+      Mutation mutation = new Mutation(this.extent);
+      for (Map.Entry<Key,Value> entry : createEntries().entrySet()) {
+        mutation.put(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier(),
+            entry.getKey().getTimestamp(), entry.getValue());
+      }
+      return mutation;
+    }
+
   }
 
   void initialize(VolumeManager fs, String rootTabletDirUri, String rootTabletFileUri,
@@ -100,16 +134,27 @@ public class FileSystemInitializer {
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
             + AccumuloTable.METADATA.tableId() + Path.SEPARATOR + defaultMetadataTabletDirName;
 
+    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
+        AccumuloTable.METADATA.tableId(), SPLIT_POINT, context);
+
+    String tableMetadataTabletDirUri =
+        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + AccumuloTable.METADATA.tableId() + Path.SEPARATOR + TABLE_TABLETS_TABLET_DIR;
+
     // create table and default tablets directories
-    createDirectories(fs, rootTabletDirUri, defaultMetadataTabletDirUri);
+    createDirectories(fs, rootTabletDirUri, defaultMetadataTabletDirUri, tableMetadataTabletDirUri);
+    InitialTablet scanRefTablet = createScanRefTablet(context, fs);
 
     // populate the metadata tablet with info about scan ref tablets
-    String metadataFileName = createScanRefTablet(context, fs);
+    String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
+    String metadataFileName = tableMetadataTabletDirUri + Path.SEPARATOR + "0_1." + ext;
+    createMetadataFile(fs, metadataFileName, scanRefTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
-    Tablet tablesTablet = new Tablet(AccumuloTable.METADATA.tableId(), TABLE_TABLETS_TABLET_DIR,
-        null, SPLIT_POINT, StoredTabletFile.of(new Path(metadataFileName)).getMetadata());
-    Tablet defaultTablet = new Tablet(AccumuloTable.METADATA.tableId(),
+    InitialTablet tablesTablet =
+        new InitialTablet(AccumuloTable.METADATA.tableId(), TABLE_TABLETS_TABLET_DIR, null,
+            SPLIT_POINT, StoredTabletFile.of(new Path(metadataFileName)).getMetadata());
+    InitialTablet defaultTablet = new InitialTablet(AccumuloTable.METADATA.tableId(),
         defaultMetadataTabletDirName, SPLIT_POINT, null);
     createMetadataFile(fs, rootTabletFileUri, tablesTablet, defaultTablet);
   }
@@ -152,14 +197,9 @@ public class FileSystemInitializer {
     }
   }
 
-  private void createMetadataFile(VolumeManager volmanager, String fileName, Tablet... tablets)
-      throws IOException {
+  private void createMetadataFile(VolumeManager volmanager, String fileName,
+      InitialTablet... initialTablets) throws IOException {
     AccumuloConfiguration conf = initConfig.getSiteConf();
-    // sort file contents in memory, then play back to the file
-    TreeMap<Key,Value> sorted = new TreeMap<>();
-    for (Tablet tablet : tablets) {
-      createEntriesForTablet(sorted, tablet);
-    }
     ReferencedTabletFile file = ReferencedTabletFile.of(new Path(fileName));
     FileSystem fs = volmanager.getFileSystemByPath(file.getPath());
 
@@ -169,62 +209,31 @@ public class FileSystemInitializer {
         .forFile(file, fs, fs.getConf(), cs).withTableConfiguration(conf).build();
     tabletWriter.startDefaultLocalityGroup();
 
-    for (Map.Entry<Key,Value> entry : sorted.entrySet()) {
-      tabletWriter.append(entry.getKey(), entry.getValue());
+    for (InitialTablet initialTablet : initialTablets) {
+      // sort file contents in memory, then play back to the file
+      for (Map.Entry<Key,Value> entry : initialTablet.createEntries().entrySet()) {
+        tabletWriter.append(entry.getKey(), entry.getValue());
+      }
     }
-
     tabletWriter.close();
   }
 
-  private void createEntriesForTablet(TreeMap<Key,Value> map, Tablet tablet) {
-    Value EMPTY_SIZE = new DataFileValue(0, 0).encodeAsValue();
-    Text extent = new Text(MetadataSchema.TabletsSection.encodeRow(tablet.tableId, tablet.endRow));
-    addEntry(map, extent, DIRECTORY_COLUMN, new Value(tablet.dirName));
-    addEntry(map, extent, TIME_COLUMN, new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
-    addEntry(map, extent, PREV_ROW_COLUMN,
-        MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow(tablet.prevEndRow));
-    for (String file : tablet.files) {
-      addEntry(map, extent,
-          new ColumnFQ(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME, new Text(file)),
-          EMPTY_SIZE);
-    }
-  }
+  public InitialTablet createScanRefTablet(ServerContext context, VolumeManager fs)
+      throws IOException {
+    var conf = initConfig.getScanRefTableConf();
+    Preconditions.checkNotNull(conf, "Scan table config cannot be null");
+    setTableProperties(context, AccumuloTable.SCAN_REF.tableId(), conf);
 
-  private void addEntry(TreeMap<Key,Value> map, Text row, ColumnFQ col, Value value) {
-    map.put(new Key(row, col.getColumnFamily(), col.getColumnQualifier(), 0), value);
-  }
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(
+        VolumeChooserEnvironment.Scope.INIT, AccumuloTable.SCAN_REF.tableId(), null, context);
 
-  public String createScanRefTablet(ServerContext context, VolumeManager fs) throws IOException {
-    // First set table properties in ZK
-    setTableProperties(context, AccumuloTable.SCAN_REF.tableId(), initConfig.getScanRefTableConf());
+    String scanRefTableDefaultTabletDirUri = fs.choose(chooserEnv, context.getBaseUris())
+        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + AccumuloTable.SCAN_REF.tableId()
+        + Path.SEPARATOR + MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
 
-    VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
-            AccumuloTable.METADATA.tableId(), SPLIT_POINT, context);
+    createDirectories(fs, scanRefTableDefaultTabletDirUri);
 
-    String tableMetadataTabletDirUri =
-        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + AccumuloTable.METADATA.tableId() + Path.SEPARATOR + TABLE_TABLETS_TABLET_DIR;
-
-    // Create Default Tablet entry for ScanServerRefTable
-    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
-        AccumuloTable.SCAN_REF.tableId(), null, context);
-
-    String scanRefTableDefaultTabletDirName =
-        MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
-    String scanRefTableDefaultTabletDirUri =
-        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + AccumuloTable.SCAN_REF.tableId() + Path.SEPARATOR + scanRefTableDefaultTabletDirName;
-
-    createDirectories(fs, tableMetadataTabletDirUri, scanRefTableDefaultTabletDirUri);
-
-    String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
-    String metadataFileName = tableMetadataTabletDirUri + Path.SEPARATOR + "0.1." + ext;
-
-    Tablet scanRefTablet =
-        new Tablet(AccumuloTable.SCAN_REF.tableId(), scanRefTableDefaultTabletDirName, null, null);
-    createMetadataFile(fs, metadataFileName, scanRefTablet);
-
-    return metadataFileName;
+    return new InitialTablet(AccumuloTable.SCAN_REF.tableId(),
+        MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME, null, null);
   }
 }

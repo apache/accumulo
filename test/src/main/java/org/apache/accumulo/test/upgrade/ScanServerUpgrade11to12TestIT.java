@@ -20,9 +20,11 @@ package org.apache.accumulo.test.upgrade;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import java.util.Map;
+import java.io.IOException;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -35,10 +37,12 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -50,6 +54,7 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.upgrade.Upgrader11to12;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
@@ -65,6 +70,8 @@ import com.google.common.net.HostAndPort;
 public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
 
   public static final Logger log = LoggerFactory.getLogger(ScanServerUpgrade11to12TestIT.class);
+  private static final Range META_RANGE =
+      new Range(AccumuloTable.SCAN_REF.tableId() + ";", AccumuloTable.SCAN_REF.tableId() + "<");
 
   private static class ScanServerUpgradeITConfiguration
       implements MiniClusterConfigurationCallback {
@@ -86,7 +93,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     stopMiniCluster();
   }
 
-  private Stream<Map.Entry<Key,Value>> getOldScanServerRefs(String tableName) {
+  private Stream<Entry<Key,Value>> getOldScanServerRefs(String tableName) {
     try {
       BatchScanner scanner =
           getCluster().getServerContext().createBatchScanner(tableName, Authorizations.EMPTY);
@@ -147,24 +154,113 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     assertEquals(0, getOldScanServerRefs(tableName).count());
   }
 
+  private Stream<Entry<Key,Value>> checkForScanRefTablets() {
+    try {
+      Scanner scanner = getCluster().getServerContext()
+          .createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
+      scanner.setRange(META_RANGE);
+      return scanner.stream().onClose(scanner::close);
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   @Test
   public void testScanRefTableCreation() {
     ServerContext ctx = getCluster().getServerContext();
+    assertNotEquals(0, checkForScanRefTablets().count());
+
     // Remove the scan server table that was created as part of init
     try {
       ctx.getTableManager().removeTable(AccumuloTable.SCAN_REF.tableId());
-      Thread.sleep(10_000);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Removal of scan ref table failed" + e);
     }
 
+    // Read from the metadata table to find any existing scan ref tablets and remove them
+    try (BatchWriter writer = ctx.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      var refTablet = checkForScanRefTablets().iterator();
+      while (refTablet.hasNext()) {
+        var entry = refTablet.next();
+        log.info("Entry:  {}", entry);
+        var mutation = new Mutation(entry.getKey().getRow());
+        mutation.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
+        writer.addMutation(mutation);
+      }
+      writer.flush();
+    } catch (TableNotFoundException | MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
+
+    // verify that the table has been removed
     TableState scanRefTableState =
         ctx.getTableManager().getTableState(AccumuloTable.SCAN_REF.tableId());
     assertNull(scanRefTableState);
+    assertEquals(0, checkForScanRefTablets().count());
+
+    // Delete all relevant files and directories from the filesystem
+    try {
+      String baseTablesDir = getMiniClusterDir().getAbsolutePath() + "/accumulo/tables";
+      String tableMetadataDir =
+          baseTablesDir + "/" + AccumuloTable.METADATA.tableId() + "/table_info/";
+      Path scanRefDir = new Path(baseTablesDir + "/" + AccumuloTable.SCAN_REF.tableId());
+
+      var fs = getCluster().getFileSystem();
+      fs.delete(new Path(tableMetadataDir + "0_1.rf"), false);
+      fs.delete(new Path(tableMetadataDir + ".0_1.rf.crc"), false);
+      fs.delete(scanRefDir, true);
+    } catch (IOException e) {
+      log.error("Failed to delete scanref files and directories", e);
+    }
+
+    log.info("Scan ref table is deleted, now waiting for system to settle");
+    try {
+      // Wait to ensure that ZK doesn't cause issues with our changes
+      Thread.sleep(30_000);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+
+    // Attempt creation of the scan ref table
     var upgrader = new Upgrader11to12();
     upgrader.createScanServerRefTable(ctx);
+
     scanRefTableState = ctx.getTableManager().getTableState(AccumuloTable.SCAN_REF.tableId());
     assertEquals(TableState.ONLINE, scanRefTableState);
+
+    // Wait for scanref table to be hosted
+    // try {
+    // Thread.sleep(1_000);
+    // } catch (InterruptedException e) {
+    // throw new RuntimeException(e);
+    // }
+
+    log.info("Reading entries from the metadata table");
+    try (Scanner scanner = getCluster().getServerContext()
+        .createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+      var refTablet = scanner.stream().iterator();
+      while (refTablet.hasNext()) {
+        log.info("Entry: {}", refTablet.next());
+      }
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+
+    // log.info("Check the specific scan server section");
+    assertEquals(4, checkForScanRefTablets().count());
+
+    // Create some scanRefs to test table functionality
+    assertEquals(0, ctx.getAmple().scanServerRefs().list().count());
+
+    HostAndPort server = HostAndPort.fromParts("127.0.0.1", 1234);
+    UUID serverLockUUID = UUID.randomUUID();
+
+    Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf")
+        .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
+        .map(f -> new ScanServerRefTabletFile(f, server.toString(), serverLockUUID))
+        .collect(Collectors.toSet());
+    ctx.getAmple().scanServerRefs().put(scanRefs);
+    assertEquals(2, ctx.getAmple().scanServerRefs().list().count());
   }
 
   @Test
