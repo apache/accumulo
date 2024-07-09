@@ -1027,7 +1027,6 @@ public class Manager extends AbstractServer
         tserverStatusForLevel.forEach((tsi, status) -> tserverStatusForBalancerLevel
             .put(new TabletServerIdImpl(tsi), TServerStatusImpl.fromThrift(status)));
 
-        long migrationsOutCount = 0;
         long migrationsOutForLevel = 0;
         int attemptNum = 0;
         do {
@@ -1035,16 +1034,7 @@ public class Manager extends AbstractServer
           params = BalanceParamsImpl.fromThrift(tserverStatusForBalancerLevel,
               tserverStatusForLevel, partitionedMigrations.get(dl));
           wait = Math.max(tabletBalancer.balance(params), wait);
-          // The balancer may emit migrations for tables outside of the
-          // current level. We want to honor all migration requests, but
-          // need to keep track of the total for this level as well for
-          // the do-while loop condition.
-          migrationsOutCount = params.migrationsOut().size();
-          for (TabletMigration tm : params.migrationsOut()) {
-            if (dl == DataLevel.of(tm.getTablet().getTable())) {
-              migrationsOutForLevel++;
-            }
-          }
+          migrationsOutForLevel = params.migrationsOut().size();
           for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancerLevel.keySet(),
               params.migrationsOut())) {
             final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
@@ -1056,7 +1046,7 @@ public class Manager extends AbstractServer
             log.debug("migration {}", m);
           }
         } while (migrationsOutForLevel > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
-        totalMigrationsOut += migrationsOutCount;
+        totalMigrationsOut += migrationsOutForLevel;
       }
 
       if (totalMigrationsOut == 0) {
