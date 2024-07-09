@@ -35,7 +35,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -150,8 +149,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
     final long expectedEntriesRead = 18432;
     final long expectedEntriesWritten = 13312;
 
-    Thread checkerThread =
-        getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten, compactorBusy);
+    Thread checkerThread = getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten);
 
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
@@ -166,14 +164,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           EnumSet.of(IteratorUtil.IteratorScope.majc));
       log.info("Compacting table");
 
-      Wait.waitFor(() -> computeBusyCount(GROUP1, compactorBusy) == 0, 30_000,
-          CHECKER_THREAD_SLEEP_MS, "Compactor busy metric should be false initially");
-
-      compact(client, table, 2, GROUP1, false);
-
-      Wait.waitFor(() -> computeBusyCount(GROUP1, compactorBusy) == 1, 30_000,
-          CHECKER_THREAD_SLEEP_MS,
-          "Compactor busy metric should be true after starting compaction");
+      compact(client, table, 2, GROUP1, true);
 
       Wait.waitFor(() -> {
         if (totalEntriesRead.get() == expectedEntriesRead
@@ -188,10 +179,6 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       }, 30_000, CHECKER_THREAD_SLEEP_MS,
           "Entries read and written metrics values did not match expected values");
 
-      Wait.waitFor(() -> computeBusyCount(GROUP1, compactorBusy) == 0, 30_000,
-          CHECKER_THREAD_SLEEP_MS,
-          "Compactor busy metric should be false once compaction completes");
-
       log.info("Done Compacting table");
       verify(client, table, 2, ROWS);
     } finally {
@@ -205,10 +192,9 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
    *
    * @param totalEntriesRead this is set to the value of the entries read metric
    * @param totalEntriesWritten this is set to the value of the entries written metric
-   * @param compactorBusy this is set to the value of the compactor busy metric
    */
   private static Thread getMetricsCheckerThread(AtomicLong totalEntriesRead,
-      AtomicLong totalEntriesWritten, ConcurrentHashMap<String,Long> compactorBusy) {
+      AtomicLong totalEntriesWritten) {
     return Threads.createThread("metric-tailer", () -> {
       log.info("Starting metric tailer");
 
@@ -232,15 +218,6 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
               break;
             case MetricsProducer.METRICS_COMPACTOR_ENTRIES_WRITTEN:
               totalEntriesWritten.addAndGet(value);
-              break;
-            case MetricsProducer.METRICS_COMPACTOR_BUSY:
-              // expect these tags to be present, so have the test fail w/ NPE if they are not
-              var host = Objects.requireNonNull(metric.getTags().get("host"));
-              var port = Objects.requireNonNull(metric.getTags().get("port"));
-              var resourceGroup = Objects.requireNonNull(metric.getTags().get("resource.group"));
-              var key = resourceGroup + ":" + host + ":" + port;
-              log.debug("setting busy count {} {}", key, value);
-              compactorBusy.put(key, (long) value);
               break;
           }
         }

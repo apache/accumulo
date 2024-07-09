@@ -440,10 +440,8 @@ public class ScanServer extends AbstractServer
     try {
       while (!serverStopRequested) {
         UtilWaitThread.sleep(1000);
-        idleProcessCheck(() -> {
-          return sessionManager.getActiveScans().isEmpty()
-              && tabletMetadataCache.estimatedSize() == 0;
-        });
+        idleProcessCheck(() -> sessionManager.getActiveScans().isEmpty()
+            && tabletMetadataCache.estimatedSize() == 0);
       }
     } finally {
       LOG.info("Stopping Thrift Servers");
