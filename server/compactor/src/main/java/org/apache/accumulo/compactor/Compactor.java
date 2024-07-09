@@ -37,6 +37,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -122,7 +123,6 @@ import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 
 import io.micrometer.core.instrument.FunctionCounter;
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -188,6 +188,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
+    super.registerMetrics(registry);
     FunctionCounter.builder(METRICS_COMPACTOR_ENTRIES_READ, this, Compactor::getTotalEntriesRead)
         .description("Number of entries read by all compactions that have run on this compactor")
         .register(registry);
@@ -198,13 +199,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
         .description("Number and duration of stuck major compactions").register(registry);
     CompactionWatcher.setTimer(timer);
-
-    Gauge
-        .builder(METRICS_COMPACTOR_BUSY, this.compactionRunning,
-            isRunning -> isRunning.get() ? 1 : 0)
-        .description(
-            "Indicates if the compactor is busy or not. The value will be 0 when idle and 1 when busy.")
-        .register(registry);
   }
 
   protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {
@@ -708,8 +702,17 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
+      final AtomicLong timeSinceLastCompletion = new AtomicLong(0L);
 
       while (!shutdown) {
+
+        idleProcessCheck(() -> {
+          return timeSinceLastCompletion.get() == 0
+              /* Never started a compaction */ || (timeSinceLastCompletion.get() > 0
+                  && (System.nanoTime() - timeSinceLastCompletion.get())
+                      > idleReportingPeriodNanos);
+        });
+
         currentCompactionId.set(null);
         err.set(null);
         JOB_HOLDER.reset();
@@ -858,6 +861,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
         } finally {
           currentCompactionId.set(null);
+          timeSinceLastCompletion.set(System.nanoTime());
           // In the case where there is an error in the foreground code the background compaction
           // may still be running. Must cancel it before starting another iteration of the loop to
           // avoid multiple threads updating shared state.

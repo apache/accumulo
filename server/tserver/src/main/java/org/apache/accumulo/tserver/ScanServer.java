@@ -411,7 +411,7 @@ public class ScanServer extends AbstractServer
     blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),
         resourceManager.getDataCache(), resourceManager.getSummaryCache());
 
-    metricsInfo.addMetricsProducers(scanMetrics, scanServerMetrics, blockCacheMetrics);
+    metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics);
     metricsInfo.init();
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 
@@ -420,6 +420,8 @@ public class ScanServer extends AbstractServer
     try {
       while (!serverStopRequested) {
         UtilWaitThread.sleep(1000);
+        idleProcessCheck(() -> sessionManager.getActiveScans().isEmpty()
+            && tabletMetadataCache.estimatedSize() == 0);
       }
     } finally {
       LOG.info("Stopping Thrift Servers");
