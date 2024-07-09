@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.metrics;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.server.ServerContext;
@@ -28,17 +29,24 @@ import io.micrometer.core.instrument.MeterRegistry;
 public class ProcessMetrics implements MetricsProducer {
 
   private final ServerContext context;
+  private final AtomicInteger isIdle;
 
   public ProcessMetrics(final ServerContext context) {
     this.context = context;
+    this.isIdle = new AtomicInteger(-1);
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
     registry.gauge(METRICS_LOW_MEMORY, List.of(), this, this::lowMemDetected);
+    registry.gauge(METRICS_SERVER_IDLE, isIdle, AtomicInteger::get);
   }
 
   private int lowMemDetected(ProcessMetrics processMetrics) {
     return context.getLowMemoryDetector().isRunningLowOnMemory() ? 1 : 0;
+  }
+
+  public void setIdleValue(boolean isIdle) {
+    this.isIdle.set(isIdle ? 1 : 0);
   }
 }

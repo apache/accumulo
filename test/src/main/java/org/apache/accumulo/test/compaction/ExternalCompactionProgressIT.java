@@ -38,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.compactor.Compactor;
@@ -217,12 +216,10 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
 
     final AtomicLong totalEntriesRead = new AtomicLong(0);
     final AtomicLong totalEntriesWritten = new AtomicLong(0);
-    final AtomicInteger compactorBusy = new AtomicInteger(-1);
     final long expectedEntriesRead = 9216;
     final long expectedEntriesWritten = 4096;
 
-    Thread checkerThread =
-        getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten, compactorBusy);
+    Thread checkerThread = getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten);
 
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
@@ -240,13 +237,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           EnumSet.of(IteratorUtil.IteratorScope.majc));
       log.info("Compacting table");
 
-      Wait.waitFor(() -> compactorBusy.get() == 0, 30_000, CHECKER_THREAD_SLEEP_MS,
-          "Compactor busy metric should be false initially");
-
-      compact(client, table, 2, QUEUE1, false);
-
-      Wait.waitFor(() -> compactorBusy.get() == 1, 30_000, CHECKER_THREAD_SLEEP_MS,
-          "Compactor busy metric should be true after starting compaction");
+      compact(client, table, 2, QUEUE1, true);
 
       Wait.waitFor(() -> {
         if (totalEntriesRead.get() == expectedEntriesRead
@@ -260,9 +251,6 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
         return false;
       }, 30_000, CHECKER_THREAD_SLEEP_MS,
           "Entries read and written metrics values did not match expected values");
-
-      Wait.waitFor(() -> compactorBusy.get() == 0, 30_000, CHECKER_THREAD_SLEEP_MS,
-          "Compactor busy metric should be false once compaction completes");
 
       log.info("Done Compacting table");
       verify(client, table, 2, ROWS);
@@ -279,10 +267,9 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
    *
    * @param totalEntriesRead this is set to the value of the entries read metric
    * @param totalEntriesWritten this is set to the value of the entries written metric
-   * @param compactorBusy this is set to the value of the compactor busy metric
    */
   private static Thread getMetricsCheckerThread(AtomicLong totalEntriesRead,
-      AtomicLong totalEntriesWritten, AtomicInteger compactorBusy) {
+      AtomicLong totalEntriesWritten) {
     return Threads.createThread("metric-tailer", () -> {
       log.info("Starting metric tailer");
 
@@ -306,9 +293,6 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
               break;
             case MetricsProducer.METRICS_COMPACTOR_ENTRIES_WRITTEN:
               totalEntriesWritten.addAndGet(value);
-              break;
-            case MetricsProducer.METRICS_COMPACTOR_BUSY:
-              compactorBusy.set(value);
               break;
           }
         }

@@ -21,6 +21,7 @@ package org.apache.accumulo.server;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -43,8 +44,9 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   private final ServerContext context;
   protected final String applicationName;
   private final String hostname;
-
   private final ProcessMetrics processMetrics;
+  protected final long idleReportingPeriodNanos;
+  private volatile long idlePeriodStartNanos = 0L;
 
   protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
     this.applicationName = appName;
@@ -69,6 +71,29 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
         lmd.getIntervalMillis(context.getConfiguration()), TimeUnit.MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
     processMetrics = new ProcessMetrics(context);
+    idleReportingPeriodNanos = TimeUnit.MILLISECONDS.toNanos(
+        context.getConfiguration().getTimeInMillis(Property.GENERAL_IDLE_PROCESS_INTERVAL));
+  }
+
+  protected void idleProcessCheck(Supplier<Boolean> idleCondition) {
+    boolean isIdle = idleCondition.get();
+    boolean shouldResetIdlePeriod = !isIdle || idleReportingPeriodNanos == 0;
+    boolean isIdlePeriodNotStarted = idlePeriodStartNanos == 0;
+    boolean hasExceededIdlePeriod =
+        (System.nanoTime() - idlePeriodStartNanos) > idleReportingPeriodNanos;
+
+    if (shouldResetIdlePeriod) {
+      // Reset idle period and set idle metric to false
+      idlePeriodStartNanos = 0;
+      processMetrics.setIdleValue(false);
+    } else if (isIdlePeriodNotStarted) {
+      // Start tracking idle period
+      idlePeriodStartNanos = System.nanoTime();
+    } else if (hasExceededIdlePeriod) {
+      // Set idle metric to true and reset the start of the idle period
+      processMetrics.setIdleValue(true);
+      idlePeriodStartNanos = 0;
+    }
   }
 
   /**
