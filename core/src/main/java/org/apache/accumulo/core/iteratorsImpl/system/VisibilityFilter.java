@@ -41,10 +41,12 @@ import org.slf4j.LoggerFactory;
  * class.
  */
 public class VisibilityFilter extends SynchronizedServerFilter {
-  protected AccessEvaluator ve;
-  protected ByteSequence defaultVisibility;
-  protected LRUMap<ByteSequence,Boolean> cache;
-  protected Authorizations authorizations;
+  protected final AccessEvaluator ve;
+  protected final ArrayByteSequence defaultVisibility;
+  protected final LRUMap<ByteSequence,Boolean> cache;
+  protected final Authorizations authorizations;
+
+  private ArrayByteSequence testVis = new ArrayByteSequence(new byte[0]);
 
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
 
@@ -64,7 +66,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
 
   @Override
   protected boolean accept(Key k, Value v) {
-    ByteSequence testVis = k.getColumnVisibilityData();
+    k.getColumnVisibilityData(testVis);
 
     if (testVis.length() == 0 && defaultVisibility.length() == 0) {
       return true;
@@ -80,6 +82,10 @@ public class VisibilityFilter extends SynchronizedServerFilter {
     try {
       boolean bb = ve.canAccess(testVis.toArray());
       cache.put(testVis, bb);
+      // change testVis reference to new object
+      // so that the next iteration does not modify
+      // the one that we just put into the cache.
+      testVis = new ArrayByteSequence(new byte[0]);
       return bb;
     } catch (IllegalAccessExpressionException e) {
       log.error("IllegalAccessExpressionException with visibility of Key: {}", k, e);
