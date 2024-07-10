@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.accumulo.access.AccessEvaluator;
-import org.apache.accumulo.access.IllegalAccessExpressionException;
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
@@ -85,7 +85,7 @@ public class VisibilityConstraint implements Constraint {
             return Collections.singletonList((short) 2);
           }
 
-        } catch (IllegalAccessExpressionException iaee) {
+        } catch (InvalidAccessExpressionException iaee) {
           return Collections.singletonList((short) 1);
         }
 

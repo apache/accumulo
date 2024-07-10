@@ -30,7 +30,7 @@ import java.util.TreeSet;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.access.AccessExpression;
-import org.apache.accumulo.access.IllegalAccessExpressionException;
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -519,7 +519,7 @@ public class ColumnVisibility {
     this.expression = expression;
     try {
       AccessExpression.validate(this.expression);
-    } catch (IllegalAccessExpressionException e) {
+    } catch (InvalidAccessExpressionException e) {
       // This is thrown for compatability with the exception this class used to throw when it parsed
       // exceptions itself.
       throw new BadArgumentException(e);
