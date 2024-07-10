@@ -1555,14 +1555,15 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       try (
           ConditionalWriterImpl cw1 =
               (ConditionalWriterImpl) client.createConditionalWriter(tableName);
-          ConditionalWriterImpl cw2 = (ConditionalWriterImpl) client
-              .createConditionalWriter(tableName, new ConditionalWriterConfig())) {
+          ConditionalWriterImpl cw2 =
+              (ConditionalWriterImpl) client.createConditionalWriter(tableName,
+                  new ConditionalWriterConfig().setMaxWriteThreads(200))) {
         // verify we see the non-default prop values
         assertEquals(99, cw1.getConfig().getTimeout(TimeUnit.SECONDS));
         assertEquals(101, cw1.getConfig().getMaxWriteThreads());
         assertEquals(Durability.NONE, cw1.getConfig().getDurability());
         assertEquals(99, cw2.getConfig().getTimeout(TimeUnit.SECONDS));
-        assertEquals(101, cw2.getConfig().getMaxWriteThreads());
+        assertEquals(200, cw2.getConfig().getMaxWriteThreads());
         assertEquals(Durability.NONE, cw2.getConfig().getDurability());
       }
     }
