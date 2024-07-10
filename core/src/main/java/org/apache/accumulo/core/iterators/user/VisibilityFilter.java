@@ -27,6 +27,7 @@ import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.AccessExpression;
 import org.apache.accumulo.access.IllegalAccessExpressionException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -46,6 +47,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
 
   private AccessEvaluator accessEvaluator;
   protected Map<ByteSequence,Boolean> cache;
+  private ArrayByteSequence testVis = new ArrayByteSequence(new byte[0]);
 
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
 
@@ -73,7 +75,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
 
   @Override
   public boolean accept(Key k, Value v) {
-    ByteSequence testVis = k.getColumnVisibilityData();
+    k.getColumnVisibilityData(testVis);
     if (filterInvalid) {
       Boolean b = cache.get(testVis);
       if (b != null) {
@@ -82,6 +84,10 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
       try {
         AccessExpression.validate(testVis.toArray());
         cache.put(testVis, true);
+        // change testVis reference to new object
+        // so that the next iteration does not modify
+        // the one that we just put into the cache.
+        testVis = new ArrayByteSequence(new byte[0]);
         return true;
       } catch (IllegalAccessExpressionException e) {
         cache.put(testVis, false);
@@ -100,6 +106,10 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
       try {
         boolean bb = accessEvaluator.canAccess(testVis.toArray());
         cache.put(testVis, bb);
+        // change testVis reference to new object
+        // so that the next iteration does not modify
+        // the one that we just put into the cache.
+        testVis = new ArrayByteSequence(new byte[0]);
         return bb;
       } catch (IllegalAccessExpressionException e) {
         log.error("Parse Error", e);
