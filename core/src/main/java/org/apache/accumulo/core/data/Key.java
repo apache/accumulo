@@ -814,9 +814,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *
    * @param cv <code>ArrayByteSequence</code> object to copy into
    * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 3.1.0
    */
   public ArrayByteSequence getColumnVisibilityData(ArrayByteSequence cv) {
-    cv.reset(colVisibility);
+    cv.reset(colVisibility, 0, colVisibility.length);
     return cv;
   }
 
