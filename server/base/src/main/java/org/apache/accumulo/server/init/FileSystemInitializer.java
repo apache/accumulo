@@ -60,8 +60,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 public class FileSystemInitializer {
   private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
   private static final Logger log = LoggerFactory.getLogger(FileSystemInitializer.class);
@@ -141,9 +139,17 @@ public class FileSystemInitializer {
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
             + AccumuloTable.METADATA.tableId() + Path.SEPARATOR + TABLE_TABLETS_TABLET_DIR;
 
+    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
+        AccumuloTable.SCAN_REF.tableId(), null, context);
+
+    String scanRefTableDefaultTabletDirUri = fs.choose(chooserEnv, context.getBaseUris())
+        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + AccumuloTable.SCAN_REF.tableId()
+        + Path.SEPARATOR + MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
+
     // create table and default tablets directories
-    createDirectories(fs, rootTabletDirUri, defaultMetadataTabletDirUri, tableMetadataTabletDirUri);
-    InitialTablet scanRefTablet = createScanRefTablet(context, fs);
+    createDirectories(fs, rootTabletDirUri, defaultMetadataTabletDirUri, tableMetadataTabletDirUri,
+        scanRefTableDefaultTabletDirUri);
+    InitialTablet scanRefTablet = createScanRefTablet(context);
 
     // populate the metadata tablet with info about scan ref tablets
     String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
@@ -218,20 +224,8 @@ public class FileSystemInitializer {
     tabletWriter.close();
   }
 
-  public InitialTablet createScanRefTablet(ServerContext context, VolumeManager fs)
-      throws IOException {
-    var conf = initConfig.getScanRefTableConf();
-    Preconditions.checkNotNull(conf, "Scan table config cannot be null");
-    setTableProperties(context, AccumuloTable.SCAN_REF.tableId(), conf);
-
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(
-        VolumeChooserEnvironment.Scope.INIT, AccumuloTable.SCAN_REF.tableId(), null, context);
-
-    String scanRefTableDefaultTabletDirUri = fs.choose(chooserEnv, context.getBaseUris())
-        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + AccumuloTable.SCAN_REF.tableId()
-        + Path.SEPARATOR + MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
-
-    createDirectories(fs, scanRefTableDefaultTabletDirUri);
+  public InitialTablet createScanRefTablet(ServerContext context) throws IOException {
+    setTableProperties(context, AccumuloTable.SCAN_REF.tableId(), initConfig.getScanRefTableConf());
 
     return new InitialTablet(AccumuloTable.SCAN_REF.tableId(),
         MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME, null, null);

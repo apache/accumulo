@@ -20,8 +20,6 @@ package org.apache.accumulo.test.upgrade;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.IOException;
 import java.util.Map.Entry;
@@ -52,9 +50,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.upgrade.Upgrader11to12;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
@@ -102,6 +100,48 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     } catch (TableNotFoundException e) {
       throw new IllegalStateException("Unable to find table " + tableName);
     }
+  }
+
+  private void deleteScanServerRefTable() throws InterruptedException {
+    ServerContext ctx = getCluster().getServerContext();
+    // Remove the scan server table metadata in zk
+    try {
+      ctx.getTableManager().removeTable(AccumuloTable.SCAN_REF.tableId());
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Removal of scan ref table failed" + e);
+    }
+
+    // Read from the metadata table to find any existing scan ref tablets and remove them
+    try (BatchWriter writer = ctx.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      var refTablet = checkForScanRefTablets().iterator();
+      while (refTablet.hasNext()) {
+        var entry = refTablet.next();
+        log.info("Entry:  {}", entry);
+        var mutation = new Mutation(entry.getKey().getRow());
+        mutation.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
+        writer.addMutation(mutation);
+      }
+      writer.flush();
+    } catch (TableNotFoundException | MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
+
+    // Compact the metadata table to remove the tablet file for the scan ref table
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().compact(AccumuloTable.METADATA.tableName(), null, null, true, true);
+    } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
+      log.error("Failed to compact metadata table");
+      throw new RuntimeException(e);
+    }
+
+    log.info("Scan ref table is deleted, now shutting down the system");
+    try {
+      getCluster().getClusterControl().stop(ServerType.MANAGER);
+      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+    } catch (IOException e) {
+      log.info("Failed to stop cluster");
+    }
+    Thread.sleep(60_000);
   }
 
   private void testMetadataScanServerRefRemoval(String tableName) {
@@ -166,92 +206,54 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testScanRefTableCreation() {
+  public void testScanRefTableCreation() throws InterruptedException {
     ServerContext ctx = getCluster().getServerContext();
-    assertNotEquals(0, checkForScanRefTablets().count());
-
-    // Remove the scan server table that was created as part of init
+    deleteScanServerRefTable();
+    log.info("Attempt to start the system");
     try {
-      ctx.getTableManager().removeTable(AccumuloTable.SCAN_REF.tableId());
-    } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException("Removal of scan ref table failed" + e);
-    }
-
-    // Read from the metadata table to find any existing scan ref tablets and remove them
-    try (BatchWriter writer = ctx.createBatchWriter(AccumuloTable.METADATA.tableName())) {
-      var refTablet = checkForScanRefTablets().iterator();
-      while (refTablet.hasNext()) {
-        var entry = refTablet.next();
-        log.info("Entry:  {}", entry);
-        var mutation = new Mutation(entry.getKey().getRow());
-        mutation.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
-        writer.addMutation(mutation);
-      }
-      writer.flush();
-    } catch (TableNotFoundException | MutationsRejectedException e) {
-      throw new RuntimeException(e);
-    }
-
-    // verify that the table has been removed
-    TableState scanRefTableState =
-        ctx.getTableManager().getTableState(AccumuloTable.SCAN_REF.tableId());
-    assertNull(scanRefTableState);
-    assertEquals(0, checkForScanRefTablets().count());
-
-    // Delete all relevant files and directories from the filesystem
-    try {
-      String baseTablesDir = getMiniClusterDir().getAbsolutePath() + "/accumulo/tables";
-      String tableMetadataDir =
-          baseTablesDir + "/" + AccumuloTable.METADATA.tableId() + "/table_info/";
-      Path scanRefDir = new Path(baseTablesDir + "/" + AccumuloTable.SCAN_REF.tableId());
-
-      var fs = getCluster().getFileSystem();
-      fs.delete(new Path(tableMetadataDir + "0_1.rf"), false);
-      fs.delete(new Path(tableMetadataDir + ".0_1.rf.crc"), false);
-      fs.delete(scanRefDir, true);
+      getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().start(ServerType.MANAGER);
+      Thread.sleep(10_000);
     } catch (IOException e) {
-      log.error("Failed to delete scanref files and directories", e);
-    }
-
-    log.info("Scan ref table is deleted, now waiting for system to settle");
-    try {
-      // Wait to ensure that ZK doesn't cause issues with our changes
-      Thread.sleep(30_000);
+      log.info("Failed to start cluster");
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
 
-    // Attempt creation of the scan ref table
+    log.info("Attempting creation of the scan ref table");
     var upgrader = new Upgrader11to12();
     upgrader.createScanServerRefTable(ctx);
+    assertEquals(TableState.ONLINE,
+        ctx.getTableManager().getTableState(AccumuloTable.SCAN_REF.tableId()));
 
-    scanRefTableState = ctx.getTableManager().getTableState(AccumuloTable.SCAN_REF.tableId());
-    assertEquals(TableState.ONLINE, scanRefTableState);
-
-    // Wait for scanref table to be hosted
-    // try {
-    // Thread.sleep(1_000);
-    // } catch (InterruptedException e) {
-    // throw new RuntimeException(e);
-    // }
+    while (checkForScanRefTablets().count() < 4) {
+      log.info("Waiting for the table to be hosted");
+      Thread.sleep(1_000);
+    }
 
     log.info("Reading entries from the metadata table");
     try (Scanner scanner = getCluster().getServerContext()
         .createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
       var refTablet = scanner.stream().iterator();
       while (refTablet.hasNext()) {
-        log.info("Entry: {}", refTablet.next());
+        log.info("Metadata Entry: {}", refTablet.next());
       }
     } catch (TableNotFoundException e) {
       throw new RuntimeException(e);
     }
 
-    // log.info("Check the specific scan server section");
-    assertEquals(4, checkForScanRefTablets().count());
-
+    log.info("Reading entries from the root table");
+    try (Scanner scanner = getCluster().getServerContext()
+        .createScanner(AccumuloTable.ROOT.tableName(), Authorizations.EMPTY)) {
+      var refTablet = scanner.stream().iterator();
+      while (refTablet.hasNext()) {
+        log.info("Root Entry: {}", refTablet.next());
+      }
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
     // Create some scanRefs to test table functionality
     assertEquals(0, ctx.getAmple().scanServerRefs().list().count());
-
     HostAndPort server = HostAndPort.fromParts("127.0.0.1", 1234);
     UUID serverLockUUID = UUID.randomUUID();
 

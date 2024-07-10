@@ -53,7 +53,6 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
 import org.apache.accumulo.server.init.ZooKeeperInitializer;
@@ -247,12 +246,10 @@ public class Upgrader11to12 implements Upgrader {
     ZooKeeperInitializer zkInit = new ZooKeeperInitializer();
     zkInit.initScanRefTableState(context);
 
-    try (var fs = VolumeManagerImpl.get(context.getSiteConfiguration(), context.getHadoopConf())) {
+    try {
       FileSystemInitializer initializer = new FileSystemInitializer(
           new InitialConfiguration(context.getHadoopConf(), context.getSiteConfiguration()));
-      FileSystemInitializer.InitialTablet scanRefTablet =
-          initializer.createScanRefTablet(context, fs);
-
+      FileSystemInitializer.InitialTablet scanRefTablet = initializer.createScanRefTablet(context);
       // Add references to the Metadata Table
       try (BatchWriter writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
         writer.addMutation(scanRefTablet.createMutation());
