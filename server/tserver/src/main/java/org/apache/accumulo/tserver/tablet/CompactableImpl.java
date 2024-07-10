@@ -1277,10 +1277,10 @@ public class CompactableImpl implements Compactable {
       if (job.getKind() == CompactionKind.USER) {
         cInfo.iters = compactionConfig.getIterators();
         cInfo.checkCompactionId = this.compactionId;
+        cInfo.localCompactionCfg = this.compactionConfig;
       }
 
       cInfo.localHelper = this.chelper;
-      cInfo.localCompactionCfg = this.compactionConfig;
     }
 
     // Check to ensure the tablet actually has these files now that they are reserved. Compaction
