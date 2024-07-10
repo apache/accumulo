@@ -981,23 +981,30 @@ public class Manager extends AbstractServer
     private SortedMap<TServerInstance,TabletServerStatus> createTServerStatusView(
         final DataLevel dl, final SortedMap<TServerInstance,TabletServerStatus> status) {
       final SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel = new TreeMap<>();
-      status.forEach((k, v) -> {
-        TabletServerStatus copy = v.deepCopy();
-        Set<String> removals = new HashSet<>();
-        if (dl == DataLevel.USER) {
-          removals.add(RootTable.NAME);
-          removals.add(MetadataTable.NAME);
-        } else {
-          copy.getTableMap().keySet().forEach(tableName -> {
-            if (dl == DataLevel.ROOT && !tableName.equals(RootTable.NAME)) {
-              removals.add(tableName);
-            } else if (dl == DataLevel.METADATA && !tableName.equals(MetadataTable.NAME)) {
-              removals.add(tableName);
+      status.forEach((tsi, tss) -> {
+        final TabletServerStatus copy = tss.deepCopy();
+        final Map<String,TableInfo> oldTableMap = copy.getTableMap();
+        final Map<String,TableInfo> newTableMap =
+            new HashMap<>(dl == DataLevel.USER ? oldTableMap.size() : 1);
+        if (dl == DataLevel.ROOT) {
+          if (oldTableMap.containsKey(RootTable.NAME)) {
+            newTableMap.put(RootTable.NAME, oldTableMap.get(RootTable.NAME));
+          }
+        } else if (dl == DataLevel.METADATA) {
+          if (oldTableMap.containsKey(MetadataTable.NAME)) {
+            newTableMap.put(MetadataTable.NAME, oldTableMap.get(MetadataTable.NAME));
+          }
+        } else if (dl == DataLevel.USER) {
+          oldTableMap.forEach((table, info) -> {
+            if (!table.equals(RootTable.NAME) && !table.equals(MetadataTable.NAME)) {
+              newTableMap.put(table, info);
             }
           });
+        } else {
+          throw new IllegalArgumentException("Unhandled DataLevel value: " + dl);
         }
-        removals.forEach(copy.getTableMap()::remove);
-        tserverStatusForLevel.put(k, copy);
+        copy.setTableMap(newTableMap);
+        tserverStatusForLevel.put(tsi, copy);
       });
       return tserverStatusForLevel;
     }
