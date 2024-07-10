@@ -733,9 +733,11 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   public static void verifyTabletAvailabilities(AccumuloClient client, String tableName,
-      Range range, Map<TabletId,TabletAvailability> expectedAvailability) throws TableNotFoundException {
-    Map<TabletId,TabletAvailability> seenAvailability = client.tableOperations().getTabletInformation(tableName, range)
-        .collect(Collectors.toMap(TabletInformation::getTabletId, TabletInformation::getTabletAvailability));
+      Range range, Map<TabletId,TabletAvailability> expectedAvailability)
+      throws TableNotFoundException {
+    Map<TabletId,TabletAvailability> seenAvailability =
+        client.tableOperations().getTabletInformation(tableName, range).collect(Collectors
+            .toMap(TabletInformation::getTabletId, TabletInformation::getTabletAvailability));
     assertEquals(expectedAvailability, seenAvailability);
   }
 
