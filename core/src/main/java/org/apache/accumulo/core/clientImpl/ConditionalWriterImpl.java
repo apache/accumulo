@@ -43,7 +43,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.access.AccessEvaluator;
-import org.apache.accumulo.access.IllegalAccessExpressionException;
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -830,7 +830,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
       boolean bb = accessEvaluator.canAccess(arrayVis);
       cache.put(new Text(testVis), bb);
       return bb;
-    } catch (IllegalAccessExpressionException e) {
+    } catch (InvalidAccessExpressionException e) {
       return false;
     }
   }
