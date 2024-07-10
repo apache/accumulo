@@ -87,6 +87,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
 public class ConditionalWriterImpl implements ConditionalWriter {
@@ -105,6 +106,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   private final long timeout;
   private final Durability durability;
   private final String classLoaderContext;
+  private final ConditionalWriterConfig config;
 
   private static class ServerQueue {
     BlockingQueue<TabletServerMutations<QCMutation>> queue = new LinkedBlockingQueue<>();
@@ -370,6 +372,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
   ConditionalWriterImpl(ClientContext context, TableId tableId, String tableName,
       ConditionalWriterConfig config) {
+    this.config = config;
     this.context = context;
     this.auths = config.getAuthorizations();
     this.accessEvaluator = AccessEvaluator.of(config.getAuthorizations().toAccessAuthorizations());
@@ -833,6 +836,11 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     } catch (InvalidAccessExpressionException e) {
       return false;
     }
+  }
+
+  @VisibleForTesting
+  public ConditionalWriterConfig getConfig() {
+    return config;
   }
 
   @Override
