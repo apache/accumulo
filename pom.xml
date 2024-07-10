@@ -145,7 +145,7 @@
     <surefire.reuseForks>true</surefire.reuseForks>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- dependency and plugin versions managed with properties -->
-    <version.accumulo-access>1.0.0-beta</version.accumulo-access>
+    <version.accumulo-access>1.0.0-SNAPSHOT</version.accumulo-access>
     <version.auto-service>1.1.1</version.auto-service>
     <version.bouncycastle>1.78.1</version.bouncycastle>
     <version.curator>5.5.0</version.curator>
