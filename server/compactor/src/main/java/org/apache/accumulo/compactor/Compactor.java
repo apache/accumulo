@@ -36,7 +36,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -694,15 +693,17 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
-      final AtomicLong timeSinceLastCompletion = new AtomicLong(0L);
+      final AtomicReference<NanoTime> lastCompletionTime = new AtomicReference<>(null);
 
       while (!shutdown) {
 
         idleProcessCheck(() -> {
-          return timeSinceLastCompletion.get() == 0
-              /* Never started a compaction */ || (timeSinceLastCompletion.get() > 0
-                  && (System.nanoTime() - timeSinceLastCompletion.get())
-                      > idleReportingPeriodNanos);
+          final NanoTime lastCompletion = lastCompletionTime.get();
+          if (lastCompletion == null) {
+            return true; // no compactions have completed yet
+          }
+          // return true if the idle period elapsed since the last compaction completed
+          return lastCompletion.elapsed().compareTo(idleReportingPeriod) > 0;
         });
 
         currentCompactionId.set(null);
@@ -854,7 +855,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
         } finally {
           currentCompactionId.set(null);
-          timeSinceLastCompletion.set(System.nanoTime());
+          lastCompletionTime.set(NanoTime.now());
           // In the case where there is an error in the foreground code the background compaction
           // may still be running. Must cancel it before starting another iteration of the loop to
           // avoid multiple threads updating shared state.
