@@ -774,9 +774,7 @@ public class ClientContext implements AccumuloClient {
 
   @Override
   public ConditionalWriter createConditionalWriter(String tableName) throws TableNotFoundException {
-    ensureOpen();
-    return new ConditionalWriterImpl(this, requireNotOffline(getTableId(tableName), tableName),
-        tableName, new ConditionalWriterConfig());
+    return createConditionalWriter(tableName, null);
   }
 
   @Override
