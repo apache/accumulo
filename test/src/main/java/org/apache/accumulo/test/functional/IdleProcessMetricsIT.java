@@ -19,16 +19,25 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -125,6 +134,56 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
           });
       return sawCompactor.get() && sawSServer.get() && sawTServer.get();
     });
+  }
+
+  @Test
+  public void idleCompactorTest() throws Exception {
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+
+      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
+      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
+
+      // should emit the idle metric after the configured duration of GENERAL_IDLE_PROCESS_INTERVAL
+      Thread.sleep(idleProcessInterval.toMillis());
+
+      log.info("Waiting for compactor to go idle");
+      waitForCompactorIdleMetricToBe(1);
+
+      // once we see the idle compactor metric, start a compaction and wait for the metric to go
+      // back to not idle
+
+      String table1 = getUniqueNames(1)[0];
+      createTable(client, table1, "cs1");
+      writeData(client, table1);
+
+      IteratorSetting setting = new IteratorSetting(50, "Slow", SlowIterator.class);
+      SlowIterator.setSleepTime(setting, 5);
+      client.tableOperations().attachIterator(table1, setting,
+          EnumSet.of(IteratorUtil.IteratorScope.majc));
+
+      compact(client, table1, 2, QUEUE1, false);
+
+      log.info("Waiting for compactor to be not idle after starting compaction");
+      waitForCompactorIdleMetricToBe(0);
+
+      log.info("Waiting for compactor to go idle once compaction completes");
+      waitForCompactorIdleMetricToBe(1);
+
+      verify(client, table1, 2);
+    }
+
+  }
+
+  private static void waitForCompactorIdleMetricToBe(int expectedValue) {
+    Wait.waitFor(
+        () -> sink.getLines().stream()
+            .filter(line -> line.startsWith(MetricsProducer.METRICS_SERVER_IDLE))
+            .map(TestStatsDSink::parseStatsDMetric)
+            .filter(a -> a.getTags().get("process.name").equals("compactor"))
+            .peek(a -> log.info("Compactor idle metric: {}", a))
+            .anyMatch(a -> Integer.parseInt(a.getValue()) == expectedValue),
+        60_000, 2000, "Compactor did not go idle");
   }
 
 }
