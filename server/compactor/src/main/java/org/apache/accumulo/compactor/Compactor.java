@@ -37,7 +37,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -702,16 +701,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
-      final AtomicLong timeSinceLastCompletion = new AtomicLong(0L);
+      final AtomicBoolean isIdle = new AtomicBoolean(true);
 
       while (!shutdown) {
 
-        idleProcessCheck(() -> {
-          return timeSinceLastCompletion.get() == 0
-              /* Never started a compaction */ || (timeSinceLastCompletion.get() > 0
-                  && (System.nanoTime() - timeSinceLastCompletion.get())
-                      > idleReportingPeriodNanos);
-        });
+        idleProcessCheck(isIdle::get);
 
         currentCompactionId.set(null);
         err.set(null);
@@ -750,6 +744,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         JOB_HOLDER.set(job, compactionThread, fcr.getFileCompactor());
 
         try {
+          isIdle.set(false); // Set the state to busy just before the compaction starts
           // Need to call FileCompactorRunnable.initialize after calling JOB_HOLDER.set
           fcr.initialize();
 
@@ -861,7 +856,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
         } finally {
           currentCompactionId.set(null);
-          timeSinceLastCompletion.set(System.nanoTime());
+          isIdle.set(true); // Set the state to idle after the compaction is done
           // In the case where there is an error in the foreground code the background compaction
           // may still be running. Must cancel it before starting another iteration of the loop to
           // avoid multiple threads updating shared state.
