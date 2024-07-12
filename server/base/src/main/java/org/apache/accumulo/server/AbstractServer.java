@@ -81,17 +81,23 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   }
 
   protected void idleProcessCheck(Supplier<Boolean> idleCondition) {
-    boolean idle = idleCondition.get();
-    if (!idle || idleReportingPeriodNanos == 0) {
+    boolean isIdle = idleCondition.get();
+    boolean shouldResetIdlePeriod = !isIdle || idleReportingPeriodNanos == 0;
+    boolean isIdlePeriodNotStarted = idlePeriodStartNanos == 0;
+    boolean hasExceededIdlePeriod =
+        (System.nanoTime() - idlePeriodStartNanos) > idleReportingPeriodNanos;
+
+    if (shouldResetIdlePeriod) {
+      // Reset idle period and set idle metric to false
       idlePeriodStartNanos = 0;
-    } else if (idlePeriodStartNanos == 0) {
+      processMetrics.setIdleValue(false);
+    } else if (isIdlePeriodNotStarted) {
+      // Start tracking idle period
       idlePeriodStartNanos = System.nanoTime();
-    } else if ((System.nanoTime() - idlePeriodStartNanos) > idleReportingPeriodNanos) {
-      // increment the counter and reset the start of the idle period.
-      processMetrics.incrementIdleCounter();
+    } else if (hasExceededIdlePeriod) {
+      // Set idle metric to true and reset the start of the idle period
+      processMetrics.setIdleValue(true);
       idlePeriodStartNanos = 0;
-    } else {
-      // idleStartPeriod is non-zero, but we have not hit the idleStopPeriod yet
     }
   }
 

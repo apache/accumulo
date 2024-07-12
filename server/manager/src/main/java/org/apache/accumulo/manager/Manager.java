@@ -376,6 +376,10 @@ public class Manager extends AbstractServer
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
       for (TableCounts counts : watcher.getStats().values()) {
+        log.debug(
+            "Watcher: {}: Assigned Tablets: {}, Dead tserver assignments: {}, Suspended Tablets: {}",
+            watcher.getName(), counts.assigned(), counts.assignedToDeadServers(),
+            counts.suspended());
         result += counts.assigned() + counts.hosted();
       }
     }
@@ -801,8 +805,6 @@ public class Manager extends AbstractServer
       if (!badServers.isEmpty()) {
         log.debug("not balancing because the balance information is out-of-date {}",
             badServers.keySet());
-      } else if (notHosted() > 0) {
-        log.debug("not balancing because there are unhosted tablets: {}", notHosted());
       } else if (getManagerGoalState() == ManagerGoalState.CLEAN_STOP) {
         log.debug("not balancing because the manager is attempting to stop cleanly");
       } else if (!serversToShutdown.isEmpty()) {
@@ -848,27 +850,57 @@ public class Manager extends AbstractServer
     }
 
     private long balanceTablets() {
-      BalanceParamsImpl params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer,
-          tServerGroupingForBalancer, tserverStatus, migrationsSnapshot().keySet());
-      long wait = tabletBalancer.balance(params);
 
-      for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
-          params.migrationsOut())) {
-        KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
-        if (migrations.containsKey(ke)) {
-          log.warn("balancer requested migration more than once, skipping {}", m);
+      Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
+          new HashMap<>(DataLevel.values().length);
+      migrationsSnapshot().keySet().forEach(ke -> {
+        partitionedMigrations.computeIfAbsent(DataLevel.of(ke.tableId()), f -> new HashSet<>())
+            .add(ke);
+      });
+
+      final int tabletsNotHosted = notHosted();
+      BalanceParamsImpl params = null;
+      long wait = 0;
+      long totalMigrationsOut = 0;
+      for (DataLevel dl : DataLevel.values()) {
+        final Set<KeyExtent> migrationsForLevel = partitionedMigrations.get(dl);
+        if (migrationsForLevel == null) {
           continue;
         }
-        TServerInstance tserverInstance = TabletServerIdImpl.toThrift(m.getNewTabletServer());
-        migrations.put(ke, tserverInstance);
-        log.debug("migration {}", m);
+        if (dl == DataLevel.USER && tabletsNotHosted > 0) {
+          log.debug("not balancing user tablets because there are {} unhosted tablets",
+              tabletsNotHosted);
+          continue;
+        }
+        long migrationsOutForLevel = 0;
+        int i = 0;
+        do {
+          i++;
+          log.debug("Balancing for tables at level {}, times-in-loop: {}", dl, i);
+          params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer,
+              tServerGroupingForBalancer, tserverStatus, migrationsForLevel);
+          wait = Math.max(tabletBalancer.balance(params), wait);
+          migrationsOutForLevel = params.migrationsOut().size();
+          for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
+              params.migrationsOut())) {
+            final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
+            if (migrations.containsKey(ke)) {
+              log.warn("balancer requested migration more than once, skipping {}", m);
+              continue;
+            }
+            migrations.put(ke, TabletServerIdImpl.toThrift(m.getNewTabletServer()));
+            log.debug("migration {}", m);
+          }
+        } while (migrationsOutForLevel > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
+        totalMigrationsOut += migrationsOutForLevel;
       }
-      if (params.migrationsOut().isEmpty()) {
+
+      if (totalMigrationsOut == 0) {
         synchronized (balancedNotifier) {
           balancedNotifier.notifyAll();
         }
       } else {
-        nextEvent.event("Migrating %d more tablets, %d total", params.migrationsOut().size(),
+        nextEvent.event("Migrating %d more tablets, %d total", totalMigrationsOut,
             migrations.size());
       }
       return wait;

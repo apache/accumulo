@@ -16,21 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.core.metadata.schema;
 
-import java.util.regex.PatternSyntaxException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.apache.accumulo.access.InvalidAccessExpressionException;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.junit.jupiter.api.Test;
 
-public final class BadArgumentException extends PatternSyntaxException {
-  private static final long serialVersionUID = 1L;
+public class DataLevelOrderTest {
 
-  public BadArgumentException(String desc, String badarg, int index) {
-    super(desc, badarg, index);
+  @Test
+  public void testDataLevelOrder() {
+    // Code may depend on the order of the values returned
+    // for DataLevel. This test checks that the order does
+    // not change in future versions.
+    DataLevel[] levels = DataLevel.values();
+    assertEquals(3, levels.length);
+    assertEquals(DataLevel.ROOT, levels[0]);
+    assertEquals(DataLevel.METADATA, levels[1]);
+    assertEquals(DataLevel.USER, levels[2]);
   }
 
-  public BadArgumentException(InvalidAccessExpressionException e) {
-    super(e.getDescription(), e.getPattern(), e.getIndex());
-    super.initCause(e);
-  }
 }
