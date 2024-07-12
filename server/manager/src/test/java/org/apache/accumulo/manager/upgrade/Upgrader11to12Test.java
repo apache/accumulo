@@ -370,8 +370,6 @@ public class Upgrader11to12Test {
     zrw.recursiveDelete("/accumulo/" + iid.canonical() + "/tracers",
         ZooUtil.NodeMissingPolicy.SKIP);
     expectLastCall().once();
-    zrw.recursiveDelete("/accumulo/" + iid.canonical() + "/conf", ZooUtil.NodeMissingPolicy.SKIP);
-    expectLastCall().once();
 
     replay(context, zrw);
 

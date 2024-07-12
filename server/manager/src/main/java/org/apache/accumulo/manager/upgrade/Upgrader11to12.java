@@ -70,7 +70,6 @@ public class Upgrader11to12 implements Upgrader {
       Set.of(DataFileColumnFamily.NAME, CHOPPED, ExternalCompactionColumnFamily.NAME);
 
   public static final String ZTRACERS = "/tracers";
-  public static final String ZCONF_LEGACY = "/conf";
 
   @Override
   public void upgradeZookeeper(@NonNull ServerContext context) {
@@ -83,7 +82,6 @@ public class Upgrader11to12 implements Upgrader {
 
       // clean up nodes no longer in use
       zrw.recursiveDelete(zooRoot + ZTRACERS, ZooUtil.NodeMissingPolicy.SKIP);
-      zrw.recursiveDelete(zooRoot + ZCONF_LEGACY, ZooUtil.NodeMissingPolicy.SKIP);
 
       Stat stat = new Stat();
       byte[] rootData = zrw.getData(rootBase, stat);
