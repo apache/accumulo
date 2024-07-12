@@ -68,6 +68,7 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.compaction.protobuf.PCredentials;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -140,6 +141,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<SslConnectionParams> sslSupplier;
   private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
   private TCredentials rpcCreds;
+  private PCredentials gRpcCreds;
   private ThriftTransportPool thriftTransportPool;
 
   private volatile boolean closed = false;
@@ -319,6 +321,7 @@ public class ClientContext implements AccumuloClient {
     checkArgument(newCredentials != null, "newCredentials is null");
     creds = newCredentials;
     rpcCreds = null;
+    gRpcCreds = null;
   }
 
   /**
@@ -468,6 +471,19 @@ public class ClientContext implements AccumuloClient {
     }
 
     return rpcCreds;
+  }
+
+  public synchronized PCredentials gRpcCreds() {
+    ensureOpen();
+    if (getCredentials().getToken().isDestroyed()) {
+      gRpcCreds = null;
+    }
+
+    if (gRpcCreds == null) {
+      gRpcCreds = getCredentials().toProtobuf(getInstanceID());
+    }
+
+    return gRpcCreds;
   }
 
   /**

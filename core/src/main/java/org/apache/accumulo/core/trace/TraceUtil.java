@@ -26,6 +26,8 @@ import java.util.concurrent.Callable;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
+import org.apache.accumulo.core.compaction.protobuf.ProtoTInfo;
+import org.apache.accumulo.core.compaction.protobuf.ProtoTInfo.Builder;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.slf4j.Logger;
@@ -138,6 +140,13 @@ public class TraceUtil {
     TInfo tinfo = new TInfo();
     W3CTraceContextPropagator.getInstance().inject(Context.current(), tinfo, TInfo::putToHeaders);
     return tinfo;
+  }
+
+  public static ProtoTInfo protoTraceInfo() {
+    ProtoTInfo.Builder ptinfo = ProtoTInfo.newBuilder();
+    W3CTraceContextPropagator.getInstance().inject(Context.current(), ptinfo,
+        ProtoTInfo.Builder::putHeaders);
+    return ptinfo.build();
   }
 
   /**

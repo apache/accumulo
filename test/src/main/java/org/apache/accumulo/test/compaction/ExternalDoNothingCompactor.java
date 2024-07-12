@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
@@ -36,11 +37,10 @@ import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
-import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
+import org.apache.accumulo.server.compaction.RetryableRpcCall.RetriesExceededException;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +61,7 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
   }
 
   @Override
-  protected FileCompactorRunnable createCompactionJob(TExternalCompactionJob job,
+  protected FileCompactorRunnable createCompactionJob(PExternalCompactionJob job,
       LongAdder totalInputEntries, LongAdder totalInputBytes, CountDownLatch started,
       CountDownLatch stopped, AtomicReference<Throwable> err) {
 
@@ -92,10 +92,10 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
 
           // Create tmp output file
           final TabletMetadata tm = getContext().getAmple()
-              .readTablet(KeyExtent.fromThrift(job.getExtent()), ColumnType.DIR);
-          ReferencedTabletFile newFile =
-              TabletNameGenerator.getNextDataFilenameForMajc(job.isPropagateDeletes(), getContext(),
-                  tm, (dir) -> {}, ExternalCompactionId.from(job.getExternalCompactionId()));
+              .readTablet(KeyExtent.fromProtobuf(job.getExtent()), ColumnType.DIR);
+          ReferencedTabletFile newFile = TabletNameGenerator.getNextDataFilenameForMajc(
+              job.getPropagateDeletes(), getContext(), tm, (dir) -> {},
+              ExternalCompactionId.from(job.getExternalCompactionId()));
           LOG.info("Creating tmp file: {}", newFile.getPath());
           getContext().getVolumeManager().createNewFile(newFile.getPath());
 
@@ -110,9 +110,9 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
           throw new CompactionCanceledException();
 
         } catch (Exception e) {
-          KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
+          KeyExtent fromProtobufExtent = KeyExtent.fromProtobuf(job.getExtent());
           LOG.error("Compaction failed: id: {}, extent: {}", job.getExternalCompactionId(),
-              fromThriftExtent, e);
+              fromProtobufExtent, e);
           err.set(e);
         } finally {
           stopped.countDown();
@@ -122,7 +122,7 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
       @Override
       public void initialize() throws RetriesExceededException {
         // This isn't used, just need to create and return something
-        ref.set(new FileCompactor(getContext(), KeyExtent.fromThrift(job.getExtent()), null, null,
+        ref.set(new FileCompactor(getContext(), KeyExtent.fromProtobuf(job.getExtent()), null, null,
             false, null, null, null, null, null));
       }
 

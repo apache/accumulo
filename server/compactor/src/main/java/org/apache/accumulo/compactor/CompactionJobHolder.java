@@ -21,15 +21,15 @@ package org.apache.accumulo.compactor;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.server.compaction.FileCompactor;
 
 public class CompactionJobHolder {
 
-  private TExternalCompactionJob job;
+  private PExternalCompactionJob job;
   private Thread compactionThread;
   private AtomicReference<FileCompactor> compactor;
   private volatile boolean cancelled = false;
@@ -45,13 +45,13 @@ public class CompactionJobHolder {
     stats = null;
   }
 
-  public synchronized TExternalCompactionJob getJob() {
+  public synchronized PExternalCompactionJob getJob() {
     return job;
   }
 
   public TableId getTableId() {
-    var tKeyExtent = getJob().getExtent();
-    return KeyExtent.fromThrift(tKeyExtent).tableId();
+    var pKeyExtent = getJob().getExtent();
+    return KeyExtent.fromProtobuf(pKeyExtent).tableId();
   }
 
   public TCompactionStats getStats() {
@@ -82,7 +82,7 @@ public class CompactionJobHolder {
     return (null != this.job);
   }
 
-  public synchronized void set(TExternalCompactionJob job, Thread compactionThread,
+  public synchronized void set(PExternalCompactionJob job, Thread compactionThread,
       AtomicReference<FileCompactor> compactor) {
     Objects.requireNonNull(job, "CompactionJob is null");
     Objects.requireNonNull(compactionThread, "Compaction thread is null");

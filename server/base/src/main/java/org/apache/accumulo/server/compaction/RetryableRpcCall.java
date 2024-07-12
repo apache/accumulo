@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.compaction;
 
-import static java.time.Duration.ofMillis;
-
 import java.time.Duration;
 
 import org.apache.accumulo.core.util.Retry;
@@ -28,7 +26,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RetryableThriftCall<T> {
+public class RetryableRpcCall<T> {
 
   public static class RetriesExceededException extends Exception {
 
@@ -55,7 +53,7 @@ public class RetryableThriftCall<T> {
 
   }
 
-  private static final Logger LOG = LoggerFactory.getLogger(RetryableThriftCall.class);
+  private static final Logger LOG = LoggerFactory.getLogger(RetryableRpcCall.class);
   public static final long MAX_WAIT_TIME = 60000;
 
   private final RetryableThriftFunction<T> function;
@@ -69,7 +67,7 @@ public class RetryableThriftCall<T> {
    * @param maxNumRetries number of times to retry, 0 to retry forever
    * @param function function to execute
    */
-  public RetryableThriftCall(long start, long maxWaitTime, int maxNumRetries,
+  public RetryableRpcCall(long start, long maxWaitTime, int maxNumRetries,
       RetryableThriftFunction<T> function) {
     this.function = function;
     NeedsRetryDelay builder = null;

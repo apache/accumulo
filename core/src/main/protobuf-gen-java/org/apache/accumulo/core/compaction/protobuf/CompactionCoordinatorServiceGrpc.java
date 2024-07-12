@@ -1,21 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
 package org.apache.accumulo.core.compaction.protobuf;
 
 import static io.grpc.MethodDescriptor.generateFullMethodName;
@@ -119,12 +101,6 @@ public final class CompactionCoordinatorServiceGrpc {
   public interface AsyncService {
 
     /**
-     * <pre>
-     * A simple RPC.
-     * Obtains the feature at a given position.
-     * A feature with an empty name is returned if there's no feature at the given
-     * position.
-     * </pre>
      */
     default void getCompactionJob(org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest request,
         io.grpc.stub.StreamObserver<org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob> responseObserver) {
@@ -166,12 +142,6 @@ public final class CompactionCoordinatorServiceGrpc {
     }
 
     /**
-     * <pre>
-     * A simple RPC.
-     * Obtains the feature at a given position.
-     * A feature with an empty name is returned if there's no feature at the given
-     * position.
-     * </pre>
      */
     public void getCompactionJob(org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest request,
         io.grpc.stub.StreamObserver<org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob> responseObserver) {
@@ -200,12 +170,6 @@ public final class CompactionCoordinatorServiceGrpc {
     }
 
     /**
-     * <pre>
-     * A simple RPC.
-     * Obtains the feature at a given position.
-     * A feature with an empty name is returned if there's no feature at the given
-     * position.
-     * </pre>
      */
     public org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob getCompactionJob(org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
@@ -233,12 +197,6 @@ public final class CompactionCoordinatorServiceGrpc {
     }
 
     /**
-     * <pre>
-     * A simple RPC.
-     * Obtains the feature at a given position.
-     * A feature with an empty name is returned if there's no feature at the given
-     * position.
-     * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob> getCompactionJob(
         org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest request) {

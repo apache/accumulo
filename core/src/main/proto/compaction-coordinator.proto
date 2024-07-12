@@ -22,6 +22,11 @@ syntax = "proto3";
 option java_multiple_files = true;
 option java_package = "org.apache.accumulo.core.compaction.protobuf";
 option java_outer_classname = "CompactionCoordinatorServiceProto";
+import "security.proto";
+import "client.proto";
+import "data.proto";
+import "tabletserver.proto";
+import "manager.proto";
 
 package compaction_coordinator;
 
@@ -30,79 +35,16 @@ service CompactionCoordinatorService {
   rpc GetCompactionJob(CompactionJobRequest) returns (PNextCompactionJob) {}
 }
 
-message PInfo {
-  map<string, string> headers = 1;
-}
-
-// There are no nulls with Protobuf3, so the default will be an empty string
-// Our TCredentials version with thrift currently is using/checking for null so
-// using the optional field will generate "has" methods which we can use to
-// check if the value was set
-message PCredentials {
-  optional string principal = 1;
-  optional string tokenClassName = 2;
-  optional bytes token = 3;
-  optional string instanceId = 4;
-}
-
-message PKeyExtent {
-  bytes table = 1;
-  // optional to generate hasEndRow() and hasPrevEndRow() becuase
-  // of no nulls in protobuf
-  optional bytes endRow = 2;
-  optional bytes prevEndRow = 3;
-}
-
-message PInputFile {
-  // This is nullable in Thrift but I am not marking as optional as
-  // I think it should always be set
-  string metadataFileEntry = 1;
-  int64 size = 2;
-  int64 entries = 3;
-  int64 timestamp = 4;
-}
-
-message PIteratorSetting {
-  int32 priority = 1;
-  string name = 2;
-  string iteratorClass = 3;
-  map<string, string> properties = 4;
-}
-
-message PIteratorConfig {
-  repeated PIteratorSetting iterators = 1;
-}
-
-// We can't use the same values in the different enums if in the same
-// package so add a prefix to the values
-enum PCompactionKind {
-  // SELECTOR was removed and used to be zero
-  // However protobuf3 requires starting with 0 which is the default
-  CK_UNKNOWN = 0;
-  CK_SYSTEM = 1;
-  CK_USER = 2;
-}
-
-enum PFateInstanceType {
-  FI_UNKNOWN = 0;
-  FI_META = 1;
-  FI_USER = 2;
-}
-
-message PFateId {
-  PFateInstanceType type = 1;
-  string txUUIDStr = 2;
-}
 
 message PExternalCompactionJob {
   optional string externalCompactionId = 1;
-  optional PKeyExtent extent = 2;
-  repeated PInputFile files = 3;
-  optional PIteratorConfig iteratorSettings = 4;
+  optional data.PKeyExtent extent = 2;
+  repeated tablet_server.PInputFile files = 3;
+  optional tablet_server.PIteratorConfig iteratorSettings = 4;
   optional string outputFile = 5;
   optional bool propagateDeletes = 6;
-  optional PCompactionKind kind = 7;
-  optional PFateId fateId = 8;
+  optional tablet_server.PCompactionKind kind = 7;
+  optional manager.PFateId fateId = 8;
   map<string, string> overrides = 9;
 }
 
@@ -112,8 +54,8 @@ message PNextCompactionJob {
 }
 
 message CompactionJobRequest {
-  PInfo pinfo = 1;
-  PCredentials credentials = 2;
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
   string groupName = 3;
   string compactor = 4;
   string externalCompactionId = 5;

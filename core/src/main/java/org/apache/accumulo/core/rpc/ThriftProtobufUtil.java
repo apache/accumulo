@@ -28,12 +28,12 @@ import org.apache.accumulo.core.compaction.protobuf.PCredentials;
 import org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob;
 import org.apache.accumulo.core.compaction.protobuf.PFateId;
 import org.apache.accumulo.core.compaction.protobuf.PFateInstanceType;
-import org.apache.accumulo.core.compaction.protobuf.PInfo;
 import org.apache.accumulo.core.compaction.protobuf.PInputFile;
 import org.apache.accumulo.core.compaction.protobuf.PIteratorConfig;
 import org.apache.accumulo.core.compaction.protobuf.PIteratorSetting;
 import org.apache.accumulo.core.compaction.protobuf.PKeyExtent;
 import org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob;
+import org.apache.accumulo.core.compaction.protobuf.ProtoTInfo;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.manager.thrift.TFateId;
@@ -86,14 +86,14 @@ public class ThriftProtobufUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(ThriftProtobufUtil.class);
 
-  public static PInfo convert(TInfo tinfo) {
-    var builder = PInfo.newBuilder();
+  public static ProtoTInfo convert(TInfo tinfo) {
+    var builder = ProtoTInfo.newBuilder();
     Optional.ofNullable(tinfo.getHeaders()).ifPresent(builder::putAllHeaders);
     return builder.build();
   }
 
-  public static TInfo convert(PInfo pinfo) {
-    return new TInfo(pinfo.getHeadersMap());
+  public static TInfo convert(ProtoTInfo ptinfo) {
+    return new TInfo(ptinfo.getHeadersMap());
   }
 
   public static PCredentials convert(TCredentials credentials) {
@@ -181,12 +181,10 @@ public class ThriftProtobufUtil {
 
   public static TCompactionKind convert(PCompactionKind kind) {
     switch (kind) {
-      case CK_SYSTEM:
+      case SYSTEM:
         return TCompactionKind.SYSTEM;
-      case CK_USER:
+      case USER:
         return TCompactionKind.USER;
-      case CK_UNKNOWN:
-        return null;
       default:
         throw new IllegalArgumentException("Unexpected PCompactionKind: " + kind);
     }
@@ -194,13 +192,13 @@ public class ThriftProtobufUtil {
 
   public static PCompactionKind convert(TCompactionKind kind) {
     if (kind == null) {
-      return PCompactionKind.CK_UNKNOWN;
+      return PCompactionKind.UNKNOWN;
     }
     switch (kind) {
       case SYSTEM:
-        return PCompactionKind.CK_SYSTEM;
+        return PCompactionKind.SYSTEM;
       case USER:
-        return PCompactionKind.CK_USER;
+        return PCompactionKind.USER;
       default:
         throw new IllegalArgumentException("Unexpected TCompactionKind: " + kind);
     }
@@ -210,14 +208,12 @@ public class ThriftProtobufUtil {
     TFateInstanceType type;
 
     switch (fateId.getType()) {
-      case FI_META:
+      case META:
         type = TFateInstanceType.META;
         break;
-      case FI_USER:
+      case USER:
         type = TFateInstanceType.USER;
         break;
-      case FI_UNKNOWN:
-        return null;
       default:
         throw new IllegalArgumentException("Unexpected TFateInstanceType: " + fateId.getType());
     }
@@ -230,10 +226,10 @@ public class ThriftProtobufUtil {
 
     switch (fateId.getType()) {
       case META:
-        type = PFateInstanceType.FI_META;
+        type = PFateInstanceType.META;
         break;
       case USER:
-        type = PFateInstanceType.FI_USER;
+        type = PFateInstanceType.USER;
         break;
       default:
         throw new IllegalArgumentException("Unexpected TFateInstanceType: " + fateId.getType());

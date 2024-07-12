@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.compactor;
 
+import static org.apache.accumulo.core.rpc.ThriftProtobufUtil.convert;
+
+import org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -26,18 +29,18 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionEnv;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 public class ExtCEnv implements CompactionEnv {
 
   private final CompactionJobHolder jobHolder;
-  private TExternalCompactionJob job;
+  private PExternalCompactionJob job;
   private String groupName;
 
   public static class CompactorIterEnv extends TabletIteratorEnvironment {
@@ -76,7 +79,7 @@ public class ExtCEnv implements CompactionEnv {
   public SystemIteratorEnvironment createIteratorEnv(ServerContext context,
       AccumuloConfiguration acuTableConf, TableId tableId) {
     return new CompactorIterEnv(context, IteratorScope.majc,
-        !jobHolder.getJob().isPropagateDeletes(), acuTableConf, tableId,
+        !jobHolder.getJob().getPropagateDeletes(), acuTableConf, tableId,
         CompactionKind.valueOf(job.getKind().name()), groupName);
   }
 
@@ -87,7 +90,10 @@ public class ExtCEnv implements CompactionEnv {
 
   @Override
   public TCompactionReason getReason() {
-    switch (job.getKind()) {
+    var reason = convert(job.getKind());
+    Preconditions.checkState(reason != null, "Unknown compaction kind %s", job.getKind());
+
+    switch (reason) {
       case USER:
         return TCompactionReason.USER;
       case SYSTEM:

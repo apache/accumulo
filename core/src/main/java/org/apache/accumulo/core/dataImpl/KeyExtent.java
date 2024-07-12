@@ -42,6 +42,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import org.apache.accumulo.core.compaction.protobuf.PKeyExtent;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -56,6 +57,8 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
+
+import com.google.protobuf.ByteString;
 
 /**
  * keeps track of information needed to identify a tablet
@@ -126,6 +129,33 @@ public class KeyExtent implements Comparable<KeyExtent> {
     return new TKeyExtent(ByteBuffer.wrap(tableId().canonical().getBytes(UTF_8)),
         endRow() == null ? null : TextUtil.getByteBuffer(endRow()),
         prevEndRow() == null ? null : TextUtil.getByteBuffer(prevEndRow()));
+  }
+
+  /**
+   * Convert to Protobuf form.
+   */
+  public PKeyExtent toProtobuf() {
+    PKeyExtent.Builder builder = PKeyExtent.newBuilder()
+        .setTable(ByteString.copyFrom(tableId().canonical().getBytes(UTF_8)));
+    if (endRow() != null) {
+      builder.setEndRow(ByteString.copyFrom(endRow().getBytes()));
+    }
+    if (prevEndRow() != null) {
+      builder.setPrevEndRow(ByteString.copyFrom(prevEndRow().getBytes()));
+    }
+    return builder.build();
+  }
+
+  /**
+   * Create a KeyExtent from its Protobuf form.
+   *
+   * @param pke the KeyExtent in its Protobuf object form
+   */
+  public static KeyExtent fromProtobuf(PKeyExtent pke) {
+    TableId tableId = TableId.of(new String(pke.getTable().toByteArray(), UTF_8));
+    Text endRow = !pke.hasEndRow() ? null : new Text(pke.getEndRow().toByteArray());
+    Text prevEndRow = !pke.hasPrevEndRow() ? null : new Text(pke.getPrevEndRow().toByteArray());
+    return new KeyExtent(tableId, endRow, prevEndRow);
   }
 
   /**
