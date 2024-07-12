@@ -21,6 +21,7 @@ package org.apache.accumulo.core.gc;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 
 /**
  * A GC reference used for streaming and delete markers. This type is a file. Subclass is a
@@ -30,6 +31,7 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
   public final TableId tableId; // 2a
   public final boolean isScan;
+  public boolean isDirectory = false;
 
   // the exact string that is stored in the metadata
   protected final String metadataEntry;
@@ -48,9 +50,16 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
     return new ReferenceFile(tableId, metadataEntry, true);
   }
 
+  public static ReferenceFile forDirectory(TableId tableId, String dirName) {
+    ReferenceFile referenceDirectory = new ReferenceFile(tableId, dirName, false);
+    referenceDirectory.isDirectory = true;
+    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(dirName);
+    return referenceDirectory;
+  }
+
   @Override
   public boolean isDirectory() {
-    return false;
+    return isDirectory;
   }
 
   @Override
