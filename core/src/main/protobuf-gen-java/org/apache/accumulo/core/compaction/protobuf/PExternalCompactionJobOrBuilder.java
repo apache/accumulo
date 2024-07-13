@@ -59,41 +59,41 @@ public interface PExternalCompactionJobOrBuilder extends
   org.apache.accumulo.core.compaction.protobuf.PKeyExtentOrBuilder getExtentOrBuilder();
 
   /**
-   * <code>repeated .tablet_server.PInputFile files = 3;</code>
+   * <code>repeated .tabletserver.PInputFile files = 3;</code>
    */
   java.util.List<org.apache.accumulo.core.compaction.protobuf.PInputFile> 
       getFilesList();
   /**
-   * <code>repeated .tablet_server.PInputFile files = 3;</code>
+   * <code>repeated .tabletserver.PInputFile files = 3;</code>
    */
   org.apache.accumulo.core.compaction.protobuf.PInputFile getFiles(int index);
   /**
-   * <code>repeated .tablet_server.PInputFile files = 3;</code>
+   * <code>repeated .tabletserver.PInputFile files = 3;</code>
    */
   int getFilesCount();
   /**
-   * <code>repeated .tablet_server.PInputFile files = 3;</code>
+   * <code>repeated .tabletserver.PInputFile files = 3;</code>
    */
   java.util.List<? extends org.apache.accumulo.core.compaction.protobuf.PInputFileOrBuilder> 
       getFilesOrBuilderList();
   /**
-   * <code>repeated .tablet_server.PInputFile files = 3;</code>
+   * <code>repeated .tabletserver.PInputFile files = 3;</code>
    */
   org.apache.accumulo.core.compaction.protobuf.PInputFileOrBuilder getFilesOrBuilder(
       int index);
 
   /**
-   * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+   * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
    * @return Whether the iteratorSettings field is set.
    */
   boolean hasIteratorSettings();
   /**
-   * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+   * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
    * @return The iteratorSettings.
    */
   org.apache.accumulo.core.compaction.protobuf.PIteratorConfig getIteratorSettings();
   /**
-   * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+   * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
    */
   org.apache.accumulo.core.compaction.protobuf.PIteratorConfigOrBuilder getIteratorSettingsOrBuilder();
 
@@ -126,17 +126,17 @@ public interface PExternalCompactionJobOrBuilder extends
   boolean getPropagateDeletes();
 
   /**
-   * <code>optional .tablet_server.PCompactionKind kind = 7;</code>
+   * <code>optional .tabletserver.PCompactionKind kind = 7;</code>
    * @return Whether the kind field is set.
    */
   boolean hasKind();
   /**
-   * <code>optional .tablet_server.PCompactionKind kind = 7;</code>
+   * <code>optional .tabletserver.PCompactionKind kind = 7;</code>
    * @return The enum numeric value on the wire for kind.
    */
   int getKindValue();
   /**
-   * <code>optional .tablet_server.PCompactionKind kind = 7;</code>
+   * <code>optional .tabletserver.PCompactionKind kind = 7;</code>
    * @return The kind.
    */
   org.apache.accumulo.core.compaction.protobuf.PCompactionKind getKind();

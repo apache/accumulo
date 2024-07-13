@@ -23,11 +23,11 @@
 package org.apache.accumulo.core.compaction.protobuf;
 
 /**
- * Protobuf type {@code tablet_server.PIteratorConfig}
+ * Protobuf type {@code tabletserver.PIteratorConfig}
  */
 public final class PIteratorConfig extends
     com.google.protobuf.GeneratedMessageV3 implements
-    // @@protoc_insertion_point(message_implements:tablet_server.PIteratorConfig)
+    // @@protoc_insertion_point(message_implements:tabletserver.PIteratorConfig)
     PIteratorConfigOrBuilder {
 private static final long serialVersionUID = 0L;
   // Use PIteratorConfig.newBuilder() to construct.
@@ -47,13 +47,13 @@ private static final long serialVersionUID = 0L;
 
   public static final com.google.protobuf.Descriptors.Descriptor
       getDescriptor() {
-    return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PIteratorConfig_descriptor;
+    return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PIteratorConfig_descriptor;
   }
 
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internalGetFieldAccessorTable() {
-    return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PIteratorConfig_fieldAccessorTable
+    return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PIteratorConfig_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
             org.apache.accumulo.core.compaction.protobuf.PIteratorConfig.class, org.apache.accumulo.core.compaction.protobuf.PIteratorConfig.Builder.class);
   }
@@ -62,14 +62,14 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private java.util.List<org.apache.accumulo.core.compaction.protobuf.PIteratorSetting> iterators_;
   /**
-   * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+   * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
    */
   @java.lang.Override
   public java.util.List<org.apache.accumulo.core.compaction.protobuf.PIteratorSetting> getIteratorsList() {
     return iterators_;
   }
   /**
-   * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+   * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
    */
   @java.lang.Override
   public java.util.List<? extends org.apache.accumulo.core.compaction.protobuf.PIteratorSettingOrBuilder> 
@@ -77,21 +77,21 @@ private static final long serialVersionUID = 0L;
     return iterators_;
   }
   /**
-   * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+   * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
    */
   @java.lang.Override
   public int getIteratorsCount() {
     return iterators_.size();
   }
   /**
-   * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+   * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
    */
   @java.lang.Override
   public org.apache.accumulo.core.compaction.protobuf.PIteratorSetting getIterators(int index) {
     return iterators_.get(index);
   }
   /**
-   * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+   * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
    */
   @java.lang.Override
   public org.apache.accumulo.core.compaction.protobuf.PIteratorSettingOrBuilder getIteratorsOrBuilder(
@@ -259,21 +259,21 @@ private static final long serialVersionUID = 0L;
     return builder;
   }
   /**
-   * Protobuf type {@code tablet_server.PIteratorConfig}
+   * Protobuf type {@code tabletserver.PIteratorConfig}
    */
   public static final class Builder extends
       com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-      // @@protoc_insertion_point(builder_implements:tablet_server.PIteratorConfig)
+      // @@protoc_insertion_point(builder_implements:tabletserver.PIteratorConfig)
       org.apache.accumulo.core.compaction.protobuf.PIteratorConfigOrBuilder {
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PIteratorConfig_descriptor;
+      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PIteratorConfig_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PIteratorConfig_fieldAccessorTable
+      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PIteratorConfig_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
               org.apache.accumulo.core.compaction.protobuf.PIteratorConfig.class, org.apache.accumulo.core.compaction.protobuf.PIteratorConfig.Builder.class);
     }
@@ -305,7 +305,7 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public com.google.protobuf.Descriptors.Descriptor
         getDescriptorForType() {
-      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PIteratorConfig_descriptor;
+      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PIteratorConfig_descriptor;
     }
 
     @java.lang.Override
@@ -486,7 +486,7 @@ private static final long serialVersionUID = 0L;
         org.apache.accumulo.core.compaction.protobuf.PIteratorSetting, org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.Builder, org.apache.accumulo.core.compaction.protobuf.PIteratorSettingOrBuilder> iteratorsBuilder_;
 
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public java.util.List<org.apache.accumulo.core.compaction.protobuf.PIteratorSetting> getIteratorsList() {
       if (iteratorsBuilder_ == null) {
@@ -496,7 +496,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public int getIteratorsCount() {
       if (iteratorsBuilder_ == null) {
@@ -506,7 +506,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PIteratorSetting getIterators(int index) {
       if (iteratorsBuilder_ == null) {
@@ -516,7 +516,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public Builder setIterators(
         int index, org.apache.accumulo.core.compaction.protobuf.PIteratorSetting value) {
@@ -533,7 +533,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public Builder setIterators(
         int index, org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.Builder builderForValue) {
@@ -547,7 +547,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public Builder addIterators(org.apache.accumulo.core.compaction.protobuf.PIteratorSetting value) {
       if (iteratorsBuilder_ == null) {
@@ -563,7 +563,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public Builder addIterators(
         int index, org.apache.accumulo.core.compaction.protobuf.PIteratorSetting value) {
@@ -580,7 +580,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public Builder addIterators(
         org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.Builder builderForValue) {
@@ -594,7 +594,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public Builder addIterators(
         int index, org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.Builder builderForValue) {
@@ -608,7 +608,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public Builder addAllIterators(
         java.lang.Iterable<? extends org.apache.accumulo.core.compaction.protobuf.PIteratorSetting> values) {
@@ -623,7 +623,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public Builder clearIterators() {
       if (iteratorsBuilder_ == null) {
@@ -636,7 +636,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public Builder removeIterators(int index) {
       if (iteratorsBuilder_ == null) {
@@ -649,14 +649,14 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.Builder getIteratorsBuilder(
         int index) {
       return getIteratorsFieldBuilder().getBuilder(index);
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PIteratorSettingOrBuilder getIteratorsOrBuilder(
         int index) {
@@ -666,7 +666,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public java.util.List<? extends org.apache.accumulo.core.compaction.protobuf.PIteratorSettingOrBuilder> 
          getIteratorsOrBuilderList() {
@@ -677,14 +677,14 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.Builder addIteratorsBuilder() {
       return getIteratorsFieldBuilder().addBuilder(
           org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.getDefaultInstance());
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.Builder addIteratorsBuilder(
         int index) {
@@ -692,7 +692,7 @@ private static final long serialVersionUID = 0L;
           index, org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.getDefaultInstance());
     }
     /**
-     * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+     * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
      */
     public java.util.List<org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.Builder> 
          getIteratorsBuilderList() {
@@ -725,10 +725,10 @@ private static final long serialVersionUID = 0L;
     }
 
 
-    // @@protoc_insertion_point(builder_scope:tablet_server.PIteratorConfig)
+    // @@protoc_insertion_point(builder_scope:tabletserver.PIteratorConfig)
   }
 
-  // @@protoc_insertion_point(class_scope:tablet_server.PIteratorConfig)
+  // @@protoc_insertion_point(class_scope:tabletserver.PIteratorConfig)
   private static final org.apache.accumulo.core.compaction.protobuf.PIteratorConfig DEFAULT_INSTANCE;
   static {
     DEFAULT_INSTANCE = new org.apache.accumulo.core.compaction.protobuf.PIteratorConfig();

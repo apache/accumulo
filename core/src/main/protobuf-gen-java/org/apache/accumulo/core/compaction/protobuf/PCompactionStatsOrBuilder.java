@@ -22,47 +22,25 @@
 // Protobuf Java Version: 3.25.3
 package org.apache.accumulo.core.compaction.protobuf;
 
-public interface PInputFileOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:tabletserver.PInputFile)
+public interface PCompactionStatsOrBuilder extends
+    // @@protoc_insertion_point(interface_extends:tabletserver.PCompactionStats)
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <pre>
-   * This is nullable in Thrift but I am not marking as optional as
-   * I think it should always be set
-   * </pre>
-   *
-   * <code>string metadataFileEntry = 1;</code>
-   * @return The metadataFileEntry.
+   * <code>int64 entriesRead = 1;</code>
+   * @return The entriesRead.
    */
-  java.lang.String getMetadataFileEntry();
-  /**
-   * <pre>
-   * This is nullable in Thrift but I am not marking as optional as
-   * I think it should always be set
-   * </pre>
-   *
-   * <code>string metadataFileEntry = 1;</code>
-   * @return The bytes for metadataFileEntry.
-   */
-  com.google.protobuf.ByteString
-      getMetadataFileEntryBytes();
+  long getEntriesRead();
 
   /**
-   * <code>int64 size = 2;</code>
-   * @return The size.
+   * <code>int64 entriesWritten = 2;</code>
+   * @return The entriesWritten.
    */
-  long getSize();
+  long getEntriesWritten();
 
   /**
-   * <code>int64 entries = 3;</code>
-   * @return The entries.
+   * <code>int64 fileSize = 3;</code>
+   * @return The fileSize.
    */
-  long getEntries();
-
-  /**
-   * <code>int64 timestamp = 4;</code>
-   * @return The timestamp.
-   */
-  long getTimestamp();
+  long getFileSize();
 }

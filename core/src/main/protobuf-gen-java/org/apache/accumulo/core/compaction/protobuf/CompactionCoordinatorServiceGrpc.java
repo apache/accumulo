@@ -67,6 +67,37 @@ public final class CompactionCoordinatorServiceGrpc {
     return getGetCompactionJobMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest,
+      com.google.protobuf.Empty> getCompactionCompletedMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "CompactionCompleted",
+      requestType = org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest.class,
+      responseType = com.google.protobuf.Empty.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest,
+      com.google.protobuf.Empty> getCompactionCompletedMethod() {
+    io.grpc.MethodDescriptor<org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest, com.google.protobuf.Empty> getCompactionCompletedMethod;
+    if ((getCompactionCompletedMethod = CompactionCoordinatorServiceGrpc.getCompactionCompletedMethod) == null) {
+      synchronized (CompactionCoordinatorServiceGrpc.class) {
+        if ((getCompactionCompletedMethod = CompactionCoordinatorServiceGrpc.getCompactionCompletedMethod) == null) {
+          CompactionCoordinatorServiceGrpc.getCompactionCompletedMethod = getCompactionCompletedMethod =
+              io.grpc.MethodDescriptor.<org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest, com.google.protobuf.Empty>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "CompactionCompleted"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.google.protobuf.Empty.getDefaultInstance()))
+              .setSchemaDescriptor(new CompactionCoordinatorServiceMethodDescriptorSupplier("CompactionCompleted"))
+              .build();
+        }
+      }
+    }
+    return getCompactionCompletedMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -119,10 +150,23 @@ public final class CompactionCoordinatorServiceGrpc {
   public interface AsyncService {
 
     /**
+     * <pre>
+     * Called by Compactor on successful completion of compaction job
+     * </pre>
      */
     default void getCompactionJob(org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest request,
         io.grpc.stub.StreamObserver<org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetCompactionJobMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Called by Compactor on successful completion of compaction job
+     * </pre>
+     */
+    default void compactionCompleted(org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest request,
+        io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCompactionCompletedMethod(), responseObserver);
     }
   }
 
@@ -160,11 +204,25 @@ public final class CompactionCoordinatorServiceGrpc {
     }
 
     /**
+     * <pre>
+     * Called by Compactor on successful completion of compaction job
+     * </pre>
      */
     public void getCompactionJob(org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest request,
         io.grpc.stub.StreamObserver<org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetCompactionJobMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Called by Compactor on successful completion of compaction job
+     * </pre>
+     */
+    public void compactionCompleted(org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest request,
+        io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCompactionCompletedMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -188,10 +246,23 @@ public final class CompactionCoordinatorServiceGrpc {
     }
 
     /**
+     * <pre>
+     * Called by Compactor on successful completion of compaction job
+     * </pre>
      */
     public org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob getCompactionJob(org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetCompactionJobMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Called by Compactor on successful completion of compaction job
+     * </pre>
+     */
+    public com.google.protobuf.Empty compactionCompleted(org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCompactionCompletedMethod(), getCallOptions(), request);
     }
   }
 
@@ -215,15 +286,30 @@ public final class CompactionCoordinatorServiceGrpc {
     }
 
     /**
+     * <pre>
+     * Called by Compactor on successful completion of compaction job
+     * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob> getCompactionJob(
         org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetCompactionJobMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Called by Compactor on successful completion of compaction job
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.google.protobuf.Empty> compactionCompleted(
+        org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCompactionCompletedMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_COMPACTION_JOB = 0;
+  private static final int METHODID_COMPACTION_COMPLETED = 1;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -245,6 +331,10 @@ public final class CompactionCoordinatorServiceGrpc {
         case METHODID_GET_COMPACTION_JOB:
           serviceImpl.getCompactionJob((org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest) request,
               (io.grpc.stub.StreamObserver<org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob>) responseObserver);
+          break;
+        case METHODID_COMPACTION_COMPLETED:
+          serviceImpl.compactionCompleted((org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest) request,
+              (io.grpc.stub.StreamObserver<com.google.protobuf.Empty>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -271,6 +361,13 @@ public final class CompactionCoordinatorServiceGrpc {
               org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest,
               org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob>(
                 service, METHODID_GET_COMPACTION_JOB)))
+        .addMethod(
+          getCompactionCompletedMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest,
+              com.google.protobuf.Empty>(
+                service, METHODID_COMPACTION_COMPLETED)))
         .build();
   }
 
@@ -320,6 +417,7 @@ public final class CompactionCoordinatorServiceGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new CompactionCoordinatorServiceFileDescriptorSupplier())
               .addMethod(getGetCompactionJobMethod())
+              .addMethod(getCompactionCompletedMethod())
               .build();
         }
       }

@@ -23,11 +23,11 @@
 package org.apache.accumulo.core.compaction.protobuf;
 
 /**
- * Protobuf type {@code tablet_server.PIteratorSetting}
+ * Protobuf type {@code tabletserver.PIteratorSetting}
  */
 public final class PIteratorSetting extends
     com.google.protobuf.GeneratedMessageV3 implements
-    // @@protoc_insertion_point(message_implements:tablet_server.PIteratorSetting)
+    // @@protoc_insertion_point(message_implements:tabletserver.PIteratorSetting)
     PIteratorSettingOrBuilder {
 private static final long serialVersionUID = 0L;
   // Use PIteratorSetting.newBuilder() to construct.
@@ -48,7 +48,7 @@ private static final long serialVersionUID = 0L;
 
   public static final com.google.protobuf.Descriptors.Descriptor
       getDescriptor() {
-    return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PIteratorSetting_descriptor;
+    return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PIteratorSetting_descriptor;
   }
 
   @SuppressWarnings({"rawtypes"})
@@ -66,7 +66,7 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internalGetFieldAccessorTable() {
-    return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PIteratorSetting_fieldAccessorTable
+    return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PIteratorSetting_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
             org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.class, org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.Builder.class);
   }
@@ -166,7 +166,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String, java.lang.String> defaultEntry =
             com.google.protobuf.MapEntry
             .<java.lang.String, java.lang.String>newDefaultInstance(
-                org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PIteratorSetting_PropertiesEntry_descriptor, 
+                org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PIteratorSetting_PropertiesEntry_descriptor, 
                 com.google.protobuf.WireFormat.FieldType.STRING,
                 "",
                 com.google.protobuf.WireFormat.FieldType.STRING,
@@ -439,15 +439,15 @@ java.lang.String defaultValue) {
     return builder;
   }
   /**
-   * Protobuf type {@code tablet_server.PIteratorSetting}
+   * Protobuf type {@code tabletserver.PIteratorSetting}
    */
   public static final class Builder extends
       com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-      // @@protoc_insertion_point(builder_implements:tablet_server.PIteratorSetting)
+      // @@protoc_insertion_point(builder_implements:tabletserver.PIteratorSetting)
       org.apache.accumulo.core.compaction.protobuf.PIteratorSettingOrBuilder {
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PIteratorSetting_descriptor;
+      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PIteratorSetting_descriptor;
     }
 
     @SuppressWarnings({"rawtypes"})
@@ -475,7 +475,7 @@ java.lang.String defaultValue) {
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PIteratorSetting_fieldAccessorTable
+      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PIteratorSetting_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
               org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.class, org.apache.accumulo.core.compaction.protobuf.PIteratorSetting.Builder.class);
     }
@@ -504,7 +504,7 @@ java.lang.String defaultValue) {
     @java.lang.Override
     public com.google.protobuf.Descriptors.Descriptor
         getDescriptorForType() {
-      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PIteratorSetting_descriptor;
+      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PIteratorSetting_descriptor;
     }
 
     @java.lang.Override
@@ -988,10 +988,10 @@ java.lang.String defaultValue) {
     }
 
 
-    // @@protoc_insertion_point(builder_scope:tablet_server.PIteratorSetting)
+    // @@protoc_insertion_point(builder_scope:tabletserver.PIteratorSetting)
   }
 
-  // @@protoc_insertion_point(class_scope:tablet_server.PIteratorSetting)
+  // @@protoc_insertion_point(class_scope:tabletserver.PIteratorSetting)
   private static final org.apache.accumulo.core.compaction.protobuf.PIteratorSetting DEFAULT_INSTANCE;
   static {
     DEFAULT_INSTANCE = new org.apache.accumulo.core.compaction.protobuf.PIteratorSetting();

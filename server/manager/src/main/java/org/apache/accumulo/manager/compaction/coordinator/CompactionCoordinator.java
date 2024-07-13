@@ -66,6 +66,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest;
 import org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceGrpc;
 import org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest;
 import org.apache.accumulo.core.compaction.protobuf.PCompactionKind;
@@ -146,6 +147,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
+import com.google.protobuf.Empty;
 
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -750,58 +752,7 @@ public class CompactionCoordinator
   public void compactionCompleted(TInfo tinfo, TCredentials credentials,
       String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
       throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    // maybe fate has not started yet
-    var localFates = fateInstances.get();
-    while (localFates == null) {
-      UtilWaitThread.sleep(100);
-      if (shutdown.getCount() == 0) {
-        return;
-      }
-      localFates = fateInstances.get();
-    }
-
-    var extent = KeyExtent.fromThrift(textent);
-    var localFate = localFates.get(FateInstanceType.fromTableId(extent.tableId()));
-
-    LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
-        extent);
-    final var ecid = ExternalCompactionId.of(externalCompactionId);
-
-    var tabletMeta =
-        ctx.getAmple().readTablet(extent, ECOMP, SELECTED, LOCATION, FILES, COMPACTED, OPID);
-
-    var tableState = manager.getContext().getTableState(extent.tableId());
-    if (tableState != TableState.ONLINE) {
-      // Its important this check is done after the compaction id is set in the metadata table to
-      // avoid race conditions with the client code that waits for tables to go offline. That code
-      // looks for compaction ids in the metadata table after setting the table state. When that
-      // client code sees nothing for a tablet its important that nothing will changes the tablets
-      // files after that point in time which this check ensure.
-      LOG.debug("Not committing compaction {} for {} because of table state {}", ecid, extent,
-          tableState);
-      // cleanup metadata table and files related to the compaction
-      compactionsFailed(Map.of(ecid, extent));
-      return;
-    }
-
-    if (!CommitCompaction.canCommitCompaction(ecid, tabletMeta)) {
-      return;
-    }
-
-    // Start a fate transaction to commit the compaction.
-    CompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
-    var renameOp = new RenameCompactionFile(new CompactionCommitData(ecid, extent, ecm, stats));
-    var txid = localFate.seedTransaction("COMMIT_COMPACTION", FateKey.forCompactionCommit(ecid),
-        renameOp, true, "Commit compaction " + ecid);
-
-    txid.ifPresentOrElse(fateId -> LOG.debug("initiated compaction commit {} {}", ecid, fateId),
-        () -> LOG.debug("compaction commit already initiated for {}", ecid));
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -1177,6 +1128,108 @@ public class CompactionCoordinator
           return null;
         });
 
+      } catch (ThriftSecurityException e) {
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
+    }
+
+    /**
+     * Compactors calls this method when they have finished a compaction. This method does the
+     * following.
+     *
+     * <ol>
+     * <li>Reads the tablets metadata and determines if the compaction can commit. Its possible that
+     * things changed while the compaction was running and it can no longer commit.</li>
+     * <li>Commit the compaction using a conditional mutation. If the tablets files or location
+     * changed since reading the tablets metadata, then conditional mutation will fail. When this
+     * happens it will reread the metadata and go back to step 1 conceptually. When committing a
+     * compaction the compacted files are removed and scan entries are added to the tablet in case
+     * the files are in use, this prevents GC from deleting the files between updating tablet
+     * metadata and refreshing the tablet. The scan entries are only added when a tablet has a
+     * location.</li>
+     * <li>After successful commit a refresh request is sent to the tablet if it has a location.
+     * This will cause the tablet to start using the newly compacted files for future scans. Also
+     * the tablet can delete the scan entries if there are no active scans using them.</li>
+     * </ol>
+     *
+     * <p>
+     * User compactions will be refreshed as part of the fate operation. The user compaction fate
+     * operation will see the compaction was committed after this code updates the tablet metadata,
+     * however if it were to rely on this code to do the refresh it would not be able to know when
+     * the refresh was actually done. Therefore, user compactions will refresh as part of the fate
+     * operation so that it's known to be done before the fate operation returns. Since the fate
+     * operation will do it, there is no need to do it here for user compactions.
+     *
+     * @param request CompactionCompletedRequest
+     */
+    @Override
+    public void compactionCompleted(CompactionCompletedRequest request,
+        StreamObserver<Empty> responseObserver) {
+
+      // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // getCompactionJob() ?
+
+      var credentials = request.getCredentials();
+
+      try {
+        // do not expect users to call this directly, expect other tservers to call this method
+        if (!security.canPerformSystemActions(convert(credentials))) {
+          throw new AccumuloSecurityException(credentials.getPrincipal(),
+              SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+        }
+
+        // maybe fate has not started yet
+        var localFates = fateInstances.get();
+        while (localFates == null) {
+          UtilWaitThread.sleep(100);
+          if (shutdown.getCount() == 0) {
+            return;
+          }
+          localFates = fateInstances.get();
+        }
+
+        var extent = KeyExtent.fromProtobuf(request.getExtent());
+        var localFate = localFates.get(FateInstanceType.fromTableId(extent.tableId()));
+
+        LOG.info("Compaction completed, id: {}, stats: {}, extent: {}",
+            request.getExternalCompactionId(), request.getStats(), extent);
+        final var ecid = ExternalCompactionId.of(request.getExternalCompactionId());
+
+        var tabletMeta =
+            ctx.getAmple().readTablet(extent, ECOMP, SELECTED, LOCATION, FILES, COMPACTED, OPID);
+
+        var tableState = manager.getContext().getTableState(extent.tableId());
+        if (tableState != TableState.ONLINE) {
+          // Its important this check is done after the compaction id is set in the metadata table
+          // to avoid race conditions with the client code that waits for tables to go offline.
+          // That codelooks for compaction ids in the metadata table after setting the table
+          // state. When that client code sees nothing for a tablet its important that nothing
+          // will change the tablets files after that point in time which this check ensure.
+          LOG.debug("Not committing compaction {} for {} because of table state {}", ecid, extent,
+              tableState);
+          // cleanup metadata table and files related to the compaction
+          compactionsFailed(Map.of(ecid, extent));
+          return;
+        }
+
+        if (!CommitCompaction.canCommitCompaction(ecid, tabletMeta)) {
+          return;
+        }
+
+        // Start a fate transaction to commit the compaction.
+        CompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
+        var renameOp = new RenameCompactionFile(
+            new CompactionCommitData(ecid, extent, ecm, request.getStats()));
+        var txid = localFate.seedTransaction("COMMIT_COMPACTION", FateKey.forCompactionCommit(ecid),
+            renameOp, true, "Commit compaction " + ecid);
+
+        txid.ifPresentOrElse(fateId -> LOG.debug("initiated compaction commit {} {}", ecid, fateId),
+            () -> LOG.debug("compaction commit already initiated for {}", ecid));
+
+        responseObserver.onCompleted();
       } catch (ThriftSecurityException e) {
         throw new RuntimeException(e);
       } catch (Exception e) {

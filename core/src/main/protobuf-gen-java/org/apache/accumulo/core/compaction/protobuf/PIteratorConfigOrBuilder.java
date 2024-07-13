@@ -23,29 +23,29 @@
 package org.apache.accumulo.core.compaction.protobuf;
 
 public interface PIteratorConfigOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:tablet_server.PIteratorConfig)
+    // @@protoc_insertion_point(interface_extends:tabletserver.PIteratorConfig)
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+   * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
    */
   java.util.List<org.apache.accumulo.core.compaction.protobuf.PIteratorSetting> 
       getIteratorsList();
   /**
-   * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+   * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
    */
   org.apache.accumulo.core.compaction.protobuf.PIteratorSetting getIterators(int index);
   /**
-   * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+   * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
    */
   int getIteratorsCount();
   /**
-   * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+   * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
    */
   java.util.List<? extends org.apache.accumulo.core.compaction.protobuf.PIteratorSettingOrBuilder> 
       getIteratorsOrBuilderList();
   /**
-   * <code>repeated .tablet_server.PIteratorSetting iterators = 1;</code>
+   * <code>repeated .tabletserver.PIteratorSetting iterators = 1;</code>
    */
   org.apache.accumulo.core.compaction.protobuf.PIteratorSettingOrBuilder getIteratorsOrBuilder(
       int index);

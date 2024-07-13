@@ -21,10 +21,10 @@ package org.apache.accumulo.compactor;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.compaction.protobuf.PCompactionStats;
 import org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.server.compaction.FileCompactor;
 
 public class CompactionJobHolder {
@@ -33,7 +33,7 @@ public class CompactionJobHolder {
   private Thread compactionThread;
   private AtomicReference<FileCompactor> compactor;
   private volatile boolean cancelled = false;
-  private volatile TCompactionStats stats = null;
+  private volatile PCompactionStats stats = null;
 
   CompactionJobHolder() {}
 
@@ -54,11 +54,11 @@ public class CompactionJobHolder {
     return KeyExtent.fromProtobuf(pKeyExtent).tableId();
   }
 
-  public TCompactionStats getStats() {
+  public PCompactionStats getStats() {
     return stats;
   }
 
-  public void setStats(TCompactionStats stats) {
+  public void setStats(PCompactionStats stats) {
     this.stats = stats;
   }
 

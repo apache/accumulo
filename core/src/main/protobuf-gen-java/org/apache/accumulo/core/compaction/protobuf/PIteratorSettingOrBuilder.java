@@ -23,7 +23,7 @@
 package org.apache.accumulo.core.compaction.protobuf;
 
 public interface PIteratorSettingOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:tablet_server.PIteratorSetting)
+    // @@protoc_insertion_point(interface_extends:tabletserver.PIteratorSetting)
     com.google.protobuf.MessageOrBuilder {
 
   /**

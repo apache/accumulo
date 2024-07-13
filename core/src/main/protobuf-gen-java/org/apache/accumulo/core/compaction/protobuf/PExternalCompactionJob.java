@@ -151,14 +151,14 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private java.util.List<org.apache.accumulo.core.compaction.protobuf.PInputFile> files_;
   /**
-   * <code>repeated .tablet_server.PInputFile files = 3;</code>
+   * <code>repeated .tabletserver.PInputFile files = 3;</code>
    */
   @java.lang.Override
   public java.util.List<org.apache.accumulo.core.compaction.protobuf.PInputFile> getFilesList() {
     return files_;
   }
   /**
-   * <code>repeated .tablet_server.PInputFile files = 3;</code>
+   * <code>repeated .tabletserver.PInputFile files = 3;</code>
    */
   @java.lang.Override
   public java.util.List<? extends org.apache.accumulo.core.compaction.protobuf.PInputFileOrBuilder> 
@@ -166,21 +166,21 @@ private static final long serialVersionUID = 0L;
     return files_;
   }
   /**
-   * <code>repeated .tablet_server.PInputFile files = 3;</code>
+   * <code>repeated .tabletserver.PInputFile files = 3;</code>
    */
   @java.lang.Override
   public int getFilesCount() {
     return files_.size();
   }
   /**
-   * <code>repeated .tablet_server.PInputFile files = 3;</code>
+   * <code>repeated .tabletserver.PInputFile files = 3;</code>
    */
   @java.lang.Override
   public org.apache.accumulo.core.compaction.protobuf.PInputFile getFiles(int index) {
     return files_.get(index);
   }
   /**
-   * <code>repeated .tablet_server.PInputFile files = 3;</code>
+   * <code>repeated .tabletserver.PInputFile files = 3;</code>
    */
   @java.lang.Override
   public org.apache.accumulo.core.compaction.protobuf.PInputFileOrBuilder getFilesOrBuilder(
@@ -191,7 +191,7 @@ private static final long serialVersionUID = 0L;
   public static final int ITERATORSETTINGS_FIELD_NUMBER = 4;
   private org.apache.accumulo.core.compaction.protobuf.PIteratorConfig iteratorSettings_;
   /**
-   * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+   * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
    * @return Whether the iteratorSettings field is set.
    */
   @java.lang.Override
@@ -199,7 +199,7 @@ private static final long serialVersionUID = 0L;
     return ((bitField0_ & 0x00000004) != 0);
   }
   /**
-   * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+   * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
    * @return The iteratorSettings.
    */
   @java.lang.Override
@@ -207,7 +207,7 @@ private static final long serialVersionUID = 0L;
     return iteratorSettings_ == null ? org.apache.accumulo.core.compaction.protobuf.PIteratorConfig.getDefaultInstance() : iteratorSettings_;
   }
   /**
-   * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+   * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
    */
   @java.lang.Override
   public org.apache.accumulo.core.compaction.protobuf.PIteratorConfigOrBuilder getIteratorSettingsOrBuilder() {
@@ -283,21 +283,21 @@ private static final long serialVersionUID = 0L;
   public static final int KIND_FIELD_NUMBER = 7;
   private int kind_ = 0;
   /**
-   * <code>optional .tablet_server.PCompactionKind kind = 7;</code>
+   * <code>optional .tabletserver.PCompactionKind kind = 7;</code>
    * @return Whether the kind field is set.
    */
   @java.lang.Override public boolean hasKind() {
     return ((bitField0_ & 0x00000020) != 0);
   }
   /**
-   * <code>optional .tablet_server.PCompactionKind kind = 7;</code>
+   * <code>optional .tabletserver.PCompactionKind kind = 7;</code>
    * @return The enum numeric value on the wire for kind.
    */
   @java.lang.Override public int getKindValue() {
     return kind_;
   }
   /**
-   * <code>optional .tablet_server.PCompactionKind kind = 7;</code>
+   * <code>optional .tabletserver.PCompactionKind kind = 7;</code>
    * @return The kind.
    */
   @java.lang.Override public org.apache.accumulo.core.compaction.protobuf.PCompactionKind getKind() {
@@ -1298,7 +1298,7 @@ java.lang.String defaultValue) {
         org.apache.accumulo.core.compaction.protobuf.PInputFile, org.apache.accumulo.core.compaction.protobuf.PInputFile.Builder, org.apache.accumulo.core.compaction.protobuf.PInputFileOrBuilder> filesBuilder_;
 
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public java.util.List<org.apache.accumulo.core.compaction.protobuf.PInputFile> getFilesList() {
       if (filesBuilder_ == null) {
@@ -1308,7 +1308,7 @@ java.lang.String defaultValue) {
       }
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public int getFilesCount() {
       if (filesBuilder_ == null) {
@@ -1318,7 +1318,7 @@ java.lang.String defaultValue) {
       }
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PInputFile getFiles(int index) {
       if (filesBuilder_ == null) {
@@ -1328,7 +1328,7 @@ java.lang.String defaultValue) {
       }
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public Builder setFiles(
         int index, org.apache.accumulo.core.compaction.protobuf.PInputFile value) {
@@ -1345,7 +1345,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public Builder setFiles(
         int index, org.apache.accumulo.core.compaction.protobuf.PInputFile.Builder builderForValue) {
@@ -1359,7 +1359,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public Builder addFiles(org.apache.accumulo.core.compaction.protobuf.PInputFile value) {
       if (filesBuilder_ == null) {
@@ -1375,7 +1375,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public Builder addFiles(
         int index, org.apache.accumulo.core.compaction.protobuf.PInputFile value) {
@@ -1392,7 +1392,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public Builder addFiles(
         org.apache.accumulo.core.compaction.protobuf.PInputFile.Builder builderForValue) {
@@ -1406,7 +1406,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public Builder addFiles(
         int index, org.apache.accumulo.core.compaction.protobuf.PInputFile.Builder builderForValue) {
@@ -1420,7 +1420,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public Builder addAllFiles(
         java.lang.Iterable<? extends org.apache.accumulo.core.compaction.protobuf.PInputFile> values) {
@@ -1435,7 +1435,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public Builder clearFiles() {
       if (filesBuilder_ == null) {
@@ -1448,7 +1448,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public Builder removeFiles(int index) {
       if (filesBuilder_ == null) {
@@ -1461,14 +1461,14 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PInputFile.Builder getFilesBuilder(
         int index) {
       return getFilesFieldBuilder().getBuilder(index);
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PInputFileOrBuilder getFilesOrBuilder(
         int index) {
@@ -1478,7 +1478,7 @@ java.lang.String defaultValue) {
       }
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public java.util.List<? extends org.apache.accumulo.core.compaction.protobuf.PInputFileOrBuilder> 
          getFilesOrBuilderList() {
@@ -1489,14 +1489,14 @@ java.lang.String defaultValue) {
       }
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PInputFile.Builder addFilesBuilder() {
       return getFilesFieldBuilder().addBuilder(
           org.apache.accumulo.core.compaction.protobuf.PInputFile.getDefaultInstance());
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PInputFile.Builder addFilesBuilder(
         int index) {
@@ -1504,7 +1504,7 @@ java.lang.String defaultValue) {
           index, org.apache.accumulo.core.compaction.protobuf.PInputFile.getDefaultInstance());
     }
     /**
-     * <code>repeated .tablet_server.PInputFile files = 3;</code>
+     * <code>repeated .tabletserver.PInputFile files = 3;</code>
      */
     public java.util.List<org.apache.accumulo.core.compaction.protobuf.PInputFile.Builder> 
          getFilesBuilderList() {
@@ -1529,14 +1529,14 @@ java.lang.String defaultValue) {
     private com.google.protobuf.SingleFieldBuilderV3<
         org.apache.accumulo.core.compaction.protobuf.PIteratorConfig, org.apache.accumulo.core.compaction.protobuf.PIteratorConfig.Builder, org.apache.accumulo.core.compaction.protobuf.PIteratorConfigOrBuilder> iteratorSettingsBuilder_;
     /**
-     * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+     * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
      * @return Whether the iteratorSettings field is set.
      */
     public boolean hasIteratorSettings() {
       return ((bitField0_ & 0x00000008) != 0);
     }
     /**
-     * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+     * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
      * @return The iteratorSettings.
      */
     public org.apache.accumulo.core.compaction.protobuf.PIteratorConfig getIteratorSettings() {
@@ -1547,7 +1547,7 @@ java.lang.String defaultValue) {
       }
     }
     /**
-     * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+     * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
      */
     public Builder setIteratorSettings(org.apache.accumulo.core.compaction.protobuf.PIteratorConfig value) {
       if (iteratorSettingsBuilder_ == null) {
@@ -1563,7 +1563,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+     * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
      */
     public Builder setIteratorSettings(
         org.apache.accumulo.core.compaction.protobuf.PIteratorConfig.Builder builderForValue) {
@@ -1577,7 +1577,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+     * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
      */
     public Builder mergeIteratorSettings(org.apache.accumulo.core.compaction.protobuf.PIteratorConfig value) {
       if (iteratorSettingsBuilder_ == null) {
@@ -1598,7 +1598,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+     * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
      */
     public Builder clearIteratorSettings() {
       bitField0_ = (bitField0_ & ~0x00000008);
@@ -1611,7 +1611,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+     * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PIteratorConfig.Builder getIteratorSettingsBuilder() {
       bitField0_ |= 0x00000008;
@@ -1619,7 +1619,7 @@ java.lang.String defaultValue) {
       return getIteratorSettingsFieldBuilder().getBuilder();
     }
     /**
-     * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+     * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PIteratorConfigOrBuilder getIteratorSettingsOrBuilder() {
       if (iteratorSettingsBuilder_ != null) {
@@ -1630,7 +1630,7 @@ java.lang.String defaultValue) {
       }
     }
     /**
-     * <code>optional .tablet_server.PIteratorConfig iteratorSettings = 4;</code>
+     * <code>optional .tabletserver.PIteratorConfig iteratorSettings = 4;</code>
      */
     private com.google.protobuf.SingleFieldBuilderV3<
         org.apache.accumulo.core.compaction.protobuf.PIteratorConfig, org.apache.accumulo.core.compaction.protobuf.PIteratorConfig.Builder, org.apache.accumulo.core.compaction.protobuf.PIteratorConfigOrBuilder> 
@@ -1767,21 +1767,21 @@ java.lang.String defaultValue) {
 
     private int kind_ = 0;
     /**
-     * <code>optional .tablet_server.PCompactionKind kind = 7;</code>
+     * <code>optional .tabletserver.PCompactionKind kind = 7;</code>
      * @return Whether the kind field is set.
      */
     @java.lang.Override public boolean hasKind() {
       return ((bitField0_ & 0x00000040) != 0);
     }
     /**
-     * <code>optional .tablet_server.PCompactionKind kind = 7;</code>
+     * <code>optional .tabletserver.PCompactionKind kind = 7;</code>
      * @return The enum numeric value on the wire for kind.
      */
     @java.lang.Override public int getKindValue() {
       return kind_;
     }
     /**
-     * <code>optional .tablet_server.PCompactionKind kind = 7;</code>
+     * <code>optional .tabletserver.PCompactionKind kind = 7;</code>
      * @param value The enum numeric value on the wire for kind to set.
      * @return This builder for chaining.
      */
@@ -1792,7 +1792,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>optional .tablet_server.PCompactionKind kind = 7;</code>
+     * <code>optional .tabletserver.PCompactionKind kind = 7;</code>
      * @return The kind.
      */
     @java.lang.Override
@@ -1801,7 +1801,7 @@ java.lang.String defaultValue) {
       return result == null ? org.apache.accumulo.core.compaction.protobuf.PCompactionKind.UNRECOGNIZED : result;
     }
     /**
-     * <code>optional .tablet_server.PCompactionKind kind = 7;</code>
+     * <code>optional .tabletserver.PCompactionKind kind = 7;</code>
      * @param value The kind to set.
      * @return This builder for chaining.
      */
@@ -1815,7 +1815,7 @@ java.lang.String defaultValue) {
       return this;
     }
     /**
-     * <code>optional .tablet_server.PCompactionKind kind = 7;</code>
+     * <code>optional .tabletserver.PCompactionKind kind = 7;</code>
      * @return This builder for chaining.
      */
     public Builder clearKind() {

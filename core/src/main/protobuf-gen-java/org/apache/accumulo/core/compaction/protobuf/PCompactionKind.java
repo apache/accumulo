@@ -23,7 +23,7 @@
 package org.apache.accumulo.core.compaction.protobuf;
 
 /**
- * Protobuf enum {@code tablet_server.PCompactionKind}
+ * Protobuf enum {@code tabletserver.PCompactionKind}
  */
 public enum PCompactionKind
     implements com.google.protobuf.ProtocolMessageEnum {
@@ -146,6 +146,6 @@ public enum PCompactionKind
     this.value = value;
   }
 
-  // @@protoc_insertion_point(enum_scope:tablet_server.PCompactionKind)
+  // @@protoc_insertion_point(enum_scope:tabletserver.PCompactionKind)
 }
 

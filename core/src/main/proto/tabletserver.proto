@@ -23,7 +23,7 @@ option java_multiple_files = true;
 option java_package = "org.apache.accumulo.core.compaction.protobuf";
 option java_outer_classname = "TabletServerProto";
 
-package tablet_server;
+package tabletserver;
 
 
 message PInputFile {
@@ -52,4 +52,10 @@ enum PCompactionKind {
   UNKNOWN = 0;
   SYSTEM = 1;
   USER = 2;
+}
+
+message PCompactionStats {
+  int64 entriesRead = 1;
+  int64 entriesWritten = 2;
+  int64 fileSize = 3;
 }

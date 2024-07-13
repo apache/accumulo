@@ -23,11 +23,11 @@
 package org.apache.accumulo.core.compaction.protobuf;
 
 /**
- * Protobuf type {@code tablet_server.PInputFile}
+ * Protobuf type {@code tabletserver.PInputFile}
  */
 public final class PInputFile extends
     com.google.protobuf.GeneratedMessageV3 implements
-    // @@protoc_insertion_point(message_implements:tablet_server.PInputFile)
+    // @@protoc_insertion_point(message_implements:tabletserver.PInputFile)
     PInputFileOrBuilder {
 private static final long serialVersionUID = 0L;
   // Use PInputFile.newBuilder() to construct.
@@ -47,13 +47,13 @@ private static final long serialVersionUID = 0L;
 
   public static final com.google.protobuf.Descriptors.Descriptor
       getDescriptor() {
-    return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PInputFile_descriptor;
+    return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PInputFile_descriptor;
   }
 
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internalGetFieldAccessorTable() {
-    return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PInputFile_fieldAccessorTable
+    return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PInputFile_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
             org.apache.accumulo.core.compaction.protobuf.PInputFile.class, org.apache.accumulo.core.compaction.protobuf.PInputFile.Builder.class);
   }
@@ -333,21 +333,21 @@ private static final long serialVersionUID = 0L;
     return builder;
   }
   /**
-   * Protobuf type {@code tablet_server.PInputFile}
+   * Protobuf type {@code tabletserver.PInputFile}
    */
   public static final class Builder extends
       com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-      // @@protoc_insertion_point(builder_implements:tablet_server.PInputFile)
+      // @@protoc_insertion_point(builder_implements:tabletserver.PInputFile)
       org.apache.accumulo.core.compaction.protobuf.PInputFileOrBuilder {
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PInputFile_descriptor;
+      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PInputFile_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PInputFile_fieldAccessorTable
+      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PInputFile_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
               org.apache.accumulo.core.compaction.protobuf.PInputFile.class, org.apache.accumulo.core.compaction.protobuf.PInputFile.Builder.class);
     }
@@ -376,7 +376,7 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public com.google.protobuf.Descriptors.Descriptor
         getDescriptorForType() {
-      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tablet_server_PInputFile_descriptor;
+      return org.apache.accumulo.core.compaction.protobuf.TabletServerProto.internal_static_tabletserver_PInputFile_descriptor;
     }
 
     @java.lang.Override
@@ -743,10 +743,10 @@ private static final long serialVersionUID = 0L;
     }
 
 
-    // @@protoc_insertion_point(builder_scope:tablet_server.PInputFile)
+    // @@protoc_insertion_point(builder_scope:tabletserver.PInputFile)
   }
 
-  // @@protoc_insertion_point(class_scope:tablet_server.PInputFile)
+  // @@protoc_insertion_point(class_scope:tabletserver.PInputFile)
   private static final org.apache.accumulo.core.compaction.protobuf.PInputFile DEFAULT_INSTANCE;
   static {
     DEFAULT_INSTANCE = new org.apache.accumulo.core.compaction.protobuf.PInputFile();

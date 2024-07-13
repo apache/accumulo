@@ -34,6 +34,16 @@ public final class CompactionCoordinatorServiceProto {
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_compaction_coordinator_CompactionJobRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_compaction_coordinator_CompactionJobRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_compaction_coordinator_CompactionCompletedRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_compaction_coordinator_CompactionCompletedRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_compaction_coordinator_PExternalCompactionJob_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -49,10 +59,10 @@ public final class CompactionCoordinatorServiceProto {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_compaction_coordinator_PNextCompactionJob_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_compaction_coordinator_CompactionJobRequest_descriptor;
+    internal_static_compaction_coordinator_TCompactionStatusUpdate_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_compaction_coordinator_CompactionJobRequest_fieldAccessorTable;
+      internal_static_compaction_coordinator_TCompactionStatusUpdate_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -63,49 +73,78 @@ public final class CompactionCoordinatorServiceProto {
   static {
     java.lang.String[] descriptorData = {
       "\n\034compaction-coordinator.proto\022\026compacti" +
-      "on_coordinator\032\016security.proto\032\014client.p" +
-      "roto\032\ndata.proto\032\022tabletserver.proto\032\rma" +
-      "nager.proto\"\322\004\n\026PExternalCompactionJob\022!" +
-      "\n\024externalCompactionId\030\001 \001(\tH\000\210\001\001\022%\n\006ext" +
-      "ent\030\002 \001(\0132\020.data.PKeyExtentH\001\210\001\001\022(\n\005file" +
-      "s\030\003 \003(\0132\031.tablet_server.PInputFile\022=\n\020it" +
-      "eratorSettings\030\004 \001(\0132\036.tablet_server.PIt" +
-      "eratorConfigH\002\210\001\001\022\027\n\noutputFile\030\005 \001(\tH\003\210" +
-      "\001\001\022\035\n\020propagateDeletes\030\006 \001(\010H\004\210\001\001\0221\n\004kin" +
-      "d\030\007 \001(\0162\036.tablet_server.PCompactionKindH" +
-      "\005\210\001\001\022%\n\006fateId\030\010 \001(\0132\020.manager.PFateIdH\006" +
-      "\210\001\001\022P\n\toverrides\030\t \003(\0132=.compaction_coor" +
-      "dinator.PExternalCompactionJob.Overrides" +
-      "Entry\0320\n\016OverridesEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005" +
-      "value\030\002 \001(\t:\0028\001B\027\n\025_externalCompactionId" +
-      "B\t\n\007_extentB\023\n\021_iteratorSettingsB\r\n\013_out" +
-      "putFileB\023\n\021_propagateDeletesB\007\n\005_kindB\t\n" +
-      "\007_fateId\"i\n\022PNextCompactionJob\022;\n\003job\030\001 " +
-      "\001(\0132..compaction_coordinator.PExternalCo" +
-      "mpactionJob\022\026\n\016compactorCount\030\002 \001(\005\"\253\001\n\024" +
-      "CompactionJobRequest\022\"\n\006ptinfo\030\001 \001(\0132\022.c" +
-      "lient.ProtoTInfo\022+\n\013credentials\030\002 \001(\0132\026." +
-      "security.PCredentials\022\021\n\tgroupName\030\003 \001(\t" +
-      "\022\021\n\tcompactor\030\004 \001(\t\022\034\n\024externalCompactio" +
-      "nId\030\005 \001(\t2\216\001\n\034CompactionCoordinatorServi" +
+      "on_coordinator\032\033google/protobuf/empty.pr" +
+      "oto\032\016security.proto\032\014client.proto\032\ndata." +
+      "proto\032\022tabletserver.proto\032\rmanager.proto" +
+      "\"\253\001\n\024CompactionJobRequest\022\"\n\006ptinfo\030\001 \001(" +
+      "\0132\022.client.ProtoTInfo\022+\n\013credentials\030\002 \001" +
+      "(\0132\026.security.PCredentials\022\021\n\tgroupName\030" +
+      "\003 \001(\t\022\021\n\tcompactor\030\004 \001(\t\022\034\n\024externalComp" +
+      "actionId\030\005 \001(\t\"\334\001\n\032CompactionCompletedRe" +
+      "quest\022\"\n\006ptinfo\030\001 \001(\0132\022.client.ProtoTInf" +
+      "o\022+\n\013credentials\030\002 \001(\0132\026.security.PCrede" +
+      "ntials\022\034\n\024externalCompactionId\030\003 \001(\t\022 \n\006" +
+      "extent\030\004 \001(\0132\020.data.PKeyExtent\022-\n\005stats\030" +
+      "\005 \001(\0132\036.tabletserver.PCompactionStats\"\317\004" +
+      "\n\026PExternalCompactionJob\022!\n\024externalComp" +
+      "actionId\030\001 \001(\tH\000\210\001\001\022%\n\006extent\030\002 \001(\0132\020.da" +
+      "ta.PKeyExtentH\001\210\001\001\022\'\n\005files\030\003 \003(\0132\030.tabl" +
+      "etserver.PInputFile\022<\n\020iteratorSettings\030" +
+      "\004 \001(\0132\035.tabletserver.PIteratorConfigH\002\210\001" +
+      "\001\022\027\n\noutputFile\030\005 \001(\tH\003\210\001\001\022\035\n\020propagateD" +
+      "eletes\030\006 \001(\010H\004\210\001\001\0220\n\004kind\030\007 \001(\0162\035.tablet" +
+      "server.PCompactionKindH\005\210\001\001\022%\n\006fateId\030\010 " +
+      "\001(\0132\020.manager.PFateIdH\006\210\001\001\022P\n\toverrides\030" +
+      "\t \003(\0132=.compaction_coordinator.PExternal" +
+      "CompactionJob.OverridesEntry\0320\n\016Override" +
+      "sEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001B\027" +
+      "\n\025_externalCompactionIdB\t\n\007_extentB\023\n\021_i" +
+      "teratorSettingsB\r\n\013_outputFileB\023\n\021_propa" +
+      "gateDeletesB\007\n\005_kindB\t\n\007_fateId\"i\n\022PNext" +
+      "CompactionJob\022;\n\003job\030\001 \001(\0132..compaction_" +
+      "coordinator.PExternalCompactionJob\022\026\n\016co" +
+      "mpactorCount\030\002 \001(\005\"\312\001\n\027TCompactionStatus" +
+      "Update\0227\n\005state\030\001 \001(\0162(.compaction_coord" +
+      "inator.TCompactionState\022\017\n\007message\030\002 \001(\t" +
+      "\022\034\n\024entriesToBeCompacted\030\003 \001(\003\022\023\n\013entrie" +
+      "sRead\030\004 \001(\003\022\026\n\016entriesWritten\030\005 \001(\003\022\032\n\022c" +
+      "ompactionAgeNanos\030\006 \001(\003*h\n\020TCompactionSt" +
+      "ate\022\014\n\010ASSIGNED\020\000\022\013\n\007STARTED\020\001\022\017\n\013IN_PRO" +
+      "GRESS\020\002\022\r\n\tSUCCEEDED\020\003\022\n\n\006FAILED\020\004\022\r\n\tCA" +
+      "NCELLED\020\0052\361\001\n\034CompactionCoordinatorServi" +
       "ce\022n\n\020GetCompactionJob\022,.compaction_coor" +
       "dinator.CompactionJobRequest\032*.compactio" +
-      "n_coordinator.PNextCompactionJob\"\000BS\n,or" +
-      "g.apache.accumulo.core.compaction.protob" +
-      "ufB!CompactionCoordinatorServiceProtoP\001b" +
-      "\006proto3"
+      "n_coordinator.PNextCompactionJob\"\000\022a\n\023Co" +
+      "mpactionCompleted\0222.compaction_coordinat" +
+      "or.CompactionCompletedRequest\032\026.google.p" +
+      "rotobuf.EmptyBS\n,org.apache.accumulo.cor" +
+      "e.compaction.protobufB!CompactionCoordin" +
+      "atorServiceProtoP\001b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          com.google.protobuf.EmptyProto.getDescriptor(),
           org.apache.accumulo.core.compaction.protobuf.SecurityProto.getDescriptor(),
           org.apache.accumulo.core.compaction.protobuf.ClientProto.getDescriptor(),
           org.apache.accumulo.core.compaction.protobuf.DataProto.getDescriptor(),
           org.apache.accumulo.core.compaction.protobuf.TabletServerProto.getDescriptor(),
           org.apache.accumulo.core.compaction.protobuf.ManagerProto.getDescriptor(),
         });
-    internal_static_compaction_coordinator_PExternalCompactionJob_descriptor =
+    internal_static_compaction_coordinator_CompactionJobRequest_descriptor =
       getDescriptor().getMessageTypes().get(0);
+    internal_static_compaction_coordinator_CompactionJobRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_compaction_coordinator_CompactionJobRequest_descriptor,
+        new java.lang.String[] { "Ptinfo", "Credentials", "GroupName", "Compactor", "ExternalCompactionId", });
+    internal_static_compaction_coordinator_CompactionCompletedRequest_descriptor =
+      getDescriptor().getMessageTypes().get(1);
+    internal_static_compaction_coordinator_CompactionCompletedRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_compaction_coordinator_CompactionCompletedRequest_descriptor,
+        new java.lang.String[] { "Ptinfo", "Credentials", "ExternalCompactionId", "Extent", "Stats", });
+    internal_static_compaction_coordinator_PExternalCompactionJob_descriptor =
+      getDescriptor().getMessageTypes().get(2);
     internal_static_compaction_coordinator_PExternalCompactionJob_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_compaction_coordinator_PExternalCompactionJob_descriptor,
@@ -117,17 +156,18 @@ public final class CompactionCoordinatorServiceProto {
         internal_static_compaction_coordinator_PExternalCompactionJob_OverridesEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
     internal_static_compaction_coordinator_PNextCompactionJob_descriptor =
-      getDescriptor().getMessageTypes().get(1);
+      getDescriptor().getMessageTypes().get(3);
     internal_static_compaction_coordinator_PNextCompactionJob_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_compaction_coordinator_PNextCompactionJob_descriptor,
         new java.lang.String[] { "Job", "CompactorCount", });
-    internal_static_compaction_coordinator_CompactionJobRequest_descriptor =
-      getDescriptor().getMessageTypes().get(2);
-    internal_static_compaction_coordinator_CompactionJobRequest_fieldAccessorTable = new
+    internal_static_compaction_coordinator_TCompactionStatusUpdate_descriptor =
+      getDescriptor().getMessageTypes().get(4);
+    internal_static_compaction_coordinator_TCompactionStatusUpdate_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_compaction_coordinator_CompactionJobRequest_descriptor,
-        new java.lang.String[] { "Ptinfo", "Credentials", "GroupName", "Compactor", "ExternalCompactionId", });
+        internal_static_compaction_coordinator_TCompactionStatusUpdate_descriptor,
+        new java.lang.String[] { "State", "Message", "EntriesToBeCompacted", "EntriesRead", "EntriesWritten", "CompactionAgeNanos", });
+    com.google.protobuf.EmptyProto.getDescriptor();
     org.apache.accumulo.core.compaction.protobuf.SecurityProto.getDescriptor();
     org.apache.accumulo.core.compaction.protobuf.ClientProto.getDescriptor();
     org.apache.accumulo.core.compaction.protobuf.DataProto.getDescriptor();

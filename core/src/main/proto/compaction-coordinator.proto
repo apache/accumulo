@@ -22,6 +22,8 @@ syntax = "proto3";
 option java_multiple_files = true;
 option java_package = "org.apache.accumulo.core.compaction.protobuf";
 option java_outer_classname = "CompactionCoordinatorServiceProto";
+
+import "google/protobuf/empty.proto";
 import "security.proto";
 import "client.proto";
 import "data.proto";
@@ -32,18 +34,42 @@ package compaction_coordinator;
 
 // Interface exported by the server.
 service CompactionCoordinatorService {
+  /*
+   * Called by Compactor on successful completion of compaction job
+   */
   rpc GetCompactionJob(CompactionJobRequest) returns (PNextCompactionJob) {}
+
+  /*
+   * Called by Compactor on successful completion of compaction job
+   */
+  rpc CompactionCompleted(CompactionCompletedRequest) returns (google.protobuf.Empty);
+
+}
+message CompactionJobRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+  string groupName = 3;
+  string compactor = 4;
+  string externalCompactionId = 5;
+}
+
+message CompactionCompletedRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+  string externalCompactionId = 3;
+  data.PKeyExtent extent = 4;
+  tabletserver.PCompactionStats stats = 5;
 }
 
 
 message PExternalCompactionJob {
   optional string externalCompactionId = 1;
   optional data.PKeyExtent extent = 2;
-  repeated tablet_server.PInputFile files = 3;
-  optional tablet_server.PIteratorConfig iteratorSettings = 4;
+  repeated tabletserver.PInputFile files = 3;
+  optional tabletserver.PIteratorConfig iteratorSettings = 4;
   optional string outputFile = 5;
   optional bool propagateDeletes = 6;
-  optional tablet_server.PCompactionKind kind = 7;
+  optional tabletserver.PCompactionKind kind = 7;
   optional manager.PFateId fateId = 8;
   map<string, string> overrides = 9;
 }
@@ -53,10 +79,26 @@ message PNextCompactionJob {
   int32 compactorCount = 2;
 }
 
-message CompactionJobRequest {
-  client.ProtoTInfo ptinfo = 1;
-  security.PCredentials credentials = 2;
-  string groupName = 3;
-  string compactor = 4;
-  string externalCompactionId = 5;
+enum TCompactionState {
+  // Coordinator should set state to ASSIGNED when getCompactionJob is called by Compactor
+  ASSIGNED = 0;
+  // Compactor should set state to STARTED when compaction has successfully begun
+  STARTED = 1;
+  // Compactor can call repeatedly with an updated message to reflect percentage complete
+  IN_PROGRESS = 2;
+  // Compactor should set state to SUCCEEDED when compaction job has successfully finished
+  SUCCEEDED = 3;
+  // Compactor should set state to FAILED when compaction job fails, message should be mandatory
+  FAILED = 4;
+  // Compactor should set state to CANCELLED to acknowledge that it has stopped compacting
+  CANCELLED = 5;
+}
+
+message TCompactionStatusUpdate {
+  TCompactionState state = 1;
+  string message = 2;
+  int64 entriesToBeCompacted = 3;
+  int64 entriesRead = 4;
+  int64 entriesWritten = 5;
+  int64 compactionAgeNanos = 6;
 }
