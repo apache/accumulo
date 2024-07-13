@@ -253,7 +253,6 @@ public class Upgrader11to12 implements Upgrader {
       // Add references to the Metadata Table
       try (BatchWriter writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
         writer.addMutation(scanRefTablet.createMutation());
-        writer.flush();
       } catch (MutationsRejectedException | TableNotFoundException e) {
         log.error("Failed to write tablet refs to metadata table");
         throw new RuntimeException(e);

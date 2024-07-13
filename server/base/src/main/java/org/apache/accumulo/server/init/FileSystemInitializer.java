@@ -103,7 +103,7 @@ public class FileSystemInitializer {
       for (String file : this.files) {
         var col =
             new ColumnFQ(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME, new Text(file));
-        sorted.put(new Key(extent, col.getColumnFamily(), col.getColumnQualifier()), EMPTY_SIZE);
+        sorted.put(new Key(extent, col.getColumnFamily(), col.getColumnQualifier(), 0), EMPTY_SIZE);
       }
       return sorted;
     }
@@ -112,7 +112,7 @@ public class FileSystemInitializer {
       Mutation mutation = new Mutation(this.extent);
       for (Map.Entry<Key,Value> entry : createEntries().entrySet()) {
         mutation.put(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier(),
-            entry.getKey().getTimestamp(), entry.getValue());
+            entry.getValue());
       }
       return mutation;
     }
@@ -215,11 +215,16 @@ public class FileSystemInitializer {
         .forFile(file, fs, fs.getConf(), cs).withTableConfiguration(conf).build();
     tabletWriter.startDefaultLocalityGroup();
 
+    TreeMap<Key,Value> sorted = new TreeMap<>();
     for (InitialTablet initialTablet : initialTablets) {
       // sort file contents in memory, then play back to the file
       for (Map.Entry<Key,Value> entry : initialTablet.createEntries().entrySet()) {
-        tabletWriter.append(entry.getKey(), entry.getValue());
+        sorted.putAll(initialTablet.createEntries());
       }
+    }
+
+    for (Map.Entry<Key,Value> entry : sorted.entrySet()) {
+      tabletWriter.append(entry.getKey(), entry.getValue());
     }
     tabletWriter.close();
   }
