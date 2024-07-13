@@ -22,20 +22,20 @@
 // Protobuf Java Version: 3.25.3
 package org.apache.accumulo.core.compaction.protobuf;
 
-public interface TCompactionStatusUpdateOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:compaction_coordinator.TCompactionStatusUpdate)
+public interface PCompactionStatusUpdateOrBuilder extends
+    // @@protoc_insertion_point(interface_extends:compaction_coordinator.PCompactionStatusUpdate)
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>.compaction_coordinator.TCompactionState state = 1;</code>
+   * <code>.compaction_coordinator.PCompactionState state = 1;</code>
    * @return The enum numeric value on the wire for state.
    */
   int getStateValue();
   /**
-   * <code>.compaction_coordinator.TCompactionState state = 1;</code>
+   * <code>.compaction_coordinator.PCompactionState state = 1;</code>
    * @return The state.
    */
-  org.apache.accumulo.core.compaction.protobuf.TCompactionState getState();
+  org.apache.accumulo.core.compaction.protobuf.PCompactionState getState();
 
   /**
    * <code>string message = 2;</code>

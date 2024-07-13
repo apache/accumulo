@@ -61,7 +61,7 @@ private static final long serialVersionUID = 0L;
   public static final int JOB_FIELD_NUMBER = 1;
   private org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob job_;
   /**
-   * <code>.compaction_coordinator.PExternalCompactionJob job = 1;</code>
+   * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
    * @return Whether the job field is set.
    */
   @java.lang.Override
@@ -69,7 +69,7 @@ private static final long serialVersionUID = 0L;
     return ((bitField0_ & 0x00000001) != 0);
   }
   /**
-   * <code>.compaction_coordinator.PExternalCompactionJob job = 1;</code>
+   * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
    * @return The job.
    */
   @java.lang.Override
@@ -77,7 +77,7 @@ private static final long serialVersionUID = 0L;
     return job_ == null ? org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob.getDefaultInstance() : job_;
   }
   /**
-   * <code>.compaction_coordinator.PExternalCompactionJob job = 1;</code>
+   * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
    */
   @java.lang.Override
   public org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJobOrBuilder getJobOrBuilder() {
@@ -469,14 +469,14 @@ private static final long serialVersionUID = 0L;
     private com.google.protobuf.SingleFieldBuilderV3<
         org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob, org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob.Builder, org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJobOrBuilder> jobBuilder_;
     /**
-     * <code>.compaction_coordinator.PExternalCompactionJob job = 1;</code>
+     * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
      * @return Whether the job field is set.
      */
     public boolean hasJob() {
       return ((bitField0_ & 0x00000001) != 0);
     }
     /**
-     * <code>.compaction_coordinator.PExternalCompactionJob job = 1;</code>
+     * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
      * @return The job.
      */
     public org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob getJob() {
@@ -487,7 +487,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>.compaction_coordinator.PExternalCompactionJob job = 1;</code>
+     * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
      */
     public Builder setJob(org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob value) {
       if (jobBuilder_ == null) {
@@ -503,7 +503,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.compaction_coordinator.PExternalCompactionJob job = 1;</code>
+     * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
      */
     public Builder setJob(
         org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob.Builder builderForValue) {
@@ -517,7 +517,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.compaction_coordinator.PExternalCompactionJob job = 1;</code>
+     * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
      */
     public Builder mergeJob(org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob value) {
       if (jobBuilder_ == null) {
@@ -538,7 +538,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.compaction_coordinator.PExternalCompactionJob job = 1;</code>
+     * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
      */
     public Builder clearJob() {
       bitField0_ = (bitField0_ & ~0x00000001);
@@ -551,7 +551,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.compaction_coordinator.PExternalCompactionJob job = 1;</code>
+     * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob.Builder getJobBuilder() {
       bitField0_ |= 0x00000001;
@@ -559,7 +559,7 @@ private static final long serialVersionUID = 0L;
       return getJobFieldBuilder().getBuilder();
     }
     /**
-     * <code>.compaction_coordinator.PExternalCompactionJob job = 1;</code>
+     * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
      */
     public org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJobOrBuilder getJobOrBuilder() {
       if (jobBuilder_ != null) {
@@ -570,7 +570,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>.compaction_coordinator.PExternalCompactionJob job = 1;</code>
+     * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
      */
     private com.google.protobuf.SingleFieldBuilderV3<
         org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob, org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob.Builder, org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJobOrBuilder> 

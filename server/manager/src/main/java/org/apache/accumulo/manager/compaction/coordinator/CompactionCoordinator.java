@@ -66,18 +66,25 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.compaction.protobuf.CancelRequest;
 import org.apache.accumulo.core.compaction.protobuf.CompactionCompletedRequest;
 import org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceGrpc;
+import org.apache.accumulo.core.compaction.protobuf.CompactionFailedRequest;
 import org.apache.accumulo.core.compaction.protobuf.CompactionJobRequest;
+import org.apache.accumulo.core.compaction.protobuf.GetCompletedCompactionsRequest;
+import org.apache.accumulo.core.compaction.protobuf.GetRunningCompactionsRequest;
 import org.apache.accumulo.core.compaction.protobuf.PCompactionKind;
+import org.apache.accumulo.core.compaction.protobuf.PCompactionState;
+import org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.protobuf.PCredentials;
 import org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob;
+import org.apache.accumulo.core.compaction.protobuf.PExternalCompactionList;
 import org.apache.accumulo.core.compaction.protobuf.PInputFile;
 import org.apache.accumulo.core.compaction.protobuf.PIteratorConfig;
 import org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob;
 import org.apache.accumulo.core.compaction.protobuf.ProtoTInfo;
+import org.apache.accumulo.core.compaction.protobuf.UpdateCompactionStatusRequest;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
@@ -315,10 +322,10 @@ public class CompactionCoordinator
     } else {
       LOG.info("Found {} running external compactions", running.size());
       running.forEach(rc -> {
-        TCompactionStatusUpdate update = new TCompactionStatusUpdate();
-        update.setState(TCompactionState.IN_PROGRESS);
-        update.setMessage("Coordinator restarted, compaction found in progress");
-        rc.addUpdate(System.currentTimeMillis(), update);
+        PCompactionStatusUpdate update =
+            PCompactionStatusUpdate.newBuilder().setState(PCompactionState.IN_PROGRESS)
+                .setMessage("Coordinator restarted, compaction found in progress").build();
+        rc.addUpdate(System.currentTimeMillis(), convert(update));
         RUNNING_CACHE.put(ExternalCompactionId.of(rc.getJob().getExternalCompactionId()), rc);
       });
     }
@@ -758,15 +765,7 @@ public class CompactionCoordinator
   @Override
   public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
       TKeyExtent extent) throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    KeyExtent fromThriftExtent = KeyExtent.fromThrift(extent);
-    LOG.info("Compaction failed, id: {}, extent: {}", externalCompactionId, fromThriftExtent);
-    final var ecid = ExternalCompactionId.of(externalCompactionId);
-    compactionsFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
+    throw new UnsupportedOperationException();
   }
 
   void compactionsFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
@@ -884,17 +883,7 @@ public class CompactionCoordinator
   public void updateCompactionStatus(TInfo tinfo, TCredentials credentials,
       String externalCompactionId, TCompactionStatusUpdate update, long timestamp)
       throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}", externalCompactionId,
-        timestamp, update);
-    final RunningCompaction rc = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
-    if (null != rc) {
-      rc.addUpdate(timestamp, update);
-    }
+    throw new UnsupportedOperationException();
   }
 
   public void recordCompletion(ExternalCompactionId ecid) {
@@ -1172,11 +1161,11 @@ public class CompactionCoordinator
       // TODO: Do we want to offload this processing to a new thread like we plan to do with
       // getCompactionJob() ?
 
-      var credentials = request.getCredentials();
+      var credentials = convert(request.getCredentials());
 
       try {
         // do not expect users to call this directly, expect other tservers to call this method
-        if (!security.canPerformSystemActions(convert(credentials))) {
+        if (!security.canPerformSystemActions(credentials)) {
           throw new AccumuloSecurityException(credentials.getPrincipal(),
               SecurityErrorCode.PERMISSION_DENIED).asThriftException();
         }
@@ -1231,8 +1220,185 @@ public class CompactionCoordinator
 
         responseObserver.onCompleted();
       } catch (ThriftSecurityException e) {
+        responseObserver.onError(e);
         throw new RuntimeException(e);
       } catch (Exception e) {
+        responseObserver.onError(e);
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
+    }
+
+    @Override
+    public void updateCompactionStatus(UpdateCompactionStatusRequest request,
+        StreamObserver<Empty> responseObserver) {
+
+      // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // getCompactionJob() ?
+
+      var credentials = convert(request.getCredentials());
+
+      try {
+        // do not expect users to call this directly, expect other tservers to call this method
+        if (!security.canPerformSystemActions(credentials)) {
+          throw new AccumuloSecurityException(credentials.getPrincipal(),
+              SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+        }
+        LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}",
+            request.getExternalCompactionId(), request.getTimestamp(), request.getStatus());
+        final RunningCompaction rc =
+            RUNNING_CACHE.get(ExternalCompactionId.of(request.getExternalCompactionId()));
+        if (null != rc) {
+          rc.addUpdate(request.getTimestamp(), convert(request.getStatus()));
+        }
+        responseObserver.onCompleted();
+      } catch (ThriftSecurityException e) {
+        responseObserver.onError(e);
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        responseObserver.onError(e);
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
+    }
+
+    @Override
+    public void compactionFailed(CompactionFailedRequest request,
+        StreamObserver<Empty> responseObserver) {
+
+      // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // getCompactionJob() ?
+
+      var credentials = convert(request.getCredentials());
+
+      try {
+        // do not expect users to call this directly, expect other tservers to call this method
+        if (!security.canPerformSystemActions(credentials)) {
+          throw new AccumuloSecurityException(credentials.getPrincipal(),
+              SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+        }
+        KeyExtent extent = KeyExtent.fromProtobuf(request.getExtent());
+        LOG.info("Compaction failed, id: {}, extent: {}", request.getExternalCompactionId(),
+            extent);
+        final var ecid = ExternalCompactionId.of(request.getExternalCompactionId());
+        compactionsFailed(Map.of(ecid, extent));
+      } catch (ThriftSecurityException e) {
+        responseObserver.onError(e);
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        responseObserver.onError(e);
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
+    }
+
+    @Override
+    public void getRunningCompactions(GetRunningCompactionsRequest request,
+        StreamObserver<PExternalCompactionList> responseObserver) {
+
+      // TODO
+      super.getRunningCompactions(request, responseObserver);
+
+      // // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // // getCompactionJob() ?
+      //
+      // var credentials = convert(request.getCredentials());
+      //
+      // try {
+      // // do not expect users to call this directly, expect other tservers to call this method
+      // if (!security.canPerformSystemActions(credentials)) {
+      // throw new AccumuloSecurityException(credentials.getPrincipal(),
+      // SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      // }
+      //
+      // final PExternalCompactionList.Builder resultBuilder = PExternalCompactionList.newBuilder();
+      // RUNNING_CACHE.forEach((ecid, rc) -> {
+      // PExternalCompaction prc = PExternalCompaction.newBuilder().setGroupName(rc.getGroupName())
+      // .setCompactor(rc.getCompactorAddress()).setJob(convert(rc.getJob()))
+      // .putAllUpdates(rc.getUpdates()).build();
+      // resultBuilder.putCompactions(ecid.canonical(), prc);
+      // });
+      // responseObserver.onNext(resultBuilder.build());
+      // responseObserver.onCompleted();
+      // } catch (ThriftSecurityException e) {
+      // responseObserver.onError(e);
+      // throw new RuntimeException(e);
+      // } catch (Exception e) {
+      // responseObserver.onError(e);
+      // LOG.error(e.getMessage(), e);
+      // throw e;
+      // }
+    }
+
+    @Override
+    public void getCompletedCompactions(GetCompletedCompactionsRequest request,
+        StreamObserver<PExternalCompactionList> responseObserver) {
+
+      // TODO
+      super.getCompletedCompactions(request, responseObserver);
+
+      // // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // // getCompactionJob() ?
+      //
+      // var credentials = convert(request.getCredentials());
+      //
+      // try {
+      // // do not expect users to call this directly, expect other tservers to call this method
+      // if (!security.canPerformSystemActions(credentials)) {
+      // throw new AccumuloSecurityException(credentials.getPrincipal(),
+      // SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      // }
+      // final PExternalCompactionList.Builder resultBuilder = PExternalCompactionList.newBuilder();
+      //
+      // completed.asMap().forEach((ecid, rc) -> {
+      // PExternalCompaction prc = PExternalCompaction.newBuilder().setGroupName(rc.getGroupName())
+      // .setCompactor(rc.getCompactorAddress()).setJob(convert(rc.getJob()))
+      // .putAllUpdates(rc.getUpdates()).build();
+      // resultBuilder.putCompactions(ecid.canonical(), prc);
+      // });
+      // responseObserver.onNext(resultBuilder.build());
+      // responseObserver.onCompleted();
+      // } catch (ThriftSecurityException e) {
+      // responseObserver.onError(e);
+      // throw new RuntimeException(e);
+      // } catch (Exception e) {
+      // responseObserver.onError(e);
+      // LOG.error(e.getMessage(), e);
+      // throw e;
+      // }
+    }
+
+    @Override
+    public void cancel(CancelRequest request, StreamObserver<Empty> responseObserver) {
+      // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // getCompactionJob() ?
+
+      var credentials = convert(request.getCredentials());
+
+      try {
+        var runningCompaction =
+            RUNNING_CACHE.get(ExternalCompactionId.of(request.getExternalCompactionId()));
+        var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
+        try {
+          NamespaceId nsId = CompactionCoordinator.this.ctx.getNamespaceId(extent.tableId());
+          if (!security.canCompact(credentials, extent.tableId(), nsId)) {
+            throw new AccumuloSecurityException(credentials.getPrincipal(),
+                SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+          }
+        } catch (TableNotFoundException e) {
+          throw new ThriftTableOperationException(extent.tableId().canonical(), null,
+              TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
+        }
+
+        cancelCompactionOnCompactor(runningCompaction.getCompactorAddress(),
+            request.getExternalCompactionId());
+
+        responseObserver.onCompleted();
+      } catch (ThriftSecurityException | ThriftTableOperationException e) {
+        responseObserver.onError(e);
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        responseObserver.onError(e);
         LOG.error(e.getMessage(), e);
         throw e;
       }

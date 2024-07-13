@@ -35,16 +35,41 @@ package compaction_coordinator;
 // Interface exported by the server.
 service CompactionCoordinatorService {
   /*
-   * Called by Compactor on successful completion of compaction job
+   * Called by Compactor to get the next compaction job
    */
-  rpc GetCompactionJob(CompactionJobRequest) returns (PNextCompactionJob) {}
+  rpc GetCompactionJob(CompactionJobRequest) returns (PNextCompactionJob);
 
   /*
    * Called by Compactor on successful completion of compaction job
    */
   rpc CompactionCompleted(CompactionCompletedRequest) returns (google.protobuf.Empty);
 
+  /*
+   * Called by Compactor to update the Coordinator with the state of the compaction
+   */
+  rpc UpdateCompactionStatus(UpdateCompactionStatusRequest) returns (google.protobuf.Empty);
+
+  /*
+   * Called by Compactor on unsuccessful completion of compaction job
+   */
+  rpc CompactionFailed(CompactionFailedRequest) returns (google.protobuf.Empty);
+
+  /*
+   * Called by the Monitor to get progress information
+   */
+  rpc GetRunningCompactions(GetRunningCompactionsRequest) returns (PExternalCompactionList);
+
+  /*
+   * Called by the Monitor to get progress information
+   */
+  rpc GetCompletedCompactions(GetCompletedCompactionsRequest) returns (PExternalCompactionList);
+
+  /*
+   * Called by Compactor on unsuccessful completion of compaction job
+   */
+  rpc Cancel(CancelRequest) returns (google.protobuf.Empty);
 }
+
 message CompactionJobRequest {
   client.ProtoTInfo ptinfo = 1;
   security.PCredentials credentials = 2;
@@ -61,25 +86,55 @@ message CompactionCompletedRequest {
   tabletserver.PCompactionStats stats = 5;
 }
 
+message UpdateCompactionStatusRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+  string externalCompactionId = 3;
+  PCompactionStatusUpdate status = 4;
+  int64  timestamp = 5;
+}
 
-message PExternalCompactionJob {
-  optional string externalCompactionId = 1;
-  optional data.PKeyExtent extent = 2;
-  repeated tabletserver.PInputFile files = 3;
-  optional tabletserver.PIteratorConfig iteratorSettings = 4;
-  optional string outputFile = 5;
-  optional bool propagateDeletes = 6;
-  optional tabletserver.PCompactionKind kind = 7;
-  optional manager.PFateId fateId = 8;
-  map<string, string> overrides = 9;
+message CompactionFailedRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+  string externalCompactionId = 3;
+  data.PKeyExtent extent = 4;
+}
+
+message GetRunningCompactionsRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+}
+
+message GetCompletedCompactionsRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+}
+
+message CancelRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+  string externalCompactionId = 3;
+}
+
+message PExternalCompaction {
+  string groupName = 1;
+  string compactor = 2;
+  map<int64, PCompactionStatusUpdate> updates = 3;
+  tabletserver.PExternalCompactionJob job = 4;
+
+}
+
+message PExternalCompactionList {
+  map<string, PExternalCompaction> compactions = 1;
 }
 
 message PNextCompactionJob {
-  PExternalCompactionJob job = 1;
+  tabletserver.PExternalCompactionJob job = 1;
   int32 compactorCount = 2;
 }
 
-enum TCompactionState {
+enum PCompactionState {
   // Coordinator should set state to ASSIGNED when getCompactionJob is called by Compactor
   ASSIGNED = 0;
   // Compactor should set state to STARTED when compaction has successfully begun
@@ -94,8 +149,8 @@ enum TCompactionState {
   CANCELLED = 5;
 }
 
-message TCompactionStatusUpdate {
-  TCompactionState state = 1;
+message PCompactionStatusUpdate {
+  PCompactionState state = 1;
   string message = 2;
   int64 entriesToBeCompacted = 3;
   int64 entriesRead = 4;

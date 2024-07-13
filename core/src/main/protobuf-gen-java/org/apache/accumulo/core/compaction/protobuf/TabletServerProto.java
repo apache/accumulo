@@ -34,6 +34,16 @@ public final class TabletServerProto {
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_tabletserver_PExternalCompactionJob_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_tabletserver_PExternalCompactionJob_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_tabletserver_PExternalCompactionJob_OverridesEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_tabletserver_PExternalCompactionJob_OverridesEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_tabletserver_PInputFile_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -67,35 +77,64 @@ public final class TabletServerProto {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\022tabletserver.proto\022\014tabletserver\"Y\n\nPI" +
-      "nputFile\022\031\n\021metadataFileEntry\030\001 \001(\t\022\014\n\004s" +
-      "ize\030\002 \001(\003\022\017\n\007entries\030\003 \001(\003\022\021\n\ttimestamp\030" +
-      "\004 \001(\003\"\300\001\n\020PIteratorSetting\022\020\n\010priority\030\001" +
-      " \001(\005\022\014\n\004name\030\002 \001(\t\022\025\n\riteratorClass\030\003 \001(" +
-      "\t\022B\n\nproperties\030\004 \003(\0132..tabletserver.PIt" +
-      "eratorSetting.PropertiesEntry\0321\n\017Propert" +
-      "iesEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001" +
-      "\"D\n\017PIteratorConfig\0221\n\titerators\030\001 \003(\0132\036" +
-      ".tabletserver.PIteratorSetting\"Q\n\020PCompa" +
-      "ctionStats\022\023\n\013entriesRead\030\001 \001(\003\022\026\n\016entri" +
-      "esWritten\030\002 \001(\003\022\020\n\010fileSize\030\003 \001(\003*4\n\017PCo" +
-      "mpactionKind\022\013\n\007UNKNOWN\020\000\022\n\n\006SYSTEM\020\001\022\010\n" +
-      "\004USER\020\002BC\n,org.apache.accumulo.core.comp" +
-      "action.protobufB\021TabletServerProtoP\001b\006pr" +
-      "oto3"
+      "\n\022tabletserver.proto\022\014tabletserver\032\ndata" +
+      ".proto\032\rmanager.proto\"\305\004\n\026PExternalCompa" +
+      "ctionJob\022!\n\024externalCompactionId\030\001 \001(\tH\000" +
+      "\210\001\001\022%\n\006extent\030\002 \001(\0132\020.data.PKeyExtentH\001\210" +
+      "\001\001\022\'\n\005files\030\003 \003(\0132\030.tabletserver.PInputF" +
+      "ile\022<\n\020iteratorSettings\030\004 \001(\0132\035.tabletse" +
+      "rver.PIteratorConfigH\002\210\001\001\022\027\n\noutputFile\030" +
+      "\005 \001(\tH\003\210\001\001\022\035\n\020propagateDeletes\030\006 \001(\010H\004\210\001" +
+      "\001\0220\n\004kind\030\007 \001(\0162\035.tabletserver.PCompacti" +
+      "onKindH\005\210\001\001\022%\n\006fateId\030\010 \001(\0132\020.manager.PF" +
+      "ateIdH\006\210\001\001\022F\n\toverrides\030\t \003(\01323.tabletse" +
+      "rver.PExternalCompactionJob.OverridesEnt" +
+      "ry\0320\n\016OverridesEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005val" +
+      "ue\030\002 \001(\t:\0028\001B\027\n\025_externalCompactionIdB\t\n" +
+      "\007_extentB\023\n\021_iteratorSettingsB\r\n\013_output" +
+      "FileB\023\n\021_propagateDeletesB\007\n\005_kindB\t\n\007_f" +
+      "ateId\"Y\n\nPInputFile\022\031\n\021metadataFileEntry" +
+      "\030\001 \001(\t\022\014\n\004size\030\002 \001(\003\022\017\n\007entries\030\003 \001(\003\022\021\n" +
+      "\ttimestamp\030\004 \001(\003\"\300\001\n\020PIteratorSetting\022\020\n" +
+      "\010priority\030\001 \001(\005\022\014\n\004name\030\002 \001(\t\022\025\n\riterato" +
+      "rClass\030\003 \001(\t\022B\n\nproperties\030\004 \003(\0132..table" +
+      "tserver.PIteratorSetting.PropertiesEntry" +
+      "\0321\n\017PropertiesEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005valu" +
+      "e\030\002 \001(\t:\0028\001\"D\n\017PIteratorConfig\0221\n\titerat" +
+      "ors\030\001 \003(\0132\036.tabletserver.PIteratorSettin" +
+      "g\"Q\n\020PCompactionStats\022\023\n\013entriesRead\030\001 \001" +
+      "(\003\022\026\n\016entriesWritten\030\002 \001(\003\022\020\n\010fileSize\030\003" +
+      " \001(\003*4\n\017PCompactionKind\022\013\n\007UNKNOWN\020\000\022\n\n\006" +
+      "SYSTEM\020\001\022\010\n\004USER\020\002BC\n,org.apache.accumul" +
+      "o.core.compaction.protobufB\021TabletServer" +
+      "ProtoP\001b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          org.apache.accumulo.core.compaction.protobuf.DataProto.getDescriptor(),
+          org.apache.accumulo.core.compaction.protobuf.ManagerProto.getDescriptor(),
         });
-    internal_static_tabletserver_PInputFile_descriptor =
+    internal_static_tabletserver_PExternalCompactionJob_descriptor =
       getDescriptor().getMessageTypes().get(0);
+    internal_static_tabletserver_PExternalCompactionJob_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_tabletserver_PExternalCompactionJob_descriptor,
+        new java.lang.String[] { "ExternalCompactionId", "Extent", "Files", "IteratorSettings", "OutputFile", "PropagateDeletes", "Kind", "FateId", "Overrides", });
+    internal_static_tabletserver_PExternalCompactionJob_OverridesEntry_descriptor =
+      internal_static_tabletserver_PExternalCompactionJob_descriptor.getNestedTypes().get(0);
+    internal_static_tabletserver_PExternalCompactionJob_OverridesEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_tabletserver_PExternalCompactionJob_OverridesEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
+    internal_static_tabletserver_PInputFile_descriptor =
+      getDescriptor().getMessageTypes().get(1);
     internal_static_tabletserver_PInputFile_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_tabletserver_PInputFile_descriptor,
         new java.lang.String[] { "MetadataFileEntry", "Size", "Entries", "Timestamp", });
     internal_static_tabletserver_PIteratorSetting_descriptor =
-      getDescriptor().getMessageTypes().get(1);
+      getDescriptor().getMessageTypes().get(2);
     internal_static_tabletserver_PIteratorSetting_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_tabletserver_PIteratorSetting_descriptor,
@@ -107,17 +146,19 @@ public final class TabletServerProto {
         internal_static_tabletserver_PIteratorSetting_PropertiesEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
     internal_static_tabletserver_PIteratorConfig_descriptor =
-      getDescriptor().getMessageTypes().get(2);
+      getDescriptor().getMessageTypes().get(3);
     internal_static_tabletserver_PIteratorConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_tabletserver_PIteratorConfig_descriptor,
         new java.lang.String[] { "Iterators", });
     internal_static_tabletserver_PCompactionStats_descriptor =
-      getDescriptor().getMessageTypes().get(3);
+      getDescriptor().getMessageTypes().get(4);
     internal_static_tabletserver_PCompactionStats_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_tabletserver_PCompactionStats_descriptor,
         new java.lang.String[] { "EntriesRead", "EntriesWritten", "FileSize", });
+    org.apache.accumulo.core.compaction.protobuf.DataProto.getDescriptor();
+    org.apache.accumulo.core.compaction.protobuf.ManagerProto.getDescriptor();
   }
 
   // @@protoc_insertion_point(outer_class_scope)

@@ -28,10 +28,10 @@ import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.compaction.protobuf.PCompactionState;
+import org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
-import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -85,9 +85,8 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
       public void run() {
         try {
           LOG.info("Starting up compaction runnable for job: {}", job);
-          TCompactionStatusUpdate update = new TCompactionStatusUpdate();
-          update.setState(TCompactionState.STARTED);
-          update.setMessage("Compaction started");
+          PCompactionStatusUpdate update = PCompactionStatusUpdate.newBuilder()
+              .setState(PCompactionState.STARTED).setMessage("Compaction started").build();
           updateCompactionState(job, update);
 
           // Create tmp output file

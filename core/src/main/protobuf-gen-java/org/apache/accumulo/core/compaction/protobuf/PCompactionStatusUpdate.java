@@ -23,18 +23,18 @@
 package org.apache.accumulo.core.compaction.protobuf;
 
 /**
- * Protobuf type {@code compaction_coordinator.TCompactionStatusUpdate}
+ * Protobuf type {@code compaction_coordinator.PCompactionStatusUpdate}
  */
-public final class TCompactionStatusUpdate extends
+public final class PCompactionStatusUpdate extends
     com.google.protobuf.GeneratedMessageV3 implements
-    // @@protoc_insertion_point(message_implements:compaction_coordinator.TCompactionStatusUpdate)
-    TCompactionStatusUpdateOrBuilder {
+    // @@protoc_insertion_point(message_implements:compaction_coordinator.PCompactionStatusUpdate)
+    PCompactionStatusUpdateOrBuilder {
 private static final long serialVersionUID = 0L;
-  // Use TCompactionStatusUpdate.newBuilder() to construct.
-  private TCompactionStatusUpdate(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+  // Use PCompactionStatusUpdate.newBuilder() to construct.
+  private PCompactionStatusUpdate(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
     super(builder);
   }
-  private TCompactionStatusUpdate() {
+  private PCompactionStatusUpdate() {
     state_ = 0;
     message_ = "";
   }
@@ -43,38 +43,38 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings({"unused"})
   protected java.lang.Object newInstance(
       UnusedPrivateParameter unused) {
-    return new TCompactionStatusUpdate();
+    return new PCompactionStatusUpdate();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
       getDescriptor() {
-    return org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceProto.internal_static_compaction_coordinator_TCompactionStatusUpdate_descriptor;
+    return org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceProto.internal_static_compaction_coordinator_PCompactionStatusUpdate_descriptor;
   }
 
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internalGetFieldAccessorTable() {
-    return org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceProto.internal_static_compaction_coordinator_TCompactionStatusUpdate_fieldAccessorTable
+    return org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceProto.internal_static_compaction_coordinator_PCompactionStatusUpdate_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
-            org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate.class, org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate.Builder.class);
+            org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate.class, org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate.Builder.class);
   }
 
   public static final int STATE_FIELD_NUMBER = 1;
   private int state_ = 0;
   /**
-   * <code>.compaction_coordinator.TCompactionState state = 1;</code>
+   * <code>.compaction_coordinator.PCompactionState state = 1;</code>
    * @return The enum numeric value on the wire for state.
    */
   @java.lang.Override public int getStateValue() {
     return state_;
   }
   /**
-   * <code>.compaction_coordinator.TCompactionState state = 1;</code>
+   * <code>.compaction_coordinator.PCompactionState state = 1;</code>
    * @return The state.
    */
-  @java.lang.Override public org.apache.accumulo.core.compaction.protobuf.TCompactionState getState() {
-    org.apache.accumulo.core.compaction.protobuf.TCompactionState result = org.apache.accumulo.core.compaction.protobuf.TCompactionState.forNumber(state_);
-    return result == null ? org.apache.accumulo.core.compaction.protobuf.TCompactionState.UNRECOGNIZED : result;
+  @java.lang.Override public org.apache.accumulo.core.compaction.protobuf.PCompactionState getState() {
+    org.apache.accumulo.core.compaction.protobuf.PCompactionState result = org.apache.accumulo.core.compaction.protobuf.PCompactionState.forNumber(state_);
+    return result == null ? org.apache.accumulo.core.compaction.protobuf.PCompactionState.UNRECOGNIZED : result;
   }
 
   public static final int MESSAGE_FIELD_NUMBER = 2;
@@ -174,7 +174,7 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (state_ != org.apache.accumulo.core.compaction.protobuf.TCompactionState.ASSIGNED.getNumber()) {
+    if (state_ != org.apache.accumulo.core.compaction.protobuf.PCompactionState.ASSIGNED.getNumber()) {
       output.writeEnum(1, state_);
     }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(message_)) {
@@ -201,7 +201,7 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (state_ != org.apache.accumulo.core.compaction.protobuf.TCompactionState.ASSIGNED.getNumber()) {
+    if (state_ != org.apache.accumulo.core.compaction.protobuf.PCompactionState.ASSIGNED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(1, state_);
     }
@@ -234,10 +234,10 @@ private static final long serialVersionUID = 0L;
     if (obj == this) {
      return true;
     }
-    if (!(obj instanceof org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate)) {
+    if (!(obj instanceof org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate)) {
       return super.equals(obj);
     }
-    org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate other = (org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate) obj;
+    org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate other = (org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate) obj;
 
     if (state_ != other.state_) return false;
     if (!getMessage()
@@ -282,44 +282,44 @@ private static final long serialVersionUID = 0L;
     return hash;
   }
 
-  public static org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate parseFrom(
+  public static org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate parseFrom(
       java.nio.ByteBuffer data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate parseFrom(
+  public static org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate parseFrom(
       java.nio.ByteBuffer data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate parseFrom(
+  public static org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate parseFrom(
       com.google.protobuf.ByteString data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate parseFrom(
+  public static org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate parseFrom(
       com.google.protobuf.ByteString data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate parseFrom(byte[] data)
+  public static org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate parseFrom(byte[] data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate parseFrom(
+  public static org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate parseFrom(
       byte[] data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate parseFrom(java.io.InputStream input)
+  public static org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate parseFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseWithIOException(PARSER, input);
   }
-  public static org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate parseFrom(
+  public static org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate parseFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -327,26 +327,26 @@ private static final long serialVersionUID = 0L;
         .parseWithIOException(PARSER, input, extensionRegistry);
   }
 
-  public static org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate parseDelimitedFrom(java.io.InputStream input)
+  public static org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate parseDelimitedFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseDelimitedWithIOException(PARSER, input);
   }
 
-  public static org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate parseDelimitedFrom(
+  public static org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate parseDelimitedFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
   }
-  public static org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate parseFrom(
+  public static org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate parseFrom(
       com.google.protobuf.CodedInputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseWithIOException(PARSER, input);
   }
-  public static org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate parseFrom(
+  public static org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate parseFrom(
       com.google.protobuf.CodedInputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -359,7 +359,7 @@ private static final long serialVersionUID = 0L;
   public static Builder newBuilder() {
     return DEFAULT_INSTANCE.toBuilder();
   }
-  public static Builder newBuilder(org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate prototype) {
+  public static Builder newBuilder(org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate prototype) {
     return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
   }
   @java.lang.Override
@@ -375,26 +375,26 @@ private static final long serialVersionUID = 0L;
     return builder;
   }
   /**
-   * Protobuf type {@code compaction_coordinator.TCompactionStatusUpdate}
+   * Protobuf type {@code compaction_coordinator.PCompactionStatusUpdate}
    */
   public static final class Builder extends
       com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-      // @@protoc_insertion_point(builder_implements:compaction_coordinator.TCompactionStatusUpdate)
-      org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdateOrBuilder {
+      // @@protoc_insertion_point(builder_implements:compaction_coordinator.PCompactionStatusUpdate)
+      org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdateOrBuilder {
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceProto.internal_static_compaction_coordinator_TCompactionStatusUpdate_descriptor;
+      return org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceProto.internal_static_compaction_coordinator_PCompactionStatusUpdate_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceProto.internal_static_compaction_coordinator_TCompactionStatusUpdate_fieldAccessorTable
+      return org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceProto.internal_static_compaction_coordinator_PCompactionStatusUpdate_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate.class, org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate.Builder.class);
+              org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate.class, org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate.Builder.class);
     }
 
-    // Construct using org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate.newBuilder()
+    // Construct using org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate.newBuilder()
     private Builder() {
 
     }
@@ -420,17 +420,17 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public com.google.protobuf.Descriptors.Descriptor
         getDescriptorForType() {
-      return org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceProto.internal_static_compaction_coordinator_TCompactionStatusUpdate_descriptor;
+      return org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceProto.internal_static_compaction_coordinator_PCompactionStatusUpdate_descriptor;
     }
 
     @java.lang.Override
-    public org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate getDefaultInstanceForType() {
-      return org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate.getDefaultInstance();
+    public org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate getDefaultInstanceForType() {
+      return org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate.getDefaultInstance();
     }
 
     @java.lang.Override
-    public org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate build() {
-      org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate result = buildPartial();
+    public org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate build() {
+      org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate result = buildPartial();
       if (!result.isInitialized()) {
         throw newUninitializedMessageException(result);
       }
@@ -438,14 +438,14 @@ private static final long serialVersionUID = 0L;
     }
 
     @java.lang.Override
-    public org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate buildPartial() {
-      org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate result = new org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate(this);
+    public org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate buildPartial() {
+      org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate result = new org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate(this);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
     }
 
-    private void buildPartial0(org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate result) {
+    private void buildPartial0(org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.state_ = state_;
@@ -501,16 +501,16 @@ private static final long serialVersionUID = 0L;
     }
     @java.lang.Override
     public Builder mergeFrom(com.google.protobuf.Message other) {
-      if (other instanceof org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate) {
-        return mergeFrom((org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate)other);
+      if (other instanceof org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate) {
+        return mergeFrom((org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate)other);
       } else {
         super.mergeFrom(other);
         return this;
       }
     }
 
-    public Builder mergeFrom(org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate other) {
-      if (other == org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate.getDefaultInstance()) return this;
+    public Builder mergeFrom(org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate other) {
+      if (other == org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate.getDefaultInstance()) return this;
       if (other.state_ != 0) {
         setStateValue(other.getStateValue());
       }
@@ -606,14 +606,14 @@ private static final long serialVersionUID = 0L;
 
     private int state_ = 0;
     /**
-     * <code>.compaction_coordinator.TCompactionState state = 1;</code>
+     * <code>.compaction_coordinator.PCompactionState state = 1;</code>
      * @return The enum numeric value on the wire for state.
      */
     @java.lang.Override public int getStateValue() {
       return state_;
     }
     /**
-     * <code>.compaction_coordinator.TCompactionState state = 1;</code>
+     * <code>.compaction_coordinator.PCompactionState state = 1;</code>
      * @param value The enum numeric value on the wire for state to set.
      * @return This builder for chaining.
      */
@@ -624,20 +624,20 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.compaction_coordinator.TCompactionState state = 1;</code>
+     * <code>.compaction_coordinator.PCompactionState state = 1;</code>
      * @return The state.
      */
     @java.lang.Override
-    public org.apache.accumulo.core.compaction.protobuf.TCompactionState getState() {
-      org.apache.accumulo.core.compaction.protobuf.TCompactionState result = org.apache.accumulo.core.compaction.protobuf.TCompactionState.forNumber(state_);
-      return result == null ? org.apache.accumulo.core.compaction.protobuf.TCompactionState.UNRECOGNIZED : result;
+    public org.apache.accumulo.core.compaction.protobuf.PCompactionState getState() {
+      org.apache.accumulo.core.compaction.protobuf.PCompactionState result = org.apache.accumulo.core.compaction.protobuf.PCompactionState.forNumber(state_);
+      return result == null ? org.apache.accumulo.core.compaction.protobuf.PCompactionState.UNRECOGNIZED : result;
     }
     /**
-     * <code>.compaction_coordinator.TCompactionState state = 1;</code>
+     * <code>.compaction_coordinator.PCompactionState state = 1;</code>
      * @param value The state to set.
      * @return This builder for chaining.
      */
-    public Builder setState(org.apache.accumulo.core.compaction.protobuf.TCompactionState value) {
+    public Builder setState(org.apache.accumulo.core.compaction.protobuf.PCompactionState value) {
       if (value == null) {
         throw new NullPointerException();
       }
@@ -647,7 +647,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.compaction_coordinator.TCompactionState state = 1;</code>
+     * <code>.compaction_coordinator.PCompactionState state = 1;</code>
      * @return This builder for chaining.
      */
     public Builder clearState() {
@@ -869,23 +869,23 @@ private static final long serialVersionUID = 0L;
     }
 
 
-    // @@protoc_insertion_point(builder_scope:compaction_coordinator.TCompactionStatusUpdate)
+    // @@protoc_insertion_point(builder_scope:compaction_coordinator.PCompactionStatusUpdate)
   }
 
-  // @@protoc_insertion_point(class_scope:compaction_coordinator.TCompactionStatusUpdate)
-  private static final org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate DEFAULT_INSTANCE;
+  // @@protoc_insertion_point(class_scope:compaction_coordinator.PCompactionStatusUpdate)
+  private static final org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate DEFAULT_INSTANCE;
   static {
-    DEFAULT_INSTANCE = new org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate();
+    DEFAULT_INSTANCE = new org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate();
   }
 
-  public static org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate getDefaultInstance() {
+  public static org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate getDefaultInstance() {
     return DEFAULT_INSTANCE;
   }
 
-  private static final com.google.protobuf.Parser<TCompactionStatusUpdate>
-      PARSER = new com.google.protobuf.AbstractParser<TCompactionStatusUpdate>() {
+  private static final com.google.protobuf.Parser<PCompactionStatusUpdate>
+      PARSER = new com.google.protobuf.AbstractParser<PCompactionStatusUpdate>() {
     @java.lang.Override
-    public TCompactionStatusUpdate parsePartialFrom(
+    public PCompactionStatusUpdate parsePartialFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -904,17 +904,17 @@ private static final long serialVersionUID = 0L;
     }
   };
 
-  public static com.google.protobuf.Parser<TCompactionStatusUpdate> parser() {
+  public static com.google.protobuf.Parser<PCompactionStatusUpdate> parser() {
     return PARSER;
   }
 
   @java.lang.Override
-  public com.google.protobuf.Parser<TCompactionStatusUpdate> getParserForType() {
+  public com.google.protobuf.Parser<PCompactionStatusUpdate> getParserForType() {
     return PARSER;
   }
 
   @java.lang.Override
-  public org.apache.accumulo.core.compaction.protobuf.TCompactionStatusUpdate getDefaultInstanceForType() {
+  public org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate getDefaultInstanceForType() {
     return DEFAULT_INSTANCE;
   }
 

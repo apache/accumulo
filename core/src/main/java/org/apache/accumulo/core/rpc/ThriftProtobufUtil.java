@@ -24,6 +24,7 @@ import java.util.Optional;
 
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.compaction.protobuf.PCompactionKind;
+import org.apache.accumulo.core.compaction.protobuf.PCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.protobuf.PCredentials;
 import org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob;
 import org.apache.accumulo.core.compaction.protobuf.PFateId;
@@ -34,6 +35,8 @@ import org.apache.accumulo.core.compaction.protobuf.PIteratorSetting;
 import org.apache.accumulo.core.compaction.protobuf.PKeyExtent;
 import org.apache.accumulo.core.compaction.protobuf.PNextCompactionJob;
 import org.apache.accumulo.core.compaction.protobuf.ProtoTInfo;
+import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.manager.thrift.TFateId;
@@ -312,4 +315,16 @@ public class ThriftProtobufUtil {
     return PNextCompactionJob.newBuilder().setCompactorCount(nextJob.getCompactorCount())
         .setJob(convert(nextJob.getJob())).build();
   }
+
+  public static TCompactionStatusUpdate convert(PCompactionStatusUpdate pstatus) {
+    var update = new TCompactionStatusUpdate();
+    update.setState(TCompactionState.valueOf(pstatus.getState().name()));
+    update.setMessage(pstatus.getMessage());
+    update.setEntriesToBeCompacted(pstatus.getEntriesToBeCompacted());
+    update.setEntriesRead(pstatus.getEntriesRead());
+    update.setEntriesWritten(pstatus.getEntriesWritten());
+    update.setCompactionAgeNanos(pstatus.getCompactionAgeNanos());
+    return update;
+  }
+
 }

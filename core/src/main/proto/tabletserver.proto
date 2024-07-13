@@ -23,8 +23,23 @@ option java_multiple_files = true;
 option java_package = "org.apache.accumulo.core.compaction.protobuf";
 option java_outer_classname = "TabletServerProto";
 
+import "data.proto";
+import "manager.proto";
+
 package tabletserver;
 
+
+message PExternalCompactionJob {
+  optional string externalCompactionId = 1;
+  optional data.PKeyExtent extent = 2;
+  repeated tabletserver.PInputFile files = 3;
+  optional tabletserver.PIteratorConfig iteratorSettings = 4;
+  optional string outputFile = 5;
+  optional bool propagateDeletes = 6;
+  optional tabletserver.PCompactionKind kind = 7;
+  optional manager.PFateId fateId = 8;
+  map<string, string> overrides = 9;
+}
 
 message PInputFile {
   // This is nullable in Thrift but I am not marking as optional as

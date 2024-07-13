@@ -22,28 +22,37 @@
 // Protobuf Java Version: 3.25.3
 package org.apache.accumulo.core.compaction.protobuf;
 
-public interface PNextCompactionJobOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:compaction_coordinator.PNextCompactionJob)
+public interface GetRunningCompactionsRequestOrBuilder extends
+    // @@protoc_insertion_point(interface_extends:compaction_coordinator.GetRunningCompactionsRequest)
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
-   * @return Whether the job field is set.
+   * <code>.client.ProtoTInfo ptinfo = 1;</code>
+   * @return Whether the ptinfo field is set.
    */
-  boolean hasJob();
+  boolean hasPtinfo();
   /**
-   * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
-   * @return The job.
+   * <code>.client.ProtoTInfo ptinfo = 1;</code>
+   * @return The ptinfo.
    */
-  org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob getJob();
+  org.apache.accumulo.core.compaction.protobuf.ProtoTInfo getPtinfo();
   /**
-   * <code>.tabletserver.PExternalCompactionJob job = 1;</code>
+   * <code>.client.ProtoTInfo ptinfo = 1;</code>
    */
-  org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJobOrBuilder getJobOrBuilder();
+  org.apache.accumulo.core.compaction.protobuf.ProtoTInfoOrBuilder getPtinfoOrBuilder();
 
   /**
-   * <code>int32 compactorCount = 2;</code>
-   * @return The compactorCount.
+   * <code>.security.PCredentials credentials = 2;</code>
+   * @return Whether the credentials field is set.
    */
-  int getCompactorCount();
+  boolean hasCredentials();
+  /**
+   * <code>.security.PCredentials credentials = 2;</code>
+   * @return The credentials.
+   */
+  org.apache.accumulo.core.compaction.protobuf.PCredentials getCredentials();
+  /**
+   * <code>.security.PCredentials credentials = 2;</code>
+   */
+  org.apache.accumulo.core.compaction.protobuf.PCredentialsOrBuilder getCredentialsOrBuilder();
 }

@@ -23,9 +23,9 @@
 package org.apache.accumulo.core.compaction.protobuf;
 
 /**
- * Protobuf enum {@code compaction_coordinator.TCompactionState}
+ * Protobuf enum {@code compaction_coordinator.PCompactionState}
  */
-public enum TCompactionState
+public enum PCompactionState
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
@@ -142,7 +142,7 @@ public enum TCompactionState
    * @deprecated Use {@link #forNumber(int)} instead.
    */
   @java.lang.Deprecated
-  public static TCompactionState valueOf(int value) {
+  public static PCompactionState valueOf(int value) {
     return forNumber(value);
   }
 
@@ -150,7 +150,7 @@ public enum TCompactionState
    * @param value The numeric wire value of the corresponding enum entry.
    * @return The enum associated with the given numeric wire value.
    */
-  public static TCompactionState forNumber(int value) {
+  public static PCompactionState forNumber(int value) {
     switch (value) {
       case 0: return ASSIGNED;
       case 1: return STARTED;
@@ -162,15 +162,15 @@ public enum TCompactionState
     }
   }
 
-  public static com.google.protobuf.Internal.EnumLiteMap<TCompactionState>
+  public static com.google.protobuf.Internal.EnumLiteMap<PCompactionState>
       internalGetValueMap() {
     return internalValueMap;
   }
   private static final com.google.protobuf.Internal.EnumLiteMap<
-      TCompactionState> internalValueMap =
-        new com.google.protobuf.Internal.EnumLiteMap<TCompactionState>() {
-          public TCompactionState findValueByNumber(int number) {
-            return TCompactionState.forNumber(number);
+      PCompactionState> internalValueMap =
+        new com.google.protobuf.Internal.EnumLiteMap<PCompactionState>() {
+          public PCompactionState findValueByNumber(int number) {
+            return PCompactionState.forNumber(number);
           }
         };
 
@@ -191,9 +191,9 @@ public enum TCompactionState
     return org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceProto.getDescriptor().getEnumTypes().get(0);
   }
 
-  private static final TCompactionState[] VALUES = values();
+  private static final PCompactionState[] VALUES = values();
 
-  public static TCompactionState valueOf(
+  public static PCompactionState valueOf(
       com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
     if (desc.getType() != getDescriptor()) {
       throw new java.lang.IllegalArgumentException(
@@ -207,10 +207,10 @@ public enum TCompactionState
 
   private final int value;
 
-  private TCompactionState(int value) {
+  private PCompactionState(int value) {
     this.value = value;
   }
 
-  // @@protoc_insertion_point(enum_scope:compaction_coordinator.TCompactionState)
+  // @@protoc_insertion_point(enum_scope:compaction_coordinator.PCompactionState)
 }
 
