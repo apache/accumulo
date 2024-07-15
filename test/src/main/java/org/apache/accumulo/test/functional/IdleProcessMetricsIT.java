@@ -99,6 +99,10 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
+  /**
+   * Test that the idle process metrics are emitted correctly for the compactor, scan server and
+   * tserver.
+   */
   @Test
   public void testIdleStopMetrics() throws Exception {
 
@@ -136,6 +140,10 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
     });
   }
 
+  /**
+   * Test that before during and after a compaction, the compactor will emit the appropriate value
+   * for the idle metric.
+   */
   @Test
   public void idleCompactorTest() throws Exception {
     try (AccumuloClient client =

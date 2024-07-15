@@ -705,7 +705,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       while (!shutdown) {
 
         // mark compactor as idle while not in the compaction loop
-        idleProcessCheck(() -> true);
+        updateIdleStatus(true);
 
         currentCompactionId.set(null);
         err.set(null);
@@ -745,7 +745,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
         try {
           // mark compactor as busy while compacting
-          idleProcessCheck(() -> false);
+          updateIdleStatus(false);
 
           // Need to call FileCompactorRunnable.initialize after calling JOB_HOLDER.set
           fcr.initialize();
@@ -860,7 +860,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           currentCompactionId.set(null);
 
           // mark compactor as idle after compaction completes
-          idleProcessCheck(() -> true);
+          updateIdleStatus(true);
 
           // In the case where there is an error in the foreground code the background compaction
           // may still be running. Must cancel it before starting another iteration of the loop to
