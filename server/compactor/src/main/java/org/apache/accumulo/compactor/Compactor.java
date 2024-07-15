@@ -701,11 +701,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
-      final AtomicBoolean isIdle = new AtomicBoolean(true);
 
       while (!shutdown) {
 
-        idleProcessCheck(isIdle::get);
+        // mark compactor as idle while not in the compaction loop
+        idleProcessCheck(() -> true);
 
         currentCompactionId.set(null);
         err.set(null);
@@ -744,7 +744,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         JOB_HOLDER.set(job, compactionThread, fcr.getFileCompactor());
 
         try {
-          isIdle.set(false); // Set the state to busy just before the compaction starts
+          // mark compactor as busy while compacting
+          idleProcessCheck(() -> false);
+
           // Need to call FileCompactorRunnable.initialize after calling JOB_HOLDER.set
           fcr.initialize();
 
@@ -856,7 +858,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
         } finally {
           currentCompactionId.set(null);
-          isIdle.set(true); // Set the state to idle after the compaction is done
+
+          // mark compactor as idle after compaction completes
+          idleProcessCheck(() -> true);
+
           // In the case where there is an error in the foreground code the background compaction
           // may still be running. Must cancel it before starting another iteration of the loop to
           // avoid multiple threads updating shared state.

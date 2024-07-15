@@ -183,7 +183,7 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
             .filter(a -> a.getTags().get("process.name").equals("compactor"))
             .peek(a -> log.info("Compactor idle metric: {}", a))
             .anyMatch(a -> Integer.parseInt(a.getValue()) == expectedValue),
-        60_000, 2000, "Compactor did not go idle");
+        60_000, 2000, "Compactor idle metric value did not reach expected value: " + expectedValue);
   }
 
 }
