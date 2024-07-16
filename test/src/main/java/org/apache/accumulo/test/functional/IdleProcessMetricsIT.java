@@ -75,6 +75,8 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
       cfg.setProperty(Property.GENERAL_IDLE_PROCESS_INTERVAL,
           idleProcessInterval.toSeconds() + "s");
 
+      // need to set this to a low value since one of the idle conditions for the scan server is an
+      // empty cache
       cfg.setProperty(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION, "1s");
 
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
