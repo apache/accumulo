@@ -36,9 +36,12 @@ import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -71,6 +74,8 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
 
       cfg.setProperty(Property.GENERAL_IDLE_PROCESS_INTERVAL,
           idleProcessInterval.toSeconds() + "s");
+
+      cfg.setProperty(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION, "1s");
 
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
       // to push all metrics to the sink we started.
@@ -155,11 +160,10 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
       // should emit the idle metric after the configured duration of GENERAL_IDLE_PROCESS_INTERVAL
       Thread.sleep(idleProcessInterval.toMillis());
 
-      log.info("Waiting for compactor to go idle");
-      waitForCompactorIdleMetricToBe(1);
+      final String processName = "compactor";
 
-      // once we see the idle compactor metric, start a compaction and wait for the metric to go
-      // back to not idle
+      log.info("Waiting for compactor to go idle");
+      waitForIdleMetricValueToBe(1, processName);
 
       String table1 = getUniqueNames(1)[0];
       createTable(client, table1, "cs1");
@@ -173,25 +177,67 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
       compact(client, table1, 2, QUEUE1, false);
 
       log.info("Waiting for compactor to be not idle after starting compaction");
-      waitForCompactorIdleMetricToBe(0);
+      waitForIdleMetricValueToBe(0, processName);
 
       log.info("Waiting for compactor to go idle once compaction completes");
-      waitForCompactorIdleMetricToBe(1);
+      waitForIdleMetricValueToBe(1, processName);
 
       verify(client, table1, 2);
     }
 
   }
 
-  private static void waitForCompactorIdleMetricToBe(int expectedValue) {
+  /**
+   * Test that before during and after a scan, the scan server will emit the appropriate value for
+   * the idle metric.
+   */
+  @Test
+  public void idleScanServerTest() throws Exception {
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+
+      getCluster().getClusterControl().start(ServerType.SCAN_SERVER, "localhost");
+
+      // should emit the idle metric after the configured duration of GENERAL_IDLE_PROCESS_INTERVAL
+      Thread.sleep(idleProcessInterval.toMillis());
+
+      final String processName = "sserver";
+
+      log.info("Waiting for sserver to go idle");
+      waitForIdleMetricValueToBe(1, processName);
+
+      String table1 = getUniqueNames(1)[0];
+      createTable(client, table1, "cs1");
+      writeData(client, table1);
+
+      IteratorSetting setting = new IteratorSetting(50, "Slow", SlowIterator.class);
+      SlowIterator.setSleepTime(setting, 5);
+      client.tableOperations().attachIterator(table1, setting,
+          EnumSet.of(IteratorUtil.IteratorScope.scan));
+
+      try (Scanner scanner = client.createScanner(table1, Authorizations.EMPTY)) {
+        scanner.setConsistencyLevel(ScannerBase.ConsistencyLevel.EVENTUAL);
+        var ignored = scanner.stream().count();
+      }
+
+      log.info("Waiting for sserver to be not idle after starting a scan");
+      waitForIdleMetricValueToBe(0, processName);
+
+      log.info("Waiting for sserver to go idle once scan completes completes");
+      waitForIdleMetricValueToBe(1, processName);
+    }
+
+  }
+
+  private static void waitForIdleMetricValueToBe(int expectedValue, String processName) {
     Wait.waitFor(
         () -> sink.getLines().stream()
             .filter(line -> line.startsWith(MetricsProducer.METRICS_SERVER_IDLE))
             .map(TestStatsDSink::parseStatsDMetric)
-            .filter(a -> a.getTags().get("process.name").equals("compactor"))
-            .peek(a -> log.info("Compactor idle metric: {}", a))
+            .filter(a -> a.getTags().get("process.name").equals(processName))
+            .peek(a -> log.info("Idle metric: {}", a))
             .anyMatch(a -> Integer.parseInt(a.getValue()) == expectedValue),
-        60_000, 2000, "Compactor idle metric value did not reach expected value: " + expectedValue);
+        60_000, 2000, "Idle metric did not reach the expected value " + expectedValue);
   }
 
 }
