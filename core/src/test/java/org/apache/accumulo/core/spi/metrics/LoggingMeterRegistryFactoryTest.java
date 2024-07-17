@@ -31,8 +31,8 @@ class LoggingMeterRegistryFactoryTest {
 
   @Test
   public void createTest() {
-    LoggingMeterRegistryFactory factory = new LoggingMeterRegistryFactory();
-    var reg = factory.create(new LoggingMetricsParams());
+    FilteringLoggingMRFactory factory = new FilteringLoggingMRFactory();
+    var reg = factory.filteredCreate(new LoggingMetricsParams());
     assertInstanceOf(LoggingMeterRegistry.class, reg);
   }
 

@@ -18,16 +18,28 @@
  */
 package org.apache.accumulo.core.spi.metrics;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Predicate;
+
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.config.MeterFilter;
 
 public class FilteringLoggingMRFactory extends LoggingMeterRegistryFactory {
 
-  @Override
-  public MeterRegistry create(final InitParameters params) {
+  // See https://docs.micrometer.io/micrometer/reference/concepts/meter-filters.html
+  public MeterRegistry filteredCreate(final InitParameters params, String... filter) {
     var meterRegistry = super.create(params);
-    MeterFilter myFilter = MeterFilter.denyNameStartsWith("accumulo.gc");
+    MeterFilter myFilter = MeterFilter.deny(createIdPredicate(filter));
     meterRegistry.config().meterFilter(myFilter);
     return meterRegistry;
+  }
+
+  public static Predicate<Meter.Id> createIdPredicate(String... strings) {
+    Set<String> stringSet = new HashSet<>(Arrays.asList(strings));
+
+    return id -> stringSet.contains(id.getName());
   }
 }
