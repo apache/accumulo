@@ -517,7 +517,9 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");
-            scanner = new IsolatedScanner(scanner);
+            @SuppressWarnings("resource")
+            var wrapped = new IsolatedScanner(scanner);
+            scanner = wrapped;
           }
           if (usesLocalIterators) {
             log.info("Using local iterators");
