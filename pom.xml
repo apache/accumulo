@@ -313,7 +313,7 @@
       <dependency>
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging</artifactId>
-        <version>1.2</version>
+        <version>1.3.3</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -508,13 +508,6 @@
         <groupId>org.apache.thrift</groupId>
         <artifactId>libthrift</artifactId>
         <version>${version.thrift}</version>
-        <!-- exclude vulnerable lib see https://issues.apache.org/jira/browse/HTTPCLIENT-1803 -->
-        <exclusions>
-          <exclusion>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.zookeeper</groupId>
@@ -986,7 +979,7 @@
                 <bannedDependencies>
                   <excludes>
                     <!-- we redirect logging to log4j2, so we should have those bridges instead -->
-                    <!-- commons-logging is allowed because log4j-jcl uses it as a dependency -->
+                    <!-- commons-logging is allowed because it natively sends to log4j2 or slf4j -->
                     <exclude>ch.qos.logback:*</exclude>
                     <exclude>ch.qos.reload4j:*</exclude>
                     <exclude>log4j:*</exclude>
