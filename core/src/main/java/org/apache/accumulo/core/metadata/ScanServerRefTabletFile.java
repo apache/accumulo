@@ -27,7 +27,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.OldScanServerFileReferenceSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.util.UuidUtil;
 import org.apache.hadoop.fs.Path;
@@ -38,7 +37,9 @@ import com.google.common.base.Preconditions;
 public class ScanServerRefTabletFile extends TabletFile {
 
   @SuppressWarnings("deprecation")
-  private static final String OLD_PREFIX = OldScanServerFileReferenceSection.getRowPrefix();
+  private static final String OLD_PREFIX =
+      org.apache.accumulo.core.metadata.schema.MetadataSchema.OldScanServerFileReferenceSection
+          .getRowPrefix();
   private final String prefix;
   private final Value NULL_VALUE = new Value(new byte[0]);
   private final Text serverAddress;
