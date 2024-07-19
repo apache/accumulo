@@ -195,8 +195,12 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             value.shutdownNow();
           }
         })
-        // TODO: replace hardcoded port
-        .build(host -> ManagedChannelBuilder.forAddress(host, 8980)
+        // TODO: instead of property we need to switch to looking from from ZK
+        // This requires modifying ServiceDescriptor
+        .build(host -> ManagedChannelBuilder
+            .forAddress(host,
+                getConfiguration().getPortStream(Property.MANAGER_GRPC_CLIENTPORT).findFirst()
+                    .orElseThrow())
             .idleTimeout(getContext().getClientTimeoutInMillis(), TimeUnit.MILLISECONDS)
             .usePlaintext().build());
   }

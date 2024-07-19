@@ -57,6 +57,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
@@ -1069,9 +1070,11 @@ public class Manager extends AbstractServer
     final CompactionCoordinatorServiceServer grpcService;
     try {
       // Start up the grpc compaction service
-      // TODO: The port is just hardcoded for now and will need to be configurable
-      grpcService =
-          new CompactionCoordinatorServiceServer(compactionCoordinator.getGrpcService(), 8980);
+      // TODO determine property name and default port to use for this, for now just using to
+      // manager.port.grpc.client
+      final IntStream port = getConfiguration().getPortStream(Property.MANAGER_GRPC_CLIENTPORT);
+      grpcService = new CompactionCoordinatorServiceServer(compactionCoordinator.getGrpcService(),
+          port.findFirst().orElseThrow());
       grpcService.start();
     } catch (IOException e) {
       throw new IllegalStateException("Unable to start grpc server on host " + getHostname(), e);

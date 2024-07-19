@@ -360,6 +360,8 @@ public enum Property {
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),
   MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
       "The port used for handling client connections on the manager.", "1.3.5"),
+  MANAGER_GRPC_CLIENTPORT("manager.port.grpc.client", "8999", PropertyType.PORT,
+      "The port used for handling gRPC client connections on the manager.", "1.3.5"),
   MANAGER_TABLET_BALANCER("manager.tablet.balancer",
       "org.apache.accumulo.core.spi.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and "
@@ -1431,8 +1433,8 @@ public enum Property {
 
   public static final EnumSet<Property> fixedProperties = EnumSet.of(
       // port options
-      GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT, SSERV_CLIENTPORT, SSERV_PORTSEARCH,
-      COMPACTOR_PORTSEARCH, TSERV_PORTSEARCH,
+      GC_PORT, MANAGER_CLIENTPORT, MANAGER_GRPC_CLIENTPORT, TSERV_CLIENTPORT, SSERV_CLIENTPORT,
+      SSERV_PORTSEARCH, COMPACTOR_PORTSEARCH, TSERV_PORTSEARCH,
 
       // max message options
       SSERV_MAX_MESSAGE_SIZE, TSERV_MAX_MESSAGE_SIZE, COMPACTOR_MAX_MESSAGE_SIZE,
