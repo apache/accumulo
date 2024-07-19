@@ -21,7 +21,7 @@ package org.apache.accumulo.server.grpc;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.compaction.protobuf.CompactionCoordinatorServiceGrpc;
+import org.apache.accumulo.grpc.compaction.protobuf.CompactionCoordinatorServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

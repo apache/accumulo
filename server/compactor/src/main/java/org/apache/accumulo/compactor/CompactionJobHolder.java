@@ -21,10 +21,10 @@ package org.apache.accumulo.compactor;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.accumulo.core.compaction.protobuf.PCompactionStats;
-import org.apache.accumulo.core.compaction.protobuf.PExternalCompactionJob;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionStats;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionJob;
 import org.apache.accumulo.server.compaction.FileCompactor;
 
 public class CompactionJobHolder {

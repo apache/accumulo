@@ -24,14 +24,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.compaction.protobuf.PIteratorConfig;
-import org.apache.accumulo.core.compaction.protobuf.PIteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.grpc.compaction.protobuf.PIteratorConfig;
+import org.apache.accumulo.grpc.compaction.protobuf.PIteratorSetting;
 
 /**
  * System utility class. Not for client use.

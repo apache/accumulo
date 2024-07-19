@@ -84,6 +84,7 @@
     <module>hadoop-mapreduce</module>
     <module>iterator-test-harness</module>
     <module>minicluster</module>
+    <module>rpc/grpc</module>
     <module>server/base</module>
     <module>server/compactor</module>
     <module>server/gc</module>
@@ -349,6 +350,11 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-grpc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-hadoop-mapreduce</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -520,12 +526,6 @@
         <groupId>org.apache.thrift</groupId>
         <artifactId>libthrift</artifactId>
         <version>${version.thrift}</version>
-      </dependency>
-      <dependency>
-        <!-- necessary for protobuf and Java 9+ -->
-        <groupId>org.apache.tomcat</groupId>
-        <artifactId>annotations-api</artifactId>
-        <version>6.0.53</version>
       </dependency>
       <dependency>
         <groupId>org.apache.zookeeper</groupId>
@@ -927,11 +927,6 @@
                 <undeclared>org.apache.httpcomponents:httpcore:jar:*</undeclared>
                 <undeclared>org.powermock:powermock-core:jar:*</undeclared>
                 <undeclared>org.powermock:powermock-reflect:jar:*</undeclared>
-                <!-- brought in by grpc -->
-                <undeclared>com.google.protobuf:protobuf-java:*</undeclared>
-                <!-- brought in by other grpc dependencies and version handled by grpc-bom -->
-                <undeclared>io.grpc:grpc-api:*</undeclared>
-                <undeclared>io.grpc:grpc-stub:*</undeclared>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't used in every module -->
@@ -956,8 +951,6 @@
                 <!-- ignore log4j dep used for annotations and needed for compile time linting -->
                 <unused>biz.aQute.bnd:biz.aQute.bnd.annotation:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
-                <!-- Used by generated protobuf -->
-                <undeclared>org.apache.tomcat:annotations-api:jar:*</undeclared>
                 <!-- Used by grpc at runtime -->
                 <undeclared>io.grpc:grpc-netty-shaded:jar:*</undeclared>
               </ignoredUnusedDeclaredDependencies>
