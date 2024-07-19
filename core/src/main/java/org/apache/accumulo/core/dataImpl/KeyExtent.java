@@ -135,8 +135,7 @@ public class KeyExtent implements Comparable<KeyExtent> {
    * Convert to Protobuf form.
    */
   public PKeyExtent toProtobuf() {
-    PKeyExtent.Builder builder = PKeyExtent.newBuilder()
-        .setTable(ByteString.copyFrom(tableId().canonical().getBytes(UTF_8)));
+    PKeyExtent.Builder builder = PKeyExtent.newBuilder().setTable(tableId().canonical());
     if (endRow() != null) {
       builder.setEndRow(ByteString.copyFrom(endRow().getBytes()));
     }
@@ -152,7 +151,7 @@ public class KeyExtent implements Comparable<KeyExtent> {
    * @param pke the KeyExtent in its Protobuf object form
    */
   public static KeyExtent fromProtobuf(PKeyExtent pke) {
-    TableId tableId = TableId.of(new String(pke.getTable().toByteArray(), UTF_8));
+    TableId tableId = TableId.of(pke.getTable());
     Text endRow = !pke.hasEndRow() ? null : new Text(pke.getEndRow().toByteArray());
     Text prevEndRow = !pke.hasPrevEndRow() ? null : new Text(pke.getPrevEndRow().toByteArray());
     return new KeyExtent(tableId, endRow, prevEndRow);

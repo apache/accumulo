@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 
 import java.util.Optional;
@@ -119,7 +120,7 @@ public class ThriftProtobufUtil {
 
   public static TKeyExtent convert(PKeyExtent extent) {
     TKeyExtent tExtent = new TKeyExtent();
-    tExtent.setTable(extent.getTable().asReadOnlyByteBuffer());
+    tExtent.setTable(extent.getTable().getBytes(UTF_8));
     if (extent.hasPrevEndRow()) {
       tExtent.setPrevEndRow(extent.getPrevEndRow().asReadOnlyByteBuffer());
     }
@@ -130,7 +131,7 @@ public class ThriftProtobufUtil {
   }
 
   public static PKeyExtent convert(TKeyExtent extent) {
-    var builder = PKeyExtent.newBuilder().setTable(ByteString.copyFrom(extent.getTable()));
+    var builder = PKeyExtent.newBuilder().setTable(new String(extent.getTable(), UTF_8));
     Optional.ofNullable(extent.getPrevEndRow())
         .ifPresent(prevEndRow -> builder.setPrevEndRow(ByteString.copyFrom(prevEndRow)));
     Optional.ofNullable(extent.getEndRow())

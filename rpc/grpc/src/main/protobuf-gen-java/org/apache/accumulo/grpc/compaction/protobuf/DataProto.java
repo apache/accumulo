@@ -48,7 +48,7 @@ public final class DataProto {
   static {
     java.lang.String[] descriptorData = {
       "\n\ndata.proto\022\004data\"c\n\nPKeyExtent\022\r\n\005tabl" +
-      "e\030\001 \001(\014\022\023\n\006endRow\030\002 \001(\014H\000\210\001\001\022\027\n\nprevEndR" +
+      "e\030\001 \001(\t\022\023\n\006endRow\030\002 \001(\014H\000\210\001\001\022\027\n\nprevEndR" +
       "ow\030\003 \001(\014H\001\210\001\001B\t\n\007_endRowB\r\n\013_prevEndRowB" +
       ";\n,org.apache.accumulo.grpc.compaction.p" +
       "rotobufB\tDataProtoP\001b\006proto3"

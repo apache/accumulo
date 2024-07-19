@@ -140,8 +140,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<SaslConnectionParams> saslSupplier;
   private final Supplier<SslConnectionParams> sslSupplier;
   private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
-  private TCredentials rpcCreds;
-  private PCredentials gRpcCreds;
+  private RpcCredentialsHolder rpcCreds;
   private ThriftTransportPool thriftTransportPool;
 
   private volatile boolean closed = false;
@@ -321,7 +320,6 @@ public class ClientContext implements AccumuloClient {
     checkArgument(newCredentials != null, "newCredentials is null");
     creds = newCredentials;
     rpcCreds = null;
-    gRpcCreds = null;
   }
 
   /**
@@ -461,29 +459,25 @@ public class ClientContext implements AccumuloClient {
    * Serialize the credentials just before initiating the RPC call
    */
   public synchronized TCredentials rpcCreds() {
+    return getRpcCreds().thrift();
+  }
+
+  public synchronized PCredentials gRpcCreds() {
+    return getRpcCreds().protobuf();
+  }
+
+  private synchronized RpcCredentialsHolder getRpcCreds() {
     ensureOpen();
     if (getCredentials().getToken().isDestroyed()) {
       rpcCreds = null;
     }
 
     if (rpcCreds == null) {
-      rpcCreds = getCredentials().toThrift(getInstanceID());
+      rpcCreds = new RpcCredentialsHolder(() -> getCredentials().toThrift(getInstanceID()),
+          () -> getCredentials().toProtobuf(getInstanceID()));
     }
 
     return rpcCreds;
-  }
-
-  public synchronized PCredentials gRpcCreds() {
-    ensureOpen();
-    if (getCredentials().getToken().isDestroyed()) {
-      gRpcCreds = null;
-    }
-
-    if (gRpcCreds == null) {
-      gRpcCreds = getCredentials().toProtobuf(getInstanceID());
-    }
-
-    return gRpcCreds;
   }
 
   /**
@@ -1110,4 +1104,23 @@ public class ClientContext implements AccumuloClient {
     return caches;
   }
 
+  private static class RpcCredentialsHolder {
+
+    private final com.google.common.base.Supplier<TCredentials> tCreds;
+    private final com.google.common.base.Supplier<PCredentials> pCreds;
+
+    RpcCredentialsHolder(com.google.common.base.Supplier<TCredentials> tCreds,
+        com.google.common.base.Supplier<PCredentials> pCreds) {
+      this.tCreds = Suppliers.memoize(tCreds);
+      this.pCreds = Suppliers.memoize(pCreds);
+    }
+
+    TCredentials thrift() {
+      return tCreds.get();
+    }
+
+    PCredentials protobuf() {
+      return pCreds.get();
+    }
+  }
 }

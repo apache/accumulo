@@ -27,14 +27,28 @@ public interface PKeyExtentOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>bytes table = 1;</code>
+   * <pre>
+   * Use a string to simplify things (thrift uses a byte array)
+   * </pre>
+   *
+   * <code>string table = 1;</code>
    * @return The table.
    */
-  com.google.protobuf.ByteString getTable();
+  java.lang.String getTable();
+  /**
+   * <pre>
+   * Use a string to simplify things (thrift uses a byte array)
+   * </pre>
+   *
+   * <code>string table = 1;</code>
+   * @return The bytes for table.
+   */
+  com.google.protobuf.ByteString
+      getTableBytes();
 
   /**
    * <pre>
-   * optional to generate hasEndRow() and hasPrevEndRow() becuase
+   * optional to generate hasEndRow() and hasPrevEndRow() because
    * of no nulls in protobuf
    * </pre>
    *
@@ -44,7 +58,7 @@ public interface PKeyExtentOrBuilder extends
   boolean hasEndRow();
   /**
    * <pre>
-   * optional to generate hasEndRow() and hasPrevEndRow() becuase
+   * optional to generate hasEndRow() and hasPrevEndRow() because
    * of no nulls in protobuf
    * </pre>
    *

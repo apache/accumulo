@@ -35,7 +35,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private PKeyExtent() {
-    table_ = com.google.protobuf.ByteString.EMPTY;
+    table_ = "";
     endRow_ = com.google.protobuf.ByteString.EMPTY;
     prevEndRow_ = com.google.protobuf.ByteString.EMPTY;
   }
@@ -62,21 +62,57 @@ private static final long serialVersionUID = 0L;
 
   private int bitField0_;
   public static final int TABLE_FIELD_NUMBER = 1;
-  private com.google.protobuf.ByteString table_ = com.google.protobuf.ByteString.EMPTY;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object table_ = "";
   /**
-   * <code>bytes table = 1;</code>
+   * <pre>
+   * Use a string to simplify things (thrift uses a byte array)
+   * </pre>
+   *
+   * <code>string table = 1;</code>
    * @return The table.
    */
   @java.lang.Override
-  public com.google.protobuf.ByteString getTable() {
-    return table_;
+  public java.lang.String getTable() {
+    java.lang.Object ref = table_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      table_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Use a string to simplify things (thrift uses a byte array)
+   * </pre>
+   *
+   * <code>string table = 1;</code>
+   * @return The bytes for table.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getTableBytes() {
+    java.lang.Object ref = table_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      table_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
   }
 
   public static final int ENDROW_FIELD_NUMBER = 2;
   private com.google.protobuf.ByteString endRow_ = com.google.protobuf.ByteString.EMPTY;
   /**
    * <pre>
-   * optional to generate hasEndRow() and hasPrevEndRow() becuase
+   * optional to generate hasEndRow() and hasPrevEndRow() because
    * of no nulls in protobuf
    * </pre>
    *
@@ -89,7 +125,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * optional to generate hasEndRow() and hasPrevEndRow() becuase
+   * optional to generate hasEndRow() and hasPrevEndRow() because
    * of no nulls in protobuf
    * </pre>
    *
@@ -134,8 +170,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!table_.isEmpty()) {
-      output.writeBytes(1, table_);
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(table_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 1, table_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeBytes(2, endRow_);
@@ -152,9 +188,8 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!table_.isEmpty()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBytesSize(1, table_);
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(table_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, table_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -343,7 +378,7 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      table_ = com.google.protobuf.ByteString.EMPTY;
+      table_ = "";
       endRow_ = com.google.protobuf.ByteString.EMPTY;
       prevEndRow_ = com.google.protobuf.ByteString.EMPTY;
       return this;
@@ -438,8 +473,10 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(org.apache.accumulo.grpc.compaction.protobuf.PKeyExtent other) {
       if (other == org.apache.accumulo.grpc.compaction.protobuf.PKeyExtent.getDefaultInstance()) return this;
-      if (other.getTable() != com.google.protobuf.ByteString.EMPTY) {
-        setTable(other.getTable());
+      if (!other.getTable().isEmpty()) {
+        table_ = other.table_;
+        bitField0_ |= 0x00000001;
+        onChanged();
       }
       if (other.hasEndRow()) {
         setEndRow(other.getEndRow());
@@ -474,7 +511,7 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              table_ = input.readBytes();
+              table_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
             } // case 10
@@ -505,21 +542,59 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private com.google.protobuf.ByteString table_ = com.google.protobuf.ByteString.EMPTY;
+    private java.lang.Object table_ = "";
     /**
-     * <code>bytes table = 1;</code>
+     * <pre>
+     * Use a string to simplify things (thrift uses a byte array)
+     * </pre>
+     *
+     * <code>string table = 1;</code>
      * @return The table.
      */
-    @java.lang.Override
-    public com.google.protobuf.ByteString getTable() {
-      return table_;
+    public java.lang.String getTable() {
+      java.lang.Object ref = table_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        table_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
     }
     /**
-     * <code>bytes table = 1;</code>
+     * <pre>
+     * Use a string to simplify things (thrift uses a byte array)
+     * </pre>
+     *
+     * <code>string table = 1;</code>
+     * @return The bytes for table.
+     */
+    public com.google.protobuf.ByteString
+        getTableBytes() {
+      java.lang.Object ref = table_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        table_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Use a string to simplify things (thrift uses a byte array)
+     * </pre>
+     *
+     * <code>string table = 1;</code>
      * @param value The table to set.
      * @return This builder for chaining.
      */
-    public Builder setTable(com.google.protobuf.ByteString value) {
+    public Builder setTable(
+        java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       table_ = value;
       bitField0_ |= 0x00000001;
@@ -527,12 +602,34 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>bytes table = 1;</code>
+     * <pre>
+     * Use a string to simplify things (thrift uses a byte array)
+     * </pre>
+     *
+     * <code>string table = 1;</code>
      * @return This builder for chaining.
      */
     public Builder clearTable() {
-      bitField0_ = (bitField0_ & ~0x00000001);
       table_ = getDefaultInstance().getTable();
+      bitField0_ = (bitField0_ & ~0x00000001);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Use a string to simplify things (thrift uses a byte array)
+     * </pre>
+     *
+     * <code>string table = 1;</code>
+     * @param value The bytes for table to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTableBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      table_ = value;
+      bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
@@ -540,7 +637,7 @@ private static final long serialVersionUID = 0L;
     private com.google.protobuf.ByteString endRow_ = com.google.protobuf.ByteString.EMPTY;
     /**
      * <pre>
-     * optional to generate hasEndRow() and hasPrevEndRow() becuase
+     * optional to generate hasEndRow() and hasPrevEndRow() because
      * of no nulls in protobuf
      * </pre>
      *
@@ -553,7 +650,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * optional to generate hasEndRow() and hasPrevEndRow() becuase
+     * optional to generate hasEndRow() and hasPrevEndRow() because
      * of no nulls in protobuf
      * </pre>
      *
@@ -566,7 +663,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * optional to generate hasEndRow() and hasPrevEndRow() becuase
+     * optional to generate hasEndRow() and hasPrevEndRow() because
      * of no nulls in protobuf
      * </pre>
      *
@@ -583,7 +680,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * optional to generate hasEndRow() and hasPrevEndRow() becuase
+     * optional to generate hasEndRow() and hasPrevEndRow() because
      * of no nulls in protobuf
      * </pre>
      *

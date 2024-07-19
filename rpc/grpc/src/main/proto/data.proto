@@ -27,8 +27,9 @@ package data;
 
 
 message PKeyExtent {
-  bytes table = 1;
-  // optional to generate hasEndRow() and hasPrevEndRow() becuase
+  // Use a string to simplify things (thrift uses a byte array)
+  string table = 1;
+  // optional to generate hasEndRow() and hasPrevEndRow() because
   // of no nulls in protobuf
   optional bytes endRow = 2;
   optional bytes prevEndRow = 3;
