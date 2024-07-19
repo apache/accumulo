@@ -515,17 +515,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
             LOG.trace("Attempting to get next job, eci = {}", eci);
             currentCompactionId.set(eci);
-            /*
-             * gRPC is now used to make the compaction job request. We keep using the Thrift objects
-             * and convert to/from the equivalent protocol buffer objects for now to keep the
-             * changes isolated from the rest of the code.
-             */
+
+            // gRPC is now used to make the compaction job request.
             var request = CompactionJobRequest.newBuilder().setPtinfo(TraceUtil.protoTraceInfo())
                 .setCredentials(getContext().gRpcCreds()).setGroupName(this.getResourceGroup())
                 .setCompactor(
                     ExternalCompactionUtil.getHostPortString(compactorAddress.getAddress()))
                 .setExternalCompactionId(eci.toString()).build();
-
             return grpcClient.getCompactionJob(request);
           } catch (Exception e) {
             currentCompactionId.set(null);

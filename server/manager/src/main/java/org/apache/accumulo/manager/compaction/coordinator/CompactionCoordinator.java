@@ -440,8 +440,8 @@ public class CompactionCoordinator
             metaJob.getJob());
         LOG.info("Found job {}", result.getExternalCompactionId());
       } else {
-        LOG.debug("Unable to reserve compaction job for {}, returning empty job to compactor {}",
-            metaJob.getTabletMetadata().getExtent(), compactorAddress);
+        LOG.debug("Unable to reserve compaction job for {} {}, returning empty job to compactor {}",
+            groupName, metaJob.getTabletMetadata().getExtent(), compactorAddress);
         result = PExternalCompactionJob.newBuilder().build();
       }
 
