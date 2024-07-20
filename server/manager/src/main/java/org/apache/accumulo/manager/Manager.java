@@ -1053,8 +1053,8 @@ public class Manager extends AbstractServer
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
 
     ServerAddress sa;
-    var processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler,
-         haProxy, getContext());
+    var processor =
+        ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,

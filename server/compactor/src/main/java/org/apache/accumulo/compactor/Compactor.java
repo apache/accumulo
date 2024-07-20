@@ -133,7 +133,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
-import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.LongTaskTimer;
@@ -195,8 +194,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     FunctionCounter.builder(METRICS_COMPACTOR_ENTRIES_READ, this, Compactor::getTotalEntriesRead)
         .description("Number of entries read by all compactions that have run on this compactor")
         .register(registry);
-    FunctionCounter.builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, this,
-            Compactor::getTotalEntriesWritten)
+    FunctionCounter
+        .builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, this, Compactor::getTotalEntriesWritten)
         .description("Number of entries written by all compactions that have run on this compactor")
         .register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
@@ -206,9 +205,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,
       long timeBetweenChecks) {
-    ThreadPools.watchCriticalScheduledTask(
-        schedExecutor.scheduleWithFixedDelay(this::checkIfCanceled, 0, timeBetweenChecks,
-            TimeUnit.MILLISECONDS));
+    ThreadPools.watchCriticalScheduledTask(schedExecutor.scheduleWithFixedDelay(
+        this::checkIfCanceled, 0, timeBetweenChecks, TimeUnit.MILLISECONDS));
   }
 
   protected void checkIfCanceled() {
@@ -286,9 +284,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       throw e;
     }
 
-    compactorLock =
-        new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), ServiceLock.path(zPath),
-            compactorId);
+    compactorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
+        ServiceLock.path(zPath), compactorId);
     LockWatcher lw = new LockWatcher() {
       @Override
       public void lostLock(final LockLossReason reason) {
@@ -348,13 +345,12 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         getCompactorThriftHandlerInterface(), getContext());
     Property maxMessageSizeProperty =
         (getConfiguration().get(Property.COMPACTOR_MAX_MESSAGE_SIZE) != null
-         ? Property.COMPACTOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp =
-        TServerUtils.startServer(getContext(), getHostname(), Property.COMPACTOR_CLIENTPORT,
-            processor, this.getClass().getSimpleName(), "Thrift Client Server",
-            Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
-            Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK,
-            maxMessageSizeProperty);
+            ? Property.COMPACTOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
+    ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
+        Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
+        "Thrift Client Server", Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
+        Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK,
+        maxMessageSizeProperty);
     LOG.info("address = {}", sp.address);
     return sp;
   }
@@ -364,7 +360,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    *
    * @param externalCompactionId compaction id
    * @throws UnknownCompactionIdException if the externalCompactionId does not match the currently
-   * executing compaction
+   *         executing compaction
    * @throws TException thrift error
    */
   private void cancel(String externalCompactionId) throws TException {
@@ -442,11 +438,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         new RetryableRpcCall<>(1000, RetryableRpcCall.MAX_WAIT_TIME, 25, () -> {
           var coordinatorClient = getCoordinatorClient();
           try {
-            var ignored = coordinatorClient.compactionFailed(
-                CompactionFailedRequest.newBuilder().setPtinfo(TraceUtil.protoTraceInfo())
-                    .setCredentials(getContext().gRpcCreds())
-                    .setExternalCompactionId(job.getExternalCompactionId())
-                    .setExtent(job.getExtent()).build());
+            var ignored = coordinatorClient.compactionFailed(CompactionFailedRequest.newBuilder()
+                .setPtinfo(TraceUtil.protoTraceInfo()).setCredentials(getContext().gRpcCreds())
+                .setExternalCompactionId(job.getExternalCompactionId()).setExtent(job.getExtent())
+                .build());
             return "";
           } catch (StatusRuntimeException e) {
             // TODO: Do we need to handle this any better?
@@ -473,9 +468,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           var coordinatorClient = getCoordinatorClient();
           try {
             LOG.info("Job: {}", job.getExtent());
-            var ignored = coordinatorClient.compactionCompleted(
-                CompactionCompletedRequest.newBuilder().setPtinfo(TraceUtil.protoTraceInfo())
-                    .setCredentials(getContext().gRpcCreds())
+            var ignored =
+                coordinatorClient.compactionCompleted(CompactionCompletedRequest.newBuilder()
+                    .setPtinfo(TraceUtil.protoTraceInfo()).setCredentials(getContext().gRpcCreds())
                     .setExternalCompactionId(job.getExternalCompactionId())
                     .setExtent(job.getExtent()).setStats(stats).build());
             return "";
@@ -542,8 +537,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     // TODO: coordinatorHost contains the Thrift port so right now only host is used.
     // we eventually need the gRPC port and will need to store than in Zk.
     // GrpcUtil for now just uses the property in the context for the port
-    return CompactionCoordinatorServiceGrpc.newBlockingStub(
-        GrpcUtil.getChannel(coordinatorHost.orElseThrow(), getContext()));
+    return CompactionCoordinatorServiceGrpc
+        .newBlockingStub(GrpcUtil.getChannel(coordinatorHost.orElseThrow(), getContext()));
   }
 
   /**
@@ -641,11 +636,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
           LOG.info("Compaction completed successfully {} ", job.getExternalCompactionId());
           // Update state when completed
-          PCompactionStatusUpdate update2 =
-              PCompactionStatusUpdate.newBuilder().setState(PCompactionState.SUCCEEDED)
-                  .setMessage("Compaction completed successfully").setEntriesToBeCompacted(-1)
-                  .setEntriesRead(-1).setEntriesWritten(-1)
-                  .setCompactionAgeNanos(this.getCompactionAge().toNanos()).build();
+          PCompactionStatusUpdate update2 = PCompactionStatusUpdate.newBuilder()
+              .setState(PCompactionState.SUCCEEDED).setMessage("Compaction completed successfully")
+              .setEntriesToBeCompacted(-1).setEntriesRead(-1).setEntriesWritten(-1)
+              .setCompactionAgeNanos(this.getCompactionAge().toNanos()).build();
 
           updateCompactionState(job, update2);
         } catch (FileCompactor.CompactionCanceledException cce) {
@@ -687,9 +681,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     FileOperations fileFactory = FileOperations.getInstance();
     FileSystem fs = getContext().getVolumeManager().getFileSystemByPath(file.getPath());
 
-    try (FileSKVIterator reader = fileFactory.newReaderBuilder()
-        .forFile(file, fs, fs.getConf(), cryptoService).withTableConfiguration(tableConf)
-        .dropCachesBehind().build()) {
+    try (FileSKVIterator reader =
+        fileFactory.newReaderBuilder().forFile(file, fs, fs.getConf(), cryptoService)
+            .withTableConfiguration(tableConf).dropCachesBehind().build()) {
       return reader.estimateOverlappingEntries(extent);
     } catch (IOException ioe) {
       throw new UncheckedIOException(ioe);
@@ -768,7 +762,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         idleProcessCheck(() -> {
           return timeSinceLastCompletion.get() == 0
               /* Never started a compaction */ || (timeSinceLastCompletion.get() > 0
-              && (System.nanoTime() - timeSinceLastCompletion.get()) > idleReportingPeriodNanos);
+                  && (System.nanoTime() - timeSinceLastCompletion.get())
+                      > idleReportingPeriodNanos);
         });
         currentCompactionId.set(null);
         err.set(null);
@@ -792,9 +787,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             continue;
           }
           if (!job.getExternalCompactionId().equals(currentCompactionId.get().toString())) {
-            throw new IllegalStateException(
-                "Returned eci " + job.getExternalCompactionId() + " does not match supplied eci "
-                    + currentCompactionId.get());
+            throw new IllegalStateException("Returned eci " + job.getExternalCompactionId()
+                + " does not match supplied eci " + currentCompactionId.get());
           }
         } catch (RetriesExceededException e2) {
           LOG.warn("Retries exceeded getting next job. Retrying...");
@@ -873,15 +867,14 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             checkIfCanceled();
           }
 
-          if (compactionThread.isInterrupted() || JOB_HOLDER.isCancelled() || (err.get() != null
-              && err.get().getClass().equals(InterruptedException.class))) {
+          if (compactionThread.isInterrupted() || JOB_HOLDER.isCancelled()
+              || (err.get() != null && err.get().getClass().equals(InterruptedException.class))) {
             LOG.warn("Compaction thread was interrupted, sending CANCELLED state");
             try {
-              PCompactionStatusUpdate update =
-                  PCompactionStatusUpdate.newBuilder().setState(PCompactionState.CANCELLED)
-                      .setMessage("Compaction cancelled").setEntriesToBeCompacted(-1)
-                      .setEntriesRead(-1).setEntriesWritten(-1)
-                      .setCompactionAgeNanos(fcr.getCompactionAge().toNanos()).build();
+              PCompactionStatusUpdate update = PCompactionStatusUpdate.newBuilder()
+                  .setState(PCompactionState.CANCELLED).setMessage("Compaction cancelled")
+                  .setEntriesToBeCompacted(-1).setEntriesRead(-1).setEntriesWritten(-1)
+                  .setCompactionAgeNanos(fcr.getCompactionAge().toNanos()).build();
 
               updateCompactionState(job, update);
               updateCompactionFailed(job);
