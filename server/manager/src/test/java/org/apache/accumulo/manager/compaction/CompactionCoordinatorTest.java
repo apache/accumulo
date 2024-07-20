@@ -22,7 +22,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
-import static org.apache.accumulo.core.rpc.ThriftProtobufUtil.convert;
+import static org.apache.accumulo.core.rpc.grpc.ThriftProtobufUtil.convert;
 import static org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator.canReserveCompaction;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
@@ -51,7 +51,6 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -78,13 +77,13 @@ import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.grpc.compaction.protobuf.PCredentials;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompaction;
 import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionJob;
 import org.apache.accumulo.grpc.compaction.protobuf.PNextCompactionJob;
 import org.apache.accumulo.grpc.compaction.protobuf.ProtoTInfo;
@@ -281,7 +280,7 @@ public class CompactionCoordinatorTest {
 
     List<RunningCompaction> runningCompactions = new ArrayList<>();
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
-    TExternalCompactionJob job = EasyMock.createNiceMock(TExternalCompactionJob.class);
+    PExternalCompactionJob job = EasyMock.createNiceMock(PExternalCompactionJob.class);
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     TKeyExtent extent = new TKeyExtent();
     extent.setTable("1".getBytes());
@@ -439,9 +438,12 @@ public class CompactionCoordinatorTest {
     var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
     var ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
 
-    coordinator.getRunning().put(ecid1, new RunningCompaction(new TExternalCompaction()));
-    coordinator.getRunning().put(ecid2, new RunningCompaction(new TExternalCompaction()));
-    coordinator.getRunning().put(ecid3, new RunningCompaction(new TExternalCompaction()));
+    coordinator.getRunning().put(ecid1,
+        new RunningCompaction(PExternalCompaction.newBuilder().build()));
+    coordinator.getRunning().put(ecid2,
+        new RunningCompaction(PExternalCompaction.newBuilder().build()));
+    coordinator.getRunning().put(ecid3,
+        new RunningCompaction(PExternalCompaction.newBuilder().build()));
 
     coordinator.cleanUpRunning();
 

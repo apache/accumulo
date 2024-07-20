@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.util.compaction;
 
+import static org.apache.accumulo.core.rpc.grpc.ThriftProtobufUtil.convert;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -46,6 +48,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.time.NanoTime;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionJob;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -59,10 +62,10 @@ public class ExternalCompactionUtil {
   private static class RunningCompactionFuture {
     private final String group;
     private final HostAndPort compactor;
-    private final Future<TExternalCompactionJob> future;
+    private final Future<PExternalCompactionJob> future;
 
     public RunningCompactionFuture(String group, HostAndPort compactor,
-        Future<TExternalCompactionJob> future) {
+        Future<PExternalCompactionJob> future) {
       this.group = group;
       this.compactor = compactor;
       this.future = future;
@@ -76,7 +79,7 @@ public class ExternalCompactionUtil {
       return compactor;
     }
 
-    public Future<TExternalCompactionJob> getFuture() {
+    public Future<PExternalCompactionJob> getFuture() {
       return future;
     }
   }
@@ -173,7 +176,7 @@ public class ExternalCompactionUtil {
    * @param context context
    * @return external compaction job or null if none running
    */
-  public static TExternalCompactionJob getRunningCompaction(HostAndPort compactorAddr,
+  public static PExternalCompactionJob getRunningCompaction(HostAndPort compactorAddr,
       ClientContext context) {
 
     CompactorService.Client client = null;
@@ -183,7 +186,7 @@ public class ExternalCompactionUtil {
           client.getRunningCompaction(TraceUtil.traceInfo(), context.rpcCreds());
       if (job.getExternalCompactionId() != null) {
         LOG.debug("Compactor {} is running {}", compactorAddr, job.getExternalCompactionId());
-        return job;
+        return convert(job);
       }
     } catch (TException e) {
       LOG.debug("Failed to contact compactor {}", compactorAddr, e);
@@ -234,8 +237,8 @@ public class ExternalCompactionUtil {
     final List<RunningCompaction> results = new ArrayList<>();
     rcFutures.forEach(rcf -> {
       try {
-        TExternalCompactionJob job = rcf.getFuture().get();
-        if (null != job && null != job.getExternalCompactionId()) {
+        PExternalCompactionJob job = rcf.getFuture().get();
+        if (null != job && job.hasExternalCompactionId()) {
           var compactorAddress = getHostPortString(rcf.getCompactor());
           results.add(new RunningCompaction(job, compactorAddress, rcf.getGroup()));
         }

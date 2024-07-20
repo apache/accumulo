@@ -46,10 +46,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -60,13 +56,19 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.grpc.GrpcUtil;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
+import org.apache.accumulo.grpc.compaction.protobuf.CompactionCoordinatorServiceGrpc;
+import org.apache.accumulo.grpc.compaction.protobuf.CompactionCoordinatorServiceGrpc.CompactionCoordinatorServiceBlockingStub;
+import org.apache.accumulo.grpc.compaction.protobuf.GetCompletedCompactionsRequest;
+import org.apache.accumulo.grpc.compaction.protobuf.GetRunningCompactionsRequest;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionState;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompaction;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionList;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.compaction.ExternalCompaction_1_IT.TestFilter;
@@ -74,7 +76,6 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 
 import com.beust.jcommander.internal.Maps;
@@ -241,37 +242,47 @@ public class ExternalCompactionTestUtils {
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  public static TExternalCompactionList getRunningCompactions(ClientContext context,
-      Optional<HostAndPort> coordinatorHost) throws TException {
-    CompactionCoordinatorService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
+  public static PExternalCompactionList getRunningCompactions(ClientContext context,
+      Optional<HostAndPort> coordinatorHost) {
+    // TODO: coordinatorHost contains the Thrift port so right now only host is used.
+    // we eventually need the gRPC port and will need to store than in Zk.
+    // GrpcUtil for now just uses the property in the context for the port
+    CompactionCoordinatorServiceBlockingStub client = CompactionCoordinatorServiceGrpc
+        .newBlockingStub(GrpcUtil.getChannel(coordinatorHost.orElseThrow(), context));
     try {
-      TExternalCompactionList running =
-          client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      PExternalCompactionList running =
+          client.getRunningCompactions(GetRunningCompactionsRequest.newBuilder()
+              .setPtinfo(TraceUtil.protoTraceInfo()).setCredentials(context.gRpcCreds()).build());
       return running;
     } finally {
-      ThriftUtil.returnClient(client, context);
+      // TODO return gRpc client if needed
+      // ThriftUtil.returnClient(client, context);
     }
   }
 
-  private static TExternalCompactionList getCompletedCompactions(ClientContext context,
-      Optional<HostAndPort> coordinatorHost) throws Exception {
-    CompactionCoordinatorService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
+  private static PExternalCompactionList getCompletedCompactions(ClientContext context,
+      Optional<HostAndPort> coordinatorHost) {
+    // TODO: coordinatorHost contains the Thrift port so right now only host is used.
+    // we eventually need the gRPC port and will need to store than in Zk.
+    // GrpcUtil for now just uses the property in the context for the port
+    CompactionCoordinatorServiceBlockingStub client = CompactionCoordinatorServiceGrpc
+        .newBlockingStub(GrpcUtil.getChannel(coordinatorHost.orElseThrow(), context));
     try {
-      TExternalCompactionList completed =
-          client.getCompletedCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      PExternalCompactionList completed =
+          client.getCompletedCompactions(GetCompletedCompactionsRequest.newBuilder()
+              .setPtinfo(TraceUtil.protoTraceInfo()).setCredentials(context.gRpcCreds()).build());
       return completed;
     } finally {
-      ThriftUtil.returnClient(client, context);
+      // TODO return gRpc client if needed
+      // ThriftUtil.returnClient(client, context);
     }
   }
 
-  public static TCompactionState getLastState(TExternalCompaction status) {
-    ArrayList<Long> timestamps = new ArrayList<>(status.getUpdates().size());
-    status.getUpdates().keySet().forEach(k -> timestamps.add(k));
+  public static PCompactionState getLastState(PExternalCompaction status) {
+    ArrayList<Long> timestamps = new ArrayList<>(status.getUpdatesMap().size());
+    status.getUpdatesMap().keySet().forEach(k -> timestamps.add(k));
     Collections.sort(timestamps);
-    return status.getUpdates().get(timestamps.get(timestamps.size() - 1)).getState();
+    return status.getUpdatesMap().get(timestamps.get(timestamps.size() - 1)).getState();
   }
 
   public static Set<ExternalCompactionId> waitForCompactionStartAndReturnEcids(ServerContext ctx,
@@ -320,14 +331,14 @@ public class ExternalCompactionTestUtils {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
     while (matches == 0) {
-      TExternalCompactionList running =
+      PExternalCompactionList running =
           ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
-      if (running.getCompactions() != null) {
+      if (!running.getCompactionsMap().isEmpty()) {
         for (ExternalCompactionId ecid : ecids) {
-          TExternalCompaction tec = running.getCompactions().get(ecid.canonical());
-          if (tec != null && tec.getUpdates() != null && !tec.getUpdates().isEmpty()) {
+          PExternalCompaction tec = running.getCompactionsMap().get(ecid.canonical());
+          if (tec != null && !tec.getUpdatesMap().isEmpty()) {
             matches++;
-            assertEquals(TCompactionState.STARTED, ExternalCompactionTestUtils.getLastState(tec));
+            assertEquals(PCompactionState.STARTED, ExternalCompactionTestUtils.getLastState(tec));
           }
         }
       }
@@ -339,28 +350,28 @@ public class ExternalCompactionTestUtils {
   }
 
   public static void confirmCompactionCompleted(ServerContext ctx, Set<ExternalCompactionId> ecids,
-      TCompactionState expectedState) throws Exception {
+      PCompactionState expectedState) throws Exception {
     Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
 
     // The running compaction should be removed
-    TExternalCompactionList running =
+    PExternalCompactionList running =
         ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
-    while (running.getCompactions() != null && running.getCompactions().keySet().stream()
+    while (running.getCompactionsMap().keySet().stream()
         .anyMatch((e) -> ecids.contains(ExternalCompactionId.of(e)))) {
       running = ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
     }
     // The compaction should be in the completed list with the expected state
-    TExternalCompactionList completed =
+    PExternalCompactionList completed =
         ExternalCompactionTestUtils.getCompletedCompactions(ctx, coordinatorHost);
-    while (completed.getCompactions() == null) {
+    while (completed.getCompactionsMap().isEmpty()) {
       UtilWaitThread.sleep(50);
       completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx, coordinatorHost);
     }
     for (ExternalCompactionId e : ecids) {
-      TExternalCompaction tec = completed.getCompactions().get(e.canonical());
+      PExternalCompaction tec = completed.getCompactionsMap().get(e.canonical());
       assertNotNull(tec);
       assertEquals(expectedState, ExternalCompactionTestUtils.getLastState(tec));
     }

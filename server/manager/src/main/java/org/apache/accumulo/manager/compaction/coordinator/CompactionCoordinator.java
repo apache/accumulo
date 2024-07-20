@@ -27,7 +27,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
-import static org.apache.accumulo.core.rpc.ThriftProtobufUtil.convert;
+import static org.apache.accumulo.core.rpc.grpc.ThriftProtobufUtil.convert;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -121,6 +121,7 @@ import org.apache.accumulo.grpc.compaction.protobuf.PCompactionKind;
 import org.apache.accumulo.grpc.compaction.protobuf.PCompactionState;
 import org.apache.accumulo.grpc.compaction.protobuf.PCompactionStatusUpdate;
 import org.apache.accumulo.grpc.compaction.protobuf.PCredentials;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompaction;
 import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionJob;
 import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionList;
 import org.apache.accumulo.grpc.compaction.protobuf.PInputFile;
@@ -325,7 +326,7 @@ public class CompactionCoordinator
         PCompactionStatusUpdate update =
             PCompactionStatusUpdate.newBuilder().setState(PCompactionState.IN_PROGRESS)
                 .setMessage("Coordinator restarted, compaction found in progress").build();
-        rc.addUpdate(System.currentTimeMillis(), convert(update));
+        rc.addUpdate(System.currentTimeMillis(), update);
         RUNNING_CACHE.put(ExternalCompactionId.of(rc.getJob().getExternalCompactionId()), rc);
       });
     }
@@ -388,8 +389,8 @@ public class CompactionCoordinator
    *
    * @param groupName group
    * @param compactorAddress compactor address
-   * @throws ThriftSecurityException when permission error
    * @return compaction job
+   * @throws ThriftSecurityException when permission error
    */
   @Override
   public TNextCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
@@ -435,7 +436,7 @@ public class CompactionCoordinator
         // It is possible that by the time this added that the the compactor that made this request
         // is dead. In this cases the compaction is not actually running.
         RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
-            new RunningCompaction(convert(result), compactorAddress, groupName));
+            new RunningCompaction(result, compactorAddress, groupName));
         TabletLogger.compacting(metaJob.getTabletMetadata(), cid, compactorAddress,
             metaJob.getJob());
         LOG.info("Found job {}", result.getExternalCompactionId());
@@ -937,22 +938,7 @@ public class CompactionCoordinator
   @Override
   public TExternalCompactionList getRunningCompactions(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    final TExternalCompactionList result = new TExternalCompactionList();
-    RUNNING_CACHE.forEach((ecid, rc) -> {
-      TExternalCompaction trc = new TExternalCompaction();
-      trc.setGroupName(rc.getGroupName());
-      trc.setCompactor(rc.getCompactorAddress());
-      trc.setUpdates(rc.getUpdates());
-      trc.setJob(rc.getJob());
-      result.putToCompactions(ecid.canonical(), trc);
-    });
-    return result;
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -966,40 +952,13 @@ public class CompactionCoordinator
   @Override
   public TExternalCompactionList getCompletedCompactions(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    final TExternalCompactionList result = new TExternalCompactionList();
-    completed.asMap().forEach((ecid, rc) -> {
-      TExternalCompaction trc = new TExternalCompaction();
-      trc.setGroupName(rc.getGroupName());
-      trc.setCompactor(rc.getCompactorAddress());
-      trc.setJob(rc.getJob());
-      trc.setUpdates(rc.getUpdates());
-      result.putToCompactions(ecid.canonical(), trc);
-    });
-    return result;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
       throws TException {
-    var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
-    var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
-    try {
-      NamespaceId nsId = this.ctx.getNamespaceId(extent.tableId());
-      if (!security.canCompact(credentials, extent.tableId(), nsId)) {
-        throw new AccumuloSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-      }
-    } catch (TableNotFoundException e) {
-      throw new ThriftTableOperationException(extent.tableId().canonical(), null,
-          TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
-    }
-
-    cancelCompactionOnCompactor(runningCompaction.getCompactorAddress(), externalCompactionId);
+    throw new UnsupportedOperationException();
   }
 
   /* Method exists to be called from test */
@@ -1218,6 +1177,7 @@ public class CompactionCoordinator
         txid.ifPresentOrElse(fateId -> LOG.debug("initiated compaction commit {} {}", ecid, fateId),
             () -> LOG.debug("compaction commit already initiated for {}", ecid));
 
+        responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
       } catch (ThriftSecurityException e) {
         responseObserver.onError(e);
@@ -1249,8 +1209,9 @@ public class CompactionCoordinator
         final RunningCompaction rc =
             RUNNING_CACHE.get(ExternalCompactionId.of(request.getExternalCompactionId()));
         if (null != rc) {
-          rc.addUpdate(request.getTimestamp(), convert(request.getStatus()));
+          rc.addUpdate(request.getTimestamp(), request.getStatus());
         }
+        responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
       } catch (ThriftSecurityException e) {
         responseObserver.onError(e);
@@ -1282,6 +1243,9 @@ public class CompactionCoordinator
             extent);
         final var ecid = ExternalCompactionId.of(request.getExternalCompactionId());
         compactionsFailed(Map.of(ecid, extent));
+
+        responseObserver.onNext(Empty.getDefaultInstance());
+        responseObserver.onCompleted();
       } catch (ThriftSecurityException e) {
         responseObserver.onError(e);
         throw new RuntimeException(e);
@@ -1296,76 +1260,76 @@ public class CompactionCoordinator
     public void getRunningCompactions(GetRunningCompactionsRequest request,
         StreamObserver<PExternalCompactionList> responseObserver) {
 
-      // TODO
-      super.getRunningCompactions(request, responseObserver);
+      // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // getCompactionJob() ?
 
-      // // TODO: Do we want to offload this processing to a new thread like we plan to do with
-      // // getCompactionJob() ?
-      //
-      // var credentials = convert(request.getCredentials());
-      //
-      // try {
-      // // do not expect users to call this directly, expect other tservers to call this method
-      // if (!security.canPerformSystemActions(credentials)) {
-      // throw new AccumuloSecurityException(credentials.getPrincipal(),
-      // SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-      // }
-      //
-      // final PExternalCompactionList.Builder resultBuilder = PExternalCompactionList.newBuilder();
-      // RUNNING_CACHE.forEach((ecid, rc) -> {
-      // PExternalCompaction prc = PExternalCompaction.newBuilder().setGroupName(rc.getGroupName())
-      // .setCompactor(rc.getCompactorAddress()).setJob(convert(rc.getJob()))
-      // .putAllUpdates(rc.getUpdates()).build();
-      // resultBuilder.putCompactions(ecid.canonical(), prc);
-      // });
-      // responseObserver.onNext(resultBuilder.build());
-      // responseObserver.onCompleted();
-      // } catch (ThriftSecurityException e) {
-      // responseObserver.onError(e);
-      // throw new RuntimeException(e);
-      // } catch (Exception e) {
-      // responseObserver.onError(e);
-      // LOG.error(e.getMessage(), e);
-      // throw e;
-      // }
+      var credentials = convert(request.getCredentials());
+
+      try {
+        // do not expect users to call this directly, expect other tservers to call this method
+        if (!security.canPerformSystemActions(credentials)) {
+          throw new AccumuloSecurityException(credentials.getPrincipal(),
+              SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+        }
+
+        final PExternalCompactionList.Builder resultBuilder = PExternalCompactionList.newBuilder();
+        RUNNING_CACHE.forEach((ecid, rc) -> {
+          PExternalCompaction prc = PExternalCompaction.newBuilder().setGroupName(rc.getGroupName())
+              .setCompactor(rc.getCompactorAddress()).setJob(rc.getJob())
+              .putAllUpdates(rc.getUpdates()).build();
+
+          LOG.info("Running compaction: {}", prc);
+          resultBuilder.putCompactions(ecid.canonical(), prc);
+        });
+        responseObserver.onNext(resultBuilder.build());
+        responseObserver.onCompleted();
+      } catch (ThriftSecurityException e) {
+        responseObserver.onError(e);
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        responseObserver.onError(e);
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
     }
 
+    /**
+     * Return information about recently completed compactions
+     *
+     */
     @Override
     public void getCompletedCompactions(GetCompletedCompactionsRequest request,
         StreamObserver<PExternalCompactionList> responseObserver) {
 
-      // TODO
-      super.getCompletedCompactions(request, responseObserver);
+      // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // getCompactionJob() ?
 
-      // // TODO: Do we want to offload this processing to a new thread like we plan to do with
-      // // getCompactionJob() ?
-      //
-      // var credentials = convert(request.getCredentials());
-      //
-      // try {
-      // // do not expect users to call this directly, expect other tservers to call this method
-      // if (!security.canPerformSystemActions(credentials)) {
-      // throw new AccumuloSecurityException(credentials.getPrincipal(),
-      // SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-      // }
-      // final PExternalCompactionList.Builder resultBuilder = PExternalCompactionList.newBuilder();
-      //
-      // completed.asMap().forEach((ecid, rc) -> {
-      // PExternalCompaction prc = PExternalCompaction.newBuilder().setGroupName(rc.getGroupName())
-      // .setCompactor(rc.getCompactorAddress()).setJob(convert(rc.getJob()))
-      // .putAllUpdates(rc.getUpdates()).build();
-      // resultBuilder.putCompactions(ecid.canonical(), prc);
-      // });
-      // responseObserver.onNext(resultBuilder.build());
-      // responseObserver.onCompleted();
-      // } catch (ThriftSecurityException e) {
-      // responseObserver.onError(e);
-      // throw new RuntimeException(e);
-      // } catch (Exception e) {
-      // responseObserver.onError(e);
-      // LOG.error(e.getMessage(), e);
-      // throw e;
-      // }
+      var credentials = convert(request.getCredentials());
+
+      try {
+        // do not expect users to call this directly, expect other tservers to call this method
+        if (!security.canPerformSystemActions(credentials)) {
+          throw new AccumuloSecurityException(credentials.getPrincipal(),
+              SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+        }
+        final PExternalCompactionList.Builder resultBuilder = PExternalCompactionList.newBuilder();
+
+        completed.asMap().forEach((ecid, rc) -> {
+          PExternalCompaction prc = PExternalCompaction.newBuilder().setGroupName(rc.getGroupName())
+              .setCompactor(rc.getCompactorAddress()).setJob(rc.getJob())
+              .putAllUpdates(rc.getUpdates()).build();
+          resultBuilder.putCompactions(ecid.canonical(), prc);
+        });
+        responseObserver.onNext(resultBuilder.build());
+        responseObserver.onCompleted();
+      } catch (ThriftSecurityException e) {
+        responseObserver.onError(e);
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        responseObserver.onError(e);
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
     }
 
     @Override
@@ -1378,7 +1342,7 @@ public class CompactionCoordinator
       try {
         var runningCompaction =
             RUNNING_CACHE.get(ExternalCompactionId.of(request.getExternalCompactionId()));
-        var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
+        var extent = KeyExtent.fromProtobuf(runningCompaction.getJob().getExtent());
         try {
           NamespaceId nsId = CompactionCoordinator.this.ctx.getNamespaceId(extent.tableId());
           if (!security.canCompact(credentials, extent.tableId(), nsId)) {
@@ -1393,6 +1357,7 @@ public class CompactionCoordinator
         cancelCompactionOnCompactor(runningCompaction.getCompactorAddress(),
             request.getExternalCompactionId());
 
+        responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
       } catch (ThriftSecurityException | ThriftTableOperationException e) {
         responseObserver.onError(e);

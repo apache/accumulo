@@ -22,14 +22,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompaction;
 
 public class RunningCompactions {
 
   public final List<RunningCompactionInfo> running = new ArrayList<>();
 
-  public RunningCompactions(Map<String,TExternalCompaction> rMap) {
+  public RunningCompactions(Map<String,PExternalCompaction> rMap) {
     if (rMap != null) {
       for (var entry : rMap.entrySet()) {
         running.add(new RunningCompactionInfo(entry.getValue()));

@@ -21,40 +21,40 @@ package org.apache.accumulo.core.util.compaction;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionStatusUpdate;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompaction;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionJob;
 
 public class RunningCompaction {
 
-  private final TExternalCompactionJob job;
+  private final PExternalCompactionJob job;
   private final String compactorAddress;
   private final String groupName;
-  private final Map<Long,TCompactionStatusUpdate> updates = new TreeMap<>();
+  private final Map<Long,PCompactionStatusUpdate> updates = new TreeMap<>();
 
-  public RunningCompaction(TExternalCompactionJob job, String compactorAddress, String groupName) {
+  public RunningCompaction(PExternalCompactionJob job, String compactorAddress, String groupName) {
     this.job = job;
     this.compactorAddress = compactorAddress;
     this.groupName = groupName;
   }
 
-  public RunningCompaction(TExternalCompaction tEC) {
+  public RunningCompaction(PExternalCompaction tEC) {
     this(tEC.getJob(), tEC.getCompactor(), tEC.getGroupName());
   }
 
-  public Map<Long,TCompactionStatusUpdate> getUpdates() {
+  public Map<Long,PCompactionStatusUpdate> getUpdates() {
     synchronized (updates) {
       return new TreeMap<>(updates);
     }
   }
 
-  public void addUpdate(Long timestamp, TCompactionStatusUpdate update) {
+  public void addUpdate(Long timestamp, PCompactionStatusUpdate update) {
     synchronized (updates) {
       this.updates.put(timestamp, update);
     }
   }
 
-  public TExternalCompactionJob getJob() {
+  public PExternalCompactionJob getJob() {
     return job;
   }
 

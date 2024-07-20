@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.compactor;
 
-import static org.apache.accumulo.core.rpc.ThriftProtobufUtil.convert;
+import static org.apache.accumulo.core.rpc.grpc.ThriftProtobufUtil.convert;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;

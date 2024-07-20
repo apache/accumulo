@@ -47,9 +47,6 @@ import jakarta.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -68,6 +65,7 @@ import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.grpc.GrpcUtil;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
@@ -77,6 +75,11 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.grpc.compaction.protobuf.CompactionCoordinatorServiceGrpc;
+import org.apache.accumulo.grpc.compaction.protobuf.CompactionCoordinatorServiceGrpc.CompactionCoordinatorServiceBlockingStub;
+import org.apache.accumulo.grpc.compaction.protobuf.GetRunningCompactionsRequest;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompaction;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionList;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
 import org.apache.accumulo.monitor.util.logging.RecentLogs;
 import org.apache.accumulo.server.AbstractServer;
@@ -175,7 +178,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private GCStatus gcStatus;
   private Optional<HostAndPort> coordinatorHost = Optional.empty();
   private long coordinatorCheckNanos = 0L;
-  private CompactionCoordinatorService.Client coordinatorClient;
+  private CompactionCoordinatorServiceBlockingStub coordinatorClient;
   private final String coordinatorMissingMsg =
       "Error getting the compaction coordinator. Check that it is running. It is not "
           + "started automatically with other cluster processes so must be started by running "
@@ -393,7 +396,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
     } finally {
       if (coordinatorClient != null) {
-        ThriftUtil.returnClient(coordinatorClient, context);
+        // TODO: we may need to return the client here depending on how pooling works
+        // with gRPC
+        // ThriftUtil.returnClient(coordinatorClient, context);
         coordinatorClient = null;
       }
       lastRecalc.set(currentTime);
@@ -610,7 +615,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
   private final RecentLogs recentLogs = new RecentLogs();
   private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
-  private final Map<String,TExternalCompaction> ecRunningMap = new ConcurrentHashMap<>();
+  private final Map<String,PExternalCompaction> ecRunningMap = new ConcurrentHashMap<>();
   private long scansFetchedNanos = 0L;
   private long compactsFetchedNanos = 0L;
   private long ecInfoFetchedNanos = 0L;
@@ -670,37 +675,41 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
    * user fetches since RPC calls are going to the coordinator. This allows for fine grain updates
    * of external compaction progress.
    */
-  public synchronized Map<String,TExternalCompaction> fetchRunningInfo() {
+  public synchronized Map<String,PExternalCompaction> fetchRunningInfo() {
     if (coordinatorHost.isEmpty()) {
       throw new IllegalStateException(coordinatorMissingMsg);
     }
     var ccHost = coordinatorHost.orElseThrow();
     log.info("User initiated fetch of running External Compactions from " + ccHost);
     var client = getCoordinator(ccHost);
-    TExternalCompactionList running;
+    PExternalCompactionList running;
     try {
-      running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
+      running = client.getRunningCompactions(GetRunningCompactionsRequest.newBuilder()
+          .setPtinfo(TraceUtil.protoTraceInfo()).setCredentials(getContext().gRpcCreds()).build());
     } catch (Exception e) {
       throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
     }
 
     ecRunningMap.clear();
-    if (running.getCompactions() != null) {
-      ecRunningMap.putAll(running.getCompactions());
+    if (!running.getCompactionsMap().isEmpty()) {
+      ecRunningMap.putAll(running.getCompactionsMap());
     }
 
     return ecRunningMap;
   }
 
-  public Map<String,TExternalCompaction> getEcRunningMap() {
+  public Map<String,PExternalCompaction> getEcRunningMap() {
     return ecRunningMap;
   }
 
-  private CompactionCoordinatorService.Client getCoordinator(HostAndPort address) {
+  private CompactionCoordinatorServiceBlockingStub getCoordinator(HostAndPort address) {
     if (coordinatorClient == null) {
       try {
-        coordinatorClient =
-            ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, getContext());
+        // TODO: coordinatorHost contains the Thrift port so right now only host is used.
+        // we eventually need the gRPC port and will need to store than in Zk.
+        // GrpcUtil for now just uses the property in the context for the port
+        coordinatorClient = CompactionCoordinatorServiceGrpc
+            .newBlockingStub(GrpcUtil.getChannel(coordinatorHost.orElseThrow(), getContext()));
       } catch (Exception e) {
         log.error("Unable to get Compaction coordinator at {}", address);
         throw new IllegalStateException(coordinatorMissingMsg, e);

@@ -21,26 +21,26 @@ package org.apache.accumulo.monitor.rest.compactions.external;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompaction;
+import org.apache.accumulo.grpc.compaction.protobuf.PInputFile;
 
 public class RunningCompactorDetails extends RunningCompactionInfo {
   // Variable names become JSON keys
   public final List<CompactionInputFile> inputFiles;
   public final String outputFile;
 
-  public RunningCompactorDetails(TExternalCompaction ec) {
+  public RunningCompactorDetails(PExternalCompaction ec) {
     super(ec);
     var job = ec.getJob();
-    inputFiles = convertInputFiles(job.files);
-    outputFile = job.outputFile;
+    inputFiles = convertInputFiles(job.getFilesList());
+    outputFile = job.getOutputFile();
   }
 
-  private List<CompactionInputFile> convertInputFiles(List<InputFile> files) {
+  private List<CompactionInputFile> convertInputFiles(List<PInputFile> files) {
     List<CompactionInputFile> list = new ArrayList<>();
-    files.forEach(f -> list
-        .add(new CompactionInputFile(f.metadataFileEntry, f.size, f.entries, f.timestamp)));
+    files.forEach(f -> list.add(new CompactionInputFile(f.getMetadataFileEntry(), f.getSize(),
+        f.getEntries(), f.getTimestamp())));
     // sorted largest to smallest
     list.sort((o1, o2) -> Long.compare(o2.size, o1.size));
     return list;

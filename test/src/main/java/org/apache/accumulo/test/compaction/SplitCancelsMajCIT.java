@@ -34,13 +34,13 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionState;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -120,7 +120,7 @@ public class SplitCancelsMajCIT extends SharedMiniClusterBase {
       c.tableOperations().addSplits(tableName, partitionKeys);
 
       ExternalCompactionTestUtils.confirmCompactionCompleted(getCluster().getServerContext(),
-          compactionIds, TCompactionState.CANCELLED);
+          compactionIds, PCompactionState.CANCELLED);
 
       thread.join();
       // wait for the restarted compaction

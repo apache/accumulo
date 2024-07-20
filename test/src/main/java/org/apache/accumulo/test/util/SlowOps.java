@@ -226,7 +226,7 @@ public class SlowOps {
     do {
       boolean tableFound =
           ExternalCompactionUtil.getCompactionsRunningOnCompactors((ClientContext) client).stream()
-              .map(rc -> KeyExtent.fromThrift(rc.getJob().getExtent()).tableId())
+              .map(rc -> KeyExtent.fromProtobuf(rc.getJob().getExtent()).tableId())
               .anyMatch(tableId::equals);
 
       if (tableFound) {

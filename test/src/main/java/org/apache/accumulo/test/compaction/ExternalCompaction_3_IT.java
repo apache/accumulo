@@ -37,9 +37,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -48,6 +45,9 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionState;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompaction;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionList;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -57,8 +57,6 @@ import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -107,7 +105,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       var md = new ArrayList<TabletMetadata>();
       try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
           .forTable(tid).fetch(ColumnType.PREV_ROW).build()) {
-        tm.forEach(t -> md.add(t));
+        tm.forEach(md::add);
         assertEquals(2, md.size());
       }
 
@@ -121,7 +119,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       client.tableOperations().merge(table1, start, end);
 
       confirmCompactionCompleted(getCluster().getServerContext(), ecids,
-          TCompactionState.CANCELLED);
+          PCompactionState.CANCELLED);
 
       // ensure compaction ids were deleted by merge operation from metadata table
       try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
@@ -142,7 +140,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
 
       // Verify that the tmp file are cleaned up
       Wait.waitFor(() -> FindCompactionTmpFiles
-          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 0);
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).isEmpty());
     }
   }
 
@@ -174,27 +172,27 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       // Confirm compaction is still running
       int matches = 0;
       while (matches == 0) {
-        TExternalCompactionList running = null;
+        PExternalCompactionList running = null;
         while (running == null) {
           try {
             Optional<HostAndPort> coordinatorHost =
                 ExternalCompactionUtil.findCompactionCoordinator(ctx);
             if (coordinatorHost.isEmpty()) {
-              throw new TTransportException(
+              throw new IllegalStateException(
                   "Unable to get CompactionCoordinator address from ZooKeeper");
             }
             running = getRunningCompactions(ctx, coordinatorHost);
-          } catch (TException t) {
+          } catch (RuntimeException t) {
             running = null;
             Thread.sleep(2000);
           }
         }
-        if (running.getCompactions() != null) {
+        if (!running.getCompactionsMap().isEmpty()) {
           for (ExternalCompactionId ecid : ecids) {
-            TExternalCompaction tec = running.getCompactions().get(ecid.canonical());
-            if (tec != null && tec.getUpdates() != null && !tec.getUpdates().isEmpty()) {
+            PExternalCompaction tec = running.getCompactionsMap().get(ecid.canonical());
+            if (tec != null && !tec.getUpdatesMap().isEmpty()) {
               matches++;
-              assertEquals(TCompactionState.IN_PROGRESS, getLastState(tec));
+              assertEquals(PCompactionState.IN_PROGRESS, getLastState(tec));
             }
           }
         }
