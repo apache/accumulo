@@ -1054,7 +1054,7 @@ public class Manager extends AbstractServer
 
     ServerAddress sa;
     var processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler,
-        compactionCoordinator.getThriftService(), haProxy, getContext());
+         haProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,

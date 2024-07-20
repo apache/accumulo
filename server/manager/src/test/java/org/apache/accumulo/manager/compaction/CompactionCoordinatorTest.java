@@ -162,15 +162,6 @@ public class CompactionCoordinatorTest {
       this.shutdown.countDown();
     }
 
-    @Override
-    public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-        String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
-        throws ThriftSecurityException {}
-
-    @Override
-    public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-        TKeyExtent extent) throws ThriftSecurityException {}
-
     void setMetadataCompactionIds(Set<ExternalCompactionId> mci) {
       metadataCompactionIds = mci;
     }

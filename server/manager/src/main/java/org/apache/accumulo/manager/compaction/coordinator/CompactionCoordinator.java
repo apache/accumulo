@@ -163,8 +163,7 @@ import io.grpc.stub.StreamObserver;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
-public class CompactionCoordinator
-    implements CompactionCoordinatorService.Iface, Runnable, MetricsProducer {
+public class CompactionCoordinator implements Runnable, MetricsProducer {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
 
@@ -382,21 +381,6 @@ public class CompactionCoordinator
 
   public long getNumRunningCompactions() {
     return RUNNING_CACHE.size();
-  }
-
-  /**
-   * Return the next compaction job from the queue to a Compactor
-   *
-   * @param groupName group
-   * @param compactorAddress compactor address
-   * @return compaction job
-   * @throws ThriftSecurityException when permission error
-   */
-  @Override
-  public TNextCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
-      String groupName, String compactorAddress, String externalCompactionId)
-      throws ThriftSecurityException {
-    throw new UnsupportedOperationException();
   }
 
   public CompletableFuture<PNextCompactionJob> getAsyncCompactionJob(ProtoTInfo ptinfo,
@@ -709,10 +693,6 @@ public class CompactionCoordinator
     jobQueues.add(tabletMetadata, jobs);
   }
 
-  public CompactionCoordinatorService.Iface getThriftService() {
-    return this;
-  }
-
   private Optional<CompactionConfig> getCompactionConfig(CompactionJobQueues.MetaJob metaJob) {
     if (metaJob.getJob().getKind() == CompactionKind.USER
         && metaJob.getTabletMetadata().getSelectedFiles() != null) {
@@ -721,52 +701,6 @@ public class CompactionCoordinator
       return Optional.ofNullable(cconf);
     }
     return Optional.empty();
-  }
-
-  /**
-   * Compactors calls this method when they have finished a compaction. This method does the
-   * following.
-   *
-   * <ol>
-   * <li>Reads the tablets metadata and determines if the compaction can commit. Its possible that
-   * things changed while the compaction was running and it can no longer commit.</li>
-   * <li>Commit the compaction using a conditional mutation. If the tablets files or location
-   * changed since reading the tablets metadata, then conditional mutation will fail. When this
-   * happens it will reread the metadata and go back to step 1 conceptually. When committing a
-   * compaction the compacted files are removed and scan entries are added to the tablet in case the
-   * files are in use, this prevents GC from deleting the files between updating tablet metadata and
-   * refreshing the tablet. The scan entries are only added when a tablet has a location.</li>
-   * <li>After successful commit a refresh request is sent to the tablet if it has a location. This
-   * will cause the tablet to start using the newly compacted files for future scans. Also the
-   * tablet can delete the scan entries if there are no active scans using them.</li>
-   * </ol>
-   *
-   * <p>
-   * User compactions will be refreshed as part of the fate operation. The user compaction fate
-   * operation will see the compaction was committed after this code updates the tablet metadata,
-   * however if it were to rely on this code to do the refresh it would not be able to know when the
-   * refresh was actually done. Therefore, user compactions will refresh as part of the fate
-   * operation so that it's known to be done before the fate operation returns. Since the fate
-   * operation will do it, there is no need to do it here for user compactions.
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @param externalCompactionId compaction id
-   * @param textent tablet extent
-   * @param stats compaction stats
-   * @throws ThriftSecurityException when permission error
-   */
-  @Override
-  public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
-      throws ThriftSecurityException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      TKeyExtent extent) throws ThriftSecurityException {
-    throw new UnsupportedOperationException();
   }
 
   void compactionsFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
@@ -870,23 +804,6 @@ public class CompactionCoordinator
     compactions.forEach((k, v) -> recordCompletion(k));
   }
 
-  /**
-   * Compactor calls to update the status of the assigned compaction
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @param externalCompactionId compaction id
-   * @param update compaction status update
-   * @param timestamp timestamp of the message
-   * @throws ThriftSecurityException when permission error
-   */
-  @Override
-  public void updateCompactionStatus(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TCompactionStatusUpdate update, long timestamp)
-      throws ThriftSecurityException {
-    throw new UnsupportedOperationException();
-  }
-
   public void recordCompletion(ExternalCompactionId ecid) {
     var rc = RUNNING_CACHE.remove(ecid);
     if (rc != null) {
@@ -925,40 +842,6 @@ public class CompactionCoordinator
     if (idsToRemove.size() > 0) {
       LOG.debug("Removed stale entries from RUNNING_CACHE : {}", idsToRemove);
     }
-  }
-
-  /**
-   * Return information about running compactions
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @return map of ECID to TExternalCompaction objects
-   * @throws ThriftSecurityException permission error
-   */
-  @Override
-  public TExternalCompactionList getRunningCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Return information about recently completed compactions
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @return map of ECID to TExternalCompaction objects
-   * @throws ThriftSecurityException permission error
-   */
-  @Override
-  public TExternalCompactionList getCompletedCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
-    throw new UnsupportedOperationException();
   }
 
   /* Method exists to be called from test */
