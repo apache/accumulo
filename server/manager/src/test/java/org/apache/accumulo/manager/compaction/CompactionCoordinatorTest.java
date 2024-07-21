@@ -268,8 +268,8 @@ public class CompactionCoordinatorTest {
 
     List<RunningCompaction> runningCompactions = new ArrayList<>();
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
-    PExternalCompactionJob job = EasyMock.createNiceMock(PExternalCompactionJob.class);
-    expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
+    PExternalCompactionJob job =
+        PExternalCompactionJob.newBuilder().setExternalCompactionId(eci.canonical()).build();
     TKeyExtent extent = new TKeyExtent();
     extent.setTable("1".getBytes());
     runningCompactions.add(new RunningCompaction(job, tserverAddr.toString(), GROUP_ID.toString()));
@@ -280,7 +280,7 @@ public class CompactionCoordinatorTest {
     expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
         .anyTimes();
 
-    EasyMock.replay(context, job, security, manager);
+    EasyMock.replay(context, security, manager);
 
     var coordinator = new TestCoordinator(context, security, runningCompactions, manager);
     coordinator.resetInternals();
@@ -298,7 +298,7 @@ public class CompactionCoordinatorTest {
     assertEquals(GROUP_ID.toString(), rc.getGroupName());
     assertEquals(tserverAddr.toString(), rc.getCompactorAddress());
 
-    EasyMock.verify(context, job, security);
+    EasyMock.verify(context, security);
   }
 
   @Test
