@@ -512,21 +512,25 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       if (rc == null || rc.count != uc) {
         T newObj = converter.apply(AccumuloConfiguration.this);
 
-        // very important to record the update count that was obtained before recomputing.
-        RefCount<T> nrc = new RefCount<>(uc, newObj);
+        if (newObj != null) {
+          // very important to record the update count that was obtained before recomputing.
+          RefCount<T> nrc = new RefCount<>(uc, newObj);
 
-        /*
-         * The return value of compare and set is intentionally ignored here. This code could loop
-         * calling compare and set inorder to avoid returning a stale object. However after this
-         * function returns, the object could immediately become stale. So in the big picture stale
-         * objects can not be prevented. Looping here could cause thread contention, but it would
-         * not solve the overall stale object problem. That is why the return value was ignored. The
-         * following line is a least effort attempt to make the result of this recomputation
-         * available to the next caller.
-         */
-        refref.compareAndSet(rc, nrc);
+          /*
+           * The return value of compare and set is intentionally ignored here. This code could loop
+           * calling compare and set inorder to avoid returning a stale object. However after this
+           * function returns, the object could immediately become stale. So in the big picture
+           * stale objects can not be prevented. Looping here could cause thread contention, but it
+           * would not solve the overall stale object problem. That is why the return value was
+           * ignored. The following line is a least effort attempt to make the result of this
+           * recomputation available to the next caller.
+           */
+          refref.compareAndSet(rc, nrc);
 
-        return nrc.obj;
+          return nrc.obj;
+        } else {
+          log.warn("Converter returned null for Deriver, not storing result.");
+        }
       }
 
       return rc.obj;

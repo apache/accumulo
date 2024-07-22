@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -1940,6 +1941,10 @@ public enum Property {
    */
   public static <T> T createTableInstanceFromPropertyName(AccumuloConfiguration conf,
       Property property, Class<T> base, T defaultInstance) {
+    Objects.requireNonNull(conf, "configuration cannot be null");
+    Objects.requireNonNull(property, "property cannot be null");
+    Objects.requireNonNull(base, "base class cannot be null");
+    Objects.requireNonNull(defaultInstance, "default instance cannot be null");
     String clazzName = conf.get(property);
     String context = ClassLoaderUtil.tableContext(conf);
     return ConfigurationTypeHelper.getClassInstance(context, clazzName, base, defaultInstance);
