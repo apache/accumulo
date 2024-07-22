@@ -992,7 +992,7 @@ public class RFile {
           // causing the build of an index... doing this could slow down some use cases and
           // and speed up others.
 
-          ArrayByteSequence valbs = new ArrayByteSequence(new byte[64], 0, 0);
+          var valbs = new ArrayByteSequence(new byte[64], 0, 0);
           SkippR skippr =
               RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey(), entriesLeft);
           if (skippr.skipped > 0) {
