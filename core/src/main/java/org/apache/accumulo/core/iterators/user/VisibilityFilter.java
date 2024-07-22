@@ -75,22 +75,25 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
 
   @Override
   public boolean accept(Key k, Value v) {
+    // The following call will replace the contents of testVis
+    // with the bytes for the column visibility for k. Any cached
+    // version of testVis needs to be a copy to avoid modifying
+    // the cached version.
     k.getColumnVisibilityData(testVis);
     if (filterInvalid) {
       Boolean b = cache.get(testVis);
       if (b != null) {
         return b;
       }
+      final ArrayByteSequence copy = new ArrayByteSequence(testVis);
       try {
-        AccessExpression.validate(testVis.toArray());
-        cache.put(testVis, true);
-        // change testVis reference to new object
-        // so that the next iteration does not modify
-        // the one that we just put into the cache.
-        testVis = new ArrayByteSequence(new byte[0]);
+        AccessExpression.validate(copy.toArray());
+        // cache a copy of testVis
+        cache.put(copy, true);
         return true;
       } catch (InvalidAccessExpressionException e) {
-        cache.put(testVis, false);
+        // cache a copy of testVis
+        cache.put(copy, false);
         return false;
       }
     } else {
@@ -103,13 +106,11 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         return b;
       }
 
+      final ArrayByteSequence copy = new ArrayByteSequence(testVis);
       try {
-        boolean bb = accessEvaluator.canAccess(testVis.toArray());
-        cache.put(testVis, bb);
-        // change testVis reference to new object
-        // so that the next iteration does not modify
-        // the one that we just put into the cache.
-        testVis = new ArrayByteSequence(new byte[0]);
+        boolean bb = accessEvaluator.canAccess(copy.toArray());
+        // cache a copy of testVis
+        cache.put(copy, bb);
         return bb;
       } catch (InvalidAccessExpressionException e) {
         log.error("Parse Error", e);
