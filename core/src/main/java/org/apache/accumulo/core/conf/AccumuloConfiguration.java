@@ -512,25 +512,27 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       if (rc == null || rc.count != uc) {
         T newObj = converter.apply(AccumuloConfiguration.this);
 
-        if (newObj != null) {
-          // very important to record the update count that was obtained before recomputing.
-          RefCount<T> nrc = new RefCount<>(uc, newObj);
-
-          /*
-           * The return value of compare and set is intentionally ignored here. This code could loop
-           * calling compare and set inorder to avoid returning a stale object. However after this
-           * function returns, the object could immediately become stale. So in the big picture
-           * stale objects can not be prevented. Looping here could cause thread contention, but it
-           * would not solve the overall stale object problem. That is why the return value was
-           * ignored. The following line is a least effort attempt to make the result of this
-           * recomputation available to the next caller.
-           */
-          refref.compareAndSet(rc, nrc);
-
-          return nrc.obj;
-        } else {
-          log.warn("Converter returned null for Deriver, not storing result.");
+        if (newObj == null) {
+          // The converter should not return a null value, if it does then
+          // use the previous value.
+          return rc.obj;
         }
+
+        // very important to record the update count that was obtained before recomputing.
+        RefCount<T> nrc = new RefCount<>(uc, newObj);
+
+        /*
+         * The return value of compare and set is intentionally ignored here. This code could loop
+         * calling compare and set inorder to avoid returning a stale object. However after this
+         * function returns, the object could immediately become stale. So in the big picture stale
+         * objects can not be prevented. Looping here could cause thread contention, but it would
+         * not solve the overall stale object problem. That is why the return value was ignored. The
+         * following line is a least effort attempt to make the result of this recomputation
+         * available to the next caller.
+         */
+        refref.compareAndSet(rc, nrc);
+
+        return nrc.obj;
       }
 
       return rc.obj;
@@ -554,6 +556,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    *        this function will be kept and called by the returned deriver.
    * @return The returned supplier will automatically re-derive the object any time this
    *         configuration changes. When configuration is not changing, the same object is returned.
+   *         When a null return value is returned by the converter, then the same object is
+   *         returned.
    *
    */
   public <T> Deriver<T> newDeriver(Function<AccumuloConfiguration,T> converter) {
