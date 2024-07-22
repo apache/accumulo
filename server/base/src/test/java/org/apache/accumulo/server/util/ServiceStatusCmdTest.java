@@ -452,8 +452,6 @@ public class ServiceStatusCmdTest {
     String host2 = "localhost:9992";
     String host3 = "hostA:9999";
 
-    String lock1data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\"localhost:9991\",\"group\":\"default\"}]}";
     String lock2Data =
         "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\""
             + host2 + "\",\"group\":\"default\"}]}";

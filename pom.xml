@@ -931,7 +931,6 @@
                 <!-- ignore unused native; analysis isn't possible with tar.gz dependency -->
                 <unused>org.apache.accumulo:accumulo-native:tar.gz:*</unused>
                 <!-- ignore runtime log4j dependencies at test scope -->
-                <unused>org.apache.logging.log4j:log4j-1.2-api:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-slf4j2-impl:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-web:jar:*</unused>
                 <!-- ignore log4j dep used for annotations and needed for compile time linting -->

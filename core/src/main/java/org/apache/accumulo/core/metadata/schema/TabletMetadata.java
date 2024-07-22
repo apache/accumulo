@@ -77,7 +77,6 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap.Builder;
 import com.google.common.net.HostAndPort;
 
 public class TabletMetadata {
