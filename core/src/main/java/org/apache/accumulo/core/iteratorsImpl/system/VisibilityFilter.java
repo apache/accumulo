@@ -66,26 +66,26 @@ public class VisibilityFilter extends SynchronizedServerFilter {
 
   @Override
   protected boolean accept(Key k, Value v) {
+    // The following call will replace the contents of testVis
+    // with the bytes for the column visibility for k. Any cached
+    // version of testVis needs to be a copy to avoid modifying
+    // the cached version.
     k.getColumnVisibilityData(testVis);
 
     if (testVis.length() == 0 && defaultVisibility.length() == 0) {
       return true;
-    } else if (testVis.length() == 0) {
-      testVis = defaultVisibility;
     }
 
-    Boolean b = cache.get(testVis);
+    Boolean b = cache.get((testVis.length() == 0) ? defaultVisibility : testVis);
     if (b != null) {
       return b;
     }
 
     try {
-      boolean bb = ve.canAccess(testVis.toArray());
-      cache.put(testVis, bb);
-      // change testVis reference to new object
-      // so that the next iteration does not modify
-      // the one that we just put into the cache.
-      testVis = new ArrayByteSequence(new byte[0]);
+      final ArrayByteSequence safeCopy =
+          (testVis.length() == 0) ? defaultVisibility : new ArrayByteSequence(testVis);
+      boolean bb = ve.canAccess(safeCopy.toArray());
+      cache.put(safeCopy, bb);
       return bb;
     } catch (InvalidAccessExpressionException e) {
       log.error("IllegalAccessExpressionException with visibility of Key: {}", k, e);
