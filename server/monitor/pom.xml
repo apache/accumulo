@@ -149,7 +149,7 @@
       <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
-      <!-- used by log4j; needed here for compile time linting only; we don't actually use it -->
+      <!-- used by log4j-api; needed here for compile time linting only; we don't actually use it -->
       <groupId>biz.aQute.bnd</groupId>
       <artifactId>biz.aQute.bnd.annotation</artifactId>
       <scope>provided</scope>

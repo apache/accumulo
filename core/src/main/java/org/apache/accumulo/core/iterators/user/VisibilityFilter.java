@@ -25,7 +25,7 @@ import java.util.Map;
 
 import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.AccessExpression;
-import org.apache.accumulo.access.IllegalAccessExpressionException;
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -89,7 +89,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         // the one that we just put into the cache.
         testVis = new ArrayByteSequence(new byte[0]);
         return true;
-      } catch (IllegalAccessExpressionException e) {
+      } catch (InvalidAccessExpressionException e) {
         cache.put(testVis, false);
         return false;
       }
@@ -111,7 +111,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         // the one that we just put into the cache.
         testVis = new ArrayByteSequence(new byte[0]);
         return bb;
-      } catch (IllegalAccessExpressionException e) {
+      } catch (InvalidAccessExpressionException e) {
         log.error("Parse Error", e);
         return false;
       }

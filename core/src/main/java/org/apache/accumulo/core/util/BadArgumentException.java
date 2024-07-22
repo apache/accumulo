@@ -20,7 +20,7 @@ package org.apache.accumulo.core.util;
 
 import java.util.regex.PatternSyntaxException;
 
-import org.apache.accumulo.access.IllegalAccessExpressionException;
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 
 public final class BadArgumentException extends PatternSyntaxException {
   private static final long serialVersionUID = 1L;
@@ -29,7 +29,7 @@ public final class BadArgumentException extends PatternSyntaxException {
     super(desc, badarg, index);
   }
 
-  public BadArgumentException(IllegalAccessExpressionException e) {
+  public BadArgumentException(InvalidAccessExpressionException e) {
     super(e.getDescription(), e.getPattern(), e.getIndex());
     super.initCause(e);
   }

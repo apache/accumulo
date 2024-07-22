@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.iteratorsImpl.system;
 
 import org.apache.accumulo.access.AccessEvaluator;
-import org.apache.accumulo.access.IllegalAccessExpressionException;
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -87,7 +87,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
       // the one that we just put into the cache.
       testVis = new ArrayByteSequence(new byte[0]);
       return bb;
-    } catch (IllegalAccessExpressionException e) {
+    } catch (InvalidAccessExpressionException e) {
       log.error("IllegalAccessExpressionException with visibility of Key: {}", k, e);
       return false;
     }

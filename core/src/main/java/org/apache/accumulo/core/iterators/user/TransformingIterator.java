@@ -32,7 +32,7 @@ import java.util.NoSuchElementException;
 
 import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.AccessExpression;
-import org.apache.accumulo.access.IllegalAccessExpressionException;
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -413,7 +413,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
       try {
         AccessExpression.validate(visibility.toArray());
         parsedVisibilitiesCache.put(visibility, Boolean.TRUE);
-      } catch (IllegalAccessExpressionException e) {
+      } catch (InvalidAccessExpressionException e) {
         log.error("Parse error after transformation : {}", visibility);
         parsedVisibilitiesCache.put(visibility, Boolean.FALSE);
         if (scanning) {
@@ -441,7 +441,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
       try {
         visible = ve.canAccess(visibility.toArray());
         visibleCache.put(visibility, visible);
-      } catch (IllegalAccessExpressionException e) {
+      } catch (InvalidAccessExpressionException e) {
         log.error("Parse Error", e);
         visible = Boolean.FALSE;
       }

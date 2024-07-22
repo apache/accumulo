@@ -43,7 +43,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.access.AccessEvaluator;
-import org.apache.accumulo.access.IllegalAccessExpressionException;
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -87,9 +87,10 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
-class ConditionalWriterImpl implements ConditionalWriter {
+public class ConditionalWriterImpl implements ConditionalWriter {
 
   private static final Logger log = LoggerFactory.getLogger(ConditionalWriterImpl.class);
 
@@ -105,6 +106,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private final long timeout;
   private final Durability durability;
   private final String classLoaderContext;
+  private final ConditionalWriterConfig config;
 
   private static class ServerQueue {
     BlockingQueue<TabletServerMutations<QCMutation>> queue = new LinkedBlockingQueue<>();
@@ -370,6 +372,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   ConditionalWriterImpl(ClientContext context, TableId tableId, String tableName,
       ConditionalWriterConfig config) {
+    this.config = config;
     this.context = context;
     this.auths = config.getAuthorizations();
     this.accessEvaluator = AccessEvaluator.of(config.getAuthorizations().toAccessAuthorizations());
@@ -823,9 +826,14 @@ class ConditionalWriterImpl implements ConditionalWriter {
       boolean bb = accessEvaluator.canAccess(arrayVis);
       cache.put(new Text(testVis), bb);
       return bb;
-    } catch (IllegalAccessExpressionException e) {
+    } catch (InvalidAccessExpressionException e) {
       return false;
     }
+  }
+
+  @VisibleForTesting
+  public ConditionalWriterConfig getConfig() {
+    return config;
   }
 
   @Override
