@@ -16,26 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.metrics;
+package org.apache.accumulo.server.metrics;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 
-public class ManagerMetrics {
+import io.micrometer.core.instrument.MeterRegistry;
 
-  public static List<MetricsProducer> getProducers(AccumuloConfiguration conf, Manager m) {
-    ArrayList<MetricsProducer> producers = new ArrayList<>();
-    @SuppressWarnings("deprecation")
-    ReplicationMetrics replMetrics = new ReplicationMetrics(m);
-    producers.add(replMetrics);
-    producers.add(new FateMetrics(m.getContext(),
-        conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
-    return producers;
+public class ProcessMetrics implements MetricsProducer {
+
+  private final AtomicInteger isIdle;
+
+  public ProcessMetrics() {
+    this.isIdle = new AtomicInteger(-1);
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    registry.gauge(METRICS_SERVER_IDLE, isIdle, AtomicInteger::get);
+  }
+
+  public void setIdleValue(boolean isIdle) {
+    this.isIdle.set(isIdle ? 1 : 0);
   }
 }
