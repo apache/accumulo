@@ -191,4 +191,14 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   public String toString() {
     return new String(data, offset, length, UTF_8);
   }
+
+  public void setArray(byte[] data, int offset, int len) {
+    this.data = data;
+    this.offset = offset;
+    this.length = len;
+  }
+
+  public void setLength(int len) {
+    this.length = len;
+  }
 }

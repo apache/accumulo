@@ -306,7 +306,7 @@ public class LocalityGroupUtil {
     public void partition(List<Mutation> mutations,
         PreAllocatedArray<List<Mutation>> partitionedMutations) {
 
-      MutableByteSequence mbs = new MutableByteSequence(new byte[0], 0, 0);
+      ArrayByteSequence mbs = new ArrayByteSequence(new byte[0], 0, 0);
 
       PreAllocatedArray<List<ColumnUpdate>> parts = new PreAllocatedArray<>(groups.length + 1);
 
@@ -351,7 +351,7 @@ public class LocalityGroupUtil {
       }
     }
 
-    private Integer getLgid(MutableByteSequence mbs, ColumnUpdate cu) {
+    private Integer getLgid(ArrayByteSequence mbs, ColumnUpdate cu) {
       mbs.setArray(cu.getColumnFamily(), 0, cu.getColumnFamily().length);
       Integer lgid = colfamToLgidMap.get(mbs);
       if (lgid == null) {
