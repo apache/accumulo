@@ -445,11 +445,11 @@ public class RelativeKey implements Writable {
   private static void read(DataInput in, ArrayByteSequence mbseqDestination, int len)
       throws IOException {
     if (mbseqDestination.getBackingArray().length < len) {
-      mbseqDestination.setArray(new byte[UnsynchronizedBuffer.nextArraySize(len)], 0, 0);
+      mbseqDestination.reset(new byte[UnsynchronizedBuffer.nextArraySize(len)], 0, 0);
     }
 
     in.readFully(mbseqDestination.getBackingArray(), 0, len);
-    mbseqDestination.setLength(len);
+    mbseqDestination.reset(mbseqDestination.getBackingArray(), mbseqDestination.offset(), len);
   }
 
   private static byte[] readPrefix(DataInput in, ByteSequence prefixSource) throws IOException {
@@ -473,7 +473,7 @@ public class RelativeKey implements Writable {
     int remainingLen = WritableUtils.readVInt(in);
     int len = prefixLen + remainingLen;
     if (dest.getBackingArray().length < len) {
-      dest.setArray(new byte[UnsynchronizedBuffer.nextArraySize(len)], 0, 0);
+      dest.reset(new byte[UnsynchronizedBuffer.nextArraySize(len)], 0, 0);
     }
     if (prefixSource.isBackedByArray()) {
       System.arraycopy(prefixSource.getBackingArray(), prefixSource.offset(),
@@ -484,7 +484,7 @@ public class RelativeKey implements Writable {
     }
     // read remaining
     in.readFully(dest.getBackingArray(), prefixLen, remainingLen);
-    dest.setLength(len);
+    dest.reset(dest.getBackingArray(), dest.offset(), len);
   }
 
   private static byte[] read(DataInput in) throws IOException {

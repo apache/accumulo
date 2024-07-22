@@ -192,20 +192,18 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
     return new String(data, offset, length, UTF_8);
   }
 
-  public void setArray(byte[] data, int offset, int length) {
+  /**
+   * Resets data, offset, and length of a backing array for this byte sequence object.
+   *
+   * @since 3.1.0
+   */
+  public void reset(byte[] data, int offset, int length) {
     if (offset < 0 || offset > data.length || length < 0 || (offset + length) > data.length) {
       throw new IllegalArgumentException(" Bad offset and/or length data.length = " + data.length
           + " offset = " + offset + " length = " + length);
     }
     this.data = data;
     this.offset = offset;
-    this.length = length;
-  }
-
-  public void setLength(int length) {
-    if (length < 0) {
-      throw new IllegalArgumentException(" Bad length = " + length);
-    }
     this.length = length;
   }
 }

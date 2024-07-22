@@ -352,7 +352,7 @@ public class LocalityGroupUtil {
     }
 
     private Integer getLgid(ArrayByteSequence mbs, ColumnUpdate cu) {
-      mbs.setArray(cu.getColumnFamily(), 0, cu.getColumnFamily().length);
+      mbs.reset(cu.getColumnFamily(), 0, cu.getColumnFamily().length);
       Integer lgid = colfamToLgidMap.get(mbs);
       if (lgid == null) {
         lgid = groups.length;
