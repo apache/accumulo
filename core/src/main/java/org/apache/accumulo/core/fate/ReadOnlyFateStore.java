@@ -22,14 +22,13 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import org.apache.accumulo.core.util.Pair;
 
 /**
  * Read only access to a Transaction Store.
@@ -98,8 +97,6 @@ public interface ReadOnlyFateStore<T> {
 
     Optional<FateKey> getKey();
 
-    Pair<TStatus,Optional<FateKey>> getStatusAndKey();
-
     /**
      * Wait for the status of a transaction to change
      *
@@ -134,6 +131,8 @@ public interface ReadOnlyFateStore<T> {
   interface FateIdStatus {
     FateId getFateId();
 
+    Optional<FateStore.FateReservation> getFateReservation();
+
     TStatus getStatus();
   }
 
@@ -155,6 +154,12 @@ public interface ReadOnlyFateStore<T> {
    * list transaction in the store that have a given fate key type.
    */
   Stream<FateKey> list(FateKey.FateKeyType type);
+
+  /**
+   * @return a map of the current active reservations with the keys being the transaction that is
+   *         reserved and the value being the value stored to indicate the transaction is reserved.
+   */
+  Map<FateId,FateStore.FateReservation> getActiveReservations();
 
   /**
    * Finds all fate ops that are (IN_PROGRESS, SUBMITTED, or FAILED_IN_PROGRESS) and unreserved. Ids

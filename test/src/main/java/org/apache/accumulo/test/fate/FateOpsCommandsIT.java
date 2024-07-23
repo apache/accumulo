@@ -37,6 +37,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -685,10 +686,16 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
   }
 
   private ReadOnlyFateStore.FateIdStatus createFateIdStatus(FateId fateId) {
+    // We are only using the fateId from this, so null/empty is fine for the rest
     return new AbstractFateStore.FateIdStatusBase(fateId) {
       @Override
       public ReadOnlyFateStore.TStatus getStatus() {
         return null;
+      }
+
+      @Override
+      public Optional<FateStore.FateReservation> getFateReservation() {
+        return Optional.empty();
       }
     };
   }

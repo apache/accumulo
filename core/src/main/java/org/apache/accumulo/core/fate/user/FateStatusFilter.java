@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -54,8 +55,15 @@ public class FateStatusFilter extends Filter {
 
   @Override
   public boolean accept(Key k, Value v) {
-    var tstatus = ReadOnlyFateStore.TStatus.valueOf(v.toString());
-    return valuesToAccept.contains(tstatus);
+    // We may see TStatus values or FateReservation values with how this filter is used,
+    // only accept TStatus values, return false on FateReservation values, error otherwise
+    try {
+      var tstatus = ReadOnlyFateStore.TStatus.valueOf(v.toString());
+      return valuesToAccept.contains(tstatus);
+    } catch (IllegalArgumentException e) {
+      FateStore.FateReservation.isFateReservation(v.get());
+      return false;
+    }
   }
 
   public static void configureScanner(ScannerBase scanner,

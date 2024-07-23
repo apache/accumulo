@@ -29,7 +29,6 @@ import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -110,11 +109,46 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected void create(FateId fateId, FateKey key) {
+  public Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
+    final var reservation = FateReservation.from(lockID, UUID.randomUUID());
+    final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
+
     try {
-      zk.putPersistentData(getTXPath(fateId), new NodeValue(TStatus.NEW, null, key).serialize(),
-          NodeExistsPolicy.FAIL);
-    } catch (KeeperException | InterruptedException e) {
+      byte[] nodeVal = zk.mutateOrCreate(getTXPath(fateId),
+          new NodeValue(TStatus.NEW, reservation, fateKey).serialize(), currSerNodeVal -> {
+            // We are only returning a non-null value for the following cases:
+            // 1) The existing NodeValue for fateId is exactly the same as the value set for the
+            // node if it doesn't yet exist:
+            // TStatus = TStatus.NEW, FateReservation = reservation, FateKey = fateKey
+            // This might occur if there was a ZK server fault and the same write is running a 2nd
+            // time
+            // 2) The existing NodeValue for fateId has:
+            // TStatus = TStatus.NEW, no FateReservation present, FateKey = fateKey
+            // The fateId is NEW/unseeded and not reserved, so we can allow it to be reserved
+            NodeValue currNodeVal = new NodeValue(currSerNodeVal);
+            if (currNodeVal.status == TStatus.NEW && currNodeVal.isReservedBy(reservation)) {
+              verifyFateKey(fateId, currNodeVal.fateKey, fateKey);
+              return currSerNodeVal;
+            } else if (currNodeVal.status == TStatus.NEW && !currNodeVal.isReserved()) {
+              verifyFateKey(fateId, currNodeVal.fateKey, fateKey);
+              // NEW/unseeded transaction and not reserved, so we can allow it to be reserved
+              return new NodeValue(TStatus.NEW, reservation, fateKey).serialize();
+            } else {
+              log.trace(
+                  "fate id {} tstatus {} fate key {} is reserved {} is either currently reserved "
+                      + "or has already been seeded with work (non-NEW status), or both",
+                  fateId, currNodeVal.status, currNodeVal.fateKey.orElse(null),
+                  currNodeVal.isReserved());
+              // This will not change the value to null but will return null
+              return null;
+            }
+          });
+      if (nodeVal != null) {
+        return Optional.of(new FateTxStoreImpl(fateId, reservation));
+      } else {
+        return Optional.empty();
+      }
+    } catch (InterruptedException | KeeperException | AcceptableThriftTableOperationException e) {
       throw new IllegalStateException(e);
     }
   }
@@ -130,8 +164,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
         // The uuid handles the case where there was a ZK server fault and the write for this thread
         // went through but that was not acknowledged, and we are reading our own write for 2nd
         // time.
-        if (!currNodeVal.isReserved() || (currNodeVal.isReserved()
-            && currNodeVal.reservation.orElseThrow().equals(reservation))) {
+        if (!currNodeVal.isReserved() || currNodeVal.isReservedBy(reservation)) {
           FateKey currFateKey = currNodeVal.fateKey.orElse(null);
           // Add the FateReservation to the node to reserve
           return new NodeValue(currNodeVal.status, reservation, currFateKey).serialize();
@@ -151,43 +184,22 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public boolean isReserved(FateId fateId) {
-    return getNode(fateId).isReserved();
-  }
-
-  @Override
-  public Map<FateId,FateReservation> getActiveReservations() {
-    Map<FateId,FateReservation> activeReservations = new HashMap<>();
-
-    try {
-      for (String strTxId : zk.getChildren(path)) {
-        String txUUIDStr = strTxId.split("_")[1];
-        FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
-        if (isReserved(fateId)) {
-          FateReservation reservation = getNode(fateId).reservation.orElseThrow();
-          activeReservations.put(fateId, reservation);
-        }
-      }
-    } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-
-    return activeReservations;
-  }
-
-  @Override
   public void deleteDeadReservations() {
     for (Map.Entry<FateId,FateReservation> entry : getActiveReservations().entrySet()) {
       FateId fateId = entry.getKey();
       FateReservation reservation = entry.getValue();
+      if (isLockHeld.test(reservation.getLockID())) {
+        continue;
+      }
       try {
         zk.mutateExisting(getTXPath(fateId), currSerNodeVal -> {
           NodeValue currNodeVal = new NodeValue(currSerNodeVal);
           // Make sure the current node is still reserved and reserved with the expected reservation
           // and it is dead
-          if (currNodeVal.isReserved() && currNodeVal.reservation.orElseThrow().equals(reservation)
+          if (currNodeVal.isReservedBy(reservation)
               && !isLockHeld.test(currNodeVal.reservation.orElseThrow().getLockID())) {
             // Delete the reservation
+            log.trace("Deleted the dead reservation {} for fate id {}", reservation, fateId);
             return new NodeValue(currNodeVal.status, null, currNodeVal.fateKey.orElse(null))
                 .serialize();
           } else {
@@ -199,12 +211,6 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
         throw new RuntimeException(e);
       }
     }
-  }
-
-  @Override
-  protected Pair<TStatus,Optional<FateKey>> getStatusAndKey(FateId fateId) {
-    final NodeValue node = getNode(fateId);
-    return new Pair<>(node.status, node.fateKey);
   }
 
   @Override
@@ -319,8 +325,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
         zk.mutateExisting(getTXPath(fateId), currSerializedData -> {
           NodeValue currNodeVal = new NodeValue(currSerializedData);
           // Ensure the FateId is reserved in ZK, and it is reserved with the expected reservation
-          if (currNodeVal.isReserved()
-              && currNodeVal.reservation.orElseThrow().equals(this.reservation)) {
+          if (currNodeVal.isReservedBy(this.reservation)) {
             FateReservation currFateReservation = currNodeVal.reservation.orElseThrow();
             FateKey currFateKey = currNodeVal.fateKey.orElse(null);
             NodeValue newNodeValue = new NodeValue(status, currFateReservation, currFateKey);
@@ -428,17 +433,18 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
           zk.mutateExisting(getTXPath(fateId), currSerNodeVal -> {
             NodeValue currNodeVal = new NodeValue(currSerNodeVal);
             FateKey currFateKey = currNodeVal.fateKey.orElse(null);
-            if (currNodeVal.isReserved()
-                && currNodeVal.reservation.orElseThrow().equals(this.reservation)) {
+            if (currNodeVal.isReservedBy(this.reservation)) {
               // Remove the FateReservation from the NodeValue to unreserve
               return new NodeValue(currNodeVal.status, null, currFateKey).serialize();
             } else {
               // possible this is running a 2nd time in zk server fault conditions and its first
               // write went through
               if (!currNodeVal.isReserved()) {
-                log.trace("The FATE reservation does not exist in ZK");
+                log.trace("The FATE reservation for fate id {} does not exist in ZK", fateId);
               } else if (!currNodeVal.reservation.orElseThrow().equals(this.reservation)) {
-                log.debug("The FATE reservation in ZK differs from that in the store");
+                log.debug(
+                    "The FATE reservation for fate id {} in ZK differs from that in the store",
+                    fateId);
               }
               return null;
             }
@@ -492,13 +498,23 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       Stream<FateIdStatus> stream = zk.getChildren(path).stream().map(strTxid -> {
         String txUUIDStr = strTxid.split("_")[1];
         FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
-        // Memoizing for two reasons. First the status may never be requested, so in that case avoid
-        // the lookup. Second, if its requested multiple times the result will always be consistent.
-        Supplier<TStatus> statusSupplier = Suppliers.memoize(() -> _getStatus(fateId));
+        // Memoizing for two reasons. First the status or reservation may never be requested, so
+        // in that case avoid the lookup. Second, if it's requested multiple times the result will
+        // always be consistent.
+        Supplier<Pair<TStatus,Optional<FateReservation>>> statusAndResSupplier =
+            Suppliers.memoize(() -> {
+              NodeValue zkNode = getNode(fateId);
+              return new Pair<>(zkNode.status, zkNode.reservation);
+            });
         return new FateIdStatusBase(fateId) {
           @Override
           public TStatus getStatus() {
-            return statusSupplier.get();
+            return statusAndResSupplier.get().getFirst();
+          }
+
+          @Override
+          public Optional<FateReservation> getFateReservation() {
+            return statusAndResSupplier.get().getSecond();
           }
         };
       });
@@ -589,6 +605,10 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     public boolean isReserved() {
       return reservation.isPresent();
+    }
+
+    public boolean isReservedBy(FateReservation reservation) {
+      return isReserved() && this.reservation.orElseThrow().equals(reservation);
     }
   }
 }

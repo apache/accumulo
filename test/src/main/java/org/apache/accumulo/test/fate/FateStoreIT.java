@@ -55,7 +55,6 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT.TestRepo;
@@ -69,6 +68,7 @@ import com.google.common.collect.Sets;
 
 public abstract class FateStoreIT extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
 
+  // TODO 4131 this test will have to be changed since there is no longer a create(FateKey) method
   private static final Method fsCreateByKeyMethod;
 
   static {
@@ -480,7 +480,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(Optional.empty(), txStore.getKey());
     assertEquals(fateId, txStore.getID());
     assertEquals(List.of(), txStore.getStack());
-    assertEquals(new Pair<>(TStatus.UNKNOWN, Optional.empty()), txStore.getStatusAndKey());
   }
 
   @Test

@@ -197,9 +197,9 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
       assertEquals(REJECTED, status);
 
       // Initialize the column and ensure we can't do it twice
-      status = new FateMutatorImpl<>(context, table, fateId).putInitReserveColVal().tryMutate();
+      status = new FateMutatorImpl<>(context, table, fateId).putInitReservationVal().tryMutate();
       assertEquals(ACCEPTED, status);
-      status = new FateMutatorImpl<>(context, table, fateId).putInitReserveColVal().tryMutate();
+      status = new FateMutatorImpl<>(context, table, fateId).putInitReservationVal().tryMutate();
       assertEquals(REJECTED, status);
 
       // Ensure that reserving is the only thing we can do

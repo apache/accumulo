@@ -57,7 +57,7 @@ public interface FateMutator<T> {
    *
    * @return the FateMutator with this added mutation
    */
-  FateMutator<T> putInitReserveColVal();
+  FateMutator<T> putInitReservationVal();
 
   FateMutator<T> putName(byte[] data);
 

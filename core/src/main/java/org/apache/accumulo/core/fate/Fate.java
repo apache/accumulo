@@ -387,16 +387,19 @@ public class Fate<T> {
     // reservation cleaner is not already running for the given store type.
     // TODO 4131 periodic cleanup runs every 30 seconds
     // Should this be longer? Shorter? A configurable Property? A function of something?
-    ScheduledExecutorService deadResCleanerExecutor = ThreadPools.getServerThreadPools()
-        .createScheduledExecutorService(1, store.type() + "-dead-reservation-cleaner-pool");
-    if ((store.type() == FateInstanceType.USER && !userDeadReservationCleanerRunning)
-        || (store.type() == FateInstanceType.META && !metaDeadReservationCleanerRunning)) {
+    ScheduledExecutorService deadResCleanerExecutor = null;
+    boolean isUserStore = store.type() == FateInstanceType.USER;
+    boolean isMetaStore = store.type() == FateInstanceType.META;
+    if ((isUserStore && !userDeadReservationCleanerRunning)
+        || (isMetaStore && !metaDeadReservationCleanerRunning)) {
+      deadResCleanerExecutor = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,
+          store.type() + "-dead-reservation-cleaner-pool");
       ScheduledFuture<?> deadReservationCleaner = deadResCleanerExecutor
           .scheduleWithFixedDelay(new DeadReservationCleaner(), 3, 30, SECONDS);
       ThreadPools.watchCriticalScheduledTask(deadReservationCleaner);
-      if (store.type() == FateInstanceType.USER) {
+      if (isUserStore) {
         userDeadReservationCleanerRunning = true;
-      } else if (store.type() == FateInstanceType.META) {
+      } else {
         metaDeadReservationCleanerRunning = true;
       }
     }
@@ -572,21 +575,25 @@ public class Fate<T> {
       fatePoolWatcher.shutdown();
       transactionExecutor.shutdown();
       workFinder.interrupt();
-      deadResCleanerExecutor.shutdown();
+      if (deadResCleanerExecutor != null) {
+        deadResCleanerExecutor.shutdown();
+      }
     }
 
     if (timeout > 0) {
       long start = System.nanoTime();
 
-      while ((System.nanoTime() - start) < timeUnit.toNanos(timeout) && (workFinder.isAlive()
-          || !transactionExecutor.isTerminated() || !deadResCleanerExecutor.isTerminated())) {
+      while ((System.nanoTime() - start) < timeUnit.toNanos(timeout)
+          && (workFinder.isAlive() || !transactionExecutor.isTerminated()
+              || (deadResCleanerExecutor != null && !deadResCleanerExecutor.isTerminated()))) {
         try {
           if (!transactionExecutor.awaitTermination(1, SECONDS)) {
             log.debug("Fate {} is waiting for worker threads to terminate", store.type());
             continue;
           }
 
-          if (!deadResCleanerExecutor.awaitTermination(1, SECONDS)) {
+          if (deadResCleanerExecutor != null
+              && !deadResCleanerExecutor.awaitTermination(1, SECONDS)) {
             log.debug("Fate {} is waiting for dead reservation cleaner thread to terminate",
                 store.type());
             continue;
@@ -603,18 +610,20 @@ public class Fate<T> {
       }
 
       if (workFinder.isAlive() || !transactionExecutor.isTerminated()
-          || !deadResCleanerExecutor.isTerminated()) {
+          || (deadResCleanerExecutor != null && !deadResCleanerExecutor.isTerminated())) {
         log.warn(
             "Waited for {}ms for all fate {} background threads to stop, but some are still running. workFinder:{} transactionExecutor:{} deadResCleanerExecutor:{}",
             TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), store.type(),
             workFinder.isAlive(), !transactionExecutor.isTerminated(),
-            !deadResCleanerExecutor.isTerminated());
+            (deadResCleanerExecutor != null && !deadResCleanerExecutor.isTerminated()));
       }
     }
 
     // interrupt the background threads
     transactionExecutor.shutdownNow();
-    deadResCleanerExecutor.shutdownNow();
+    if (deadResCleanerExecutor != null) {
+      deadResCleanerExecutor.shutdownNow();
+    }
 
     // Update that USER/META dead reservation cleaner is no longer running
     if (store.type() == FateInstanceType.USER && userDeadReservationCleanerRunning) {

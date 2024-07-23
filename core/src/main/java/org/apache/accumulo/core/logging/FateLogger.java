@@ -178,11 +178,6 @@ public class FateLogger {
       }
 
       @Override
-      public boolean isReserved(FateId fateId) {
-        return store.isReserved(fateId);
-      }
-
-      @Override
       public Map<FateId,FateReservation> getActiveReservations() {
         return store.getActiveReservations();
       }

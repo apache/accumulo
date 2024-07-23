@@ -24,12 +24,12 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.time.Duration;
-import java.util.Map;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.fate.user.FateMutatorImpl;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.hadoop.io.DataInputBuffer;
 
@@ -136,9 +136,6 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
     // expose a FateTxStore).
     private final UUID reservationUUID;
     private final byte[] serialized;
-    private static final Pattern UUID_PATTERN =
-        Pattern.compile("^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$");
-    private static final Pattern LOCKID_PATTERN = Pattern.compile("^.+/.+\\$[0-9a-fA-F]+$");
 
     private FateReservation(ZooUtil.LockID lockID, UUID reservationUUID) {
       this.lockID = Objects.requireNonNull(lockID);
@@ -150,43 +147,17 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
       return new FateReservation(lockID, reservationUUID);
     }
 
-    public static FateReservation from(byte[] serialized) {
-      try (DataInputBuffer buffer = new DataInputBuffer()) {
-        buffer.reset(serialized, serialized.length);
-        ZooUtil.LockID lockID = new ZooUtil.LockID("", buffer.readUTF());
-        UUID reservationUUID = UUID.fromString(buffer.readUTF());
-        return new FateReservation(lockID, reservationUUID);
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-    }
-
-    public static FateReservation from(String fateReservationStr) {
-      if (isFateReservation(fateReservationStr)) {
-        String[] fields = fateReservationStr.split(":");
-        ZooUtil.LockID lockId = new ZooUtil.LockID("", fields[0]);
-        UUID reservationUUID = UUID.fromString(fields[1]);
-        return new FateReservation(lockId, reservationUUID);
-      } else {
-        throw new IllegalArgumentException(
-            "Tried to create a FateReservation from an invalid string: " + fateReservationStr);
-      }
-    }
-
     /**
-     *
-     * @param fateReservationStr the string from a call to {@link FateReservation#toString()}
-     * @return true if the string represents a valid FateReservation object, false otherwise
+     * @param serializedFateRes the value present in the table for the reservation column
+     * @return true if the array represents a valid serialized FateReservation object, false if it
+     *         represents an unreserved value, error otherwise
      */
-    public static boolean isFateReservation(String fateReservationStr) {
-      if (fateReservationStr != null) {
-        String[] fields = fateReservationStr.split(":");
-        if (fields.length == 2) {
-          return LOCKID_PATTERN.matcher(fields[0]).matches()
-              && UUID_PATTERN.matcher(fields[1]).matches();
-        }
+    public static boolean isFateReservation(byte[] serializedFateRes) {
+      if (Arrays.equals(serializedFateRes, FateMutatorImpl.NOT_RESERVED)) {
+        return false;
       }
-      return false;
+      deserialize(serializedFateRes);
+      return true;
     }
 
     public ZooUtil.LockID getLockID() {
@@ -214,7 +185,14 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
     }
 
     public static FateReservation deserialize(byte[] serialized) {
-      return FateReservation.from(serialized);
+      try (DataInputBuffer buffer = new DataInputBuffer()) {
+        buffer.reset(serialized, serialized.length);
+        ZooUtil.LockID lockID = new ZooUtil.LockID("", buffer.readUTF());
+        UUID reservationUUID = UUID.fromString(buffer.readUTF());
+        return new FateReservation(lockID, reservationUUID);
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
     }
 
     public static boolean locksAreEqual(ZooUtil.LockID lockID1, ZooUtil.LockID lockID2) {
@@ -228,10 +206,12 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
 
     @Override
     public boolean equals(Object obj) {
+      if (obj == this) {
+        return true;
+      }
       if (obj instanceof FateReservation) {
         FateReservation other = (FateReservation) obj;
-        return this.lockID.serialize("/").equals(other.lockID.serialize("/"))
-            && this.reservationUUID.equals(other.reservationUUID);
+        return Arrays.equals(this.getSerialized(), other.getSerialized());
       }
       return false;
     }
@@ -241,18 +221,6 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
       return Objects.hash(lockID, reservationUUID);
     }
   }
-
-  /**
-   * @param fateId the fateId to check
-   * @return true if the given fate id is reserved, false otherwise
-   */
-  boolean isReserved(FateId fateId);
-
-  /**
-   * @return a map of the current active reservations with the keys being the transaction that is
-   *         reserved and the value being the value stored to indicate the transaction is reserved.
-   */
-  Map<FateId,FateReservation> getActiveReservations();
 
   /**
    * Deletes the current reservations which were reserved by a now dead Manager. These reservations
