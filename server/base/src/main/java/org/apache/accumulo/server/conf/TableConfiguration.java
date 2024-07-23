@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -36,12 +37,10 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
-import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
-import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.conf.store.TablePropKey;
@@ -146,7 +145,9 @@ public class TableConfiguration extends ZooBasedConfiguration {
   private static ScanDispatcher createScanDispatcher(AccumuloConfiguration conf,
       ServerContext context, TableId tableId) {
     ScanDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
-        Property.TABLE_SCAN_DISPATCHER, ScanDispatcher.class, new SimpleScanDispatcher());
+        Property.TABLE_SCAN_DISPATCHER, ScanDispatcher.class, null);
+    Objects.requireNonNull(newDispatcher,
+        "Class specified in property " + Property.TABLE_SCAN_DISPATCHER + " was not returned.");
 
     Map<String,String> opts =
         conf.getAllPropertiesWithPrefixStripped(Property.TABLE_SCAN_DISPATCHER_OPTS);
@@ -177,17 +178,10 @@ public class TableConfiguration extends ZooBasedConfiguration {
   private static CompactionDispatcher createCompactionDispatcher(AccumuloConfiguration conf,
       ServerContext context, TableId tableId) {
 
-    CompactionDispatcher newDispatcher =
-        Property.createTableInstanceFromPropertyName(conf, Property.TABLE_COMPACTION_DISPATCHER,
-            CompactionDispatcher.class, new SimpleCompactionDispatcher());
-
-    if (newDispatcher == null) {
-      // return early to prevent NPE
-      log.error(
-          "Null returned for compaction dispatcher for table: {}. Did not return default value, check server log.",
-          tableId);
-      return null;
-    }
+    CompactionDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
+        Property.TABLE_COMPACTION_DISPATCHER, CompactionDispatcher.class, null);
+    Objects.requireNonNull(newDispatcher, "Class specified in property "
+        + Property.TABLE_COMPACTION_DISPATCHER + " was not returned.");
 
     Map<String,String> opts =
         conf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_DISPATCHER_OPTS);

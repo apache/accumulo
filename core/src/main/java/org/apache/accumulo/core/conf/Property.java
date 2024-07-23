@@ -1944,7 +1944,6 @@ public enum Property {
     Objects.requireNonNull(conf, "configuration cannot be null");
     Objects.requireNonNull(property, "property cannot be null");
     Objects.requireNonNull(base, "base class cannot be null");
-    Objects.requireNonNull(defaultInstance, "default instance cannot be null");
     String clazzName = conf.get(property);
     String context = ClassLoaderUtil.tableContext(conf);
     return ConfigurationTypeHelper.getClassInstance(context, clazzName, base, defaultInstance);

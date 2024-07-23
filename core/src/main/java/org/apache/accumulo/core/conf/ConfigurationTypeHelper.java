@@ -180,6 +180,8 @@ public class ConfigurationTypeHelper {
     if (instance == null && defaultInstance != null) {
       log.info("Using default class {}", defaultInstance.getClass().getName());
       instance = defaultInstance;
+    } else if (instance == null) {
+      log.info("Default instance not supplied, returning null");
     }
     return instance;
   }
