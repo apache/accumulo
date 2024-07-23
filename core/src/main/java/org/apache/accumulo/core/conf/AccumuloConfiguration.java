@@ -513,9 +513,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
         T newObj = converter.apply(AccumuloConfiguration.this);
 
         if (newObj == null) {
-          // The converter should not return a null value, if it does then
-          // use the previous value.
-          return rc.obj;
+          // The converter should not return a null value and the Deriver
+          // should not store and return a null value.
+          throw new IllegalStateException("Deriver returned a null value");
         }
 
         // very important to record the update count that was obtained before recomputing.
@@ -556,8 +556,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    *        this function will be kept and called by the returned deriver.
    * @return The returned supplier will automatically re-derive the object any time this
    *         configuration changes. When configuration is not changing, the same object is returned.
-   *         When a null return value is returned by the converter, then the same object is
-   *         returned.
+   * @throws IllegalStateException When a null return value is returned by the converter.
    *
    */
   public <T> Deriver<T> newDeriver(Function<AccumuloConfiguration,T> converter) {
