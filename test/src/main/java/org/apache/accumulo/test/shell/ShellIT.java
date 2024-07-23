@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -440,6 +441,54 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("grep r -st -f 1", true, expectedTimestamp);
     exec("setauths -c", true);
     exec("deletetable t -f", true, "Table: [t] has been deleted");
+  }
+
+  @Test
+  void configPropertyTest() throws IOException {
+    final String table = "testtable";
+    final String filterProperty = "config -t " + table + " -f ";
+    final String setProperty = "config -t " + table + " -s ";
+    List<String> expectedStrings = new ArrayList<>();
+
+    try {
+      exec("createtable " + table);
+
+      exec(filterProperty + "table.iterator.scan.vers.opt.maxVersions", true,
+          "table      | table.iterator.scan.vers.opt.maxVersions .. | 1\n");
+      // set to new value and verify results
+      exec(setProperty + "table.iterator.scan.vers.opt.maxVersions=2", true);
+      exec(filterProperty + "table.iterator.scan.vers.opt.maxVersions", true,
+          "table      | table.iterator.scan.vers.opt.maxVersions .. | 2\n");
+      // set to empty string and verify property still exists and is not deleted
+      exec(setProperty + "table.iterator.scan.vers.opt.maxVersions=", true);
+      exec(filterProperty + "table.iterator.scan.vers.opt.maxVersions", true,
+          "table      | table.iterator.scan.vers.opt.maxVersions .. | \n");
+
+      exec(filterProperty + "table.bloom.enabled", true,
+          "default    | table.bloom.enabled ....................... | false\n");
+      exec(setProperty + "table.bloom.enabled=true", true);
+      expectedStrings.add("default    | table.bloom.enabled ....................... | false\n");
+      expectedStrings.add("table      |    @override .............................. | true\n");
+      execExpectList(filterProperty + "table.bloom.enabled", true, expectedStrings);
+      // can't set prop to empty value since type is Boolean
+      exec(setProperty + "table.bloom.enabled=failsSinceNotABoolean", false);
+
+      exec(filterProperty + "table.file.compress.type", true,
+          "default    | table.file.compress.type .................. | gz\n");
+      exec(setProperty + "table.file.compress.type=zippy", true);
+      expectedStrings.clear();
+      expectedStrings.add("default    | table.file.compress.type .................. | gz\n");
+      expectedStrings.add("table      |    @override .............................. | zippy");
+      execExpectList(filterProperty + "table.file.compress.type", true, expectedStrings);
+      exec(setProperty + "table.file.compress.type=", true);
+      expectedStrings.clear();
+      expectedStrings.add("default    | table.file.compress.type .................. | gz\n");
+      expectedStrings.add("table      |    @override .............................. | \n");
+      execExpectList(filterProperty + "table.file.compress.type", true, expectedStrings);
+
+    } finally {
+      exec("deletetable " + table + " -f", true);
+    }
   }
 
   @Test
