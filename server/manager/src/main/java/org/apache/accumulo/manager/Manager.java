@@ -995,11 +995,16 @@ public class Manager extends AbstractServer
             newTableMap.put(MetadataTable.NAME, oldTableMap.get(MetadataTable.NAME));
           }
         } else if (dl == DataLevel.USER) {
-          oldTableMap.forEach((table, info) -> {
-            if (!table.equals(RootTable.NAME) && !table.equals(MetadataTable.NAME)) {
-              newTableMap.put(table, info);
-            }
-          });
+          if (!oldTableMap.containsKey(MetadataTable.NAME)
+              && !oldTableMap.containsKey(RootTable.NAME)) {
+            newTableMap.putAll(oldTableMap);
+          } else {
+            oldTableMap.forEach((table, info) -> {
+              if (!table.equals(RootTable.NAME) && !table.equals(MetadataTable.NAME)) {
+                newTableMap.put(table, info);
+              }
+            });
+          }
         } else {
           throw new IllegalArgumentException("Unhandled DataLevel value: " + dl);
         }
