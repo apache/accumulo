@@ -279,7 +279,7 @@ public class MetricsInfoImpl implements MetricsInfo {
               org.apache.accumulo.core.spi.metrics.MeterRegistryFactory.class);
       org.apache.accumulo.core.spi.metrics.MeterRegistryFactory factory =
           clazz.getDeclaredConstructor().newInstance();
-      org.apache.accumulo.core.spi.metrics.MeterRegistryFactory.InitParameters initParameters =
+      org.apache.accumulo.core.spi.metrics.FilteringLoggingMRFactory.InitParameters initParameters =
           new MeterRegistryEnvPropImpl(context);
       return factory.create(initParameters);
     } catch (ClassCastException ex) {
