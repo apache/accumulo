@@ -154,7 +154,7 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <!-- legacy log4j is still used by hadoop-client-minicluster in our tests -->
+      <!-- legacy log4j is still used by hadoop-client-minicluster -->
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-1.2-api</artifactId>
       <scope>test</scope>

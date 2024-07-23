@@ -212,6 +212,12 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
+      <!-- legacy log4j is still used by hadoop-client-minicluster -->
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-1.2-api</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-iterator-test-harness</artifactId>
       <scope>test</scope>
