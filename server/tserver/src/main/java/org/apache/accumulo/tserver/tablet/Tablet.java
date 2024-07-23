@@ -1024,9 +1024,9 @@ public class Tablet extends TabletBase {
 
   synchronized void completeClose(boolean saveState, boolean completeClose) throws IOException {
 
-    // The lockLog must be acuired before the tablet lock. Later in this function the log lock may
+    // The lockLock must be acquired before the tablet lock. Later in this function the log lock may
     // be acquired during minor compaction. It will fail if the tablet lock is held and not the log
-    // lock. Fail sooner here and always, not only the case when a minor compaction is needed.
+    // lock. Fail sooner here and always, not only in the case when a minor compaction is needed.
     Preconditions.checkState(logLock.isHeldByCurrentThread());
 
     if (!isClosing() || isCloseComplete() || closeCompleting) {
