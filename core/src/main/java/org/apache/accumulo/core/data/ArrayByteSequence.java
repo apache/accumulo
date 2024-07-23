@@ -154,6 +154,17 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
     return offset;
   }
 
+  /**
+   * Reset the backing array for this byte sequence object. This is useful for object re-use.
+   *
+   * @since 3.1.0
+   */
+  public void reset(byte[] data, int offset, int length) {
+    this.data = data;
+    this.offset = offset;
+    this.length = length;
+  }
+
   @Override
   public ByteSequence subSequence(int start, int end) {
 
