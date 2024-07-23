@@ -146,8 +146,8 @@ public class TableConfiguration extends ZooBasedConfiguration {
       ServerContext context, TableId tableId) {
     ScanDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
         Property.TABLE_SCAN_DISPATCHER, ScanDispatcher.class, null);
-    Objects.requireNonNull(newDispatcher,
-        "Class specified in property " + Property.TABLE_SCAN_DISPATCHER + " was not returned.");
+    Objects.requireNonNull(newDispatcher, "Class specified in property "
+        + Property.TABLE_SCAN_DISPATCHER.getKey() + " was not returned.");
 
     Map<String,String> opts =
         conf.getAllPropertiesWithPrefixStripped(Property.TABLE_SCAN_DISPATCHER_OPTS);
@@ -181,7 +181,7 @@ public class TableConfiguration extends ZooBasedConfiguration {
     CompactionDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
         Property.TABLE_COMPACTION_DISPATCHER, CompactionDispatcher.class, null);
     Objects.requireNonNull(newDispatcher, "Class specified in property "
-        + Property.TABLE_COMPACTION_DISPATCHER + " was not returned.");
+        + Property.TABLE_COMPACTION_DISPATCHER.getKey() + " was not returned.");
 
     Map<String,String> opts =
         conf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_DISPATCHER_OPTS);
