@@ -218,9 +218,7 @@ public class FileSystemInitializer {
     TreeMap<Key,Value> sorted = new TreeMap<>();
     for (InitialTablet initialTablet : initialTablets) {
       // sort file contents in memory, then play back to the file
-      for (Map.Entry<Key,Value> entry : initialTablet.createEntries().entrySet()) {
-        sorted.putAll(initialTablet.createEntries());
-      }
+      sorted.putAll(initialTablet.createEntries());
     }
 
     for (Map.Entry<Key,Value> entry : sorted.entrySet()) {
