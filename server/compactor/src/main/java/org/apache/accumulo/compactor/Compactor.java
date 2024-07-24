@@ -715,12 +715,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
       while (!shutdown) {
 
-        idleProcessCheck(() -> {
-          return timeSinceLastCompletion.get() == 0
-              /* Never started a compaction */ || (timeSinceLastCompletion.get() > 0
-                  && (System.nanoTime() - timeSinceLastCompletion.get())
-                      > idleReportingPeriodNanos);
-        });
+        // mark compactor as idle while not in the compaction loop
+        updateIdleStatus(true);
 
         currentCompactionId.set(null);
         err.set(null);
@@ -767,6 +763,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         JOB_HOLDER.set(job, compactionThread, fcr.getFileCompactor());
 
         try {
+          // mark compactor as busy while compacting
+          updateIdleStatus(false);
+
           // Need to call FileCompactorRunnable.initialize after calling JOB_HOLDER.set
           fcr.initialize();
 
@@ -879,7 +878,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
         } finally {
           currentCompactionId.set(null);
-          timeSinceLastCompletion.set(System.nanoTime());
+
+          // mark compactor as idle after compaction completes
+          updateIdleStatus(true);
+
           // In the case where there is an error in the foreground code the background compaction
           // may still be running. Must cancel it before starting another iteration of the loop to
           // avoid multiple threads updating shared state.
