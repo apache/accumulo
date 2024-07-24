@@ -903,7 +903,7 @@ public class Tablet extends TabletBase {
   @Override
   public void close(boolean saveState) throws IOException {
     initiateClose(saveState);
-    var lock = lockLogLock();
+    final var lock = lockLogLock();
     try {
       completeClose(saveState, true);
     } finally {
@@ -1643,7 +1643,7 @@ public class Tablet extends TabletBase {
 
     // This must be acquired before the tablet lock AND completeClose expects it to be acquired when
     // called.
-    var lock = lockLogLock();
+    final var lock = lockLogLock();
     try {
       synchronized (this) {
         // java needs tuples ...
@@ -2018,7 +2018,7 @@ public class Tablet extends TabletBase {
 
     boolean releaseLock = true;
 
-    var lock = lockLogLock();
+    final var lock = lockLogLock();
     try {
       synchronized (this) {
 

@@ -348,7 +348,7 @@ class DatafileManager {
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and following try{}finally
     try {
-      var logLock = tablet.lockLogLock();
+      final var logLock = tablet.lockLogLock();
       // do not place any code here between lock and try
       try {
         // The following call pairs with tablet.finishClearingUnusedLogs() later in this block. If
