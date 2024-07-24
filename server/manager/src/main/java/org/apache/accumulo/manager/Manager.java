@@ -55,7 +55,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -708,15 +707,12 @@ public class Manager extends AbstractServer
      * migration will refer to a non-existing tablet, so it can never complete. Periodically scan
      * the metadata table and remove any migrating tablets that no longer exist.
      */
-    private void cleanupNonexistentMigrations(final ClientContext clientContext)
-        throws TableNotFoundException {
+    private void cleanupNonexistentMigrations(final ClientContext clientContext) {
 
-      Map<DataLevel,Set<KeyExtent>> notSeen = new EnumMap<>(DataLevel.class);
+      Map<DataLevel,Set<KeyExtent>> notSeen;
 
       synchronized (migrations) {
-        // partition migrations by level
-        migrations.keySet().forEach(extent -> notSeen
-            .computeIfAbsent(DataLevel.of(extent.tableId()), k -> new HashSet<>()).add(extent));
+        notSeen = partitionMigrations(migrations.keySet());
       }
 
       // for each level find the set of migrating tablets that do not exists in metadata store
@@ -730,6 +726,8 @@ public class Manager extends AbstractServer
 
         try (var tablets = clientContext.getAmple().readTablets().forLevel(dataLevel)
             .fetch(TabletMetadata.ColumnType.PREV_ROW).build()) {
+          // A goal of this code is to avoid reading all extents in the metadata table into memory
+          // when finding extents that exists in the migrating set and not in the metadata table.
           tablets.forEach(tabletMeta -> notSeenForLevel.remove(tabletMeta.getExtent()));
         }
 
@@ -795,6 +793,23 @@ public class Manager extends AbstractServer
       }
     }
 
+  }
+
+  /**
+   * balanceTablets() balances tables by DataLevel. Return the current set of migrations partitioned
+   * by DataLevel
+   */
+  private static Map<DataLevel,Set<KeyExtent>>
+      partitionMigrations(final Set<KeyExtent> migrations) {
+    final Map<DataLevel,Set<KeyExtent>> partitionedMigrations = new EnumMap<>(DataLevel.class);
+    // populate to prevent NPE
+    for (DataLevel dl : DataLevel.values()) {
+      partitionedMigrations.put(dl, new HashSet<>());
+    }
+    migrations.forEach(ke -> {
+      partitionedMigrations.get(DataLevel.of(ke.tableId())).add(ke);
+    });
+    return partitionedMigrations;
   }
 
   private class StatusThread implements Runnable {
@@ -965,23 +980,6 @@ public class Manager extends AbstractServer
         }
         badServers.putIfAbsent(instance, new AtomicInteger(1));
       }
-    }
-
-    /**
-     * balanceTablets() balances tables by DataLevel. Return the current set of migrations
-     * partitioned by DataLevel
-     */
-    private Map<DataLevel,Set<KeyExtent>> partitionMigrations(final Set<KeyExtent> migrations) {
-      final Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
-          new HashMap<>(DataLevel.values().length);
-      // populate to prevent NPE
-      for (DataLevel dl : DataLevel.values()) {
-        partitionedMigrations.put(dl, new HashSet<>());
-      }
-      migrations.forEach(ke -> {
-        partitionedMigrations.get(DataLevel.of(ke.tableId())).add(ke);
-      });
-      return partitionedMigrations;
     }
 
     /**
