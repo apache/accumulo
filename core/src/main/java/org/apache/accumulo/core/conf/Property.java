@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -303,8 +304,8 @@ public enum Property {
       PropertyType.TIMEDURATION, "The length of time between generation of new secret keys.",
       "1.7.0"),
   GENERAL_IDLE_PROCESS_INTERVAL("general.metrics.process.idle", "5m", PropertyType.TIMEDURATION,
-      "Amount of time a process must be idle before the accumulo.server.idle metric is incremented.",
-      "4.0.0"),
+      "Amount of time a process must be idle before it is considered to be idle by the metrics system.",
+      "2.1.3"),
   GENERAL_LOW_MEM_DETECTOR_INTERVAL("general.low.mem.detector.interval", "5s",
       PropertyType.TIMEDURATION, "The time interval between low memory checks.", "3.0.0"),
   GENERAL_LOW_MEM_DETECTOR_THRESHOLD("general.low.mem.detector.threshold", "0.05",
@@ -533,7 +534,7 @@ public enum Property {
   SSERV_SCAN_EXECUTORS_META_THREADS("sserver.scan.executors.meta.threads", "8", PropertyType.COUNT,
       "The number of threads for the metadata table scan executor.", "2.1.0"),
   @Experimental
-  SSERVER_SCAN_REFERENCE_EXPIRATION_TIME("sserver.scan.reference.expiration", "5m",
+  SSERV_SCAN_REFERENCE_EXPIRATION_TIME("sserver.scan.reference.expiration", "5m",
       PropertyType.TIMEDURATION,
       "The amount of time a scan reference is unused before its deleted from metadata table.",
       "2.1.0"),
@@ -1429,6 +1430,8 @@ public enum Property {
         || key.startsWith(TABLE_CRYPTO_PREFIX.getKey()));
   }
 
+  // these properties are fixed to a specific value at startup and require a restart for changes to
+  // take effect; these are always system-level properties, and not namespace or table properties
   public static final EnumSet<Property> fixedProperties = EnumSet.of(
       // port options
       GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT, SSERV_CLIENTPORT, SSERV_PORTSEARCH,
@@ -1445,7 +1448,7 @@ public enum Property {
       TSERV_DEFAULT_BLOCKSIZE, SSERV_DEFAULT_BLOCKSIZE,
 
       // sserver specific options
-      SSERVER_SCAN_REFERENCE_EXPIRATION_TIME, SSERV_CACHED_TABLET_METADATA_EXPIRATION,
+      SSERV_SCAN_REFERENCE_EXPIRATION_TIME, SSERV_CACHED_TABLET_METADATA_EXPIRATION,
 
       // thread options
       TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT, SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT,
@@ -1523,6 +1526,9 @@ public enum Property {
    */
   public static <T> T createTableInstanceFromPropertyName(AccumuloConfiguration conf,
       Property property, Class<T> base, T defaultInstance) {
+    Objects.requireNonNull(conf, "configuration cannot be null");
+    Objects.requireNonNull(property, "property cannot be null");
+    Objects.requireNonNull(base, "base class cannot be null");
     String clazzName = conf.get(property);
     String context = ClassLoaderUtil.tableContext(conf);
     return ConfigurationTypeHelper.getClassInstance(context, clazzName, base, defaultInstance);

@@ -20,6 +20,8 @@ package org.apache.accumulo.core.client.security.tokens;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.CharBuffer;
 import java.util.LinkedHashSet;
@@ -46,7 +48,7 @@ public class CredentialProviderToken extends PasswordToken {
     setWithCredentialProviders(name, credentialProviders);
   }
 
-  protected void setWithCredentialProviders(String name, String credentialProviders)
+  private void setWithCredentialProviders(String name, String credentialProviders)
       throws IOException {
     this.name = name;
     this.credentialProviders = credentialProviders;
@@ -61,6 +63,25 @@ public class CredentialProviderToken extends PasswordToken {
     }
 
     setPassword(CharBuffer.wrap(password));
+  }
+
+  @Override
+  public void readFields(DataInput arg0) throws IOException {
+    // -1000 to -1999 is reserved for CredentialProviderToken; see PasswordToken
+    int version = arg0.readInt();
+    if (version != -1000) {
+      throw new IOException("Invalid CredentialProviderToken");
+    }
+    name = arg0.readUTF();
+    credentialProviders = arg0.readUTF();
+    setWithCredentialProviders(name, credentialProviders);
+  }
+
+  @Override
+  public void write(DataOutput arg0) throws IOException {
+    arg0.writeInt(-1000);
+    arg0.writeUTF(name);
+    arg0.writeUTF(credentialProviders);
   }
 
   /**
@@ -114,7 +135,8 @@ public class CredentialProviderToken extends PasswordToken {
   @Override
   public CredentialProviderToken clone() {
     CredentialProviderToken clone = (CredentialProviderToken) super.clone();
-    clone.setPassword(this.getPassword());
+    clone.name = name;
+    clone.credentialProviders = credentialProviders;
     return clone;
   }
 

@@ -34,7 +34,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -129,7 +128,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.FunctionCounter;
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -196,13 +194,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
         .description("Number and duration of stuck major compactions").register(registry);
     CompactionWatcher.setTimer(timer);
-
-    Gauge
-        .builder(METRICS_COMPACTOR_BUSY, this.compactionRunning,
-            isRunning -> isRunning.get() ? 1 : 0)
-        .description(
-            "Indicates if the compactor is busy or not. The value will be 0 when idle and 1 when busy.")
-        .register(registry);
   }
 
   protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,
@@ -717,18 +708,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
-      final AtomicLong timeSinceLastCompletion = new AtomicLong(0L);
       final LogSorter logSorter = new LogSorter(getContext(), getConfiguration());
       long nextSortLogsCheckTime = System.currentTimeMillis();
 
       while (!shutdown) {
 
-        idleProcessCheck(() -> {
-          return timeSinceLastCompletion.get() == 0
-              /* Never started a compaction */ || (timeSinceLastCompletion.get() > 0
-                  && (System.nanoTime() - timeSinceLastCompletion.get())
-                      > idleReportingPeriodNanos);
-        });
+        // mark compactor as idle while not in the compaction loop
+        updateIdleStatus(true);
 
         currentCompactionId.set(null);
         err.set(null);
@@ -775,6 +761,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         JOB_HOLDER.set(job, compactionThread, fcr.getFileCompactor());
 
         try {
+          // mark compactor as busy while compacting
+          updateIdleStatus(false);
+
           // Need to call FileCompactorRunnable.initialize after calling JOB_HOLDER.set
           fcr.initialize();
 
@@ -887,7 +876,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
         } finally {
           currentCompactionId.set(null);
-          timeSinceLastCompletion.set(System.nanoTime());
+
+          // mark compactor as idle after compaction completes
+          updateIdleStatus(true);
+
           // In the case where there is an error in the foreground code the background compaction
           // may still be running. Must cancel it before starting another iteration of the loop to
           // avoid multiple threads updating shared state.

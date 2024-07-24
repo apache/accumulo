@@ -231,7 +231,7 @@ public class ScanServer extends AbstractServer
         getConfiguration().getTimeInMillis(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION);
 
     long scanServerReservationExpiration =
-        getConfiguration().getTimeInMillis(Property.SSERVER_SCAN_REFERENCE_EXPIRATION_TIME);
+        getConfiguration().getTimeInMillis(Property.SSERV_SCAN_REFERENCE_EXPIRATION_TIME);
 
     tabletMetadataLoader = new TabletMetadataLoader(getContext().getAmple());
 
@@ -440,10 +440,8 @@ public class ScanServer extends AbstractServer
     try {
       while (!serverStopRequested) {
         UtilWaitThread.sleep(1000);
-        idleProcessCheck(() -> {
-          return sessionManager.getActiveScans().isEmpty()
-              && tabletMetadataCache.estimatedSize() == 0;
-        });
+        updateIdleStatus(
+            sessionManager.getActiveScans().isEmpty() && tabletMetadataCache.estimatedSize() == 0);
       }
     } finally {
       LOG.info("Stopping Thrift Servers");

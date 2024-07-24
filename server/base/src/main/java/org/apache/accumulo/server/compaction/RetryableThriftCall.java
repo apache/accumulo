@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.compaction;
 
-import static java.time.Duration.ofMillis;
-
 import java.time.Duration;
 
 import org.apache.accumulo.core.util.Retry;

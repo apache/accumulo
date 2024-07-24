@@ -36,7 +36,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -80,7 +79,7 @@ public class SessionManager {
     Runnable r = () -> sweep(maxIdle, maxUpdateIdle);
 
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(r,
-        0, Math.max(maxIdle / 2, 1000), TimeUnit.MILLISECONDS));
+        0, Math.max(maxIdle / 2, 1000), MILLISECONDS));
   }
 
   public long createSession(Session session, boolean reserve) {
@@ -332,8 +331,7 @@ public class SessionManager {
         }
       };
 
-      ScheduledFuture<?> future =
-          ctx.getScheduledExecutor().schedule(r, delay, TimeUnit.MILLISECONDS);
+      ScheduledFuture<?> future = ctx.getScheduledExecutor().schedule(r, delay, MILLISECONDS);
       ThreadPools.watchNonCriticalScheduledTask(future);
     }
   }

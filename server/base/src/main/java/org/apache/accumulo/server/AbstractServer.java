@@ -22,7 +22,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -80,18 +79,30 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
         context.getConfiguration().getTimeInMillis(Property.GENERAL_IDLE_PROCESS_INTERVAL));
   }
 
-  protected void idleProcessCheck(Supplier<Boolean> idleCondition) {
-    boolean idle = idleCondition.get();
-    if (!idle || idleReportingPeriodNanos == 0) {
+  /**
+   * Updates the idle status of the server to set the idle process metric. The server must be idle
+   * for multiple calls over a specified period for the metric to reflect the idle state. If the
+   * server is busy or the idle period hasn't started, it resets the idle tracking.
+   *
+   * @param isIdle whether the server is idle
+   */
+  protected void updateIdleStatus(boolean isIdle) {
+    boolean shouldResetIdlePeriod = !isIdle || idleReportingPeriodNanos == 0;
+    boolean isIdlePeriodNotStarted = idlePeriodStartNanos == 0;
+    boolean hasExceededIdlePeriod =
+        (System.nanoTime() - idlePeriodStartNanos) > idleReportingPeriodNanos;
+
+    if (shouldResetIdlePeriod) {
+      // Reset idle period and set idle metric to false
       idlePeriodStartNanos = 0;
-    } else if (idlePeriodStartNanos == 0) {
+      processMetrics.setIdleValue(false);
+    } else if (isIdlePeriodNotStarted) {
+      // Start tracking idle period
       idlePeriodStartNanos = System.nanoTime();
-    } else if ((System.nanoTime() - idlePeriodStartNanos) > idleReportingPeriodNanos) {
-      // increment the counter and reset the start of the idle period.
-      processMetrics.incrementIdleCounter();
+    } else if (hasExceededIdlePeriod) {
+      // Set idle metric to true and reset the start of the idle period
+      processMetrics.setIdleValue(true);
       idlePeriodStartNanos = 0;
-    } else {
-      // idleStartPeriod is non-zero, but we have not hit the idleStopPeriod yet
     }
   }
 

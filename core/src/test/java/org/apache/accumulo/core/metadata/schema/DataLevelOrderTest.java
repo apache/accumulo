@@ -16,15 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metrics;
+package org.apache.accumulo.core.metadata.schema;
 
-import io.micrometer.core.instrument.MeterRegistry;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * @deprecated since 2.1.3; use {@link org.apache.accumulo.core.spi.metrics.MeterRegistryFactory}
- *             instead
- */
-@Deprecated()
-public interface MeterRegistryFactory {
-  MeterRegistry create();
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.junit.jupiter.api.Test;
+
+public class DataLevelOrderTest {
+
+  @Test
+  public void testDataLevelOrder() {
+    // Code may depend on the order of the values returned
+    // for DataLevel. This test checks that the order does
+    // not change in future versions.
+    DataLevel[] levels = DataLevel.values();
+    assertEquals(3, levels.length);
+    assertEquals(DataLevel.ROOT, levels[0]);
+    assertEquals(DataLevel.METADATA, levels[1]);
+    assertEquals(DataLevel.USER, levels[2]);
+  }
+
 }

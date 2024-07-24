@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,6 +47,7 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.logging.ConditionalLogger.EscalatingLogger;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
@@ -61,6 +63,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
@@ -100,6 +103,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
 
   private static final Logger LOG = LoggerFactory.getLogger(HostRegexTableLoadBalancer.class);
+  private static final Logger MIGRATIONS_LOGGER =
+      new EscalatingLogger(LOG, Duration.ofMinutes(5), 1000, Level.WARN);
   public static final String HOST_BALANCER_PREFIX = PROP_PREFIX + "balancer.host.regex.";
   public static final String HOST_BALANCER_OOB_CHECK_KEY =
       PROP_PREFIX + "balancer.host.regex.oob.period";
@@ -517,6 +522,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
       migrationsOut.addAll(newMigrations);
       if (migrationsOut.size() >= myConf.maxTServerMigrations) {
+        MIGRATIONS_LOGGER.debug("Table {} migration size : {} is over tserver migration max: {}",
+            tableName, migrationsOut.size(), myConf.maxTServerMigrations);
         break;
       }
     }
