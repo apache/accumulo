@@ -444,12 +444,12 @@ public class RelativeKey implements Writable {
 
   private static void read(DataInput in, ArrayByteSequence mbseqDestination, int len)
       throws IOException {
-    if (mbseqDestination.getBackingArray().length < len) {
-      mbseqDestination.reset(new byte[UnsynchronizedBuffer.nextArraySize(len)], 0, 0);
+    byte[] buf = mbseqDestination.getBackingArray();
+    if (buf.length < len) {
+      buf = new byte[UnsynchronizedBuffer.nextArraySize(len)];
     }
-
-    in.readFully(mbseqDestination.getBackingArray(), 0, len);
-    mbseqDestination.reset(mbseqDestination.getBackingArray(), mbseqDestination.offset(), len);
+    in.readFully(buf, 0, len);
+    mbseqDestination.reset(buf, 0, len);
   }
 
   private static byte[] readPrefix(DataInput in, ByteSequence prefixSource) throws IOException {
@@ -472,19 +472,19 @@ public class RelativeKey implements Writable {
     int prefixLen = WritableUtils.readVInt(in);
     int remainingLen = WritableUtils.readVInt(in);
     int len = prefixLen + remainingLen;
+    byte[] buf = dest.getBackingArray();
     if (dest.getBackingArray().length < len) {
-      dest.reset(new byte[UnsynchronizedBuffer.nextArraySize(len)], 0, 0);
+      buf = new byte[UnsynchronizedBuffer.nextArraySize(len)];
     }
     if (prefixSource.isBackedByArray()) {
-      System.arraycopy(prefixSource.getBackingArray(), prefixSource.offset(),
-          dest.getBackingArray(), 0, prefixLen);
+      System.arraycopy(prefixSource.getBackingArray(), prefixSource.offset(), buf, 0, prefixLen);
     } else {
       byte[] prefixArray = prefixSource.toArray();
-      System.arraycopy(prefixArray, 0, dest.getBackingArray(), 0, prefixLen);
+      System.arraycopy(prefixArray, 0, buf, 0, prefixLen);
     }
     // read remaining
-    in.readFully(dest.getBackingArray(), prefixLen, remainingLen);
-    dest.reset(dest.getBackingArray(), dest.offset(), len);
+    in.readFully(buf, prefixLen, remainingLen);
+    dest.reset(buf, dest.offset(), len);
   }
 
   private static byte[] read(DataInput in) throws IOException {
