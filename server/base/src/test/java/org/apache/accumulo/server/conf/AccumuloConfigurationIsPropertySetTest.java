@@ -37,6 +37,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -226,12 +227,29 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     var conf = new SystemConfiguration(context, sysPropKey, parent);
 
     verifyIsSet(conf, shouldBeSet, shouldNotBeSet, inGetProperties(conf));
-    // these get added from the constructor via RuntimeFixedProperties and get checked in the
-    // isPropertySet impl; adding these to the expected list is a workaround until
-    // https://github.com/apache/accumulo/issues/3529 is fixed
-    shouldBeSet.addAll(Property.fixedProperties);
+    // also verify using isPropertySet
+    verifyIsSet(conf, shouldBeSet, shouldNotBeSet, conf::isPropertySet);
 
-    // verify using isPropertySet
+    // now set a few fixed properties on the parent to simulate a user setting a fixed property that
+    // requires a restart
+    var shouldBeSetMore = new HashSet<Property>(shouldBeSet);
+    Property.fixedProperties.stream().limit(5).forEach(p -> {
+      // use the default value so we can verify it's actually set, and not just looks set because it
+      // has the same value as the default
+      parent.set(p.getKey(), p.getDefaultValue());
+      shouldBeSetMore.add(p);
+    });
+    // make sure we actually added some
+    assertEquals(5, Sets.symmetricDifference(shouldBeSet, shouldBeSetMore).size());
+
+    // verify that the view of the configuration now includes the fixed properties, because we added
+    // them to the parent; however, in a real system, the parent is the SiteConfiguration, which is
+    // immutable, and this isn't possible; so this is just an easy way to verify that the values
+    // were actually altered (easier than mocking user edits to ZooKeeper)
+    var shouldNotBeSetMore = Sets.difference(ALL_PROPERTIES, shouldBeSetMore);
+    verifyIsSet(conf, shouldBeSetMore, shouldNotBeSetMore, inGetProperties(conf));
+    // now, verify that the configuration view is unchanged when looking at isPropertySet, because
+    // that is respecting the fact that these fixed properties were not set at startup
     verifyIsSet(conf, shouldBeSet, shouldNotBeSet, conf::isPropertySet);
   }
 

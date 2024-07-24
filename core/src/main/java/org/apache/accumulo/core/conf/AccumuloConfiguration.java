@@ -426,7 +426,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
   /**
    * @param prop Property to check
-   * @return true if the given property has explicitly been set by a user, false otherwise
+   * @return true if the given property has explicitly been set by a user, false otherwise; for
+   *         runtime-fixed properties, this returns true only if the property was set by the user
+   *         when the property's value was first read and entered a fixed state
    */
   public abstract boolean isPropertySet(Property prop);
 

@@ -492,7 +492,7 @@ public enum Property {
   SSERV_SCAN_EXECUTORS_META_THREADS("sserver.scan.executors.meta.threads", "8", PropertyType.COUNT,
       "The number of threads for the metadata table scan executor.", "2.1.0"),
   @Experimental
-  SSERVER_SCAN_REFERENCE_EXPIRATION_TIME("sserver.scan.reference.expiration", "5m",
+  SSERV_SCAN_REFERENCE_EXPIRATION_TIME("sserver.scan.reference.expiration", "5m",
       PropertyType.TIMEDURATION,
       "The amount of time a scan reference is unused before its deleted from metadata table.",
       "2.1.0"),
@@ -1508,6 +1508,8 @@ public enum Property {
         || key.startsWith(TABLE_CRYPTO_PREFIX.getKey()));
   }
 
+  // these properties are fixed to a specific value at startup and require a restart for changes to
+  // take effect; these are always system-level properties, and not namespace or table properties
   public static final EnumSet<Property> fixedProperties = EnumSet.of(
       // port options
       GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT, SSERV_CLIENTPORT, SSERV_PORTSEARCH,
@@ -1525,7 +1527,7 @@ public enum Property {
       TSERV_DEFAULT_BLOCKSIZE, SSERV_DEFAULT_BLOCKSIZE,
 
       // sserver specific options
-      SSERVER_SCAN_REFERENCE_EXPIRATION_TIME, SSERV_CACHED_TABLET_METADATA_EXPIRATION,
+      SSERV_SCAN_REFERENCE_EXPIRATION_TIME, SSERV_CACHED_TABLET_METADATA_EXPIRATION,
 
       // thread options
       TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT, SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT,
