@@ -781,7 +781,12 @@ public class Tablet extends TabletBase {
   @Override
   public void close(boolean saveState) throws IOException {
     initiateClose(saveState);
-    completeClose(saveState);
+    final var lock = lockLogLock();
+    try {
+      completeClose(saveState);
+    } finally {
+      lock.unlock();
+    }
     log.info("Tablet {} closed.", this.extent);
   }
 
@@ -890,6 +895,11 @@ public class Tablet extends TabletBase {
   private boolean closeCompleting = false;
 
   synchronized void completeClose(boolean saveState) throws IOException {
+
+    // The lockLock must be acquired before the tablet lock. Later in this function the log lock may
+    // be acquired during minor compaction. It will fail if the tablet lock is held and not the log
+    // lock. Fail sooner here and always, not only in the case when a minor compaction is needed.
+    Preconditions.checkState(logLock.isHeldByCurrentThread());
 
     if (!isClosing() || isCloseComplete() || closeCompleting) {
       throw new IllegalStateException("Bad close state " + closeState + " on tablet " + extent);
@@ -1194,7 +1204,12 @@ public class Tablet extends TabletBase {
     }
   }
 
-  ReentrantLock getLogLock() {
+  ReentrantLock lockLogLock() {
+    // It is expected that the log lock is acquired before the tablet lock. If they are acquired in
+    // reverse order it could lead to deadlock. So if the current thread does not hold the log lock,
+    // then it should also not hold the tablet lock.
+    Preconditions.checkState(!Thread.holdsLock(this) || logLock.isHeldByCurrentThread());
+    logLock.lock();
     return logLock;
   }
 
@@ -1262,10 +1277,7 @@ public class Tablet extends TabletBase {
 
     boolean releaseLock = true;
 
-    // Should not hold the tablet lock while trying to acquire the log lock because this could lead
-    // to deadlock. However there is a path in the code that does this. See #3759
-    logLock.lock();
-
+    final var lock = lockLogLock();
     try {
       synchronized (this) {
 
@@ -1321,7 +1333,7 @@ public class Tablet extends TabletBase {
       }
     } finally {
       if (releaseLock) {
-        logLock.unlock();
+        lock.unlock();
       }
     }
   }
@@ -1533,12 +1545,11 @@ public class Tablet extends TabletBase {
     // This prevents a concurrent refresh operation from pulling in the new tablet file before the
     // in memory map reference related to the file is deactivated. Scans should use one of the in
     // memory map or the new file, never both.
-    Preconditions.checkState(!getLogLock().isHeldByCurrentThread());
+    Preconditions.checkState(!logLock.isHeldByCurrentThread());
     refreshLock.lock();
     try {
-      // Can not hold tablet lock while acquiring the log lock. The following check is there to
-      // prevent deadlock.
-      getLogLock().lock();
+      // Can not hold tablet lock while acquiring the log lock.
+      final var localLogLock = lockLogLock();
       // do not place any code here between lock and try
       try {
         // The following call pairs with tablet.finishClearingUnusedLogs() later in this block. If
@@ -1555,7 +1566,7 @@ public class Tablet extends TabletBase {
 
         finishClearingUnusedLogs();
       } finally {
-        getLogLock().unlock();
+        localLogLock.unlock();
       }
 
       // Without the refresh lock, if a refresh happened here it could make the new file written to
