@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -85,6 +87,12 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
       cfg.getClusterServerConfiguration().addTabletServerResourceGroup(IDLE_RESOURCE_GROUP, 1);
       cfg.getClusterServerConfiguration().addScanServerResourceGroup(IDLE_RESOURCE_GROUP, 1);
       cfg.getClusterServerConfiguration().addCompactorResourceGroup(IDLE_RESOURCE_GROUP, 1);
+      cfg.getClusterServerConfiguration().addCompactorResourceGroup(GROUP1, 0);
+
+      cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
+          RatioBasedCompactionPlanner.class.getName());
+      cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.groups",
+          "[{'group':'" + GROUP1 + "'}]");
 
       cfg.setProperty(Property.GENERAL_IDLE_PROCESS_INTERVAL,
           idleProcessInterval.toSeconds() + "s");
@@ -170,6 +178,9 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP1, 1);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
+
       // should emit the idle metric after the configured duration of GENERAL_IDLE_PROCESS_INTERVAL
       Thread.sleep(idleProcessInterval.toMillis());
 
@@ -187,7 +198,7 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
       client.tableOperations().attachIterator(table1, setting,
           EnumSet.of(IteratorUtil.IteratorScope.majc));
 
-      compact(client, table1, 2, IDLE_RESOURCE_GROUP, false);
+      compact(client, table1, 2, GROUP1, true);
 
       log.info("Waiting for compactor to be not idle after starting compaction");
       waitForIdleMetricValueToBe(0, processName);
@@ -209,7 +220,8 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      getCluster().getClusterControl().start(ServerType.SCAN_SERVER, "localhost");
+      getCluster().getConfig().getClusterServerConfiguration().setNumDefaultScanServers(1);
+      getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
 
       // should emit the idle metric after the configured duration of GENERAL_IDLE_PROCESS_INTERVAL
       Thread.sleep(idleProcessInterval.toMillis());
