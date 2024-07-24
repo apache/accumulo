@@ -33,7 +33,7 @@ import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.hadoop.conf.Configuration;
 
-class InitialConfiguration {
+public class InitialConfiguration {
 
   // config only for root table
   private final HashMap<String,String> initialRootConf = new HashMap<>();
@@ -48,7 +48,7 @@ class InitialConfiguration {
   private final Configuration hadoopConf;
   private final SiteConfiguration siteConf;
 
-  InitialConfiguration(Configuration hadoopConf, SiteConfiguration siteConf) {
+  public InitialConfiguration(Configuration hadoopConf, SiteConfiguration siteConf) {
     this.hadoopConf = hadoopConf;
     this.siteConf = siteConf;
 
