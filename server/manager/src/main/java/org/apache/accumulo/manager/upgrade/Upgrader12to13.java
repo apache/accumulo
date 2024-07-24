@@ -68,11 +68,13 @@ public class Upgrader12to13 implements Upgrader {
   @Override
   public void upgradeZookeeper(ServerContext context) {
     LOG.info("setting root table stored hosting availability");
-    addHostingGoalToRootTable(context);
-    LOG.info("Removing compact-id paths from ZooKeeper");
-    removeZKCompactIdPaths(context);
+    addHostingGoals(context, TabletAvailability.HOSTED, DataLevel.ROOT);
+    LOG.info("Removing nodes no longer used from ZooKeeper");
+    removeUnusedZKNodes(context);
     LOG.info("Removing compact columns from root tablet");
     removeCompactColumnsFromRootTabletMetadata(context);
+    LOG.info("Adding compactions node to zookeeper");
+    addCompactionsNode(context);
   }
 
   @Override
@@ -82,7 +84,7 @@ public class Upgrader12to13 implements Upgrader {
     LOG.info("Looking for partial splits");
     handlePartialSplits(context, AccumuloTable.ROOT.tableName());
     LOG.info("setting metadata table hosting availability");
-    addHostingGoalToMetadataTable(context);
+    addHostingGoals(context, TabletAvailability.HOSTED, DataLevel.METADATA);
     LOG.info("Removing MetadataBulkLoadFilter iterator from root table");
     removeMetaDataBulkLoadFilter(context, AccumuloTable.ROOT.tableId());
     LOG.info("Removing compact columns from metadata tablets");
@@ -94,7 +96,7 @@ public class Upgrader12to13 implements Upgrader {
     LOG.info("Looking for partial splits");
     handlePartialSplits(context, AccumuloTable.METADATA.tableName());
     LOG.info("setting hosting availability on user tables");
-    addHostingGoalToUserTables(context);
+    addHostingGoals(context, TabletAvailability.ONDEMAND, DataLevel.USER);
     LOG.info("Deleting external compaction final states from user tables");
     deleteExternalCompactionFinalStates(context);
     LOG.info("Deleting external compaction from user tables");
@@ -103,6 +105,18 @@ public class Upgrader12to13 implements Upgrader {
     removeMetaDataBulkLoadFilter(context, AccumuloTable.METADATA.tableId());
     LOG.info("Removing compact columns from user tables");
     removeCompactColumnsFromTable(context, AccumuloTable.METADATA.tableName());
+    LOG.info("Removing bulk file columns from metadata table");
+    removeBulkFileColumnsFromTable(context, AccumuloTable.METADATA.tableName());
+  }
+
+  private static void addCompactionsNode(ServerContext context) {
+    try {
+      context.getZooReaderWriter().putPersistentData(
+          ZooUtil.getRoot(context.getInstanceID()) + Constants.ZCOMPACTIONS, new byte[0],
+          ZooUtil.NodeExistsPolicy.SKIP);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   private void createFateTable(ServerContext context) {
@@ -163,7 +177,7 @@ public class Upgrader12to13 implements Upgrader {
 
   private void removeCompactColumnsFromTable(ServerContext context, String tableName) {
 
-    try (var scanner = context.createScanner(tableName);
+    try (var scanner = context.createScanner(tableName, Authorizations.EMPTY);
         var writer = context.createBatchWriter(tableName)) {
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
       COMPACT_COL.fetch(scanner);
@@ -184,22 +198,54 @@ public class Upgrader12to13 implements Upgrader {
     }
   }
 
-  private void removeZKCompactIdPaths(ServerContext context) {
-    final String ZTABLE_COMPACT_ID = "/compact-id";
-    final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
-
-    for (Entry<String,String> e : context.tableOperations().tableIdMap().entrySet()) {
-      final String tName = e.getKey();
-      final String tId = e.getValue();
-      final String zTablePath = Constants.ZROOT + "/" + context.getInstanceID().canonical()
-          + Constants.ZTABLES + "/" + tId;
-      try {
-        context.getZooReaderWriter().delete(zTablePath + ZTABLE_COMPACT_ID);
-        context.getZooReaderWriter().delete(zTablePath + ZTABLE_COMPACT_CANCEL_ID);
-      } catch (KeeperException | InterruptedException e1) {
-        throw new IllegalStateException(
-            "Error removing compaction ids from ZooKeeper for table: " + tName);
+  private void removeBulkFileColumnsFromTable(ServerContext context, String tableName) {
+    // FATE transaction ids have changed from 3.x to 4.x which are used as the value for the bulk
+    // file column. FATE ops won't persist through upgrade, so these columns can be safely deleted
+    // if they exist.
+    try (var scanner = context.createScanner(tableName);
+        var writer = context.createBatchWriter(tableName)) {
+      scanner.setRange(MetadataSchema.TabletsSection.getRange());
+      scanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
+      for (Map.Entry<Key,Value> entry : scanner) {
+        var key = entry.getKey();
+        Mutation m = new Mutation(key.getRow());
+        Preconditions.checkState(
+            key.getColumnFamily().equals(TabletsSection.BulkFileColumnFamily.NAME),
+            "Expected family %s, saw %s ", TabletsSection.BulkFileColumnFamily.NAME,
+            key.getColumnFamily());
+        Preconditions.checkState(key.getColumnVisibilityData().length() == 0,
+            "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
+        m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
+        writer.addMutation(m);
       }
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private void removeUnusedZKNodes(ServerContext context) {
+    try {
+      final String zkRoot = ZooUtil.getRoot(context.getInstanceID());
+      final var zrw = context.getZooReaderWriter();
+
+      final String ZCOORDINATOR = "/coordinators";
+      final String BULK_ARBITRATOR_TYPE = "bulkTx";
+
+      zrw.recursiveDelete(zkRoot + ZCOORDINATOR, ZooUtil.NodeMissingPolicy.SKIP);
+      zrw.recursiveDelete(zkRoot + "/" + BULK_ARBITRATOR_TYPE, ZooUtil.NodeMissingPolicy.SKIP);
+
+      final String ZTABLE_COMPACT_ID = "/compact-id";
+      final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
+
+      for (Entry<String,String> e : context.tableOperations().tableIdMap().entrySet()) {
+        final String tName = e.getKey();
+        final String tId = e.getValue();
+        final String zTablePath = zkRoot + Constants.ZTABLES + "/" + tId;
+        zrw.delete(zTablePath + ZTABLE_COMPACT_ID);
+        zrw.delete(zTablePath + ZTABLE_COMPACT_CANCEL_ID);
+      }
+    } catch (KeeperException | InterruptedException e1) {
+      throw new IllegalStateException(e1);
     }
   }
 
@@ -213,7 +259,9 @@ public class Upgrader12to13 implements Upgrader {
     // Compactions are committed in a completely different way now, so delete these entries. Its
     // possible some completed compactions may need to be redone, but processing these entries would
     // not be easy to test so its better for correctness to delete them and redo the work.
-    try (var scanner = context.createScanner(AccumuloTable.METADATA.tableName());
+    try (
+        var scanner =
+            context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
         var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       var section = new Section(RESERVED_PREFIX + "ecomp", true, RESERVED_PREFIX + "ecomq", false);
       scanner.setRange(section.getRange());
@@ -233,31 +281,13 @@ public class Upgrader12to13 implements Upgrader {
     }
   }
 
-  private void addHostingGoalToSystemTable(ServerContext context, TableId tableId) {
+  private void addHostingGoals(ServerContext context, TabletAvailability availability,
+      DataLevel level) {
     try (
         TabletsMetadata tm =
-            context.getAmple().readTablets().forTable(tableId).fetch(ColumnType.PREV_ROW).build();
+            context.getAmple().readTablets().forLevel(level).fetch(ColumnType.PREV_ROW).build();
         TabletsMutator mut = context.getAmple().mutateTablets()) {
-      tm.forEach(t -> mut.mutateTablet(t.getExtent())
-          .putTabletAvailability(TabletAvailability.HOSTED).mutate());
-    }
-  }
-
-  private void addHostingGoalToRootTable(ServerContext context) {
-    addHostingGoalToSystemTable(context, AccumuloTable.ROOT.tableId());
-  }
-
-  private void addHostingGoalToMetadataTable(ServerContext context) {
-    addHostingGoalToSystemTable(context, AccumuloTable.METADATA.tableId());
-  }
-
-  private void addHostingGoalToUserTables(ServerContext context) {
-    try (
-        TabletsMetadata tm = context.getAmple().readTablets().forLevel(DataLevel.USER)
-            .fetch(ColumnType.PREV_ROW).build();
-        TabletsMutator mut = context.getAmple().mutateTablets()) {
-      tm.forEach(t -> mut.mutateTablet(t.getExtent())
-          .putTabletAvailability(TabletAvailability.ONDEMAND).mutate());
+      tm.forEach(t -> mut.mutateTablet(t.getExtent()).putTabletAvailability(availability).mutate());
     }
   }
 
@@ -266,7 +296,9 @@ public class Upgrader12to13 implements Upgrader {
     // process the metadata table. The metadata related to an external compaction has changed so
     // delete any that exists. Not using Ample in case there are problems deserializing the old
     // external compaction metadata.
-    try (var scanner = context.createScanner(AccumuloTable.METADATA.tableName());
+    try (
+        var scanner =
+            context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
         var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
       scanner.setRange(TabletsSection.getRange());
       scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
@@ -276,7 +308,7 @@ public class Upgrader12to13 implements Upgrader {
         Mutation m = new Mutation(key.getRow());
         Preconditions.checkState(key.getColumnFamily().equals(ExternalCompactionColumnFamily.NAME),
             "Expected family %s, saw %s ", ExternalCompactionColumnFamily.NAME,
-            key.getColumnVisibilityData());
+            key.getColumnFamily());
         Preconditions.checkState(key.getColumnVisibilityData().length() == 0,
             "Expected empty visibility, saw %s ", key.getColumnVisibilityData());
         m.putDelete(key.getColumnFamily(), key.getColumnQualifier());

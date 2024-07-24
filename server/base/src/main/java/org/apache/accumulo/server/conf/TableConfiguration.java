@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -145,6 +146,8 @@ public class TableConfiguration extends ZooBasedConfiguration {
       ServerContext context, TableId tableId) {
     ScanDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
         Property.TABLE_SCAN_DISPATCHER, ScanDispatcher.class, null);
+    Objects.requireNonNull(newDispatcher, "Class specified in property "
+        + Property.TABLE_SCAN_DISPATCHER.getKey() + " was not returned.");
 
     Map<String,String> opts =
         conf.getAllPropertiesWithPrefixStripped(Property.TABLE_SCAN_DISPATCHER_OPTS);
@@ -177,14 +180,8 @@ public class TableConfiguration extends ZooBasedConfiguration {
 
     CompactionDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
         Property.TABLE_COMPACTION_DISPATCHER, CompactionDispatcher.class, null);
-
-    if (newDispatcher == null) {
-      // return early to prevent NPE
-      log.error(
-          "Null returned for compaction dispatcher for table: {}. Did not return default value, check server log.",
-          tableId);
-      return null;
-    }
+    Objects.requireNonNull(newDispatcher, "Class specified in property "
+        + Property.TABLE_COMPACTION_DISPATCHER.getKey() + " was not returned.");
 
     Map<String,String> opts =
         conf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_DISPATCHER_OPTS);

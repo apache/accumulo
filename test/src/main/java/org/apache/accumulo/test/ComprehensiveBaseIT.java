@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toMap;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -33,6 +34,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,6 +45,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -61,9 +64,11 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -97,8 +102,11 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.MoreCollectors;
+import com.google.common.collect.Sets;
 
 /**
  * The purpose of this test is to exercise a large amount of Accumulo's features in a single test.
@@ -109,6 +117,8 @@ public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
 
   public static final String DOG_AND_CAT = "DOG&CAT";
   static final Authorizations AUTHORIZATIONS = new Authorizations("CAT", "DOG");
+
+  private static final Logger log = LoggerFactory.getLogger(ComprehensiveIT.class);
 
   @Test
   public void testBulkImport() throws Exception {
@@ -160,6 +170,52 @@ public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
       client.tableOperations().merge(table, null, null);
       assertEquals(Set.of(), new TreeSet<>(client.tableOperations().listSplits(table)));
       verifyData(client, table, AUTHORIZATIONS, expectedData);
+
+      // The previous merge operations should create files with finite fence ranges. The following
+      // will test compactions of files with finite fences.
+      client.tableOperations().compact(table, new CompactionConfig().setWait(true));
+      verifyData(client, table, AUTHORIZATIONS, expectedData);
+    }
+  }
+
+  @Test
+  public void testAutoSplit() throws Exception {
+    String table = getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      var newTableConfig =
+          new NewTableConfiguration().setProperties(Map.of(Property.TABLE_SPLIT_THRESHOLD.getKey(),
+              "4K", Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K"));
+      client.tableOperations().create(table, newTableConfig);
+
+      var random = RANDOM.get();
+      byte[] data = new byte[1024];
+
+      assertEquals(0, client.tableOperations().listSplits(table).size());
+
+      Map<String,Text> expectedValues = new HashMap<>();
+
+      try (var writer = client.createBatchWriter(table)) {
+        for (int i = 0; i < 100; i++) {
+          String row = String.format("%016x", random.nextLong());
+          Mutation m = new Mutation(row);
+          random.nextBytes(data);
+          m.at().family("data").qualifier("random").put(data);
+          writer.addMutation(m);
+          expectedValues.put(row, new Text(data));
+        }
+      }
+
+      client.tableOperations().flush(table, null, null, true);
+
+      // ensure table automatically splits
+      Wait.waitFor(() -> client.tableOperations().listSplits(table).size() > 20);
+
+      try (var scanner = client.createScanner(table)) {
+        var seenValues = scanner.stream().collect(Collectors
+            .toMap(e -> e.getKey().getRowData().toString(), e -> new Text(e.getValue().get())));
+        assertEquals(expectedValues, seenValues);
+      }
+
     }
   }
 
@@ -860,6 +916,90 @@ public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
     }
   }
 
+  public static class NotThreeHundredSelector implements CompactionSelector {
+
+    @Override
+    public void init(InitParameters iparams) {}
+
+    @Override
+    public Selection select(SelectionParameters sparams) {
+      var endRow = sparams.getTabletId().getEndRow();
+      if (endRow == null || !endRow.toString().equals(row(300))) {
+        return new Selection(sparams.getAvailableFiles());
+      } else {
+        return new Selection(Set.of());
+      }
+
+    }
+  }
+
+  @Test
+  public void testCompaction() throws Exception {
+    String table = getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      var splits =
+          new TreeSet<>(List.of(new Text(row(100)), new Text(row(200)), new Text(row(300))));
+
+      client.tableOperations().create(table, new NewTableConfiguration().withSplits(splits));
+      write(client, table, generateMutations(0, 100, tr -> true));
+      // write no data to the tablet (100,200]
+      write(client, table, generateMutations(201, 400, tr -> true));
+
+      CompactionConfig compactionConfig = new CompactionConfig();
+      compactionConfig.setSelector(new PluginConfig(NotThreeHundredSelector.class.getName()));
+      var iterSetting = new IteratorSetting(200, "fam3", FamFilter.class);
+      iterSetting.addOption("family", "3");
+      compactionConfig.setIterators(List.of(iterSetting));
+      compactionConfig.setWait(true);
+      compactionConfig.setFlush(true);
+
+      // This compaction will have one empty tablet and one tablet that is skipped by the selector.
+      // There is special code for handling tablets with no files and marking them as compacted in
+      // the fate operation which is why this case is tested. There is also special code in the fate
+      // operation for handling tablets were the CompactionSelector plugin selects no files, so
+      // testing that also.
+      client.tableOperations().compact(table, compactionConfig);
+
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 400, tr -> {
+        if (tr.row < 100) {
+          return tr.fam != 3;
+        } else if (tr.row <= 200) {
+          // this is the empty tablet
+          return false;
+        } else if (tr.row <= 300) {
+          // this tablet was skipped by the selector, so the compaction should not have filtered any
+          // of its data
+          return true;
+        } else {
+          return tr.fam != 3;
+        }
+      }));
+
+      // Test compaction over row range, should not filter anything outside of range.
+      compactionConfig = new CompactionConfig();
+      iterSetting = new IteratorSetting(200, "fam5", FamFilter.class);
+      iterSetting.addOption("family", "5");
+      compactionConfig.setIterators(List.of(iterSetting));
+      compactionConfig.setStartRow(new Text(row(201))).setEndRow(new Text(row(300)));
+      compactionConfig.setWait(true);
+      client.tableOperations().compact(table, compactionConfig);
+
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 400, tr -> {
+        if (tr.row < 100) {
+          return tr.fam != 3;
+        } else if (tr.row <= 200) {
+          return false;
+        } else if (tr.row <= 300) {
+          // the most recent compaction filtered out family 5 in only this tablet
+          return tr.fam != 5;
+        } else {
+          return tr.fam != 3;
+        }
+      }));
+    }
+  }
+
   private static final SortedSet<Text> everythingSplits =
       new TreeSet<>(List.of(new Text(row(33)), new Text(row(66))));
   private static final Map<String,Set<Text>> everythingLocalityGroups =
@@ -996,7 +1136,12 @@ public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
   private static void verifyData(AccumuloClient client, String table, Authorizations auths,
       SortedMap<Key,Value> expectedData) throws Exception {
     try (var scanner = client.createScanner(table, auths)) {
-      assertEquals(expectedData, scan(scanner));
+      var seen = scan(scanner);
+      if (!expectedData.equals(seen)) {
+        log.info("expected - seen : {}", Sets.difference(expectedData.keySet(), seen.keySet()));
+        log.info("seen - expected : {}", Sets.difference(seen.keySet(), expectedData.keySet()));
+      }
+      assertEquals(expectedData, seen);
     }
 
     try (var scanner = client.createBatchScanner(table, auths)) {

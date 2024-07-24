@@ -233,7 +233,6 @@ public class Manager extends AbstractServer
       new AtomicReference<>();
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
-  volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
   volatile Map<String,Set<TServerInstance>> tServerGroupingForBalancer = emptyMap();
 
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
@@ -372,6 +371,10 @@ public class Manager extends AbstractServer
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
       for (TableCounts counts : watcher.getStats().values()) {
+        log.debug(
+            "Watcher: {}: Assigned Tablets: {}, Dead tserver assignments: {}, Suspended Tablets: {}",
+            watcher.getName(), counts.assigned(), counts.assignedToDeadServers(),
+            counts.suspended());
         result += counts.assigned() + counts.hosted();
       }
     }
@@ -788,17 +791,14 @@ public class Manager extends AbstractServer
 
     private long updateStatus() {
       var tseversSnapshot = tserverSet.getSnapshot();
-      TreeMap<TabletServerId,TServerStatus> temp = new TreeMap<>();
-      tserverStatus = gatherTableInformation(tseversSnapshot.getTservers(), temp);
-      tserverStatusForBalancer = Collections.unmodifiableSortedMap(temp);
+      tserverStatus = gatherTableInformation(tseversSnapshot.getTservers());
       tServerGroupingForBalancer = tseversSnapshot.getTserverGroups();
+
       checkForHeldServer(tserverStatus);
 
       if (!badServers.isEmpty()) {
         log.debug("not balancing because the balance information is out-of-date {}",
             badServers.keySet());
-      } else if (notHosted() > 0) {
-        log.debug("not balancing because there are unhosted tablets: {}", notHosted());
       } else if (getManagerGoalState() == ManagerGoalState.CLEAN_STOP) {
         log.debug("not balancing because the manager is attempting to stop cleanly");
       } else if (!serversToShutdown.isEmpty()) {
@@ -843,28 +843,119 @@ public class Manager extends AbstractServer
       }
     }
 
-    private long balanceTablets() {
-      BalanceParamsImpl params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer,
-          tServerGroupingForBalancer, tserverStatus, migrationsSnapshot().keySet());
-      long wait = tabletBalancer.balance(params);
+    /**
+     * balanceTablets() balances tables by DataLevel. Return the current set of migrations
+     * partitioned by DataLevel
+     */
+    private Map<DataLevel,Set<KeyExtent>> partitionMigrations(final Set<KeyExtent> migrations) {
+      final Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
+          new HashMap<>(DataLevel.values().length);
+      // populate to prevent NPE
+      for (DataLevel dl : DataLevel.values()) {
+        partitionedMigrations.put(dl, new HashSet<>());
+      }
+      migrationsSnapshot().keySet().forEach(ke -> {
+        partitionedMigrations.get(DataLevel.of(ke.tableId())).add(ke);
+      });
+      return partitionedMigrations;
+    }
 
-      for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),
-          params.migrationsOut())) {
-        KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
-        if (migrations.containsKey(ke)) {
-          log.warn("balancer requested migration more than once, skipping {}", m);
+    /**
+     * Given the current tserverStatus map and a DataLevel, return a view of the tserverStatus map
+     * that only contains entries for tables in the DataLevel
+     */
+    private SortedMap<TServerInstance,TabletServerStatus> createTServerStatusView(
+        final DataLevel dl, final SortedMap<TServerInstance,TabletServerStatus> status) {
+      final SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel = new TreeMap<>();
+      status.forEach((tsi, tss) -> {
+        final TabletServerStatus copy = tss.deepCopy();
+        final Map<String,TableInfo> oldTableMap = copy.getTableMap();
+        final Map<String,TableInfo> newTableMap =
+            new HashMap<>(dl == DataLevel.USER ? oldTableMap.size() : 1);
+        if (dl == DataLevel.ROOT) {
+          if (oldTableMap.containsKey(AccumuloTable.ROOT.tableName())) {
+            newTableMap.put(AccumuloTable.ROOT.tableName(),
+                oldTableMap.get(AccumuloTable.ROOT.tableName()));
+          }
+        } else if (dl == DataLevel.METADATA) {
+          if (oldTableMap.containsKey(AccumuloTable.METADATA.tableName())) {
+            newTableMap.put(AccumuloTable.METADATA.tableName(),
+                oldTableMap.get(AccumuloTable.METADATA.tableName()));
+          }
+        } else if (dl == DataLevel.USER) {
+          if (!oldTableMap.containsKey(AccumuloTable.METADATA.tableName())
+              && !oldTableMap.containsKey(AccumuloTable.ROOT.tableName())) {
+            newTableMap.putAll(oldTableMap);
+          } else {
+            oldTableMap.forEach((table, info) -> {
+              if (!table.equals(AccumuloTable.ROOT.tableName())
+                  && !table.equals(AccumuloTable.METADATA.tableName())) {
+                newTableMap.put(table, info);
+              }
+            });
+          }
+        } else {
+          throw new IllegalArgumentException("Unhandled DataLevel value: " + dl);
+        }
+        copy.setTableMap(newTableMap);
+        tserverStatusForLevel.put(tsi, copy);
+      });
+      return tserverStatusForLevel;
+    }
+
+    private long balanceTablets() {
+
+      final int tabletsNotHosted = notHosted();
+      BalanceParamsImpl params = null;
+      long wait = 0;
+      long totalMigrationsOut = 0;
+      final Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
+          partitionMigrations(migrationsSnapshot().keySet());
+
+      for (DataLevel dl : DataLevel.values()) {
+        if (dl == DataLevel.USER && tabletsNotHosted > 0) {
+          log.debug("not balancing user tablets because there are {} unhosted tablets",
+              tabletsNotHosted);
           continue;
         }
-        TServerInstance tserverInstance = TabletServerIdImpl.toThrift(m.getNewTabletServer());
-        migrations.put(ke, tserverInstance);
-        log.debug("migration {}", m);
+        // Create a view of the tserver status such that it only contains the tables
+        // for this level in the tableMap.
+        final SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel =
+            createTServerStatusView(dl, tserverStatus);
+        // Construct the Thrift variant of the map above for the BalancerParams
+        final SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancerLevel =
+            new TreeMap<>();
+        tserverStatusForLevel.forEach((tsi, status) -> tserverStatusForBalancerLevel
+            .put(new TabletServerIdImpl(tsi), TServerStatusImpl.fromThrift(status)));
+
+        long migrationsOutForLevel = 0;
+        int attemptNum = 0;
+        do {
+          log.debug("Balancing for tables at level {}, times-in-loop: {}", dl, ++attemptNum);
+          params = BalanceParamsImpl.fromThrift(tserverStatusForBalancerLevel,
+              tServerGroupingForBalancer, tserverStatusForLevel, partitionedMigrations.get(dl));
+          wait = Math.max(tabletBalancer.balance(params), wait);
+          migrationsOutForLevel = params.migrationsOut().size();
+          for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancerLevel.keySet(),
+              params.migrationsOut())) {
+            final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
+            if (migrations.containsKey(ke)) {
+              log.warn("balancer requested migration more than once, skipping {}", m);
+              continue;
+            }
+            migrations.put(ke, TabletServerIdImpl.toThrift(m.getNewTabletServer()));
+            log.debug("migration {}", m);
+          }
+        } while (migrationsOutForLevel > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
+        totalMigrationsOut += migrationsOutForLevel;
       }
-      if (params.migrationsOut().isEmpty()) {
+
+      if (totalMigrationsOut == 0) {
         synchronized (balancedNotifier) {
           balancedNotifier.notifyAll();
         }
       } else {
-        nextEvent.event("Migrating %d more tablets, %d total", params.migrationsOut().size(),
+        nextEvent.event("Migrating %d more tablets, %d total", totalMigrationsOut,
             migrations.size());
       }
       return wait;
@@ -893,8 +984,8 @@ public class Manager extends AbstractServer
 
   }
 
-  private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation(
-      Set<TServerInstance> currentServers, SortedMap<TabletServerId,TServerStatus> balancerMap) {
+  private SortedMap<TServerInstance,TabletServerStatus>
+      gatherTableInformation(Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MANAGER_STATUS_THREAD_POOL_SIZE);
     long start = System.currentTimeMillis();
@@ -983,8 +1074,6 @@ public class Manager extends AbstractServer
 
     // Threads may still modify map after shutdownNow is called, so create an immutable snapshot.
     SortedMap<TServerInstance,TabletServerStatus> info = ImmutableSortedMap.copyOf(result);
-    tserverStatus.forEach((tsi, status) -> balancerMap.put(new TabletServerIdImpl(tsi),
-        TServerStatusImpl.fromThrift(status)));
 
     synchronized (badServers) {
       badServers.keySet().retainAll(currentServers);
@@ -1037,7 +1126,6 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
-    this.getContext().setServiceLock(getManagerLock());
 
     // If UpgradeStatus is not at complete by this moment, then things are currently
     // upgrading.
@@ -1463,6 +1551,7 @@ public class Manager extends AbstractServer
       sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, MILLISECONDS);
     }
 
+    this.getContext().setServiceLock(getManagerLock());
     setManagerState(ManagerState.HAVE_LOCK);
     return sld;
   }

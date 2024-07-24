@@ -281,9 +281,9 @@ public class MetricsInfoImpl implements MetricsInfo {
     }
   }
 
+  // support for org.apache.accumulo.core.metrics.MeterRegistryFactory can be removed in 3.1
   @VisibleForTesting
-  @SuppressWarnings({"deprecation",
-      "support for org.apache.accumulo.core.metrics.MeterRegistryFactory can be removed in 3.1"})
+  @SuppressWarnings("deprecation")
   static MeterRegistry getRegistryFromFactory(final String factoryName, final ServerContext context)
       throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
       InstantiationException, IllegalAccessException {

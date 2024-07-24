@@ -61,7 +61,7 @@ $(document).ready(function () {
         "data": "server"
       },
       {
-        "data": "queueName"
+        "data": "groupName"
       },
       {
         "data": "lastContact"

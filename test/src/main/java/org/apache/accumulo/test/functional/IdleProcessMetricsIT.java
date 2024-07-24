@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.List;
@@ -33,12 +34,21 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IdleProcessMetricsIT extends SharedMiniClusterBase {
+
+  private static final Logger log = LoggerFactory.getLogger(IdleProcessMetricsIT.class);
+
+  static final Duration idleProcessInterval = Duration.ofSeconds(10);
+
+  public static final String IDLE_RESOURCE_GROUP = "IDLE_PROCESS_TEST";
 
   public static class IdleStopITConfig implements MiniClusterConfigurationCallback {
 
@@ -59,11 +69,12 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
 
       // Add servers in a resource group that will not get any work. These
       // are the servers that should stop because they are idle.
-      cfg.getClusterServerConfiguration().addTabletServerResourceGroup("IDLE_PROCESS_TEST", 1);
-      cfg.getClusterServerConfiguration().addScanServerResourceGroup("IDLE_PROCESS_TEST", 1);
-      cfg.getClusterServerConfiguration().addCompactorResourceGroup("IDLE_PROCESS_TEST", 1);
+      cfg.getClusterServerConfiguration().addTabletServerResourceGroup(IDLE_RESOURCE_GROUP, 1);
+      cfg.getClusterServerConfiguration().addScanServerResourceGroup(IDLE_RESOURCE_GROUP, 1);
+      cfg.getClusterServerConfiguration().addCompactorResourceGroup(IDLE_RESOURCE_GROUP, 1);
 
-      cfg.setProperty(Property.GENERAL_IDLE_PROCESS_INTERVAL, "10s");
+      cfg.setProperty(Property.GENERAL_IDLE_PROCESS_INTERVAL,
+          idleProcessInterval.toSeconds() + "s");
 
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
       // to push all metrics to the sink we started.
@@ -100,32 +111,33 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
   @Test
   public void testIdleStopMetrics() throws Exception {
 
-    // The server processes in the IDLE_PROCESS_TEST resource group
-    // should emit the idle metric after 10s of being idle based
-    // on the configuration for this test. Wait 20s before checking
-    // for it.
-    Thread.sleep(20_000);
-
-    List<String> statsDMetrics;
+    // should emit the idle metric after the configured duration of GENERAL_IDLE_PROCESS_INTERVAL
+    Thread.sleep(idleProcessInterval.toMillis());
 
     AtomicBoolean sawCompactor = new AtomicBoolean(false);
     AtomicBoolean sawSServer = new AtomicBoolean(false);
     AtomicBoolean sawTServer = new AtomicBoolean(false);
-    // loop until we run out of lines or until we see all expected metrics
-    while (!(statsDMetrics = sink.getLines()).isEmpty() && !sawCompactor.get() && !sawSServer.get()
-        && !sawTServer.get()) {
+
+    Wait.waitFor(() -> {
+      List<String> statsDMetrics = sink.getLines();
       statsDMetrics.stream().filter(line -> line.startsWith(MetricsProducer.METRICS_SERVER_IDLE))
-          .map(TestStatsDSink::parseStatsDMetric).forEach(a -> {
+          .peek(log::info).map(TestStatsDSink::parseStatsDMetric)
+          .filter(a -> a.getTags().get("resource.group").equals(IDLE_RESOURCE_GROUP)).forEach(a -> {
             String processName = a.getTags().get("process.name");
-            if (processName.equals("tserver")) {
+            int value = Integer.parseInt(a.getValue());
+            assertTrue(value == 0 || value == 1 || value == -1, "Unexpected value " + value);
+            // check that the idle metric was emitted for each
+            if ("tserver".equals(processName) && value == 1) {
               sawTServer.set(true);
-            } else if (processName.equals("sserver")) {
+            } else if ("sserver".equals(processName) && value == 1) {
               sawSServer.set(true);
-            } else if (processName.equals("compactor")) {
+            } else if ("compactor".equals(processName) && value == 1) {
               sawCompactor.set(true);
             }
+
           });
-    }
+      return sawCompactor.get() && sawSServer.get() && sawTServer.get();
+    });
   }
 
 }

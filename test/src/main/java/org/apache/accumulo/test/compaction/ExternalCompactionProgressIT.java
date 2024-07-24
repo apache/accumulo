@@ -35,9 +35,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -127,31 +125,16 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
     cfg.setSystemProperties(sysProps);
   }
 
-  private static long computeBusyCount(String resourceGroup,
-      ConcurrentHashMap<String,Long> compactorBusy) {
-    var stats =
-        compactorBusy.entrySet().stream().filter(e -> e.getKey().startsWith(resourceGroup + ":"))
-            .mapToLong(Map.Entry::getValue).summaryStatistics();
-    if (stats.getCount() == 0) {
-      // signifies nothing was present, this differentiates between the case where things are
-      // present w/ a zero value
-      return -1;
-    }
-    return stats.getSum();
-  }
-
   @Test
   public void testProgressViaMetrics() throws Exception {
     String table = this.getUniqueNames(1)[0];
 
     final AtomicLong totalEntriesRead = new AtomicLong(0);
     final AtomicLong totalEntriesWritten = new AtomicLong(0);
-    final ConcurrentHashMap<String,Long> compactorBusy = new ConcurrentHashMap<>();
     final long expectedEntriesRead = 18432;
     final long expectedEntriesWritten = 13312;
 
-    Thread checkerThread =
-        getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten, compactorBusy);
+    Thread checkerThread = getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten);
 
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
@@ -166,14 +149,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           EnumSet.of(IteratorUtil.IteratorScope.majc));
       log.info("Compacting table");
 
-      Wait.waitFor(() -> computeBusyCount(GROUP1, compactorBusy) == 0, 30_000,
-          CHECKER_THREAD_SLEEP_MS, "Compactor busy metric should be false initially");
-
-      compact(client, table, 2, GROUP1, false);
-
-      Wait.waitFor(() -> computeBusyCount(GROUP1, compactorBusy) == 1, 30_000,
-          CHECKER_THREAD_SLEEP_MS,
-          "Compactor busy metric should be true after starting compaction");
+      compact(client, table, 2, GROUP1, true);
 
       Wait.waitFor(() -> {
         if (totalEntriesRead.get() == expectedEntriesRead
@@ -188,10 +164,6 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       }, 30_000, CHECKER_THREAD_SLEEP_MS,
           "Entries read and written metrics values did not match expected values");
 
-      Wait.waitFor(() -> computeBusyCount(GROUP1, compactorBusy) == 0, 30_000,
-          CHECKER_THREAD_SLEEP_MS,
-          "Compactor busy metric should be false once compaction completes");
-
       log.info("Done Compacting table");
       verify(client, table, 2, ROWS);
     } finally {
@@ -205,10 +177,9 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
    *
    * @param totalEntriesRead this is set to the value of the entries read metric
    * @param totalEntriesWritten this is set to the value of the entries written metric
-   * @param compactorBusy this is set to the value of the compactor busy metric
    */
   private static Thread getMetricsCheckerThread(AtomicLong totalEntriesRead,
-      AtomicLong totalEntriesWritten, ConcurrentHashMap<String,Long> compactorBusy) {
+      AtomicLong totalEntriesWritten) {
     return Threads.createThread("metric-tailer", () -> {
       log.info("Starting metric tailer");
 
@@ -232,15 +203,6 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
               break;
             case MetricsProducer.METRICS_COMPACTOR_ENTRIES_WRITTEN:
               totalEntriesWritten.addAndGet(value);
-              break;
-            case MetricsProducer.METRICS_COMPACTOR_BUSY:
-              // expect these tags to be present, so have the test fail w/ NPE if they are not
-              var host = Objects.requireNonNull(metric.getTags().get("host"));
-              var port = Objects.requireNonNull(metric.getTags().get("port"));
-              var resourceGroup = Objects.requireNonNull(metric.getTags().get("resource.group"));
-              var key = resourceGroup + ":" + host + ":" + port;
-              log.debug("setting busy count {} {}", key, value);
-              compactorBusy.put(key, (long) value);
               break;
           }
         }

@@ -83,6 +83,10 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-access</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-start</artifactId>
     </dependency>
     <dependency>
@@ -110,18 +114,13 @@
       <artifactId>hadoop-client-api</artifactId>
     </dependency>
     <dependency>
+      <!-- used at compile scope by legacy mapreduce classes -->
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-1.2-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.thrift</groupId>
       <artifactId>libthrift</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.httpcomponents</groupId>
-          <artifactId>httpcore</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
@@ -144,24 +143,25 @@
       <artifactId>snakeyaml</artifactId>
     </dependency>
     <dependency>
+      <!-- used by log4j-api; needed here for compile time linting only; we don't actually use it -->
+      <groupId>biz.aQute.bnd</groupId>
+      <artifactId>biz.aQute.bnd.annotation</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <!-- used indirectly at compile scope by log4j-1.2-api; also needed for tests -->
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client-runtime</artifactId>
       <scope>runtime</scope>
     </dependency>
-    <!-- bnd dependency added due to lint issue, see https://github.com/apache/logging-log4j2/issues/2232 -->
-    <dependency>
-      <groupId>biz.aQute.bnd</groupId>
-      <artifactId>biz.aQute.bnd.annotation</artifactId>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client-minicluster</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-api</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -277,6 +277,8 @@
                 <allow>javax[.]security[.]auth[.]DestroyFailedException</allow>
                 <!-- allow questionable Hadoop exceptions for mapreduce -->
                 <allow>org[.]apache[.]hadoop[.]mapred[.](FileAlreadyExistsException|InvalidJobConfException)</allow>
+                <!-- allow the following types from the visibility API -->
+                <allow>org[.]apache[.]accumulo[.]access[.].*</allow>
               </allows>
             </configuration>
           </execution>

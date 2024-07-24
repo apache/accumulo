@@ -42,6 +42,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.access.AccessEvaluator;
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -69,13 +71,9 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.VisibilityEvaluator;
-import org.apache.accumulo.core.security.VisibilityParseException;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -89,6 +87,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
 public class ConditionalWriterImpl implements ConditionalWriter {
@@ -97,16 +96,17 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
   private static final int MAX_SLEEP = 30000;
 
-  private Authorizations auths;
-  private VisibilityEvaluator ve;
-  private Map<Text,Boolean> cache = Collections.synchronizedMap(new LRUMap<>(1000));
+  private final Authorizations auths;
+  private final AccessEvaluator accessEvaluator;
+  private final Map<Text,Boolean> cache = Collections.synchronizedMap(new LRUMap<>(1000));
   private final ClientContext context;
-  private ClientTabletCache locator;
+  private final ClientTabletCache locator;
   private final TableId tableId;
   private final String tableName;
-  private long timeout;
+  private final long timeout;
   private final Durability durability;
   private final String classLoaderContext;
+  private final ConditionalWriterConfig config;
 
   private static class ServerQueue {
     BlockingQueue<TabletServerMutations<QCMutation>> queue = new LinkedBlockingQueue<>();
@@ -372,9 +372,10 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
   ConditionalWriterImpl(ClientContext context, TableId tableId, String tableName,
       ConditionalWriterConfig config) {
+    this.config = config;
     this.context = context;
     this.auths = config.getAuthorizations();
-    this.ve = new VisibilityEvaluator(config.getAuthorizations());
+    this.accessEvaluator = AccessEvaluator.of(config.getAuthorizations().toAccessAuthorizations());
     this.threadPool = context.threadPools().createScheduledExecutorService(
         config.getMaxWriteThreads(), this.getClass().getSimpleName());
     this.locator = new SyncingClientTabletCache(context, tableId);
@@ -815,10 +816,13 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   private boolean isVisible(ByteSequence cv) {
-    Text testVis = new Text(cv.toArray());
-    if (testVis.getLength() == 0) {
+
+    if (cv.length() == 0) {
       return true;
     }
+
+    byte[] arrayVis = cv.toArray();
+    Text testVis = new Text(arrayVis);
 
     Boolean b = cache.get(testVis);
     if (b != null) {
@@ -826,12 +830,17 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     }
 
     try {
-      boolean bb = ve.evaluate(new ColumnVisibility(testVis));
+      boolean bb = accessEvaluator.canAccess(arrayVis);
       cache.put(new Text(testVis), bb);
       return bb;
-    } catch (VisibilityParseException | BadArgumentException e) {
+    } catch (InvalidAccessExpressionException e) {
       return false;
     }
+  }
+
+  @VisibleForTesting
+  public ConditionalWriterConfig getConfig() {
+    return config;
   }
 
   @Override

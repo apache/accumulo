@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -303,8 +304,8 @@ public enum Property {
       PropertyType.TIMEDURATION, "The length of time between generation of new secret keys.",
       "1.7.0"),
   GENERAL_IDLE_PROCESS_INTERVAL("general.metrics.process.idle", "5m", PropertyType.TIMEDURATION,
-      "Amount of time a process must be idle before the accumulo.server.idle metric is incremented.",
-      "4.0.0"),
+      "Amount of time a process must be idle before it is considered to be idle by the metrics system.",
+      "2.1.3"),
   GENERAL_LOW_MEM_DETECTOR_INTERVAL("general.low.mem.detector.interval", "5s",
       PropertyType.TIMEDURATION, "The time interval between low memory checks.", "3.0.0"),
   GENERAL_LOW_MEM_DETECTOR_THRESHOLD("general.low.mem.detector.threshold", "0.05",
@@ -1523,6 +1524,9 @@ public enum Property {
    */
   public static <T> T createTableInstanceFromPropertyName(AccumuloConfiguration conf,
       Property property, Class<T> base, T defaultInstance) {
+    Objects.requireNonNull(conf, "configuration cannot be null");
+    Objects.requireNonNull(property, "property cannot be null");
+    Objects.requireNonNull(base, "base class cannot be null");
     String clazzName = conf.get(property);
     String context = ClassLoaderUtil.tableContext(conf);
     return ConfigurationTypeHelper.getClassInstance(context, clazzName, base, defaultInstance);
