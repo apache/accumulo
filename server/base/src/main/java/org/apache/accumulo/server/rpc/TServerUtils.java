@@ -153,7 +153,7 @@ public class TServerUtils {
       timeBetweenThreadChecks = config.getTimeInMillis(timeBetweenThreadChecksProperty);
     }
 
-    long maxMessageSize = 10_000_000;
+    long maxMessageSize = Integer.MAX_VALUE;
     if (maxMessageSizeProperty != null) {
       maxMessageSize = config.getAsBytes(maxMessageSizeProperty);
     }

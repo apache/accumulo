@@ -1206,10 +1206,13 @@ public class Manager extends AbstractServer
         ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy, getContext());
 
     try {
+      @SuppressWarnings("deprecation")
+      var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
+          Property.GENERAL_MAX_MESSAGE_SIZE);
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
           "Manager", "Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,
           Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK,
-          Property.GENERAL_MAX_MESSAGE_SIZE);
+          maxMessageSizeProperty);
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }
@@ -1561,10 +1564,13 @@ public class Manager extends AbstractServer
     var processor =
         ThriftProcessorTypes.getReplicationCoordinatorTProcessor(haReplicationProxy, getContext());
 
+    var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
+        Property.GENERAL_MAX_MESSAGE_SIZE);
+
     ServerAddress replAddress = TServerUtils.startServer(context, getHostname(),
         Property.MANAGER_REPLICATION_COORDINATOR_PORT, processor, "Manager Replication Coordinator",
         "Replication Coordinator", null, Property.MANAGER_REPLICATION_COORDINATOR_MINTHREADS, null,
-        Property.MANAGER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+        Property.MANAGER_REPLICATION_COORDINATOR_THREADCHECK, maxMessageSizeProperty);
 
     log.info("Started replication coordinator service at " + replAddress.address);
     // Start the daemon to scan the replication table and make units of work
