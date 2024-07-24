@@ -34,7 +34,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -709,7 +708,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
-      final AtomicLong timeSinceLastCompletion = new AtomicLong(0L);
       final LogSorter logSorter = new LogSorter(getContext(), getConfiguration());
       long nextSortLogsCheckTime = System.currentTimeMillis();
 
