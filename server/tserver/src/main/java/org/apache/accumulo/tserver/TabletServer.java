@@ -799,7 +799,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     HostAndPort managerHost;
     while (!serverStopRequested) {
 
-      idleProcessCheck(() -> getOnlineTablets().isEmpty());
+      updateIdleStatus(getOnlineTablets().isEmpty());
 
       // send all of the pending messages
       try {
@@ -811,7 +811,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           // was requested
           while (mm == null && !serverStopRequested) {
             mm = managerMessages.poll(1, TimeUnit.SECONDS);
-            idleProcessCheck(() -> getOnlineTablets().isEmpty());
+            updateIdleStatus(getOnlineTablets().isEmpty());
           }
 
           // have a message to send to the manager, so grab a
@@ -839,7 +839,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             // if any messages are immediately available grab em and
             // send them
             mm = managerMessages.poll();
-            idleProcessCheck(() -> getOnlineTablets().isEmpty());
+            updateIdleStatus(getOnlineTablets().isEmpty());
           }
 
         } finally {
