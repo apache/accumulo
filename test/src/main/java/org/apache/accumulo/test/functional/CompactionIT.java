@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -867,36 +866,6 @@ public class CompactionIT extends AccumuloClusterHarness {
     } finally {
       // Re-enable GC
       getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
-    }
-  }
-
-  /**
-   * Was used in debugging {@link #testGetSelectedFilesForCompaction}. May be useful later.
-   *
-   * @param client An accumulo client
-   * @param tableName The name of the table
-   * @return a map of the RFiles to their size in bytes
-   */
-  private Map<String,Long> getFileSizeMap(AccumuloClient client, String tableName) {
-    var tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-    Map<String,Long> map = new HashMap<>();
-
-    try (var tabletsMeta =
-        TabletsMetadata.builder(client).forTable(tableId).fetch(ColumnType.FILES).build()) {
-      for (TabletMetadata tm : tabletsMeta) {
-        for (StoredTabletFile stf : tm.getFiles()) {
-          try {
-            String filePath = stf.getPath().toString();
-            Long fileSize =
-                FileSystem.getLocal(new Configuration()).getFileStatus(stf.getPath()).getLen();
-            map.put(filePath, fileSize);
-          } catch (IOException e) {
-            throw new UncheckedIOException(e);
-          }
-        }
-      }
-
-      return map;
     }
   }
 

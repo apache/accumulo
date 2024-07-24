@@ -289,12 +289,6 @@ public class ThreadPools {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
-      case TSERV_WORKQ_THREADS:
-        builder = getPoolBuilder("distributed work queue").numCoreThreads(conf.getCount(p));
-        if (emitThreadPoolMetrics) {
-          builder.enableThreadPoolMetrics();
-        }
-        return builder.build();
       case TSERV_MINC_MAXCONCURRENT:
         builder = getPoolBuilder("minor compactor").numCoreThreads(conf.getCount(p)).withTimeOut(0L,
             MILLISECONDS);
