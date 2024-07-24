@@ -21,7 +21,6 @@ package org.apache.accumulo.core.fate.user;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -132,23 +131,39 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     final var reservation = FateReservation.from(lockID, UUID.randomUUID());
     final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
     Optional<FateTxStore<T>> txStore = Optional.empty();
+    int maxAttempts = 5;
+    FateMutator.Status status = null;
 
-    var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW).putKey(fateKey)
-        .putInitReservationVal().putReservedTx(reservation)
-        .putCreateTime(System.currentTimeMillis()).tryMutate();
+    // We first need to write the initial/unreserved value for the reservation column
+    // Only need to retry if it is UNKNOWN
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      status = newMutator(fateId).putInitReservationVal().tryMutate();
+      if (status != FateMutator.Status.UNKNOWN) {
+        break;
+      }
+      UtilWaitThread.sleep(100);
+    }
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW).putKey(fateKey)
+          .putReservedTx(reservation).putCreateTime(System.currentTimeMillis()).tryMutate();
+      if (status != FateMutator.Status.UNKNOWN) {
+        break;
+      }
+      UtilWaitThread.sleep(100);
+    }
 
     switch (status) {
       case ACCEPTED:
         txStore = Optional.of(new FateTxStoreImpl(fateId, reservation));
         break;
-      case UNKNOWN:
       case REJECTED:
-        // If the status is UNKNOWN, the mutation may or may not have been written. We need to
-        // check if it was written only returning the FateTxStore if it was.
         // If the status is REJECTED, we need to check what about the mutation was REJECTED:
-        // 1) If there is a collision with existing fate id, throw error
-        // 2) If the fate id is already reserved, return an empty optional
-        // 3) If the fate id is still NEW/unseeded and unreserved, we can try to reserve it
+        // 1) Possible something like the following occurred:
+        // the first attempt was UNKNOWN but written, the next attempt would be rejected
+        // We return the FateTxStore in this case.
+        // 2) If there is a collision with existing fate id, throw error
+        // 3) If the fate id is already reserved, return an empty optional
+        // 4) If the fate id is still NEW/unseeded and unreserved, we can try to reserve it
         try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
           scanner.setRange(getRow(fateId));
           scanner.fetchColumn(TxColumnFamily.STATUS_COLUMN.getColumnFamily(),
@@ -161,7 +176,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
           Optional<FateKey> fateKeySeen = Optional.empty();
           Optional<FateReservation> reservationSeen = Optional.empty();
 
-          for (Map.Entry<Key,Value> entry : scanner.stream().collect(Collectors.toList())) {
+          for (Entry<Key,Value> entry : scanner.stream().collect(Collectors.toList())) {
             Text colf = entry.getKey().getColumnFamily();
             Text colq = entry.getKey().getColumnQualifier();
             Value val = entry.getValue();
@@ -183,7 +198,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
             }
           }
 
-          // This will be the case if the mutation status is UNKNOWN but the mutation was written
+          // This will be the case if the mutation status is REJECTED but the mutation was written
           if (statusSeen == TStatus.NEW && reservationSeen.isPresent()
               && reservationSeen.orElseThrow().equals(reservation)) {
             verifyFateKey(fateId, fateKeySeen, fateKey);
@@ -204,7 +219,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         }
         break;
       default:
-        throw new IllegalStateException("Unknown status " + status);
+        throw new IllegalStateException("Unknown or unexpected status " + status);
     }
 
     return txStore;
@@ -294,7 +309,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
             "Invalid row seen: %s. Expected to see one entry for the status and optionally an "
                 + "entry for the fate reservation",
             rowMap);
-        for (Map.Entry<Key,Value> entry : rowMap.entrySet()) {
+        for (Entry<Key,Value> entry : rowMap.entrySet()) {
           Text colf = entry.getKey().getColumnFamily();
           Text colq = entry.getKey().getColumnQualifier();
           Value val = entry.getValue();

@@ -41,6 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -61,6 +62,7 @@ import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
@@ -623,14 +625,16 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // This error was occurring in AdminUtil.getTransactionStatus(), so we will test this method.
     if (store.type().equals(FateInstanceType.USER)) {
       Method listMethod = UserFateStore.class.getMethod("list");
-      mockedStore =
-          EasyMock.createMockBuilder(UserFateStore.class).withConstructor(ClientContext.class)
-              .withArgs(sctx).addMockedMethod(listMethod).createMock();
+      mockedStore = EasyMock.createMockBuilder(UserFateStore.class)
+          .withConstructor(ClientContext.class, ZooUtil.LockID.class, Predicate.class)
+          .withArgs(sctx, null, null).addMockedMethod(listMethod).createMock();
     } else {
       Method listMethod = MetaFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
-          .withConstructor(String.class, ZooReaderWriter.class)
-          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter())
+          .withConstructor(String.class, ZooReaderWriter.class, ZooUtil.LockID.class,
+              Predicate.class)
+          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter(), null,
+              null)
           .addMockedMethod(listMethod).createMock();
     }
 
