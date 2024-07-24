@@ -22,7 +22,9 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -52,6 +54,9 @@ public class RuntimeFixedProperties {
   // original, stored fixed props.
   private final Map<String,String> origStored = new HashMap<>();
 
+  // the set of properties that were set by the user when they were fixed
+  private final Set<Property> wasSetByUser = new HashSet<>();
+
   public RuntimeFixedProperties(final Map<String,String> storedProps,
       final SiteConfiguration siteConfig) {
     requireNonNull(siteConfig, "a site configuration must be provided");
@@ -62,9 +67,13 @@ public class RuntimeFixedProperties {
       // use value in ZooKeeper
       if (value != null) {
         origStored.put(key, value);
+        wasSetByUser.add(prop);
       } else {
         // Not in ZK, use config or default.
         value = siteConfig.get(prop);
+        if (siteConfig.isPropertySet(prop)) {
+          wasSetByUser.add(prop);
+        }
       }
       fixed.put(key, value);
       log.trace("fixed property name: {} = {}", key, value);
@@ -74,6 +83,10 @@ public class RuntimeFixedProperties {
   @Nullable
   public String get(final Property property) {
     return fixed.get(property.getKey());
+  }
+
+  public boolean wasPropertySet(final Property property) {
+    return wasSetByUser.contains(property);
   }
 
   @VisibleForTesting
