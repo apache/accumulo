@@ -19,13 +19,29 @@
 package org.apache.accumulo.server.metrics;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import org.junit.jupiter.api.Test;
 
-class NoOpDistributionSummaryTest {
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.Gauge;
+
+public class NoopMetricsTest {
+  @Test
+  public void testNames() {
+    Counter c1 = NoopMetrics.useNoopCounter();
+    Counter c2 = NoopMetrics.useNoopCounter();
+
+    Gauge g1 = NoopMetrics.useNoopGauge();
+
+    assertNotEquals(c1.getId(), c2.getId());
+    assertNotEquals(c1.getId(), g1.getId());
+  }
+
   @Test
   public void testNoOp() {
-    NoOpDistributionSummary noop = new NoOpDistributionSummary();
+    DistributionSummary noop = NoopMetrics.useNoopDistributionSummary();
     assertDoesNotThrow(() -> noop.getId());
     assertDoesNotThrow(() -> noop.takeSnapshot());
     assertDoesNotThrow(() -> noop.max());

@@ -215,7 +215,14 @@ public class Fate<T> {
         log.warn("Failed to undo Repo, " + FateTxId.formatTid(tid), e);
       }
     }
+  }
 
+  protected long executeIsReady(Long tid, Repo<T> op) throws Exception {
+    return op.isReady(tid, environment);
+  }
+
+  protected Repo<T> executeCall(Long tid, Repo<T> op) throws Exception {
+    return op.call(tid, environment);
   }
 
   /**

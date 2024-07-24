@@ -18,21 +18,29 @@
  */
 package org.apache.accumulo.tserver;
 
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.server.metrics.NoopMetrics;
 
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.google.common.base.Preconditions;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 
 public class ScanServerMetrics implements MetricsProducer {
 
-  private Timer reservationTimer;
-  private Counter busyTimeoutCount;
+  private Timer totalReservationTimer = NoopMetrics.useNoopTimer();
+  private Timer writeOutReservationTimer = NoopMetrics.useNoopTimer();
+  private Counter busyTimeoutCount = NoopMetrics.useNoopCounter();
+  private final AtomicLong reservationConflictCount = new AtomicLong(0);
 
   private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
 
@@ -42,18 +50,41 @@ public class ScanServerMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    reservationTimer = Timer.builder(MetricsProducer.METRICS_SCAN_RESERVATION_TIMER)
+    totalReservationTimer = Timer.builder(MetricsProducer.METRICS_SCAN_RESERVATION_TOTAL_TIMER)
         .description("Time to reserve a tablets files for scan").register(registry);
+    writeOutReservationTimer = Timer
+        .builder(MetricsProducer.METRICS_SCAN_RESERVATION_WRITEOUT_TIMER)
+        .description("Time to write out a tablets file reservations for scan").register(registry);
     busyTimeoutCount = Counter.builder(METRICS_SCAN_BUSY_TIMEOUT_COUNTER)
         .description("The number of scans where a busy timeout happened").register(registry);
-    CaffeineCacheMetrics.monitor(registry, tabletMetadataCache, METRICS_SCAN_TABLET_METADATA_CACHE);
+    FunctionCounter
+        .builder(METRICS_SCAN_RESERVATION_CONFLICT_COUNTER, reservationConflictCount,
+            AtomicLong::get)
+        .description(
+            "Counts instances where file reservation attempts for scans encountered conflicts")
+        .register(registry);
+
+    if (tabletMetadataCache != null) {
+      Preconditions.checkState(tabletMetadataCache.policy().isRecordingStats(),
+          "Attempted to instrument cache that is not recording stats.");
+      CaffeineCacheMetrics.monitor(registry, tabletMetadataCache,
+          METRICS_SCAN_TABLET_METADATA_CACHE);
+    }
   }
 
-  public Timer getReservationTimer() {
-    return reservationTimer;
+  public void recordTotalReservationTime(Duration time) {
+    totalReservationTimer.record(time);
+  }
+
+  public void recordWriteOutReservationTime(Runnable time) {
+    writeOutReservationTimer.record(time);
   }
 
   public void incrementBusy() {
     busyTimeoutCount.increment();
+  }
+
+  public void incrementReservationConflictCount() {
+    reservationConflictCount.getAndIncrement();
   }
 }

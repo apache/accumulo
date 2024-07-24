@@ -87,8 +87,14 @@ import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-class ConditionalWriterImpl implements ConditionalWriter {
+import com.google.common.annotations.VisibleForTesting;
+
+public class ConditionalWriterImpl implements ConditionalWriter {
+
+  private static final Logger log = LoggerFactory.getLogger(ConditionalWriterImpl.class);
 
   private static final int MAX_SLEEP = 30000;
 
@@ -102,6 +108,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private long timeout;
   private final Durability durability;
   private final String classLoaderContext;
+  private final ConditionalWriterConfig config;
 
   private static class ServerQueue {
     BlockingQueue<TabletServerMutations<QCMutation>> queue = new LinkedBlockingQueue<>();
@@ -367,6 +374,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   ConditionalWriterImpl(ClientContext context, TableId tableId, String tableName,
       ConditionalWriterConfig config) {
+    this.config = config;
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
@@ -683,19 +691,24 @@ class ConditionalWriterImpl implements ConditionalWriter {
         // invalidation prevents future attempts to contact the
         // tserver even its gone zombie and is still running w/o a lock
         locator.invalidateCache(context, location.toString());
+        log.trace("tablet server {} {} is dead, so no need to invalidate {}", location,
+            sessionId.lockId, sessionId.sessionID);
         return;
       }
 
       try {
         // if the mutation is currently processing, this method will block until its done or times
         // out
+        log.trace("Attempting to invalidate {} at {}", sessionId.sessionID, location);
         invalidateSession(sessionId.sessionID, location);
-
+        log.trace("Invalidated {} at {}", sessionId.sessionID, location);
         return;
       } catch (TApplicationException tae) {
         throw new AccumuloServerException(location.toString(), tae);
       } catch (TException e) {
         locator.invalidateCache(context, location.toString());
+        log.trace("Failed to invalidate {} at {} {}", sessionId.sessionID, location,
+            e.getMessage());
       }
 
       if ((System.currentTimeMillis() - startTime) + sleepTime > timeout) {
@@ -814,6 +827,11 @@ class ConditionalWriterImpl implements ConditionalWriter {
     } catch (VisibilityParseException | BadArgumentException e) {
       return false;
     }
+  }
+
+  @VisibleForTesting
+  public ConditionalWriterConfig getConfig() {
+    return config;
   }
 
   @Override

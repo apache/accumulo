@@ -26,12 +26,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ManagerMetrics {
-
-  private final static Logger log = LoggerFactory.getLogger(ManagerMetrics.class);
 
   public static List<MetricsProducer> getProducers(AccumuloConfiguration conf, Manager m) {
     ArrayList<MetricsProducer> producers = new ArrayList<>();

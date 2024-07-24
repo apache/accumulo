@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -38,6 +39,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -178,6 +180,7 @@ public class ScanServer extends AbstractServer
   private UUID serverLockUUID;
   private final TabletMetadataLoader tabletMetadataLoader;
   private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
+  private final ThreadPoolExecutor tmCacheExecutor;
   // tracks file reservations that are in the process of being added or removed from the metadata
   // table
   private final Set<StoredTabletFile> influxFiles = new HashSet<>();
@@ -199,7 +202,7 @@ public class ScanServer extends AbstractServer
   HostAndPort clientAddress;
   private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
 
-  private volatile boolean serverStopRequested = false;
+  protected volatile boolean serverStopRequested = false;
   private ServiceLock scanServerLock;
   protected TabletServerScanMetrics scanMetrics;
   private ScanServerMetrics scanServerMetrics;
@@ -241,14 +244,38 @@ public class ScanServer extends AbstractServer
     if (cacheExpiration == 0L) {
       LOG.warn("Tablet metadata caching disabled, may cause excessive scans on metadata table.");
       tabletMetadataCache = null;
+      tmCacheExecutor = null;
     } else {
       if (cacheExpiration < 60000) {
         LOG.warn(
             "Tablet metadata caching less than one minute, may cause excessive scans on metadata table.");
       }
-      tabletMetadataCache =
-          Caffeine.newBuilder().expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
-              .scheduler(Scheduler.systemScheduler()).recordStats().build(tabletMetadataLoader);
+
+      // Get the cache refresh percentage property
+      // Value must be less than 100% as 100 or over would effectively disable it
+      double cacheRefreshPercentage =
+          getConfiguration().getFraction(Property.SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT);
+      Preconditions.checkArgument(cacheRefreshPercentage < cacheExpiration,
+          "Tablet metadata cache refresh percentage is '%s' but must be less than 1",
+          cacheRefreshPercentage);
+
+      tmCacheExecutor = context.threadPools().getPoolBuilder("scanServerTmCache").numCoreThreads(8)
+          .enableThreadPoolMetrics().build();
+      var builder = Caffeine.newBuilder().expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
+          .scheduler(Scheduler.systemScheduler()).executor(tmCacheExecutor).recordStats();
+      if (cacheRefreshPercentage > 0) {
+        // Compute the refresh time as a percentage of the expiration time
+        // Cache hits after this time, but before expiration, will trigger a background
+        // non-blocking refresh of the entry so future cache hits get an updated entry
+        // without having to block for a refresh
+        long cacheRefresh = (long) (cacheExpiration * cacheRefreshPercentage);
+        LOG.debug("Tablet metadata refresh percentage set to {}, refresh time set to {} ms",
+            cacheRefreshPercentage, cacheRefresh);
+        builder.refreshAfterWrite(cacheRefresh, TimeUnit.MILLISECONDS);
+      } else {
+        LOG.warn("Tablet metadata cache refresh disabled, may cause blocking on cache expiration.");
+      }
+      tabletMetadataCache = builder.build(tabletMetadataLoader);
     }
 
     delegate = newThriftScanClientHandler(new WriteTracker());
@@ -384,7 +411,7 @@ public class ScanServer extends AbstractServer
     blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),
         resourceManager.getDataCache(), resourceManager.getSummaryCache());
 
-    metricsInfo.addMetricsProducers(scanMetrics, scanServerMetrics, blockCacheMetrics);
+    metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics);
     metricsInfo.init();
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 
@@ -393,14 +420,20 @@ public class ScanServer extends AbstractServer
     try {
       while (!serverStopRequested) {
         UtilWaitThread.sleep(1000);
+        idleProcessCheck(() -> sessionManager.getActiveScans().isEmpty()
+            && tabletMetadataCache.estimatedSize() == 0);
       }
     } finally {
       LOG.info("Stopping Thrift Servers");
       address.server.stop();
 
-      LOG.info("Removing server scan references");
-      this.getContext().getAmple().deleteScanServerFileReferences(clientAddress.toString(),
-          serverLockUUID);
+      try {
+        LOG.info("Removing server scan references");
+        this.getContext().getAmple().deleteScanServerFileReferences(clientAddress.toString(),
+            serverLockUUID);
+      } catch (Exception e) {
+        LOG.warn("Failed to remove scan server refs from metadata location", e);
+      }
 
       try {
         LOG.debug("Closing filesystems");
@@ -410,6 +443,11 @@ public class ScanServer extends AbstractServer
         }
       } catch (IOException e) {
         LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
+      }
+
+      if (tmCacheExecutor != null) {
+        LOG.debug("Shutting down TabletMetadataCache executor");
+        tmCacheExecutor.shutdownNow();
       }
 
       gcLogger.logGCInfo(getConfiguration());
@@ -593,7 +631,7 @@ public class ScanServer extends AbstractServer
 
       for (StoredTabletFile file : allFiles.keySet()) {
         if (!reservedFiles.containsKey(file)) {
-          refs.add(new ScanServerRefTabletFile(file.getPathStr(), serverAddress, serverLockUUID));
+          refs.add(new ScanServerRefTabletFile(serverLockUUID, serverAddress, file.getPathStr()));
           filesToReserve.add(file);
           tabletsToCheck.add(Objects.requireNonNull(allFiles.get(file)));
           LOG.trace("RFFS {} need to add scan ref for file {}", myReservationId, file);
@@ -601,7 +639,8 @@ public class ScanServer extends AbstractServer
       }
 
       if (!filesToReserve.isEmpty()) {
-        getContext().getAmple().putScanServerFileReferences(refs);
+        scanServerMetrics.recordWriteOutReservationTime(
+            () -> getContext().getAmple().putScanServerFileReferences(refs));
 
         // After we insert the scan server refs we need to check and see if the tablet is still
         // using the file. As long as the tablet is still using the files then the Accumulo GC
@@ -635,6 +674,7 @@ public class ScanServer extends AbstractServer
           LOG.info("RFFS {} tablet files changed while attempting to reference files {}",
               myReservationId, filesToReserve);
           getContext().getAmple().deleteScanServerFileReferences(refs);
+          scanServerMetrics.incrementReservationConflictCount();
           return null;
         }
       }
@@ -669,8 +709,7 @@ public class ScanServer extends AbstractServer
     try {
       return reserveFiles(extents);
     } finally {
-      scanServerMetrics.getReservationTimer().record(System.nanoTime() - start,
-          TimeUnit.NANOSECONDS);
+      scanServerMetrics.recordTotalReservationTime(Duration.ofNanos(System.nanoTime() - start));
     }
 
   }
@@ -711,8 +750,7 @@ public class ScanServer extends AbstractServer
     try {
       return reserveFiles(scanId);
     } finally {
-      scanServerMetrics.getReservationTimer().record(System.nanoTime() - start,
-          TimeUnit.NANOSECONDS);
+      scanServerMetrics.recordTotalReservationTime(Duration.ofNanos(System.nanoTime() - start));
     }
   }
 
@@ -797,7 +835,7 @@ public class ScanServer extends AbstractServer
             influxFiles.add(file);
             confirmed.add(file);
             refsToDelete
-                .add(new ScanServerRefTabletFile(file.getPathStr(), serverAddress, serverLockUUID));
+                .add(new ScanServerRefTabletFile(serverLockUUID, serverAddress, file.getPathStr()));
 
             // remove the entry from the map while holding the write lock ensuring no new
             // reservations are added to the map values while the metadata operation to delete is

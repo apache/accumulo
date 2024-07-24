@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -294,6 +295,9 @@ public enum Property {
   GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL("general.delegation.token.update.interval", "1d",
       PropertyType.TIMEDURATION, "The length of time between generation of new secret keys.",
       "1.7.0"),
+  GENERAL_IDLE_PROCESS_INTERVAL("general.metrics.process.idle", "5m", PropertyType.TIMEDURATION,
+      "Amount of time a process must be idle before it is considered to be idle by the metrics system.",
+      "2.1.3"),
   GENERAL_MAX_SCANNER_RETRY_PERIOD("general.max.scanner.retry.period", "5s",
       PropertyType.TIMEDURATION,
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC.",
@@ -446,8 +450,17 @@ public enum Property {
       "Specifies a default blocksize for the scan server caches.", "2.1.0"),
   @Experimental
   SSERV_CACHED_TABLET_METADATA_EXPIRATION("sserver.cache.metadata.expiration", "5m",
-      PropertyType.TIMEDURATION, "The time after which cached tablet metadata will be refreshed.",
+      PropertyType.TIMEDURATION,
+      "The time after which cached tablet metadata will be expired if not previously refreshed.",
       "2.1.0"),
+  @Experimental
+  SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT("sserver.cache.metadata.refresh.percent", ".75",
+      PropertyType.FRACTION,
+      "The time after which cached tablet metadata will be refreshed, expressed as a "
+          + "percentage of the expiration time. Cache hits after this time, but before the "
+          + "expiration time, will trigger a background refresh for future hits. "
+          + "Value must be less than 100%. Set to 0 will disable refresh.",
+      "2.1.3"),
   @Experimental
   SSERV_PORTSEARCH("sserver.port.search", "true", PropertyType.BOOLEAN,
       "if the ports above are in use, search higher ports until one is available.", "2.1.0"),
@@ -1928,6 +1941,9 @@ public enum Property {
    */
   public static <T> T createTableInstanceFromPropertyName(AccumuloConfiguration conf,
       Property property, Class<T> base, T defaultInstance) {
+    Objects.requireNonNull(conf, "configuration cannot be null");
+    Objects.requireNonNull(property, "property cannot be null");
+    Objects.requireNonNull(base, "base class cannot be null");
     String clazzName = conf.get(property);
     String context = ClassLoaderUtil.tableContext(conf);
     return ConfigurationTypeHelper.getClassInstance(context, clazzName, base, defaultInstance);
