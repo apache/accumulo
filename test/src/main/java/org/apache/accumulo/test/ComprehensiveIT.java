@@ -50,6 +50,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -91,7 +93,10 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
@@ -119,9 +124,29 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(ComprehensiveIT.class);
 
+  private static class ComprehensiveITConfiguration implements MiniClusterConfigurationCallback {
+
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
+        org.apache.hadoop.conf.Configuration coreSite) {
+      cfg.setNumScanServers(1);
+
+      // Timeout scan sessions after being idle for 3 seconds
+      cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
+
+      // Configure the scan server to only have 1 scan executor thread. This means
+      // that the scan server will run scans serially, not concurrently.
+      cfg.setProperty(Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS, "1");
+    }
+  }
+
   @BeforeAll
   public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniCluster();
+    // SharedMiniClusterBase.startMiniCluster();
+    ComprehensiveITConfiguration c = new ComprehensiveITConfiguration();
+    SharedMiniClusterBase.startMiniClusterWithConfig(c);
+    SharedMiniClusterBase.getCluster().getClusterControl().start(ServerType.SCAN_SERVER,
+        "localhost");
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.securityOperations().changeUserAuthorizations("root", AUTHORIZATIONS);
@@ -131,6 +156,51 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
   @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  @Test
+  public void testEventualScan() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
+
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+
+        // Add data to the table
+        try (BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+          Mutation m = new Mutation("row1");
+          m.put("cf", "cq", "value1");
+          writer.addMutation(m);
+        }
+
+        // Run initial scan with eventual consistency
+        scanner.setRange(new Range());
+        scanner.setConsistencyLevel(ScannerBase.ConsistencyLevel.EVENTUAL);
+        for (Map.Entry<Key,Value> entry : scanner) {
+          // Verify initial data
+          assertEquals("value1", entry.getValue().toString());
+        }
+
+        // Add new data to the table
+        try (BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+          Mutation m = new Mutation("row2");
+          m.put("cf", "cq", "value2");
+          writer.addMutation(m);
+        }
+
+        // Run second scan with eventual consistency
+        scanner.setConsistencyLevel(ScannerBase.ConsistencyLevel.EVENTUAL);
+        boolean sawRow2 = false;
+        for (Map.Entry<Key,Value> entry : scanner) {
+          if (entry.getKey().getRow().toString().equals("row2")) {
+            sawRow2 = true;
+            break;
+          }
+        }
+        // Verify the new data is not visible
+        assertFalse(sawRow2);
+      }
+    }
   }
 
   @Test
