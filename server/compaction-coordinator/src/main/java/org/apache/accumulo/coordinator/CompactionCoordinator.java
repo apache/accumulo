@@ -241,15 +241,12 @@ public class CompactionCoordinator extends AbstractServer
    */
   protected ServerAddress startCoordinatorClientService() throws UnknownHostException {
     var processor = ThriftProcessorTypes.getCoordinatorTProcessor(this, getContext());
-    Property maxMessageSizeProperty =
-        (getConfiguration().get(Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE) != null
-            ? Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.COMPACTION_COORDINATOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH,
         Property.COMPACTION_COORDINATOR_MINTHREADS,
         Property.COMPACTION_COORDINATOR_MINTHREADS_TIMEOUT,
-        Property.COMPACTION_COORDINATOR_THREADCHECK, maxMessageSizeProperty);
+        Property.COMPACTION_COORDINATOR_THREADCHECK);
     LOG.info("address = {}", sp.address);
     return sp;
   }

@@ -125,15 +125,13 @@ public class TServerUtils {
    * @param minThreadProperty A Property to control the minimum number of threads in the pool
    * @param timeBetweenThreadChecksProperty A Property to control the amount of time between checks
    *        to resize the thread pool
-   * @param maxMessageSizeProperty A Property to control the maximum Thrift message size accepted
    * @return the server object created, and the port actually used
    * @throws UnknownHostException when we don't know our own address
    */
   public static ServerAddress startServer(ServerContext context, String hostname,
       Property portHintProperty, TProcessor processor, String serverName, String threadName,
       Property portSearchProperty, Property minThreadProperty, Property threadTimeOutProperty,
-      Property timeBetweenThreadChecksProperty, Property maxMessageSizeProperty)
-      throws UnknownHostException {
+      Property timeBetweenThreadChecksProperty) throws UnknownHostException {
     final AccumuloConfiguration config = context.getConfiguration();
 
     final IntStream portHint = config.getPortStream(portHintProperty);
@@ -153,10 +151,7 @@ public class TServerUtils {
       timeBetweenThreadChecks = config.getTimeInMillis(timeBetweenThreadChecksProperty);
     }
 
-    long maxMessageSize = 10_000_000;
-    if (maxMessageSizeProperty != null) {
-      maxMessageSize = config.getAsBytes(maxMessageSizeProperty);
-    }
+    long maxMessageSize = config.getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
 
     boolean portSearch = false;
     if (portSearchProperty != null) {

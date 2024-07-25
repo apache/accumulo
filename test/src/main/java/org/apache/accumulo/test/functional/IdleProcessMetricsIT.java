@@ -30,6 +30,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
@@ -219,7 +220,7 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
 
       try (Scanner scanner = client.createScanner(table1, Authorizations.EMPTY)) {
         scanner.setConsistencyLevel(ScannerBase.ConsistencyLevel.EVENTUAL);
-        var ignored = scanner.stream().count();
+        scanner.stream().forEach(Function.identity()::apply); // iterate and ignore
       }
 
       log.info("Waiting for sserver to be not idle after starting a scan");

@@ -306,13 +306,10 @@ public class ScanServer extends AbstractServer
     TProcessor processor =
         ThriftProcessorTypes.getScanServerTProcessor(clientHandler, this, getContext());
 
-    Property maxMessageSizeProperty =
-        (getConfiguration().get(Property.SSERV_MAX_MESSAGE_SIZE) != null
-            ? Property.SSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS,
-        Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK, maxMessageSizeProperty);
+        Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK);
 
     LOG.info("address = {}", sp.address);
     return sp;
