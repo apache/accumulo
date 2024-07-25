@@ -23,21 +23,23 @@ import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13.COMPACT_COL;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
@@ -51,7 +53,9 @@ import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
-import org.apache.accumulo.server.tables.TableManager;
+import org.apache.accumulo.server.init.FileSystemInitializer;
+import org.apache.accumulo.server.init.InitialConfiguration;
+import org.apache.accumulo.server.init.ZooKeeperInitializer;
 import org.apache.accumulo.server.util.PropUtil;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -120,13 +124,25 @@ public class Upgrader12to13 implements Upgrader {
   }
 
   private void createFateTable(ServerContext context) {
+    ZooKeeperInitializer zkInit = new ZooKeeperInitializer();
+    zkInit.initFateTableState(context);
+
     try {
-      TableManager.prepareNewTableState(context, AccumuloTable.FATE.tableId(),
-          Namespace.ACCUMULO.id(), AccumuloTable.FATE.tableName(), TableState.ONLINE,
-          ZooUtil.NodeExistsPolicy.SKIP);
-    } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException("Error creating table: " + AccumuloTable.FATE.tableName(), e);
+      FileSystemInitializer initializer = new FileSystemInitializer(
+          new InitialConfiguration(context.getHadoopConf(), context.getSiteConfiguration()));
+      FileSystemInitializer.InitialTablet fateTableTableTablet =
+          initializer.createFateRefTablet(context);
+      // Add references to the Metadata Table
+      try (BatchWriter writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+        writer.addMutation(fateTableTableTablet.createMutation());
+      } catch (MutationsRejectedException | TableNotFoundException e) {
+        LOG.error("Failed to write tablet refs to metadata table");
+        throw new RuntimeException(e);
+      }
+    } catch (IOException e) {
+      LOG.error("Problem attempting to create Fate table", e);
     }
+    LOG.info("Created Fate table");
   }
 
   private void removeCompactColumnsFromRootTabletMetadata(ServerContext context) {
