@@ -31,30 +31,30 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
   public final TableId tableId; // 2a
   public final boolean isScan;
-  public boolean isDirectory = false;
+  public final boolean isDirectory;
 
   // the exact string that is stored in the metadata
   protected final String metadataEntry;
 
-  protected ReferenceFile(TableId tableId, String metadataEntry, boolean isScan) {
+  protected ReferenceFile(TableId tableId, String metadataEntry, boolean isScan,
+      boolean isDirectory) {
     this.tableId = Objects.requireNonNull(tableId);
     this.metadataEntry = Objects.requireNonNull(metadataEntry);
     this.isScan = isScan;
+    this.isDirectory = isDirectory;
   }
 
   public static ReferenceFile forFile(TableId tableId, String metadataEntry) {
-    return new ReferenceFile(tableId, metadataEntry, false);
+    return new ReferenceFile(tableId, metadataEntry, false, false);
   }
 
   public static ReferenceFile forScan(TableId tableId, String metadataEntry) {
-    return new ReferenceFile(tableId, metadataEntry, true);
+    return new ReferenceFile(tableId, metadataEntry, true, false);
   }
 
   public static ReferenceFile forDirectory(TableId tableId, String dirName) {
-    ReferenceFile referenceDirectory = new ReferenceFile(tableId, dirName, false);
-    referenceDirectory.isDirectory = true;
     MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(dirName);
-    return referenceDirectory;
+    return new ReferenceFile(tableId, dirName, false, true);
   }
 
   @Override
