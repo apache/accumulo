@@ -301,8 +301,7 @@ public class TServerUtilsTest {
 
     return TServerUtils.startServer(context, hostname, Property.TSERV_CLIENTPORT, processor,
         "TServerUtilsTest", "TServerUtilsTestThread", Property.TSERV_PORTSEARCH,
-        Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK,
-        Property.GENERAL_MAX_MESSAGE_SIZE);
+        Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
 
   }
 }

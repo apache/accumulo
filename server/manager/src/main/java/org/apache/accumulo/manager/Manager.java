@@ -1118,8 +1118,7 @@ public class Manager extends AbstractServer
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
           "Manager", "Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,
-          Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK,
-          Property.GENERAL_MAX_MESSAGE_SIZE);
+          Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }

@@ -81,6 +81,9 @@ public enum Property {
       "Properties in this category related to the configuration of SSL keys for"
           + " RPC. See also `instance.ssl.enabled`.",
       "1.6.0"),
+  RPC_MAX_MESSAGE_SIZE("rpc.message.size.max", Integer.toString(Integer.MAX_VALUE),
+      PropertyType.BYTES, "The maximum size of a message that can be received by a server.",
+      "2.1.3"),
   RPC_BACKLOG("rpc.backlog", "50", PropertyType.COUNT,
       "Configures the TCP backlog for the server side sockets created by Thrift."
           + " This property is not used for SSL type server sockets. A value of zero"
@@ -274,8 +277,6 @@ public enum Property {
           + " This does not equate to how often tickets are actually renewed (which is"
           + " performed at 80% of the ticket lifetime).",
       "1.6.5"),
-  GENERAL_MAX_MESSAGE_SIZE("general.server.message.size.max", "1G", PropertyType.BYTES,
-      "The maximum size of a message that can be sent to a server.", "1.5.0"),
   @Experimental
   GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
       "Enables tracing functionality using OpenTelemetry (assuming OpenTelemetry is configured).",
@@ -500,9 +501,6 @@ public enum Property {
   SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers.", "2.1.0"),
   @Experimental
-  SSERV_MAX_MESSAGE_SIZE("sserver.server.message.size.max", "1G", PropertyType.BYTES,
-      "The maximum size of a message that can be sent to a scan server.", "2.1.0"),
-  @Experimental
   SSERV_MINTHREADS("sserver.server.threads.minimum", "2", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   @Experimental
@@ -672,8 +670,6 @@ public enum Property {
       "2.1.0"),
   TSERV_THREADCHECK("tserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the server thread pool.", "1.4.0"),
-  TSERV_MAX_MESSAGE_SIZE("tserver.server.message.size.max", "1G", PropertyType.BYTES,
-      "The maximum size of a message that can be sent to a tablet server.", "1.6.0"),
   TSERV_LOG_BUSY_TABLETS_COUNT("tserver.log.busy.tablets.count", "0", PropertyType.COUNT,
       "Number of busiest tablets to log. Logged at interval controlled by "
           + "tserver.log.busy.tablets.interval. If <= 0, logging of busy tablets is disabled.",
@@ -1136,9 +1132,6 @@ public enum Property {
   COMPACTOR_THREADCHECK("compactor.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the server thread pool.", "2.1.0"),
   @Experimental
-  COMPACTOR_MAX_MESSAGE_SIZE("compactor.message.size.max", "10M", PropertyType.BYTES,
-      "The maximum size of a message that can be sent to a tablet server.", "2.1.0"),
-  @Experimental
   COMPACTOR_GROUP_NAME("compactor.group", Constants.DEFAULT_RESOURCE_GROUP_NAME,
       PropertyType.STRING, "Resource group name for this Compactor.", "3.0.0"),
   // CompactionCoordinator properties
@@ -1438,7 +1431,7 @@ public enum Property {
       COMPACTOR_PORTSEARCH, TSERV_PORTSEARCH,
 
       // max message options
-      SSERV_MAX_MESSAGE_SIZE, TSERV_MAX_MESSAGE_SIZE, COMPACTOR_MAX_MESSAGE_SIZE,
+      RPC_MAX_MESSAGE_SIZE,
 
       // block cache options
       TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
