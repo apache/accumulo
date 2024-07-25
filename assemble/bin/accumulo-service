@@ -33,9 +33,10 @@ Services:
   sserver                Accumulo scan server (experimental)
 
 Commands:
-  start       Starts service
-  stop        Stops service
-  kill        Kills service
+  start                   Starts service(s)
+  stop [--all | [<name>]] Stops service(s)
+  kill [--all | [<name>]] Kills service(s)
+  list                    List running service(s)
 
 EOF
 }
@@ -72,7 +73,6 @@ function start_service() {
   if [[ $service == "manager" ]]; then
     "${bin}/accumulo" org.apache.accumulo.manager.state.SetGoalState NORMAL
   fi
-
   outfile="${ACCUMULO_LOG_DIR}/${service}${ACCUMULO_SERVICE_INSTANCE}_${host}.out"
   errfile="${ACCUMULO_LOG_DIR}/${service}${ACCUMULO_SERVICE_INSTANCE}_${host}.err"
   rotate_log "$outfile"
@@ -91,26 +91,77 @@ function start_service() {
   fi
 }
 
-function stop_service() {
+function control_process() {
+  kill_code=${1}
   if [[ -f $pid_file ]]; then
     echo "Stopping $service on $host"
-    kill -s TERM "$(cat "$pid_file")" 2>/dev/null
+    kill -s "$kill_code" "$(cat "$pid_file")" 2>/dev/null
     rm -f "${pid_file}" 2>/dev/null
   fi
 }
 
-function kill_service() {
-  if [[ -f $pid_file ]]; then
-    echo "Killing $service on $host"
-    kill -s KILL "$(cat "$pid_file")" 2>/dev/null
-    rm -f "${pid_file}" 2>/dev/null
+function stop_service() {
+  if [[ -n $1 ]]; then
+    case $1 in
+      "--all")
+        find_processes
+        for process in "${RUNNING_PROCESSES[@]}"; do
+          pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
+          control_process "TERM"
+        done
+        ;;
+      *"$service"*)
+        echo "Stopping service process: $1"
+        pid_file="${ACCUMULO_PID_DIR}/accumulo-${1}.pid"
+        ;;
+    esac
   fi
+  control_process "TERM"
+}
+
+function kill_service() {
+  if [[ -n $1 ]]; then
+    case $1 in
+      "--all")
+        find_processes
+        for process in "${RUNNING_PROCESSES[@]}"; do
+          pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
+          control_process "KILL"
+        done
+        ;;
+      *"$service"*)
+        pid_file="${ACCUMULO_PID_DIR}/accumulo-${1}.pid"
+        ;;
+    esac
+  fi
+  control_process "KILL"
+}
+
+function find_processes() {
+  files=$(echo "${ACCUMULO_PID_DIR}"/*)
+  for file in $files; do
+    if [[ $file == *$service* ]]; then
+      stripped_file=${file%.pid}
+      RUNNING_PROCESSES+=("${stripped_file##*accumulo-}")
+    fi
+  done
+}
+
+function list_processes() {
+  find_processes
+  echo "Currently running ${service} processes:"
+  for process in "${RUNNING_PROCESSES[@]}"; do
+    echo "$process"
+  done
 }
 
 function main() {
   if [[ -z $1 ]]; then
     invalid_args "<service> cannot be empty"
   fi
+
+  # Create a global array for process tracking
+  declare -a RUNNING_PROCESSES
 
   # Resolve base directory
   SOURCE="${BASH_SOURCE[0]}"
@@ -159,10 +210,13 @@ function main() {
           start_service "${@:3}"
           ;;
         stop)
-          stop_service
+          stop_service "${@:3:1}"
           ;;
         kill)
-          kill_service
+          kill_service "${@:3:1}"
+          ;;
+        list)
+          list_processes
           ;;
         *)
           invalid_args "'$2' is an invalid <command>"

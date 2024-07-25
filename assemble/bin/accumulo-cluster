@@ -23,16 +23,20 @@ function print_usage {
 Usage: accumulo-cluster <command> (<argument> ...)
 
 Commands:
-  create-config       Creates cluster config
-  restart             Restarts the Accumulo cluster
-  start               Starts Accumulo cluster
-  stop                Stops Accumulo cluster
-  kill                Kills Accumulo cluster
-  start-non-tservers  Starts all services except tservers
-  start-tservers      Starts all tservers on cluster
-  stop-tservers       Stops all tservers on cluster
-  start-here          Starts all services on this node
-  stop-here           Stops all services on this node
+  create-config              Creates cluster config
+  restart                    Restarts the Accumulo cluster
+  start                      Starts Accumulo cluster
+  stop                       Stops Accumulo cluster
+  kill                       Kills Accumulo cluster
+  start-non-tservers         Starts all services except tservers (Deprecated)
+  start-servers [--all|--tservers|--no-tservers|--sservers [group]|--compactors [queue]]
+                             Starts various server types, can optionally specify a queue or group
+  stop-servers [--all|--tservers| --no-tservers|--sservers [group]|--compactors [queue]]
+                             Starts various server types, can optionally specify a queue or group
+  start-tservers             Starts all tservers on cluster (Deprecated)
+  stop-tservers              Stops all tservers on cluster (Deprecated)
+  start-here                 Starts all services on this node
+  stop-here                  Stops all services on this node
 EOF
 }
 
@@ -115,15 +119,19 @@ function parse_config {
     echo "INFO: ${NUM_TSERVERS} tservers will be started per host"
   fi
 
-  # shellcheck disable=SC2153
-  if [[ -z $NUM_SSERVERS ]]; then
-    echo "INFO: ${NUM_SSERVERS} sservers will be started per host"
-  fi
+  for group in $SSERVER_GROUPS; do
+    var_name="NUM_SSERVERS_${group}"
+    if [[ -n ${!var_name} ]]; then
+      echo "INFO: ${!var_name} scan servers will be started per host for group ${group}"
+    fi
+  done
 
-  if [[ -z $NUM_COMPACTORS ]]; then
-    echo "INFO: ${NUM_COMPACTORS} compactors will be started per host"
-  fi
-
+  for queue in $COMPACTION_QUEUES; do
+    var_name="NUM_COMPACTORS_${queue}"
+    if [[ -n ${!var_name} ]]; then
+      echo "INFO: ${!var_name} compactors will be started per host for queue ${queue}"
+    fi
+  done
 }
 
 function control_service() {
@@ -138,10 +146,10 @@ function control_service() {
   [[ $service == "compactor" ]] && last_instance_id=${NUM_COMPACTORS:-1}
 
   for ((inst_id = 1; inst_id <= last_instance_id; inst_id++)); do
+    # Only increment the service name when more than one service is desired.
     ACCUMULO_SERVICE_INSTANCE=""
-    [[ $service == "tserver" && ${NUM_TSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
-    [[ $service == "compactor" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
-    [[ $service == "sserver" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
+    [[ last_instance_id -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}"
+    [[ $service == "compactor" || $service == "sserver" ]] && ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}_${5}"
 
     if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
       #
@@ -166,6 +174,90 @@ function control_service() {
 
 function start_service() {
   control_service start "$@"
+}
+
+function start_compactors() {
+  echo -n "Starting compactor servers ..."
+  queues=$COMPACTION_QUEUES
+  if [[ -n $1 ]]; then
+    queues="$1"
+    echo "Only starting servers for group: ${queues}"
+  fi
+  for queue in $queues; do
+    var_name="NUM_COMPACTORS_${queue}"
+    [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
+    Q="COMPACTOR_HOSTS_${queue}"
+    if [[ -n ${!Q} ]]; then
+      for compactor in ${!Q}; do
+        start_service "$compactor" compactor "-q" "$queue"
+      done
+    else
+      echo "\"${queue}\" is not a valid queue ...exiting"
+    fi
+  done
+}
+
+function stop_compactors() {
+  echo "Stopping compactor servers ..."
+  queues=$COMPACTION_QUEUES
+  if [[ -n $1 ]]; then
+    queues="$1"
+    echo "Only stopping servers for group: ${queues}"
+  fi
+  for queue in $queues; do
+    var_name="NUM_COMPACTORS_${queue}"
+    [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
+    Q="COMPACTOR_HOSTS_${queue}"
+    if [[ -n ${!Q} ]]; then
+      for compactor in ${!Q}; do
+        stop_service "$compactor" compactor "-q" "$queue"
+      done
+    else
+      echo "$queue is not a valid compaction queue ...exiting"
+    fi
+  done
+}
+
+function start_sservers() {
+  echo "Starting scan servers ..."
+  groups=$SSERVER_GROUPS
+  if [[ -n $1 ]]; then
+    groups="$1"
+    echo "Only starting servers for group: ${groups}"
+  fi
+  for group in $groups; do
+    var_name="NUM_SSERVERS_${group}"
+    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
+    G="SSERVER_HOSTS_${group}"
+    if [[ -n ${!G} ]]; then
+      for sserver in ${!G}; do
+        start_service "$sserver" sserver "-g" "$group"
+      done
+    else
+      echo "\"${group} is not a valid resource group ...exiting"
+    fi
+  done
+}
+
+function stop_sservers() {
+  echo "Stopping scan servers ..."
+  groups=$SSERVER_GROUPS
+  if [[ -n $1 ]]; then
+    groups="$1"
+    echo "Only stopping servers for group: ${groups}"
+  fi
+  for group in $groups; do
+    var_name="NUM_SSERVERS_${group}"
+    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
+    G="SSERVER_HOSTS_${group}"
+    if [[ -n ${!G} ]]; then
+      for sserver in ${!G}; do
+        stop_service "$sserver" sserver "-g" "$group"
+      done
+    else
+      echo "$queue is not a valid resource group ...exiting"
+    fi
+  done
 }
 
 function start_tservers() {
@@ -202,6 +294,8 @@ function start_all() {
   done
 
   for group in $SSERVER_GROUPS; do
+    var_name="NUM_SSERVERS_${group}"
+    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
     G="SSERVER_HOSTS_${group}"
     for sserver in ${!G}; do
       start_service "$sserver" sserver "-g" "$group"
@@ -213,6 +307,8 @@ function start_all() {
   done
 
   for queue in $COMPACTION_QUEUES; do
+    var_name="NUM_COMPACTORS_${queue}"
+    [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
     Q="COMPACTOR_HOSTS_${queue}"
     for compactor in ${!Q}; do
       start_service "$compactor" compactor "-q" "$queue"
@@ -262,6 +358,8 @@ function start_here() {
   done
 
   for group in $SSERVER_GROUPS; do
+    var_name="NUM_SSERVERS_${group}"
+    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
     for host in $local_hosts; do
       G="SSERVER_HOSTS_${group}"
       for sserver in ${!G}; do
@@ -282,6 +380,8 @@ function start_here() {
 
   for queue in $COMPACTION_QUEUES; do
     for host in $local_hosts; do
+      var_name="NUM_COMPACTORS_${queue}"
+      [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
       Q="COMPACTOR_HOSTS_${queue}"
       for compactor in ${!Q}; do
         if echo "$compactor" | grep -q "^${host}\$"; then
@@ -339,6 +439,8 @@ function kill_all() {
   done
 
   for group in $SSERVER_GROUPS; do
+    var_name="NUM_SSERVERS_${group}"
+    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
     G="SSERVER_HOSTS_${group}"
     for sserver in ${!G}; do
       kill_service "$sserver" sserver "-g" "$group"
@@ -354,6 +456,8 @@ function kill_all() {
   done
 
   for queue in $COMPACTION_QUEUES; do
+    var_name="NUM_COMPACTORS_${queue}"
+    [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
     Q="COMPACTOR_HOSTS_${queue}"
     for compactor in ${!Q}; do
       kill_service "$compactor" compactor "-q" "$queue"
@@ -395,6 +499,8 @@ function stop_all() {
     done
 
     for group in $SSERVER_GROUPS; do
+      var_name="NUM_SSERVERS_${group}"
+      [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
       G="SSERVER_HOSTS_${group}"
       for sserver in ${!G}; do
         end_service $end_cmd "$sserver" sserver "-g" "$group"
@@ -406,6 +512,8 @@ function stop_all() {
     done
 
     for queue in $COMPACTION_QUEUES; do
+      var_name="NUM_COMPACTORS_${queue}"
+      [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
       Q="COMPACTOR_HOSTS_${queue}"
       for compactor in ${!Q}; do
         end_service $end_cmd "$compactor" compactor "-q" "$queue"
@@ -443,12 +551,16 @@ function stop_here() {
         end_service $end_cmd "$host" $svc
       done
       for group in $SSERVER_GROUPS; do
+        var_name="NUM_SSERVERS_${group}"
+        [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
         G="SSERVER_HOSTS_${group}"
         for sserver in ${!G}; do
           end_service $end_cmd "$sserver" sserver "-g" "$group"
         done
       done
       for queue in $COMPACTION_QUEUES; do
+        var_name="NUM_COMPACTORS_${queue}"
+        [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
         Q="COMPACTOR_HOSTS_${queue}"
         for compactor in ${!Q}; do
           end_service $end_cmd "$host" compactor "-q" "$queue"
@@ -520,8 +632,8 @@ tserver:
 # compactors_per_host.
 #
 tservers_per_host: 1
-sservers_per_host: 1
-compactors_per_host: 1
+#sservers_per_host: 1
+#compactors_per_host: 1
 
 EOF
       ;;
@@ -545,10 +657,12 @@ EOF
       kill_all
       ;;
     start-non-tservers)
+      echo "$1 is deprecated. Please use \`start-servers --no-tservers\` instead"
       parse_config
       start_all --no-tservers
       ;;
     start-tservers)
+      echo "$1 is deprecated. Please use \`start-servers --tservers\` instead"
       parse_config
       start_tservers
       ;;
@@ -557,12 +671,56 @@ EOF
       start_here
       ;;
     stop-tservers)
+      echo "$1 is deprecated. Please use \`stop-servers --tservers\` instead"
       parse_config
       stop_tservers
       ;;
     stop-here)
       parse_config
       stop_here
+      ;;
+    start-servers)
+      parse_config
+      case "$2" in
+        "--all" | "")
+          start_all
+          ;;
+        "--tservers")
+          start_tservers
+          ;;
+        "--no-tservers")
+          start_all --no-tservers
+          ;;
+        "--sservers")
+          start_sservers "${@:3}"
+          ;;
+        "--compactors")
+          start_compactors "${@:3}"
+          ;;
+        *)
+          invalid_args "'$2' is an invalid <command>"
+          ;;
+      esac
+      ;;
+    stop-servers)
+      parse_config
+      case "$2" in
+        "--all" | "")
+          stop_all
+          ;;
+        "--tservers")
+          stop_tservers
+          ;;
+        "--sservers")
+          stop_sservers "${@:3}"
+          ;;
+        "--compactors")
+          stop_compactors "${@:3}"
+          ;;
+        *)
+          invalid_args "'$2' is an invalid <command>"
+          ;;
+      esac
       ;;
     *)
       invalid_args "'$1' is an invalid <command>"
