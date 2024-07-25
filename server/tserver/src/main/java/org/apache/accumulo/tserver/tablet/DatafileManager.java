@@ -348,7 +348,9 @@ class DatafileManager {
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and following try{}finally
     try {
-      final var logLock = tablet.lockLogLock();
+      // Should not hold the tablet lock while trying to acquire the log lock because this could
+      // lead to deadlock. However there is a path in the code that does this. See #3759
+      tablet.getLogLock().lock();
       // do not place any code here between lock and try
       try {
         // The following call pairs with tablet.finishClearingUnusedLogs() later in this block. If
@@ -365,7 +367,7 @@ class DatafileManager {
 
         tablet.finishClearingUnusedLogs();
       } finally {
-        logLock.unlock();
+        tablet.getLogLock().unlock();
       }
 
       do {

@@ -888,12 +888,7 @@ public class Tablet extends TabletBase {
   @Override
   public void close(boolean saveState) throws IOException {
     initiateClose(saveState);
-    final var lock = lockLogLock();
-    try {
-      completeClose(saveState, true);
-    } finally {
-      lock.unlock();
-    }
+    completeClose(saveState, true);
     log.info("Tablet {} closed.", this.extent);
   }
 
@@ -1008,11 +1003,6 @@ public class Tablet extends TabletBase {
   private boolean closeCompleting = false;
 
   synchronized void completeClose(boolean saveState, boolean completeClose) throws IOException {
-
-    // The lockLock must be acquired before the tablet lock. Later in this function the log lock may
-    // be acquired during minor compaction. It will fail if the tablet lock is held and not the log
-    // lock. Fail sooner here and always, not only in the case when a minor compaction is needed.
-    Preconditions.checkState(logLock.isHeldByCurrentThread());
 
     if (!isClosing() || isCloseComplete() || closeCompleting) {
       throw new IllegalStateException("Bad close state " + closeState + " on tablet " + extent);
@@ -1623,68 +1613,61 @@ public class Tablet extends TabletBase {
     Map<StoredTabletFile,FileUtil.FileInfo> firstAndLastRows = FileUtil
         .tryToGetFirstAndLastRows(context, tableConfiguration, getDatafileManager().getFiles());
 
-    // This must be acquired before the tablet lock AND completeClose expects it to be acquired when
-    // called.
-    final var lock = lockLogLock();
-    try {
-      synchronized (this) {
-        // java needs tuples ...
-        TreeMap<KeyExtent,TabletData> newTablets = new TreeMap<>();
+    synchronized (this) {
+      // java needs tuples ...
+      TreeMap<KeyExtent,TabletData> newTablets = new TreeMap<>();
 
-        long t1 = System.currentTimeMillis();
+      long t1 = System.currentTimeMillis();
 
-        closeState = CloseState.CLOSING;
-        completeClose(true, false);
+      closeState = CloseState.CLOSING;
+      completeClose(true, false);
 
-        Text midRow = splitPoint.row;
-        double splitRatio = splitPoint.splitRatio;
+      Text midRow = splitPoint.row;
+      double splitRatio = splitPoint.splitRatio;
 
-        KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
-        KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
+      KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
+      KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
 
-        String lowDirectoryName = createTabletDirectoryName(context, midRow);
+      String lowDirectoryName = createTabletDirectoryName(context, midRow);
 
-        // write new tablet information to MetadataTable
-        SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
-        SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
-        List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
+      // write new tablet information to MetadataTable
+      SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
+      SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
+      List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
 
-        MetadataTableUtil.splitDatafiles(midRow, splitRatio, firstAndLastRows,
-            getDatafileManager().getDatafileSizes(), lowDatafileSizes, highDatafileSizes,
-            highDatafilesToRemove);
+      MetadataTableUtil.splitDatafiles(midRow, splitRatio, firstAndLastRows,
+          getDatafileManager().getDatafileSizes(), lowDatafileSizes, highDatafileSizes,
+          highDatafilesToRemove);
 
-        log.debug("Files for low split {} {}", low, lowDatafileSizes.keySet());
-        log.debug("Files for high split {} {}", high, highDatafileSizes.keySet());
+      log.debug("Files for low split {} {}", low, lowDatafileSizes.keySet());
+      log.debug("Files for high split {} {}", high, highDatafileSizes.keySet());
 
-        MetadataTime time = tabletTime.getMetadataTime();
+      MetadataTime time = tabletTime.getMetadataTime();
 
-        HashSet<ExternalCompactionId> ecids = new HashSet<>();
-        compactable.getExternalCompactionIds(ecids::add);
+      HashSet<ExternalCompactionId> ecids = new HashSet<>();
+      compactable.getExternalCompactionIds(ecids::add);
 
-        MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio,
-            getTabletServer().getContext(), getTabletServer().getLock(), ecids);
-        ManagerMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
-            getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time,
-            lastFlushID.get(), lastCompactID.get(), getTabletServer().getLock());
-        MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove,
-            getTabletServer().getContext(), getTabletServer().getLock());
+      MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio,
+          getTabletServer().getContext(), getTabletServer().getLock(), ecids);
+      ManagerMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
+          getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time,
+          lastFlushID.get(), lastCompactID.get(), getTabletServer().getLock());
+      MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove,
+          getTabletServer().getContext(), getTabletServer().getLock());
 
-        TabletLogger.split(extent, low, high, getTabletServer().getTabletSession());
+      TabletLogger.split(extent, low, high, getTabletServer().getTabletSession());
 
-        newTablets.put(high, new TabletData(dirName, highDatafileSizes, time, lastFlushID.get(),
-            lastCompactID.get(), lastLocation, bulkImported));
-        newTablets.put(low, new TabletData(lowDirectoryName, lowDatafileSizes, time,
-            lastFlushID.get(), lastCompactID.get(), lastLocation, bulkImported));
+      newTablets.put(high, new TabletData(dirName, highDatafileSizes, time, lastFlushID.get(),
+          lastCompactID.get(), lastLocation, bulkImported));
+      newTablets.put(low, new TabletData(lowDirectoryName, lowDatafileSizes, time,
+          lastFlushID.get(), lastCompactID.get(), lastLocation, bulkImported));
 
-        long t2 = System.currentTimeMillis();
+      long t2 = System.currentTimeMillis();
 
-        log.debug(String.format("offline split time : %6.2f secs", (t2 - t1) / 1000.0));
+      log.debug(String.format("offline split time : %6.2f secs", (t2 - t1) / 1000.0));
 
-        closeState = CloseState.COMPLETE;
-        return newTablets;
-      }
-    } finally {
-      lock.unlock();
+      closeState = CloseState.COMPLETE;
+      return newTablets;
     }
   }
 
@@ -1924,12 +1907,7 @@ public class Tablet extends TabletBase {
     }
   }
 
-  ReentrantLock lockLogLock() {
-    // It is expected that the log lock is acquired before the tablet lock. If they are acquired in
-    // reverse order it could lead to deadlock. So if the current thread does not hold the log lock,
-    // then it should also not hold the tablet lock.
-    Preconditions.checkState(!Thread.holdsLock(this) || logLock.isHeldByCurrentThread());
-    logLock.lock();
+  ReentrantLock getLogLock() {
     return logLock;
   }
 
@@ -1997,7 +1975,10 @@ public class Tablet extends TabletBase {
 
     boolean releaseLock = true;
 
-    final var lock = lockLogLock();
+    // Should not hold the tablet lock while trying to acquire the log lock because this could lead
+    // to deadlock. However there is a path in the code that does this. See #3759
+    logLock.lock();
+
     try {
       synchronized (this) {
 
@@ -2053,7 +2034,7 @@ public class Tablet extends TabletBase {
       }
     } finally {
       if (releaseLock) {
-        lock.unlock();
+        logLock.unlock();
       }
     }
   }
