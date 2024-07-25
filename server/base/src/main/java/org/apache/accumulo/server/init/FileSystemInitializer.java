@@ -159,7 +159,7 @@ public class FileSystemInitializer {
     // populate the root tablet with info about the metadata table's two initial tablets
     InitialTablet tablesTablet =
         new InitialTablet(AccumuloTable.METADATA.tableId(), TABLE_TABLETS_TABLET_DIR, null,
-            SPLIT_POINT, StoredTabletFile.of(new Path(metadataFileName)).getMetadata());
+            SPLIT_POINT, StoredTabletFile.of(new Path(metadataFileName)).getMetadataPath());
     InitialTablet defaultTablet = new InitialTablet(AccumuloTable.METADATA.tableId(),
         defaultMetadataTabletDirName, SPLIT_POINT, null);
     createMetadataFile(fs, rootTabletFileUri, tablesTablet, defaultTablet);
