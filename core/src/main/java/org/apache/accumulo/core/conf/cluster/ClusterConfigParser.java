@@ -41,11 +41,11 @@ public class ClusterConfigParser {
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String[] SECTIONS = new String[] {"manager", "monitor", "gc", "tserver"};
 
-  private static final Set<String> VALID_CONFIG_KEYS = Set.of("manager", "monitor", "gc", "tserver",
-      "tservers_per_host", "sservers_per_host", "compaction.coordinator", "compactors_per_host");
+  private static final Set<String> VALID_CONFIG_KEYS =
+      Set.of("manager", "monitor", "gc", "tserver", "tservers_per_host", "compaction.coordinator");
 
   private static final Set<String> VALID_CONFIG_PREFIXES =
-      Set.of("compaction.compactor.", "sserver.");
+      Set.of("compaction.compactor.", "sserver.", "compactors_per_host.", "sservers_per_host.");
 
   private static final Predicate<String> VALID_CONFIG_SECTIONS =
       section -> VALID_CONFIG_KEYS.contains(section)
@@ -130,6 +130,8 @@ public class ClusterConfigParser {
       for (String queue : compactorQueues) {
         out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + queue,
             config.get("compaction.compactor." + queue));
+        String numCompactors = config.getOrDefault("compactors_per_host." + queue, "1");
+        out.printf(PROPERTY_FORMAT, "NUM_COMPACTORS_" + queue, numCompactors);
       }
     }
 
@@ -142,16 +144,12 @@ public class ClusterConfigParser {
           sserverGroups.stream().collect(Collectors.joining(" ")));
       sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS_" + ssg,
           config.get(sserverPrefix + ssg)));
+      sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "NUM_SSERVERS_" + ssg,
+          config.getOrDefault("sservers_per_host." + ssg, "1")));
     }
 
     String numTservers = config.getOrDefault("tservers_per_host", "1");
     out.print("NUM_TSERVERS=\"${NUM_TSERVERS:=" + numTservers + "}\"\n");
-
-    String numSservers = config.getOrDefault("sservers_per_host", "1");
-    out.print("NUM_SSERVERS=\"${NUM_SSERVERS:=" + numSservers + "}\"\n");
-
-    String numCompactors = config.getOrDefault("compactors_per_host", "1");
-    out.print("NUM_COMPACTORS=\"${NUM_COMPACTORS:=" + numCompactors + "}\"\n");
 
     out.flush();
   }

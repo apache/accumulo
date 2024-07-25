@@ -632,8 +632,11 @@ tserver:
 # compactors_per_host.
 #
 tservers_per_host: 1
-#sservers_per_host: 1
-#compactors_per_host: 1
+#sservers_per_host: 
+# - default: 1
+#compactors_per_host:
+# - q1: 1
+# - q2: 1 
 
 EOF
       ;;
