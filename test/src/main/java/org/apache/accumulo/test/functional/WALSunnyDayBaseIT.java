@@ -26,7 +26,6 @@ import static org.apache.accumulo.core.conf.Property.TSERV_WAL_MAX_SIZE;
 import static org.apache.accumulo.core.conf.Property.TSERV_WAL_REPLICATION;
 import static org.apache.accumulo.core.security.Authorizations.EMPTY;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.apache.accumulo.minicluster.ServerType.GARBAGE_COLLECTOR;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -67,7 +66,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
