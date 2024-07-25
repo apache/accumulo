@@ -18,11 +18,17 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.ample.FlakyAmpleManager;
+import org.apache.accumulo.test.ample.FlakyAmpleTserver;
+import org.apache.hadoop.conf.Configuration;
 
-import org.junit.jupiter.api.Tag;
-
-@Tag(SUNNY_DAY)
-public class WALSunnyDayIT extends WALSunnyDayBaseIT {
-
+public class WALFlakyAmpleIT extends WALSunnyDayBaseIT {
+  @Override
+  protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    super.configure(cfg, hadoopCoreSite);
+    cfg.setServerClass(ServerType.TABLET_SERVER, FlakyAmpleTserver.class);
+    cfg.setServerClass(ServerType.MANAGER, FlakyAmpleManager.class);
+  }
 }
