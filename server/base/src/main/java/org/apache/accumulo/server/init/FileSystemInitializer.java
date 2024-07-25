@@ -18,21 +18,16 @@
  */
 package org.apache.accumulo.server.init;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
@@ -40,6 +35,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -48,9 +44,9 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
@@ -91,28 +87,16 @@ public class FileSystemInitializer {
       this.extent = new Text(MetadataSchema.TabletsSection.encodeRow(this.tableId, this.endRow));
     }
 
-    private TreeMap<Key,Value> createEntries() {
-      TreeMap<Key,Value> sorted = new TreeMap<>();
-      Value EMPTY_SIZE = new DataFileValue(0, 0).encodeAsValue();
-      sorted.put(new Key(this.extent, DIRECTORY_COLUMN.getColumnFamily(),
-          DIRECTORY_COLUMN.getColumnQualifier(), 0), new Value(this.dirName));
-      sorted.put(
-          new Key(this.extent, TIME_COLUMN.getColumnFamily(), TIME_COLUMN.getColumnQualifier(), 0),
-          new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
-      sorted.put(
-          new Key(this.extent, PREV_ROW_COLUMN.getColumnFamily(),
-              PREV_ROW_COLUMN.getColumnQualifier(), 0),
-          MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow(this.prevEndRow));
-      sorted.put(
-          new Key(this.extent, AVAILABILITY_COLUMN.getColumnFamily(),
-              AVAILABILITY_COLUMN.getColumnQualifier(), 0),
-          TabletAvailabilityUtil.toValue(TabletAvailability.HOSTED));
-      for (String file : this.files) {
-        var col =
-            new ColumnFQ(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME, new Text(file));
-        sorted.put(new Key(extent, col.getColumnFamily(), col.getColumnQualifier(), 0), EMPTY_SIZE);
+    private Map<Key,Value> createEntries() {
+      KeyExtent keyExtent = new KeyExtent(tableId, endRow, prevEndRow);
+      var builder = TabletMetadata.builder(keyExtent).putDirName(dirName)
+          .putTime(new MetadataTime(0, TimeType.LOGICAL))
+          .putTabletAvailability(TabletAvailability.HOSTED).putPrevEndRow(prevEndRow);
+      for (String file : files) {
+        builder.putFile(new ReferencedTabletFile(new Path(file)).insert(), new DataFileValue(0, 0));
       }
-      return sorted;
+      return builder.build().getKeyValues().stream()
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     public Mutation createMutation() {
@@ -175,7 +159,7 @@ public class FileSystemInitializer {
     // populate the root tablet with info about the metadata table's two initial tablets
     InitialTablet tablesTablet =
         new InitialTablet(AccumuloTable.METADATA.tableId(), TABLE_TABLETS_TABLET_DIR, null,
-            SPLIT_POINT, StoredTabletFile.of(new Path(metadataFileName)).getMetadata());
+            SPLIT_POINT, StoredTabletFile.of(new Path(metadataFileName)).getMetadataPath());
     InitialTablet defaultTablet = new InitialTablet(AccumuloTable.METADATA.tableId(),
         defaultMetadataTabletDirName, SPLIT_POINT, null);
     createMetadataFile(fs, rootTabletFileUri, tablesTablet, defaultTablet);
