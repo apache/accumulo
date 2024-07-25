@@ -544,10 +544,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  private HostAndPort startServer(AccumuloConfiguration conf, String address, TProcessor processor)
+  private HostAndPort startServer(String address, TProcessor processor)
       throws UnknownHostException {
-    Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
-        ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
+    @SuppressWarnings("deprecation")
+    var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
+        Property.TSERV_MAX_MESSAGE_SIZE, Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), address, Property.TSERV_CLIENTPORT,
         processor, this.getClass().getSimpleName(), "Thrift Client Server",
         Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
@@ -612,7 +613,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     TProcessor processor = ThriftProcessorTypes.getTabletServerTProcessor(clientHandler,
         thriftClientHandler, scanClientHandler, getContext());
-    HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), processor);
+    HostAndPort address = startServer(clientAddress.getHost(), processor);
     log.info("address = {}", address);
     return address;
   }
@@ -622,9 +623,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     final var handler =
         new org.apache.accumulo.tserver.replication.ReplicationServicerHandler(this);
     var processor = ThriftProcessorTypes.getReplicationClientTProcessor(handler, getContext());
-    Property maxMessageSizeProperty =
-        getConfiguration().get(Property.TSERV_MAX_MESSAGE_SIZE) != null
-            ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE;
+    var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
+        Property.TSERV_MAX_MESSAGE_SIZE, Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), clientAddress.getHost(),
         Property.REPLICATION_RECEIPT_SERVICE_PORT, processor, "ReplicationServicerHandler",
         "Replication Servicer", Property.TSERV_PORTSEARCH, Property.REPLICATION_MIN_THREADS, null,
