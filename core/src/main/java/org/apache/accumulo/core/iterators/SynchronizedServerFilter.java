@@ -26,6 +26,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 
 /**
  * A SortedKeyValueIterator similar to {@link org.apache.accumulo.core.iterators.ServerFilter} but
@@ -48,6 +49,9 @@ public abstract class SynchronizedServerFilter implements SortedKeyValueIterator
 
   @Override
   public synchronized void next() throws IOException {
+    if (Thread.interrupted()) {
+      throw new IterationInterruptedException("Thread has been interrupted.");
+    }
     source.next();
     findTop();
   }
@@ -55,6 +59,9 @@ public abstract class SynchronizedServerFilter implements SortedKeyValueIterator
   @Override
   public synchronized void seek(Range range, Collection<ByteSequence> columnFamilies,
       boolean inclusive) throws IOException {
+    if (Thread.interrupted()) {
+      throw new IterationInterruptedException("Thread has been interrupted.");
+    }
     source.seek(range, columnFamilies, inclusive);
     findTop();
   }
@@ -71,6 +78,9 @@ public abstract class SynchronizedServerFilter implements SortedKeyValueIterator
 
   @Override
   public synchronized boolean hasTop() {
+    if (Thread.interrupted()) {
+      throw new IterationInterruptedException("Thread has been interrupted.");
+    }
     return source.hasTop();
   }
 
