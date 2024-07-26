@@ -27,7 +27,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -206,9 +205,7 @@ public class ClientContext implements AccumuloClient {
         }
       });
       return scanServerSelector;
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-        | SecurityException e) {
+    } catch (ReflectiveOperationException | IllegalArgumentException | SecurityException e) {
       throw new RuntimeException("Error creating ScanServerSelector implementation: " + clazz, e);
     }
   }
