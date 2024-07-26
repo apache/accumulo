@@ -138,8 +138,8 @@ function kill_service() {
 }
 
 function find_processes() {
-  files=$(echo "${ACCUMULO_PID_DIR}"/*)
-  for file in $files; do
+  local file
+  for file in $ACCUMULO_PID_DIR/*; do
     if [[ $file == *$service* ]]; then
       stripped_file=${file%.pid}
       RUNNING_PROCESSES+=("${stripped_file##*accumulo-}")
