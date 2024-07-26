@@ -22,6 +22,12 @@ import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 
 import org.junit.jupiter.api.Tag;
 
+/*
+ * This class is empty because of the SUNNY_DAY tag.  WALSunnyDayBaseIT exists to share code with
+ * WALFlakyAmpleIT.  Ideally the code in WALSunnyDayBaseIT could be moved into this class and
+ * WALFlakyAmpleIT could extend this class.  However, if it did then WALFlakyAmpleIT would inherit
+ * the SUNNY_DAY tag which is not desirable.
+ */
 @Tag(SUNNY_DAY)
 public class WALSunnyDayIT extends WALSunnyDayBaseIT {
 
