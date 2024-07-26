@@ -40,7 +40,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
-import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -152,7 +151,7 @@ public class GarbageCollectionTest {
 
     public void addDirReference(String tableId, String endRow, String dir) {
       TableId tid = TableId.of(tableId);
-      references.put(tableId + ":" + endRow, new ReferenceDirectory(tid, dir));
+      references.put(tableId + ":" + endRow, ReferenceFile.forDirectory(tid, dir));
       tableIds.add(tid);
     }
 
