@@ -36,7 +36,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <a href="https://micrometer.io/docs/concepts#_naming_meters">naming convention</a> for the
  * metrics. The table below contains a mapping of the old to new metric names.
  * <table border="1">
- * <caption>Summary of Metric Changes</caption> <!-- fate -->
+ * <caption>Summary of Metric Changes</caption>
  * <tr>
  * <th>Old Name</th>
  * <th>Hadoop Metrics2 Type</th>
@@ -44,6 +44,14 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <th>Micrometer Type</th>
  * <th>Notes</th>
  * </tr>
+ * <!-- general server metrics -->
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_SERVER_IDLE}</td>
+ * <td>Gauge</td>
+ * <td>Indicates if the server is idle or not. The value will be 1 when idle and 0 when not idle.
+ * <!-- compactor -->
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
@@ -100,6 +108,21 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Gauge</td>
  * <td></td>
  * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_ENTRIES_READ}</td>
+ * <td>FunctionCounter</td>
+ * <td>Number of entries read by all threads performing compactions</td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_ENTRIES_WRITTEN}</td>
+ * <td>FunctionCounter</td>
+ * <td>Number of entries written by all threads performing compactions</td>
+ * </tr>
+ * <!-- fate -->
  * <tr>
  * <td>currentFateOps</td>
  * <td>Gauge</td>

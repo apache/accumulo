@@ -16,19 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata;
+package org.apache.accumulo.core.metadata.schema;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.TableId;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * A metadata servicer for user tables.<br>
- * Metadata for user tables are serviced in the metadata table.
- */
-class ServicerForUserTables extends TableMetadataServicer {
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.junit.jupiter.api.Test;
 
-  public ServicerForUserTables(ClientContext context, TableId tableId) {
-    super(context, AccumuloTable.METADATA.tableName(), tableId);
+public class DataLevelOrderTest {
+
+  @Test
+  public void testDataLevelOrder() {
+    // Code may depend on the order of the values returned
+    // for DataLevel. This test checks that the order does
+    // not change in future versions.
+    DataLevel[] levels = DataLevel.values();
+    assertEquals(3, levels.length);
+    assertEquals(DataLevel.ROOT, levels[0]);
+    assertEquals(DataLevel.METADATA, levels[1]);
+    assertEquals(DataLevel.USER, levels[2]);
   }
 
 }

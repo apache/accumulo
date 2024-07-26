@@ -61,7 +61,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -397,53 +396,39 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.securityOperations().grantTablePermission(getPrincipal(),
           AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
 
+      var ample = getCluster().getServerContext().getAmple();
+      var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
+      var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
+
       // Set the OperationId on one tablet, which will cause that tablet
       // to not be assigned
-      try (var writer = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
-        var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
-        var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
-        Mutation m = new Mutation(extent.toMetaRow());
-        TabletsSection.ServerColumnFamily.OPID_COLUMN.put(m, new Value(opid.canonical()));
-        writer.addMutation(m);
-      }
+      ample.mutateTablet(extent).putOperation(opid).mutate();
 
-      // Host all tablets.
-      c.tableOperations().setTabletAvailability(tableName, new Range(), TabletAvailability.HOSTED);
+      // Host all tablets. Can not call the setTabletAvailability api because it will block when an
+      // opid is present, so must directly set it in the metadata table.
+      ample.readTablets().forTable(tableId).build()
+          .forEach(tabletMetadata -> ample.mutateTablet(tabletMetadata.getExtent())
+              .putTabletAvailability(TabletAvailability.HOSTED).mutate());
+
       Wait.waitFor(() -> countTabletsWithLocation(c, tableId) == 3);
-      var ample = ((ClientContext) c).getAmple();
       assertNull(
           ample.readTablet(new KeyExtent(tableId, new Text("m"), new Text("f"))).getLocation());
 
       // Delete the OperationId column, tablet should be assigned
-      try (var writer = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
-        var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
-        Mutation m = new Mutation(extent.toMetaRow());
-        TabletsSection.ServerColumnFamily.OPID_COLUMN.putDelete(m);
-        writer.addMutation(m);
-      }
+      ample.mutateTablet(extent).deleteOperation().mutate();
       Wait.waitFor(() -> countTabletsWithLocation(c, tableId) == 4);
 
       // Set the OperationId on one tablet, which will cause that tablet
       // to be unhosted
-      try (var writer = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
-        var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
-        var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
-        Mutation m = new Mutation(extent.toMetaRow());
-        TabletsSection.ServerColumnFamily.OPID_COLUMN.put(m, new Value(opid.canonical()));
-        writer.addMutation(m);
-      }
+      ample.mutateTablet(extent).putOperation(opid).mutate();
+
       // there are four tablets, three should be assigned as one has a OperationId
       Wait.waitFor(() -> countTabletsWithLocation(c, tableId) == 3);
       assertNull(
           ample.readTablet(new KeyExtent(tableId, new Text("m"), new Text("f"))).getLocation());
 
       // Delete the OperationId column, tablet should be assigned again
-      try (var writer = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
-        var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
-        Mutation m = new Mutation(extent.toMetaRow());
-        TabletsSection.ServerColumnFamily.OPID_COLUMN.putDelete(m);
-        writer.addMutation(m);
-      }
+      ample.mutateTablet(extent).deleteOperation().mutate();
 
       // after the operation id is deleted the tablet should be assigned
       Wait.waitFor(() -> countTabletsWithLocation(c, tableId) == 4);

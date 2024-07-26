@@ -347,7 +347,6 @@ public class MetadataSchema {
       }
 
       public static FateId getBulkLoadTid(String vs) {
-        // ELASTICITY_TODO issue 4044 - May need to introduce code in upgrade to handle old format.
         return FateId.from(vs);
       }
     }
@@ -544,18 +543,5 @@ public class MetadataSchema {
       return section.getRowPrefix();
     }
 
-  }
-
-  public static class ScanServerFileReferenceSection {
-    private static final Section section =
-        new Section(RESERVED_PREFIX + "sserv", true, RESERVED_PREFIX + "sserx", false);
-
-    public static Range getRange() {
-      return section.getRange();
-    }
-
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
-    }
   }
 }

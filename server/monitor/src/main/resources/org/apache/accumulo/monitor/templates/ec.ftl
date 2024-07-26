@@ -49,7 +49,7 @@
               <thead>
                 <tr>
                   <th class="firstcell" title="The hostname the compactor is running on.">Server</th>
-                  <th title="The name of the queue this compactor is assigned.">Queue</th>
+                  <th title="The name of the group this compactor is assigned.">Group</th>
                   <th class="duration" title="Last time data was fetched. Server fetches on refresh, at most every minute.">Last Contact</th>
                 </tr>
               </thead>

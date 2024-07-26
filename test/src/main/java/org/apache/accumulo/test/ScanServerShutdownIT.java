@@ -108,7 +108,7 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
       for (int i = 0; i < fileCount; i++) {
         ScanServerIT.ingest(client, tableName, 10, 10, 0, "colf", true);
       }
-      assertEquals(0, ctx.getAmple().getScanServerFileReferences().count());
+      assertEquals(0, ctx.getAmple().scanServerRefs().list().count());
 
       for (int i = 0; i < 3; i++) {
         try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
@@ -119,7 +119,7 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
           assertTrue(iter.hasNext());
           assertNotNull(iter.next());
 
-          assertEquals(fileCount, ctx.getAmple().getScanServerFileReferences().count());
+          assertEquals(fileCount, ctx.getAmple().scanServerRefs().list().count());
 
         }
       }
@@ -128,7 +128,7 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
       Wait.waitFor(() -> ((ClientContext) client).getScanServers().size() == 0);
 
       // The ScanServer should clean up the references on normal shutdown
-      Wait.waitFor(() -> ctx.getAmple().getScanServerFileReferences().count() == 0);
+      Wait.waitFor(() -> ctx.getAmple().scanServerRefs().list().count() == 0);
 
     } finally {
       getCluster().getClusterControl().stopAllServers(ServerType.SCAN_SERVER);

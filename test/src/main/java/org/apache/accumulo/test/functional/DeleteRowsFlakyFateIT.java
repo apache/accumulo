@@ -16,18 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata;
+package org.apache.accumulo.test.functional;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.fate.FlakyFateManager;
+import org.apache.hadoop.conf.Configuration;
 
 /**
- * A metadata servicer for the metadata table (which holds metadata for user tables).<br>
- * The metadata table's metadata is serviced in the root table.
+ * Run all delete rows using {@link org.apache.accumulo.test.fate.FlakyFate} to verify delete rows
+ * fate steps are idempotent.
  */
-class ServicerForMetadataTable extends TableMetadataServicer {
-
-  public ServicerForMetadataTable(ClientContext context) {
-    super(context, AccumuloTable.ROOT.tableName(), AccumuloTable.METADATA.tableId());
+public class DeleteRowsFlakyFateIT extends DeleteRowsIT {
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setServerClass(ServerType.MANAGER, FlakyFateManager.class);
   }
-
 }

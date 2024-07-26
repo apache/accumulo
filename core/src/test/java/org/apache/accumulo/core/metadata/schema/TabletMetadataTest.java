@@ -28,6 +28,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
@@ -567,6 +568,32 @@ public class TabletMetadataTest {
     mutation.put("1234567890abcdefg", "xyz", "v1");
     assertThrows(IllegalStateException.class, () -> TabletMetadata
         .convertRow(toRowMap(mutation).entrySet().iterator(), EnumSet.of(MERGED), true, false));
+  }
+
+  @Test
+  public void testAbsentPrevRow() {
+    // If the prev row is fetched, then it is expected to be seen. Ensure that if it was not seen
+    // that TabletMetadata fails when attempting to use it. Want to ensure null is not returned for
+    // this case.
+    Mutation mutation =
+        new Mutation(MetadataSchema.TabletsSection.encodeRow(TableId.of("5"), new Text("df")));
+    DIRECTORY_COLUMN.put(mutation, new Value("d1"));
+    SortedMap<Key,Value> rowMap = toRowMap(mutation);
+
+    var tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
+        EnumSet.allOf(ColumnType.class), false, false);
+
+    var msg = assertThrows(IllegalStateException.class, tm::getExtent).getMessage();
+    assertTrue(msg.contains("No prev endrow seen"));
+    msg = assertThrows(IllegalStateException.class, tm::getPrevEndRow).getMessage();
+    assertTrue(msg.contains("No prev endrow seen"));
+
+    // should see a slightly different error message when the prev row is not fetched
+    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.of(DIR), false, false);
+    msg = assertThrows(IllegalStateException.class, tm::getExtent).getMessage();
+    assertTrue(msg.contains("PREV_ROW was not fetched"));
+    msg = assertThrows(IllegalStateException.class, tm::getPrevEndRow).getMessage();
+    assertTrue(msg.contains("PREV_ROW was not fetched"));
   }
 
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {

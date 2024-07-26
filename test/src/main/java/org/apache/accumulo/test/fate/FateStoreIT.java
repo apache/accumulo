@@ -55,6 +55,7 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT.TestRepo;
@@ -458,6 +459,28 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       txStore.unreserve(Duration.ZERO);
     }
 
+  }
+
+  @Test
+  public void testAbsent() throws Exception {
+    executeTest(this::testAbsent);
+  }
+
+  protected void testAbsent(FateStore<TestEnv> store, ServerContext sctx) {
+    // Ensure both store implementations have consistent behavior when reading a fateId that does
+    // not exists.
+
+    var fateId = FateId.from(store.type(), UUID.randomUUID());
+    var txStore = store.read(fateId);
+
+    assertEquals(TStatus.UNKNOWN, txStore.getStatus());
+    assertNull(txStore.top());
+    assertNull(txStore.getTransactionInfo(TxInfo.TX_NAME));
+    assertEquals(0, txStore.timeCreated());
+    assertEquals(Optional.empty(), txStore.getKey());
+    assertEquals(fateId, txStore.getID());
+    assertEquals(List.of(), txStore.getStack());
+    assertEquals(new Pair<>(TStatus.UNKNOWN, Optional.empty()), txStore.getStatusAndKey());
   }
 
   @Test

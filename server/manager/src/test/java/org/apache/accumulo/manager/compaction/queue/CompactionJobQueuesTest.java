@@ -19,7 +19,9 @@
 package org.apache.accumulo.manager.compaction.queue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -29,6 +31,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -43,6 +46,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -331,5 +335,66 @@ public class CompactionJobQueuesTest {
 
     // The background threads should have seen every job that was added
     assertEquals(numToAdd, totalSeen);
+  }
+
+  @Test
+  public void testGetAsync() throws Exception {
+    CompactionJobQueues jobQueues = new CompactionJobQueues(100);
+
+    var tid = TableId.of("1");
+    var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));
+    var extent2 = new KeyExtent(tid, new Text("q"), new Text("l"));
+    var extent3 = new KeyExtent(tid, new Text("l"), new Text("c"));
+    var extent4 = new KeyExtent(tid, new Text("c"), new Text("a"));
+
+    var tm1 = TabletMetadata.builder(extent1).build();
+    var tm2 = TabletMetadata.builder(extent2).build();
+    var tm3 = TabletMetadata.builder(extent3).build();
+    var tm4 = TabletMetadata.builder(extent4).build();
+
+    var cg1 = CompactorGroupId.of("CG1");
+
+    var future1 = jobQueues.getAsync(cg1);
+    var future2 = jobQueues.getAsync(cg1);
+
+    assertFalse(future1.isDone());
+    assertFalse(future2.isDone());
+
+    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
+    jobQueues.add(tm2, List.of(newJob((short) 2, 6, cg1)));
+    jobQueues.add(tm3, List.of(newJob((short) 3, 7, cg1)));
+    jobQueues.add(tm4, List.of(newJob((short) 4, 8, cg1)));
+
+    var future3 = jobQueues.getAsync(cg1);
+    var future4 = jobQueues.getAsync(cg1);
+
+    assertTrue(future1.isDone());
+    assertTrue(future2.isDone());
+    assertTrue(future3.isDone());
+    assertTrue(future4.isDone());
+
+    assertEquals(extent1, future1.get().getTabletMetadata().getExtent());
+    assertEquals(extent2, future2.get().getTabletMetadata().getExtent());
+    assertEquals(extent4, future3.get().getTabletMetadata().getExtent());
+    assertEquals(extent3, future4.get().getTabletMetadata().getExtent());
+
+    // test cancelling a future and having a future timeout
+    var future5 = jobQueues.getAsync(cg1);
+    assertFalse(future5.isDone());
+    future5.cancel(false);
+    var future6 = jobQueues.getAsync(cg1);
+    assertFalse(future6.isDone());
+    future6.orTimeout(10, TimeUnit.MILLISECONDS);
+    // sleep for 20 millis, this should cause future6 to be timed out
+    UtilWaitThread.sleep(20);
+    var future7 = jobQueues.getAsync(cg1);
+    assertFalse(future7.isDone());
+    // since future5 was canceled and future6 timed out, this addition should go to future7
+    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
+    assertTrue(future7.isDone());
+    assertEquals(extent1, future7.get().getTabletMetadata().getExtent());
+    assertTrue(future5.isDone());
+    assertTrue(future6.isCompletedExceptionally());
+    assertTrue(future6.isDone());
   }
 }

@@ -33,7 +33,7 @@ import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.hadoop.conf.Configuration;
 
-class InitialConfiguration {
+public class InitialConfiguration {
 
   // config only for root table
   private final HashMap<String,String> initialRootConf = new HashMap<>();
@@ -43,10 +43,12 @@ class InitialConfiguration {
   private final HashMap<String,String> initialMetaConf = new HashMap<>();
   // config for only fate table
   private final HashMap<String,String> initialFateTableConf = new HashMap<>();
+  // config for only scan ref table
+  private final HashMap<String,String> initialScanRefTableConf = new HashMap<>();
   private final Configuration hadoopConf;
   private final SiteConfiguration siteConf;
 
-  InitialConfiguration(Configuration hadoopConf, SiteConfiguration siteConf) {
+  public InitialConfiguration(Configuration hadoopConf, SiteConfiguration siteConf) {
     this.hadoopConf = hadoopConf;
     this.siteConf = siteConf;
 
@@ -92,6 +94,8 @@ class InitialConfiguration {
         FateSchema.TxColumnFamily.STR_NAME);
     initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "status");
 
+    initialScanRefTableConf.putAll(commonConfig);
+
     int max = hadoopConf.getInt("dfs.replication.max", 512);
     // Hadoop 0.23 switched the min value configuration name
     int min = Math.max(hadoopConf.getInt("dfs.replication.min", 1),
@@ -133,6 +137,10 @@ class InitialConfiguration {
 
   HashMap<String,String> getFateTableConf() {
     return initialFateTableConf;
+  }
+
+  HashMap<String,String> getScanRefTableConf() {
+    return initialScanRefTableConf;
   }
 
   Configuration getHadoopConf() {

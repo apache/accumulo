@@ -207,7 +207,7 @@ public class ScanServer extends AbstractServer
   private ZooCache managerLockCache;
 
   public ScanServer(ConfigOpts opts, String[] args) {
-    super("sserver", opts, args);
+    super("sserver", opts, ServerContext::new, args);
 
     context = super.getContext();
     log.info("Version " + Constants.VERSION);
@@ -231,7 +231,7 @@ public class ScanServer extends AbstractServer
         getConfiguration().getTimeInMillis(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION);
 
     long scanServerReservationExpiration =
-        getConfiguration().getTimeInMillis(Property.SSERVER_SCAN_REFERENCE_EXPIRATION_TIME);
+        getConfiguration().getTimeInMillis(Property.SSERV_SCAN_REFERENCE_EXPIRATION_TIME);
 
     tabletMetadataLoader = new TabletMetadataLoader(getContext().getAmple());
 
@@ -307,13 +307,10 @@ public class ScanServer extends AbstractServer
     TProcessor processor =
         ThriftProcessorTypes.getScanServerTProcessor(clientHandler, this, getContext());
 
-    Property maxMessageSizeProperty =
-        (getConfiguration().get(Property.SSERV_MAX_MESSAGE_SIZE) != null
-            ? Property.SSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS,
-        Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK, maxMessageSizeProperty);
+        Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK);
 
     LOG.info("address = {}", sp.address);
     return sp;
@@ -440,17 +437,15 @@ public class ScanServer extends AbstractServer
     try {
       while (!serverStopRequested) {
         UtilWaitThread.sleep(1000);
-        idleProcessCheck(() -> {
-          return sessionManager.getActiveScans().isEmpty()
-              && tabletMetadataCache.estimatedSize() == 0;
-        });
+        updateIdleStatus(
+            sessionManager.getActiveScans().isEmpty() && tabletMetadataCache.estimatedSize() == 0);
       }
     } finally {
       LOG.info("Stopping Thrift Servers");
       address.server.stop();
 
       LOG.info("Removing server scan references");
-      this.getContext().getAmple().deleteScanServerFileReferences(clientAddress.toString(),
+      this.getContext().getAmple().scanServerRefs().delete(clientAddress.toString(),
           serverLockUUID);
 
       try {
@@ -649,8 +644,8 @@ public class ScanServer extends AbstractServer
 
       for (StoredTabletFile file : allFiles.keySet()) {
         if (!reservedFiles.containsKey(file)) {
-          refs.add(new ScanServerRefTabletFile(file.getNormalizedPathStr(), serverAddress,
-              serverLockUUID));
+          refs.add(new ScanServerRefTabletFile(serverLockUUID, serverAddress,
+              file.getNormalizedPathStr()));
           filesToReserve.add(file);
           tabletsToCheck.add(Objects.requireNonNull(allFiles.get(file)));
           LOG.trace("RFFS {} need to add scan ref for file {}", myReservationId, file);
@@ -659,7 +654,7 @@ public class ScanServer extends AbstractServer
 
       if (!filesToReserve.isEmpty()) {
         scanServerMetrics.recordWriteOutReservationTime(
-            () -> getContext().getAmple().putScanServerFileReferences(refs));
+            () -> getContext().getAmple().scanServerRefs().put(refs));
 
         // After we insert the scan server refs we need to check and see if the tablet is still
         // using the file. As long as the tablet is still using the files then the Accumulo GC
@@ -692,7 +687,7 @@ public class ScanServer extends AbstractServer
         if (!filesToReserve.isEmpty()) {
           LOG.info("RFFS {} tablet files changed while attempting to reference files {}",
               myReservationId, filesToReserve);
-          getContext().getAmple().deleteScanServerFileReferences(refs);
+          getContext().getAmple().scanServerRefs().delete(refs);
           scanServerMetrics.incrementReservationConflictCount();
           return null;
         }
@@ -869,7 +864,7 @@ public class ScanServer extends AbstractServer
       if (!confirmed.isEmpty()) {
         try {
           // Do this metadata operation is done w/o holding the lock
-          getContext().getAmple().deleteScanServerFileReferences(refsToDelete);
+          getContext().getAmple().scanServerRefs().delete(refsToDelete);
           if (LOG.isTraceEnabled()) {
             confirmed.forEach(refToDelete -> LOG.trace(
                 "RFFS referenced files has not been used recently, removing reference {}",

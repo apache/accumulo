@@ -808,6 +808,20 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   /**
+   * Writes the column visibility into the given <code>ArrayByteSequence</code>. This method gives
+   * users control over allocation of ArrayByteSequence objects by copying into the passed in
+   * ArrayByteSequence.
+   *
+   * @param cv <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 3.1.0
+   */
+  public ArrayByteSequence getColumnVisibilityData(ArrayByteSequence cv) {
+    cv.reset(colVisibility, 0, colVisibility.length);
+    return cv;
+  }
+
+  /**
    * Gets the column visibility as a <code>Text</code> object.
    *
    * @return Text containing the column visibility

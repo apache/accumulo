@@ -19,9 +19,9 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -30,15 +30,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
+import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.util.OpTimer;
@@ -46,6 +44,20 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Provides ability to get the location of the root tablet from a zoocache. This cache
+ * implementation does not actually do any caching on its own and soley relies on zoocache. One nice
+ * feature of using zoo cache is that if the location changes in zookeeper, it will eventually be
+ * updated by zookeeper watchers in zoocache. Therefore, the invalidation functions are
+ * intentionally no-ops and rely on the zookeeper watcher to keep things up to date.
+ *
+ * <p>
+ * This code is relying on the assumption that if two client objects are created for the same
+ * accumulo instance in the same process that both will have the same zoocache. This assumption
+ * means there is only a single zookeeper watch per process per accumulo instance. This assumptions
+ * leads to efficiencies at the cluster level by reduce the total number of zookeeper watches.
+ * </p>
+ */
 public class RootClientTabletCache extends ClientTabletCache {
 
   private final TabletServerLockChecker lockChecker;
@@ -87,20 +99,24 @@ public class RootClientTabletCache extends ClientTabletCache {
   }
 
   @Override
-  public void invalidateCache(KeyExtent failedExtent) {}
-
-  @Override
-  public void invalidateCache(Collection<KeyExtent> keySet) {}
-
-  @Override
-  public void invalidateCache(ClientContext context, String server) {
-    ZooCache zooCache = context.getZooCache();
-    String root = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-    zooCache.clear(root + "/" + server);
+  public void invalidateCache(KeyExtent failedExtent) {
+    // no-op see class level javadoc
   }
 
   @Override
-  public void invalidateCache() {}
+  public void invalidateCache(Collection<KeyExtent> keySet) {
+    // no-op see class level javadoc
+  }
+
+  @Override
+  public void invalidateCache(ClientContext context, String server) {
+    // no-op see class level javadoc
+  }
+
+  @Override
+  public void invalidateCache() {
+    // no-op see class level javadoc
+  }
 
   protected CachedTablet getRootTabletLocation(ClientContext context) {
     Logger log = LoggerFactory.getLogger(this.getClass());
@@ -113,8 +129,10 @@ public class RootClientTabletCache extends ClientTabletCache {
       timer = new OpTimer().start();
     }
 
-    Location loc = context.getAmple()
-        .readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL, LOCATION).getLocation();
+    var zpath = RootTabletMetadata.zooPath(context);
+    var zooCache = context.getZooCache();
+    Location loc = new RootTabletMetadata(new String(zooCache.get(zpath), UTF_8)).toTabletMetadata()
+        .getLocation();
 
     if (timer != null) {
       timer.stop();

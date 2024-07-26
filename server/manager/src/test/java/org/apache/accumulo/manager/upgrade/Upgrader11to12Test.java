@@ -50,6 +50,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -365,6 +366,10 @@ public class Upgrader11to12Test {
     Capture<byte[]> byteCapture = newCapture();
     expect(zrw.overwritePersistentData(eq("/accumulo/" + iid.canonical() + "/root_tablet"),
         capture(byteCapture), eq(123))).andReturn(true).once();
+
+    zrw.recursiveDelete("/accumulo/" + iid.canonical() + "/tracers",
+        ZooUtil.NodeMissingPolicy.SKIP);
+    expectLastCall().once();
 
     replay(context, zrw);
 

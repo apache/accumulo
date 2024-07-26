@@ -20,7 +20,6 @@ package org.apache.accumulo.server.metrics;
 
 import static org.apache.hadoop.util.StringUtils.getTrimmedStrings;
 
-import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,6 +35,7 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
@@ -262,8 +262,7 @@ public class MetricsInfoImpl implements MetricsInfo {
             registry.config().commonTags(commonTags.values());
             registry.config().meterFilter(replicationFilter);
             addRegistry(registry);
-          } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException
-              | InstantiationException | IllegalAccessException ex) {
+          } catch (ReflectiveOperationException ex) {
             LOG.warn("Could not load registry {}", factoryName, ex);
           }
         }
@@ -282,33 +281,17 @@ public class MetricsInfoImpl implements MetricsInfo {
   }
 
   @VisibleForTesting
-  @SuppressWarnings({"deprecation",
-      "support for org.apache.accumulo.core.metrics.MeterRegistryFactory can be removed in 3.1"})
   static MeterRegistry getRegistryFromFactory(final String factoryName, final ServerContext context)
-      throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
-      InstantiationException, IllegalAccessException {
+      throws ReflectiveOperationException {
     try {
       LOG.info("look for meter spi registry factory {}", factoryName);
-      Class<? extends org.apache.accumulo.core.spi.metrics.MeterRegistryFactory> clazz =
-          ClassLoaderUtil.loadClass(factoryName,
-              org.apache.accumulo.core.spi.metrics.MeterRegistryFactory.class);
-      org.apache.accumulo.core.spi.metrics.MeterRegistryFactory factory =
-          clazz.getDeclaredConstructor().newInstance();
-      org.apache.accumulo.core.spi.metrics.MeterRegistryFactory.InitParameters initParameters =
-          new MeterRegistryEnvPropImpl(context);
+      Class<? extends MeterRegistryFactory> clazz =
+          ClassLoaderUtil.loadClass(factoryName, MeterRegistryFactory.class);
+      MeterRegistryFactory factory = clazz.getDeclaredConstructor().newInstance();
+      MeterRegistryFactory.InitParameters initParameters = new MeterRegistryEnvPropImpl(context);
       return factory.create(initParameters);
     } catch (ClassCastException ex) {
       // empty. On exception try deprecated version
-    }
-    try {
-      LOG.info("find legacy meter registry factory {}", factoryName);
-      Class<? extends org.apache.accumulo.core.metrics.MeterRegistryFactory> clazz = ClassLoaderUtil
-          .loadClass(factoryName, org.apache.accumulo.core.metrics.MeterRegistryFactory.class);
-      org.apache.accumulo.core.metrics.MeterRegistryFactory factory =
-          clazz.getDeclaredConstructor().newInstance();
-      return factory.create();
-    } catch (ClassCastException ex) {
-      // empty. No valid metrics factory, fall through and then throw exception.
     }
     throw new ClassNotFoundException(
         "Could not find appropriate class implementing a MetricsFactory for: " + factoryName);

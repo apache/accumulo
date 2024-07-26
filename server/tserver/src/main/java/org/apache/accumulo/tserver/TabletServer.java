@@ -41,6 +41,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -56,6 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -87,7 +89,7 @@ import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -222,13 +224,14 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final ServerContext context;
 
   public static void main(String[] args) throws Exception {
-    try (TabletServer tserver = new TabletServer(new ConfigOpts(), args)) {
+    try (TabletServer tserver = new TabletServer(new ConfigOpts(), ServerContext::new, args)) {
       tserver.runServer();
     }
   }
 
-  protected TabletServer(ConfigOpts opts, String[] args) {
-    super("tserver", opts, args);
+  protected TabletServer(ConfigOpts opts,
+      Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
+    super("tserver", opts, serverContextFactory, args);
     context = super.getContext();
     this.managerLockCache = new ZooCache(context.getZooReader(), null);
     final AccumuloConfiguration aconf = getConfiguration();
@@ -402,14 +405,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  private HostAndPort startServer(AccumuloConfiguration conf, String address, TProcessor processor)
+  private HostAndPort startServer(String address, TProcessor processor)
       throws UnknownHostException {
-    Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
-        ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), address, Property.TSERV_CLIENTPORT,
         processor, this.getClass().getSimpleName(), "Thrift Client Server",
         Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
-        Property.TSERV_THREADCHECK, maxMessageSizeProperty);
+        Property.TSERV_THREADCHECK);
     this.server = sp.server;
     return sp.address;
   }
@@ -469,7 +470,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     TProcessor processor =
         ThriftProcessorTypes.getTabletServerTProcessor(clientHandler, thriftClientHandler,
             scanClientHandler, thriftClientHandler, thriftClientHandler, getContext());
-    HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), processor);
+    HostAndPort address = startServer(clientAddress.getHost(), processor);
     log.info("address = {}", address);
     return address;
   }
@@ -628,7 +629,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     HostAndPort managerHost;
     while (!serverStopRequested) {
 
-      idleProcessCheck(() -> getOnlineTablets().isEmpty());
+      updateIdleStatus(getOnlineTablets().isEmpty());
 
       // send all of the pending messages
       try {
@@ -640,7 +641,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           // was requested
           while (mm == null && !serverStopRequested) {
             mm = managerMessages.poll(1, TimeUnit.SECONDS);
-            idleProcessCheck(() -> getOnlineTablets().isEmpty());
+            updateIdleStatus(getOnlineTablets().isEmpty());
           }
 
           // have a message to send to the manager, so grab a
@@ -668,7 +669,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             // if any messages are immediately available grab em and
             // send them
             mm = managerMessages.poll();
-            idleProcessCheck(() -> getOnlineTablets().isEmpty());
+            updateIdleStatus(getOnlineTablets().isEmpty());
           }
 
         } finally {
@@ -1133,7 +1134,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       KeyExtent oldestKeyExtent = timeSortedOnDemandExtents.get(oldestAccessTime);
       log.warn("Unloading on-demand tablet: {} for table: {} due to low memory", oldestKeyExtent,
           oldestKeyExtent.tableId());
-      getContext().getAmple().mutateTablet(oldestKeyExtent).deleteHostingRequested().mutate();
+      removeHostingRequests(List.of(oldestKeyExtent));
       onDemandUnloadedLowMemory.addAndGet(1);
       return;
     }
@@ -1180,6 +1181,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         return;
       }
     });
+
     tableIds.forEach(tid -> {
       Map<KeyExtent,
           Long> subset = sortedOnDemandExtents.entrySet().stream()
@@ -1191,13 +1193,28 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       UnloaderParams params = new UnloaderParamsImpl(tid, new ServiceEnvironmentImpl(context),
           subset, onDemandTabletsToUnload);
       unloaders.get(tid).evaluate(params);
-      try (TabletsMutator tm = getContext().getAmple().mutateTablets()) {
-        onDemandTabletsToUnload.forEach(ke -> {
-          log.debug("Unloading on-demand tablet: {} for table: {}", ke, tid);
-          tm.mutateTablet(ke).deleteHostingRequested().mutate();
-        });
-      }
+      removeHostingRequests(onDemandTabletsToUnload);
     });
   }
 
+  private void removeHostingRequests(Collection<KeyExtent> extents) {
+    var myLocation = TabletMetadata.Location.current(getTabletSession());
+
+    try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
+      extents.forEach(ke -> {
+        log.debug("Unloading on-demand tablet: {}", ke);
+        tabletsMutator.mutateTablet(ke).requireLocation(myLocation).deleteHostingRequested()
+            .submit(tm -> !tm.getHostingRequested());
+      });
+
+      tabletsMutator.process().forEach((extent, result) -> {
+        if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
+          var loc = Optional.ofNullable(result.readMetadata()).map(TabletMetadata::getLocation)
+              .orElse(null);
+          log.debug("Failed to clear hosting request marker for {} location in metadata:{}", extent,
+              loc);
+        }
+      });
+    }
+  }
 }

@@ -139,14 +139,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       for (int i = 0; i < RETRIES; i++) {
         String txpath = getTXPath(fateId);
         try {
-          String top;
-          try {
-            top = findTop(txpath);
-            if (top == null) {
-              return null;
-            }
-          } catch (KeeperException.NoNodeException ex) {
-            throw new IllegalStateException(ex);
+          String top = findTop(txpath);
+          if (top == null) {
+            return null;
           }
 
           byte[] ser = zk.getData(txpath + "/" + top);
@@ -165,7 +160,12 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     }
 
     private String findTop(String txpath) throws KeeperException, InterruptedException {
-      List<String> ops = zk.getChildren(txpath);
+      List<String> ops;
+      try {
+        ops = zk.getChildren(txpath);
+      } catch (NoNodeException e) {
+        return null;
+      }
 
       ops = new ArrayList<>(ops);
 

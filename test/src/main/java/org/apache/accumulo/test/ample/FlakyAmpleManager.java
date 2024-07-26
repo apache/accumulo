@@ -16,15 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metrics;
+package org.apache.accumulo.test.ample;
 
-import io.micrometer.core.instrument.MeterRegistry;
+import java.io.IOException;
 
-/**
- * @deprecated since 2.1.3; use {@link org.apache.accumulo.core.spi.metrics.MeterRegistryFactory}
- *             instead
- */
-@Deprecated()
-public interface MeterRegistryFactory {
-  MeterRegistry create();
+import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.manager.Manager;
+
+public class FlakyAmpleManager extends Manager {
+
+  protected FlakyAmpleManager(ConfigOpts opts, String[] args) throws IOException {
+    super(opts, FlakyAmpleServerContext::new, args);
+  }
+
+  public static void main(String[] args) throws Exception {
+    try (FlakyAmpleManager manager = new FlakyAmpleManager(new ConfigOpts(), args)) {
+      manager.runServer();
+    }
+  }
 }

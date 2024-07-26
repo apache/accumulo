@@ -130,11 +130,6 @@ enum TTabletAvailability {
 
 service ClientService {
 
-  // system management methods
-  string getRootTabletLocation()
-  string getInstanceId()
-  string getZooKeepers()
-
   void ping(
     2:security.TCredentials credentials
   ) throws (

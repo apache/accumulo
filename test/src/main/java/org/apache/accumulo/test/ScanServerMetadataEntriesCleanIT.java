@@ -63,14 +63,14 @@ public class ScanServerMetadataEntriesCleanIT extends SharedMiniClusterBase {
 
     ServerContext ctx = getCluster().getServerContext();
 
-    ctx.getAmple().putScanServerFileReferences(scanRefs);
-    assertEquals(scanRefs.size(), ctx.getAmple().getScanServerFileReferences().count());
+    ctx.getAmple().scanServerRefs().put(scanRefs);
+    assertEquals(scanRefs.size(), ctx.getAmple().scanServerRefs().list().count());
 
     Set<ScanServerRefTabletFile> scanRefs2 =
-        ctx.getAmple().getScanServerFileReferences().collect(Collectors.toSet());
+        ctx.getAmple().scanServerRefs().list().collect(Collectors.toSet());
     assertEquals(scanRefs, scanRefs2);
 
     ScanServerMetadataEntries.clean(ctx);
-    assertFalse(ctx.getAmple().getScanServerFileReferences().findAny().isPresent());
+    assertFalse(ctx.getAmple().scanServerRefs().list().findAny().isPresent());
   }
 }

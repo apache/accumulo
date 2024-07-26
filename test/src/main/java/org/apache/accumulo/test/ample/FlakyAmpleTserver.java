@@ -16,33 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata;
+package org.apache.accumulo.test.ample;
 
-import java.util.SortedMap;
+import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.tserver.TabletServer;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-
-/**
- * A metadata servicer for the root table.<br>
- * The root table's metadata is serviced in zookeeper.
- */
-class ServicerForRootTable extends MetadataServicer {
-
-  private final ClientContext context;
-
-  public ServicerForRootTable(ClientContext context) {
-    this.context = context;
+public class FlakyAmpleTserver extends TabletServer {
+  protected FlakyAmpleTserver(ConfigOpts opts, String[] args) {
+    super(opts, FlakyAmpleServerContext::new, args);
   }
 
-  @Override
-  public TableId getServicedTableId() {
-    return AccumuloTable.ROOT.tableId();
-  }
-
-  @Override
-  public void getTabletLocations(SortedMap<KeyExtent,String> tablets) {
-    tablets.put(RootTable.EXTENT, context.getRootTabletLocation());
+  public static void main(String[] args) throws Exception {
+    try (FlakyAmpleTserver tserver = new FlakyAmpleTserver(new ConfigOpts(), args)) {
+      tserver.runServer();
+    }
   }
 }
