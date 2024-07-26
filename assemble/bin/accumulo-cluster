@@ -28,13 +28,13 @@ Commands:
   start                      Starts Accumulo cluster
   stop                       Stops Accumulo cluster
   kill                       Kills Accumulo cluster
-  start-non-tservers         Starts all services except tservers (Deprecated)
+  start-non-tservers         Deprecated. Starts all services except tservers
   start-servers [--all|--tservers|--no-tservers|--sservers [group]|--compactors [queue]]
                              Starts various server types, can optionally specify a queue or group
   stop-servers [--all|--tservers| --no-tservers|--sservers [group]|--compactors [queue]]
                              Starts various server types, can optionally specify a queue or group
-  start-tservers             Starts all tservers on cluster (Deprecated)
-  stop-tservers              Stops all tservers on cluster (Deprecated)
+  start-tservers             Deprecated. Starts all tservers on cluster
+  stop-tservers              Deprecated. Stops all tservers on cluster
   start-here                 Starts all services on this node
   stop-here                  Stops all services on this node
 EOF
@@ -192,7 +192,7 @@ function start_compactors() {
         start_service "$compactor" compactor "-q" "$queue"
       done
     else
-      echo "\"${queue}\" is not a valid queue ...exiting"
+      echo "${queue} is not a valid queue ...exiting"
     fi
   done
 }
@@ -213,7 +213,7 @@ function stop_compactors() {
         stop_service "$compactor" compactor "-q" "$queue"
       done
     else
-      echo "$queue is not a valid compaction queue ...exiting"
+      echo "${queue} is not a valid compaction queue ...exiting"
     fi
   done
 }
@@ -234,7 +234,7 @@ function start_sservers() {
         start_service "$sserver" sserver "-g" "$group"
       done
     else
-      echo "\"${group} is not a valid resource group ...exiting"
+      echo "${group} is not a valid resource group ...exiting"
     fi
   done
 }
@@ -255,7 +255,7 @@ function stop_sservers() {
         stop_service "$sserver" sserver "-g" "$group"
       done
     else
-      echo "$queue is not a valid resource group ...exiting"
+      echo "${queue} is not a valid resource group ...exiting"
     fi
   done
 }
@@ -593,7 +593,7 @@ function main() {
   case "$1" in
     create-config)
       if [[ -f "$conf"/cluster.yaml ]]; then
-        echo "ERROR : $conf/cluster.yaml already exists, not overwriting"
+        echo "ERROR : ${conf}/cluster.yaml already exists, not overwriting"
         exit 1
       fi
       cat <<EOF >"$conf"/cluster.yaml
