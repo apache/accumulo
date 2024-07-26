@@ -22,8 +22,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.net.URL;
 
@@ -35,7 +40,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CredentialProviderTokenTest {
 
-  // Keystore contains: {'root.password':'password', 'bob.password':'bob'}
+  // Keystore contains (no password): {'root.password':'secret', 'bob.password':'hush'}
+  // Some useful commands to update the file are:
+  // bin/hadoop credential list -provider localjceks://file/path/to/passwords.jceks
+  // bin/hadoop credential delete bob.password -provider localjceks://file/path/to/passwords.jceks
+  // bin/hadoop credential create bob.password -provider localjceks://file/path/to/passwords.jceks
   private static String keystorePath;
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
@@ -49,20 +58,50 @@ public class CredentialProviderTokenTest {
 
   @Test
   public void testPasswordsFromCredentialProvider() throws Exception {
-    CredentialProviderToken token = new CredentialProviderToken("root.password", keystorePath);
+    var token = new CredentialProviderToken("root.password", keystorePath);
     assertEquals("root.password", token.getName());
     assertEquals(keystorePath, token.getCredentialProviders());
-    assertArrayEquals("password".getBytes(UTF_8), token.getPassword());
+    assertArrayEquals("secret".getBytes(UTF_8), token.getPassword());
 
     token = new CredentialProviderToken("bob.password", keystorePath);
-    assertArrayEquals("bob".getBytes(UTF_8), token.getPassword());
+    assertArrayEquals("hush".getBytes(UTF_8), token.getPassword());
+  }
+
+  @Test
+  public void testSerialization() throws Exception {
+    var token = new CredentialProviderToken("bob.password", keystorePath);
+    assertEquals("bob.password", token.getName());
+    assertEquals(keystorePath, token.getCredentialProviders());
+    assertArrayEquals("hush".getBytes(UTF_8), token.getPassword());
+    byte[] serialized;
+    try (var baos = new ByteArrayOutputStream(); var out = new DataOutputStream(baos)) {
+      token.write(out);
+      serialized = baos.toByteArray();
+    }
+    // verify the serialized form only contains exactly what is expected and nothing else
+    try (var bais = new ByteArrayInputStream(serialized); var in = new DataInputStream(bais)) {
+      assertEquals(-1000, in.readInt());
+      assertEquals("bob.password", in.readUTF());
+      assertEquals(keystorePath, in.readUTF());
+      assertEquals(0, in.available());
+    }
+    // verify deserialization to a new token
+    var token2 = new CredentialProviderToken();
+    try (var bais = new ByteArrayInputStream(serialized); var in = new DataInputStream(bais)) {
+      token2.readFields(in);
+    }
+    assertEquals("bob.password", token2.getName());
+    assertEquals(keystorePath, token2.getCredentialProviders());
+    assertArrayEquals("hush".getBytes(UTF_8), token2.getPassword());
+    assertNotSame(token, token2);
+    assertEquals(token, token2);
   }
 
   @Test
   public void testEqualityAfterInit() throws Exception {
-    CredentialProviderToken token = new CredentialProviderToken("root.password", keystorePath);
+    var token = new CredentialProviderToken("root.password", keystorePath);
 
-    CredentialProviderToken uninitializedToken = new CredentialProviderToken();
+    var uninitializedToken = new CredentialProviderToken();
     Properties props = new Properties();
     props.put(CredentialProviderToken.NAME_PROPERTY, "root.password");
     props.put(CredentialProviderToken.CREDENTIAL_PROVIDERS_PROPERTY, keystorePath);
@@ -73,8 +112,8 @@ public class CredentialProviderTokenTest {
 
   @Test
   public void cloneReturnsCorrectObject() throws Exception {
-    CredentialProviderToken token = new CredentialProviderToken("root.password", keystorePath);
-    CredentialProviderToken clone = token.clone();
+    var token = new CredentialProviderToken("root.password", keystorePath);
+    var clone = token.clone();
 
     assertEquals(token, clone);
     assertArrayEquals(token.getPassword(), clone.getPassword());
@@ -82,22 +121,22 @@ public class CredentialProviderTokenTest {
 
   @Test
   public void missingProperties() {
-    CredentialProviderToken token = new CredentialProviderToken();
+    var token = new CredentialProviderToken();
     assertThrows(IllegalArgumentException.class, () -> token.init(new Properties()));
   }
 
   @Test
   public void missingNameProperty() {
-    CredentialProviderToken token = new CredentialProviderToken();
-    Properties props = new Properties();
+    var token = new CredentialProviderToken();
+    var props = new Properties();
     props.put(CredentialProviderToken.NAME_PROPERTY, "root.password");
     assertThrows(IllegalArgumentException.class, () -> token.init(props));
   }
 
   @Test
   public void missingProviderProperty() {
-    CredentialProviderToken token = new CredentialProviderToken();
-    Properties props = new Properties();
+    var token = new CredentialProviderToken();
+    var props = new Properties();
     props.put(CredentialProviderToken.CREDENTIAL_PROVIDERS_PROPERTY, keystorePath);
     assertThrows(IllegalArgumentException.class, () -> token.init(props));
   }

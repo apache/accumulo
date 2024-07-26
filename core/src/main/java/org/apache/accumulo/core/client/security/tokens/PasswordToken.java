@@ -89,6 +89,7 @@ public class PasswordToken implements AuthenticationToken {
     int version = arg0.readInt();
     // -1 is null, consistent with legacy format; legacy format length must be >= -1
     // so, use -2 as a magic number to indicate the new format
+    // -1000 to -1999 is reserved for CredentialProviderToken
     if (version == -1) {
       password = null;
     } else if (version == -2) {

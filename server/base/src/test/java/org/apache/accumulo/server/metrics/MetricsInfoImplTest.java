@@ -56,8 +56,8 @@ public class MetricsInfoImplTest {
     verify(context, conf);
   }
 
-  @SuppressWarnings({"deprecation",
-      "support for org.apache.accumulo.core.metrics.MeterRegistryFactory can be removed in 3.1"})
+  // support for org.apache.accumulo.core.metrics.MeterRegistryFactory can be removed in 3.1
+  @SuppressWarnings("deprecation")
   static final class DeprecatedFactory
       implements org.apache.accumulo.core.metrics.MeterRegistryFactory {
     DeprecatedFactory() {

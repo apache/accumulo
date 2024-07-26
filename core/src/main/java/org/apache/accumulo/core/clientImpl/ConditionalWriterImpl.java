@@ -91,7 +91,9 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class ConditionalWriterImpl implements ConditionalWriter {
+import com.google.common.annotations.VisibleForTesting;
+
+public class ConditionalWriterImpl implements ConditionalWriter {
 
   private static final Logger log = LoggerFactory.getLogger(ConditionalWriterImpl.class);
 
@@ -107,6 +109,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private long timeout;
   private final Durability durability;
   private final String classLoaderContext;
+  private final ConditionalWriterConfig config;
 
   private static class ServerQueue {
     BlockingQueue<TabletServerMutations<QCMutation>> queue = new LinkedBlockingQueue<>();
@@ -372,6 +375,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   ConditionalWriterImpl(ClientContext context, TableId tableId, String tableName,
       ConditionalWriterConfig config) {
+    this.config = config;
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
@@ -824,6 +828,11 @@ class ConditionalWriterImpl implements ConditionalWriter {
     } catch (VisibilityParseException | BadArgumentException e) {
       return false;
     }
+  }
+
+  @VisibleForTesting
+  public ConditionalWriterConfig getConfig() {
+    return config;
   }
 
   @Override

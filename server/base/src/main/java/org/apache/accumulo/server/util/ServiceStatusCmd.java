@@ -242,7 +242,7 @@ public class ServiceStatusCmd {
     Map<String,Set<String>> hostsByGroups = new TreeMap<>();
 
     // get group names
-    Result<Integer,Set<String>> queueNodes = readNodeNames(zooReader, zRootPath);
+    Result<Set<String>> queueNodes = readNodeNames(zooReader, zRootPath);
     errors.addAndGet(queueNodes.getErrorCount());
     Set<String> queues = new TreeSet<>(queueNodes.getHosts());
 
@@ -265,7 +265,7 @@ public class ServiceStatusCmd {
    * @return Result with error count, Set of the node names.
    */
   @VisibleForTesting
-  Result<Integer,Set<String>> readNodeNames(final ZooReader zooReader, final String path) {
+  Result<Set<String>> readNodeNames(final ZooReader zooReader, final String path) {
     Set<String> nodeNames = new TreeSet<>();
     final AtomicInteger errorCount = new AtomicInteger(0);
     try {
@@ -290,7 +290,7 @@ public class ServiceStatusCmd {
    * @return Pair with error count, the node data as String.
    */
   @VisibleForTesting
-  Result<Integer,String> readNodeData(final ZooReader zooReader, final String path) {
+  Result<String> readNodeData(final ZooReader zooReader, final String path) {
     try {
       byte[] data = zooReader.getData(path);
       return new Result<>(0, new String(data, UTF_8));
@@ -311,7 +311,7 @@ public class ServiceStatusCmd {
    * @return Pair with error count, the data from each node as a String.
    */
   @VisibleForTesting
-  Result<Integer,Set<String>> readAllNodesData(final ZooReader zooReader, final String path) {
+  Result<Set<String>> readAllNodesData(final ZooReader zooReader, final String path) {
     Set<String> hosts = new TreeSet<>();
     final AtomicInteger errorCount = new AtomicInteger(0);
     try {
@@ -352,12 +352,12 @@ public class ServiceStatusCmd {
    * @param <A> errorCount
    * @param <B> hosts
    */
-  private static class Result<A extends Integer,B> extends Pair<A,B> {
-    public Result(A errorCount, B hosts) {
+  private static class Result<B> extends Pair<Integer,B> {
+    public Result(Integer errorCount, B hosts) {
       super(errorCount, hosts);
     }
 
-    public A getErrorCount() {
+    public Integer getErrorCount() {
       return getFirst();
     }
 
