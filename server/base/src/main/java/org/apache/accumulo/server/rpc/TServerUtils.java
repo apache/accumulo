@@ -20,7 +20,7 @@ package org.apache.accumulo.server.rpc;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_POOL_PREFIX;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -311,7 +311,7 @@ public class TServerUtils {
   private static ThreadPoolExecutor createSelfResizingThreadPool(final String serverName,
       final int executorThreads, long threadTimeOut, final AccumuloConfiguration conf,
       long timeBetweenThreadChecks) {
-    String poolName = METRICS_POOL_PREFIX + serverName.toLowerCase() + ".client";
+    String poolName = ACCUMULO_POOL_PREFIX + serverName.toLowerCase() + ".client";
     final ThreadPoolExecutor pool =
         ThreadPools.getServerThreadPools().getPoolBuilder(poolName).numCoreThreads(executorThreads)
             .withTimeOut(threadTimeOut, MILLISECONDS).enableThreadPoolMetrics().build();

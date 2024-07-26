@@ -26,6 +26,8 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.CONDITIONAL_WRITER_CLEANUP_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCANNER_READ_AHEAD_POOL_NAME;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -260,7 +262,7 @@ public class ClientContext implements AccumuloClient {
       submitScannerReadAheadTask(Callable<List<KeyValue>> c) {
     ensureOpen();
     if (scannerReadaheadPool == null) {
-      scannerReadaheadPool = clientThreadPools.getPoolBuilder("client.context.scanner.read.ahead")
+      scannerReadaheadPool = clientThreadPools.getPoolBuilder(SCANNER_READ_AHEAD_POOL_NAME)
           .numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE).withTimeOut(3L, SECONDS)
           .withQueue(new SynchronousQueue<>()).build();
     }
@@ -270,9 +272,8 @@ public class ClientContext implements AccumuloClient {
   public synchronized void executeCleanupTask(Runnable r) {
     ensureOpen();
     if (cleanupThreadPool == null) {
-      cleanupThreadPool =
-          clientThreadPools.getPoolBuilder("client.context.conditional.writer.cleanup")
-              .numCoreThreads(1).withTimeOut(3L, SECONDS).build();
+      cleanupThreadPool = clientThreadPools.getPoolBuilder(CONDITIONAL_WRITER_CLEANUP_POOL_NAME)
+          .numCoreThreads(1).withTimeOut(3L, SECONDS).build();
     }
     this.cleanupThreadPool.execute(r);
   }

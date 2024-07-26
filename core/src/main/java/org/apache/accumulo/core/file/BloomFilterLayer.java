@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.file;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.BLOOM_LOADER_POOL_NAME;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -80,7 +81,7 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      loadThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("bloom.loader")
+      loadThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder(BLOOM_LOADER_POOL_NAME)
           .numCoreThreads(0).numMaxThreads(maxLoadThreads).withTimeOut(60L, SECONDS).build();
     }
     return loadThreadPool;

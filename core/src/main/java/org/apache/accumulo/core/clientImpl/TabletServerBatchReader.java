@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.BATCH_SCANNER_POOL_NAME;
 
 import java.lang.ref.Cleaner.Cleanable;
 import java.util.ArrayList;
@@ -71,7 +72,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     this.tableName = tableName;
     this.numThreads = numQueryThreads;
 
-    queryThreadPool = context.threadPools().getPoolBuilder("client.batch.reader.scanner")
+    queryThreadPool = context.threadPools().getPoolBuilder(BATCH_SCANNER_POOL_NAME)
         .numCoreThreads(numQueryThreads).build();
     // Call shutdown on this thread pool in case the caller does not call close().
     cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, closed, log);

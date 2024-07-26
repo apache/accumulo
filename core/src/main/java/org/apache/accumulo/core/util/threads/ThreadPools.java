@@ -21,22 +21,23 @@ package org.apache.accumulo.core.util.threads;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_GC_DELETE_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_GENERAL_SERVER_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_GENERAL_SERVER_SIMPLETIMER_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_MANAGER_BULK_IMPORT_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_MANAGER_FATE_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_MANAGER_RENAME_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_MANAGER_STATUS_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_POOL_PREFIX;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_REPLICATION_WORKER_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_ASSIGNMENT_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_COMPACTION_MINOR_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_MIGRATIONS_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_SUMMARY_PARTITION_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_SUMMARY_REMOTE_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_SUMMARY_RETRIEVAL_POOL;
-import static org.apache.accumulo.core.metrics.MetricsThreadPoolsDef.METRICS_TSERVER_WORKQ_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GC_DELETE_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GENERAL_SERVER_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GENERAL_SERVER_SIMPLETIMER_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_BULK_IMPORT_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_FATE_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_RENAME_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_STATUS_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.REPLICATION_WORKER_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCHEDULED_FUTURE_CHECKER_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_ASSIGNMENT_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_MIGRATIONS_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_MINOR_COMPACTOR_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_PARTITION_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_REMOTE_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_RETRIEVAL_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_WORKQ_POOL_NAME;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Iterator;
@@ -98,8 +99,8 @@ public class ThreadPools {
     return new ThreadPools(ueh);
   }
 
-  private static final ThreadPoolExecutor SCHEDULED_FUTURE_CHECKER_POOL =
-      getServerThreadPools().getPoolBuilder("scheduled.future.checker").numCoreThreads(1).build();
+  private static final ThreadPoolExecutor SCHEDULED_FUTURE_CHECKER_POOL = getServerThreadPools()
+      .getPoolBuilder(SCHEDULED_FUTURE_CHECKER_POOL_NAME).numCoreThreads(1).build();
 
   private static final ConcurrentLinkedQueue<ScheduledFuture<?>> CRITICAL_RUNNING_TASKS =
       new ConcurrentLinkedQueue<>();
@@ -289,12 +290,12 @@ public class ThreadPools {
     switch (p) {
       case GENERAL_SIMPLETIMER_THREADPOOL_SIZE:
         return createScheduledExecutorService(conf.getCount(p),
-            METRICS_GENERAL_SERVER_SIMPLETIMER_POOL);
+            GENERAL_SERVER_SIMPLETIMER_POOL_NAME.poolName);
       case GENERAL_THREADPOOL_SIZE:
-        return createScheduledExecutorService(conf.getCount(p), METRICS_GENERAL_SERVER_POOL,
+        return createScheduledExecutorService(conf.getCount(p), GENERAL_SERVER_POOL_NAME.poolName,
             emitThreadPoolMetrics);
       case MANAGER_BULK_THREADPOOL_SIZE:
-        builder = getPoolBuilder(METRICS_MANAGER_BULK_IMPORT_POOL).numCoreThreads(conf.getCount(p))
+        builder = getPoolBuilder(MANAGER_BULK_IMPORT_POOL_NAME).numCoreThreads(conf.getCount(p))
             .withTimeOut(conf.getTimeInMillis(Property.MANAGER_BULK_THREADPOOL_TIMEOUT),
                 MILLISECONDS);
         if (emitThreadPoolMetrics) {
@@ -302,19 +303,19 @@ public class ThreadPools {
         }
         return builder.build();
       case MANAGER_RENAME_THREADS:
-        builder = getPoolBuilder(METRICS_MANAGER_RENAME_POOL).numCoreThreads(conf.getCount(p));
+        builder = getPoolBuilder(MANAGER_RENAME_POOL_NAME).numCoreThreads(conf.getCount(p));
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case MANAGER_FATE_THREADPOOL_SIZE:
-        builder = getPoolBuilder(METRICS_MANAGER_FATE_POOL).numCoreThreads(conf.getCount(p));
+        builder = getPoolBuilder(MANAGER_FATE_POOL_NAME).numCoreThreads(conf.getCount(p));
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case MANAGER_STATUS_THREAD_POOL_SIZE:
-        builder = getPoolBuilder(METRICS_MANAGER_STATUS_POOL);
+        builder = getPoolBuilder(MANAGER_STATUS_POOL_NAME);
         int threads = conf.getCount(p);
         if (threads == 0) {
           builder.numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE).withTimeOut(60L, SECONDS)
@@ -327,57 +328,57 @@ public class ThreadPools {
         }
         return builder.build();
       case TSERV_WORKQ_THREADS:
-        builder = getPoolBuilder(METRICS_TSERVER_WORKQ_POOL).numCoreThreads(conf.getCount(p));
+        builder = getPoolBuilder(TSERVER_WORKQ_POOL_NAME).numCoreThreads(conf.getCount(p));
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case TSERV_MINC_MAXCONCURRENT:
-        builder = getPoolBuilder(METRICS_TSERVER_COMPACTION_MINOR_POOL)
-            .numCoreThreads(conf.getCount(p)).withTimeOut(0L, MILLISECONDS);
+        builder = getPoolBuilder(TSERVER_MINOR_COMPACTOR_POOL_NAME).numCoreThreads(conf.getCount(p))
+            .withTimeOut(0L, MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case TSERV_MIGRATE_MAXCONCURRENT:
-        builder = getPoolBuilder(METRICS_TSERVER_MIGRATIONS_POOL).numCoreThreads(conf.getCount(p))
+        builder = getPoolBuilder(TSERVER_MIGRATIONS_POOL_NAME).numCoreThreads(conf.getCount(p))
             .withTimeOut(0L, MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case TSERV_ASSIGNMENT_MAXCONCURRENT:
-        builder = getPoolBuilder(METRICS_TSERVER_ASSIGNMENT_POOL).numCoreThreads(conf.getCount(p))
+        builder = getPoolBuilder(TSERVER_ASSIGNMENT_POOL_NAME).numCoreThreads(conf.getCount(p))
             .withTimeOut(0L, MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case TSERV_SUMMARY_RETRIEVAL_THREADS:
-        builder = getPoolBuilder(METRICS_TSERVER_SUMMARY_RETRIEVAL_POOL)
+        builder = getPoolBuilder(TSERVER_SUMMARY_RETRIEVAL_POOL_NAME)
             .numCoreThreads(conf.getCount(p)).withTimeOut(60L, MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case TSERV_SUMMARY_REMOTE_THREADS:
-        builder = getPoolBuilder(METRICS_TSERVER_SUMMARY_REMOTE_POOL)
-            .numCoreThreads(conf.getCount(p)).withTimeOut(60L, MILLISECONDS);
+        builder = getPoolBuilder(TSERVER_SUMMARY_REMOTE_POOL_NAME).numCoreThreads(conf.getCount(p))
+            .withTimeOut(60L, MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case TSERV_SUMMARY_PARTITION_THREADS:
-        builder = getPoolBuilder(METRICS_TSERVER_SUMMARY_PARTITION_POOL)
+        builder = getPoolBuilder(TSERVER_SUMMARY_PARTITION_POOL_NAME)
             .numCoreThreads(conf.getCount(p)).withTimeOut(60L, MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
       case GC_DELETE_THREADS:
-        return getPoolBuilder(METRICS_GC_DELETE_POOL).numCoreThreads(conf.getCount(p)).build();
+        return getPoolBuilder(GC_DELETE_POOL_NAME).numCoreThreads(conf.getCount(p)).build();
       case REPLICATION_WORKER_THREADS:
-        builder = getPoolBuilder(METRICS_REPLICATION_WORKER_POOL).numCoreThreads(conf.getCount(p));
+        builder = getPoolBuilder(REPLICATION_WORKER_POOL_NAME).numCoreThreads(conf.getCount(p));
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
@@ -391,10 +392,25 @@ public class ThreadPools {
   /**
    * Fet a fluent-style pool builder.
    *
-   * @param name the pool name - the name will be prepended with METRICS_POOL_PREFIX
+   * @param pool the constant pool name
+   */
+  public ThreadPoolExecutorBuilder getPoolBuilder(@NonNull final ThreadPoolNames pool) {
+    return new ThreadPoolExecutorBuilder(pool.poolName);
+  }
+
+  /**
+   * Fet a fluent-style pool builder.
+   *
+   * @param name the pool name - the name trimed and prepended with the ACCUMULO_POOL_PREFIX so that
+   *        pool names begin with a consistent prefix.
    */
   public ThreadPoolExecutorBuilder getPoolBuilder(@NonNull final String name) {
-    return new ThreadPoolExecutorBuilder(name);
+    String trimmed = name.trim();
+    if (trimmed.startsWith(ACCUMULO_POOL_PREFIX.poolName)) {
+      return new ThreadPoolExecutorBuilder(trimmed);
+    } else {
+      return new ThreadPoolExecutorBuilder(ACCUMULO_POOL_PREFIX + trimmed);
+    }
   }
 
   public class ThreadPoolExecutorBuilder {
@@ -409,16 +425,10 @@ public class ThreadPools {
 
     /**
      * A fluent-style build to create a ThreadPoolExecutor. The name is used when creating
-     * named-threads for the pool. The name trimmed and prepended with the METRICS_POOL_PREFIX so
-     * that pool names begin with a consistent prefix.
+     * named-threads for the pool.
      */
     ThreadPoolExecutorBuilder(@NonNull final String name) {
-      String trimmed = name.trim();
-      if (trimmed.startsWith(METRICS_POOL_PREFIX)) {
-        this.name = trimmed;
-      } else {
-        this.name = METRICS_POOL_PREFIX + trimmed;
-      }
+      this.name = name;
     }
 
     public ThreadPoolExecutor build() {

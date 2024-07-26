@@ -19,6 +19,8 @@
 package org.apache.accumulo.core.util.compaction;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTION_RUNNING_COMPACTION_IDS_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTIONS_POOL_NAME;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -224,7 +226,7 @@ public class ExternalCompactionUtil {
   public static List<RunningCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
     final List<RunningCompactionFuture> rcFutures = new ArrayList<>();
     final ExecutorService executor = ThreadPools.getServerThreadPools()
-        .getPoolBuilder("compactor.running.compactions").numCoreThreads(16).build();
+        .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL_NAME).numCoreThreads(16).build();
     getCompactorAddrs(context).forEach((q, hp) -> {
       hp.forEach(hostAndPort -> {
         rcFutures.add(new RunningCompactionFuture(q, hostAndPort,
@@ -251,7 +253,7 @@ public class ExternalCompactionUtil {
   public static Collection<ExternalCompactionId>
       getCompactionIdsRunningOnCompactors(ClientContext context) {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
-        .getPoolBuilder("compactor.running.compaction.ids").numCoreThreads(16).build();
+        .getPoolBuilder(COMPACTION_RUNNING_COMPACTION_IDS_POOL_NAME).numCoreThreads(16).build();
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
     getCompactorAddrs(context).forEach((q, hp) -> {
