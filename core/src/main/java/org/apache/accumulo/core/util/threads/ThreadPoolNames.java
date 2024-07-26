@@ -21,7 +21,6 @@ package org.apache.accumulo.core.util.threads;
 public enum ThreadPoolNames {
 
   ACCUMULO_POOL_PREFIX("accumulo.pool"),
-  BATCH_SCANNER_POOL("accumulo.pool.client.batch.reader.scanner"),
   BATCH_WRITER_SEND_POOL("accumulo.pool.batch.writer.send"),
   BATCH_WRITER_BIN_MUTATIONS_POOL("accumulo.pool.batch.writer.bin.mutations"),
   BULK_IMPORT_CLIENT_LOAD_POOL("accumulo.pool.bulk.import.client.bulk.load"),
