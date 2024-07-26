@@ -175,7 +175,8 @@ public class InternalCompactionExecutor implements CompactionExecutor {
     queue = new PriorityBlockingQueue<>(100, comparator);
 
     threadPool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(ACCUMULO_POOL_PREFIX + ".compaction.service.internal.compaction." + ceid)
+        .getPoolBuilder(
+            ACCUMULO_POOL_PREFIX.poolName + ".compaction.service.internal.compaction." + ceid)
         .numCoreThreads(threads).numMaxThreads(threads).withTimeOut(60L, SECONDS).withQueue(queue)
         .build();
     metricCloser =
@@ -207,7 +208,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
 
   public void setThreads(int numThreads) {
     ThreadPools.resizePool(threadPool, () -> numThreads,
-        ACCUMULO_POOL_PREFIX + "accumulo.pool.compaction." + ceid);
+        ACCUMULO_POOL_PREFIX.poolName + "accumulo.pool.compaction." + ceid);
   }
 
   @Override

@@ -409,7 +409,7 @@ public class ThreadPools {
     if (trimmed.startsWith(ACCUMULO_POOL_PREFIX.poolName)) {
       return new ThreadPoolExecutorBuilder(trimmed);
     } else {
-      return new ThreadPoolExecutorBuilder(ACCUMULO_POOL_PREFIX + trimmed);
+      return new ThreadPoolExecutorBuilder(ACCUMULO_POOL_PREFIX.poolName + trimmed);
     }
   }
 

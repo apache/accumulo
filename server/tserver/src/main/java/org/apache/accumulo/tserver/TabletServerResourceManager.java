@@ -196,13 +196,13 @@ public class TabletServerResourceManager {
 
     scanExecQueues.put(sec.name, queue);
     ThreadPoolExecutor es = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(ACCUMULO_POOL_PREFIX + ".scan." + sec.name)
+        .getPoolBuilder(ACCUMULO_POOL_PREFIX.poolName + ".scan." + sec.name)
         .numCoreThreads(sec.getCurrentMaxThreads()).numMaxThreads(sec.getCurrentMaxThreads())
         .withTimeOut(0L, MILLISECONDS).withQueue(queue).atPriority(sec.priority)
         .enableThreadPoolMetrics(enableMetrics).build();
 
     modifyThreadPoolSizesAtRuntime(sec::getCurrentMaxThreads,
-        ACCUMULO_POOL_PREFIX + ".scan." + sec.name, es);
+        ACCUMULO_POOL_PREFIX.poolName + ".scan." + sec.name, es);
     return es;
 
   }
