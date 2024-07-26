@@ -18,11 +18,13 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -219,7 +221,7 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
 
       try (Scanner scanner = client.createScanner(table1, Authorizations.EMPTY)) {
         scanner.setConsistencyLevel(ScannerBase.ConsistencyLevel.EVENTUAL);
-        var ignored = scanner.stream().count();
+        assertEquals(MAX_DATA, scanner.stream().count());
       }
 
       log.info("Waiting for sserver to be not idle after starting a scan");
