@@ -24,7 +24,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.groupingBy;
 import static org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.pathToCacheId;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.BULK_IMPORT_CLIENT_BULK_THREADS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.BULK_IMPORT_CLIENT_LOAD_POOL;
 
 import java.io.FileNotFoundException;
@@ -488,11 +488,10 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
           .numCoreThreads(numThreads).enableThreadPoolMetrics().build();
     } else {
       String threads = context.getConfiguration().get(ClientProperty.BULK_LOAD_THREADS.getKey());
-      executor = service = context.threadPools()
-          .getPoolBuilder(ACCUMULO_POOL_PREFIX.poolName + ".bulk.import.client."
-              + ClientProperty.BULK_LOAD_THREADS.getKey())
-          .numCoreThreads(ConfigurationTypeHelper.getNumThreads(threads)).enableThreadPoolMetrics()
-          .build();
+      executor =
+          service = context.threadPools().getPoolBuilder(BULK_IMPORT_CLIENT_BULK_THREADS_POOL)
+              .numCoreThreads(ConfigurationTypeHelper.getNumThreads(threads))
+              .enableThreadPoolMetrics().build();
     }
 
     try {

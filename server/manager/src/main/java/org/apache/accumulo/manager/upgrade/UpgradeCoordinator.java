@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_UPGRADE_COORDINATOR_METADATA_POOL;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -194,7 +195,8 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do metadata upgrade %s", status);
 
     if (currentVersion < AccumuloDataVersion.get()) {
-      return ThreadPools.getServerThreadPools().getPoolBuilder("upgrade.metadata").numCoreThreads(0)
+      return ThreadPools.getServerThreadPools()
+          .getPoolBuilder(MANAGER_UPGRADE_COORDINATOR_METADATA_POOL).numCoreThreads(0)
           .numMaxThreads(Integer.MAX_VALUE).withTimeOut(60L, SECONDS)
           .withQueue(new SynchronousQueue<>()).build().submit(() -> {
             try {

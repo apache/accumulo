@@ -24,11 +24,13 @@ public enum ThreadPoolNames {
   BATCH_WRITER_SEND_POOL("accumulo.pool.batch.writer.send"),
   BATCH_WRITER_BIN_MUTATIONS_POOL("accumulo.pool.batch.writer.bin.mutations"),
   BULK_IMPORT_CLIENT_LOAD_POOL("accumulo.pool.bulk.import.client.bulk.load"),
+  BULK_IMPORT_CLIENT_BULK_THREADS_POOL("accumulo.pool.bulk.import.client.bulk.threads"),
   BULK_IMPORT_DIR_MOVE_POOL("accumulo.pool.bulk.dir.move"),
   BLOOM_LOADER_POOL("accumulo.pool.bloom.loader"),
-  SCANNER_READ_AHEAD_POOL("accumulo.pool.client.context.scanner.read.ahead"),
+  COMPACTION_COORDINATOR_SUMMARY_POOL("accumulo.pool.compaction.summary.gatherer"),
+  COMPACTION_SERVICE_COMPACTION_PLANNER_POOL("accumulo.pool.compaction.service.compaction.planner"),
   COMPACTOR_RUNNING_COMPACTIONS_POOL("accumulo.pool.compactor.running.compactions"),
-  COMPACTION_RUNNING_COMPACTION_IDS_POOL("accumulo.pool.compactor.running.compaction.ids"),
+  COMPACTOR_RUNNING_COMPACTION_IDS_POOL("accumulo.pool.compactor.running.compaction.ids"),
   CONDITIONAL_WRITER_POOL("accumulo.pool.conditional.writer"),
   CONDITIONAL_WRITER_CLEANUP_POOL("accumulo.pool.client.context.conditional.writer.cleanup"),
   COORDINATOR_FINALIZER_BACKGROUND_POOL("accumulo.pool.compaction.finalizer.background.pool"),
@@ -42,13 +44,18 @@ public enum ThreadPoolNames {
   MANAGER_FATE_POOL("accumulo.pool.manager.fate"),
   MANAGER_RENAME_POOL("accumulo.pool.manager.rename"),
   MANAGER_STATUS_POOL("accumulo.pool.manager.status"),
+  MANAGER_UPGRADE_COORDINATOR_METADATA_POOL("accumulo.pool.manager.upgrade.metadata"),
   METADATA_DEFAULT_SPLIT_POOL("accumulo.pool.metadata.tablet.default.splitter"),
   METADATA_TABLET_MIGRATION_POOL("accumulo.pool.metadata.tablet.migration"),
   METADATA_TABLET_ASSIGNMENT_POOL("accumulo.pool.metadata.tablet.assignment"),
   REPLICATION_WORKER_POOL("accumulo.pool.replication.worker"),
   SCAN_POOL("accumulo.pool.scan"),
-  SPLIT_POOL("accumulo.pool.table.ops.add.splits"),
+  SCANNER_READ_AHEAD_POOL("accumulo.pool.client.context.scanner.read.ahead"),
+
+  SCAN_SERVER_TABLET_METADATA_CACHE_POOL("accumulo.pool.scan.server.tablet.metadata.cache"),
+
   SCHEDULED_FUTURE_CHECKER_POOL("accumulo.pool.scheduled.future.checker"),
+  SPLIT_POOL("accumulo.pool.table.ops.add.splits"),
   TABLET_ASSIGNMENT_POOL("accumulo.pool.tablet.assignment.pool"),
   TSERVER_SUMMARY_RETRIEVAL_POOL("accumulo.pool.tserver.summary.retrieval"),
   TSERVER_SUMMARY_FILE_RETRIEVER_POOL("accumulo.pool.tserver.summary.file.retriever.pool"),
@@ -59,8 +66,12 @@ public enum ThreadPoolNames {
   TSERVER_MINOR_COMPACTOR_POOL("accumulo.pool.tserver.minor.compactor"),
   TSERVER_SUMMARY_PARTITION_POOL("accumulo.pool.tserver.summary.partition"),
   TSERVER_TABLET_MIGRATION_POOL("accumulo.pool.tserver.tablet.migration"),
+  TSERVER_WAL_CREATOR_POOL("accumulo.pool.tserver.wal.creator"),
   TSERVER_WAL_SORT_CONCURRENT_POOL("accumulo.pool.tserver.wal.sort.concurrent"),
-  TSERVER_WORKQ_POOL("accumulo.pool.tserver.workq");
+  TSERVER_WORKQ_POOL("accumulo.pool.tserver.workq"),
+
+  UTILITY_CHECK_FILE_TASKS("accumulo.pool.util.check.file.tasks"),
+  UTILITY_VERIFY_TABLET_ASSIGNMENTS("accumulo.pool.util.check.tablet.servers");
 
   public final String poolName;
 
