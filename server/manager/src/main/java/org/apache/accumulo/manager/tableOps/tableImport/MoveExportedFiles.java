@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.tableImport;
 
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.IMPORT_TABLE_RENAME_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.IMPORT_TABLE_RENAME_POOL;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -114,7 +114,7 @@ class MoveExportedFiles extends ManagerRepo {
       }
     }
     try {
-      fs.bulkRename(oldToNewPaths, workerCount, IMPORT_TABLE_RENAME_POOL_NAME.poolName, fmtTid);
+      fs.bulkRename(oldToNewPaths, workerCount, IMPORT_TABLE_RENAME_POOL.poolName, fmtTid);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(), null,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER, ioe.getCause().getMessage());

@@ -24,16 +24,16 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.METADATA_DEFAULT_SPLIT_POOL_NAME;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.METADATA_TABLET_ASSIGNMENT_POOL_NAME;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.METADATA_TABLET_MIGRATION_POOL_NAME;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SPLIT_POOL_NAME;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TABLET_ASSIGNMENT_POOL_NAME;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_MINOR_COMPACTOR_POOL_NAME;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_FILE_RETRIEVER_POOL_NAME;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_PARTITION_POOL_NAME;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_REMOTE_POOL_NAME;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_TABLET_MIGRATION_POOL_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.METADATA_DEFAULT_SPLIT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.METADATA_TABLET_ASSIGNMENT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.METADATA_TABLET_MIGRATION_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SPLIT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TABLET_ASSIGNMENT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_MINOR_COMPACTOR_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_FILE_RETRIEVER_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_PARTITION_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_REMOTE_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_TABLET_MIGRATION_POOL;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -319,24 +319,24 @@ public class TabletServerResourceManager {
         Property.TSERV_MINC_MAXCONCURRENT, true);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
-        TSERVER_MINOR_COMPACTOR_POOL_NAME.poolName, minorCompactionThreadPool);
+        TSERVER_MINOR_COMPACTOR_POOL.poolName, minorCompactionThreadPool);
 
-    splitThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder(SPLIT_POOL_NAME)
+    splitThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder(SPLIT_POOL)
         .numCoreThreads(0).numMaxThreads(1).withTimeOut(1, SECONDS).build();
 
     defaultSplitThreadPool =
-        ThreadPools.getServerThreadPools().getPoolBuilder(METADATA_DEFAULT_SPLIT_POOL_NAME)
+        ThreadPools.getServerThreadPools().getPoolBuilder(METADATA_DEFAULT_SPLIT_POOL)
             .numCoreThreads(0).numMaxThreads(1).withTimeOut(60, SECONDS).build();
 
     defaultMigrationPool =
-        ThreadPools.getServerThreadPools().getPoolBuilder(METADATA_TABLET_MIGRATION_POOL_NAME)
+        ThreadPools.getServerThreadPools().getPoolBuilder(METADATA_TABLET_MIGRATION_POOL)
             .numCoreThreads(0).numMaxThreads(1).withTimeOut(60, SECONDS).build();
 
     migrationPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
         Property.TSERV_MIGRATE_MAXCONCURRENT, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_MIGRATE_MAXCONCURRENT),
-        TSERVER_TABLET_MIGRATION_POOL_NAME.poolName, migrationPool);
+        TSERVER_TABLET_MIGRATION_POOL.poolName, migrationPool);
 
     // not sure if concurrent assignments can run safely... even if they could there is probably no
     // benefit at startup because
@@ -347,10 +347,10 @@ public class TabletServerResourceManager {
         Property.TSERV_ASSIGNMENT_MAXCONCURRENT, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT),
-        TABLET_ASSIGNMENT_POOL_NAME.poolName, assignmentPool);
+        TABLET_ASSIGNMENT_POOL.poolName, assignmentPool);
 
     assignMetaDataPool =
-        ThreadPools.getServerThreadPools().getPoolBuilder(METADATA_TABLET_ASSIGNMENT_POOL_NAME)
+        ThreadPools.getServerThreadPools().getPoolBuilder(METADATA_TABLET_ASSIGNMENT_POOL)
             .numCoreThreads(0).numMaxThreads(1).withTimeOut(60, SECONDS).build();
 
     activeAssignments = new ConcurrentHashMap<>();
@@ -359,19 +359,19 @@ public class TabletServerResourceManager {
         Property.TSERV_SUMMARY_RETRIEVAL_THREADS, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_RETRIEVAL_THREADS),
-        TSERVER_SUMMARY_FILE_RETRIEVER_POOL_NAME.poolName, summaryRetrievalPool);
+        TSERVER_SUMMARY_FILE_RETRIEVER_POOL.poolName, summaryRetrievalPool);
 
     summaryRemotePool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
         Property.TSERV_SUMMARY_REMOTE_THREADS, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_REMOTE_THREADS),
-        TSERVER_SUMMARY_REMOTE_POOL_NAME.poolName, summaryRemotePool);
+        TSERVER_SUMMARY_REMOTE_POOL.poolName, summaryRemotePool);
 
     summaryPartitionPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
         Property.TSERV_SUMMARY_PARTITION_THREADS, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_PARTITION_THREADS),
-        TSERVER_SUMMARY_PARTITION_POOL_NAME.poolName, summaryPartitionPool);
+        TSERVER_SUMMARY_PARTITION_POOL.poolName, summaryPartitionPool);
 
     boolean isScanServer = (tserver instanceof ScanServer);
 
