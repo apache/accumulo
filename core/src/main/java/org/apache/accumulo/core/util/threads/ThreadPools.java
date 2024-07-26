@@ -30,6 +30,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_FATE
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_RENAME_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_STATUS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.REPLICATION_WORKER_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCHED_FUTURE_CHECKER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_ASSIGNMENT_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_MIGRATIONS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_MINOR_COMPACTOR_POOL;
@@ -98,8 +99,8 @@ public class ThreadPools {
     return new ThreadPools(ueh);
   }
 
-  private static final ThreadPoolExecutor SCHEDULED_FUTURE_CHECKER_POOL = getServerThreadPools()
-      .getPoolBuilder(ThreadPoolNames.SCHEDULED_FUTURE_CHECKER_POOL).numCoreThreads(1).build();
+  private static final ThreadPoolExecutor SCHEDULED_FUTURE_CHECKER_POOL =
+      getServerThreadPools().getPoolBuilder(SCHED_FUTURE_CHECKER_POOL).numCoreThreads(1).build();
 
   private static final ConcurrentLinkedQueue<ScheduledFuture<?>> CRITICAL_RUNNING_TASKS =
       new ConcurrentLinkedQueue<>();
