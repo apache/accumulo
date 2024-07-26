@@ -245,7 +245,7 @@ public class ThreadPools {
    */
   public static void resizePool(final ThreadPoolExecutor pool, final AccumuloConfiguration conf,
       final Property p) {
-    resizePool(pool, () -> conf.getCount(p), p.getKey() + ".pool");
+    resizePool(pool, () -> conf.getCount(p), p.getKey());
   }
 
   private final UncaughtExceptionHandler handler;
