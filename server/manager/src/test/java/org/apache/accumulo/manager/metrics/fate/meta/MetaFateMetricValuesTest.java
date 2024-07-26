@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.metrics.fate;
+package org.apache.accumulo.manager.metrics.fate.meta;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-public class FateMetricValuesTest {
+public class MetaFateMetricValuesTest {
 
   @Test
   public void defaultValueTest() {
 
-    FateMetricValues v = FateMetricValues.builder().build();
+    MetaFateMetricValues v = MetaFateMetricValues.builder().build();
 
     assertEquals(0, v.getCurrentFateOps());
     assertEquals(0, v.getZkFateChildOpsTotal());
@@ -37,9 +37,9 @@ public class FateMetricValuesTest {
   @Test
   public void valueTest() {
 
-    FateMetricValues.Builder builder = FateMetricValues.builder();
+    MetaFateMetricValues.Builder builder = MetaFateMetricValues.builder();
 
-    FateMetricValues v =
+    MetaFateMetricValues v =
         builder.withCurrentFateOps(1).withZkFateChildOpsTotal(2).withZkConnectionErrors(3).build();
 
     assertEquals(1, v.getCurrentFateOps());
