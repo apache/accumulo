@@ -50,7 +50,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
-import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -206,7 +205,7 @@ public class GCRun implements GarbageCollectionEnvironment {
       // if dirName is populated, then we have a tablet directory aka srv:dir
       if (tm.getDirName() != null) {
         // add the tablet directory to the stream
-        var tabletDir = new ReferenceDirectory(tableId, tm.getDirName());
+        var tabletDir = ReferenceFile.forDirectory(tableId, tm.getDirName());
         fileStream = Stream.concat(fileStream, Stream.of(tabletDir));
       }
       return fileStream;

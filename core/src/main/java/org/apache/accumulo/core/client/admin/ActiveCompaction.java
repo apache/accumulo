@@ -57,7 +57,7 @@ public abstract class ActiveCompaction {
      * @deprecated Chop compactions no longer occur and it's not expected that listing compaction
      *             would ever return this.
      */
-    @Deprecated(since = "3.1")
+    @Deprecated(since = "3.1.0")
     CHOP,
     /**
      * idle compaction

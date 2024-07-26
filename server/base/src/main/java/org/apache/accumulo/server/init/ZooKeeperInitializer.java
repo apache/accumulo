@@ -120,10 +120,15 @@ public class ZooKeeperInitializer {
     TableManager.prepareNewNamespaceState(context, Namespace.ACCUMULO.id(),
         Namespace.ACCUMULO.name(), ZooUtil.NodeExistsPolicy.FAIL);
 
-    for (AccumuloTable table : AccumuloTable.values()) {
-      TableManager.prepareNewTableState(context, table.tableId(), Namespace.ACCUMULO.id(),
-          table.tableName(), TableState.ONLINE, ZooUtil.NodeExistsPolicy.FAIL);
-    }
+    TableManager.prepareNewTableState(context, AccumuloTable.ROOT.tableId(),
+        Namespace.ACCUMULO.id(), AccumuloTable.ROOT.tableName(), TableState.ONLINE,
+        ZooUtil.NodeExistsPolicy.FAIL);
+    TableManager.prepareNewTableState(context, AccumuloTable.METADATA.tableId(),
+        Namespace.ACCUMULO.id(), AccumuloTable.METADATA.tableName(), TableState.ONLINE,
+        ZooUtil.NodeExistsPolicy.FAIL);
+    // Call this separately so the upgrader code can handle the zk node creation for scan refs
+    initScanRefTableState(context);
+    initFateTableState(context);
 
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
@@ -189,6 +194,26 @@ public class ZooKeeperInitializer {
     rootTabletJson.update(mutation);
 
     return rootTabletJson.toJson().getBytes(UTF_8);
+  }
+
+  public void initScanRefTableState(ServerContext context) {
+    try {
+      TableManager.prepareNewTableState(context, AccumuloTable.SCAN_REF.tableId(),
+          Namespace.ACCUMULO.id(), AccumuloTable.SCAN_REF.tableName(), TableState.ONLINE,
+          ZooUtil.NodeExistsPolicy.FAIL);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void initFateTableState(ServerContext context) {
+    try {
+      TableManager.prepareNewTableState(context, AccumuloTable.FATE.tableId(),
+          Namespace.ACCUMULO.id(), AccumuloTable.FATE.tableName(), TableState.ONLINE,
+          ZooUtil.NodeExistsPolicy.FAIL);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 }
