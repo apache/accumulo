@@ -18,16 +18,21 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.client.security.SecurityErrorCode.PERMISSION_DENIED;
 
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -47,6 +52,8 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.lang3.StringUtils;
 import org.jline.reader.LineReader;
 
@@ -54,7 +61,7 @@ import com.google.common.collect.ImmutableSortedMap;
 
 public class ConfigCommand extends Command {
   private Option tableOpt, deleteOpt, setOpt, forceOpt, filterOpt, filterWithValuesOpt,
-      disablePaginationOpt, outputFileOpt, namespaceOpt;
+      disablePaginationOpt, outputFileOpt, namespaceOpt, propFileOpt;
 
   private int COL1 = 10, COL2 = 7;
   private LineReader reader;
@@ -89,6 +96,10 @@ public class ConfigCommand extends Command {
     if (namespace != null
         && !shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
+    }
+    String filename = cl.getOptionValue(propFileOpt.getOpt());
+    if (filename != null) {
+      modifyPropertiesFromFile(cl, shellState, filename);
     }
     if (cl.hasOption(deleteOpt.getOpt())) {
       // delete property from table
@@ -368,6 +379,59 @@ public class ConfigCommand extends Command {
     return 0;
   }
 
+  private void modifyPropertiesFromFile(CommandLine cl, Shell shellState, String filename)
+      throws AccumuloException, AccumuloSecurityException, IOException, NamespaceNotFoundException {
+    PropertiesConfiguration fileProperties = readPropertiesFromFile(filename);
+
+    Map<String,String> propertiesMap = new HashMap<>();
+    Iterator<String> keysIterator = fileProperties.getKeys();
+    boolean foundErrors = false;
+    while (keysIterator.hasNext()) {
+      String key = keysIterator.next();
+      String value = fileProperties.getString(key);
+      if (!Property.isValidPropertyKey(key)) {
+        Shell.log.error("Property: \"{}\" is invalid", key);
+        foundErrors = true;
+      } else if (!Property.isValidProperty(key, value)) {
+        Shell.log.error("Property: \"{}\" has an invalid value: \"{}\"", key, value);
+        foundErrors = true;
+      } else {
+        propertiesMap.put(key, value);
+      }
+    }
+    // Error for the whole file as this should be an atomic properties update
+    if (foundErrors) {
+      Shell.log.error("Property file {} contains invalid properties", filename);
+      throw new AccumuloException("InvalidPropertyFile: " + filename);
+
+    }
+
+    Consumer<Map<String,String>> propertyModifier = currProps -> {
+      currProps.putAll(propertiesMap);
+    };
+
+    if (cl.hasOption(tableOpt.getOpt())) {
+      shellState.getAccumuloClient().tableOperations()
+          .modifyProperties(cl.getOptionValue(tableOpt.getOpt()), propertyModifier);
+    } else if (cl.hasOption(namespaceOpt.getOpt())) {
+      shellState.getAccumuloClient().namespaceOperations()
+          .modifyProperties(cl.getOptionValue(namespaceOpt.getOpt()), propertyModifier);
+    } else {
+      shellState.getAccumuloClient().instanceOperations().modifyProperties(propertyModifier);
+    }
+  }
+
+  private PropertiesConfiguration readPropertiesFromFile(String filename) throws IOException {
+    var config = new PropertiesConfiguration();
+    try (FileReader out = new FileReader(filename, UTF_8)) {
+      config.read(out);
+    } catch (ConfigurationException e) {
+      Shell.log.error("Property file {} contains invalid configuration. Please verify file format",
+          filename, e);
+    }
+    return config;
+  }
+
   private boolean matchTheFilterText(CommandLine cl, String key, String value) {
     if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
       return true;
@@ -424,7 +488,7 @@ public class ConfigCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
         "namespace to display/set/delete properties for");
-
+    propFileOpt = new Option("p", "propFile", true, "file containing properties to set");
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
     setOpt.setArgName("property=value");
@@ -432,11 +496,13 @@ public class ConfigCommand extends Command {
     filterWithValuesOpt.setArgName("string");
     outputFileOpt.setArgName("file");
     namespaceOpt.setArgName("namespace");
+    propFileOpt.setArgName("filename");
 
     og.addOption(deleteOpt);
     og.addOption(setOpt);
     og.addOption(filterOpt);
     og.addOption(filterWithValuesOpt);
+    og.addOption(propFileOpt);
 
     tgroup.addOption(tableOpt);
     tgroup.addOption(namespaceOpt);
