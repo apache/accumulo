@@ -473,7 +473,7 @@ public class RelativeKey implements Writable {
     int remainingLen = WritableUtils.readVInt(in);
     int len = prefixLen + remainingLen;
     byte[] buf = dest.getBackingArray();
-    if (dest.getBackingArray().length < len) {
+    if (buf.length < len) {
       buf = new byte[UnsynchronizedBuffer.nextArraySize(len)];
     }
     if (prefixSource.isBackedByArray()) {
@@ -484,7 +484,7 @@ public class RelativeKey implements Writable {
     }
     // read remaining
     in.readFully(buf, prefixLen, remainingLen);
-    dest.reset(buf, dest.offset(), len);
+    dest.reset(buf, 0, len);
   }
 
   private static byte[] read(DataInput in) throws IOException {

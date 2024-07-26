@@ -1054,7 +1054,7 @@ public class RFile {
             hasTop = true;
           }
 
-          ArrayByteSequence valbs = new ArrayByteSequence(new byte[64], 0, 0);
+          final ArrayByteSequence valbs = new ArrayByteSequence(new byte[64], 0, 0);
 
           Key currKey = null;
 
@@ -1071,7 +1071,7 @@ public class RFile {
                 val = new Value();
 
                 val.readFields(currBlock);
-                valbs = new ArrayByteSequence(val.get(), 0, val.getSize());
+                valbs.reset(val.get(), 0, val.getSize());
 
                 // just consumed one key from the input stream, so subtract one from entries left
                 entriesLeft = bie.getEntriesLeft() - 1;
