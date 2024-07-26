@@ -164,7 +164,7 @@ public class CompactionJobQueues {
    */
   public CompletableFuture<MetaJob> getAsync(CompactorGroupId groupId) {
     var pq = priorityQueues.computeIfAbsent(groupId,
-        gid -> new CompactionJobPriorityQueue(gid, queueSize));
+        gid -> new CompactionJobPriorityQueue(gid, () -> queueSize));
     return pq.getAsync();
   }
 
@@ -187,7 +187,7 @@ public class CompactionJobQueues {
     }
 
     var pq = priorityQueues.computeIfAbsent(groupId,
-        gid -> new CompactionJobPriorityQueue(gid, queueSize));
+        gid -> new CompactionJobPriorityQueue(gid, () -> queueSize));
     pq.add(tabletMetadata, jobs,
         currentGenerations.get(DataLevel.of(tabletMetadata.getTableId())).get());
   }

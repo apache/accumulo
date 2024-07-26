@@ -71,7 +71,7 @@ public class CompactionJobPriorityQueueTest {
 
     EasyMock.replay(tm, cj1, cj2);
 
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, () -> 2);
     assertEquals(1, queue.add(tm, List.of(cj1), 1L));
 
     MetaJob job = queue.peek();
@@ -126,7 +126,7 @@ public class CompactionJobPriorityQueueTest {
 
     EasyMock.replay(tm, cj1, cj2);
 
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, () -> 2);
     assertEquals(2, queue.add(tm, List.of(cj1, cj2), 1L));
 
     EasyMock.verify(tm, cj1, cj2);
@@ -183,7 +183,7 @@ public class CompactionJobPriorityQueueTest {
 
     EasyMock.replay(tm, cj1, cj2, cj3);
 
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, () -> 2);
     assertEquals(2, queue.add(tm, List.of(cj1, cj2, cj3), 1L));
 
     EasyMock.verify(tm, cj1, cj2, cj3);
@@ -239,7 +239,7 @@ public class CompactionJobPriorityQueueTest {
 
     TreeSet<CompactionJob> expected = new TreeSet<>(CompactionJobPrioritizer.JOB_COMPARATOR);
 
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 100);
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, () -> 100);
 
     // create and add 1000 jobs
     for (int x = 0; x < 1000; x++) {
@@ -273,7 +273,7 @@ public class CompactionJobPriorityQueueTest {
    */
   @Test
   public void testAsyncCancelCleanup() {
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 100);
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, () -> 100);
 
     List<CompletableFuture<MetaJob>> futures = new ArrayList<>();
 
@@ -300,4 +300,13 @@ public class CompactionJobPriorityQueueTest {
         < 2 * (CompactionJobPriorityQueue.FUTURE_CHECK_THRESHOLD + CANCEL_THRESHOLD));
     assertTrue(maxFuturesSize > 2 * CompactionJobPriorityQueue.FUTURE_CHECK_THRESHOLD);
   }
+
+  @Test
+  public void testChangeMaxSize() {
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, () -> 100);
+    assertEquals(100, queue.getMaxSize());
+    queue.setMaxSize(50);
+    assertEquals(50, queue.getMaxSize());
+  }
+
 }

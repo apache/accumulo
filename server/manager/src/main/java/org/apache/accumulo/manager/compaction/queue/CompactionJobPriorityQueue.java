@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -107,7 +108,7 @@ public class CompactionJobPriorityQueue {
   // efficiently removing entries from anywhere in the queue. Efficient removal is needed for the
   // case where tablets decided to issues different compaction jobs than what is currently queued.
   private final TreeMap<CjpqKey,CompactionJobQueues.MetaJob> jobQueue;
-  private final int maxSize;
+  private Supplier<Integer> maxSize;
   private final AtomicLong rejectedJobs;
   private final AtomicLong dequeuedJobs;
   private final ArrayDeque<CompletableFuture<CompactionJobQueues.MetaJob>> futures;
@@ -129,7 +130,7 @@ public class CompactionJobPriorityQueue {
 
   private final AtomicLong nextSeq = new AtomicLong(0);
 
-  public CompactionJobPriorityQueue(CompactorGroupId groupId, int maxSize) {
+  public CompactionJobPriorityQueue(CompactorGroupId groupId, Supplier<Integer> maxSize) {
     this.jobQueue = new TreeMap<>();
     this.maxSize = maxSize;
     this.tabletJobs = new HashMap<>();
@@ -201,8 +202,12 @@ public class CompactionJobPriorityQueue {
     return jobsAdded;
   }
 
-  public long getMaxSize() {
-    return maxSize;
+  public int getMaxSize() {
+    return maxSize.get();
+  }
+
+  public void setMaxSize(int maxSize) {
+    this.maxSize = () -> maxSize;
   }
 
   public long getRejectedJobs() {
@@ -284,7 +289,7 @@ public class CompactionJobPriorityQueue {
   }
 
   private CjpqKey addJobToQueue(TabletMetadata tabletMetadata, CompactionJob job) {
-    if (jobQueue.size() >= maxSize) {
+    if (jobQueue.size() >= maxSize.get()) {
       var lastEntry = jobQueue.lastKey();
       if (job.getPriority() <= lastEntry.job.getPriority()) {
         // the queue is full and this job has a lower or same priority than the lowest job in the
@@ -303,5 +308,9 @@ public class CompactionJobPriorityQueue {
     var key = new CjpqKey(job);
     jobQueue.put(key, new CompactionJobQueues.MetaJob(job, tabletMetadata));
     return key;
+  }
+
+  public synchronized void clear() {
+    jobQueue.clear();
   }
 }

@@ -164,7 +164,6 @@ public class CompactionCoordinator
 
   private final ServerContext ctx;
   private final SecurityOperation security;
-  private final String resourceGroupName;
   private final CompactionJobQueues jobQueues;
   private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
   // Exposed for tests
@@ -181,18 +180,20 @@ public class CompactionCoordinator
   private final Manager manager;
 
   private final LoadingCache<String,Integer> compactorCounts;
+  private final double queueSizeFactor;
 
   public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
-      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances,
-      final String resourceGroupName, Manager manager) {
+      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances, Manager manager) {
     this.ctx = ctx;
     this.schedExecutor = this.ctx.getScheduledExecutor();
     this.security = security;
-    this.resourceGroupName = resourceGroupName;
     this.manager = Objects.requireNonNull(manager);
 
-    this.jobQueues = new CompactionJobQueues(
-        ctx.getConfiguration().getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE));
+    this.jobQueues = new CompactionJobQueues(ctx.getConfiguration()
+        .getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE));
+
+    this.queueSizeFactor = ctx.getConfiguration()
+        .getFraction(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR);
 
     this.queueMetrics = new QueueMetrics(jobQueues);
 
@@ -1070,21 +1071,30 @@ public class CompactionCoordinator
       var groups = zoorw.getChildren(compactorQueuesPath);
 
       for (String group : groups) {
-        String qpath = compactorQueuesPath + "/" + group;
-
-        var compactors = zoorw.getChildren(qpath);
+        final String qpath = compactorQueuesPath + "/" + group;
+        final CompactorGroupId cgid = CompactorGroupId.of(group);
+        final var compactors = zoorw.getChildren(qpath);
 
         if (compactors.isEmpty()) {
           deleteEmpty(zoorw, qpath);
+          // Group has no compactors, we can clear its
+          // associated priority queue of jobs
+          getJobQueues().getQueue(cgid).clear();
+        } else {
+          int aliveCompactorsForGroup = 0;
+          for (String compactor : compactors) {
+            String cpath = compactorQueuesPath + "/" + group + "/" + compactor;
+            var lockNodes = zoorw.getChildren(compactorQueuesPath + "/" + group + "/" + compactor);
+            if (lockNodes.isEmpty()) {
+              deleteEmpty(zoorw, cpath);
+            } else {
+              aliveCompactorsForGroup++;
+            }
+          }
+          getJobQueues().getQueue(cgid).setMaxSize(
+              Math.min((int) (aliveCompactorsForGroup * queueSizeFactor), Integer.MAX_VALUE));
         }
 
-        for (String compactor : compactors) {
-          String cpath = compactorQueuesPath + "/" + group + "/" + compactor;
-          var lockNodes = zoorw.getChildren(compactorQueuesPath + "/" + group + "/" + compactor);
-          if (lockNodes.isEmpty()) {
-            deleteEmpty(zoorw, cpath);
-          }
-        }
       }
 
     } catch (KeeperException | RuntimeException e) {
