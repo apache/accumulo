@@ -22,36 +22,60 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.server.metrics.ThriftMetrics;
+import org.apache.thrift.TAsyncProcessor;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer;
+
+import com.google.common.base.Preconditions;
 
 /**
  * A {@link TProcessor} which tracks the duration of an RPC and adds it to the metrics subsystem.
  */
-public class TimedProcessor implements TProcessor {
+public class TimedProcessor implements TProcessor, TAsyncProcessor {
 
   private final TProcessor other;
   private final ThriftMetrics thriftMetrics;
   private long idleStart;
+  private final boolean async;
 
   public TimedProcessor(final TProcessor next, final MetricsInfo metricsInfo) {
     this.other = next;
     thriftMetrics = new ThriftMetrics();
     metricsInfo.addMetricsProducers(thriftMetrics);
     idleStart = System.nanoTime();
+    this.async = next instanceof TAsyncProcessor;
   }
 
   @Override
   public void process(TProtocol in, TProtocol out) throws TException {
+    time(() -> other.process(in, out));
+  }
+
+  @Override
+  public void process(AsyncFrameBuffer fb) throws TException {
+    Preconditions.checkState(isAsync(), "Processor is not Async");
+    time(() -> ((TAsyncProcessor) this.other).process(fb));
+  }
+
+  public boolean isAsync() {
+    return async;
+  }
+
+  protected void time(ThriftRunnable runnable) throws TException {
     long processStart = System.nanoTime();
     thriftMetrics.addIdle(NANOSECONDS.toMillis(processStart - idleStart));
     try {
-      other.process(in, out);
+      runnable.run();
     } finally {
       // set idle to now, calc time in process
       idleStart = System.nanoTime();
       thriftMetrics.addExecute(NANOSECONDS.toMillis(idleStart - processStart));
     }
+  }
+
+  protected interface ThriftRunnable {
+    void run() throws TException;
   }
 }

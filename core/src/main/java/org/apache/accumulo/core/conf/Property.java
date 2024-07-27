@@ -363,6 +363,8 @@ public enum Property {
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),
   MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
       "The port used for handling client connections on the manager.", "1.3.5"),
+  MANAGER_ASYNC_CLIENTPORT("manager.port.async.client", "8999", PropertyType.PORT,
+      "The port used for handling client connections on the manager for async services.", "4.0.0"),
   MANAGER_TABLET_BALANCER("manager.tablet.balancer",
       "org.apache.accumulo.core.spi.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and "
@@ -1165,7 +1167,11 @@ public enum Property {
   @Experimental
   COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
       "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
-      "The interval at which to check the tservers for external compactions.", "2.1.0");
+      "The interval at which to check the tservers for external compactions.", "2.1.0"),
+  COMPACTION_COORDINATOR_MAX_JOB_REQUEST_WAIT_TIME(
+      "compaction.coordinator.wait.time.job.request.max", "2m", PropertyType.TIMEDURATION,
+      "The maximum amount of time the coordinator will wait for a requested job from the job queue.",
+      "4.0.0");
 
   private final String key;
   private final String defaultValue;

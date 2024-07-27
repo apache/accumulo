@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
@@ -50,6 +51,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -136,6 +138,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
+import org.apache.thrift.async.AsyncMethodCallback;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,7 +156,7 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class CompactionCoordinator
-    implements CompactionCoordinatorService.Iface, Runnable, MetricsProducer {
+    implements CompactionCoordinatorService.AsyncIface, Runnable, MetricsProducer {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
 
@@ -194,6 +197,7 @@ public class CompactionCoordinator
   private final int jobQueueInitialSize;
 
   private volatile long coordinatorStartTime;
+  private final long maxJobRequestWaitTime;
 
   public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
       AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances, Manager manager) {
@@ -204,6 +208,9 @@ public class CompactionCoordinator
 
     this.jobQueueInitialSize = ctx.getConfiguration()
         .getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE);
+
+    this.maxJobRequestWaitTime = ctx.getConfiguration()
+        .getTimeInMillis(Property.COMPACTION_COORDINATOR_MAX_JOB_REQUEST_WAIT_TIME);
 
     this.jobQueues = new CompactionJobQueues(jobQueueInitialSize);
 
@@ -358,28 +365,25 @@ public class CompactionCoordinator
    * @param groupName group
    * @param compactorAddress compactor address
    * @throws ThriftSecurityException when permission error
-   * @return compaction job
    */
   @Override
-  public TNextCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
-      String groupName, String compactorAddress, String externalCompactionId)
-      throws ThriftSecurityException {
+  public void getCompactionJob(TInfo tinfo, TCredentials credentials, String groupName,
+      String compactorAddress, String externalCompactionId,
+      AsyncMethodCallback<TNextCompactionJob> resultHandler) throws ThriftSecurityException {
 
     // do not expect users to call this directly, expect compactors to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
+
+    // Get the next job as a future as we need to wait until something is available
     CompactorGroupId groupId = CompactorGroupId.of(groupName);
     LOG.trace("getCompactionJob called for group {} by compactor {}", groupId, compactorAddress);
     TIME_COMPACTOR_LAST_CHECKED.put(groupId, System.currentTimeMillis());
 
-    TExternalCompactionJob result = null;
-
-    CompactionJobQueues.MetaJob metaJob = jobQueues.poll(groupId);
-
-    while (metaJob != null) {
-
+    var future = jobQueues.getAsync(groupId).thenApply(metaJob -> {
+      LOG.trace("Next metaJob is ready {}", metaJob.getJob());
       Optional<CompactionConfig> compactionConfig = getCompactionConfig(metaJob);
 
       // this method may reread the metadata, do not use the metadata in metaJob for anything after
@@ -396,6 +400,7 @@ public class CompactionCoordinator
         ecm = reserveCompaction(metaJob, compactorAddress, cid);
       }
 
+      final TExternalCompactionJob result;
       if (ecm != null) {
         result = createThriftJob(externalCompactionId, ecm, metaJob, compactionConfig);
         // It is possible that by the time this added that the the compactor that made this request
@@ -404,26 +409,33 @@ public class CompactionCoordinator
             new RunningCompaction(result, compactorAddress, groupName));
         TabletLogger.compacting(metaJob.getTabletMetadata(), cid, compactorAddress,
             metaJob.getJob());
-        break;
       } else {
-        LOG.debug(
-            "Unable to reserve compaction job for {}, pulling another off the queue for group {}",
-            metaJob.getTabletMetadata().getExtent(), groupName);
-        metaJob = jobQueues.poll(CompactorGroupId.of(groupName));
+        LOG.debug("Unable to reserve compaction job for {} {}, returning empty job to compactor {}",
+            groupName, metaJob.getTabletMetadata().getExtent(), compactorAddress);
+        result = new TExternalCompactionJob();
       }
-    }
 
-    if (metaJob == null) {
-      LOG.debug("No jobs found in group {} ", groupName);
-    }
+      return new TNextCompactionJob(result, compactorCounts.get(groupName));
+    });
 
-    if (result == null) {
-      LOG.trace("No jobs found for group {}, returning empty job to compactor {}", groupName,
-          compactorAddress);
-      result = new TExternalCompactionJob();
-    }
-
-    return new TNextCompactionJob(result, compactorCounts.get(groupName));
+    // TODO: Use a thread pool and use thenAcceptAsync and exceptionallyAsync()
+    // Async send back to the compactor when a new job is ready
+    // Need the unused var for errorprone
+    var unused = future.thenAccept(ecj -> {
+      LOG.debug("Received next compaction job {}", ecj);
+      resultHandler.onComplete(ecj);
+    }).orTimeout(maxJobRequestWaitTime, MILLISECONDS).exceptionally(e -> {
+      if (e instanceof TimeoutException) {
+        LOG.trace("Compaction job request with ecid {} timed out.", externalCompactionId);
+        resultHandler.onComplete(
+            new TNextCompactionJob(new TExternalCompactionJob(), compactorCounts.get(groupName)));
+      } else {
+        LOG.warn("Received exception processing compaction job {}", e.getMessage());
+        LOG.debug(e.getMessage(), e);
+        resultHandler.onError(new RuntimeException(e));
+      }
+      return null;
+    });
   }
 
   @VisibleForTesting
@@ -664,7 +676,7 @@ public class CompactionCoordinator
     jobQueues.add(tabletMetadata, jobs);
   }
 
-  public CompactionCoordinatorService.Iface getThriftService() {
+  public CompactionCoordinatorService.AsyncIface getThriftService() {
     return this;
   }
 
@@ -713,8 +725,8 @@ public class CompactionCoordinator
    */
   @Override
   public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
-      throws ThriftSecurityException {
+      String externalCompactionId, TKeyExtent textent, TCompactionStats stats,
+      AsyncMethodCallback<Void> resultHandler) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -767,11 +779,12 @@ public class CompactionCoordinator
 
     txid.ifPresentOrElse(fateId -> LOG.debug("initiated compaction commit {} {}", ecid, fateId),
         () -> LOG.debug("compaction commit already initiated for {}", ecid));
+    resultHandler.onComplete(null);
   }
 
   @Override
   public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      TKeyExtent extent) throws ThriftSecurityException {
+      TKeyExtent extent, AsyncMethodCallback<Void> resultHandler) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -781,6 +794,7 @@ public class CompactionCoordinator
     LOG.info("Compaction failed, id: {}, extent: {}", externalCompactionId, fromThriftExtent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     compactionsFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
+    resultHandler.onComplete(null);
   }
 
   void compactionsFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
@@ -896,8 +910,8 @@ public class CompactionCoordinator
    */
   @Override
   public void updateCompactionStatus(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TCompactionStatusUpdate update, long timestamp)
-      throws ThriftSecurityException {
+      String externalCompactionId, TCompactionStatusUpdate update, long timestamp,
+      AsyncMethodCallback<Void> resultHandler) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -909,6 +923,7 @@ public class CompactionCoordinator
     if (null != rc) {
       rc.addUpdate(timestamp, update);
     }
+    resultHandler.onComplete(null);
   }
 
   public void recordCompletion(ExternalCompactionId ecid) {
@@ -928,16 +943,16 @@ public class CompactionCoordinator
   }
 
   /**
-   * Return information about running compactions
+   * Return information about running compactions Sends back map of ECID to TExternalCompaction
+   * objects
    *
    * @param tinfo trace info
    * @param credentials tcredentials object
-   * @return map of ECID to TExternalCompaction objects
    * @throws ThriftSecurityException permission error
    */
   @Override
-  public TExternalCompactionList getRunningCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
+  public void getRunningCompactions(TInfo tinfo, TCredentials credentials,
+      AsyncMethodCallback<TExternalCompactionList> callback) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -953,20 +968,20 @@ public class CompactionCoordinator
       trc.setJob(rc.getJob());
       result.putToCompactions(ecid.canonical(), trc);
     });
-    return result;
+    callback.onComplete(result);
   }
 
   /**
-   * Return information about recently completed compactions
+   * Return information about recently completed compactions send back map of ECID to
+   * TExternalCompaction objects
    *
    * @param tinfo trace info
    * @param credentials tcredentials object
-   * @return map of ECID to TExternalCompaction objects
    * @throws ThriftSecurityException permission error
    */
   @Override
-  public TExternalCompactionList getCompletedCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
+  public void getCompletedCompactions(TInfo tinfo, TCredentials credentials,
+      AsyncMethodCallback<TExternalCompactionList> callback) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -981,12 +996,13 @@ public class CompactionCoordinator
       trc.setUpdates(rc.getUpdates());
       result.putToCompactions(ecid.canonical(), trc);
     });
-    return result;
+    callback.onComplete(result);
   }
 
   @Override
-  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
+  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId,
+      AsyncMethodCallback<Void> callback) throws TException {
+
     var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
     try {
@@ -1001,6 +1017,7 @@ public class CompactionCoordinator
     }
 
     cancelCompactionOnCompactor(runningCompaction.getCompactorAddress(), externalCompactionId);
+    callback.onComplete(null);
   }
 
   /* Method exists to be called from test */

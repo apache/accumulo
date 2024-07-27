@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import static org.apache.accumulo.core.rpc.clients.ThriftClientTypes.COORDINATOR;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
@@ -113,6 +114,15 @@ public class ThriftUtil {
       HostAndPort address, ClientContext context) throws TTransportException {
     TTransport transport = context.getTransportPool().getTransport(type, address,
         context.getClientTimeoutInMillis(), context, true);
+
+    // TODO - This is temporary until we support Async multiplexing
+    // THRIFT-2427 is tracking this issue and the plan is to reopen a new PR
+    // to add support in the next version. Once we support multiplexing we can
+    // remove this special case.
+    if (type == COORDINATOR) {
+      return type.getClientFactory().getClient(protocolFactory.getProtocol(transport));
+    }
+
     return createClient(type, transport);
   }
 

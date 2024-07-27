@@ -20,6 +20,7 @@ package org.apache.accumulo.server.rpc;
 
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.AsyncProcessor;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.manager.thrift.FateService;
@@ -32,7 +33,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.thrift.TBaseProcessor;
 import org.apache.thrift.TMultiplexedProcessor;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
@@ -47,8 +47,8 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   }
 
   @VisibleForTesting
-  public <I,H extends I,P extends TBaseProcessor<?>> TProcessor getTProcessor(
-      Class<P> processorClass, Class<I> interfaceClass, H serviceHandler, ServerContext context) {
+  public <I,H extends I,P extends TProcessor> P getTProcessor(Class<P> processorClass,
+      Class<I> interfaceClass, H serviceHandler, ServerContext context) {
     I rpcProxy = TraceUtil.wrapService(serviceHandler);
     if (context.getThriftServerType() == ThriftServerType.SASL) {
       @SuppressWarnings("unchecked")
@@ -114,18 +114,24 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   }
 
   public static TMultiplexedProcessor getManagerTProcessor(FateService.Iface fateServiceHandler,
-      CompactionCoordinatorService.Iface coordinatorServiceHandler,
       ManagerClientService.Iface managerServiceHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(FATE.getServiceName(), FATE.getTProcessor(
         FateService.Processor.class, FateService.Iface.class, fateServiceHandler, context));
-    muxProcessor.registerProcessor(COORDINATOR.getServiceName(),
-        COORDINATOR.getTProcessor(CompactionCoordinatorService.Processor.class,
-            CompactionCoordinatorService.Iface.class, coordinatorServiceHandler, context));
     muxProcessor.registerProcessor(MANAGER.getServiceName(),
         MANAGER.getTProcessor(ManagerClientService.Processor.class,
             ManagerClientService.Iface.class, managerServiceHandler, context));
     return muxProcessor;
+  }
+
+  public static AsyncProcessor<?> getManagerTAsyncProcessor(
+      CompactionCoordinatorService.AsyncIface coordinatorServiceHandler, ServerContext context) {
+    // TODO - Right now this is temporarily returning the single AsyncProcessor
+    // Once Thrift supports Async multiplexing then we can switch to using
+    // TMultiplexedAsyncProcessor and use multiplexing like we do for sync processors
+    // THRIFT-2427 is tracking this issue
+    return COORDINATOR.getTProcessor(CompactionCoordinatorService.AsyncProcessor.class,
+        CompactionCoordinatorService.AsyncIface.class, coordinatorServiceHandler, context);
   }
 
   public static TMultiplexedProcessor getScanServerTProcessor(ClientServiceHandler clientHandler,

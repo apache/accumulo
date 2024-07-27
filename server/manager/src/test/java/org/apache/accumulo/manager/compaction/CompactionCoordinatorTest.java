@@ -43,6 +43,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -53,6 +54,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -96,8 +98,10 @@ import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.async.AsyncMethodCallback;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.net.HostAndPort;
 
@@ -160,12 +164,12 @@ public class CompactionCoordinatorTest {
 
     @Override
     public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-        String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
-        throws ThriftSecurityException {}
+        String externalCompactionId, TKeyExtent textent, TCompactionStats stats,
+        AsyncMethodCallback<Void> callback) throws ThriftSecurityException {}
 
     @Override
     public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-        TKeyExtent extent) throws ThriftSecurityException {}
+        TKeyExtent extent, AsyncMethodCallback<Void> callback) throws ThriftSecurityException {}
 
     void setMetadataCompactionIds(Set<ExternalCompactionId> mci) {
       metadataCompactionIds = mci;
@@ -365,8 +369,20 @@ public class CompactionCoordinatorTest {
 
     // Get the next job
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
-    TNextCompactionJob nextJob = coordinator.getCompactionJob(new TInfo(), creds,
-        GROUP_ID.toString(), "localhost:10241", eci.toString());
+    CompletableFuture<TNextCompactionJob> future = new CompletableFuture<>();
+    coordinator.getCompactionJob(new TInfo(), creds, GROUP_ID.toString(), "localhost:10241",
+        eci.toString(), new AsyncMethodCallback<>() {
+          @Override
+          public void onComplete(TNextCompactionJob response) {
+            future.complete(response);
+          }
+
+          @Override
+          public void onError(Exception exception) {
+            future.completeExceptionally(exception);
+          }
+        });
+    TNextCompactionJob nextJob = future.get();
     assertEquals(3, nextJob.getCompactorCount());
     TExternalCompactionJob createdJob = nextJob.getJob();
     assertEquals(eci.toString(), createdJob.getExternalCompactionId());
@@ -383,12 +399,22 @@ public class CompactionCoordinatorTest {
     EasyMock.verify(tconf, context, creds, tm, security);
   }
 
+  // Default to a 15-second timeout to make sure that setting the
+  // COMPACTION_COORDINATOR_MAX_JOB_REQUEST_WAIT_TIME is working. If we time
+  // out then the property is not being applied correctly or the timeout
+  // on the future is broken.
   @Test
+  @Timeout(15)
   public void testGetCompactionJobNoJobs() throws Exception {
 
     ServerContext context = EasyMock.createNiceMock(ServerContext.class);
     expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
-    expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    ConfigurationCopy config = new ConfigurationCopy(DefaultConfiguration.getInstance());
+
+    // Configure a 3-second timeout so we don't have to wait the full default time
+    // and to speed the test up
+    config.set(Property.COMPACTION_COORDINATOR_MAX_JOB_REQUEST_WAIT_TIME, "3s");
+    expect(context.getConfiguration()).andReturn(config).anyTimes();
 
     TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
 
@@ -402,8 +428,20 @@ public class CompactionCoordinatorTest {
     EasyMock.replay(context, creds, security, manager);
 
     var coordinator = new TestCoordinator(context, security, new ArrayList<>(), manager);
-    TNextCompactionJob nextJob = coordinator.getCompactionJob(TraceUtil.traceInfo(), creds,
-        GROUP_ID.toString(), "localhost:10240", UUID.randomUUID().toString());
+    CompletableFuture<TNextCompactionJob> future = new CompletableFuture<>();
+    coordinator.getCompactionJob(TraceUtil.traceInfo(), creds, GROUP_ID.toString(),
+        "localhost:10240", UUID.randomUUID().toString(), new AsyncMethodCallback<>() {
+          @Override
+          public void onComplete(TNextCompactionJob response) {
+            future.complete(response);
+          }
+
+          @Override
+          public void onError(Exception exception) {
+            future.completeExceptionally(exception);
+          }
+        });
+    TNextCompactionJob nextJob = future.get();
     assertEquals(3, nextJob.getCompactorCount());
     assertNull(nextJob.getJob().getExternalCompactionId());
 

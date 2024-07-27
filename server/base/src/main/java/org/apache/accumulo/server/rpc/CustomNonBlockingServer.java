@@ -23,6 +23,9 @@ import java.lang.reflect.Field;
 import java.net.Socket;
 import java.nio.channels.SelectionKey;
 
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.AsyncProcessor;
+import org.apache.thrift.TProcessor;
+import org.apache.thrift.server.AbstractNonblockingServer.FrameBuffer;
 import org.apache.thrift.server.THsHaServer;
 import org.apache.thrift.server.TNonblockingServer;
 import org.apache.thrift.transport.TNonblockingServerTransport;
@@ -99,11 +102,16 @@ public class CustomNonBlockingServer extends THsHaServer {
     protected FrameBuffer createFrameBuffer(final TNonblockingTransport trans,
         final SelectionKey selectionKey, final AbstractSelectThread selectThread)
         throws TTransportException {
-      if (processorFactory_.isAsyncProcessor()) {
-        throw new IllegalStateException("This implementation does not support AsyncProcessors");
+
+      TProcessor processor = processorFactory_.getProcessor(null);
+      // Processors are generally wrapped in TimedProcessor so we need to ask TimedProcessor
+      // what type of processor is being wrapped
+      if (processor instanceof TimedProcessor) {
+        return newFrameBuffer(trans, selectionKey, selectThread,
+            ((TimedProcessor) processor).isAsync());
       }
 
-      return new CustomFrameBuffer(trans, selectionKey, selectThread);
+      return newFrameBuffer(trans, selectionKey, selectThread, processor instanceof AsyncProcessor);
     }
   }
 
@@ -118,7 +126,7 @@ public class CustomNonBlockingServer extends THsHaServer {
         AbstractSelectThread selectThread) throws TTransportException {
       super(trans, selectionKey, selectThread);
       // Store the clientAddress in the buffer so it can be referenced for logging during read/write
-      this.clientAddress = getClientAddress();
+      this.clientAddress = getClientAddress(trans_, "CustomFrameBuffer");
     }
 
     @Override
@@ -148,33 +156,83 @@ public class CustomNonBlockingServer extends THsHaServer {
       }
       return result;
     }
+  }
 
-    /*
-     * Helper method used to capture the client address inside the CustomFrameBuffer constructor so
-     * that it can be referenced inside the read/write methods for logging purposes. It previously
-     * was only set on the ThreadLocal in the invoke() method but that does not work because A) the
-     * method isn't called until after reading is finished so the value will be null inside of
-     * read() and B) The other problem is that invoke() is called on a different thread than
-     * read()/write() so even if the order was correct it would not be available.
-     *
-     * Since a new FrameBuffer is created for each request we can use it to capture the client
-     * address earlier in the constructor and not wait for invoke(). A FrameBuffer is used to read
-     * data and write a response back to the client and as part of creation of the buffer the
-     * TNonblockingSocket is stored as a final variable and won't change so we can safely capture
-     * the clientAddress in the constructor and use it for logging during read/write and then use
-     * the value inside of invoke() to set the ThreadLocal so the client address will still be
-     * available on the thread that called invoke().
-     */
-    private String getClientAddress() {
-      String clientAddress = null;
-      if (trans_ instanceof TNonblockingSocket) {
-        TNonblockingSocket tsock = (TNonblockingSocket) trans_;
-        Socket sock = tsock.getSocketChannel().socket();
-        clientAddress = sock.getInetAddress().getHostAddress() + ":" + sock.getPort();
-        log.trace("CustomFrameBuffer captured client address: {}", clientAddress);
+  /**
+   * Custom wrapper around
+   * {@link org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer} to extract the
+   * client's network location before accepting the request.
+   */
+  private class CustomAsyncFrameBuffer extends AsyncFrameBuffer {
+    private final String clientAddress;
+
+    public CustomAsyncFrameBuffer(TNonblockingTransport trans, SelectionKey selectionKey,
+        AbstractSelectThread selectThread) throws TTransportException {
+      super(trans, selectionKey, selectThread);
+      // Store the clientAddress in the buffer so it can be referenced for logging during read/write
+      this.clientAddress = getClientAddress(trans_, "CustomAsyncFrameBuffer");
+    }
+
+    @Override
+    public void invoke() {
+      // On invoke() set the clientAddress on the ThreadLocal so that it can be accessed elsewhere
+      // in the same thread that called invoke() on the buffer
+      TServerUtils.clientAddress.set(clientAddress);
+      super.invoke();
+    }
+
+    @Override
+    public boolean read() {
+      boolean result = super.read();
+      if (!result) {
+        log.trace("CustomAsyncFrameBuffer.read returned false when reading data from client: {}",
+            clientAddress);
       }
-      return clientAddress;
+      return result;
+    }
+
+    @Override
+    public boolean write() {
+      boolean result = super.write();
+      if (!result) {
+        log.trace("CustomAsyncFrameBuffer.write returned false when writing data to client: {}",
+            clientAddress);
+      }
+      return result;
     }
   }
 
+  /*
+   * Helper method used to capture the client address inside the CustomFrameBuffer and
+   * CustomAsyncFrameBuffer constructors so that it can be referenced inside the read/write methods
+   * for logging purposes. It previously was only set on the ThreadLocal in the invoke() method but
+   * that does not work because A) the method isn't called until after reading is finished so the
+   * value will be null inside of read() and B) The other problem is that invoke() is called on a
+   * different thread than read()/write() so even if the order was correct it would not be
+   * available.
+   *
+   * Since a new FrameBuffer is created for each request we can use it to capture the client address
+   * earlier in the constructor and not wait for invoke(). A FrameBuffer is used to read data and
+   * write a response back to the client and as part of creation of the buffer the
+   * TNonblockingSocket is stored as a final variable and won't change so we can safely capture the
+   * clientAddress in the constructor and use it for logging during read/write and then use the
+   * value inside of invoke() to set the ThreadLocal so the client address will still be available
+   * on the thread that called invoke().
+   */
+  private static String getClientAddress(TNonblockingTransport transport, String name) {
+    String clientAddress = null;
+    if (transport instanceof TNonblockingSocket) {
+      TNonblockingSocket tsock = (TNonblockingSocket) transport;
+      Socket sock = tsock.getSocketChannel().socket();
+      clientAddress = sock.getInetAddress().getHostAddress() + ":" + sock.getPort();
+      log.trace("{} captured client address: {}", name, clientAddress);
+    }
+    return clientAddress;
+  }
+
+  private FrameBuffer newFrameBuffer(TNonblockingTransport trans, SelectionKey selectionKey,
+      AbstractSelectThread selectThread, boolean async) throws TTransportException {
+    return async ? new CustomAsyncFrameBuffer(trans, selectionKey, selectThread)
+        : new CustomFrameBuffer(trans, selectionKey, selectThread);
+  }
 }
