@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -108,6 +109,7 @@ import org.slf4j.event.Level;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
@@ -142,7 +144,16 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
    * time an assignment scan was started.
    */
   synchronized boolean isSameTserversAsLastScan(Set<TServerInstance> candidates) {
-    return candidates.equals(lastScanServers);
+    boolean same = candidates.equals(lastScanServers);
+    if (!same && Manager.log.isTraceEnabled()) {
+      Manager.log.trace("{} set difference candidates-lastScanServers : {}", store.name(),
+          Sets.difference(candidates, lastScanServers));
+      Manager.log.trace("{} set difference lastScanServers-candidates : {}", store.name(),
+          Sets.difference(lastScanServers, candidates));
+      Manager.log.trace("{} set intersection(lastScanServers,candidates) size : {}", store.name(),
+          Sets.intersection(lastScanServers, candidates).size());
+    }
+    return same;
   }
 
   /**
@@ -796,6 +807,18 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     AccumuloClient client = manager.getContext();
 
+    // Used when scanning the table to track the extent of the previous column.
+    // This value is updated for every column read at the end of the loop below
+    // with the extent for the column. We scan multiple columns for each tablet,
+    // so this is useful to detect when we have reached a different tablet.
+    KeyExtent prevColumnExtent = null;
+
+    // Used when scanning the table to track the previous tablet from the
+    // current one. This value will update whenever the current extent for
+    // the column read in the loop is different from the previously read column,
+    // which is tracked by prevColumnExtent
+    KeyExtent previousKeyExtent = null;
+
     try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
       long fileCount = 0;
       // Make file entries in highest tablet
@@ -815,6 +838,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         Key key = entry.getKey();
         Value value = entry.getValue();
 
+        final KeyExtent keyExtent = KeyExtent.fromMetaRow(key.getRow());
+
+        // Keep track of extents to verify the linked list.
+        // 'keyExtent' represents the current tablet for this colum
+        // 'prevColumnExtent' is the extent seen from the previous column read.
+        // 'previousKeyExtent' is the extent for the previous tablet
+        //
+        // If 'prevColumnExtent' is different from 'keyExtent' then we have reached a new tablet
+        // and we can update 'previousKeyExtent' with the value from 'prevColumnExtent'
+        if (prevColumnExtent != null && !keyExtent.equals(prevColumnExtent)) {
+          previousKeyExtent = prevColumnExtent;
+        }
+
         // Verify that Tablet is offline
         if (isTabletAssigned(key)) {
           throw new IllegalStateException(
@@ -825,10 +861,25 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         } else if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
           m.put(key.getColumnFamily(), key.getColumnQualifier(), value);
           fileCount++;
-        } else if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)
-            && firstPrevRowValue == null) {
-          Manager.log.debug("prevRow entry for lowest tablet is {}", value);
-          firstPrevRowValue = new Value(value);
+        } else if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+          // Handle the first tablet in the range
+          if (firstPrevRowValue == null) {
+            // This is the first PREV_ROW_COLUMN we are seeing, therefore this should be the first
+            // tablet and previousKeyExtent should be null
+            Preconditions.checkState(previousKeyExtent == null,
+                "previousKeyExtent was unexpectedly set when scanning metadata table %s %s %s",
+                previousKeyExtent, keyExtent, value);
+            Manager.log.debug("prevRow entry for lowest tablet is {}", value);
+            firstPrevRowValue = value;
+            // Handle other tablets, besides the first tablet. This will process every tablet in the
+            // merge range except for the last tablet as that tablet is not part of the scan range.
+          } else {
+            // This is not the first PREV_ROW_COLUMN we are seeing, therefore previousKeyExtent
+            // should never be null as this is at least the second tablet we are iterating over
+            // Because this loop does not process the last tablet in the range, this check should
+            // always be true because if the merge already happened we would not reach this point.
+            validateLinkedList(previousKeyExtent, value, keyExtent);
+          }
         } else if (ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           maxLogicalTime =
               TabletTime.maxMetadataTime(maxLogicalTime, MetadataTime.parse(value.toString()));
@@ -836,13 +887,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           var allVolumesDir = new AllVolumesDirectory(range.tableId(), value.toString());
           bw.addMutation(manager.getContext().getAmple().createDeleteMutation(allVolumesDir));
         }
+
+        prevColumnExtent = keyExtent;
       }
+
+      // Used to capture the prev row value of the last tablet in the merge range
+      Value lastTabletPrevRowValue = null;
 
       // read the logical time from the last tablet in the merge range, it is not included in
       // the loop above
       scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(new Range(stopRow));
       ServerColumnFamily.TIME_COLUMN.fetch(scanner);
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
       Set<String> extCompIds = new HashSet<>();
       for (Entry<Key,Value> entry : scanner) {
@@ -851,6 +908,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               MetadataTime.parse(entry.getValue().toString()));
         } else if (ExternalCompactionColumnFamily.NAME.equals(entry.getKey().getColumnFamily())) {
           extCompIds.add(entry.getKey().getColumnQualifierData().toString());
+        } else if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+          lastTabletPrevRowValue = entry.getValue();
         }
       }
 
@@ -869,9 +928,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       Manager.log.debug("Moved {} files to {}", fileCount, stop);
 
+      // If this is null then we already merged as only 1 tablet is part of the range
+      // and the previous scan skips the last tablet, so we just return. This makes the merge
+      // idempotent if run more than once.
       if (firstPrevRowValue == null) {
         Manager.log.debug("tablet already merged");
         return;
+      } else {
+        // At this point prevColumnExtent should never be null because at least 1 previous
+        // tablet was scanned. lastTabletPrevRowValue should also never be null as we read
+        // it from the last tablet.
+        validateLinkedList(prevColumnExtent, lastTabletPrevRowValue, stop);
       }
 
       stop = new KeyExtent(stop.tableId(), stop.endRow(),
@@ -892,6 +959,21 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     } catch (Exception ex) {
       throw new AccumuloException(ex);
     }
+  }
+
+  // Need to ensure the tablets being merged form a proper linked list by verifying the previous
+  // extent end row matches the prev end row value in the next tablet in the range
+  private static void validateLinkedList(KeyExtent previousExtent, Value prevEndRow,
+      KeyExtent currentTablet) {
+    Preconditions.checkState(previousExtent != null && prevEndRow != null,
+        "previousExtent or prevEndRow was unexpectedly not set when scanning metadata table %s %s %s",
+        previousExtent, prevEndRow, currentTablet);
+
+    boolean pointsToPrevious =
+        Objects.equals(previousExtent.endRow(), TabletColumnFamily.decodePrevEndRow(prevEndRow));
+    Preconditions.checkState(pointsToPrevious,
+        "unexpectedly saw a hole in the metadata table %s %s %s", previousExtent, prevEndRow,
+        currentTablet);
   }
 
   private KeyExtent deleteTablets(MergeInfo info, Range scanRange, BatchWriter bw,

@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.tserver.ScanServer;
 
 /**
  * Basic functionality required to control an Accumulo cluster
@@ -64,6 +65,16 @@ public interface ClusterControl {
    * @param coordinator compaction coordinator class
    */
   void startCoordinator(Class<? extends CompactionCoordinator> coordinator) throws IOException;
+
+  /**
+   * Start instances of ScanServers
+   *
+   * @param scanServer scan server class
+   * @param limit number of scan servers to start
+   * @param groupName name of scan server group
+   */
+  void startScanServer(Class<? extends ScanServer> scanServer, int limit, String groupName)
+      throws IOException;
 
   /**
    * Starts all occurrences of the given server

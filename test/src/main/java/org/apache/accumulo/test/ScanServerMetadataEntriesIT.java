@@ -50,6 +50,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -79,7 +80,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         org.apache.hadoop.conf.Configuration coreSite) {
       cfg.setNumScanServers(1);
       cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
-      cfg.setProperty(Property.SSERVER_SCAN_REFERENCE_EXPIRATION_TIME, "5s");
+      cfg.setProperty(Property.SSERV_SCAN_REFERENCE_EXPIRATION_TIME, "5s");
     }
   }
 
@@ -111,7 +112,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
     Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf")
         .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
-        .map(f -> new ScanServerRefTabletFile(f, server.toString(), serverLockUUID))
+        .map(f -> new ScanServerRefTabletFile(serverLockUUID, server.toString(), f))
         .collect(Collectors.toSet());
 
     ServerContext ctx = getCluster().getServerContext();
@@ -242,8 +243,8 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         Set<String> metadataScanFileRefs = new HashSet<>();
         metadataEntries.forEach(m -> {
           String row = m.getKey().getRow().toString();
-          assertTrue(row.startsWith("~sserv"));
-          String file = row.substring(ScanServerFileReferenceSection.getRowPrefix().length());
+          assertTrue(row.startsWith(MetadataSchema.ScanServerFileReferenceSection.getRowPrefix()));
+          String file = m.getKey().getColumnQualifier().toString();
           metadataScanFileRefs.add(file);
         });
         assertEquals(fileCount, metadataScanFileRefs.size());

@@ -49,6 +49,7 @@ import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -94,6 +95,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Sets;
 
 public class CompactionCoordinator extends AbstractServer
@@ -135,6 +137,8 @@ public class CompactionCoordinator extends AbstractServer
 
   private ScheduledThreadPoolExecutor schedExecutor;
 
+  private final LoadingCache<String,Integer> compactorCounts;
+
   protected CompactionCoordinator(ServerOpts opts, String[] args) {
     this(opts, args, null);
   }
@@ -150,6 +154,8 @@ public class CompactionCoordinator extends AbstractServer
     printStartupMsg();
     startCompactionCleaner(schedExecutor);
     startRunningCleaner(schedExecutor);
+    compactorCounts = Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.SECONDS)
+        .build(queue -> ExternalCompactionUtil.countCompactors(queue, getContext()));
   }
 
   @Override
@@ -237,9 +243,9 @@ public class CompactionCoordinator extends AbstractServer
    */
   protected ServerAddress startCoordinatorClientService() throws UnknownHostException {
     var processor = ThriftProcessorTypes.getCoordinatorTProcessor(this, getContext());
-    Property maxMessageSizeProperty =
-        (getConfiguration().get(Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE) != null
-            ? Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
+    @SuppressWarnings("deprecation")
+    var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
+        Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.COMPACTION_COORDINATOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH,
@@ -439,7 +445,7 @@ public class CompactionCoordinator extends AbstractServer
    * @return compaction job
    */
   @Override
-  public TExternalCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
+  public TNextCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
       String queueName, String compactorAddress, String externalCompactionId)
       throws ThriftSecurityException {
 
@@ -499,7 +505,7 @@ public class CompactionCoordinator extends AbstractServer
       result = new TExternalCompactionJob();
     }
 
-    return result;
+    return new TNextCompactionJob(result, compactorCounts.get(queue));
 
   }
 

@@ -98,7 +98,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
     doWorkToGenerateMetrics();
     cluster.stop();
-
     // meter names sorted and formatting disabled to make it easier to diff changes
     // @formatter:off
     Set<String> unexpectedMetrics =
@@ -115,7 +114,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             METRICS_SCAN_RESERVATION_CONFLICT_COUNTER,
             METRICS_SCAN_RESERVATION_TOTAL_TIMER,
             METRICS_SCAN_RESERVATION_WRITEOUT_TIMER,
-            METRICS_SCAN_TABLET_METADATA_CACHE);
+            METRICS_SCAN_TABLET_METADATA_CACHE,
+            METRICS_SERVER_IDLE);
     // @formatter:on
 
     Map<String,String> expectedMetricNames = this.getMetricFields();
