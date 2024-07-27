@@ -61,39 +61,39 @@ function rotate_log() {
 }
 
 function start_service() {
- local service_type=$1
- local service_name=$2
- shift 2;
+  local service_type=$1
+  local service_name=$2
+  shift 2
 
- local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}.pid"
- if [[ -f $pid_file ]]; then
-   pid=$(cat "$pid_file")
-   if kill -0 "$pid" 2>/dev/null; then
-     echo "$HOST : ${service_name} already running (${pid})"
-     exit 0
-   fi
- fi
- echo "Starting $service_name on $HOST"
+  local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}.pid"
+  if [[ -f $pid_file ]]; then
+    pid=$(cat "$pid_file")
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "$HOST : ${service_name} already running (${pid})"
+      exit 0
+    fi
+  fi
+  echo "Starting $service_name on $HOST"
 
- if [[ ${service_type} == "manager" ]]; then
-   "${bin}/accumulo" org.apache.accumulo.manager.state.SetGoalState NORMAL
- fi
- outfile="${ACCUMULO_LOG_DIR}/${service_name}_${HOST}.out"
- errfile="${ACCUMULO_LOG_DIR}/${service_name}_${HOST}.err"
- rotate_log "$outfile"
- rotate_log "$errfile"
+  if [[ ${service_type} == "manager" ]]; then
+    "${bin}/accumulo" org.apache.accumulo.manager.state.SetGoalState NORMAL
+  fi
+  outfile="${ACCUMULO_LOG_DIR}/${service_name}_${HOST}.out"
+  errfile="${ACCUMULO_LOG_DIR}/${service_name}_${HOST}.err"
+  rotate_log "$outfile"
+  rotate_log "$errfile"
 
- nohup "${bin}/accumulo" "$service_type" "$@" >"$outfile" 2>"$errfile" </dev/null &
- echo "$!" >"${pid_file}"
+  nohup "${bin}/accumulo" "$service_type" "$@" >"$outfile" 2>"$errfile" </dev/null &
+  echo "$!" >"${pid_file}"
 
- # Check the max open files limit and selectively warn
- max_files_open=$(ulimit -n)
- if [[ -n $max_files_open ]]; then
-   max_files_recommended=32768
-   if ((max_files_open < max_files_recommended)); then
-     echo "WARN : Max open files on $HOST is $max_files_open, recommend $max_files_recommended" >&2
-   fi
- fi
+  # Check the max open files limit and selectively warn
+  max_files_open=$(ulimit -n)
+  if [[ -n $max_files_open ]]; then
+    max_files_recommended=32768
+    if ((max_files_open < max_files_recommended)); then
+      echo "WARN : Max open files on $HOST is $max_files_open, recommend $max_files_recommended" >&2
+    fi
+  fi
 }
 
 function control_process() {
@@ -140,10 +140,10 @@ function kill_service() {
   local all_flag=$3
   if $all_flag; then
     find_processes "$service_type"
-      for process in "${RUNNING_PROCESSES[@]}"; do
-        local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
-        control_process "KILL" "$process" "$pid_file"
-      done
+    for process in "${RUNNING_PROCESSES[@]}"; do
+      local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
+      control_process "KILL" "$process" "$pid_file"
+    done
   else
     local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}.pid"
     control_process "KILL" "$service_name" "$pid_file"
@@ -199,7 +199,7 @@ function main() {
 
   local service_type="$1"
   local command_name="$2"
-  shift 2;
+  shift 2
   local service_name="unknown"
   local all_flag=false
 
@@ -211,8 +211,8 @@ function main() {
   # Check and see if accumulo-cluster is calling this script
   if [ -z ${ACCUMULO_SERVICE_INSTANCE+x} ]; then
     # The rest of the arguments are from a user
-    if [[ "$1" == "--all" ]]; then
-      all_flag=true;
+    if [[ $1 == "--all" ]]; then
+      all_flag=true
     else
       # A named service has been specified
       service_name="$1"
