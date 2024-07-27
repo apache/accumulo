@@ -108,7 +108,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
     // add sserver as flaky until scan server included in mini tests.
     Set<String> flakyMetrics = Set.of(METRICS_FATE_TYPE_IN_PROGRESS,
-            METRICS_MANAGER_BALANCER_MIGRATIONS_IN_PROGRESS,
             METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED,
             METRICS_SCAN_BUSY_TIMEOUT_COUNTER,
             METRICS_SCAN_RESERVATION_CONFLICT_COUNTER,

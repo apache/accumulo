@@ -1029,8 +1029,7 @@ public class Manager extends AbstractServer
     }
 
     private long balanceTablets() {
-      // Get current migrations before in-progress migrations are added
-      balancerMetrics.setNeedMigrationCount(migrations.size());
+
       final int tabletsNotHosted = notHosted();
       BalanceParamsImpl params = null;
       long wait = 0;
@@ -1070,21 +1069,16 @@ public class Manager extends AbstractServer
               continue;
             }
             migrations.put(ke, TabletServerIdImpl.toThrift(m.getNewTabletServer()));
-            // Increment the in-progress migrations
-            balancerMetrics.incrementMigratingCount();
             log.debug("migration {}", m);
           }
         } while (migrationsOutForLevel > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
         totalMigrationsOut += migrationsOutForLevel;
       }
+      balancerMetrics.assignMigratingCount(migrations::size);
 
       if (totalMigrationsOut == 0) {
         synchronized (balancedNotifier) {
           balancedNotifier.notifyAll();
-        }
-        balancerMetrics.setMigratingCount(0);
-        if (migrations.isEmpty()) {
-          balancerMetrics.setNeedMigrationCount(0);
         }
       } else {
         nextEvent.event("Migrating %d more tablets, %d total", totalMigrationsOut,

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.metrics;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 
@@ -27,38 +27,25 @@ import io.micrometer.core.instrument.MeterRegistry;
 
 public class BalancerMetrics implements MetricsProducer {
 
-  AtomicLong migratingCount = new AtomicLong();
-  AtomicLong needMigrationCount = new AtomicLong();
+  LongSupplier migratingCount;
 
-  public long incrementMigratingCount() {
-    return migratingCount.incrementAndGet();
+  public void assignMigratingCount(LongSupplier f) {
+    migratingCount = f;
   }
 
   public long getMigratingCount() {
-    return migratingCount.get();
-  }
-
-  public void setMigratingCount(final long migratingCount) {
-    this.migratingCount.set(migratingCount);
-  }
-
-  public long getNeedMigrationCount() {
-    return needMigrationCount.get();
-  }
-
-  public void setNeedMigrationCount(final long needMigrationCount) {
-    this.needMigrationCount.set(needMigrationCount);
+    // Handle inital NaN value state when balance has never been called
+    if (migratingCount == null) {
+      return 0;
+    }
+    return migratingCount.getAsLong();
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
     Gauge
-        .builder(METRICS_MANAGER_BALANCER_MIGRATIONS_IN_PROGRESS, this,
-            BalancerMetrics::getMigratingCount)
-        .description("Count of migrations in progress from last balancer call").register(registry);
-    Gauge
         .builder(METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED, this,
-            BalancerMetrics::getNeedMigrationCount)
-        .description("Overall migrations that need to be completed").register(registry);
+            BalancerMetrics::getMigratingCount)
+        .description("Overall total migrations that need to complete").register(registry);
   }
 }
