@@ -149,7 +149,7 @@ function control_service() {
     # Only increment the service name when more than one service is desired.
     ACCUMULO_SERVICE_INSTANCE=""
     [[ last_instance_id -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}"
-    [[ $service == "compactor" || $service == "sserver" ]] && ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}_${5}"
+    [[ $service =~ ^compactor|sserver$ ]] && ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}_${5}"
 
     if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
       #

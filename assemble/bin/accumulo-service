@@ -26,7 +26,7 @@ Services:
   gc                     Accumulo garbage collector
   monitor                Accumulo monitor
   manager                Accumulo manager
-  master                 Accumulo master (Deprecated)
+  master                 Deprecated. Accumulo master
   tserver                Accumulo tserver
   compaction-coordinator Accumulo compaction coordinator (experimental)
   compactor              Accumulo compactor (experimental)
@@ -92,12 +92,21 @@ function start_service() {
 }
 
 function control_process() {
-  kill_code=${1}
+  local kill_code=$1
   if [[ -f $pid_file ]]; then
     echo "Stopping $service on $host"
     kill -s "$kill_code" "$(cat "$pid_file")" 2>/dev/null
     rm -f "${pid_file}" 2>/dev/null
   fi
+}
+
+function find_processes() {
+  local file
+  for file in "$ACCUMULO_PID_DIR"/*; do
+    if file=$(expr "$file" : '^.*/accumulo-\('"$service"'.*\)[.]pid$'); then
+      RUNNING_PROCESSES+=("$file")
+    fi
+  done
 }
 
 function stop_service() {
@@ -135,16 +144,6 @@ function kill_service() {
     esac
   fi
   control_process "KILL"
-}
-
-function find_processes() {
-  local file
-  for file in $ACCUMULO_PID_DIR/*; do
-    if [[ $file == *$service* ]]; then
-      stripped_file=${file%.pid}
-      RUNNING_PROCESSES+=("${stripped_file##*accumulo-}")
-    fi
-  done
 }
 
 function list_processes() {
