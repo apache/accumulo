@@ -29,9 +29,10 @@ import org.apache.accumulo.test.ample.FlakyAmpleManager;
 import org.apache.accumulo.test.ample.FlakyAmpleTserver;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * This test causes ondemand tablet to unload in a tablet server using FlakyAmple. When tablets
@@ -84,7 +85,7 @@ public class OnDemandTabletUnloadingFlakyAmpleIT extends SharedMiniClusterBase {
 
       // verify can read data after unload, should cause tablet to reload
       try (var scanner = c.createScanner(tableName)) {
-        Assertions.assertEquals(1, scanner.stream().count());
+        assertEquals(1, scanner.stream().count());
       }
     }
   }
