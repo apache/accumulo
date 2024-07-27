@@ -47,6 +47,8 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -306,8 +308,11 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             // Checking the value would be hard to test because the metrics are updated on a timer
             // and fate transactions get cleaned up when finished so the current state is a bit
             // non-deterministic
-            assertNotNull(a.getTags().get("state"));
-            assertNotNull(a.getTags().get("instanceType"));
+            TStatus status = TStatus.valueOf(a.getTags().get("state").toUpperCase());
+            assertNotNull(status);
+            FateInstanceType type =
+                FateInstanceType.valueOf(a.getTags().get("instanceType").toUpperCase());
+            assertNotNull(type);
           });
     }
   }
