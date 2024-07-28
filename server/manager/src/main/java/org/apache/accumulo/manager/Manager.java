@@ -121,6 +121,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
+import org.apache.accumulo.manager.metrics.BalancerMetrics;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.Splitter;
@@ -217,6 +218,7 @@ public class Manager extends AbstractServer
   private TServer clientService = null;
   protected volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
+  private final BalancerMetrics balancerMetrics = new BalancerMetrics();
 
   private ManagerState state = ManagerState.INITIAL;
 
@@ -540,6 +542,10 @@ public class Manager extends AbstractServer
 
   public Splitter getSplitter() {
     return splitter;
+  }
+
+  public MetricsProducer getBalancerMetrics() {
+    return balancerMetrics;
   }
 
   public UpgradeCoordinator.UpgradeStatus getUpgradeStatus() {
@@ -956,6 +962,7 @@ public class Manager extends AbstractServer
         } while (migrationsOutForLevel > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
         totalMigrationsOut += migrationsOutForLevel;
       }
+      balancerMetrics.assignMigratingCount(migrations::size);
 
       if (totalMigrationsOut == 0) {
         synchronized (balancedNotifier) {
@@ -1143,6 +1150,8 @@ public class Manager extends AbstractServer
     metricsInfo.addServiceTags(getApplicationName(), sa.getAddress(), getResourceGroup());
     ManagerMetrics managerMetrics = new ManagerMetrics(getConfiguration(), this);
     var producers = managerMetrics.getProducers(getConfiguration(), this);
+    producers.add(balancerMetrics);
+
     metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
     metricsInfo.init();
 
