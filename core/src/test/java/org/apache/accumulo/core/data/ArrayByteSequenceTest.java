@@ -39,33 +39,33 @@ public class ArrayByteSequenceTest {
 
   @Test
   public void testInvalidByteBufferBounds0() {
-    assertThrows(IllegalArgumentException.class, () -> abs = new ArrayByteSequence(data, -1, 0));
+    assertThrows(IndexOutOfBoundsException.class, () -> abs = new ArrayByteSequence(data, -1, 0));
   }
 
   @Test
   public void testInvalidByteBufferBounds1() {
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(IndexOutOfBoundsException.class,
         () -> abs = new ArrayByteSequence(data, data.length + 1, 0));
   }
 
   @Test
   public void testInvalidByteBufferBounds2() {
-    assertThrows(IllegalArgumentException.class, () -> abs = new ArrayByteSequence(data, 0, -1));
+    assertThrows(IndexOutOfBoundsException.class, () -> abs = new ArrayByteSequence(data, 0, -1));
   }
 
   @Test
   public void testInvalidByteBufferBounds3() {
-    assertThrows(IllegalArgumentException.class, () -> abs = new ArrayByteSequence(data, 6, 2));
+    assertThrows(IndexOutOfBoundsException.class, () -> abs = new ArrayByteSequence(data, 6, 2));
   }
 
   @Test
   public void testInvalidByteAt0() {
-    assertThrows(IllegalArgumentException.class, () -> abs.byteAt(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> abs.byteAt(-1));
   }
 
   @Test
   public void testInvalidByteAt1() {
-    assertThrows(IllegalArgumentException.class, () -> abs.byteAt(data.length));
+    assertThrows(IndexOutOfBoundsException.class, () -> abs.byteAt(data.length));
   }
 
   @Test
@@ -76,17 +76,17 @@ public class ArrayByteSequenceTest {
 
   @Test
   public void testInvalidSubsequence0() {
-    assertThrows(IllegalArgumentException.class, () -> abs.subSequence(5, 1));
+    assertThrows(IndexOutOfBoundsException.class, () -> abs.subSequence(5, 1));
   }
 
   @Test
   public void testInvalidSubsequence1() {
-    assertThrows(IllegalArgumentException.class, () -> abs.subSequence(-1, 1));
+    assertThrows(IndexOutOfBoundsException.class, () -> abs.subSequence(-1, 1));
   }
 
   @Test
   public void testInvalidSubsequence3() {
-    assertThrows(IllegalArgumentException.class, () -> abs.subSequence(0, 10));
+    assertThrows(IndexOutOfBoundsException.class, () -> abs.subSequence(0, 10));
   }
 
   @Test
