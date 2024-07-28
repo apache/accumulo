@@ -306,7 +306,7 @@ public class LocalityGroupUtil {
     public void partition(List<Mutation> mutations,
         PreAllocatedArray<List<Mutation>> partitionedMutations) {
 
-      ArrayByteSequence mbs = new ArrayByteSequence(new byte[0], 0, 0);
+      final var mbs = new ArrayByteSequence(new byte[0], 0, 0);
 
       PreAllocatedArray<List<ColumnUpdate>> parts = new PreAllocatedArray<>(groups.length + 1);
 
