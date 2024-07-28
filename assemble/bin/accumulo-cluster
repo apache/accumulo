@@ -181,7 +181,7 @@ function start_compactors() {
     Q="COMPACTOR_HOSTS_${queue}"
     if [[ -n ${!Q} ]]; then
       for compactor in ${!Q}; do
-        start_service "$compactor" compactor "-q" "$queue"
+        start_service "$compactor" compactor "-o" "compactor.queue=$queue"
       done
     else
       echo "${queue} is not a valid queue ...exiting"
@@ -202,7 +202,7 @@ function stop_compactors() {
     Q="COMPACTOR_HOSTS_${queue}"
     if [[ -n ${!Q} ]]; then
       for compactor in ${!Q}; do
-        stop_service "$compactor" compactor "-q" "$queue"
+        stop_service "$compactor" compactor "-o" "compactor.queue=$queue"
       done
     else
       echo "${queue} is not a valid compaction queue ...exiting"
@@ -223,7 +223,7 @@ function start_sservers() {
     G="SSERVER_HOSTS_${group}"
     if [[ -n ${!G} ]]; then
       for sserver in ${!G}; do
-        start_service "$sserver" sserver "-g" "$group"
+        start_service "$sserver" sserver "-o" "sserver.group=$group"
       done
     else
       echo "${group} is not a valid resource group ...exiting"
@@ -244,7 +244,7 @@ function stop_sservers() {
     G="SSERVER_HOSTS_${group}"
     if [[ -n ${!G} ]]; then
       for sserver in ${!G}; do
-        stop_service "$sserver" sserver "-g" "$group"
+        stop_service "$sserver" sserver "-o" "sserver.group=$group"
       done
     else
       echo "${queue} is not a valid resource group ...exiting"
