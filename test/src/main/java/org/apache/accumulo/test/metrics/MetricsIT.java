@@ -98,7 +98,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
     doWorkToGenerateMetrics();
     cluster.stop();
-
     // meter names sorted and formatting disabled to make it easier to diff changes
     // @formatter:off
     Set<String> unexpectedMetrics =
