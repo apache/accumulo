@@ -59,5 +59,10 @@ compaction:
         - localhost4
 
 tservers_per_host: 2
-sservers_per_host: 2
-compactors_per_host: 3
+sservers_per_host:
+  - default : 1
+  - highmem : 2
+  - cheap : 3
+compactors_per_host:
+  - q1 : 3
+  - q2 : 1
