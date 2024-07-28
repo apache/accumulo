@@ -1054,7 +1054,7 @@ public class RFile {
             hasTop = true;
           }
 
-          final ArrayByteSequence valbs = new ArrayByteSequence(new byte[64], 0, 0);
+          final var valbs = new ArrayByteSequence(new byte[64], 0, 0);
 
           Key currKey = null;
 
