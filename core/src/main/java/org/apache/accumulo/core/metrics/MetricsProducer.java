@@ -596,6 +596,14 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Distribution Summary</td>
  * <td></td>
  * </tr>
+ * <!-- Balancing -->
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED}</td>
+ * <td>Gauge</td>
+ * <td>The number of migrations that need to complete before the system is balanced</td>
+ * </tr>
  * </table>
  *
  * @since 2.1.0
@@ -707,6 +715,8 @@ public interface MetricsProducer {
   String METRICS_BLOCKCACHE_SUMMARY_HITCOUNT = METRICS_BLOCKCACHE_PREFIX + "summary.hitcount";
   String METRICS_BLOCKCACHE_SUMMARY_REQUESTCOUNT =
       METRICS_BLOCKCACHE_PREFIX + "summary.requestcount";
+
+  String METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED = "accumulo.manager.balancer.migrations.needed";
 
   /**
    * Build Micrometer Meter objects and register them with the registry

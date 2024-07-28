@@ -109,6 +109,7 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.manager.metrics.BalancerMetrics;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
@@ -205,6 +206,7 @@ public class Manager extends AbstractServer
   private TServer clientService = null;
   private volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
+  private final BalancerMetrics balancerMetrics = new BalancerMetrics();
 
   private ManagerState state = ManagerState.INITIAL;
 
@@ -559,6 +561,10 @@ public class Manager extends AbstractServer
     synchronized (migrations) {
       migrations.keySet().removeIf(extent -> extent.tableId().equals(tableId));
     }
+  }
+
+  public MetricsProducer getBalancerMetrics() {
+    return balancerMetrics;
   }
 
   enum TabletGoalState {
@@ -1068,6 +1074,7 @@ public class Manager extends AbstractServer
         } while (migrationsOutForLevel > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
         totalMigrationsOut += migrationsOutForLevel;
       }
+      balancerMetrics.assignMigratingCount(migrations::size);
 
       if (totalMigrationsOut == 0) {
         synchronized (balancedNotifier) {
@@ -1244,6 +1251,7 @@ public class Manager extends AbstractServer
     metricsInfo.addServiceTags(getApplicationName(), sa.getAddress());
 
     var producers = ManagerMetrics.getProducers(getConfiguration(), this);
+    producers.add(balancerMetrics);
     metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
     metricsInfo.init();
 
