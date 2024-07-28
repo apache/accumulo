@@ -209,7 +209,7 @@ function main() {
   fi
 
   # Check and see if accumulo-cluster is calling this script
-  if [ -z ${ACCUMULO_SERVICE_INSTANCE+x} ]; then
+  if [[ -z $ACCUMULO_SERVICE_INSTANCE ]]; then
     # The rest of the arguments are from a user
     if [[ $1 == "--all" ]]; then
       all_flag=true
@@ -224,7 +224,7 @@ function main() {
 
   case "$service_type" in
     gc | manager | monitor | tserver | compaction-coordinator | compactor | sserver)
-      if [ -z ${command_name+z} ]; then
+      if [[ -z $command_name ]]; then
         invalid_args "<command> cannot be empty"
       fi
       case "$command_name" in
