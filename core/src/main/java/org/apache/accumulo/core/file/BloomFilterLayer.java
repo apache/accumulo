@@ -20,6 +20,7 @@ package org.apache.accumulo.core.file;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.BLOOM_LOADER_POOL;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -81,7 +82,7 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      loadThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("bloom-loader")
+      loadThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder(BLOOM_LOADER_POOL)
           .numCoreThreads(0).numMaxThreads(maxLoadThreads).withTimeOut(60L, SECONDS).build();
     }
     return loadThreadPool;

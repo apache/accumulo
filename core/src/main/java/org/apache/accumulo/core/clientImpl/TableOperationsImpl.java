@@ -30,6 +30,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SPLIT_POOL;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -494,7 +495,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     AtomicReference<Exception> exception = new AtomicReference<>(null);
 
     ExecutorService executor =
-        context.threadPools().getPoolBuilder("addSplits").numCoreThreads(16).build();
+        context.threadPools().getPoolBuilder(SPLIT_POOL).numCoreThreads(16).build();
     try {
       executor.execute(
           new SplitTask(new SplitEnv(tableName, tableId, executor, latch, exception), splits));
