@@ -84,7 +84,8 @@ public class ClusterConfigParserTest {
     Map<String,String> contents =
         ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
 
-    assertEquals(14, contents.size());
+    assertEquals(17, contents.size());
+
     assertTrue(contents.containsKey("manager"));
     assertEquals("localhost1 localhost2", contents.get("manager"));
     assertTrue(contents.containsKey("monitor"));
@@ -112,10 +113,16 @@ public class ClusterConfigParserTest {
     assertEquals("localhost5 localhost6", contents.get("tserver.cheap"));
     assertTrue(contents.containsKey("tservers_per_host"));
     assertEquals("2", contents.get("tservers_per_host"));
-    assertTrue(contents.containsKey("sservers_per_host"));
-    assertEquals("2", contents.get("sservers_per_host"));
-    assertTrue(contents.containsKey("compactors_per_host"));
-    assertEquals("3", contents.get("compactors_per_host"));
+    assertTrue(contents.containsKey("sservers_per_host.default"));
+    assertEquals("1", contents.get("sservers_per_host.default"));
+    assertTrue(contents.containsKey("sservers_per_host.highmem"));
+    assertEquals("2", contents.get("sservers_per_host.highmem"));
+    assertTrue(contents.containsKey("sservers_per_host.cheap"));
+    assertEquals("3", contents.get("sservers_per_host.cheap"));
+    assertTrue(contents.containsKey("compactors_per_host.q1"));
+    assertEquals("3", contents.get("compactors_per_host.q1"));
+    assertTrue(contents.containsKey("compactors_per_host.q2"));
+    assertEquals("1", contents.get("compactors_per_host.q2"));
   }
 
   @Test
@@ -174,8 +181,6 @@ public class ClusterConfigParserTest {
     expected.put("TSERVER_GROUPS", "default");
     expected.put("TSERVER_HOSTS_default", "localhost1 localhost2 localhost3 localhost4");
     expected.put("NUM_TSERVERS", "${NUM_TSERVERS:=1}");
-    expected.put("NUM_SSERVERS", "${NUM_SSERVERS:=1}");
-    expected.put("NUM_COMPACTORS", "${NUM_COMPACTORS:=1}");
 
     expected.replaceAll((k, v) -> '"' + v + '"');
 
@@ -235,8 +240,11 @@ public class ClusterConfigParserTest {
     expected.put("TSERVER_HOSTS_default", "localhost1 localhost2");
     expected.put("TSERVER_HOSTS_highmem", "localhost3 localhost4");
     expected.put("NUM_TSERVERS", "${NUM_TSERVERS:=2}");
-    expected.put("NUM_SSERVERS", "${NUM_SSERVERS:=2}");
-    expected.put("NUM_COMPACTORS", "${NUM_COMPACTORS:=3}");
+    expected.put("NUM_COMPACTORS_q1", "3");
+    expected.put("NUM_COMPACTORS_q2", "1");
+    expected.put("NUM_SSERVERS_default", "1");
+    expected.put("NUM_SSERVERS_highmem", "2");
+    expected.put("NUM_SSERVERS_cheap", "3");
 
     expected.replaceAll((k, v) -> {
       return '"' + v + '"';

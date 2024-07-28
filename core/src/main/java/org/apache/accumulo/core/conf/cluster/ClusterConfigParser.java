@@ -40,23 +40,23 @@ public class ClusterConfigParser {
 
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String COMPACTOR_PREFIX = "compactor.";
-  private static final String COMPACTORS_PER_HOST_KEY = "compactors_per_host";
+  private static final String COMPACTORS_PER_HOST_PREFIX = "compactors_per_host.";
   private static final String GC_KEY = "gc";
   private static final String MANAGER_KEY = "manager";
   private static final String MONITOR_KEY = "monitor";
   private static final String SSERVER_PREFIX = "sserver.";
-  private static final String SSERVERS_PER_HOST_KEY = "sservers_per_host";
+  private static final String SSERVERS_PER_HOST_PREFIX = "sservers_per_host.";
   private static final String TSERVER_PREFIX = "tserver.";
   private static final String TSERVERS_PER_HOST_KEY = "tservers_per_host";
 
   private static final String[] UNGROUPED_SECTIONS =
       new String[] {MANAGER_KEY, MONITOR_KEY, GC_KEY};
 
-  private static final Set<String> VALID_CONFIG_KEYS = Set.of(MANAGER_KEY, MONITOR_KEY, GC_KEY,
-      SSERVERS_PER_HOST_KEY, TSERVERS_PER_HOST_KEY, COMPACTORS_PER_HOST_KEY);
+  private static final Set<String> VALID_CONFIG_KEYS =
+      Set.of(MANAGER_KEY, MONITOR_KEY, GC_KEY, TSERVERS_PER_HOST_KEY);
 
-  private static final Set<String> VALID_CONFIG_PREFIXES =
-      Set.of(COMPACTOR_PREFIX, SSERVER_PREFIX, TSERVER_PREFIX);
+  private static final Set<String> VALID_CONFIG_PREFIXES = Set.of(COMPACTOR_PREFIX, SSERVER_PREFIX,
+      TSERVER_PREFIX, SSERVERS_PER_HOST_PREFIX, COMPACTORS_PER_HOST_PREFIX);
 
   private static final Predicate<String> VALID_CONFIG_SECTIONS =
       section -> VALID_CONFIG_KEYS.contains(section)
@@ -134,6 +134,8 @@ public class ClusterConfigParser {
       for (String group : compactorGroups) {
         out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + group,
             config.get(COMPACTOR_PREFIX + group));
+        String numCompactors = config.getOrDefault("compactors_per_host." + group, "1");
+        out.printf(PROPERTY_FORMAT, "NUM_COMPACTORS_" + group, numCompactors);
       }
     }
 
@@ -145,6 +147,9 @@ public class ClusterConfigParser {
           sserverGroups.stream().collect(Collectors.joining(" ")));
       sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS_" + ssg,
           config.get(SSERVER_PREFIX + ssg)));
+      sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "NUM_SSERVERS_" + ssg,
+          config.getOrDefault("sservers_per_host." + ssg, "1")));
+
     }
 
     List<String> tserverGroups = config.keySet().stream().filter(k -> k.startsWith(TSERVER_PREFIX))
@@ -159,12 +164,6 @@ public class ClusterConfigParser {
 
     String numTservers = config.getOrDefault("tservers_per_host", "1");
     out.print("NUM_TSERVERS=\"${NUM_TSERVERS:=" + numTservers + "}\"\n");
-
-    String numSservers = config.getOrDefault("sservers_per_host", "1");
-    out.print("NUM_SSERVERS=\"${NUM_SSERVERS:=" + numSservers + "}\"\n");
-
-    String numCompactors = config.getOrDefault("compactors_per_host", "1");
-    out.print("NUM_COMPACTORS=\"${NUM_COMPACTORS:=" + numCompactors + "}\"\n");
 
     out.flush();
   }
