@@ -243,8 +243,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
       Set<String> metadataScanFileRefs = new HashSet<>();
       metadataEntries.forEach(m -> {
-        String file = m.getKey().getColumnQualifier().toString();
-        metadataScanFileRefs.add(file);
+        metadataScanFileRefs.add(new ScanServerRefTabletFile(m.getKey()).getFilePath().toString());
       });
       assertEquals(fileCount, metadataScanFileRefs.size());
 
