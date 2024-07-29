@@ -148,6 +148,9 @@ public class CompactionCoordinator
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
 
+  public static final String RESTART_UPDATE_MSG =
+      "Coordinator restarted, compaction found in progress";
+
   /*
    * Map of compactionId to RunningCompactions. This is an informational cache of what external
    * compactions may be running. Its possible it may contain external compactions that are not
@@ -301,7 +304,7 @@ public class CompactionCoordinator
       running.forEach(rc -> {
         TCompactionStatusUpdate update = new TCompactionStatusUpdate();
         update.setState(TCompactionState.IN_PROGRESS);
-        update.setMessage("Coordinator restarted, compaction found in progress");
+        update.setMessage(RESTART_UPDATE_MSG);
         rc.addUpdate(System.currentTimeMillis(), update);
         RUNNING_CACHE.put(ExternalCompactionId.of(rc.getJob().getExternalCompactionId()), rc);
       });
