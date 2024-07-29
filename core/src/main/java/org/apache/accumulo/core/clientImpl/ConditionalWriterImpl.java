@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.CONDITIONAL_WRITER_POOL;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -377,7 +378,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     this.auths = config.getAuthorizations();
     this.accessEvaluator = AccessEvaluator.of(config.getAuthorizations().toAccessAuthorizations());
     this.threadPool = context.threadPools().createScheduledExecutorService(
-        config.getMaxWriteThreads(), this.getClass().getSimpleName());
+        config.getMaxWriteThreads(), CONDITIONAL_WRITER_POOL.poolName);
     this.locator = new SyncingClientTabletCache(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;

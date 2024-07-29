@@ -16,19 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.functional;
+package org.apache.accumulo.manager.metrics.fate.user;
 
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.manager.metrics.fate.FateMetrics;
+import org.apache.accumulo.server.ServerContext;
 
-import org.junit.jupiter.api.Tag;
+public class UserFateMetrics extends FateMetrics<UserFateMetricValues> {
 
-/*
- * This class is empty because of the SUNNY_DAY tag.  WALSunnyDayBaseIT exists to share code with
- * WALFlakyAmpleIT.  Ideally the code in WALSunnyDayBaseIT could be moved into this class and
- * WALFlakyAmpleIT could extend this class.  However, if it did then WALFlakyAmpleIT would inherit
- * the SUNNY_DAY tag which is not desirable.
- */
-@Tag(SUNNY_DAY)
-public class WALSunnyDayIT extends WALSunnyDayBaseIT {
+  public UserFateMetrics(ServerContext context, long minimumRefreshDelay) {
+    super(context, minimumRefreshDelay);
+  }
 
+  @Override
+  protected ReadOnlyFateStore<FateMetrics<UserFateMetricValues>> buildStore(ServerContext context) {
+    return new UserFateStore<>(context);
+  }
+
+  @Override
+  protected UserFateMetricValues getMetricValues() {
+    return UserFateMetricValues.getUserStoreMetrics(fateStore);
+  }
 }

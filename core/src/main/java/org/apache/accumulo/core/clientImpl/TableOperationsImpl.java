@@ -41,6 +41,8 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_TABLE;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SPLIT_START_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SPLIT_WAIT_POOL;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -492,9 +494,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     final ByteBuffer EMPTY = ByteBuffer.allocate(0);
 
     ExecutorService startExecutor =
-        context.threadPools().getPoolBuilder("addSplitsStart").numCoreThreads(16).build();
+        context.threadPools().getPoolBuilder(SPLIT_START_POOL).numCoreThreads(16).build();
     ExecutorService waitExecutor =
-        context.threadPools().getPoolBuilder("addSplitsWait").numCoreThreads(16).build();
+        context.threadPools().getPoolBuilder(SPLIT_WAIT_POOL).numCoreThreads(16).build();
 
     while (!splitsTodo.isEmpty()) {
 
