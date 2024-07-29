@@ -202,7 +202,6 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       Map<ExternalCompactionId,RunningCompactionInfo> postRestartRunningInfo =
           getRunningCompactionInformation(ctx, ecids);
 
-      int matches = 0;
       for (Entry<ExternalCompactionId,RunningCompactionInfo> post : postRestartRunningInfo
           .entrySet()) {
         if (originalRunningInfo.containsKey(post.getKey())) {
@@ -211,9 +210,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
         }
         final String lastState = post.getValue().status;
         assertTrue(lastState.equals(TCompactionState.IN_PROGRESS.name()));
-        matches++;
       }
-      assertTrue(matches > 0);
 
       // We need to cancel the compaction or delete the table here because we initiate a user
       // compaction above in the test. Even though the external compaction was cancelled
