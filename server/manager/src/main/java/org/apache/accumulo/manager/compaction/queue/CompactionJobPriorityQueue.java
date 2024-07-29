@@ -202,7 +202,7 @@ public class CompactionJobPriorityQueue {
     return jobsAdded;
   }
 
-  public int getMaxSize() {
+  public synchronized int getMaxSize() {
     return maxSize.get();
   }
 
