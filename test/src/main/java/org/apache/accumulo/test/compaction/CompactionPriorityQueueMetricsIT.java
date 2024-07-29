@@ -196,7 +196,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
           Property.COMPACTION_SERVICE_PREFIX.getKey() + QUEUE1_SERVICE + ".planner.opts.groups",
           "[{'group':'" + QUEUE1 + "'}]");
 
-      cfg.setProperty(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE, "6");
+      cfg.setProperty(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE, "6");
       cfg.getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 0);
 
       // This test waits for dead compactors to be absent in zookeeper. The following setting will
