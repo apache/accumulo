@@ -24,11 +24,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.fate.AdminUtil;
-import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
-import org.apache.accumulo.server.ServerContext;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,39 +32,26 @@ import org.slf4j.LoggerFactory;
  * Immutable class that holds a snapshot of fate metric values - use builder to instantiate an
  * instance.
  */
-class FateMetricValues {
+public abstract class FateMetricValues {
 
   private static final Logger log = LoggerFactory.getLogger(FateMetricValues.class);
 
-  private final long updateTime;
-  private final long currentFateOps;
-  private final long zkFateChildOpsTotal;
-  private final long zkConnectionErrors;
+  protected final long updateTime;
+  protected final long currentFateOps;
 
-  private final Map<String,Long> txStateCounters;
-  private final Map<String,Long> opTypeCounters;
+  protected final Map<String,Long> txStateCounters;
+  protected final Map<String,Long> opTypeCounters;
 
-  private FateMetricValues(final long updateTime, final long currentFateOps,
-      final long zkFateChildOpsTotal, final long zkConnectionErrors,
+  protected FateMetricValues(final long updateTime, final long currentFateOps,
       final Map<String,Long> txStateCounters, final Map<String,Long> opTypeCounters) {
     this.updateTime = updateTime;
     this.currentFateOps = currentFateOps;
-    this.zkFateChildOpsTotal = zkFateChildOpsTotal;
-    this.zkConnectionErrors = zkConnectionErrors;
     this.txStateCounters = txStateCounters;
     this.opTypeCounters = opTypeCounters;
   }
 
-  long getCurrentFateOps() {
+  public long getCurrentFateOps() {
     return currentFateOps;
-  }
-
-  long getZkFateChildOpsTotal() {
-    return zkFateChildOpsTotal;
-  }
-
-  long getZkConnectionErrors() {
-    return zkConnectionErrors;
   }
 
   /**
@@ -76,7 +59,7 @@ class FateMetricValues {
    *
    * @return a map of transaction status counters.
    */
-  Map<String,Long> getTxStateCounters() {
+  public Map<String,Long> getTxStateCounters() {
     return txStateCounters;
   }
 
@@ -87,107 +70,62 @@ class FateMetricValues {
    *
    * @return a map of operation type counters.
    */
-  Map<String,Long> getOpTypeCounters() {
+  public Map<String,Long> getOpTypeCounters() {
     return opTypeCounters;
   }
 
-  /**
-   * The FATE transaction stores the transaction type as a debug string in the transaction zknode.
-   * This method returns a map of counters of the current occurrences of each operation type that is
-   * IN_PROGRESS
-   *
-   * @param context Accumulo context
-   * @param fateRootPath the zookeeper path to fate info
-   * @param metaFateStore a readonly MetaFateStore
-   * @return the current FATE metric values.
-   */
-  public static FateMetricValues getFromZooKeeper(final ServerContext context,
-      final String fateRootPath, final ReadOnlyFateStore<FateMetrics> metaFateStore) {
+  protected static <T extends AbstractBuilder<T,U>,U extends FateMetricValues> T
+      getFateMetrics(final ReadOnlyFateStore<FateMetrics<U>> fateStore, T builder) {
 
-    FateMetricValues.Builder builder = FateMetricValues.builder();
+    AdminUtil<FateMetrics<U>> admin = new AdminUtil<>(false);
 
-    AdminUtil<FateMetrics> admin = new AdminUtil<>(false);
+    List<AdminUtil.TransactionStatus> currFates =
+        admin.getTransactionStatus(Map.of(fateStore.type(), fateStore), null, null, null);
 
-    try {
+    builder.withCurrentFateOps(currFates.size());
 
-      List<AdminUtil.TransactionStatus> currFates = admin
-          .getTransactionStatus(Map.of(FateInstanceType.META, metaFateStore), null, null, null);
-
-      builder.withCurrentFateOps(currFates.size());
-
-      // states are enumerated - create new map with counts initialized to 0.
-      Map<String,Long> states = new TreeMap<>();
-      for (ReadOnlyFateStore.TStatus t : ReadOnlyFateStore.TStatus.values()) {
-        states.put(t.name(), 0L);
-      }
-
-      // op types are dynamic, no count initialization needed - clearing prev values will
-      // need to be handled by the caller - this is just the counts for current op types.
-      Map<String,Long> opTypeCounters = new TreeMap<>();
-
-      for (AdminUtil.TransactionStatus tx : currFates) {
-
-        String stateName = tx.getStatus().name();
-
-        // incr count for state
-        states.merge(stateName, 1L, Long::sum);
-
-        // incr count for op type for for in_progress transactions.
-        if (ReadOnlyFateStore.TStatus.IN_PROGRESS.equals(tx.getStatus())) {
-          String opType = tx.getTxName();
-          if (opType == null || opType.isEmpty()) {
-            opType = "UNKNOWN";
-          }
-          opTypeCounters.merge(opType, 1L, Long::sum);
-        }
-      }
-
-      builder.withTxStateCounters(states);
-      builder.withOpTypeCounters(opTypeCounters);
-
-      Stat node = context.getZooReaderWriter().getZooKeeper().exists(fateRootPath, false);
-      builder.withZkFateChildOpsTotal(node.getCversion());
-
-      if (log.isTraceEnabled()) {
-        log.trace(
-            "ZkNodeStat: {czxid: {}, mzxid: {}, pzxid: {}, ctime: {}, mtime: {}, "
-                + "version: {}, cversion: {}, num children: {}",
-            node.getCzxid(), node.getMzxid(), node.getPzxid(), node.getCtime(), node.getMtime(),
-            node.getVersion(), node.getCversion(), node.getNumChildren());
-      }
-
-    } catch (KeeperException ex) {
-      log.debug("Error connecting to ZooKeeper", ex);
-      builder.incrZkConnectionErrors();
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
+    // states are enumerated - create new map with counts initialized to 0.
+    Map<String,Long> states = new TreeMap<>();
+    for (ReadOnlyFateStore.TStatus t : ReadOnlyFateStore.TStatus.values()) {
+      states.put(t.name(), 0L);
     }
 
-    return builder.build();
+    // op types are dynamic, no count initialization needed - clearing prev values will
+    // need to be handled by the caller - this is just the counts for current op types.
+    Map<String,Long> opTypeCounters = new TreeMap<>();
+
+    for (AdminUtil.TransactionStatus tx : currFates) {
+
+      String stateName = tx.getStatus().name();
+
+      // incr count for state
+      states.merge(stateName, 1L, Long::sum);
+
+      // incr count for op type for for in_progress transactions.
+      if (ReadOnlyFateStore.TStatus.IN_PROGRESS.equals(tx.getStatus())) {
+        String opType = tx.getTxName();
+        if (opType == null || opType.isEmpty()) {
+          opType = "UNKNOWN";
+        }
+        opTypeCounters.merge(opType, 1L, Long::sum);
+      }
+    }
+
+    builder.withTxStateCounters(states);
+    builder.withOpTypeCounters(opTypeCounters);
+
+    return builder;
   }
 
-  @Override
-  public String toString() {
-    return "FateMetricValues{updateTime=" + updateTime + ", currentFateOps=" + currentFateOps
-        + ", zkFateChildOpsTotal=" + zkFateChildOpsTotal + ", zkConnectionErrors="
-        + zkConnectionErrors + '}';
-  }
+  @SuppressWarnings("unchecked")
+  protected static abstract class AbstractBuilder<T extends AbstractBuilder<T,U>,
+      U extends FateMetricValues> {
 
-  public static Builder builder() {
-    return new Builder();
-  }
+    protected long currentFateOps = 0;
+    protected final Map<String,Long> txStateCounters;
+    protected Map<String,Long> opTypeCounters;
 
-  static class Builder {
-
-    private long currentFateOps = 0;
-    private long zkFateChildOpsTotal = 0;
-    private long zkConnectionErrors = 0;
-
-    private final Map<String,Long> txStateCounters;
-    private Map<String,Long> opTypeCounters;
-
-    Builder() {
-
+    protected AbstractBuilder() {
       // states are enumerated - create new map with counts initialized to 0.
       txStateCounters = new TreeMap<>();
       for (ReadOnlyFateStore.TStatus t : ReadOnlyFateStore.TStatus.values()) {
@@ -197,39 +135,21 @@ class FateMetricValues {
       opTypeCounters = Collections.emptyMap();
     }
 
-    Builder withCurrentFateOps(final long value) {
+    public T withCurrentFateOps(final long value) {
       this.currentFateOps = value;
-      return this;
+      return (T) this;
     }
 
-    Builder withZkFateChildOpsTotal(final long value) {
-      this.zkFateChildOpsTotal = value;
-      return this;
-    }
-
-    Builder incrZkConnectionErrors() {
-      this.zkConnectionErrors += 1L;
-      return this;
-    }
-
-    Builder withZkConnectionErrors(final long value) {
-      this.zkConnectionErrors = value;
-      return this;
-    }
-
-    Builder withTxStateCounters(final Map<String,Long> txStateCounters) {
+    public T withTxStateCounters(final Map<String,Long> txStateCounters) {
       this.txStateCounters.putAll(txStateCounters);
-      return this;
+      return (T) this;
     }
 
-    Builder withOpTypeCounters(final Map<String,Long> opTypeCounters) {
+    public T withOpTypeCounters(final Map<String,Long> opTypeCounters) {
       this.opTypeCounters = new TreeMap<>(opTypeCounters);
-      return this;
+      return (T) this;
     }
 
-    FateMetricValues build() {
-      return new FateMetricValues(System.currentTimeMillis(), currentFateOps, zkFateChildOpsTotal,
-          zkConnectionErrors, txStateCounters, opTypeCounters);
-    }
+    protected abstract U build();
   }
 }
