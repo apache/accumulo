@@ -255,7 +255,7 @@ function stop_sservers() {
         stop_service "$sserver" sserver "-g" "$group"
       done
     else
-      echo "${queue} is not a valid resource group ...exiting"
+      echo "${group} is not a valid resource group ...exiting"
     fi
   done
 }

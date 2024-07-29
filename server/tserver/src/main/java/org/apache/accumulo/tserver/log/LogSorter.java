@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_WAL_SORT_CONCURRENT_POOL;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -297,7 +298,7 @@ public class LogSorter {
     int threadPoolSize = this.conf.getCount(this.conf
         .resolve(Property.TSERV_WAL_SORT_MAX_CONCURRENT, Property.TSERV_RECOVERY_MAX_CONCURRENT));
     ThreadPoolExecutor threadPool =
-        ThreadPools.getServerThreadPools().getPoolBuilder(this.getClass().getName())
+        ThreadPools.getServerThreadPools().getPoolBuilder(TSERVER_WAL_SORT_CONCURRENT_POOL)
             .numCoreThreads(threadPoolSize).enableThreadPoolMetrics().build();
     new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf,
         context).startProcessing(new LogProcessor(), threadPool);
