@@ -117,6 +117,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CommitCompaction;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CompactionCommitData;
 import org.apache.accumulo.manager.compaction.coordinator.commit.RenameCompactionFile;
+import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
@@ -183,7 +184,7 @@ public class CompactionCoordinator
   private final Manager manager;
 
   private final LoadingCache<String,Integer> compactorCounts;
-  private final double queueSizeFactor;
+  private final int jobQueueInitialSize;
 
   public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
       AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances, Manager manager) {
@@ -192,11 +193,10 @@ public class CompactionCoordinator
     this.security = security;
     this.manager = Objects.requireNonNull(manager);
 
-    this.jobQueues = new CompactionJobQueues(ctx.getConfiguration()
-        .getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE));
+    this.jobQueueInitialSize = ctx.getConfiguration()
+        .getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE);
 
-    this.queueSizeFactor = ctx.getConfiguration()
-        .getFraction(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR);
+    this.jobQueues = new CompactionJobQueues(jobQueueInitialSize);
 
     this.queueMetrics = new QueueMetrics(jobQueues);
 
@@ -1068,7 +1068,9 @@ public class CompactionCoordinator
   private void cleanUpCompactors() {
     final String compactorQueuesPath = this.ctx.getZooKeeperRoot() + Constants.ZCOMPACTORS;
 
-    var zoorw = this.ctx.getZooReaderWriter();
+    final var zoorw = this.ctx.getZooReaderWriter();
+    final double queueSizeFactor = ctx.getConfiguration()
+        .getFraction(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR);
 
     try {
       var groups = zoorw.getChildren(compactorQueuesPath);
@@ -1082,7 +1084,11 @@ public class CompactionCoordinator
           deleteEmpty(zoorw, qpath);
           // Group has no compactors, we can clear its
           // associated priority queue of jobs
-          getJobQueues().getQueue(cgid).clear();
+          CompactionJobPriorityQueue queue = getJobQueues().getQueue(cgid);
+          if (queue != null) {
+            queue.clear();
+            queue.setMaxSize(this.jobQueueInitialSize);
+          }
         } else {
           int aliveCompactorsForGroup = 0;
           for (String compactor : compactors) {
@@ -1094,8 +1100,12 @@ public class CompactionCoordinator
               aliveCompactorsForGroup++;
             }
           }
-          getJobQueues().getQueue(cgid).setMaxSize(
-              Math.min((int) (aliveCompactorsForGroup * queueSizeFactor), Integer.MAX_VALUE));
+          CompactionJobPriorityQueue queue = getJobQueues().getQueue(cgid);
+          if (queue != null) {
+            queue.setMaxSize(
+                Math.min((int) (aliveCompactorsForGroup * queueSizeFactor), Integer.MAX_VALUE));
+          }
+
         }
 
       }

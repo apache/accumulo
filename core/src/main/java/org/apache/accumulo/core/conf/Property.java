@@ -449,7 +449,7 @@ public enum Property {
       "manager.compaction.major.service.queue.initial.size", "10000", PropertyType.COUNT,
       "The initial size of each resource groups compaction job priority queue.", "4.0.0"),
   MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR(
-      "manager.compaction.major.service.queue.size.factor", "1.5", PropertyType.FRACTION,
+      "manager.compaction.major.service.queue.size.factor", "3.0", PropertyType.FRACTION,
       "The dynamic resizing of the compaction job priority queue is based on"
           + " the number of compactors for the group multiplied by this factor.",
       "4.0.0"),
@@ -1440,7 +1440,6 @@ public enum Property {
 
       // compaction coordiantor properties
       MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE,
-      MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR,
 
       // block cache options
       TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,

@@ -31,8 +31,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -108,7 +108,7 @@ public class CompactionJobPriorityQueue {
   // efficiently removing entries from anywhere in the queue. Efficient removal is needed for the
   // case where tablets decided to issues different compaction jobs than what is currently queued.
   private final TreeMap<CjpqKey,CompactionJobQueues.MetaJob> jobQueue;
-  private Supplier<Integer> maxSize;
+  private AtomicInteger maxSize;
   private final AtomicLong rejectedJobs;
   private final AtomicLong dequeuedJobs;
   private final ArrayDeque<CompletableFuture<CompactionJobQueues.MetaJob>> futures;
@@ -130,9 +130,9 @@ public class CompactionJobPriorityQueue {
 
   private final AtomicLong nextSeq = new AtomicLong(0);
 
-  public CompactionJobPriorityQueue(CompactorGroupId groupId, Supplier<Integer> maxSize) {
+  public CompactionJobPriorityQueue(CompactorGroupId groupId, int maxSize) {
     this.jobQueue = new TreeMap<>();
-    this.maxSize = maxSize;
+    this.maxSize = new AtomicInteger(maxSize);
     this.tabletJobs = new HashMap<>();
     this.groupId = groupId;
     this.rejectedJobs = new AtomicLong(0);
@@ -206,8 +206,8 @@ public class CompactionJobPriorityQueue {
     return maxSize.get();
   }
 
-  public void setMaxSize(int maxSize) {
-    this.maxSize = () -> maxSize;
+  public synchronized void setMaxSize(int maxSize) {
+    this.maxSize.set(maxSize);
   }
 
   public long getRejectedJobs() {
@@ -312,5 +312,6 @@ public class CompactionJobPriorityQueue {
 
   public synchronized void clear() {
     jobQueue.clear();
+    tabletJobs.clear();
   }
 }
