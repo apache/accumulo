@@ -100,6 +100,10 @@ public class ByteSequenceTest {
     if (b.length() == 0 && b instanceof ImmutableByteSequence) {
       assertSame(ByteSequence.of(), b);
     }
+
+    // Check compareTo when equals
+    assertEquals(0, a.compareTo(b));
+    assertEquals(0, b.compareTo(a));
   }
 
   private static void checkNotEquals(ByteSequence a, ByteSequence b) {

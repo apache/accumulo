@@ -20,6 +20,7 @@ package org.apache.accumulo.core.data;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -126,12 +127,14 @@ public class ArrayByteSequenceTest {
   @Test
   public void testReset() {
     var bs1 = new ArrayByteSequence("123456789");
+    int hc1 = bs1.hashCode();
     var array = "abcdefg".getBytes(UTF_8);
     bs1.reset(array, 2, 3);
     assertEquals(2, bs1.offset());
     assertEquals(3, bs1.length);
     assertSame(bs1.getBackingArray(), array);
     assertNotSame(bs1.toArray(), array);
+    assertNotEquals(hc1, bs1.hashCode());
     assertEquals(new String(bs1.toArray(), UTF_8), "cde");
     assertEquals(bs1.toString(), "cde");
     assertEquals(bs1.hashCode(), ByteSequence.of("cde").hashCode());
