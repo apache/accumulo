@@ -48,7 +48,8 @@ final class ImmutableByteSequence extends ByteSequence {
 
   ImmutableByteSequence(ByteSequence data) {
     if (data.isBackedByArray()) {
-      this.data = Arrays.copyOfRange(data.toArray(), data.offset(), data.offset() + data.offset());
+      this.data =
+          Arrays.copyOfRange(data.getBackingArray(), data.offset(), data.offset() + data.length());
     } else {
       var dataArray = data.toArray();
       this.data = Arrays.copyOf(dataArray, dataArray.length);

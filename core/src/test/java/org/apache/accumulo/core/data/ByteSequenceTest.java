@@ -250,6 +250,20 @@ public class ByteSequenceTest {
     assertThrows(IndexOutOfBoundsException.class, () -> ByteSequence.of().subSequence(0, 1));
   }
 
+  // test passing an array backed ByteSequence with a non-zero offset to different methods that take
+  // ByteSequence
+  @Test
+  public void testNonZeroOffset() {
+    var data = "qwerty".getBytes(UTF_8);
+    var abs = new ArrayByteSequence(new byte[0]);
+    abs.reset(data, 2, 3);
+    assertEquals(2, abs.offset());
+    var copy = ByteSequence.of(abs);
+    assertEquals(ByteSequence.of("ert"), copy);
+    var copy2 = new ArrayByteSequence(abs);
+    assertEquals(copy, copy2);
+  }
+
   static class CustomByteSequence extends ByteSequence {
 
     private static final long serialVersionUID = 1L;
