@@ -82,10 +82,8 @@ public class VisibilityFilter extends SynchronizedServerFilter {
     }
 
     try {
-      final ByteSequence safeCopy =
-          (testVis.length() == 0) ? defaultVisibility : new ArrayByteSequence(testVis);
-      boolean bb = ve.canAccess(safeCopy.toArray());
-      cache.put(safeCopy, bb);
+      boolean bb = ve.canAccess(testVis.toArray());
+      cache.put(ByteSequence.of(testVis.length() == 0 ? defaultVisibility : testVis), bb);
       return bb;
     } catch (InvalidAccessExpressionException e) {
       log.error("IllegalAccessExpressionException with visibility of Key: {}", k, e);
