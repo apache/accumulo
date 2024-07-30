@@ -62,8 +62,6 @@ public class Constants {
   public static final String ZMONITOR_LOCK = ZMONITOR + "/lock";
   public static final String ZMONITOR_HTTP_ADDR = ZMONITOR + "/http_addr";
 
-  // used by < 2.1 table and namespace configurations
-  public static final String ZCONF_LEGACY = "/conf";
   public static final String ZCONFIG = "/config";
 
   public static final String ZTSERVERS = "/tservers";
@@ -77,8 +75,6 @@ public class Constants {
 
   public static final String ZDEAD = "/dead";
   public static final String ZDEADTSERVERS = ZDEAD + "/tservers";
-
-  public static final String ZTRACERS = "/tracers";
 
   public static final String ZPROBLEMS = "/problems";
 

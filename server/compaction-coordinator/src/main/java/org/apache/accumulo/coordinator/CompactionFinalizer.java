@@ -22,6 +22,8 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_FINALIZER_BACKGROUND_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_FINALIZER_NOTIFIER_POOL;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -77,11 +79,11 @@ public class CompactionFinalizer {
         .getCount(Property.COMPACTION_COORDINATOR_FINALIZER_TSERVER_NOTIFIER_MAXTHREADS);
 
     this.ntfyExecutor = ThreadPools.getServerThreadPools()
-        .getPoolBuilder("Compaction Finalizer Notifier").numCoreThreads(3).numMaxThreads(max)
+        .getPoolBuilder(COORDINATOR_FINALIZER_NOTIFIER_POOL).numCoreThreads(3).numMaxThreads(max)
         .withTimeOut(1L, MINUTES).enableThreadPoolMetrics().build();
 
     this.backgroundExecutor =
-        ThreadPools.getServerThreadPools().getPoolBuilder("Compaction Finalizer Background Task")
+        ThreadPools.getServerThreadPools().getPoolBuilder(COORDINATOR_FINALIZER_BACKGROUND_POOL)
             .numCoreThreads(1).enableThreadPoolMetrics().build();
 
     backgroundExecutor.execute(() -> {

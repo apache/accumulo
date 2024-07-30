@@ -25,8 +25,9 @@ import java.util.Map;
 
 import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.AccessExpression;
-import org.apache.accumulo.access.IllegalAccessExpressionException;
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -46,6 +47,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
 
   private AccessEvaluator accessEvaluator;
   protected Map<ByteSequence,Boolean> cache;
+  private ArrayByteSequence testVis = new ArrayByteSequence(new byte[0]);
 
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
 
@@ -73,18 +75,25 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
 
   @Override
   public boolean accept(Key k, Value v) {
-    ByteSequence testVis = k.getColumnVisibilityData();
+    // The following call will replace the contents of testVis
+    // with the bytes for the column visibility for k. Any cached
+    // version of testVis needs to be a copy to avoid modifying
+    // the cached version.
+    k.getColumnVisibilityData(testVis);
     if (filterInvalid) {
       Boolean b = cache.get(testVis);
       if (b != null) {
         return b;
       }
+      final ArrayByteSequence copy = new ArrayByteSequence(testVis);
       try {
-        AccessExpression.validate(testVis.toArray());
-        cache.put(testVis, true);
+        AccessExpression.validate(copy.toArray());
+        // cache a copy of testVis
+        cache.put(copy, true);
         return true;
-      } catch (IllegalAccessExpressionException e) {
-        cache.put(testVis, false);
+      } catch (InvalidAccessExpressionException e) {
+        // cache a copy of testVis
+        cache.put(copy, false);
         return false;
       }
     } else {
@@ -97,11 +106,13 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         return b;
       }
 
+      final ArrayByteSequence copy = new ArrayByteSequence(testVis);
       try {
-        boolean bb = accessEvaluator.canAccess(testVis.toArray());
-        cache.put(testVis, bb);
+        boolean bb = accessEvaluator.canAccess(copy.toArray());
+        // cache a copy of testVis
+        cache.put(copy, bb);
         return bb;
-      } catch (IllegalAccessExpressionException e) {
+      } catch (InvalidAccessExpressionException e) {
         log.error("Parse Error", e);
         return false;
       }

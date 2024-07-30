@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.iteratorsImpl.system;
 
 import org.apache.accumulo.access.AccessEvaluator;
-import org.apache.accumulo.access.IllegalAccessExpressionException;
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -41,10 +41,12 @@ import org.slf4j.LoggerFactory;
  * class.
  */
 public class VisibilityFilter extends SynchronizedServerFilter {
-  protected AccessEvaluator ve;
-  protected ByteSequence defaultVisibility;
-  protected LRUMap<ByteSequence,Boolean> cache;
-  protected Authorizations authorizations;
+  protected final AccessEvaluator ve;
+  protected final ArrayByteSequence defaultVisibility;
+  protected final LRUMap<ByteSequence,Boolean> cache;
+  protected final Authorizations authorizations;
+
+  private ArrayByteSequence testVis = new ArrayByteSequence(new byte[0]);
 
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
 
@@ -64,24 +66,28 @@ public class VisibilityFilter extends SynchronizedServerFilter {
 
   @Override
   protected boolean accept(Key k, Value v) {
-    ByteSequence testVis = k.getColumnVisibilityData();
+    // The following call will replace the contents of testVis
+    // with the bytes for the column visibility for k. Any cached
+    // version of testVis needs to be a copy to avoid modifying
+    // the cached version.
+    k.getColumnVisibilityData(testVis);
 
     if (testVis.length() == 0 && defaultVisibility.length() == 0) {
       return true;
-    } else if (testVis.length() == 0) {
-      testVis = defaultVisibility;
     }
 
-    Boolean b = cache.get(testVis);
+    Boolean b = cache.get((testVis.length() == 0) ? defaultVisibility : testVis);
     if (b != null) {
       return b;
     }
 
     try {
-      boolean bb = ve.canAccess(testVis.toArray());
-      cache.put(testVis, bb);
+      final ArrayByteSequence safeCopy =
+          (testVis.length() == 0) ? defaultVisibility : new ArrayByteSequence(testVis);
+      boolean bb = ve.canAccess(safeCopy.toArray());
+      cache.put(safeCopy, bb);
       return bb;
-    } catch (IllegalAccessExpressionException e) {
+    } catch (InvalidAccessExpressionException e) {
       log.error("IllegalAccessExpressionException with visibility of Key: {}", k, e);
       return false;
     }

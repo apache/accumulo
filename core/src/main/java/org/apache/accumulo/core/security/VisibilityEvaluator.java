@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.security;
 
 import org.apache.accumulo.access.AccessEvaluator;
-import org.apache.accumulo.access.IllegalAccessExpressionException;
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 
 /**
@@ -101,7 +101,7 @@ public class VisibilityEvaluator {
   public boolean evaluate(ColumnVisibility visibility) throws VisibilityParseException {
     try {
       return accessEvaluator.canAccess(visibility.getExpression());
-    } catch (IllegalAccessExpressionException e) {
+    } catch (InvalidAccessExpressionException e) {
       // This is thrown for compatability with the exception this class used to evaluate expressions
       // itself.
       throw new VisibilityParseException(e);

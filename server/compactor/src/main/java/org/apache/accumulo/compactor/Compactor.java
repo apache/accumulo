@@ -321,14 +321,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     ClientServiceHandler clientHandler =
         new ClientServiceHandler(getContext(), new TransactionWatcher(getContext()));
     var processor = ThriftProcessorTypes.getCompactorTProcessor(clientHandler, this, getContext());
-    Property maxMessageSizeProperty =
-        (getConfiguration().get(Property.COMPACTOR_MAX_MESSAGE_SIZE) != null
-            ? Property.COMPACTOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
-        Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK,
-        maxMessageSizeProperty);
+        Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK);
     LOG.info("address = {}", sp.address);
     return sp;
   }
@@ -693,18 +689,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
-      final AtomicReference<NanoTime> lastCompletionTime = new AtomicReference<>(null);
 
       while (!shutdown) {
 
-        idleProcessCheck(() -> {
-          final NanoTime lastCompletion = lastCompletionTime.get();
-          if (lastCompletion == null) {
-            return true; // no compactions have completed yet
-          }
-          // return true if the idle period elapsed since the last compaction completed
-          return lastCompletion.elapsed().compareTo(idleReportingPeriod) > 0;
-        });
+        // mark compactor as idle while not in the compaction loop
+        updateIdleStatus(true);
 
         currentCompactionId.set(null);
         err.set(null);
@@ -743,6 +732,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         JOB_HOLDER.set(job, compactionThread, fcr.getFileCompactor());
 
         try {
+          // mark compactor as busy while compacting
+          updateIdleStatus(false);
+
           // Need to call FileCompactorRunnable.initialize after calling JOB_HOLDER.set
           fcr.initialize();
 
@@ -855,7 +847,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
         } finally {
           currentCompactionId.set(null);
-          lastCompletionTime.set(NanoTime.now());
+
+          // mark compactor as idle after compaction completes
+          updateIdleStatus(true);
+
           // In the case where there is an error in the foreground code the background compaction
           // may still be running. Must cancel it before starting another iteration of the loop to
           // avoid multiple threads updating shared state.

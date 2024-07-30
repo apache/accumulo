@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Objects;
 
 import org.apache.accumulo.core.util.ByteBufferUtil;
 
@@ -62,10 +63,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
    */
   public ArrayByteSequence(byte[] data, int offset, int length) {
 
-    if (offset < 0 || offset > data.length || length < 0 || (offset + length) > data.length) {
-      throw new IllegalArgumentException(" Bad offset and/or length data.length = " + data.length
-          + " offset = " + offset + " length = " + length);
-    }
+    Objects.checkFromIndexSize(offset, length, data.length);
 
     this.data = data;
     this.offset = offset;
@@ -123,13 +121,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   @Override
   public byte byteAt(int i) {
 
-    if (i < 0) {
-      throw new IllegalArgumentException("i < 0, " + i);
-    }
-
-    if (i >= length) {
-      throw new IllegalArgumentException("i >= length, " + i + " >= " + length);
-    }
+    Objects.checkIndex(i, length);
 
     return data[offset + i];
   }
@@ -154,13 +146,22 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
     return offset;
   }
 
+  /**
+   * Reset the backing array for this byte sequence object. This is useful for object re-use.
+   *
+   * @since 3.1.0
+   */
+  public void reset(byte[] data, int offset, int length) {
+    Objects.checkFromIndexSize(offset, length, data.length);
+    this.data = data;
+    this.offset = offset;
+    this.length = length;
+  }
+
   @Override
   public ByteSequence subSequence(int start, int end) {
 
-    if (start > end || start < 0 || end > length) {
-      throw new IllegalArgumentException("Bad start and/end start = " + start + " end=" + end
-          + " offset=" + offset + " length=" + length);
-    }
+    Objects.checkFromToIndex(start, end, length);
 
     return new ArrayByteSequence(data, offset + start, end - start);
   }

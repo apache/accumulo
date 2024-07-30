@@ -16,15 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metrics;
+package org.apache.accumulo.manager.metrics;
 
+import java.util.function.LongSupplier;
+
+import org.apache.accumulo.core.metrics.MetricsProducer;
+
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
-/**
- * @deprecated since 2.1.3; use {@link org.apache.accumulo.core.spi.metrics.MeterRegistryFactory}
- *             instead
- */
-@Deprecated()
-public interface MeterRegistryFactory {
-  MeterRegistry create();
+public class BalancerMetrics implements MetricsProducer {
+
+  LongSupplier migratingCount;
+
+  public void assignMigratingCount(LongSupplier f) {
+    migratingCount = f;
+  }
+
+  public long getMigratingCount() {
+    // Handle inital NaN value state when balance has never been called
+    if (migratingCount == null) {
+      return 0;
+    }
+    return migratingCount.getAsLong();
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    Gauge
+        .builder(METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED, this,
+            BalancerMetrics::getMigratingCount)
+        .description("Overall total migrations that need to complete").register(registry);
+  }
 }
