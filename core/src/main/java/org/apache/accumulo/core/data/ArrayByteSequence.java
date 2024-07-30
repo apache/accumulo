@@ -28,7 +28,7 @@ import java.util.Objects;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 
 /**
- * An implementation of {@link ByteSequence} that uses a backing byte array.
+ * A mutable implementation of {@link ByteSequence} that uses a backing byte array.
  */
 public class ArrayByteSequence extends ByteSequence implements Serializable {
 

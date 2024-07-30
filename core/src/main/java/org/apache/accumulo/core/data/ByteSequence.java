@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.data;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 
 import org.apache.hadoop.io.WritableComparator;
 
@@ -96,7 +97,10 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
    */
   public static int compareBytes(ByteSequence bs1, ByteSequence bs2) {
 
-    int minLen = Math.min(bs1.length(), bs2.length());
+    int len1 = bs1.length();
+    int len2 = bs2.length();
+
+    int minLen = Math.min(len1, len2);
 
     for (int i = 0; i < minLen; i++) {
       int a = (bs1.byteAt(i) & 0xff);
@@ -107,7 +111,7 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
       }
     }
 
-    return bs1.length() - bs2.length();
+    return len1 - len2;
   }
 
   @Override
@@ -137,18 +141,42 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
     }
 
     return false;
-
   }
 
+  /**
+   * A method that subclasses can use to consistently implement the expected hashcode
+   *
+   * @since 3.1.
+   */
+  protected static int hashCode(byte[] data, int offset, int len) {
+    int hash = 1;
+    int end = offset + len;
+    for (int i = offset; i < end; i++) {
+      hash = (31 * hash) + data[i];
+    }
+    return hash;
+  }
+
+  /**
+   * All implementations of this method must use the following algorithm. This ensures different
+   * implementations compute the same hash for the same data.
+   *
+   * <pre>
+   *     {@code
+   * int hash = 1;
+   * for (int i = 0; i < length(); i++) {
+   *   hash = (31 * hash) + byteAt(i);
+   * }
+   * return hash;
+   * }
+   * </pre>
+   *
+   */
   @Override
   public int hashCode() {
     int hash = 1;
     if (isBackedByArray()) {
-      byte[] data = getBackingArray();
-      int end = offset() + length();
-      for (int i = offset(); i < end; i++) {
-        hash = (31 * hash) + data[i];
-      }
+      return hashCode(getBackingArray(), offset(), length());
     } else {
       for (int i = 0; i < length(); i++) {
         hash = (31 * hash) + byteAt(i);
@@ -157,4 +185,85 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
     return hash;
   }
 
+  /**
+   * This method returns an empty immutable byte sequence. The same object is always returned.
+   *
+   * @since 3.1.0
+   */
+  public static ByteSequence of() {
+    return ImmutableByteSequence.EMPTY;
+  }
+
+  /**
+   * This method creates a new immutable ByteSequence. If a mutable ByteSequence is needed or copies
+   * are not desired then use {@link ArrayByteSequence}.
+   *
+   * @since 3.1.0
+   */
+  public static ByteSequence of(byte[] data) {
+    if (data.length == 0) {
+      return ImmutableByteSequence.EMPTY;
+    } else {
+      return new ImmutableByteSequence(data);
+    }
+  }
+
+  /**
+   * This method creates a new immutable ByteSequence. If a mutable ByteSequence is needed or copies
+   * are not desired then use {@link ArrayByteSequence}.
+   *
+   * @since 3.1.0
+   */
+  public static ByteSequence of(byte[] data, int offset, int length) {
+    if (length == 0) {
+      return ImmutableByteSequence.EMPTY;
+    } else {
+      return new ImmutableByteSequence(data, offset, length);
+    }
+  }
+
+  /**
+   * This method creates a new immutable ByteSequence. If a mutable ByteSequence is needed or copies
+   * are not desired then use {@link ArrayByteSequence}. The method use UTF8 to encode the String
+   * into bytes.
+   *
+   * @since 3.1.0
+   */
+  public static ByteSequence of(String data) {
+    if (data.isEmpty()) {
+      return ImmutableByteSequence.EMPTY;
+    } else {
+      return new ImmutableByteSequence(data);
+    }
+  }
+
+  /**
+   * This method creates a new immutable ByteSequence. If a mutable ByteSequence is needed or copies
+   * are not desired then use {@link ArrayByteSequence}.
+   *
+   * @since 3.1.0
+   */
+  public static ByteSequence of(ByteBuffer data) {
+    if (data.remaining() == 0) {
+      return ImmutableByteSequence.EMPTY;
+    } else {
+      return new ImmutableByteSequence(data);
+    }
+  }
+
+  /**
+   * This method creates a new immutable ByteSequence. If a mutable ByteSequence is needed or copies
+   * are not desired then use {@link ArrayByteSequence}.
+   *
+   * @since 3.1.0
+   */
+  public static ByteSequence of(ByteSequence data) {
+    if (data instanceof ImmutableByteSequence) {
+      return data;
+    } else if (data.length() == 0) {
+      return ImmutableByteSequence.EMPTY;
+    } else {
+      return new ImmutableByteSequence(data);
+    }
+  }
 }

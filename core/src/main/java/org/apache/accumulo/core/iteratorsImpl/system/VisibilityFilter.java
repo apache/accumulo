@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
  */
 public class VisibilityFilter extends SynchronizedServerFilter {
   protected final AccessEvaluator ve;
-  protected final ArrayByteSequence defaultVisibility;
+  protected final ByteSequence defaultVisibility;
   protected final LRUMap<ByteSequence,Boolean> cache;
   protected final Authorizations authorizations;
 
@@ -55,7 +55,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
     super(iterator);
     this.ve = AccessEvaluator.of(authorizations.toAccessAuthorizations());
     this.authorizations = authorizations;
-    this.defaultVisibility = new ArrayByteSequence(defaultVisibility);
+    this.defaultVisibility = ByteSequence.of(defaultVisibility);
     this.cache = new LRUMap<>(1000);
   }
 
@@ -82,7 +82,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
     }
 
     try {
-      final ArrayByteSequence safeCopy =
+      final ByteSequence safeCopy =
           (testVis.length() == 0) ? defaultVisibility : new ArrayByteSequence(testVis);
       boolean bb = ve.canAccess(safeCopy.toArray());
       cache.put(safeCopy, bb);

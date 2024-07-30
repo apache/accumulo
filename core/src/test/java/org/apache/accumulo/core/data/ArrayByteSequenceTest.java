@@ -18,7 +18,10 @@
  */
 package org.apache.accumulo.core.data;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.ByteBuffer;
@@ -106,6 +109,43 @@ public class ArrayByteSequenceTest {
   public void testToString() {
     assertEquals("", new ArrayByteSequence("").toString(),
         "String conversion should round trip correctly");
+  }
+
+  @Test
+  public void testCopyConstructor() {
+    var bs1 = new ArrayByteSequence("123456789");
+    var bs2 = new ArrayByteSequence(bs1);
+    assertEquals(bs1, bs2);
+    assertEquals(bs2, bs1);
+    assertEquals(bs1.hashCode(), bs2.hashCode());
+    // should have copied data, so arrays should differ
+    assertNotSame(bs1.toArray(), bs2.toArray());
+    assertNotSame(bs1.getBackingArray(), bs2.getBackingArray());
+  }
+
+  @Test
+  public void testReset() {
+    var bs1 = new ArrayByteSequence("123456789");
+    var array = "abcdefg".getBytes(UTF_8);
+    bs1.reset(array, 2, 3);
+    assertEquals(2, bs1.offset());
+    assertEquals(3, bs1.length);
+    assertSame(bs1.getBackingArray(), array);
+    assertNotSame(bs1.toArray(), array);
+    assertEquals(new String(bs1.toArray(), UTF_8), "cde");
+    assertEquals(bs1.toString(), "cde");
+    assertEquals(bs1.hashCode(), ByteSequence.of("cde").hashCode());
+    var bs2 = new ArrayByteSequence(bs1);
+    assertEquals(bs1, bs2);
+    assertEquals(bs1.hashCode(), bs2.hashCode());
+    assertNotSame(bs1.toArray(), bs2.toArray());
+    assertNotSame(bs1.getBackingArray(), bs2.getBackingArray());
+
+    assertThrows(IndexOutOfBoundsException.class, () -> bs1.reset(new byte[0], 0, 3));
+    assertThrows(IndexOutOfBoundsException.class, () -> bs1.reset(new byte[5], 0, 6));
+    assertThrows(IndexOutOfBoundsException.class, () -> bs1.reset(new byte[5], 4, 2));
+    assertThrows(IndexOutOfBoundsException.class, () -> bs1.reset(new byte[5], 4, -1));
+    assertThrows(IndexOutOfBoundsException.class, () -> bs1.reset(new byte[5], -1, 1));
   }
 
 }
