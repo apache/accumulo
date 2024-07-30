@@ -87,6 +87,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
 
     try {
       boolean bb = ve.canAccess(resolvedVis.toArray());
+      // create an immutable copy of resolvedVis for the cache key
       cache.put(ByteSequence.of(resolvedVis), bb);
       return bb;
     } catch (InvalidAccessExpressionException e) {
