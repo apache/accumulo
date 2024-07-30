@@ -191,7 +191,7 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
    * @since 3.1.0
    */
   public static ByteSequence of() {
-    return ImmutableByteSequence.EMPTY;
+    return EmptyByteSequence.INSTANCE;
   }
 
   /**
@@ -202,7 +202,7 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
    */
   public static ByteSequence of(byte[] data) {
     if (data.length == 0) {
-      return ImmutableByteSequence.EMPTY;
+      return EmptyByteSequence.INSTANCE;
     } else {
       return new ImmutableByteSequence(data);
     }
@@ -216,7 +216,7 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
    */
   public static ByteSequence of(byte[] data, int offset, int length) {
     if (length == 0) {
-      return ImmutableByteSequence.EMPTY;
+      return EmptyByteSequence.INSTANCE;
     } else {
       return new ImmutableByteSequence(data, offset, length);
     }
@@ -231,7 +231,7 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
    */
   public static ByteSequence of(String data) {
     if (data.isEmpty()) {
-      return ImmutableByteSequence.EMPTY;
+      return EmptyByteSequence.INSTANCE;
     } else {
       return new ImmutableByteSequence(data);
     }
@@ -245,7 +245,7 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
    */
   public static ByteSequence of(ByteBuffer data) {
     if (data.remaining() == 0) {
-      return ImmutableByteSequence.EMPTY;
+      return EmptyByteSequence.INSTANCE;
     } else {
       return new ImmutableByteSequence(data);
     }
@@ -261,7 +261,7 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
     if (data instanceof ImmutableByteSequence) {
       return data;
     } else if (data.length() == 0) {
-      return ImmutableByteSequence.EMPTY;
+      return EmptyByteSequence.INSTANCE;
     } else {
       return new ImmutableByteSequence(data);
     }

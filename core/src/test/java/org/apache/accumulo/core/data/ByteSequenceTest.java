@@ -92,6 +92,7 @@ public class ByteSequenceTest {
     assertEquals(hc1, b.hashCode());
     assertEquals(a.toString(), b.toString());
     assertEquals(a.length(), b.length());
+    assertArrayEquals(a.toArray(), b.toArray());
 
     if (a.length() == 0 && a instanceof ImmutableByteSequence) {
       assertSame(ByteSequence.of(), a);
@@ -190,7 +191,7 @@ public class ByteSequenceTest {
 
   @Test
   public void testImmutable() {
-    String[] testData = new String[] {"", "ab", "abc", "abcd"};
+    String[] testData = new String[] {"ab", "abc", "abcd"};
     for (String data : testData) {
       checkImmutable(ByteSequence.of(data.getBytes(UTF_8)));
       checkImmutable(ByteSequence.of(data));
@@ -209,6 +210,11 @@ public class ByteSequenceTest {
       assertEquals('c', byteSequence.byteAt(2));
       assertThrows(IndexOutOfBoundsException.class, () -> byteSequence.byteAt(-1));
       assertThrows(IndexOutOfBoundsException.class, () -> byteSequence.byteAt(3));
+    }
+
+    for (int index : List.of(-1, 0, 1, 2)) {
+      assertThrows(IndexOutOfBoundsException.class, () -> ByteSequence.of().byteAt(index));
+      assertThrows(IndexOutOfBoundsException.class, () -> new ArrayByteSequence("").byteAt(index));
     }
   }
 
@@ -239,6 +245,9 @@ public class ByteSequenceTest {
       assertThrows(IndexOutOfBoundsException.class, () -> bs.subSequence(-4, 2));
       assertThrows(IndexOutOfBoundsException.class, () -> bs.subSequence(-2, -1));
     }
+
+    assertSame(ByteSequence.of(), ByteSequence.of().subSequence(0, 0));
+    assertThrows(IndexOutOfBoundsException.class, () -> ByteSequence.of().subSequence(0, 1));
   }
 
   static class CustomByteSequence extends ByteSequence {

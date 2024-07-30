@@ -46,8 +46,6 @@ final class ImmutableByteSequence extends ByteSequence {
   private int hash = 1;
   private boolean hashIsOne = false;
 
-  static final ImmutableByteSequence EMPTY = new ImmutableByteSequence(new byte[0]);
-
   ImmutableByteSequence(ByteSequence data) {
     if (data.isBackedByArray()) {
       this.data = Arrays.copyOfRange(data.toArray(), data.offset(), data.offset() + data.offset());
