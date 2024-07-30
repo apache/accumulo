@@ -131,7 +131,7 @@ public class ArrayByteSequenceTest {
     var array = "abcdefg".getBytes(UTF_8);
     bs1.reset(array, 2, 3);
     assertEquals(2, bs1.offset());
-    assertEquals(3, bs1.length);
+    assertEquals(3, bs1.length());
     assertSame(bs1.getBackingArray(), array);
     assertNotSame(bs1.toArray(), array);
     assertNotEquals(hc1, bs1.hashCode());
