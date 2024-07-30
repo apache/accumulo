@@ -72,18 +72,22 @@ public class VisibilityFilter extends SynchronizedServerFilter {
     // the cached version.
     k.getColumnVisibilityData(testVis);
 
-    if (testVis.length() == 0 && defaultVisibility.length() == 0) {
+    boolean isEmpty = testVis.length() == 0;
+
+    if (isEmpty && defaultVisibility.length() == 0) {
       return true;
     }
 
-    Boolean b = cache.get((testVis.length() == 0) ? defaultVisibility : testVis);
+    var resolvedVis = isEmpty ? defaultVisibility : testVis;
+
+    Boolean b = cache.get(resolvedVis);
     if (b != null) {
       return b;
     }
 
     try {
-      boolean bb = ve.canAccess(testVis.toArray());
-      cache.put(ByteSequence.of(testVis.length() == 0 ? defaultVisibility : testVis), bb);
+      boolean bb = ve.canAccess(resolvedVis.toArray());
+      cache.put(ByteSequence.of(resolvedVis), bb);
       return bb;
     } catch (InvalidAccessExpressionException e) {
       log.error("IllegalAccessExpressionException with visibility of Key: {}", k, e);
