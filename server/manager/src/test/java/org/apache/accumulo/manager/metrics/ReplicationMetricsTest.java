@@ -100,7 +100,7 @@ public class ReplicationMetricsTest {
   }
 
   private void replaceField(Object instance, String fieldName, Object target)
-      throws NoSuchFieldException, IllegalAccessException {
+      throws ReflectiveOperationException {
     Field field = instance.getClass().getSuperclass().getDeclaredField(fieldName);
     field.setAccessible(true);
     field.set(instance, target);

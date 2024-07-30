@@ -107,8 +107,8 @@ public class CreateToken implements KeywordExecutable {
           }
         }
         props.put(tp.getKey(), input);
-        token.init(props);
       }
+      token.init(props);
       System.out.println("auth.type = " + opts.tokenClassName);
       System.out.println("auth.principal = " + principal);
       System.out.println("auth.token = " + ClientProperty.encodeToken(token));

@@ -19,12 +19,16 @@
 package org.apache.accumulo.test;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -32,6 +36,20 @@ import org.slf4j.LoggerFactory;
 
 public class BalanceIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BalanceIT.class);
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    Map<String,String> siteConfig = cfg.getSiteConfig();
+    siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
+    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
+    siteConfig.put(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
+    siteConfig.put("general.custom.metrics.opts.logging.step", "0.5s");
+    cfg.setSiteConfig(siteConfig);
+    // ensure we have two tservers
+    if (cfg.getNumTservers() < 2) {
+      cfg.setNumTservers(2);
+    }
+  }
 
   @Override
   protected Duration defaultTimeout() {

@@ -92,8 +92,7 @@ public class ThriftMaxFrameSizeIT {
       cfg.setNumTservers(1);
       cfg.setProperty(Property.GENERAL_RPC_SERVER_TYPE, serverType.name());
       String maxFrameSizeStr = Integer.toString(CONFIGURED_MAX_FRAME_SIZE);
-      cfg.setProperty(Property.GENERAL_MAX_MESSAGE_SIZE, maxFrameSizeStr);
-      cfg.setProperty(Property.TSERV_MAX_MESSAGE_SIZE, maxFrameSizeStr);
+      cfg.setProperty(Property.RPC_MAX_MESSAGE_SIZE, maxFrameSizeStr);
       if (serverType == ThriftServerType.SSL) {
         configureForSsl(cfg,
             getSslDir(createTestDir(this.getClass().getName() + "_" + this.testName())));

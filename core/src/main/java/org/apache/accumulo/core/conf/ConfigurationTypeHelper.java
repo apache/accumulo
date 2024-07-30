@@ -190,8 +190,9 @@ public class ConfigurationTypeHelper {
       log.error("Failed to load class {} in classloader context {}", clazzName, context, e);
     }
 
-    if (instance == null && defaultInstance != null) {
-      log.info("Using default class {}", defaultInstance.getClass().getName());
+    if (instance == null) {
+      log.info("Using default class ({})",
+          defaultInstance == null ? null : defaultInstance.getClass().getName());
       instance = defaultInstance;
     }
     return instance;

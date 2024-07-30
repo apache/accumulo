@@ -33,7 +33,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.OldScanServerFileReferenceSection;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
@@ -80,7 +79,6 @@ public class ScanServerMetadataEntriesCleanIT extends SharedMiniClusterBase {
   }
 
   @Test
-  @SuppressWarnings("deprecation")
   public void testOldScanServerRefs() {
     HostAndPort server = HostAndPort.fromParts("127.0.0.1", 1234);
     UUID serverLockUUID = UUID.randomUUID();
@@ -97,7 +95,10 @@ public class ScanServerMetadataEntriesCleanIT extends SharedMiniClusterBase {
 
     // Add old scan server entries
     try (BatchWriter writer = ctx.createBatchWriter(Ample.DataLevel.USER.metaTable())) {
-      String prefix = OldScanServerFileReferenceSection.getRowPrefix();
+      @SuppressWarnings("deprecation")
+      String prefix =
+          org.apache.accumulo.core.metadata.schema.MetadataSchema.OldScanServerFileReferenceSection
+              .getRowPrefix();
       for (String filepath : Stream.of("F0001243.rf", "F0006512.rf")
           .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/test_tablet/" + f)
           .collect(Collectors.toSet())) {

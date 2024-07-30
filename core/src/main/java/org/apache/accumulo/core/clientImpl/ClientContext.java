@@ -26,9 +26,10 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.CONDITIONAL_WRITER_CLEANUP_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCANNER_READ_AHEAD_POOL;
 
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -206,9 +207,7 @@ public class ClientContext implements AccumuloClient {
         }
       });
       return scanServerSelector;
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-        | SecurityException e) {
+    } catch (ReflectiveOperationException | IllegalArgumentException | SecurityException e) {
       throw new RuntimeException("Error creating ScanServerSelector implementation: " + clazz, e);
     }
   }
@@ -260,9 +259,9 @@ public class ClientContext implements AccumuloClient {
       submitScannerReadAheadTask(Callable<List<KeyValue>> c) {
     ensureOpen();
     if (scannerReadaheadPool == null) {
-      scannerReadaheadPool = clientThreadPools.getPoolBuilder("Accumulo scanner read ahead thread")
+      scannerReadaheadPool = clientThreadPools.getPoolBuilder(SCANNER_READ_AHEAD_POOL)
           .numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE).withTimeOut(3L, SECONDS)
-          .withQueue(new SynchronousQueue<>()).enableThreadPoolMetrics().build();
+          .withQueue(new SynchronousQueue<>()).build();
     }
     return scannerReadaheadPool.submit(c);
   }
@@ -270,8 +269,8 @@ public class ClientContext implements AccumuloClient {
   public synchronized void executeCleanupTask(Runnable r) {
     ensureOpen();
     if (cleanupThreadPool == null) {
-      cleanupThreadPool = clientThreadPools.getPoolBuilder("Conditional Writer Cleanup Thread")
-          .numCoreThreads(1).withTimeOut(3L, SECONDS).enableThreadPoolMetrics().build();
+      cleanupThreadPool = clientThreadPools.getPoolBuilder(CONDITIONAL_WRITER_CLEANUP_POOL)
+          .numCoreThreads(1).withTimeOut(3L, SECONDS).build();
     }
     this.cleanupThreadPool.execute(r);
   }

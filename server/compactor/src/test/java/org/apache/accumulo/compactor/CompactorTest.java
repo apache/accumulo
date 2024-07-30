@@ -323,7 +323,7 @@ public class CompactorTest {
     PowerMock.resetAll();
     PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
-    PowerMock.suppress(PowerMock.methods(AbstractServer.class, "idleProcessCheck"));
+    PowerMock.suppress(PowerMock.methods(AbstractServer.class, "updateIdleStatus"));
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
     HostAndPort address = HostAndPort.fromString("localhost:10240");
@@ -374,7 +374,7 @@ public class CompactorTest {
     PowerMock.resetAll();
     PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
-    PowerMock.suppress(PowerMock.methods(AbstractServer.class, "idleProcessCheck"));
+    PowerMock.suppress(PowerMock.methods(AbstractServer.class, "updateIdleStatus"));
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
     HostAndPort address = HostAndPort.fromString("localhost:10240");
@@ -426,7 +426,7 @@ public class CompactorTest {
     PowerMock.resetAll();
     PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
-    PowerMock.suppress(PowerMock.methods(AbstractServer.class, "idleProcessCheck"));
+    PowerMock.suppress(PowerMock.methods(AbstractServer.class, "updateIdleStatus"));
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
     HostAndPort address = HostAndPort.fromString("localhost:10240");

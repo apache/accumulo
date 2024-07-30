@@ -18,24 +18,34 @@
  */
 package org.apache.accumulo.manager.metrics;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.function.LongSupplier;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 
-public class ManagerMetrics {
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 
-  public static List<MetricsProducer> getProducers(AccumuloConfiguration conf, Manager m) {
-    ArrayList<MetricsProducer> producers = new ArrayList<>();
-    @SuppressWarnings("deprecation")
-    ReplicationMetrics replMetrics = new ReplicationMetrics(m);
-    producers.add(replMetrics);
-    producers.add(new FateMetrics(m.getContext(),
-        conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
-    return producers;
+public class BalancerMetrics implements MetricsProducer {
+
+  LongSupplier migratingCount;
+
+  public void assignMigratingCount(LongSupplier f) {
+    migratingCount = f;
+  }
+
+  public long getMigratingCount() {
+    // Handle inital NaN value state when balance has never been called
+    if (migratingCount == null) {
+      return 0;
+    }
+    return migratingCount.getAsLong();
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    Gauge
+        .builder(METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED, this,
+            BalancerMetrics::getMigratingCount)
+        .description("Overall total migrations that need to complete").register(registry);
   }
 }
