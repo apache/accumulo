@@ -658,6 +658,20 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   /**
+   * Writes the row ID into the given <code>ArrayByteSequence</code>. This method gives users
+   * control over allocation of ArrayByteSequence objects by copying into the passed in
+   * ArrayByteSequence.
+   *
+   * @param r <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 3.1.0
+   */
+  public ArrayByteSequence getRowData(ArrayByteSequence r) {
+    r.reset(row, 0, row.length);
+    return r;
+  }
+
+  /**
    * Gets the row ID as a <code>Text</code> object.
    *
    * @return Text containing the row ID
@@ -684,6 +698,20 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public ByteSequence getColumnFamilyData() {
     return new ArrayByteSequence(colFamily);
+  }
+
+  /**
+   * Writes the column family into the given <code>ArrayByteSequence</code>. This method gives users
+   * control over allocation of ArrayByteSequence objects by copying into the passed in
+   * ArrayByteSequence.
+   *
+   * @param cf <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 3.1.0
+   */
+  public ArrayByteSequence getColumnFamilyData(ArrayByteSequence cf) {
+    cf.reset(colFamily, 0, colFamily.length);
+    return cf;
   }
 
   /**
@@ -727,6 +755,20 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public ByteSequence getColumnQualifierData() {
     return new ArrayByteSequence(colQualifier);
+  }
+
+  /**
+   * Writes the column qualifier into the given <code>ArrayByteSequence</code>. This method gives
+   * users control over allocation of ArrayByteSequence objects by copying into the passed in
+   * ArrayByteSequence.
+   *
+   * @param cq <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 3.1.0
+   */
+  public ArrayByteSequence getColumnQualifierData(ArrayByteSequence cq) {
+    cq.reset(colQualifier, 0, colQualifier.length);
+    return cq;
   }
 
   /**
