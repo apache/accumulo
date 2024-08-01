@@ -335,14 +335,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     ClientServiceHandler clientHandler = new ClientServiceHandler(getContext());
     var processor = ThriftProcessorTypes.getCompactorTProcessor(clientHandler,
         getCompactorThriftHandlerInterface(), getContext());
-    Property maxMessageSizeProperty =
-        (getConfiguration().get(Property.COMPACTOR_MAX_MESSAGE_SIZE) != null
-            ? Property.COMPACTOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
-        Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK,
-        maxMessageSizeProperty);
+        Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK);
     LOG.info("address = {}", sp.address);
     return sp;
   }

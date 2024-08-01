@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_UPGRADE_COORDINATOR_METADATA_POOL;
 import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_ENCODING;
 import static org.apache.accumulo.server.AccumuloDataVersion.REMOVE_DEPRECATIONS_FOR_VERSION_3;
 import static org.apache.accumulo.server.AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
@@ -198,8 +199,9 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do metadata upgrade %s", status);
 
     if (currentVersion < AccumuloDataVersion.get()) {
-      return ThreadPools.getServerThreadPools().getPoolBuilder("UpgradeMetadataThreads")
-          .numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE).withTimeOut(60L, SECONDS)
+      return ThreadPools.getServerThreadPools()
+          .getPoolBuilder(MANAGER_UPGRADE_COORDINATOR_METADATA_POOL).numCoreThreads(0)
+          .numMaxThreads(Integer.MAX_VALUE).withTimeOut(60L, SECONDS)
           .withQueue(new SynchronousQueue<>()).build().submit(() -> {
             try {
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {

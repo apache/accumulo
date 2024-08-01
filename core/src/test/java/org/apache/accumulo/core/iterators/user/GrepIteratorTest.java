@@ -92,6 +92,7 @@ public class GrepIteratorTest {
     GrepIterator.setTerm(is, "ab");
     gi.init(new SortedMapIterator(input), is.getOptions(), null);
     gi.seek(new Range(), EMPTY_COL_FAMS, false);
+    GrepIterator.matchColumnVisibility(is, true);
     checkEntries(gi, output);
     GrepIterator.setTerm(is, "cde");
     gi.init(new SortedMapIterator(input), is.getOptions(), null);

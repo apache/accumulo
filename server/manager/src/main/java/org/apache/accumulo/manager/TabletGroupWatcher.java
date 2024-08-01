@@ -44,7 +44,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Scanner;
@@ -64,7 +63,6 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -742,8 +740,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // replacement. We only want to stop looking for tablets that need volume replacement when
           // we have successfully processed all tablet metadata and no more volume replacements are
           // being performed.
+          Manager.log.debug("[{}] saw {} tablets needing volume replacement", store.name(),
+              tabletMgmtStats.totalVolumeReplacements);
           lookForTabletsNeedingVolReplacement = tabletMgmtStats.totalVolumeReplacements != 0
               || tabletMgmtStats.tabletsWithErrors != 0;
+          if (!lookForTabletsNeedingVolReplacement) {
+            Manager.log.debug("[{}] no longer looking for volume replacements", store.name());
+          }
         }
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
@@ -1048,9 +1051,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         vr.filesToRemove.forEach(tabletMutator::deleteFile);
         vr.filesToAdd.forEach(tabletMutator::putFile);
 
-        tabletMutator.submit(
-            tm -> tm.getLogs().containsAll(vr.logsToAdd) && tm.getFiles().containsAll(vr.filesToAdd
-                .keySet().stream().map(ReferencedTabletFile::insert).collect(Collectors.toSet())));
+        tabletMutator.submit(tm -> {
+          // Check to see if the logs and files are removed. Checking if the new files or logs were
+          // added has a race condition, those could have been successfully added and then removed
+          // before this check runs, like if a compaction runs. Once the old volumes are removed
+          // nothing should ever add them again.
+          var logsRemoved =
+              Collections.disjoint(Set.copyOf(tm.getLogs()), Set.copyOf(vr.logsToRemove));
+          var filesRemoved = Collections.disjoint(tm.getFiles(), Set.copyOf(vr.filesToRemove));
+          LOG.debug(
+              "replaceVolume conditional mutation rejection check {} logsRemoved:{} filesRemoved:{}",
+              tm.getExtent(), logsRemoved, filesRemoved);
+          return logsRemoved && filesRemoved;
+        });
       }
 
       tabletsMutator.process().forEach((extent, result) -> {

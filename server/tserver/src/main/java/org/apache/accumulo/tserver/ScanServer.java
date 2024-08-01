@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCAN_SERVER_TABLET_METADATA_CACHE_POOL;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -253,8 +254,8 @@ public class ScanServer extends AbstractServer
           "Tablet metadata cache refresh percentage is '%s' but must be less than 1",
           cacheRefreshPercentage);
 
-      tmCacheExecutor = context.threadPools().getPoolBuilder("scanServerTmCache").numCoreThreads(8)
-          .enableThreadPoolMetrics().build();
+      tmCacheExecutor = context.threadPools().getPoolBuilder(SCAN_SERVER_TABLET_METADATA_CACHE_POOL)
+          .numCoreThreads(8).enableThreadPoolMetrics().build();
       var builder =
           context.getCaches().createNewBuilder(CacheName.SCAN_SERVER_TABLET_METADATA, true)
               .expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
@@ -307,13 +308,10 @@ public class ScanServer extends AbstractServer
     TProcessor processor =
         ThriftProcessorTypes.getScanServerTProcessor(clientHandler, this, getContext());
 
-    Property maxMessageSizeProperty =
-        (getConfiguration().get(Property.SSERV_MAX_MESSAGE_SIZE) != null
-            ? Property.SSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS,
-        Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK, maxMessageSizeProperty);
+        Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK);
 
     LOG.info("address = {}", sp.address);
     return sp;
@@ -647,8 +645,8 @@ public class ScanServer extends AbstractServer
 
       for (StoredTabletFile file : allFiles.keySet()) {
         if (!reservedFiles.containsKey(file)) {
-          refs.add(new ScanServerRefTabletFile(file.getNormalizedPathStr(), serverAddress,
-              serverLockUUID));
+          refs.add(new ScanServerRefTabletFile(serverLockUUID, serverAddress,
+              file.getNormalizedPathStr()));
           filesToReserve.add(file);
           tabletsToCheck.add(Objects.requireNonNull(allFiles.get(file)));
           LOG.trace("RFFS {} need to add scan ref for file {}", myReservationId, file);
