@@ -1052,7 +1052,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         vr.filesToAdd.forEach(tabletMutator::putFile);
 
         tabletMutator.submit(tm -> {
-          // Check to see if the logs and files and removed. Checking if the new files or logs were
+          // Check to see if the logs and files are removed. Checking if the new files or logs were
           // added has a race condition, those could have been successfully added and then removed
           // before this check runs, like if a compaction runs. Once the old volumes are removed
           // nothing should ever add them again.
