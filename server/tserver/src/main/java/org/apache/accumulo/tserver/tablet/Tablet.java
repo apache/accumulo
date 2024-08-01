@@ -1536,8 +1536,7 @@ public class Tablet extends TabletBase {
     Preconditions.checkState(!getLogLock().isHeldByCurrentThread());
     refreshLock.lock();
     try {
-      // Can not hold tablet lock while acquiring the log lock. The following check is there to
-      // prevent deadlock.
+      // Can not hold tablet lock while acquiring the log lock.
       getLogLock().lock();
       // do not place any code here between lock and try
       try {

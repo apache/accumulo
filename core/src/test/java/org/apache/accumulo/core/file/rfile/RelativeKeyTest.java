@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.RelativeKey.SkippR;
-import org.apache.accumulo.core.util.MutableByteSequence;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -158,7 +157,7 @@ public class RelativeKeyTest {
     Key seekKey = new Key();
     Key prevKey = new Key();
     Key currKey = null;
-    MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
+    ArrayByteSequence value = new ArrayByteSequence(new byte[64], 0, 0);
 
     RelativeKey.SkippR skippr =
         RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size());
@@ -190,7 +189,7 @@ public class RelativeKeyTest {
     Key seekKey = new Key("s", "t", "u", "v", 1);
     Key prevKey = new Key();
     Key currKey = null;
-    MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
+    ArrayByteSequence value = new ArrayByteSequence(new byte[64], 0, 0);
 
     assertThrows(EOFException.class,
         () -> RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size() + 1));
@@ -201,7 +200,7 @@ public class RelativeKeyTest {
     Key seekKey = new Key("s", "t", "u", "v", 1);
     Key prevKey = new Key();
     Key currKey = null;
-    MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
+    ArrayByteSequence value = new ArrayByteSequence(new byte[64], 0, 0);
 
     SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size());
     assertEquals(expectedKeys.size(), skippr.skipped);
@@ -213,7 +212,7 @@ public class RelativeKeyTest {
     Key seekKey = expectedKeys.get(seekIndex);
     Key prevKey = new Key();
     Key currKey = null;
-    MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
+    ArrayByteSequence value = new ArrayByteSequence(new byte[64], 0, 0);
 
     RelativeKey.SkippR skippr =
         RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size());

@@ -405,14 +405,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  private HostAndPort startServer(AccumuloConfiguration conf, String address, TProcessor processor)
+  private HostAndPort startServer(String address, TProcessor processor)
       throws UnknownHostException {
-    Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
-        ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), address, Property.TSERV_CLIENTPORT,
         processor, this.getClass().getSimpleName(), "Thrift Client Server",
         Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
-        Property.TSERV_THREADCHECK, maxMessageSizeProperty);
+        Property.TSERV_THREADCHECK);
     this.server = sp.server;
     return sp.address;
   }
@@ -472,7 +470,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     TProcessor processor =
         ThriftProcessorTypes.getTabletServerTProcessor(clientHandler, thriftClientHandler,
             scanClientHandler, thriftClientHandler, thriftClientHandler, getContext());
-    HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), processor);
+    HostAndPort address = startServer(clientAddress.getHost(), processor);
     log.info("address = {}", address);
     return address;
   }
@@ -631,7 +629,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     HostAndPort managerHost;
     while (!serverStopRequested) {
 
-      idleProcessCheck(() -> getOnlineTablets().isEmpty());
+      updateIdleStatus(getOnlineTablets().isEmpty());
 
       // send all of the pending messages
       try {
@@ -643,7 +641,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           // was requested
           while (mm == null && !serverStopRequested) {
             mm = managerMessages.poll(1, TimeUnit.SECONDS);
-            idleProcessCheck(() -> getOnlineTablets().isEmpty());
+            updateIdleStatus(getOnlineTablets().isEmpty());
           }
 
           // have a message to send to the manager, so grab a
@@ -671,7 +669,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             // if any messages are immediately available grab em and
             // send them
             mm = managerMessages.poll();
-            idleProcessCheck(() -> getOnlineTablets().isEmpty());
+            updateIdleStatus(getOnlineTablets().isEmpty());
           }
 
         } finally {

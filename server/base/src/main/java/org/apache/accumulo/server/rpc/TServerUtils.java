@@ -20,6 +20,7 @@ package org.apache.accumulo.server.rpc;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -125,15 +126,13 @@ public class TServerUtils {
    * @param minThreadProperty A Property to control the minimum number of threads in the pool
    * @param timeBetweenThreadChecksProperty A Property to control the amount of time between checks
    *        to resize the thread pool
-   * @param maxMessageSizeProperty A Property to control the maximum Thrift message size accepted
    * @return the server object created, and the port actually used
    * @throws UnknownHostException when we don't know our own address
    */
   public static ServerAddress startServer(ServerContext context, String hostname,
       Property portHintProperty, TProcessor processor, String serverName, String threadName,
       Property portSearchProperty, Property minThreadProperty, Property threadTimeOutProperty,
-      Property timeBetweenThreadChecksProperty, Property maxMessageSizeProperty)
-      throws UnknownHostException {
+      Property timeBetweenThreadChecksProperty) throws UnknownHostException {
     final AccumuloConfiguration config = context.getConfiguration();
 
     final IntStream portHint = config.getPortStream(portHintProperty);
@@ -153,10 +152,7 @@ public class TServerUtils {
       timeBetweenThreadChecks = config.getTimeInMillis(timeBetweenThreadChecksProperty);
     }
 
-    long maxMessageSize = 10_000_000;
-    if (maxMessageSizeProperty != null) {
-      maxMessageSize = config.getAsBytes(maxMessageSizeProperty);
-    }
+    long maxMessageSize = config.getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
 
     boolean portSearch = false;
     if (portSearchProperty != null) {
@@ -310,20 +306,21 @@ public class TServerUtils {
   private static ThreadPoolExecutor createSelfResizingThreadPool(final String serverName,
       final int executorThreads, long threadTimeOut, final AccumuloConfiguration conf,
       long timeBetweenThreadChecks) {
-    final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(serverName + "-ClientPool").numCoreThreads(executorThreads)
-        .withTimeOut(threadTimeOut, MILLISECONDS).enableThreadPoolMetrics().build();
+    String poolName = ACCUMULO_POOL_PREFIX.poolName + serverName.toLowerCase() + ".client";
+    final ThreadPoolExecutor pool =
+        ThreadPools.getServerThreadPools().getPoolBuilder(poolName).numCoreThreads(executorThreads)
+            .withTimeOut(threadTimeOut, MILLISECONDS).enableThreadPoolMetrics().build();
     // periodically adjust the number of threads we need by checking how busy our threads are
     ThreadPools.watchCriticalFixedDelay(conf, timeBetweenThreadChecks, () -> {
       // there is a minor race condition between sampling the current state of the thread pool
       // and adjusting it however, this isn't really an issue, since it adjusts periodically
       if (pool.getCorePoolSize() <= pool.getActiveCount()) {
         int larger = pool.getCorePoolSize() + Math.min(pool.getQueue().size(), 2);
-        ThreadPools.resizePool(pool, () -> larger, serverName + "-ClientPool");
+        ThreadPools.resizePool(pool, () -> larger, poolName);
       } else {
         if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
           int smaller = Math.max(executorThreads, pool.getCorePoolSize() - 1);
-          ThreadPools.resizePool(pool, () -> smaller, serverName + "-ClientPool");
+          ThreadPools.resizePool(pool, () -> smaller, poolName);
         }
       }
     });
