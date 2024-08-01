@@ -44,6 +44,16 @@ public interface FateMutator<T> {
 
   /**
    * Add a conditional mutation to {@link FateSchema.TxColumnFamily#RESERVATION_COLUMN} that will
+   * put the reservation if the column doesn't exist yet. This should only be used for
+   * {@link UserFateStore#createAndReserve(FateKey)}
+   *
+   * @param reservation the reservation to attempt to put
+   * @return the FateMutator with this added mutation
+   */
+  FateMutator<T> putReservedTxOnCreation(FateStore.FateReservation reservation);
+
+  /**
+   * Add a conditional mutation to {@link FateSchema.TxColumnFamily#RESERVATION_COLUMN} that will
    * remove the given reservation if it matches what is present in the column.
    *
    * @param reservation the reservation to attempt to remove

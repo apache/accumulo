@@ -113,6 +113,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     // reserving/unreserving a FateId should be reflected across instances of the stores
     final String tableName = getUniqueNames(1)[0];
     final int numFateIds = 500;
+    final FateId fakeFateId = FateId.from(storeType, UUID.randomUUID());
     final List<FateStore.FateTxStore<SleepingTestEnv>> reservations = new ArrayList<>();
     final boolean isUserStore = storeType.equals(FateInstanceType.USER);
     final Set<FateId> allIds = new HashSet<>();
@@ -150,6 +151,9 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
       }
       count++;
     }
+    // Try to reserve a non-existent fate id
+    assertTrue(store1.tryReserve(fakeFateId).isEmpty());
+    assertTrue(store2.tryReserve(fakeFateId).isEmpty());
     // Both stores should return the same reserved transactions
     activeReservations = store1.getActiveReservations();
     assertEquals(allIds, activeReservations.keySet());
@@ -332,9 +336,9 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     liveLocks.add(lock2);
 
     Fate<SleepingTestEnv> fate1 =
-        new Fate<>(testEnv1, store1, Object::toString, DefaultConfiguration.getInstance());
+        new Fate<>(testEnv1, store1, true, Object::toString, DefaultConfiguration.getInstance());
     Fate<SleepingTestEnv> fate2 =
-        new Fate<>(testEnv2, store2, Object::toString, DefaultConfiguration.getInstance());
+        new Fate<>(testEnv2, store2, false, Object::toString, DefaultConfiguration.getInstance());
 
     for (int i = 0; i < numFateIds; i++) {
       FateId fateId;
@@ -398,7 +402,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     liveLocks.add(lock1);
 
     Fate<LatchTestEnv> fate1 =
-        new Fate<>(testEnv1, store1, Object::toString, DefaultConfiguration.getInstance());
+        new Fate<>(testEnv1, store1, true, Object::toString, DefaultConfiguration.getInstance());
 
     // Ensure nothing is reserved yet
     assertTrue(store1.getActiveReservations().isEmpty());
@@ -442,10 +446,9 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     liveLocks.add(lock2);
 
     // Create the new Fate/start the Fate threads (the work finder and the workers).
-    // The DeadReservationCleaner for fate2 should not run/have no effect since we
-    // already have a DeadReservationCleaner for storeType running from fate1.
+    // Don't run another dead reservation cleaner since we already have one running from fate1.
     Fate<LatchTestEnv> fate2 =
-        new Fate<>(testEnv2, store2, Object::toString, DefaultConfiguration.getInstance());
+        new Fate<>(testEnv2, store2, false, Object::toString, DefaultConfiguration.getInstance());
 
     // Wait for the "dead" reservations to be deleted and picked up again (reserved using
     // fate2/store2/lock2 now).

@@ -45,7 +45,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -55,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 
 //TODO use zoocache? - ACCUMULO-1297
@@ -125,21 +125,25 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
             // 2) The existing NodeValue for fateId has:
             // TStatus = TStatus.NEW, no FateReservation present, FateKey = fateKey
             // The fateId is NEW/unseeded and not reserved, so we can allow it to be reserved
+            // Note: returning null here will not change the value to null but will return null
             NodeValue currNodeVal = new NodeValue(currSerNodeVal);
-            if (currNodeVal.status == TStatus.NEW && currNodeVal.isReservedBy(reservation)) {
+            if (currNodeVal.status == TStatus.NEW) {
               verifyFateKey(fateId, currNodeVal.fateKey, fateKey);
-              return currSerNodeVal;
-            } else if (currNodeVal.status == TStatus.NEW && !currNodeVal.isReserved()) {
-              verifyFateKey(fateId, currNodeVal.fateKey, fateKey);
-              // NEW/unseeded transaction and not reserved, so we can allow it to be reserved
-              return new NodeValue(TStatus.NEW, reservation, fateKey).serialize();
+              if (currNodeVal.isReservedBy(reservation)) {
+                return currSerNodeVal;
+              } else if (!currNodeVal.isReserved()) {
+                // NEW/unseeded transaction and not reserved, so we can allow it to be reserved
+                return new NodeValue(TStatus.NEW, reservation, fateKey).serialize();
+              } else {
+                // NEW/unseeded transaction reserved under a different reservation
+                return null;
+              }
             } else {
               log.trace(
-                  "fate id {} tstatus {} fate key {} is reserved {} is either currently reserved "
-                      + "or has already been seeded with work (non-NEW status), or both",
+                  "fate id {} tstatus {} fate key {} is reserved {} "
+                      + "has already been seeded with work (non-NEW status)",
                   fateId, currNodeVal.status, currNodeVal.fateKey.orElse(null),
                   currNodeVal.isReserved());
-              // This will not change the value to null but will return null
               return null;
             }
           });
@@ -178,6 +182,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       } else {
         return Optional.empty();
       }
+    } catch (KeeperException.NoNodeException e) {
+      log.trace("Tried to reserve a transaction {} that does not exist", fateId);
+      return Optional.empty();
     } catch (InterruptedException | KeeperException | AcceptableThriftTableOperationException e) {
       throw new IllegalStateException(e);
     }
@@ -207,6 +214,8 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
             return null;
           }
         });
+      } catch (KeeperException.NoNodeException e) {
+        // the node has since been deleted. Can safely ignore
       } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
         throw new RuntimeException(e);
       }
@@ -331,8 +340,10 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
             NodeValue newNodeValue = new NodeValue(status, currFateReservation, currFateKey);
             return newNodeValue.serialize();
           } else {
-            throw new IllegalStateException("Either the FateId is not reserved in ZK, or it is"
-                + " but the reservation in ZK differs from that in the store.");
+            throw new IllegalStateException("Either the FateId " + fateId
+                + " is not reserved in ZK, or it is but the reservation in ZK: "
+                + currNodeVal.reservation.orElse(null) + " differs from that in the store: "
+                + this.reservation);
           }
         });
       } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
@@ -501,20 +512,16 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
         // Memoizing for two reasons. First the status or reservation may never be requested, so
         // in that case avoid the lookup. Second, if it's requested multiple times the result will
         // always be consistent.
-        Supplier<Pair<TStatus,Optional<FateReservation>>> statusAndResSupplier =
-            Suppliers.memoize(() -> {
-              NodeValue zkNode = getNode(fateId);
-              return new Pair<>(zkNode.status, zkNode.reservation);
-            });
+        Supplier<NodeValue> nodeSupplier = Suppliers.memoize(() -> getNode(fateId));
         return new FateIdStatusBase(fateId) {
           @Override
           public TStatus getStatus() {
-            return statusAndResSupplier.get().getFirst();
+            return nodeSupplier.get().status;
           }
 
           @Override
           public Optional<FateReservation> getFateReservation() {
-            return statusAndResSupplier.get().getSecond();
+            return nodeSupplier.get().reservation;
           }
         };
       });
@@ -563,6 +570,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     private Optional<FateKey> deserializeFateKey(DataInputBuffer buffer) throws IOException {
       int length = buffer.readInt();
+      Preconditions.checkArgument(length >= 0);
       if (length > 0) {
         return Optional.of(FateKey.deserialize(buffer.readNBytes(length)));
       }
@@ -572,6 +580,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     private Optional<FateReservation> deserializeFateReservation(DataInputBuffer buffer)
         throws IOException {
       int length = buffer.readInt();
+      Preconditions.checkArgument(length >= 0);
       if (length > 0) {
         return Optional.of(FateReservation.deserialize(buffer.readNBytes(length)));
       }

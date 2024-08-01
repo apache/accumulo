@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.getCompactorAddrs;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -627,14 +628,14 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       Method listMethod = UserFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(UserFateStore.class)
           .withConstructor(ClientContext.class, ZooUtil.LockID.class, Predicate.class)
-          .withArgs(sctx, null, null).addMockedMethod(listMethod).createMock();
+          .withArgs(sctx, createDummyLockID(), null).addMockedMethod(listMethod).createMock();
     } else {
       Method listMethod = MetaFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
           .withConstructor(String.class, ZooReaderWriter.class, ZooUtil.LockID.class,
               Predicate.class)
-          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter(), null,
-              null)
+          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter(),
+              createDummyLockID(), null)
           .addMockedMethod(listMethod).createMock();
     }
 
@@ -772,7 +773,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    return new Fate<>(new TestEnv(), store, Object::toString, config);
+    return new Fate<>(new TestEnv(), store, false, Object::toString, config);
   }
 
   private boolean wordIsTStatus(String word) {

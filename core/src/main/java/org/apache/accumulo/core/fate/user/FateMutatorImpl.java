@@ -93,6 +93,15 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   }
 
   @Override
+  public FateMutator<T> putReservedTxOnCreation(FateStore.FateReservation reservation) {
+    Condition condition = new Condition(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+        TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+    mutation.addCondition(condition);
+    TxColumnFamily.RESERVATION_COLUMN.put(mutation, new Value(reservation.getSerialized()));
+    return this;
+  }
+
+  @Override
   public FateMutator<T> putUnreserveTx(FateStore.FateReservation reservation) {
     Condition condition = new Condition(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
         TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier())

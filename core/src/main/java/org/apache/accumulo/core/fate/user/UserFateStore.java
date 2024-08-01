@@ -20,6 +20,7 @@ package org.apache.accumulo.core.fate.user;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -32,7 +33,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -134,18 +134,11 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     int maxAttempts = 5;
     FateMutator.Status status = null;
 
-    // We first need to write the initial/unreserved value for the reservation column
     // Only need to retry if it is UNKNOWN
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
-      status = newMutator(fateId).putInitReservationVal().tryMutate();
-      if (status != FateMutator.Status.UNKNOWN) {
-        break;
-      }
-      UtilWaitThread.sleep(100);
-    }
-    for (int attempt = 0; attempt < maxAttempts; attempt++) {
       status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW).putKey(fateKey)
-          .putReservedTx(reservation).putCreateTime(System.currentTimeMillis()).tryMutate();
+          .putReservedTxOnCreation(reservation).putCreateTime(System.currentTimeMillis())
+          .tryMutate();
       if (status != FateMutator.Status.UNKNOWN) {
         break;
       }
@@ -176,7 +169,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
           Optional<FateKey> fateKeySeen = Optional.empty();
           Optional<FateReservation> reservationSeen = Optional.empty();
 
-          for (Entry<Key,Value> entry : scanner.stream().collect(Collectors.toList())) {
+          for (Entry<Key,Value> entry : scanner) {
             Text colf = entry.getKey().getColumnFamily();
             Text colq = entry.getKey().getColumnQualifier();
             Value val = entry.getValue();
@@ -198,20 +191,28 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
             }
           }
 
-          // This will be the case if the mutation status is REJECTED but the mutation was written
-          if (statusSeen == TStatus.NEW && reservationSeen.isPresent()
-              && reservationSeen.orElseThrow().equals(reservation)) {
+          if (statusSeen == TStatus.NEW) {
             verifyFateKey(fateId, fateKeySeen, fateKey);
-            txStore = Optional.of(new FateTxStoreImpl(fateId, reservation));
-          } else if (statusSeen == TStatus.NEW && reservationSeen.isEmpty()) {
-            verifyFateKey(fateId, fateKeySeen, fateKey);
-            // NEW/unseeded transaction and not reserved, so we can allow it to be reserved
-            // we tryReserve() since another thread may have reserved it since the scan
-            txStore = tryReserve(fateId);
+            // This will be the case if the mutation status is REJECTED but the mutation was written
+            if (reservationSeen.isPresent() && reservationSeen.orElseThrow().equals(reservation)) {
+              txStore = Optional.of(new FateTxStoreImpl(fateId, reservation));
+            } else if (reservationSeen.isEmpty()) {
+              // NEW/unseeded transaction and not reserved, so we can allow it to be reserved
+              // we tryReserve() since another thread may have reserved it since the scan
+              txStore = tryReserve(fateId);
+              // the status was known before reserving to be NEW,
+              // however it could change so check after reserving to avoid race conditions.
+              var statusAfterReserve =
+                  txStore.map(ReadOnlyFateTxStore::getStatus).orElse(TStatus.UNKNOWN);
+              if (statusAfterReserve != TStatus.NEW) {
+                txStore.ifPresent(txs -> txs.unreserve(Duration.ZERO));
+                txStore = Optional.empty();
+              }
+            }
           } else {
             log.trace(
-                "fate id {} tstatus {} fate key {} is reserved {} is either currently reserved "
-                    + "or has already been seeded with work (non-NEW status), or both",
+                "fate id {} tstatus {} fate key {} is reserved {} "
+                    + "has already been seeded with work (non-NEW status)",
                 fateId, statusSeen, fateKeySeen.orElse(null), reservationSeen.isPresent());
           }
         } catch (TableNotFoundException e) {
@@ -289,8 +290,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     try {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
-      FateStatusFilter.configureScanner(scanner, statuses);
-      scanner.addScanIterator(new IteratorSetting(101, WholeRowIterator.class));
+      RowFateStatusFilter.configureScanner(scanner, statuses);
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       TxColumnFamily.RESERVATION_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {

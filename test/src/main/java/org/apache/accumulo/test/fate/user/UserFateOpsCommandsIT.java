@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.fate.user;
 
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
+
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.test.fate.FateOpsCommandsIT;
@@ -26,7 +28,8 @@ public class UserFateOpsCommandsIT extends FateOpsCommandsIT {
   @Override
   public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
-    testMethod.execute(new UserFateStore<>(getCluster().getServerContext(), null, null),
+    testMethod.execute(
+        new UserFateStore<>(getCluster().getServerContext(), createDummyLockID(), null),
         getCluster().getServerContext());
   }
 }

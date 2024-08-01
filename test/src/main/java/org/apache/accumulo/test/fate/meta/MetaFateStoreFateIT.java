@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -77,8 +78,8 @@ public class MetaFateStoreFateIT extends FateStoreIT {
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(sctx);
-    MetaFateStore<TestEnv> store = new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk, null, null,
-        maxDeferred, fateIdGenerator);
+    MetaFateStore<TestEnv> store = new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk,
+        createDummyLockID(), null, maxDeferred, fateIdGenerator);
 
     // Check that the store has no transactions before and after each test
     assertEquals(0, store.list().count());

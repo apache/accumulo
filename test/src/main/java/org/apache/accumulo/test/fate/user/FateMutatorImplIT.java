@@ -180,8 +180,8 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
 
       ClientContext context = (ClientContext) client;
 
-      FateId fateId =
-          FateId.from(FateInstanceType.fromNamespaceOrTableName(table), UUID.randomUUID());
+      FateId fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+      FateId fateId1 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
       ZooUtil.LockID lockID = new ZooUtil.LockID("/locks", "L1", 50);
       FateStore.FateReservation reservation =
           FateStore.FateReservation.from(lockID, UUID.randomUUID());
@@ -225,6 +225,20 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
       assertEquals(ACCEPTED, status);
       status =
           new FateMutatorImpl<>(context, table, fateId).putUnreserveTx(reservation).tryMutate();
+      assertEquals(REJECTED, status);
+
+      // Verify putReservedTxOnCreation works as expected
+      status = new FateMutatorImpl<>(context, table, fateId1).putReservedTxOnCreation(reservation)
+          .tryMutate();
+      assertEquals(ACCEPTED, status);
+      status = new FateMutatorImpl<>(context, table, fateId1).putReservedTxOnCreation(reservation)
+          .tryMutate();
+      assertEquals(REJECTED, status);
+      status =
+          new FateMutatorImpl<>(context, table, fateId1).putUnreserveTx(reservation).tryMutate();
+      assertEquals(ACCEPTED, status);
+      status = new FateMutatorImpl<>(context, table, fateId1).putReservedTxOnCreation(reservation)
+          .tryMutate();
       assertEquals(REJECTED, status);
     }
   }

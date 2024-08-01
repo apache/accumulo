@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.metrics.fate;
 
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
+
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledExecutorService;
@@ -72,7 +74,8 @@ public class FateMetrics implements MetricsProducer {
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
     try {
-      this.fateStore = new MetaFateStore<>(fateRootPath, context.getZooReaderWriter(), null, null);
+      this.fateStore = new MetaFateStore<>(fateRootPath, context.getZooReaderWriter(),
+          createDummyLockID(), null);
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);

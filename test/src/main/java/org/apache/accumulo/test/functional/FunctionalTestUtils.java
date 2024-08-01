@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -234,9 +235,9 @@ public class FunctionalTestUtils {
       AdminUtil<String> admin = new AdminUtil<>(false);
       ServerContext context = cluster.getServerContext();
       ZooReaderWriter zk = context.getZooReaderWriter();
-      MetaFateStore<String> mfs =
-          new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk, null, null);
-      UserFateStore<String> ufs = new UserFateStore<>(context, null, null);
+      MetaFateStore<String> mfs = new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
+          zk, createDummyLockID(), null);
+      UserFateStore<String> ufs = new UserFateStore<>(context, createDummyLockID(), null);
       Map<FateInstanceType,ReadOnlyFateStore<String>> fateStores =
           Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
       var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);

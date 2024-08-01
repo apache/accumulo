@@ -86,7 +86,7 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
 
     // use the list of fateIds to simulate collisions on fateIds
     public TestUserFateStore(ClientContext context, String tableName, List<FateId> fateIds) {
-      super(context, tableName, null, null);
+      super(context, tableName, createDummyLockID(), null);
       this.fateIdIterator = fateIds.iterator();
     }
 

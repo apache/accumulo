@@ -1355,7 +1355,7 @@ public class Manager extends AbstractServer
   protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
 
     final Fate<Manager> fateInstance =
-        new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
+        new Fate<>(this, store, true, TraceRepo::toLogString, getConfiguration());
 
     var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), this::getSteadyTime);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()

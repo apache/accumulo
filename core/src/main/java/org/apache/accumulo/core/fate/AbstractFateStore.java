@@ -57,8 +57,8 @@ import com.google.common.base.Preconditions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 // TODO 4131 should probably add support to AbstractFateStore, MetaFateStore,
-// and UserFateStore to accept null lockID and zooCache (maybe make these fields
-// Optional<>). This could replace the current createDummyLockID(). This support
+// and UserFateStore to accept null lockID (maybe make this field Optional<>).
+// This could replace the current createDummyLockID(). This support
 // is needed since MFS and UFS aren't always created in the context of a Manager.
 public abstract class AbstractFateStore<T> implements FateStore<T> {
 
@@ -91,7 +91,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   private final AtomicInteger concurrentStatusChangeCallers = new AtomicInteger(0);
 
   public AbstractFateStore() {
-    this(null, null, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
+    this(createDummyLockID(), null, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
   public AbstractFateStore(ZooUtil.LockID lockID, Predicate<ZooUtil.LockID> isLockHeld) {
@@ -103,8 +103,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     this.maxDeferred = maxDeferred;
     this.fateIdGenerator = Objects.requireNonNull(fateIdGenerator);
     this.deferred = Collections.synchronizedMap(new HashMap<>());
-    this.lockID = Objects.requireNonNullElseGet(lockID, AbstractFateStore::createDummyLockID);
-    // If the store is used for a Fate object, this should be non-null, otherwise null is fine
+    this.lockID = Objects.requireNonNull(lockID);
+    // If the store is used for a Fate which runs a dead reservation cleaner,
+    // this should be non-null, otherwise null is fine
     this.isLockHeld = isLockHeld;
   }
 

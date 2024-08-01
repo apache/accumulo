@@ -79,8 +79,6 @@ public class Fate<T> {
   private final ExecutorService deadResCleanerExecutor;
 
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
-  private static boolean userDeadReservationCleanerRunning = false;
-  private static boolean metaDeadReservationCleanerRunning = false;
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final TransferQueue<FateId> workQueue;
@@ -329,10 +327,7 @@ public class Fate<T> {
   }
 
   /**
-   * A thread that finds reservations held by dead processes and unreserves them. Only one thread
-   * runs per store type across all Fate instances (one to clean up dead reservations for
-   * {@link org.apache.accumulo.core.fate.user.UserFateStore UserFateStore} and one to clean up dead
-   * reservations for {@link MetaFateStore}).
+   * A thread that finds reservations held by dead processes and unreserves them
    */
   private class DeadReservationCleaner implements Runnable {
     @Override
@@ -348,8 +343,8 @@ public class Fate<T> {
    *
    * @param toLogStrFunc A function that converts Repo to Strings that are suitable for logging
    */
-  public Fate(T environment, FateStore<T> store, Function<Repo<T>,String> toLogStrFunc,
-      AccumuloConfiguration conf) {
+  public Fate(T environment, FateStore<T> store, boolean runDeadResCleaner,
+      Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf) {
     this.store = FateLogger.wrap(store, toLogStrFunc);
     this.environment = environment;
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
@@ -382,26 +377,17 @@ public class Fate<T> {
     }, 3, SECONDS));
     this.transactionExecutor = pool;
 
-    // Create a dead reservation cleaner for this store that will periodically (every 30 seconds)
-    // clean up reservations held by dead processes, if they exist. Only created if a dead
-    // reservation cleaner is not already running for the given store type.
-    // TODO 4131 periodic cleanup runs every 30 seconds
-    // Should this be longer? Shorter? A configurable Property? A function of something?
     ScheduledExecutorService deadResCleanerExecutor = null;
-    boolean isUserStore = store.type() == FateInstanceType.USER;
-    boolean isMetaStore = store.type() == FateInstanceType.META;
-    if ((isUserStore && !userDeadReservationCleanerRunning)
-        || (isMetaStore && !metaDeadReservationCleanerRunning)) {
+    if (runDeadResCleaner) {
+      // Create a dead reservation cleaner for this store that will periodically (every 30 seconds)
+      // clean up reservations held by dead processes, if they exist.
       deadResCleanerExecutor = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,
           store.type() + "-dead-reservation-cleaner-pool");
+      // TODO 4131 periodic cleanup runs every 30 seconds
+      // Should this be longer? Shorter? A configurable Property? A function of something?
       ScheduledFuture<?> deadReservationCleaner = deadResCleanerExecutor
           .scheduleWithFixedDelay(new DeadReservationCleaner(), 3, 30, SECONDS);
       ThreadPools.watchCriticalScheduledTask(deadReservationCleaner);
-      if (isUserStore) {
-        userDeadReservationCleanerRunning = true;
-      } else {
-        metaDeadReservationCleanerRunning = true;
-      }
     }
     this.deadResCleanerExecutor = deadResCleanerExecutor;
 
@@ -623,13 +609,6 @@ public class Fate<T> {
     transactionExecutor.shutdownNow();
     if (deadResCleanerExecutor != null) {
       deadResCleanerExecutor.shutdownNow();
-    }
-
-    // Update that USER/META dead reservation cleaner is no longer running
-    if (store.type() == FateInstanceType.USER && userDeadReservationCleanerRunning) {
-      userDeadReservationCleanerRunning = false;
-    } else if (store.type() == FateInstanceType.META && metaDeadReservationCleanerRunning) {
-      metaDeadReservationCleanerRunning = false;
     }
   }
 }
