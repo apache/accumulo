@@ -40,7 +40,7 @@ public class FlakyAmpleServerContext extends ServerContext {
 
   public FlakyAmpleServerContext(SiteConfiguration siteConfig) {
     super(siteConfig);
-    // Each instance of TestAmple created will create a new Haddop configuration object. These
+    // Each instance of TestAmple created will create a new Hadoop configuration object. These
     // seemed to hang around and cause OOME and process death. Did not track down why they were
     // hanging around, but decided to avoid creating a new instance of TestAmple each time Ample is
     // requested in order to avoid creating those hadoop config objects.
