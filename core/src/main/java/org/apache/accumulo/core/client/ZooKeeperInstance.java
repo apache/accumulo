@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.List;
 import java.util.Properties;
@@ -43,7 +42,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.singletons.SingletonReservation;
-import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,21 +137,20 @@ public class ZooKeeperInstance implements Instance {
 
   @Override
   public String getRootTabletLocation() {
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Looking up root tablet location in zookeeper.",
           Thread.currentThread().getId());
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
     Location loc = TabletsMetadata
         .getRootMetadata(Constants.ZROOT + "/" + getInstanceID(), zooCache).getLocation();
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
-          String.format("%.3f secs", timer.scale(SECONDS)));
+          String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0));
     }
 
     if (loc == null || loc.getType() != LocationType.CURRENT) {

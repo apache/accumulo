@@ -1,0 +1,142 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.accumulo.core.util;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.Duration;
+
+import org.junit.jupiter.api.Test;
+
+public class TimerTest {
+
+  /**
+   * Validate reset functionality.
+   */
+  @Test
+  public void testReset() throws InterruptedException {
+    Timer timer = Timer.startNew();
+    Thread.sleep(50);
+
+    timer.stop();
+
+    assertTrue(timer.hasElapsed(Duration.ofNanos(1)),
+        "Elapsed time should be greater than 0 after stopping the timer.");
+
+    timer.reset();
+
+    assertTrue(timer.elapsed().isZero(), "Elapsed time should be 0 after resetting the timer.");
+  }
+
+  /**
+   * Verify that IllegalStateException is thrown when calling stop when timer has not been started.
+   */
+  @Test
+  public void testStopWithoutStart() {
+    Timer timer = Timer.startNew();
+    timer.stop();
+
+    assertThrows(IllegalStateException.class, timer::stop,
+        "Should not be able to call stop on a timer that is not running.");
+  }
+
+  /**
+   * Verify that IllegalStateException is thrown when calling start on a running timer.
+   */
+  @Test
+  public void testStartWhenRunning() {
+    Timer timer = Timer.startNew();
+
+    assertThrows(IllegalStateException.class, timer::start,
+        "Should not be able to call start on a timer that is already running.");
+  }
+
+  /**
+   * Validate that start/stop accumulates time correctly.
+   */
+  @Test
+  public void testElapsedAccumulation() throws InterruptedException {
+    Timer timer = Timer.startNew();
+
+    Thread.sleep(50);
+
+    timer.stop();
+
+    Duration firstElapsed = timer.elapsed();
+
+    timer.start();
+
+    Thread.sleep(10);
+
+    timer.stop();
+
+    Duration secondElapsed = timer.elapsed();
+
+    assertTrue(secondElapsed.compareTo(firstElapsed) > 0,
+        "The timer did not accumulate elapsed time correctly.");
+  }
+
+  /**
+   * Validate that hasElapsed returns correct results.
+   */
+  @Test
+  public void testHasElapsed() throws InterruptedException {
+    Timer timer = Timer.startNew();
+
+    Thread.sleep(50);
+
+    assertTrue(timer.hasElapsed(Duration.ofMillis(50)),
+        "The timer should indicate that 50 milliseconds have elapsed.");
+    assertFalse(timer.hasElapsed(Duration.ofMillis(100)),
+        "The timer should not indicate that 100 milliseconds have elapsed.");
+  }
+
+  @Test
+  public void testElapsedPrecision() throws InterruptedException {
+    Timer timer = Timer.startNew();
+
+    final int sleepMillis = 50;
+    Thread.sleep(sleepMillis);
+
+    timer.stop();
+
+    long elapsedMillis = timer.elapsed().toMillis();
+    assertEquals(sleepMillis, elapsedMillis, 5, "Elapsed time in milliseconds is not accurate.");
+  }
+
+  /**
+   * Verify toString returns the elapsed time in nanoseconds.
+   */
+  @Test
+  public void testToString() throws InterruptedException {
+    Timer timer = Timer.startNew();
+
+    Thread.sleep(50);
+
+    timer.stop();
+
+    String elapsedTimeString = timer.toString();
+
+    assertEquals(String.valueOf(timer.elapsed().toNanos()), elapsedTimeString,
+        "toString should return the elapsed time in nanoseconds.");
+  }
+}

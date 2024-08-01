@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.ArrayList;
@@ -47,9 +46,9 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.slf4j.Logger;
@@ -167,12 +166,12 @@ public class TabletLocatorImpl extends TabletLocator {
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Binning {} mutations for table {}", Thread.currentThread().getId(),
           mutations.size(), tableId);
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
     ArrayList<T> notInCache = new ArrayList<>();
@@ -233,10 +232,9 @@ public class TabletLocatorImpl extends TabletLocator {
     }
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Binned {} mutations for table {} to {} tservers in {}",
           Thread.currentThread().getId(), mutations.size(), tableId, binnedMutations.size(),
-          String.format("%.3f secs", timer.scale(SECONDS)));
+          String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0));
     }
 
   }
@@ -373,12 +371,12 @@ public class TabletLocatorImpl extends TabletLocator {
      * logging. Therefore methods called by this are not synchronized and should not log.
      */
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Binning {} ranges for table {}", Thread.currentThread().getId(),
           ranges.size(), tableId);
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
     LockCheckerSession lcSession = new LockCheckerSession();
@@ -412,10 +410,9 @@ public class TabletLocatorImpl extends TabletLocator {
     }
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Binned {} ranges for table {} to {} tservers in {}",
           Thread.currentThread().getId(), ranges.size(), tableId, binnedRanges.size(),
-          String.format("%.3f secs", timer.scale(SECONDS)));
+          String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0));
     }
 
     return failures;
@@ -491,12 +488,12 @@ public class TabletLocatorImpl extends TabletLocator {
   public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
       boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Locating tablet  table={} row={} skipRow={} retry={}",
           Thread.currentThread().getId(), tableId, TextUtil.truncate(row), skipRow, retry);
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
     while (true) {
@@ -514,10 +511,9 @@ public class TabletLocatorImpl extends TabletLocator {
       }
 
       if (timer != null) {
-        timer.stop();
         log.trace("tid={} Located tablet {} at {} in {}", Thread.currentThread().getId(),
             (tl == null ? "null" : tl.tablet_extent), (tl == null ? "null" : tl.tablet_location),
-            String.format("%.3f secs", timer.scale(SECONDS)));
+            String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0));
       }
 
       return tl;
