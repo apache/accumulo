@@ -658,9 +658,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   /**
-   * Writes the row ID into the given <code>ArrayByteSequence</code>. This method gives users
-   * control over allocation of ArrayByteSequence objects by copying into the passed in
-   * ArrayByteSequence.
+   * Writes the row ID into the given <code>ArrayByteSequence</code> without allocating new object
+   * by using {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)}
+   * method. Using this updates existing ArrayByteSequence object with reference to row data, rather
+   * than copying row data.
    *
    * @param r <code>ArrayByteSequence</code> object to copy into
    * @return the <code>ArrayByteSequence</code> that was passed in
@@ -701,9 +702,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   /**
-   * Writes the column family into the given <code>ArrayByteSequence</code>. This method gives users
-   * control over allocation of ArrayByteSequence objects by copying into the passed in
-   * ArrayByteSequence.
+   * Writes the column family into the given <code>ArrayByteSequence</code> without allocating new
+   * object by using {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)}
+   * method. Using this updates existing ArrayByteSequence object with reference to column family
+   * data, rather than copying column family data.
    *
    * @param cf <code>ArrayByteSequence</code> object to copy into
    * @return the <code>ArrayByteSequence</code> that was passed in
@@ -758,9 +760,11 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   /**
-   * Writes the column qualifier into the given <code>ArrayByteSequence</code>. This method gives
-   * users control over allocation of ArrayByteSequence objects by copying into the passed in
-   * ArrayByteSequence.
+   * Writes the column qualifier into the given <code>ArrayByteSequence</code> without allocating
+   * new object by using
+   * {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)} method. Using
+   * this updates existing ArrayByteSequence object with reference to column qualifier data, rather
+   * than copying column qualifier data.
    *
    * @param cq <code>ArrayByteSequence</code> object to copy into
    * @return the <code>ArrayByteSequence</code> that was passed in
