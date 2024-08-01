@@ -854,9 +854,11 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   /**
-   * Writes the column visibility into the given <code>ArrayByteSequence</code>. This method gives
-   * users control over allocation of ArrayByteSequence objects by copying into the passed in
-   * ArrayByteSequence.
+   * Writes the column visibility into the given <code>ArrayByteSequence</code> without allocating
+   * new object by using
+   * {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)} method. Using
+   * this updates existing ArrayByteSequence object with reference to column visibility data, rather
+   * than copying column visibility data.
    *
    * @param cv <code>ArrayByteSequence</code> object to copy into
    * @return the <code>ArrayByteSequence</code> that was passed in
