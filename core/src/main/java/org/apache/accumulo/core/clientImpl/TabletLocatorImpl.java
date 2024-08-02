@@ -34,7 +34,6 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -235,7 +234,7 @@ public class TabletLocatorImpl extends TabletLocator {
     if (timer != null) {
       log.trace("tid={} Binned {} mutations for table {} to {} tservers in {}",
           Thread.currentThread().getId(), mutations.size(), tableId, binnedMutations.size(),
-          String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0));
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
   }
@@ -413,7 +412,7 @@ public class TabletLocatorImpl extends TabletLocator {
     if (timer != null) {
       log.trace("tid={} Binned {} ranges for table {} to {} tservers in {}",
           Thread.currentThread().getId(), ranges.size(), tableId, binnedRanges.size(),
-          String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0));
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return failures;
@@ -514,7 +513,7 @@ public class TabletLocatorImpl extends TabletLocator {
       if (timer != null) {
         log.trace("tid={} Located tablet {} at {} in {}", Thread.currentThread().getId(),
             (tl == null ? "null" : tl.tablet_extent), (tl == null ? "null" : tl.tablet_location),
-            String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0));
+            String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
       }
 
       return tl;

@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -94,8 +93,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     if (timer != null) {
       log.trace("tid={} Fetched {} namespaces in {}", Thread.currentThread().getId(),
-          namespaces.size(),
-          String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0));
+          namespaces.size(), String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return namespaces;
@@ -117,7 +115,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     if (timer != null) {
       log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
-          String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0));
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return exists;

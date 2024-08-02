@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.util;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -74,9 +75,9 @@ public class TimerTest {
 
     Thread.sleep(50);
 
-    assertTrue(timer.hasElapsed(50, TimeUnit.MILLISECONDS),
+    assertTrue(timer.hasElapsed(50, MILLISECONDS),
         "The timer should indicate that 50 milliseconds have elapsed.");
-    assertFalse(timer.hasElapsed(100, TimeUnit.MILLISECONDS),
+    assertFalse(timer.hasElapsed(100, MILLISECONDS),
         "The timer should not indicate that 100 milliseconds have elapsed.");
   }
 
@@ -87,7 +88,7 @@ public class TimerTest {
     final int sleepMillis = 50;
     Thread.sleep(sleepMillis);
 
-    long elapsedMillis = timer.elapsed(TimeUnit.MILLISECONDS);
+    long elapsedMillis = timer.elapsed(MILLISECONDS);
     assertEquals(sleepMillis, elapsedMillis, 5, "Elapsed time in milliseconds is not accurate.");
   }
 
@@ -97,7 +98,7 @@ public class TimerTest {
 
     Thread.sleep(50);
 
-    long elapsedMillis = timer.elapsed(TimeUnit.MILLISECONDS);
+    long elapsedMillis = timer.elapsed(MILLISECONDS);
     assertEquals(50, elapsedMillis, 5, "Elapsed time in milliseconds is not accurate.");
 
     long elapsedSeconds = timer.elapsed(TimeUnit.SECONDS);

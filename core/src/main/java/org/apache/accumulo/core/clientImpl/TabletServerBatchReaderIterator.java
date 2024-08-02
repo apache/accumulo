@@ -41,7 +41,6 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -861,7 +860,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           log.trace("tid={} Got 1st multi scan results, #results={} {} in {}",
               Thread.currentThread().getId(), scanResult.results.size(),
               (scanResult.more ? "scanID=" + imsr.scanID : ""),
-              String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0));
+              String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
         }
 
         ArrayList<Entry<Key,Value>> entries = new ArrayList<>(scanResult.results.size());
@@ -897,7 +896,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             log.trace("tid={} oid={} Got more multi scan results, #results={} {} in {}",
                 Thread.currentThread().getId(), nextOpid.getAndIncrement(),
                 scanResult.results.size(), (scanResult.more ? " scanID=" + imsr.scanID : ""),
-                String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0));
+                String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
           }
 
           entries = new ArrayList<>(scanResult.results.size());

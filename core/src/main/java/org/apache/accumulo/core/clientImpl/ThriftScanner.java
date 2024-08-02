@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
@@ -270,8 +271,8 @@ public class ThriftScanner {
   static <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
       String description, Duration timeoutLeft, ClientContext context, TableId tableId,
       Logger log) {
-    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, TimeUnit.MILLISECONDS)
-        .incrementBy(100, TimeUnit.MILLISECONDS).maxWait(1, SECONDS).backOffFactor(1.5)
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
+        .incrementBy(100, MILLISECONDS).maxWait(1, SECONDS).backOffFactor(1.5)
         .logInterval(3, TimeUnit.MINUTES).createRetry();
 
     long startTime = System.nanoTime();
@@ -738,8 +739,8 @@ public class ThriftScanner {
         if (timer != null) {
           log.trace("tid={} Finished scan in {} #results={} scanid={}",
               Thread.currentThread().getId(),
-              String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0),
-              sr.results.size(), scanState.scanID);
+              String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0), sr.results.size(),
+              scanState.scanID);
         }
       } else {
         // log.debug("No more : tab end row = "+loc.tablet_extent.getEndRow()+" range =
@@ -750,7 +751,7 @@ public class ThriftScanner {
           if (timer != null) {
             log.trace("tid={} Completely finished scan in {} #results={}",
                 Thread.currentThread().getId(),
-                String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0),
+                String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }
 
@@ -762,7 +763,7 @@ public class ThriftScanner {
           if (timer != null) {
             log.trace("tid={} Finished scanning tablet in {} #results={}",
                 Thread.currentThread().getId(),
-                String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0),
+                String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }
         } else {
@@ -770,7 +771,7 @@ public class ThriftScanner {
           if (timer != null) {
             log.trace("tid={} Completely finished in {} #results={}",
                 Thread.currentThread().getId(),
-                String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0),
+                String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }
         }
