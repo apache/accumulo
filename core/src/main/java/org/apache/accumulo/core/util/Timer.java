@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.util;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This class provides a timer for measuring elapsed time.
@@ -72,11 +73,12 @@ public final class Timer {
   }
 
   /**
-   * Resets the timer, stopping it if necessary and clearing accumulated time.
+   * Resets the timer and starts it immediately.
    */
-  public void reset() {
+  public void restart() {
     accumulatedNanos = 0;
-    isStarted = false;
+    startNanos = System.nanoTime();
+    isStarted = true;
   }
 
   private long getElapsedNanos() {
@@ -94,12 +96,18 @@ public final class Timer {
   }
 
   /**
-   * Calculates the elapsed time as a Duration.
-   *
    * @return the elapsed time as a Duration.
    */
   public Duration elapsed() {
     return Duration.ofNanos(getElapsedNanos());
+  }
+
+  /**
+   * @param unit the TimeUnit to return the elapsed time in.
+   * @return the elapsed time in the specified TimeUnit.
+   */
+  public long elapsed(TimeUnit unit) {
+    return unit.convert(getElapsedNanos(), TimeUnit.NANOSECONDS);
   }
 
   /**

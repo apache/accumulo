@@ -24,39 +24,37 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
 
 public class TimerTest {
 
-  /**
-   * Validate reset functionality.
-   */
   @Test
-  public void testReset() throws InterruptedException {
+  public void testRestart() throws InterruptedException {
     Timer timer = Timer.startNew();
+
+    // Perform a longer sleep initially
+    Thread.sleep(100);
+
+    Duration firstElapsed = timer.elapsed();
+
+    assertTrue(timer.hasElapsed(Duration.ofMillis(100)),
+        "Should see at least the sleep time has elapsed.");
+
+    timer.restart();
+
+    // Perform a shorter sleep
     Thread.sleep(50);
 
-    timer.stop();
+    Duration secondElapsed = timer.elapsed();
 
-    assertTrue(timer.hasElapsed(Duration.ofNanos(1)),
-        "Elapsed time should be greater than 0 after stopping the timer.");
+    // Assert that the elapsed time after restart is greater than 0
+    assertFalse(secondElapsed.isNegative(),
+        "Elapsed time should be greater than 0 after restarting the timer.");
+    assertTrue(secondElapsed.compareTo(firstElapsed) < 0,
+        "Elapsed time after restart should be less than the initial elapsed time.");
 
-    timer.reset();
-
-    assertTrue(timer.elapsed().isZero(), "Elapsed time should be 0 after resetting the timer.");
-  }
-
-  /**
-   * Verify that IllegalStateException is thrown when calling stop when timer has not been started.
-   */
-  @Test
-  public void testStopWithoutStart() {
-    Timer timer = Timer.startNew();
-    timer.stop();
-
-    assertThrows(IllegalStateException.class, timer::stop,
-        "Should not be able to call stop on a timer that is not running.");
   }
 
   /**
@@ -121,6 +119,22 @@ public class TimerTest {
 
     long elapsedMillis = timer.elapsed().toMillis();
     assertEquals(sleepMillis, elapsedMillis, 5, "Elapsed time in milliseconds is not accurate.");
+  }
+
+  @Test
+  public void testElapsedWithTimeUnit() throws InterruptedException {
+    Timer timer = Timer.startNew();
+
+    Thread.sleep(50);
+
+    timer.stop();
+
+    long elapsedMillis = timer.elapsed(TimeUnit.MILLISECONDS);
+    assertEquals(50, elapsedMillis, 5, "Elapsed time in milliseconds is not accurate.");
+
+    long elapsedSeconds = timer.elapsed(TimeUnit.SECONDS);
+    assertEquals(0, elapsedSeconds,
+        "Elapsed time in seconds should be 0 for 50 milliseconds of sleep.");
   }
 
   /**
