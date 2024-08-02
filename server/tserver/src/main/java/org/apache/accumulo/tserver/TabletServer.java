@@ -183,6 +183,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   TabletServerMinCMetrics mincMetrics;
   CompactionExecutorsMetrics ceMetrics;
   PausedCompactionMetrics pausedMetrics;
+  BlockCacheMetrics blockCacheMetrics;
 
   @Override
   public TabletServerScanMetrics getScanMetrics() {
@@ -527,14 +528,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  private HostAndPort startServer(AccumuloConfiguration conf, String address, TProcessor processor)
+  private HostAndPort startServer(String address, TProcessor processor)
       throws UnknownHostException {
-    Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
-        ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), address, Property.TSERV_CLIENTPORT,
         processor, this.getClass().getSimpleName(), "Thrift Client Server",
         Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
-        Property.TSERV_THREADCHECK, maxMessageSizeProperty);
+        Property.TSERV_THREADCHECK);
     this.server = sp.server;
     return sp.address;
   }
@@ -596,7 +595,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     TProcessor processor =
         ThriftProcessorTypes.getTabletServerTProcessor(clientHandler, thriftClientHandler,
             scanClientHandler, thriftClientHandler, thriftClientHandler, getContext());
-    HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), processor);
+    HostAndPort address = startServer(clientAddress.getHost(), processor);
     log.info("address = {}", address);
     return address;
   }
@@ -704,7 +703,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       throw new RuntimeException("Failed to start the tablet client service", e1);
     }
 
-    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    MetricsInfo metricsInfo = context.getMetricsInfo();
     metricsInfo.addServiceTags(getApplicationName(), clientAddress);
 
     metrics = new TabletServerMetrics(this);
@@ -713,9 +712,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     mincMetrics = new TabletServerMinCMetrics();
     ceMetrics = new CompactionExecutorsMetrics();
     pausedMetrics = new PausedCompactionMetrics();
+    blockCacheMetrics = new BlockCacheMetrics(this.resourceManager.getIndexCache(),
+        this.resourceManager.getDataCache(), this.resourceManager.getSummaryCache());
 
-    metricsInfo.addMetricsProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics,
-        pausedMetrics);
+    metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
+        ceMetrics, pausedMetrics, blockCacheMetrics);
     metricsInfo.init();
 
     this.compactionManager = new CompactionManager(() -> Iterators
@@ -795,16 +796,20 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     HostAndPort managerHost;
     while (!serverStopRequested) {
+
+      updateIdleStatus(getOnlineTablets().isEmpty());
+
       // send all of the pending messages
       try {
         ManagerMessage mm = null;
         ManagerClientService.Client iface = null;
 
         try {
-          // wait until a message is ready to send, or a sever stop
+          // wait until a message is ready to send, or a server stop
           // was requested
           while (mm == null && !serverStopRequested) {
             mm = managerMessages.poll(1, TimeUnit.SECONDS);
+            updateIdleStatus(getOnlineTablets().isEmpty());
           }
 
           // have a message to send to the manager, so grab a
@@ -832,6 +837,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             // if any messages are immediately available grab em and
             // send them
             mm = managerMessages.poll();
+            updateIdleStatus(getOnlineTablets().isEmpty());
           }
 
         } finally {

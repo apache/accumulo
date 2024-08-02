@@ -43,6 +43,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -93,7 +94,7 @@ public abstract class TabletBase {
     this.context = server.getContext();
     this.server = server;
     this.extent = extent;
-    this.isUserTable = !extent.isMeta();
+    this.isUserTable = !AccumuloTable.allTableIds().contains(extent.tableId());
 
     TableConfiguration tblConf = context.getTableConfiguration(extent.tableId());
     if (tblConf == null) {
@@ -208,7 +209,7 @@ public abstract class TabletBase {
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       this.lookupCount.incrementAndGet();
-      this.server.getScanMetrics().incrementLookupCount(1);
+      this.server.getScanMetrics().incrementLookupCount();
       result = lookup(iter, ranges, results, scanParams, maxResultSize);
       return result;
     } catch (IOException | RuntimeException e) {

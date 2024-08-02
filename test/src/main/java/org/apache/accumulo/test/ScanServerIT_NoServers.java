@@ -25,16 +25,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
-import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelector;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -123,16 +127,54 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testScanOfflineTable() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+  public void testScanWithNoTserverFallback() throws Exception {
+
+    var clientProps = new Properties();
+    clientProps.putAll(getClientProps());
+    String scanServerSelectorProfiles = "[{'isDefault':true,'maxBusyTimeout':'5m',"
+        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':'120s',"
+        + "'attemptPlans':[{'servers':'3', 'busyTimeout':'1s'}]}]";
+    clientProps.put("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName());
+    clientProps.put("scan.server.selector.opts.profiles",
+        scanServerSelectorProfiles.replace("'", "\""));
+
+    try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
       String tableName = getUniqueNames(1)[0];
 
       createTableAndIngest(client, tableName, null, 10, 10, "colf");
-      client.tableOperations().offline(tableName, true);
 
-      assertThrows(TableOfflineException.class, () -> {
+      assertThrows(TimedOutException.class, () -> {
         try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
           scanner.setRange(new Range());
+          scanner.setTimeout(1, TimeUnit.SECONDS);
+          scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+          assertEquals(100, Iterables.size(scanner));
+        } // when the scanner is closed, all open sessions should be closed
+      });
+    }
+  }
+
+  @Test
+  public void testBatchScanWithNoTserverFallback() throws Exception {
+
+    var clientProps = new Properties();
+    clientProps.putAll(getClientProps());
+    String scanServerSelectorProfiles = "[{'isDefault':true,'maxBusyTimeout':'5m',"
+        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':'120s',"
+        + "'attemptPlans':[{'servers':'3', 'busyTimeout':'1s'}]}]";
+    clientProps.put("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName());
+    clientProps.put("scan.server.selector.opts.profiles",
+        scanServerSelectorProfiles.replace("'", "\""));
+
+    try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
+      String tableName = getUniqueNames(1)[0];
+
+      createTableAndIngest(client, tableName, null, 10, 10, "colf");
+
+      assertThrows(TimedOutException.class, () -> {
+        try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
+          scanner.setRanges(List.of(new Range()));
+          scanner.setTimeout(1, TimeUnit.SECONDS);
           scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
           assertEquals(100, Iterables.size(scanner));
         } // when the scanner is closed, all open sessions should be closed

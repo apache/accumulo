@@ -48,7 +48,7 @@ class ImportSetupPermissions extends ManagerRepo {
     for (TablePermission permission : TablePermission.values()) {
       try {
         security.grantTablePermission(env.getContext().rpcCreds(), tableInfo.user,
-            tableInfo.tableId, permission, tableInfo.namespaceId);
+            tableInfo.tableId, tableInfo.tableName, permission, tableInfo.namespaceId);
       } catch (ThriftSecurityException e) {
         LoggerFactory.getLogger(ImportSetupPermissions.class).error("{}", e.getMessage(), e);
         throw e;

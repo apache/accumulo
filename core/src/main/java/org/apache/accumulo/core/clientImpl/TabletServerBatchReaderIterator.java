@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
@@ -34,11 +35,13 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -75,8 +78,8 @@ import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -500,7 +503,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private void doLookups(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
       final ResultReceiver receiver, List<Column> columns) {
-
+    long startTime = System.currentTimeMillis();
     int maxTabletsPerRequest = Integer.MAX_VALUE;
 
     long busyTimeout = 0;
@@ -508,7 +511,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     Map<String,ScanServerAttemptReporter> reporters = Map.of();
 
     if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
-      var scanServerData = rebinToScanServers(binnedRanges);
+      var scanServerData = rebinToScanServers(binnedRanges, startTime);
       busyTimeout = scanServerData.actions.getBusyTimeout().toMillis();
       reporters = scanServerData.reporters;
       scanServerSelectorDelay = scanServerData.actions.getDelay();
@@ -601,7 +604,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     Map<String,ScanServerAttemptReporter> reporters;
   }
 
-  private ScanServerData rebinToScanServers(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
+  private ScanServerData rebinToScanServers(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
+      long startTime) {
     ScanServerSelector ecsm = context.getScanServerSelector();
 
     List<TabletIdImpl> tabletIds =
@@ -610,6 +614,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     // get a snapshot of this once,not each time the plugin request it
     var scanAttemptsSnapshot = scanAttempts.snapshot();
+
+    Duration timeoutLeft = Duration.ofMillis(retryTimeout)
+        .minus(Duration.ofMillis(System.currentTimeMillis() - startTime));
 
     ScanServerSelector.SelectorParameters params = new ScanServerSelector.SelectorParameters() {
       @Override
@@ -625,6 +632,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       @Override
       public Map<String,String> getHints() {
         return options.executionHints;
+      }
+
+      @Override
+      public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
+          String description) {
+        return ThriftScanner.waitUntil(condition, maxWaitTime, description, timeoutLeft, context,
+            tableId, log);
       }
     };
 
@@ -650,9 +664,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       if (serverToUse == null) {
         // no scan server was given so use the tablet server
         serverToUse = extentToTserverMap.get(extent);
-        log.trace("For tablet {} scan server selector chose tablet_server", tabletId);
+        log.trace("For tablet {} using hints {} scan server selector chose tablet_server", tabletId,
+            options.executionHints);
       } else {
-        log.trace("For tablet {} scan server selector chose scan_server:{}", tabletId, serverToUse);
+        log.trace("For tablet {} using hints {} scan server selector chose scan_server:{}",
+            tabletId, options.executionHints, serverToUse);
       }
 
       var rangeMap = binnedRanges2.computeIfAbsent(serverToUse, k -> new HashMap<>());
@@ -802,7 +818,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
       try {
 
-        OpTimer timer = null;
+        Timer timer = null;
 
         if (log.isTraceEnabled()) {
           log.trace(
@@ -811,7 +827,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               sumSizes(requested.values()), options.serverSideIteratorList,
               options.serverSideIteratorOptions);
 
-          timer = new OpTimer().start();
+          timer = Timer.startNew();
         }
 
         TabletType ttype = TabletType.type(requested.keySet());
@@ -840,11 +856,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         MultiScanResult scanResult = imsr.result;
 
         if (timer != null) {
-          timer.stop();
           log.trace("tid={} Got 1st multi scan results, #results={} {} in {}",
               Thread.currentThread().getId(), scanResult.results.size(),
               (scanResult.more ? "scanID=" + imsr.scanID : ""),
-              String.format("%.3f secs", timer.scale(SECONDS)));
+              String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
         }
 
         ArrayList<Entry<Key,Value>> entries = new ArrayList<>(scanResult.results.size());
@@ -871,17 +886,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           if (timer != null) {
             log.trace("tid={} oid={} Continuing multi scan, scanid={}",
                 Thread.currentThread().getId(), nextOpid.get(), imsr.scanID);
-            timer.reset().start();
+            timer.restart();
           }
 
           scanResult = client.continueMultiScan(TraceUtil.traceInfo(), imsr.scanID, busyTimeout);
 
           if (timer != null) {
-            timer.stop();
             log.trace("tid={} oid={} Got more multi scan results, #results={} {} in {}",
                 Thread.currentThread().getId(), nextOpid.getAndIncrement(),
                 scanResult.results.size(), (scanResult.more ? " scanID=" + imsr.scanID : ""),
-                String.format("%.3f secs", timer.scale(SECONDS)));
+                String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
           }
 
           entries = new ArrayList<>(scanResult.results.size());

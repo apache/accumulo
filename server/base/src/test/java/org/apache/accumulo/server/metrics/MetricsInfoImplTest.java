@@ -47,27 +47,10 @@ public class MetricsInfoImplTest {
     replay(context, conf);
     assertNotNull(MetricsInfoImpl.getRegistryFromFactory(SPIFactory.class.getName(), context));
 
-    assertNotNull(
-        MetricsInfoImpl.getRegistryFromFactory(DeprecatedFactory.class.getName(), context));
-
     assertThrows(ClassNotFoundException.class,
         () -> MetricsInfoImpl.getRegistryFromFactory(String.class.getName(), context));
 
     verify(context, conf);
-  }
-
-  @SuppressWarnings({"deprecation",
-      "support for org.apache.accumulo.core.metrics.MeterRegistryFactory can be removed in 3.1"})
-  static final class DeprecatedFactory
-      implements org.apache.accumulo.core.metrics.MeterRegistryFactory {
-    DeprecatedFactory() {
-
-    }
-
-    @Override
-    public MeterRegistry create() {
-      return new SimpleMeterRegistry();
-    }
   }
 
   static class SPIFactory implements org.apache.accumulo.core.spi.metrics.MeterRegistryFactory {

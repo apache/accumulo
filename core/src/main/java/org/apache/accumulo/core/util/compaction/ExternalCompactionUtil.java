@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.core.util.compaction;
 
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTIONS_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTION_IDS_POOL;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -220,7 +224,7 @@ public class ExternalCompactionUtil {
   public static List<RunningCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
     final List<RunningCompactionFuture> rcFutures = new ArrayList<>();
     final ExecutorService executor = ThreadPools.getServerThreadPools()
-        .getPoolBuilder("CompactorRunningCompactions").numCoreThreads(16).build();
+        .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
     getCompactorAddrs(context).forEach((q, hp) -> {
       hp.forEach(hostAndPort -> {
         rcFutures.add(new RunningCompactionFuture(q, hostAndPort,
@@ -247,7 +251,7 @@ public class ExternalCompactionUtil {
   public static Collection<ExternalCompactionId>
       getCompactionIdsRunningOnCompactors(ClientContext context) {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
-        .getPoolBuilder("CompactorRunningCompactions").numCoreThreads(16).build();
+        .getPoolBuilder(COMPACTOR_RUNNING_COMPACTION_IDS_POOL).numCoreThreads(16).build();
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
     getCompactorAddrs(context).forEach((q, hp) -> {
@@ -274,6 +278,7 @@ public class ExternalCompactionUtil {
   }
 
   public static int countCompactors(String queueName, ClientContext context) {
+    long start = System.nanoTime();
     String queueRoot = context.getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + queueName;
     List<String> children = context.getZooCache().getChildren(queueRoot);
     if (children == null) {
@@ -287,6 +292,13 @@ public class ExternalCompactionUtil {
       if (children2 != null && !children2.isEmpty()) {
         count++;
       }
+    }
+
+    long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+    if (elapsed > 100) {
+      LOG.debug("Took {} ms to count {} compactors for {}", elapsed, count, queueName);
+    } else {
+      LOG.trace("Took {} ms to count {} compactors for {}", elapsed, count, queueName);
     }
 
     return count;

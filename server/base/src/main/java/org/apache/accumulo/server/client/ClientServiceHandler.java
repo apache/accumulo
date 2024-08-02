@@ -214,12 +214,11 @@ public class ClientServiceHandler implements ClientService.Iface {
     NamespaceId namespaceId;
     try {
       namespaceId = context.getNamespaceId(tableId);
+      security.grantTablePermission(credentials, user, tableId, tableName,
+          TablePermission.getPermissionById(permission), namespaceId);
     } catch (TableNotFoundException e) {
       throw new TException(e);
     }
-
-    security.grantTablePermission(credentials, user, tableId,
-        TablePermission.getPermissionById(permission), namespaceId);
   }
 
   @Override

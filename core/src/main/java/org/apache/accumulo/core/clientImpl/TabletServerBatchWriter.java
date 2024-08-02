@@ -22,6 +22,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.BATCH_WRITER_BIN_MUTATIONS_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.BATCH_WRITER_SEND_POOL;
 
 import java.io.IOException;
 import java.lang.management.CompilationMXBean;
@@ -671,11 +673,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
       queued = new HashSet<>();
-      sendThreadPool = context.threadPools().getPoolBuilder(this.getClass().getName())
+      sendThreadPool = context.threadPools().getPoolBuilder(BATCH_WRITER_SEND_POOL)
           .numCoreThreads(numSendThreads).build();
       locators = new HashMap<>();
-      binningThreadPool = context.threadPools().getPoolBuilder("BinMutations").numCoreThreads(1)
-          .withQueue(new SynchronousQueue<>()).build();
+      binningThreadPool = context.threadPools().getPoolBuilder(BATCH_WRITER_BIN_MUTATIONS_POOL)
+          .numCoreThreads(1).withQueue(new SynchronousQueue<>()).build();
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 

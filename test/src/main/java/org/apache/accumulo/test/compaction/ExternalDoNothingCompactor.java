@@ -20,6 +20,7 @@ package org.apache.accumulo.test.compaction;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
@@ -33,7 +34,9 @@ import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
+import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,39 +56,63 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
   }
 
   @Override
-  protected Runnable createCompactionJob(TExternalCompactionJob job, LongAdder totalInputEntries,
-      LongAdder totalInputBytes, CountDownLatch started, CountDownLatch stopped,
-      AtomicReference<Throwable> err) {
+  protected FileCompactorRunnable createCompactionJob(TExternalCompactionJob job,
+      LongAdder totalInputEntries, LongAdder totalInputBytes, CountDownLatch started,
+      CountDownLatch stopped, AtomicReference<Throwable> err) {
 
     // Set this to true so that only 1 external compaction is run
     this.shutdown = true;
 
-    return () -> {
-      try {
-        LOG.info("Starting up compaction runnable for job: {}", job);
-        TCompactionStatusUpdate update = new TCompactionStatusUpdate();
-        update.setState(TCompactionState.STARTED);
-        update.setMessage("Compaction started");
-        updateCompactionState(job, update);
+    return new FileCompactorRunnable() {
 
-        LOG.info("Starting compactor");
-        started.countDown();
+      final AtomicReference<FileCompactor> ref = new AtomicReference<>();
 
-        while (!JOB_HOLDER.isCancelled()) {
-          LOG.info("Sleeping while job is not cancelled");
-          UtilWaitThread.sleep(1000);
-        }
-        // Compactor throws this exception when cancelled
-        throw new CompactionCanceledException();
-
-      } catch (Exception e) {
-        KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
-        LOG.error("Compaction failed: id: {}, extent: {}", job.getExternalCompactionId(),
-            fromThriftExtent, e);
-        err.set(e);
-      } finally {
-        stopped.countDown();
+      @Override
+      public AtomicReference<FileCompactor> getFileCompactor() {
+        return ref;
       }
+
+      @Override
+      public Duration getCompactionAge() {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public void run() {
+        try {
+          LOG.info("Starting up compaction runnable for job: {}", job);
+          TCompactionStatusUpdate update = new TCompactionStatusUpdate();
+          update.setState(TCompactionState.STARTED);
+          update.setMessage("Compaction started");
+          updateCompactionState(job, update);
+
+          LOG.info("Starting compactor");
+          started.countDown();
+
+          while (!JOB_HOLDER.isCancelled()) {
+            LOG.info("Sleeping while job is not cancelled");
+            UtilWaitThread.sleep(1000);
+          }
+          // Compactor throws this exception when cancelled
+          throw new CompactionCanceledException();
+
+        } catch (Exception e) {
+          KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
+          LOG.error("Compaction failed: id: {}, extent: {}", job.getExternalCompactionId(),
+              fromThriftExtent, e);
+          err.set(e);
+        } finally {
+          stopped.countDown();
+        }
+      }
+
+      @Override
+      public void initialize() throws RetriesExceededException {
+        // This isn't used, just need to create and return something
+        ref.set(new FileCompactor(getContext(), KeyExtent.fromThrift(job.getExtent()), null, null,
+            false, null, null, null, null, null));
+      }
+
     };
 
   }

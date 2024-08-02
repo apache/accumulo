@@ -28,6 +28,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 
@@ -76,7 +77,7 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
    * previous tserver.
    */
   void suspend(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException;
 
   /**
@@ -91,7 +92,7 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
   }
 
   public static void suspend(ServerContext context, TabletLocationState tls,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     getStoreForTablet(tls.extent, context).suspend(Collections.singletonList(tls),
         logsForDeadServers, suspensionTimestamp);

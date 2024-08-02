@@ -658,6 +658,21 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   /**
+   * Writes the row ID into the given <code>ArrayByteSequence</code> without allocating new object
+   * by using {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)}
+   * method. Using this updates existing ArrayByteSequence object with reference to row data, rather
+   * than copying row data.
+   *
+   * @param r <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 3.1.0
+   */
+  public ArrayByteSequence getRowData(ArrayByteSequence r) {
+    r.reset(row, 0, row.length);
+    return r;
+  }
+
+  /**
    * Gets the row ID as a <code>Text</code> object.
    *
    * @return Text containing the row ID
@@ -684,6 +699,21 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public ByteSequence getColumnFamilyData() {
     return new ArrayByteSequence(colFamily);
+  }
+
+  /**
+   * Writes the column family into the given <code>ArrayByteSequence</code> without allocating new
+   * object by using {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)}
+   * method. Using this updates existing ArrayByteSequence object with reference to column family
+   * data, rather than copying column family data.
+   *
+   * @param cf <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 3.1.0
+   */
+  public ArrayByteSequence getColumnFamilyData(ArrayByteSequence cf) {
+    cf.reset(colFamily, 0, colFamily.length);
+    return cf;
   }
 
   /**
@@ -727,6 +757,22 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public ByteSequence getColumnQualifierData() {
     return new ArrayByteSequence(colQualifier);
+  }
+
+  /**
+   * Writes the column qualifier into the given <code>ArrayByteSequence</code> without allocating
+   * new object by using
+   * {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)} method. Using
+   * this updates existing ArrayByteSequence object with reference to column qualifier data, rather
+   * than copying column qualifier data.
+   *
+   * @param cq <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 3.1.0
+   */
+  public ArrayByteSequence getColumnQualifierData(ArrayByteSequence cq) {
+    cq.reset(colQualifier, 0, colQualifier.length);
+    return cq;
   }
 
   /**
@@ -805,6 +851,22 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public ByteSequence getColumnVisibilityData() {
     return new ArrayByteSequence(colVisibility);
+  }
+
+  /**
+   * Writes the column visibility into the given <code>ArrayByteSequence</code> without allocating
+   * new object by using
+   * {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)} method. Using
+   * this updates existing ArrayByteSequence object with reference to column visibility data, rather
+   * than copying column visibility data.
+   *
+   * @param cv <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 3.1.0
+   */
+  public ArrayByteSequence getColumnVisibilityData(ArrayByteSequence cv) {
+    cv.reset(colVisibility, 0, colVisibility.length);
+    return cv;
   }
 
   /**

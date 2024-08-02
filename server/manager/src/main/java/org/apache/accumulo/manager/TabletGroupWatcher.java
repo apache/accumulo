@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.lang.Math.min;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.logging.ConditionalLogger.EscalatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -107,6 +109,8 @@ import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.event.Level;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -115,8 +119,9 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
-  // Constants used to make sure assignment logging isn't excessive in quantity or size
 
+  private static final Logger TABLET_UNLOAD_LOGGER =
+      new EscalatingLogger(Manager.log, Duration.ofMinutes(5), 1000, Level.INFO);
   private final Manager manager;
   private final TabletStateStore store;
   private final TabletGroupWatcher dependentWatcher;
@@ -146,7 +151,16 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
    * time an assignment scan was started.
    */
   synchronized boolean isSameTserversAsLastScan(Set<TServerInstance> candidates) {
-    return candidates.equals(lastScanServers);
+    boolean same = candidates.equals(lastScanServers);
+    if (!same && Manager.log.isTraceEnabled()) {
+      Manager.log.trace("{} set difference candidates-lastScanServers : {}", store.name(),
+          Sets.difference(candidates, lastScanServers));
+      Manager.log.trace("{} set difference lastScanServers-candidates : {}", store.name(),
+          Sets.difference(lastScanServers, candidates));
+      Manager.log.trace("{} set intersection(lastScanServers,candidates) size : {}", store.name(),
+          Sets.intersection(lastScanServers, candidates).size());
+    }
+    return same;
   }
 
   /**
@@ -351,12 +365,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 TServerConnection client =
                     manager.tserverSet.getConnection(location.getServerInstance());
                 if (client != null) {
-                  Manager.log.trace("[{}] Requesting TabletServer {} unload {} {}", store.name(),
-                      location.getServerInstance(), tls.extent, goal.howUnload());
-                  client.unloadTablet(manager.managerLock, tls.extent, goal.howUnload(),
-                      manager.getSteadyTime());
-                  unloaded++;
-                  totalUnloaded++;
+                  try {
+                    TABLET_UNLOAD_LOGGER.trace("[{}] Requesting TabletServer {} unload {} {}",
+                        store.name(), location.getServerInstance(), tls.extent, goal.howUnload());
+                    client.unloadTablet(manager.managerLock, tls.extent, goal.howUnload(),
+                        manager.getSteadyTime().getMillis());
+                    unloaded++;
+                    totalUnloaded++;
+                  } catch (TException tException) {
+                    Manager.log.warn("[{}] Failed to request tablet unload {} {} {}", store.name(),
+                        location.getServerInstance(), tls.extent, goal.howUnload(), tException);
+                  }
                 } else {
                   Manager.log.warn("Could not connect to server {}", location);
                 }
@@ -449,7 +468,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private void hostSuspendedTablet(TabletLists tLists, TabletLocationState tls, Location location,
       TableConfiguration tableConf) {
-    if (manager.getSteadyTime() - tls.suspend.suspensionTime
+    if (manager.getSteadyTime().minus(tls.suspend.suspensionTime).toMillis()
         < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
       // Tablet is suspended. See if its tablet server is back.
       TServerInstance returnInstance = null;
@@ -851,8 +870,18 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     AccumuloClient client = manager.getContext();
 
     KeyExtent stopExtent = KeyExtent.fromMetaRow(stop.toMetaRow());
+
+    // Used when scanning the table to track the extent of the previous column.
+    // This value is updated for every column read at the end of the loop below
+    // with the extent for the column. We scan multiple columns for each tablet,
+    // so this is useful to detect when we have reached a different tablet.
+    KeyExtent prevColumnExtent = null;
+
+    // Used when scanning the table to track the previous tablet from the
+    // current one. This value will update whenever the current extent for
+    // the column read in the loop is different from the previously read column,
+    // which is tracked by prevColumnExtent
     KeyExtent previousKeyExtent = null;
-    KeyExtent lastExtent = null;
 
     // Check if we have already previously fenced the tablets
     if (highTablet.isMerged()) {
@@ -893,10 +922,16 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
         final KeyExtent keyExtent = KeyExtent.fromMetaRow(key.getRow());
 
-        // Keep track of the last Key Extent seen so we can use it to fence
-        // of RFiles when merging the metadata
-        if (lastExtent != null && !keyExtent.equals(lastExtent)) {
-          previousKeyExtent = lastExtent;
+        // Keep track of extents to verify the linked list and also we need the
+        // prevColumnExtent seen so we can use it to fence off RFiles when merging
+        // 'keyExtent' represents the current tablet for this colum
+        // 'prevColumnExtent' is the extent seen from the previous column read.
+        // 'previousKeyExtent' is the extent for the previous tablet
+        //
+        // If 'prevColumnExtent' is different from 'keyExtent' then we have reached a new tablet
+        // and we can update 'previousKeyExtent' with the value from 'prevColumnExtent'
+        if (prevColumnExtent != null && !keyExtent.equals(prevColumnExtent)) {
+          previousKeyExtent = prevColumnExtent;
         }
 
         // Special case to handle the highest/stop tablet, which is where files are
@@ -951,10 +986,25 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           m.put(key.getColumnFamily(), newFile.getMetadataText(), value);
 
           fileCount++;
-        } else if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)
-            && firstPrevRowValue == null) {
-          Manager.log.debug("prevRow entry for lowest tablet is {}", value);
-          firstPrevRowValue = new Value(value);
+        } else if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+          // Handle the first tablet in the range
+          if (firstPrevRowValue == null) {
+            // This is the first PREV_ROW_COLUMN we are seeing, therefore this should be the first
+            // tablet and previousKeyExtent should be null
+            Preconditions.checkState(previousKeyExtent == null,
+                "previousKeyExtent was unexpectedly set when scanning metadata table %s %s %s",
+                previousKeyExtent, keyExtent, value);
+            Manager.log.debug("prevRow entry for lowest tablet is {}", value);
+            firstPrevRowValue = value;
+            // Handle other tablets, besides the first tablet. This will process every tablet in the
+            // merge range except for the last tablet as that tablet is not part of the scan range.
+          } else {
+            // This is not the first PREV_ROW_COLUMN we are seeing, therefore previousKeyExtent
+            // should never be null as this is at least the second tablet we are iterating over
+            // Because this loop does not process the last tablet in the range, this check should
+            // always be true because if the merge already happened we would not reach this point.
+            validateLinkedList(previousKeyExtent, value, keyExtent);
+          }
         } else if (ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           maxLogicalTime =
               TabletTime.maxMetadataTime(maxLogicalTime, MetadataTime.parse(value.toString()));
@@ -963,14 +1013,18 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           bw.addMutation(manager.getContext().getAmple().createDeleteMutation(allVolumesDir));
         }
 
-        lastExtent = keyExtent;
+        prevColumnExtent = keyExtent;
       }
+
+      // Used to capture the prev row value of the last tablet in the merge range
+      Value lastTabletPrevRowValue = null;
 
       // read the logical time from the last tablet in the merge range, it is not included in
       // the loop above
       scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(new Range(stopRow));
       ServerColumnFamily.TIME_COLUMN.fetch(scanner);
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
       Set<String> extCompIds = new HashSet<>();
       for (Entry<Key,Value> entry : scanner) {
@@ -979,6 +1033,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               MetadataTime.parse(entry.getValue().toString()));
         } else if (ExternalCompactionColumnFamily.NAME.equals(entry.getKey().getColumnFamily())) {
           extCompIds.add(entry.getKey().getColumnQualifierData().toString());
+        } else if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+          lastTabletPrevRowValue = entry.getValue();
         }
       }
 
@@ -998,6 +1054,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       // if the tablets were fenced
       Preconditions.checkState(firstPrevRowValue != null,
           "Previous row entry for lowest tablet was not found.");
+
+      // lastTabletPrevRowValue should also never be null as it should always
+      // be read from the last tablet and we already verified we did not
+      // already complete the merge by checking the merged marker earlier
+      validateLinkedList(prevColumnExtent, lastTabletPrevRowValue, stop);
+
       stop = new KeyExtent(stop.tableId(), stop.endRow(),
           TabletColumnFamily.decodePrevEndRow(firstPrevRowValue));
       TabletColumnFamily.PREV_ROW_COLUMN.put(m,
@@ -1010,6 +1072,21 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     } catch (Exception ex) {
       throw new AccumuloException(ex);
     }
+  }
+
+  // Need to ensure the tablets being merged form a proper linked list by verifying the previous
+  // extent end row matches the prev end row value in the next tablet in the range
+  private static void validateLinkedList(KeyExtent previousExtent, Value prevEndRow,
+      KeyExtent currentTablet) {
+    Preconditions.checkState(previousExtent != null && prevEndRow != null,
+        "previousExtent or prevEndRow was unexpectedly not set when scanning metadata table %s %s %s",
+        previousExtent, prevEndRow, currentTablet);
+
+    boolean pointsToPrevious =
+        Objects.equals(previousExtent.endRow(), TabletColumnFamily.decodePrevEndRow(prevEndRow));
+    Preconditions.checkState(pointsToPrevious,
+        "unexpectedly saw a hole in the metadata table %s %s %s", previousExtent, prevEndRow,
+        currentTablet);
   }
 
   private void deleteMergedTablets(MergeInfo info) throws AccumuloException {
@@ -1444,13 +1521,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
     tLists.assignments.addAll(tLists.assigned);
     for (Assignment a : tLists.assignments) {
-      TServerConnection client = manager.tserverSet.getConnection(a.server);
-      if (client != null) {
-        client.assignTablet(manager.managerLock, a.tablet);
-      } else {
-        Manager.log.warn("Could not connect to server {}", a.server);
+      try {
+        TServerConnection client = manager.tserverSet.getConnection(a.server);
+        if (client != null) {
+          client.assignTablet(manager.managerLock, a.tablet);
+          manager.assignedTablet(a.tablet);
+        } else {
+          Manager.log.warn("Could not connect to server {} for assignment of {}", a.server,
+              a.tablet);
+        }
+      } catch (TException tException) {
+        Manager.log.warn("Could not connect to server {} for assignment of {}", a.server, a.tablet,
+            tException);
       }
-      manager.assignedTablet(a.tablet);
     }
   }
 

@@ -21,12 +21,12 @@ package org.apache.accumulo.server.manager.state;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.net.HostAndPort;
@@ -86,7 +86,7 @@ class LoggingTabletStateStore implements TabletStateStore {
 
   @Override
   public void suspend(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     wrapped.suspend(tablets, logsForDeadServers, suspensionTimestamp);
 
@@ -100,8 +100,7 @@ class LoggingTabletStateStore implements TabletStateStore {
       if (location != null) {
         server = location.getHostAndPort();
       }
-      TabletLogger.suspended(tls.extent, server, suspensionTimestamp, TimeUnit.MILLISECONDS,
-          logsForDeadServers.size());
+      TabletLogger.suspended(tls.extent, server, suspensionTimestamp, logsForDeadServers.size());
     }
   }
 

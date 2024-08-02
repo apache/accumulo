@@ -622,10 +622,10 @@ public class AuditedSecurityOperation extends SecurityOperation {
 
   @Override
   public void grantTablePermission(TCredentials credentials, String user, TableId tableId,
-      TablePermission permission, NamespaceId namespaceId) throws ThriftSecurityException {
-    String tableName = getTableName(tableId);
+      String tableName, TablePermission permission, NamespaceId namespaceId)
+      throws ThriftSecurityException, TableNotFoundException {
     try {
-      super.grantTablePermission(credentials, user, tableId, permission, namespaceId);
+      super.grantTablePermission(credentials, user, tableId, tableName, permission, namespaceId);
       audit(credentials, GRANT_TABLE_PERMISSION_AUDIT_TEMPLATE, permission, tableName, user);
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, GRANT_TABLE_PERMISSION_AUDIT_TEMPLATE, permission, tableName, user);
@@ -750,4 +750,5 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw e;
     }
   }
+
 }

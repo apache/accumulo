@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.compactions;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -173,7 +174,9 @@ public class InternalCompactionExecutor implements CompactionExecutor {
 
     queue = new PriorityBlockingQueue<>(100, comparator);
 
-    threadPool = ThreadPools.getServerThreadPools().getPoolBuilder("compaction." + ceid)
+    threadPool = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(
+            ACCUMULO_POOL_PREFIX.poolName + ".compaction.service.internal.compaction." + ceid)
         .numCoreThreads(threads).numMaxThreads(threads).withTimeOut(60L, SECONDS).withQueue(queue)
         .build();
     metricCloser =
@@ -204,7 +207,8 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   }
 
   public void setThreads(int numThreads) {
-    ThreadPools.resizePool(threadPool, () -> numThreads, "compaction." + ceid);
+    ThreadPools.resizePool(threadPool, () -> numThreads,
+        ACCUMULO_POOL_PREFIX.poolName + "accumulo.pool.compaction." + ceid);
   }
 
   @Override

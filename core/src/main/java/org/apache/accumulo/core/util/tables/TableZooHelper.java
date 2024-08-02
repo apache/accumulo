@@ -30,11 +30,13 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -58,6 +60,11 @@ public class TableZooHelper implements AutoCloseable {
    *         getCause() of NamespaceNotFoundException
    */
   public TableId getTableId(String tableName) throws TableNotFoundException {
+    for (AccumuloTable systemTable : AccumuloTable.values()) {
+      if (systemTable.tableName().equals(tableName)) {
+        return systemTable.tableId();
+      }
+    }
     try {
       return _getTableIdDetectNamespaceNotFound(EXISTING_TABLE_NAME.validate(tableName));
     } catch (NamespaceNotFoundException e) {
@@ -89,6 +96,11 @@ public class TableZooHelper implements AutoCloseable {
   }
 
   public String getTableName(TableId tableId) throws TableNotFoundException {
+    for (AccumuloTable systemTable : AccumuloTable.values()) {
+      if (systemTable.tableId().equals(tableId)) {
+        return systemTable.tableName();
+      }
+    }
     String tableName = getTableMap().getIdtoNameMap().get(tableId);
     if (tableName == null) {
       throw new TableNotFoundException(tableId.canonical(), null, null);
@@ -180,6 +192,11 @@ public class TableZooHelper implements AutoCloseable {
   public NamespaceId getNamespaceId(TableId tableId) throws TableNotFoundException {
     checkArgument(context != null, "instance is null");
     checkArgument(tableId != null, "tableId is null");
+
+    if (AccumuloTable.allTableIds().contains(tableId)) {
+      return Namespace.ACCUMULO.id();
+    }
+
     ZooCache zc = context.getZooCache();
     byte[] n = zc.get(context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId
         + Constants.ZTABLE_NAMESPACE);

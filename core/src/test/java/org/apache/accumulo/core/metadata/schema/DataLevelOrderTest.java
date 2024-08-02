@@ -16,32 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.core.metadata.schema;
 
-import org.apache.accumulo.core.data.ArrayByteSequence;
-import org.apache.accumulo.core.data.ByteSequence;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class MutableByteSequence extends ArrayByteSequence {
-  private static final long serialVersionUID = 1L;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.junit.jupiter.api.Test;
 
-  public MutableByteSequence(byte[] data, int offset, int length) {
-    super(data, offset, length);
+public class DataLevelOrderTest {
+
+  @Test
+  public void testDataLevelOrder() {
+    // Code may depend on the order of the values returned
+    // for DataLevel. This test checks that the order does
+    // not change in future versions.
+    DataLevel[] levels = DataLevel.values();
+    assertEquals(3, levels.length);
+    assertEquals(DataLevel.ROOT, levels[0]);
+    assertEquals(DataLevel.METADATA, levels[1]);
+    assertEquals(DataLevel.USER, levels[2]);
   }
 
-  public MutableByteSequence(ByteSequence bs) {
-    super(new byte[Math.max(64, bs.length())]);
-    System.arraycopy(bs.getBackingArray(), bs.offset(), data, 0, bs.length());
-    this.length = bs.length();
-    this.offset = 0;
-  }
-
-  public void setArray(byte[] data, int offset, int len) {
-    this.data = data;
-    this.offset = offset;
-    this.length = len;
-  }
-
-  public void setLength(int len) {
-    this.length = len;
-  }
 }

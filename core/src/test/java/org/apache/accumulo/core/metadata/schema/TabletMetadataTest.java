@@ -29,6 +29,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
@@ -40,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Constructor;
+import java.util.AbstractMap;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -48,6 +50,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -78,6 +81,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -128,7 +132,7 @@ public class TabletMetadataTest {
     MERGED_COLUMN.put(mutation, new Value());
 
     OLD_PREV_ROW_COLUMN.put(mutation, TabletColumnFamily.encodePrevEndRow(new Text("oldPrev")));
-    long suspensionTime = System.currentTimeMillis();
+    SteadyTime suspensionTime = SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
     TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
     Value suspend = SuspendingTServer.toValue(ser1, suspensionTime);
     SUSPEND_COLUMN.put(mutation, suspend);
@@ -158,7 +162,9 @@ public class TabletMetadataTest {
     assertEquals(Set.of(tf1, tf2), Set.copyOf(tm.getFiles()));
     assertEquals(Map.of(tf1, dfv1, tf2, dfv2), tm.getFilesMap());
     assertEquals(6L, tm.getFlushId().getAsLong());
-    assertEquals(rowMap, tm.getKeyValues());
+    TreeMap<Key,Value> actualRowMap = new TreeMap<>();
+    tm.getKeyValues().forEach(entry -> actualRowMap.put(entry.getKey(), entry.getValue()));
+    assertEquals(rowMap, actualRowMap);
     assertEquals(Map.of(new StoredTabletFile(bf1), 56L, new StoredTabletFile(bf2), 59L),
         tm.getLoaded());
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
@@ -289,13 +295,14 @@ public class TabletMetadataTest {
     // test SUSPENDED
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
     mutation.at().family(SUSPEND_COLUMN.getColumnFamily())
-        .qualifier(SUSPEND_COLUMN.getColumnQualifier()).put(SuspendingTServer.toValue(ser2, 1000L));
+        .qualifier(SUSPEND_COLUMN.getColumnQualifier())
+        .put(SuspendingTServer.toValue(ser2, SteadyTime.from(1000L, TimeUnit.MILLISECONDS)));
     rowMap = toRowMap(mutation);
 
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
 
     assertEquals(TabletState.SUSPENDED, tm.getTabletState(tservers));
-    assertEquals(1000L, tm.getSuspend().suspensionTime);
+    assertEquals(1000L, tm.getSuspend().suspensionTime.getMillis());
     assertEquals(ser2.getHostAndPort(), tm.getSuspend().server);
     assertNull(tm.getLocation());
     assertFalse(tm.hasCurrent());
@@ -385,7 +392,7 @@ public class TabletMetadataTest {
     b.log(LogEntry.fromPath("localhost+8020/" + UUID.randomUUID()));
     b.scan(stf);
     b.loadedFile(stf, 0L);
-    b.keyValue(new Key(), new Value());
+    b.keyValue(new AbstractMap.SimpleImmutableEntry<>(new Key(), new Value()));
     var tm2 = b.build(EnumSet.allOf(ColumnType.class));
 
     assertEquals(1, tm2.getExternalCompactions().size());
@@ -404,9 +411,34 @@ public class TabletMetadataTest {
     assertEquals(1, tm2.getLoaded().size());
     assertThrows(UnsupportedOperationException.class, () -> tm2.getLoaded().put(stf, 0L));
     assertEquals(1, tm2.getKeyValues().size());
-    assertThrows(UnsupportedOperationException.class,
-        () -> tm2.getKeyValues().put(new Key(), new Value()));
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getKeyValues().remove(null));
 
+  }
+
+  @Test
+  public void testAbsentPrevRow() {
+    // If the prev row is fetched, then it is expected to be seen. Ensure that if it was not seen
+    // that TabletMetadata fails when attempting to use it. Want to ensure null is not returned for
+    // this case.
+    Mutation mutation =
+        new Mutation(MetadataSchema.TabletsSection.encodeRow(TableId.of("5"), new Text("df")));
+    DIRECTORY_COLUMN.put(mutation, new Value("d1"));
+    SortedMap<Key,Value> rowMap = toRowMap(mutation);
+
+    var tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
+        EnumSet.allOf(ColumnType.class), false);
+
+    var msg = assertThrows(IllegalStateException.class, tm::getExtent).getMessage();
+    assertTrue(msg.contains("No prev endrow seen"));
+    msg = assertThrows(IllegalStateException.class, tm::getPrevEndRow).getMessage();
+    assertTrue(msg.contains("No prev endrow seen"));
+
+    // should see a slightly different error message when the prev row is not fetched
+    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.of(DIR), false);
+    msg = assertThrows(IllegalStateException.class, tm::getExtent).getMessage();
+    assertTrue(msg.contains("PREV_ROW was not fetched"));
+    msg = assertThrows(IllegalStateException.class, tm::getPrevEndRow).getMessage();
+    assertTrue(msg.contains("PREV_ROW was not fetched"));
   }
 
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {

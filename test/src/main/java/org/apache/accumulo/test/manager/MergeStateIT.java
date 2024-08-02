@@ -154,7 +154,9 @@ public class MergeStateIT extends ConfigurableMacBase {
           count++;
         }
       }
-      assertEquals(0, count); // the normal case is to skip tablets in a good state
+
+      // There should be 1 because of the Scan Ref table
+      assertEquals(1, count); // the normal case is to skip tablets in a good state
 
       // Create the hole
       // Split the tablet at one end of the range

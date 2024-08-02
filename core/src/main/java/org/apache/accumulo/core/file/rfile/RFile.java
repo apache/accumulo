@@ -52,6 +52,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.NoSuchMetaStoreException;
@@ -77,7 +78,6 @@ import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.Local
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -392,10 +392,10 @@ public class RFile {
     private List<SampleEntry> entries = new ArrayList<>();
     private long dataSize = 0;
 
-    private LocalityGroupWriter lgr;
+    private LocalityGroupWriter lgw;
 
-    public SampleLocalityGroupWriter(LocalityGroupWriter lgr, Sampler sampler) {
-      this.lgr = lgr;
+    public SampleLocalityGroupWriter(LocalityGroupWriter lgw, Sampler sampler) {
+      this.lgw = lgw;
       this.sampler = sampler;
     }
 
@@ -408,10 +408,10 @@ public class RFile {
 
     public void close() throws IOException {
       for (SampleEntry se : entries) {
-        lgr.append(se.key, se.val);
+        lgw.append(se.key, se.val);
       }
 
-      lgr.close();
+      lgw.close();
     }
 
     public void flushIfNeeded() throws IOException {
@@ -422,10 +422,10 @@ public class RFile {
 
         if (!subList.isEmpty()) {
           for (SampleEntry se : subList) {
-            lgr.append(se.key, se.val);
+            lgw.append(se.key, se.val);
           }
 
-          lgr.closeBlock(subList.get(subList.size() - 1).key, false);
+          lgw.closeBlock(subList.get(subList.size() - 1).key, false);
 
           subList.clear();
           dataSize = 0;
@@ -992,7 +992,7 @@ public class RFile {
           // causing the build of an index... doing this could slow down some use cases and
           // and speed up others.
 
-          MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
+          final var valbs = new ArrayByteSequence(new byte[64], 0, 0);
           SkippR skippr =
               RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey(), entriesLeft);
           if (skippr.skipped > 0) {
@@ -1054,7 +1054,7 @@ public class RFile {
             hasTop = true;
           }
 
-          MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
+          final var valbs = new ArrayByteSequence(new byte[64], 0, 0);
 
           Key currKey = null;
 
@@ -1071,7 +1071,7 @@ public class RFile {
                 val = new Value();
 
                 val.readFields(currBlock);
-                valbs = new MutableByteSequence(val.get(), 0, val.getSize());
+                valbs.reset(val.get(), 0, val.getSize());
 
                 // just consumed one key from the input stream, so subtract one from entries left
                 entriesLeft = bie.getEntriesLeft() - 1;
@@ -1163,6 +1163,11 @@ public class RFile {
 
     @Override
     public void setCacheProvider(CacheProvider cacheProvider) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
       throw new UnsupportedOperationException();
     }
   }
@@ -1566,6 +1571,36 @@ public class RFile {
     }
 
     @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
+      long totalEntries = 0;
+      Key startKey = extent.toDataRange().getStartKey();
+      IndexEntry indexEntry;
+
+      for (LocalityGroupReader lgr : currentReaders) {
+        boolean prevEntryOverlapped = false;
+        var indexIter = startKey == null ? lgr.getIndex() : lgr.index.lookup(startKey);
+
+        while (indexIter.hasNext()) {
+          indexEntry = indexIter.next();
+          if (extent.contains(indexEntry.getKey().getRow())) {
+            totalEntries += indexEntry.getNumEntries();
+            prevEntryOverlapped = true;
+          } else if (prevEntryOverlapped) {
+            // The last index entry included in the count is the one after the last contained by the
+            // extent. This is because it is possible for the extent to overlap this index entry
+            // but there is no way to check whether it does or not. The index entry only contains
+            // info about the last key, but the extent may overlap but not with the last key.
+            totalEntries += indexEntry.getNumEntries();
+            prevEntryOverlapped = false;
+            break;
+          }
+        }
+      }
+
+      return totalEntries;
+    }
+
+    @Override
     public void reset() {
       clear();
     }
@@ -1716,6 +1751,11 @@ public class RFile {
     }
 
     @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
       throw new UnsupportedOperationException();
     }
@@ -1764,6 +1804,15 @@ public class RFile {
     @Override
     public FileSKVIterator getIndex() throws IOException {
       return new FencedIndex(reader.getIndex(), fence);
+    }
+
+    @Override
+    public long estimateOverlappingEntries(KeyExtent c) throws IOException {
+      KeyExtent overlapping = c.clip(fence, true);
+      if (overlapping == null) {
+        return 0;
+      }
+      return reader.estimateOverlappingEntries(overlapping);
     }
 
     @Override

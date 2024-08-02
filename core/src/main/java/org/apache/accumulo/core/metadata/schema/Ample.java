@@ -20,7 +20,6 @@ package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Mutation;
@@ -31,12 +30,13 @@ import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
+import org.apache.accumulo.core.metadata.ScanServerRefStore;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -299,7 +299,7 @@ public interface Ample {
 
     TabletMutator deleteBulkFile(StoredTabletFile bulkref);
 
-    TabletMutator putSuspension(TServerInstance tserver, long suspensionTime);
+    TabletMutator putSuspension(TServerInstance tserver, SteadyTime suspensionTime);
 
     TabletMutator deleteSuspension();
 
@@ -324,43 +324,6 @@ public interface Ample {
   }
 
   /**
-   * Insert ScanServer references to Tablet files
-   *
-   * @param scanRefs set of scan server ref table file objects
-   */
-  default void putScanServerFileReferences(Collection<ScanServerRefTabletFile> scanRefs) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Get ScanServer references to Tablet files
-   *
-   * @return stream of scan server references
-   */
-  default Stream<ScanServerRefTabletFile> getScanServerFileReferences() {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Delete the set of scan server references
-   *
-   * @param refsToDelete set of scan server references to delete
-   */
-  default void deleteScanServerFileReferences(Collection<ScanServerRefTabletFile> refsToDelete) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Delete scan server references for this server
-   *
-   * @param serverAddress address of server, cannot be null
-   * @param serverSessionId server session id, cannot be null
-   */
-  default void deleteScanServerFileReferences(String serverAddress, UUID serverSessionId) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
    * Create a Bulk Load In Progress flag in the metadata table
    *
    * @param path The bulk directory filepath
@@ -376,6 +339,10 @@ public interface Ample {
    * @param path The bulk directory filepath
    */
   default void removeBulkLoadInProgressFlag(String path) {
+    throw new UnsupportedOperationException();
+  }
+
+  default ScanServerRefStore scanServerRefs() {
     throw new UnsupportedOperationException();
   }
 

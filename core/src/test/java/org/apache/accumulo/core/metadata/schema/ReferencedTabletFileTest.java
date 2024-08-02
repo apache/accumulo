@@ -132,24 +132,34 @@ public class ReferencedTabletFileTest {
     assertThrows(IllegalArgumentException.class, () -> new ReferencedTabletFile(testPath, r2));
 
     // range where the key looks like a row, but the start key inclusivity is not whats expected
-    Range r3 = new Range(new Key("r1"), false, new Key("r2"), false);
+    Range r3 = new Range(new Key("r1").followingKey(PartialKey.ROW), false, new Key("r2"), false);
     assertThrows(IllegalArgumentException.class, () -> new ReferencedTabletFile(testPath, r3));
 
     // range where the key looks like a row, but the end key inclusivity is not whats expected
-    Range r4 = new Range(new Key("r1"), true, new Key("r2"), true);
+    Range r4 = new Range(new Key("r1").followingKey(PartialKey.ROW), true, new Key("r2"), true);
     assertThrows(IllegalArgumentException.class, () -> new ReferencedTabletFile(testPath, r4));
 
     // range where end key does not end with correct byte and is marked exclusive false
-    Range r5 = new Range(new Key("r1"), true, new Key("r2"), false);
+    Range r5 = new Range(new Key("r1").followingKey(PartialKey.ROW), true, new Key("r2"), false);
     assertThrows(IllegalArgumentException.class, () -> new ReferencedTabletFile(testPath, r5));
 
     // This is valid as the end key is exclusive and ends in 0x00
-    Range r6 = new Range(new Key("r1"), true, new Key("r2").followingKey(PartialKey.ROW), false);
+    Range r6 = new Range(new Key("r1").followingKey(PartialKey.ROW), true,
+        new Key("r2").followingKey(PartialKey.ROW), false);
     assertTrue(new ReferencedTabletFile(testPath, r6).hasRange());
 
-    // This is valid as the end key will be converted to exclusive and 0x00 should be appended
-    Range r7 = new Range(new Text("r1"), true, new Text("r2"), true);
+    // This is valid as the start key will be converted to inclusive and 0x00 should be appended
+    // and the end key will be converted to exclusive and 0x00 should also be appended
+    Range r7 = new Range(new Text("r1"), false, new Text("r2"), true);
     assertTrue(new ReferencedTabletFile(testPath, r7).hasRange());
+
+    // This is invalid as the start key is exclusive
+    Range r8 = new Range(new Key("r1"), false, new Key("r2").followingKey(PartialKey.ROW), false);
+    assertThrows(IllegalArgumentException.class, () -> new ReferencedTabletFile(testPath, r8));
+
+    // This is invalid as the start key is missing the 0x00 byte
+    Range r9 = new Range(new Key("r1"), true, new Key("r2").followingKey(PartialKey.ROW), false);
+    assertThrows(IllegalArgumentException.class, () -> new ReferencedTabletFile(testPath, r9));
   }
 
 }

@@ -473,13 +473,13 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       // Split file in table1 into two files each fenced off by 100 rows for a total of 200
       splitFilesIntoRanges(getCluster().getServerContext(), table1,
-          Set.of(new Range(new Text(row(100)), new Text(row(199))),
-              new Range(new Text(row(300)), new Text(row(399)))));
+          Set.of(new Range(new Text(row(99)), false, new Text(row(199)), true),
+              new Range(new Text(row(299)), false, new Text(row(399)), true)));
       assertEquals(2, countFencedFiles(getCluster().getServerContext(), table1));
 
       // Fence file in table2 to 600 rows
       splitFilesIntoRanges(getCluster().getServerContext(), table2,
-          Set.of(new Range(new Text(row(200)), new Text(row(799)))));
+          Set.of(new Range(new Text(row(199)), false, new Text(row(799)), true)));
       assertEquals(1, countFencedFiles(getCluster().getServerContext(), table2));
 
       // Verify that a subset of the data is now seen after fencing

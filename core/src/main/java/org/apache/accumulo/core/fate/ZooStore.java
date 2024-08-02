@@ -39,7 +39,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -273,10 +272,9 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   @Override
-  public void unreserve(long tid, long deferTime, TimeUnit deferTimeUnit) {
-    Duration deferDuration = Duration.of(deferTime, deferTimeUnit.toChronoUnit());
+  public void unreserve(long tid, Duration deferTime) {
 
-    if (deferDuration.compareTo(Duration.ZERO) < 0) {
+    if (deferTime.isNegative()) {
       throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
     }
 
@@ -286,8 +284,8 @@ public class ZooStore<T> implements TStore<T> {
             "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
       }
 
-      if (deferTime > 0) {
-        deferred.put(tid, NanoTime.nowPlus(deferDuration));
+      if (deferTime.compareTo(Duration.ZERO) > 0) {
+        deferred.put(tid, NanoTime.nowPlus(deferTime));
       }
 
       this.notifyAll();

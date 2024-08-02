@@ -22,12 +22,16 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
 import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_ENCODING;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -35,8 +39,10 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -47,6 +53,9 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.init.FileSystemInitializer;
+import org.apache.accumulo.server.init.InitialConfiguration;
+import org.apache.accumulo.server.init.ZooKeeperInitializer;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -65,17 +74,27 @@ public class Upgrader11to12 implements Upgrader {
   @SuppressWarnings("deprecation")
   private static final Text CHOPPED = ChoppedColumnFamily.NAME;
 
+  public static final Collection<Range> OLD_SCAN_SERVERS_RANGES =
+      List.of(new Range("~sserv", "~sserx"), new Range("~scanref", "~scanreg"));
+
   @VisibleForTesting
   static final Set<Text> UPGRADE_FAMILIES =
       Set.of(DataFileColumnFamily.NAME, CHOPPED, ExternalCompactionColumnFamily.NAME);
 
+  public static final String ZTRACERS = "/tracers";
+
   @Override
   public void upgradeZookeeper(@NonNull ServerContext context) {
     log.debug("Upgrade ZooKeeper: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
-    var rootBase = ZooUtil.getRoot(context.getInstanceID()) + ZROOT_TABLET;
+    var zooRoot = ZooUtil.getRoot(context.getInstanceID());
+    var rootBase = zooRoot + ZROOT_TABLET;
 
     try {
       var zrw = context.getZooReaderWriter();
+
+      // clean up nodes no longer in use
+      zrw.recursiveDelete(zooRoot + ZTRACERS, ZooUtil.NodeMissingPolicy.SKIP);
+
       Stat stat = new Stat();
       byte[] rootData = zrw.getData(rootBase, stat);
 
@@ -124,6 +143,8 @@ public class Upgrader11to12 implements Upgrader {
     log.debug("Upgrade metadata: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var metaName = Ample.DataLevel.USER.metaTable();
     upgradeTabletsMetadata(context, metaName);
+    removeScanServerRange(context, metaName);
+    createScanServerRefTable(context);
   }
 
   private void upgradeTabletsMetadata(@NonNull ServerContext context, String metaName) {
@@ -209,4 +230,36 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
+  public void removeScanServerRange(ServerContext context, String tableName) {
+    log.info("Removing Scan Server Range from table {}", tableName);
+    try (BatchDeleter batchDeleter =
+        context.createBatchDeleter(tableName, Authorizations.EMPTY, 4)) {
+      batchDeleter.setRanges(OLD_SCAN_SERVERS_RANGES);
+      batchDeleter.delete();
+    } catch (TableNotFoundException | MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
+    log.info("Scan Server Ranges {} removed from table {}", OLD_SCAN_SERVERS_RANGES, tableName);
+  }
+
+  public void createScanServerRefTable(ServerContext context) {
+    ZooKeeperInitializer zkInit = new ZooKeeperInitializer();
+    zkInit.initScanRefTableState(context);
+
+    try {
+      FileSystemInitializer initializer = new FileSystemInitializer(
+          new InitialConfiguration(context.getHadoopConf(), context.getSiteConfiguration()));
+      FileSystemInitializer.InitialTablet scanRefTablet = initializer.createScanRefTablet(context);
+      // Add references to the Metadata Table
+      try (BatchWriter writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+        writer.addMutation(scanRefTablet.createMutation());
+      } catch (MutationsRejectedException | TableNotFoundException e) {
+        log.error("Failed to write tablet refs to metadata table");
+        throw new RuntimeException(e);
+      }
+    } catch (IOException e) {
+      log.error("Problem attempting to create ScanServerRef table", e);
+    }
+    log.info("Created ScanServerRef table");
+  }
 }
