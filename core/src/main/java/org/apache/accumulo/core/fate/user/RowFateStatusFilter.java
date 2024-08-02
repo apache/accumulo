@@ -59,8 +59,7 @@ public class RowFateStatusFilter extends WholeRowIterator {
   protected boolean filter(Text currentRow, List<Key> keys, List<Value> values) {
     for (int i = 0; i < keys.size(); i++) {
       Key key = keys.get(i);
-      if (key.getColumnQualifier()
-          .equals(FateSchema.TxColumnFamily.STATUS_COLUMN.getColumnQualifier())
+      if (FateSchema.TxColumnFamily.STATUS_COLUMN.hasColumns(key)
           && valuesToAccept.contains(ReadOnlyFateStore.TStatus.valueOf(values.get(i).toString()))) {
         return true;
       }
