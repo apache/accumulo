@@ -453,11 +453,12 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
   protected void testAbsent(FateStore<TestEnv> store, ServerContext sctx) {
     // Ensure both store implementations have consistent behavior when reading a fateId that does
-    // not exists.
+    // not exist.
 
     var fateId = FateId.from(store.type(), UUID.randomUUID());
     var txStore = store.read(fateId);
 
+    assertTrue(store.tryReserve(fateId).isEmpty());
     assertEquals(TStatus.UNKNOWN, txStore.getStatus());
     assertNull(txStore.top());
     assertNull(txStore.getTransactionInfo(TxInfo.TX_NAME));
