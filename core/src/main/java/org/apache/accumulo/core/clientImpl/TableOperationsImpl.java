@@ -140,10 +140,10 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.MapCounter;
-import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -177,19 +177,18 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public SortedSet<String> list() {
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Fetching list of tables...", Thread.currentThread().getId());
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
     TreeSet<String> tableNames = new TreeSet<>(context.getTableNameToIdMap().keySet());
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Fetched {} table names in {}", Thread.currentThread().getId(),
-          tableNames.size(), String.format("%.3f secs", timer.scale(SECONDS)));
+          tableNames.size(), String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return tableNames;
@@ -203,19 +202,18 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return true;
     }
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Checking if table {} exists...", Thread.currentThread().getId(), tableName);
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
     boolean exists = context.getTableNameToIdMap().containsKey(tableName);
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
-          String.format("%.3f secs", timer.scale(SECONDS)));
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return exists;
@@ -570,12 +568,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
               ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
           try {
 
-            OpTimer timer = null;
+            Timer timer = null;
 
             if (log.isTraceEnabled()) {
               log.trace("tid={} Splitting tablet {} on {} at {}", Thread.currentThread().getId(),
                   tl.tablet_extent, address, split);
-              timer = new OpTimer().start();
+              timer = Timer.startNew();
             }
 
             client.splitTablet(TraceUtil.traceInfo(), context.rpcCreds(),
@@ -585,8 +583,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
             tabLocator.invalidateCache(tl.tablet_extent);
 
             if (timer != null) {
-              timer.stop();
-              log.trace("Split tablet in {}", String.format("%.3f secs", timer.scale(SECONDS)));
+              log.trace("Split tablet in {}",
+                  String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
             }
 
           } finally {

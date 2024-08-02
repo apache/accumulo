@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -58,8 +58,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,13 +84,13 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
     try {
 
-      OpTimer timer = null;
+      Timer timer = null;
 
       if (log.isTraceEnabled()) {
         log.trace("tid={} Looking up in {} row={} extent={} tserver={}",
             Thread.currentThread().getId(), src.tablet_extent.tableId(), TextUtil.truncate(row),
             src.tablet_extent, src.tablet_location);
-        timer = new OpTimer().start();
+        timer = Timer.startNew();
       }
 
       Range range = new Range(row, true, stopRow, true);
@@ -123,9 +123,9 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       }
 
       if (timer != null) {
-        timer.stop();
         log.trace("tid={} Got {} results from {} in {}", Thread.currentThread().getId(),
-            results.size(), src.tablet_extent, String.format("%.3f secs", timer.scale(SECONDS)));
+            results.size(), src.tablet_extent,
+            String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
       }
 
       // if (log.isTraceEnabled()) log.trace("results "+results);
