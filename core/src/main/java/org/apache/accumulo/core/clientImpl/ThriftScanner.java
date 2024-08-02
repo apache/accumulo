@@ -738,8 +738,8 @@ public class ThriftScanner {
         if (timer != null) {
           log.trace("tid={} Finished scan in {} #results={} scanid={}",
               Thread.currentThread().getId(),
-              String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0), sr.results.size(),
-              scanState.scanID);
+              String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0),
+              sr.results.size(), scanState.scanID);
         }
       } else {
         // log.debug("No more : tab end row = "+loc.tablet_extent.getEndRow()+" range =
@@ -750,7 +750,8 @@ public class ThriftScanner {
           if (timer != null) {
             log.trace("tid={} Completely finished scan in {} #results={}",
                 Thread.currentThread().getId(),
-                String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0), sr.results.size());
+                String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0),
+                sr.results.size());
           }
 
         } else if (scanState.range.getEndKey() == null || !scanState.range
@@ -761,14 +762,16 @@ public class ThriftScanner {
           if (timer != null) {
             log.trace("tid={} Finished scanning tablet in {} #results={}",
                 Thread.currentThread().getId(),
-                String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0), sr.results.size());
+                String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0),
+                sr.results.size());
           }
         } else {
           scanState.finished = true;
           if (timer != null) {
             log.trace("tid={} Completely finished in {} #results={}",
                 Thread.currentThread().getId(),
-                String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0), sr.results.size());
+                String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0),
+                sr.results.size());
           }
         }
       }

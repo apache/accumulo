@@ -87,7 +87,7 @@ public class TimerTest {
     final int sleepMillis = 50;
     Thread.sleep(sleepMillis);
 
-    long elapsedMillis = timer.elapsed().toMillis();
+    long elapsedMillis = timer.elapsed(TimeUnit.MILLISECONDS);
     assertEquals(sleepMillis, elapsedMillis, 5, "Elapsed time in milliseconds is not accurate.");
   }
 

@@ -29,6 +29,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -123,7 +124,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       if (timer != null) {
         log.trace("tid={} Got {} results from {} in {}", Thread.currentThread().getId(),
             results.size(), src.tablet_extent,
-            String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0));
+            String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0));
       }
 
       // if (log.isTraceEnabled()) log.trace("results "+results);

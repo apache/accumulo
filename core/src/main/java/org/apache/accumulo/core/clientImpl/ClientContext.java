@@ -44,6 +44,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -491,7 +492,7 @@ public class ClientContext implements AccumuloClient {
 
     if (timer != null) {
       log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
-          String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0));
+          String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0));
     }
 
     if (loc == null || loc.getType() != LocationType.CURRENT) {
@@ -528,7 +529,7 @@ public class ClientContext implements AccumuloClient {
     if (timer != null) {
       log.trace("tid={} Found manager at {} in {}", Thread.currentThread().getId(),
           (loc == null ? "null" : new String(loc, UTF_8)),
-          String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0));
+          String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0));
     }
 
     if (loc == null) {

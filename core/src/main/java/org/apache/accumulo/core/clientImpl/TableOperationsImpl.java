@@ -59,6 +59,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -188,7 +189,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     if (timer != null) {
       log.trace("tid={} Fetched {} table names in {}", Thread.currentThread().getId(),
-          tableNames.size(), String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0));
+          tableNames.size(),
+          String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0));
     }
 
     return tableNames;
@@ -213,7 +215,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     if (timer != null) {
       log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
-          String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0));
+          String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0));
     }
 
     return exists;
@@ -584,7 +586,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
             if (timer != null) {
               log.trace("Split tablet in {}",
-                  String.format("%.3f secs", timer.elapsed().toMillis() / 1000.0));
+                  String.format("%.3f secs", timer.elapsed(TimeUnit.MILLISECONDS) / 1000.0));
             }
 
           } finally {
