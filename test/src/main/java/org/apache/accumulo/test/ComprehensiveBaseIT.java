@@ -116,7 +116,7 @@ import com.google.common.collect.Sets;
 public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
 
   public static final String DOG_AND_CAT = "DOG&CAT";
-  static final Authorizations AUTHORIZATIONS = new Authorizations("CAT", "DOG");
+  public static final Authorizations AUTHORIZATIONS = new Authorizations("CAT", "DOG");
 
   private static final Logger log = LoggerFactory.getLogger(ComprehensiveIT.class);
 
@@ -1164,7 +1164,7 @@ public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
     }
   }
 
-  private SortedMap<Key,Value> scan(AccumuloClient client, String table, Authorizations auths)
+  public static SortedMap<Key,Value> scan(AccumuloClient client, String table, Authorizations auths)
       throws TableNotFoundException {
     try (var scanner = client.createScanner(table, auths)) {
       return scan(scanner);
@@ -1205,7 +1205,7 @@ public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
     }
   }
 
-  static class TestRecord {
+  public static class TestRecord {
     final int row;
     final int fam;
     final int qual;
@@ -1237,16 +1237,24 @@ public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
     return String.format("%09d", v);
   }
 
-  static SortedMap<Key,Value> generateKeys(int minRow, int maxRow) {
+  public static SortedSet<Text> createSplits(int minRow, int maxRow, int step) {
+    TreeSet<Text> splits = new TreeSet<>();
+    for (int r = minRow + step; r < maxRow; r += step) {
+      splits.add(new Text(row(r)));
+    }
+    return splits;
+  }
+
+  public static SortedMap<Key,Value> generateKeys(int minRow, int maxRow) {
     return generateKeys(minRow, maxRow, tr -> true);
   }
 
-  static SortedMap<Key,Value> generateKeys(int minRow, int maxRow,
+  public static SortedMap<Key,Value> generateKeys(int minRow, int maxRow,
       Predicate<TestRecord> predicate) {
     return generateKeys(minRow, maxRow, 0, predicate);
   }
 
-  static SortedMap<Key,Value> generateKeys(int minRow, int maxRow, int salt,
+  public static SortedMap<Key,Value> generateKeys(int minRow, int maxRow, int salt,
       Predicate<TestRecord> predicate) {
     TreeMap<Key,Value> data = new TreeMap<>();
     var mutations = generateMutations(minRow, maxRow, salt, predicate);
@@ -1262,12 +1270,12 @@ public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
     return data;
   }
 
-  static Collection<Mutation> generateMutations(int minRow, int maxRow,
+  public static Collection<Mutation> generateMutations(int minRow, int maxRow,
       Predicate<TestRecord> predicate) {
     return generateMutations(minRow, maxRow, 0, predicate);
   }
 
-  static Collection<Mutation> generateMutations(int minRow, int maxRow, int salt,
+  public static Collection<Mutation> generateMutations(int minRow, int maxRow, int salt,
       Predicate<TestRecord> predicate) {
 
     List<Mutation> mutations = new ArrayList<>();
