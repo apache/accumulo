@@ -27,12 +27,9 @@ import java.util.concurrent.TimeUnit;
 public final class Timer {
 
   private long startNanos;
-  private long accumulatedNanos;
-  private boolean isStarted;
 
   private Timer() {
-    this.accumulatedNanos = 0;
-    this.isStarted = false;
+    this.startNanos = System.nanoTime();
   }
 
   /**
@@ -41,48 +38,18 @@ public final class Timer {
    * @return a new Timer instance that is already started.
    */
   public static Timer startNew() {
-    Timer timer = new Timer();
-    timer.start();
-    return timer;
+    return new Timer();
   }
 
   /**
-   * Starts the timer if it is not already running.
-   *
-   * @throws IllegalStateException if the timer is already running.
-   */
-  public void start() throws IllegalStateException {
-    if (isStarted) {
-      throw new IllegalStateException("Timer is already running");
-    }
-    startNanos = System.nanoTime();
-    isStarted = true;
-  }
-
-  /**
-   * Stops the timer if it is running and accumulates the elapsed time.
-   *
-   * @throws IllegalStateException if the timer is not running.
-   */
-  public void stop() throws IllegalStateException {
-    if (!isStarted) {
-      throw new IllegalStateException("Timer is not running");
-    }
-    accumulatedNanos += System.nanoTime() - startNanos;
-    isStarted = false;
-  }
-
-  /**
-   * Resets the timer and starts it immediately.
+   * Resets the start point for this timer.
    */
   public void restart() {
-    accumulatedNanos = 0;
-    startNanos = System.nanoTime();
-    isStarted = true;
+    this.startNanos = System.nanoTime();
   }
 
   private long getElapsedNanos() {
-    return isStarted ? System.nanoTime() - startNanos + accumulatedNanos : accumulatedNanos;
+    return System.nanoTime() - startNanos;
   }
 
   /**
@@ -93,6 +60,17 @@ public final class Timer {
    */
   public boolean hasElapsed(Duration duration) {
     return getElapsedNanos() >= duration.toNanos();
+  }
+
+  /**
+   * Checks if the specified duration has elapsed since the timer was started.
+   *
+   * @param duration the duration to check.
+   * @param unit the TimeUnit of the duration.
+   * @return true if the specified duration has elapsed, false otherwise.
+   */
+  public boolean hasElapsed(long duration, TimeUnit unit) {
+    return getElapsedNanos() >= unit.toNanos(duration);
   }
 
   /**
@@ -110,11 +88,4 @@ public final class Timer {
     return unit.convert(getElapsedNanos(), TimeUnit.NANOSECONDS);
   }
 
-  /**
-   * @return the elapsed time as a string in nanoseconds.
-   */
-  @Override
-  public String toString() {
-    return String.valueOf(elapsed().toNanos());
-  }
 }
