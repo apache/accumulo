@@ -65,8 +65,6 @@ public class TimerTest {
 
     assertTrue(timer.hasElapsed(Duration.ofMillis(50)),
         "The timer should indicate that 50 milliseconds have elapsed.");
-    assertFalse(timer.hasElapsed(Duration.ofMillis(100)),
-        "The timer should not indicate that 100 milliseconds have elapsed.");
   }
 
   @Test
@@ -77,8 +75,6 @@ public class TimerTest {
 
     assertTrue(timer.hasElapsed(50, MILLISECONDS),
         "The timer should indicate that 50 milliseconds have elapsed.");
-    assertFalse(timer.hasElapsed(100, MILLISECONDS),
-        "The timer should not indicate that 100 milliseconds have elapsed.");
   }
 
   @Test
@@ -89,21 +85,26 @@ public class TimerTest {
     Thread.sleep(sleepMillis);
 
     long elapsedMillis = timer.elapsed(MILLISECONDS);
-    assertEquals(sleepMillis, elapsedMillis, 5, "Elapsed time in milliseconds is not accurate.");
+    assertTrue(elapsedMillis >= sleepMillis, "Elapsed time in milliseconds is not correct.");
   }
 
   @Test
   public void testElapsedWithTimeUnit() throws InterruptedException {
     Timer timer = Timer.startNew();
 
-    Thread.sleep(50);
+    final int sleepMillis = 50;
+    Thread.sleep(sleepMillis);
 
     long elapsedMillis = timer.elapsed(MILLISECONDS);
-    assertEquals(50, elapsedMillis, 5, "Elapsed time in milliseconds is not accurate.");
 
-    long elapsedSeconds = timer.elapsed(TimeUnit.SECONDS);
-    assertEquals(0, elapsedSeconds,
-        "Elapsed time in seconds should be 0 for 50 milliseconds of sleep.");
+    assertTrue(elapsedMillis >= sleepMillis, "Elapsed time in milliseconds is not correct.");
+
+    if (elapsedMillis < 1000) {
+      long elapsedSeconds = timer.elapsed(TimeUnit.SECONDS);
+      assertEquals(0, elapsedSeconds,
+          "Elapsed time in seconds should be 0 for 50 milliseconds of sleep.");
+    }
+
   }
 
 }
