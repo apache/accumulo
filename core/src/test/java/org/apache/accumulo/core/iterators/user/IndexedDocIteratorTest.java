@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -62,7 +63,7 @@ public class IndexedDocIteratorTest {
 
   static {
     docColf.append(nullByte, 0, 1);
-    docColf.append("type".getBytes(), 0, "type".getBytes().length);
+    docColf.append("type".getBytes(UTF_8), 0, "type".getBytes(UTF_8).length);
   }
 
   private TreeMap<Key,Value> createSortedMap(float hitRatio, int numRows, int numDocsPerRow,
@@ -91,14 +92,14 @@ public class IndexedDocIteratorTest {
         boolean docHits = true;
         Text doc = new Text("type");
         doc.append(nullByte, 0, 1);
-        doc.append(String.format("%010d", docid).getBytes(), 0, 10);
+        doc.append(String.format("%010d", docid).getBytes(UTF_8), 0, 10);
         for (int j = 0; j < columnFamilies.length; j++) {
           if (random.nextFloat() < hitRatio) {
             Text colq = new Text(columnFamilies[j]);
             colq.append(nullByte, 0, 1);
             colq.append(doc.getBytes(), 0, doc.getLength());
             colq.append(nullByte, 0, 1);
-            colq.append("stuff".getBytes(), 0, "stuff".length());
+            colq.append("stuff".getBytes(UTF_8), 0, "stuff".length());
             Key k = new Key(row, indexColf, colq);
             map.put(k, v);
             sb.append(" ");
@@ -121,7 +122,7 @@ public class IndexedDocIteratorTest {
             colq.append(nullByte, 0, 1);
             colq.append(doc.getBytes(), 0, doc.getLength());
             colq.append(nullByte, 0, 1);
-            colq.append("stuff".getBytes(), 0, "stuff".length());
+            colq.append("stuff".getBytes(UTF_8), 0, "stuff".length());
             Key k = new Key(row, indexColf, colq);
             map.put(k, v);
             sb.append(" ");

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.iterators.system;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -42,8 +43,8 @@ public class VisibilityFilterTest {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
     tm.put(new Key("r1", "cf1", "cq1", "A&"), new Value());
-    SortedKeyValueIterator<Key,Value> filter =
-        VisibilityFilter.wrap(new SortedMapIterator(tm), new Authorizations("A"), "".getBytes());
+    SortedKeyValueIterator<Key,Value> filter = VisibilityFilter.wrap(new SortedMapIterator(tm),
+        new Authorizations("A"), "".getBytes(UTF_8));
 
     filter.seek(new Range(), new HashSet<>(), false);
     assertFalse(filter.hasTop());
@@ -58,7 +59,7 @@ public class VisibilityFilterTest {
     tm.put(new Key("r1", "cf1", "cq2", "C"), new Value());
     tm.put(new Key("r1", "cf1", "cq3", ""), new Value());
     SortedKeyValueIterator<Key,Value> filter =
-        VisibilityFilter.wrap(new SortedMapIterator(tm), Authorizations.EMPTY, "".getBytes());
+        VisibilityFilter.wrap(new SortedMapIterator(tm), Authorizations.EMPTY, "".getBytes(UTF_8));
 
     filter.seek(new Range(), new HashSet<>(), false);
     assertTrue(filter.hasTop());

@@ -56,13 +56,13 @@ public class MutationTest {
    */
   @Test
   public void testByteConstructor() {
-    Mutation m = new Mutation("0123456789".getBytes());
+    Mutation m = new Mutation("0123456789".getBytes(UTF_8));
     assertEquals("30313233343536373839", toHexString(m.getRow()));
   }
 
   @Test
   public void testLimitedByteConstructor() {
-    Mutation m = new Mutation("0123456789".getBytes(), 2, 5);
+    Mutation m = new Mutation("0123456789".getBytes(UTF_8), 2, 5);
     assertEquals("3233343536", toHexString(m.getRow()));
   }
 
@@ -378,7 +378,7 @@ public class MutationTest {
     expected.put(fam, qual, val);
 
     Mutation actual = new Mutation("row5");
-    actual.at().family(fam).qualifier(qual).put(val.getBytes());
+    actual.at().family(fam).qualifier(qual).put(val.getBytes(UTF_8));
     assertEquals(expected, actual);
     assertEquals(34, actual.numBytes());
     assertThrows(IllegalStateException.class,
@@ -508,17 +508,19 @@ public class MutationTest {
 
   @Test
   public void testByteArrays() {
-    Mutation m = new Mutation("r1".getBytes());
+    Mutation m = new Mutation("r1".getBytes(UTF_8));
 
-    m.put("cf1".getBytes(), "cq1".getBytes(), "v1".getBytes());
-    m.put("cf2".getBytes(), "cq2".getBytes(), new ColumnVisibility("cv2"), "v2".getBytes());
-    m.put("cf3".getBytes(), "cq3".getBytes(), 3L, "v3".getBytes());
-    m.put("cf4".getBytes(), "cq4".getBytes(), new ColumnVisibility("cv4"), 4L, "v4".getBytes());
+    m.put("cf1".getBytes(UTF_8), "cq1".getBytes(UTF_8), "v1".getBytes(UTF_8));
+    m.put("cf2".getBytes(UTF_8), "cq2".getBytes(UTF_8), new ColumnVisibility("cv2"),
+        "v2".getBytes(UTF_8));
+    m.put("cf3".getBytes(UTF_8), "cq3".getBytes(UTF_8), 3L, "v3".getBytes(UTF_8));
+    m.put("cf4".getBytes(UTF_8), "cq4".getBytes(UTF_8), new ColumnVisibility("cv4"), 4L,
+        "v4".getBytes(UTF_8));
 
-    m.putDelete("cf5".getBytes(), "cq5".getBytes());
-    m.putDelete("cf6".getBytes(), "cq6".getBytes(), new ColumnVisibility("cv6"));
-    m.putDelete("cf7".getBytes(), "cq7".getBytes(), 7L);
-    m.putDelete("cf8".getBytes(), "cq8".getBytes(), new ColumnVisibility("cv8"), 8L);
+    m.putDelete("cf5".getBytes(UTF_8), "cq5".getBytes(UTF_8));
+    m.putDelete("cf6".getBytes(UTF_8), "cq6".getBytes(UTF_8), new ColumnVisibility("cv6"));
+    m.putDelete("cf7".getBytes(UTF_8), "cq7".getBytes(UTF_8), 7L);
+    m.putDelete("cf8".getBytes(UTF_8), "cq8".getBytes(UTF_8), new ColumnVisibility("cv8"), 8L);
 
     assertEquals(8, m.size());
 

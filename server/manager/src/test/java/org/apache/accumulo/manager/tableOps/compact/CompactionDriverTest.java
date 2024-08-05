@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.compact;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -58,7 +59,7 @@ public class CompactionDriverTest {
     EasyMock.expect(ctx.getZooReaderWriter()).andReturn(zrw);
 
     final String zCancelID = CompactionDriver.createCompactionCancellationPath(instance, tableId);
-    EasyMock.expect(zrw.getData(zCancelID)).andReturn(Long.toString(cancelId).getBytes());
+    EasyMock.expect(zrw.getData(zCancelID)).andReturn(Long.toString(cancelId).getBytes(UTF_8));
 
     EasyMock.replay(manager, ctx, zrw);
 
@@ -96,7 +97,7 @@ public class CompactionDriverTest {
     EasyMock.expect(ctx.getZooReaderWriter()).andReturn(zrw);
 
     final String zCancelID = CompactionDriver.createCompactionCancellationPath(instance, tableId);
-    EasyMock.expect(zrw.getData(zCancelID)).andReturn(Long.toString(cancelId).getBytes());
+    EasyMock.expect(zrw.getData(zCancelID)).andReturn(Long.toString(cancelId).getBytes(UTF_8));
 
     String deleteMarkerPath = PreDeleteTable.createDeleteMarkerPath(instance, tableId);
     EasyMock.expect(zrw.exists(deleteMarkerPath)).andReturn(true);
