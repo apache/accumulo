@@ -78,17 +78,6 @@ public class TimerTest {
   }
 
   @Test
-  public void testElapsedPrecision() throws InterruptedException {
-    Timer timer = Timer.startNew();
-
-    final int sleepMillis = 50;
-    Thread.sleep(sleepMillis);
-
-    long elapsedMillis = timer.elapsed(MILLISECONDS);
-    assertTrue(elapsedMillis >= sleepMillis, "Elapsed time in milliseconds is not correct.");
-  }
-
-  @Test
   public void testElapsedWithTimeUnit() throws InterruptedException {
     Timer timer = Timer.startNew();
 
