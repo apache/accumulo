@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
@@ -76,8 +76,8 @@ import org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
@@ -660,7 +660,7 @@ public class ThriftScanner {
       NotServingTabletException, TException, NoSuchScanIDException, TooManyFilesException,
       TSampleNotPresentException, ScanServerBusyException {
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     final TInfo tinfo = TraceUtil.traceInfo();
 
@@ -688,7 +688,7 @@ public class ThriftScanner {
               + scanState.serverSideIteratorList + " ssio=" + scanState.serverSideIteratorOptions
               + " context=" + scanState.classLoaderContext;
           log.trace("tid={} {}", Thread.currentThread().getId(), msg);
-          timer = new OpTimer().start();
+          timer = Timer.startNew();
         }
 
         TabletType ttype = TabletType.type(loc.getExtent());
@@ -723,7 +723,7 @@ public class ThriftScanner {
 
         if (log.isTraceEnabled()) {
           log.trace("tid={} {}", Thread.currentThread().getId(), msg);
-          timer = new OpTimer().start();
+          timer = Timer.startNew();
         }
 
         sr = client.continueScan(tinfo, scanState.scanID, busyTimeout);
@@ -735,10 +735,10 @@ public class ThriftScanner {
 
       if (sr.more) {
         if (timer != null) {
-          timer.stop();
           log.trace("tid={} Finished scan in {} #results={} scanid={}",
-              Thread.currentThread().getId(), String.format("%.3f secs", timer.scale(SECONDS)),
-              sr.results.size(), scanState.scanID);
+              Thread.currentThread().getId(),
+              String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0), sr.results.size(),
+              scanState.scanID);
         }
       } else {
         // log.debug("No more : tab end row = "+loc.tablet_extent.getEndRow()+" range =
@@ -747,9 +747,9 @@ public class ThriftScanner {
           scanState.finished = true;
 
           if (timer != null) {
-            timer.stop();
             log.trace("tid={} Completely finished scan in {} #results={}",
-                Thread.currentThread().getId(), String.format("%.3f secs", timer.scale(SECONDS)),
+                Thread.currentThread().getId(),
+                String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }
 
@@ -759,17 +759,17 @@ public class ThriftScanner {
           scanState.skipStartRow = true;
 
           if (timer != null) {
-            timer.stop();
             log.trace("tid={} Finished scanning tablet in {} #results={}",
-                Thread.currentThread().getId(), String.format("%.3f secs", timer.scale(SECONDS)),
+                Thread.currentThread().getId(),
+                String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }
         } else {
           scanState.finished = true;
           if (timer != null) {
-            timer.stop();
             log.trace("tid={} Completely finished in {} #results={}",
-                Thread.currentThread().getId(), String.format("%.3f secs", timer.scale(SECONDS)),
+                Thread.currentThread().getId(),
+                String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }
         }
