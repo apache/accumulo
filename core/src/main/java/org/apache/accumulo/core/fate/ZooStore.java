@@ -166,7 +166,7 @@ public class ZooStore<T> implements TStore<T> {
             if (deferred.containsKey(tid)) {
               long deferredTime = deferred.get(tid);
               long currentTime = System.nanoTime();
-              if (currentTime >= deferredTime) {
+              if ((currentTime - deferredTime) >= 0) {
                 deferred.remove(tid); // Remove if the deferred time has passed
               } else {
                 continue;
