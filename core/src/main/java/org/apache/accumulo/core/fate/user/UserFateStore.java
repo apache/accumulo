@@ -106,7 +106,11 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         case ACCEPTED:
           return fateId;
         case UNKNOWN:
+          log.error("Fate creation returned UNKNOWN status, raising exception");
+          throw new IllegalStateException("Fate creation returned UNKNOWN status");
         case REJECTED:
+          log.debug(
+              "Fate creation returned REJECTED status (most likely FateId collision), retrying...");
           attempt++;
           continue;
         default:
