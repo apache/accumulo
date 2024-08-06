@@ -148,22 +148,47 @@ public class GrepIterator extends Filter {
     cfg.addOption(TERM_OPT, term);
   }
 
+  /**
+   * Enable or disable matching on the row field of the key. Defaults to enable.
+   *
+   * @since 2.1.3
+   */
   public static void matchRow(IteratorSetting cfg, boolean match) {
     cfg.addOption(MATCH_ROW_OPT, Boolean.toString(match));
   }
 
+  /**
+   * Enable or disable matching on the family field of the key. Defaults to enable.
+   *
+   * @since 2.1.3
+   */
   public static void matchColumnFamily(IteratorSetting cfg, boolean match) {
     cfg.addOption(MATCH_COLFAM_OPT, Boolean.toString(match));
   }
 
+  /**
+   * Enable or disable matching on the qualifier field of the key. Defaults to enable.
+   *
+   * @since 2.1.3
+   */
   public static void matchColumnQualifier(IteratorSetting cfg, boolean match) {
     cfg.addOption(MATCH_COLQUAL_OPT, Boolean.toString(match));
   }
 
+  /**
+   * Enable or disable matching on the visibility field of the key. Defaults to disable.
+   *
+   * @since 2.1.3
+   */
   public static void matchColumnVisibility(IteratorSetting cfg, boolean match) {
     cfg.addOption(MATCH_COLVIS_OPT, Boolean.toString(match));
   }
 
+  /**
+   * Enable or disable matching on the value. Defaults to enable.
+   *
+   * @since 2.1.3
+   */
   public static void matchValue(IteratorSetting cfg, boolean match) {
     cfg.addOption(MATCH_VALUE_OPT, Boolean.toString(match));
   }
