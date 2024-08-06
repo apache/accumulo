@@ -18,28 +18,22 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.AccumuloDataVersion;
-import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.start.Main;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class ServerVersionIT extends SharedMiniClusterBase {
+public class DataVersionIT extends SharedMiniClusterBase {
 
   @BeforeAll
   public static void setup() throws Exception {
@@ -53,36 +47,33 @@ public class ServerVersionIT extends SharedMiniClusterBase {
 
   @Test
   public void test() throws Exception {
+
     File root = getCluster().getConfig().getAccumuloDir();
-    String path = root + "/version/";
-    Path rootPath = new Path(path + AccumuloDataVersion.get());
+    String path = root + "/" + Constants.VERSION_DIR;
+    Path rootPath = new Path(path + "/" + AccumuloDataVersion.get());
     FileSystem fs = getCluster().getFileSystem();
-    VolumeManager vm = getCluster().getServerContext().getVolumeManager();
+    Path newPath = new Path(path + "/" + (AccumuloDataVersion.get() + 1));
 
     assertTrue(fs.exists(rootPath));
 
     getCluster().stop();
 
-    // Create a new Path to simulate accumulo update
-    Path newPath = new Path(path + AccumuloDataVersion.get() + 1);
-    vm.create(newPath);
+    fs.create(newPath, true);
 
-    // Start the procs
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-    Future<?> future = executor.submit(() -> {
-      for (ServerType st : ServerType.values()) {
-        try {
-          getCluster().getClusterControl().start(st);
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+    for (ServerType st : ServerType.values()) {
+
+      if (!st.getDeclaringClass().isAnnotationPresent(Deprecated.class)) {
+        Process p = getCluster().exec(Main.class, st.prettyPrint()).getProcess();
+        p.waitFor();
+        int exitCode = p.exitValue();
+
+        // Check to see if both paths exist at the same time
+        assertTrue(fs.exists(rootPath));
+        assertTrue(fs.exists(newPath));
+        assertTrue(exitCode != 0,
+            "Expected non-zero exit code for " + p + " process, but got " + exitCode);
+
       }
-    });
-    // Check to see if servers fail to start
-    assertThrows(TimeoutException.class, () -> future.get(20, TimeUnit.SECONDS));
-
-    // Check to see if both paths exist at the sametime
-    assertTrue(fs.exists(rootPath));
-    assertTrue(fs.exists(newPath));
+    }
   }
 }
