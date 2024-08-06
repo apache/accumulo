@@ -29,6 +29,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.INSTANCE_OPS
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.List;
@@ -48,6 +49,7 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.compaction.TableCompaction;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -267,6 +269,18 @@ public class InstanceOperationsImpl implements InstanceOperations {
         returnClient(client, context);
       }
     }
+  }
+
+  @Override
+  public Collection<TableCompaction> getTableCompactions(Set<String> tableNames) {
+    // TODO
+    return List.of();
+  }
+
+  @Override
+  public Collection<TableCompaction> getTableCompactions() {
+    // TODO
+    return List.of();
   }
 
   @Override

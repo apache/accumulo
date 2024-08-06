@@ -18,8 +18,11 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.Collection;
 import java.util.Optional;
 
+import org.apache.accumulo.core.client.admin.compaction.ActiveCompactionId;
+import org.apache.accumulo.core.client.admin.compaction.TableCompactionId;
 import org.apache.accumulo.core.data.TabletId;
 
 /**
@@ -73,4 +76,27 @@ public interface TabletInformation {
    */
   TabletAvailability getTabletAvailability();
 
+  interface RunningCompactionInformation {
+    /**
+     * @return an id that uniquely identifies a running compaction
+     */
+    ActiveCompactionId getId();
+
+    /**
+     * If this tablet compaction was initiated as part of a table compaction, then return the id of
+     * that table compaction.
+     */
+    Optional<TableCompactionId> getTableCompactionId();
+  }
+
+  /**
+   * @return information about compactions that are currently running against this tablet
+   */
+  Collection<RunningCompactionInformation> getRunningCompactions();
+
+  /**
+   * @return active table compaction operations that have run to completion against this tablet.
+   *         Once a table compaction completes for all tablets then it will no longer show up here.
+   */
+  Collection<TableCompactionId> getCompletedTableCompactions();
 }

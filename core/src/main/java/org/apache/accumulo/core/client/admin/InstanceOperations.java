@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +26,8 @@ import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.compaction.TableCompaction;
+import org.apache.accumulo.core.client.admin.compaction.TableCompactionId;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -209,6 +212,29 @@ public interface InstanceOperations {
       throws AccumuloException, AccumuloSecurityException;
 
   /**
+   * @return table compactions running for the specified tables
+   * @since 4.0.0
+   */
+  Collection<TableCompaction> getTableCompactions(Set<String> tableNames);
+
+  /**
+   * Return all table compactions running.
+   *
+   * @since 4.0.0
+   */
+  Collection<TableCompaction> getTableCompactions();
+
+  /**
+   * Return a specific table compaction.
+   *
+   * @since 4.0.0
+   */
+  default TableCompaction getTableCompaction(TableCompactionId tcid) {
+    // TODO remove default method and implement. Default method is only here to make compile.
+    return null;
+  }
+
+  /**
    * List the active compaction running on a tablet server. Using this method with
    * {@link #getTabletServers()} will only show compactions running on tservers, leaving out any
    * external compactions running on compactors. Use {@link #getActiveCompactions()} to get a list
@@ -227,6 +253,7 @@ public interface InstanceOperations {
    *
    * @return the list of active compactions
    * @since 2.1.0
+   * @see TableCompaction#getActiveCompactions()
    */
   List<ActiveCompaction> getActiveCompactions() throws AccumuloException, AccumuloSecurityException;
 
