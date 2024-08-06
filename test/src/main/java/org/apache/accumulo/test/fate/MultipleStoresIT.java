@@ -198,7 +198,8 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
       store = new MetaFateStore<>(FATE_DIR, zk, lock, null);
     }
 
-    assertThrows(IllegalStateException.class, () -> store.reserve(fakeFateId));
+    var err = assertThrows(IllegalStateException.class, () -> store.reserve(fakeFateId));
+    assertTrue(err.getMessage().contains(fakeFateId.canonical()));
   }
 
   @Test
@@ -301,7 +302,8 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
       // Verify that the tx is now unknown since it has been deleted
       assertEquals(ReadOnlyFateStore.TStatus.UNKNOWN, store.read(fateId).getStatus());
       // Attempt to reserve a deleted txn, should throw an exception and not wait indefinitely
-      assertThrows(IllegalStateException.class, () -> store.reserve(fateId));
+      var err = assertThrows(IllegalStateException.class, () -> store.reserve(fateId));
+      assertTrue(err.getMessage().contains(fateId.canonical()));
     }
   }
 
