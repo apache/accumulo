@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.UTILITY_CHECK_FILE_TASKS;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -120,8 +122,8 @@ public class RemoveEntriesForMissingFiles {
 
     Map<Path,Path> cache = new LRUMap<>(100000);
     Set<Path> processing = new HashSet<>();
-    ExecutorService threadPool = ThreadPools.getServerThreadPools().getPoolBuilder("CheckFileTasks")
-        .numCoreThreads(16).build();
+    ExecutorService threadPool = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(UTILITY_CHECK_FILE_TASKS).numCoreThreads(16).build();
 
     System.out.printf("Scanning : %s %s\n", tableName, range);
 

@@ -41,6 +41,8 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_TABLE;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SPLIT_START_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SPLIT_WAIT_POOL;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -161,10 +163,10 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.MapCounter;
-import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -196,19 +198,18 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public SortedSet<String> list() {
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Fetching list of tables...", Thread.currentThread().getId());
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
     TreeSet<String> tableNames = new TreeSet<>(context.getTableNameToIdMap().keySet());
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Fetched {} table names in {}", Thread.currentThread().getId(),
-          tableNames.size(), String.format("%.3f secs", timer.scale(SECONDS)));
+          tableNames.size(), String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return tableNames;
@@ -223,19 +224,18 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return true;
     }
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Checking if table {} exists...", Thread.currentThread().getId(), tableName);
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
     boolean exists = context.getTableNameToIdMap().containsKey(tableName);
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
-          String.format("%.3f secs", timer.scale(SECONDS)));
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return exists;
@@ -492,9 +492,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     final ByteBuffer EMPTY = ByteBuffer.allocate(0);
 
     ExecutorService startExecutor =
-        context.threadPools().getPoolBuilder("addSplitsStart").numCoreThreads(16).build();
+        context.threadPools().getPoolBuilder(SPLIT_START_POOL).numCoreThreads(16).build();
     ExecutorService waitExecutor =
-        context.threadPools().getPoolBuilder("addSplitsWait").numCoreThreads(16).build();
+        context.threadPools().getPoolBuilder(SPLIT_WAIT_POOL).numCoreThreads(16).build();
 
     while (!splitsTodo.isEmpty()) {
 

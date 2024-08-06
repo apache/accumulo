@@ -300,4 +300,13 @@ public class CompactionJobPriorityQueueTest {
         < 2 * (CompactionJobPriorityQueue.FUTURE_CHECK_THRESHOLD + CANCEL_THRESHOLD));
     assertTrue(maxFuturesSize > 2 * CompactionJobPriorityQueue.FUTURE_CHECK_THRESHOLD);
   }
+
+  @Test
+  public void testChangeMaxSize() {
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 100);
+    assertEquals(100, queue.getMaxSize());
+    queue.setMaxSize(50);
+    assertEquals(50, queue.getMaxSize());
+  }
+
 }

@@ -445,9 +445,14 @@ public enum Property {
   MANAGER_SPLIT_WORKER_THREADS("manager.split.inspection.threadpool.size", "8", PropertyType.COUNT,
       "The number of threads used to inspect tablets files to find split points.", "4.0.0"),
 
-  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE("manager.compaction.major.service.queue.size",
-      "10000", PropertyType.COUNT,
-      "The max size of each resource groups compaction job priority queue.", "4.0"),
+  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE(
+      "manager.compaction.major.service.queue.initial.size", "10000", PropertyType.COUNT,
+      "The initial size of each resource groups compaction job priority queue.", "4.0.0"),
+  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR(
+      "manager.compaction.major.service.queue.size.factor", "3.0", PropertyType.FRACTION,
+      "The dynamic resizing of the compaction job priority queue is based on"
+          + " the number of compactors for the group multiplied by this factor.",
+      "4.0.0"),
   SPLIT_PREFIX("split.", null, PropertyType.PREFIX,
       "System wide properties related to splitting tablets.", "3.1.0"),
   SPLIT_MAXOPEN("split.files.max", "300", PropertyType.COUNT,
@@ -1433,6 +1438,9 @@ public enum Property {
       // max message options
       RPC_MAX_MESSAGE_SIZE,
 
+      // compaction coordiantor properties
+      MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE,
+
       // block cache options
       TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
       TSERV_SUMMARYCACHE_SIZE, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
@@ -1449,7 +1457,8 @@ public enum Property {
       COMPACTOR_MINTHREADS_TIMEOUT,
 
       // others
-      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
+      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME,
+      TSERV_SESSION_MAXIDLE, TSERV_UPDATE_SESSION_MAXIDLE);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
