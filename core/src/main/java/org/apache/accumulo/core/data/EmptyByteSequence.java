@@ -41,7 +41,7 @@ final class EmptyByteSequence extends ByteSequence {
 
   @Override
   public byte byteAt(int i) {
-    throw new IndexOutOfBoundsException();
+    throw new IndexOutOfBoundsException(i);
   }
 
   @Override

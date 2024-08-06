@@ -35,7 +35,7 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
    *
    * @param i index into sequence
    * @return byte
-   * @throws IllegalArgumentException if i is out of range
+   * @throws IndexOutOfBoundsException if i is out of range
    */
   public abstract byte byteAt(int i);
 
@@ -51,6 +51,7 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
    *
    * @param start index of subsequence start (inclusive)
    * @param end index of subsequence end (exclusive)
+   * @throws IndexOutOfBoundsException if start or end is out of range
    */
   public abstract ByteSequence subSequence(int start, int end);
 
@@ -97,10 +98,10 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
    */
   public static int compareBytes(ByteSequence bs1, ByteSequence bs2) {
 
-    int len1 = bs1.length();
-    int len2 = bs2.length();
+    final int len1 = bs1.length();
+    final int len2 = bs2.length();
 
-    int minLen = Math.min(len1, len2);
+    final int minLen = Math.min(len1, len2);
 
     for (int i = 0; i < minLen; i++) {
       int a = (bs1.byteAt(i) & 0xff);
@@ -150,7 +151,7 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
    */
   protected static int hashCode(byte[] data, int offset, int len) {
     int hash = 1;
-    int end = offset + len;
+    final int end = offset + len;
     for (int i = offset; i < end; i++) {
       hash = (31 * hash) + data[i];
     }
