@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.conf.Property.GENERAL_ARBITRARY_PROP_PREF
 import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
 import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;
@@ -267,6 +268,19 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     checkType(property, PropertyType.TIMEDURATION);
 
     return ConfigurationTypeHelper.getTimeInMillis(get(property));
+  }
+
+  /**
+   * Gets a property of type {@link PropertyType#TIMEDURATION}, interpreting the value properly.
+   *
+   * @param property property to get
+   * @return property value
+   * @throws IllegalArgumentException if the property is of the wrong type
+   */
+  public Duration getDuration(Property property) {
+    checkType(property, PropertyType.TIMEDURATION);
+
+    return ConfigurationTypeHelper.getDuration(get(property));
   }
 
   /**

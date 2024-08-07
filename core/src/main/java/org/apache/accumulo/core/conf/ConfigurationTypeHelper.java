@@ -18,17 +18,18 @@
  */
 package org.apache.accumulo.core.conf;
 
-import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.time.temporal.ChronoUnit.DAYS;
+import static java.time.temporal.ChronoUnit.HOURS;
+import static java.time.temporal.ChronoUnit.MILLIS;
+import static java.time.temporal.ChronoUnit.MINUTES;
+import static java.time.temporal.ChronoUnit.SECONDS;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.slf4j.Logger;
@@ -113,7 +114,19 @@ public class ConfigurationTypeHelper {
    * @return interpreted time duration in milliseconds
    */
   public static long getTimeInMillis(String str) {
-    TimeUnit timeUnit;
+    return getDuration(str).toMillis();
+  }
+
+  /**
+   * Interprets a string specifying a time duration. A time duration is specified as a long integer
+   * followed by an optional d (days), h (hours), m (minutes), s (seconds), or ms (milliseconds). A
+   * value without a unit is interpreted as seconds.
+   *
+   * @param str string value
+   * @return interpreted time duration
+   */
+  public static Duration getDuration(String str) {
+    ChronoUnit timeUnit;
     int unitsLen = 1;
     switch (str.charAt(str.length() - 1)) {
       case 'd':
@@ -128,7 +141,7 @@ public class ConfigurationTypeHelper {
       case 's':
         timeUnit = SECONDS;
         if (str.endsWith("ms")) {
-          timeUnit = MILLISECONDS;
+          timeUnit = MILLIS;
           unitsLen = 2;
         }
         break;
@@ -137,7 +150,8 @@ public class ConfigurationTypeHelper {
         unitsLen = 0;
         break;
     }
-    return timeUnit.toMillis(Long.parseLong(str.substring(0, str.length() - unitsLen)));
+    final long value = Long.parseLong(str.substring(0, str.length() - unitsLen));
+    return Duration.of(value, timeUnit);
   }
 
   /**

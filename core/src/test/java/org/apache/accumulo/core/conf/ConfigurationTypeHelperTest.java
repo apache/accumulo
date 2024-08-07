@@ -25,6 +25,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.time.Duration;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -93,15 +94,35 @@ public class ConfigurationTypeHelperTest {
   }
 
   @Test
+  public void testGetDuration() {
+    assertEquals(Duration.ofDays(42), ConfigurationTypeHelper.getDuration("42d"));
+    assertEquals(Duration.ofHours(42), ConfigurationTypeHelper.getDuration("42h"));
+    assertEquals(Duration.ofMinutes(42), ConfigurationTypeHelper.getDuration("42m"));
+    assertEquals(Duration.ofSeconds(42), ConfigurationTypeHelper.getDuration("42s"));
+    assertEquals(Duration.ofSeconds(42), ConfigurationTypeHelper.getDuration("42"));
+    assertEquals(Duration.ofMillis(42), ConfigurationTypeHelper.getDuration("42ms"));
+  }
+
+  @Test
   public void testGetTimeInMillisFailureCase1() {
     assertThrows(IllegalArgumentException.class,
         () -> ConfigurationTypeHelper.getTimeInMillis("abc"));
   }
 
   @Test
+  public void testGetDurationFailureCase1() {
+    assertThrows(IllegalArgumentException.class, () -> ConfigurationTypeHelper.getDuration("abc"));
+  }
+
+  @Test
   public void testGetTimeInMillisFailureCase2() {
     assertThrows(IllegalArgumentException.class,
         () -> ConfigurationTypeHelper.getTimeInMillis("ms"));
+  }
+
+  @Test
+  public void testGetDurationFailureCase2() {
+    assertThrows(IllegalArgumentException.class, () -> ConfigurationTypeHelper.getDuration("ms"));
   }
 
   @Test
