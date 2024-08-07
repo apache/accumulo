@@ -92,6 +92,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionStats;
@@ -1750,13 +1751,13 @@ public class Tablet extends TabletBase {
 
     // Clients timeout and will think that this operation failed.
     // Don't do it if we spent too long waiting for the lock
-    long now = System.nanoTime();
+    NanoTime now = NanoTime.now();
     synchronized (this) {
       if (isClosed()) {
         throw new IOException("tablet " + extent + " is closed");
       }
 
-      long rpcTimeoutNanos = TimeUnit.MILLISECONDS.toNanos(
+      Duration rpcTimeout = Duration.ofMillis(
           (long) (getTabletServer().getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)
               * 1.1));
 
@@ -1769,9 +1770,9 @@ public class Tablet extends TabletBase {
           throw new IllegalStateException(e);
         }
 
-        long lockWait = System.nanoTime() - now;
-        if (lockWait > rpcTimeoutNanos) {
-          throw new IOException("Timeout waiting " + TimeUnit.NANOSECONDS.toSeconds(lockWait)
+        Duration lockWait = now.elapsed();
+        if (lockWait.compareTo(rpcTimeout) > 0) {
+          throw new IOException("Timeout waiting " + lockWait.toSeconds()
               + " seconds to get tablet lock for " + extent + " " + tid);
         }
       }
@@ -1781,9 +1782,9 @@ public class Tablet extends TabletBase {
         throw new IOException("tablet " + extent + " is closed");
       }
 
-      long lockWait = System.nanoTime() - now;
-      if (lockWait > rpcTimeoutNanos) {
-        throw new IOException("Timeout waiting " + TimeUnit.NANOSECONDS.toSeconds(lockWait)
+      Duration lockWait = now.elapsed();
+      if (lockWait.compareTo(rpcTimeout) > 0) {
+        throw new IOException("Timeout waiting " + lockWait.toSeconds()
             + " seconds to get tablet lock for " + extent + " " + tid);
       }
 
