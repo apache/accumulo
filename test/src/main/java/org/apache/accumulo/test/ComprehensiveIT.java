@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toMap;
+import static org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel.EVENTUAL;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,8 +51,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -133,6 +132,7 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
       // Timeout scan sessions after being idle for 3 seconds
       cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
+      cfg.setProperty(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION, "5s");
 
     }
   }
@@ -141,7 +141,6 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
   public static void setup() throws Exception {
     ComprehensiveITConfiguration c = new ComprehensiveITConfiguration();
     SharedMiniClusterBase.startMiniClusterWithConfig(c);
-    SharedMiniClusterBase.getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.securityOperations().changeUserAuthorizations("root", AUTHORIZATIONS);
@@ -156,45 +155,44 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
   @Test
   public void testEventualScan() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
 
-      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+      String table = getUniqueNames(1)[0];
+      client.tableOperations().create(table);
 
-        // Add data to the table
-        try (BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig())) {
-          Mutation m = new Mutation("row1");
-          m.put("cf", "cq", "value1");
-          writer.addMutation(m);
-        }
+      // Start Scan Server
+      getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
 
-        // Run initial scan with eventual consistency
-        scanner.setRange(new Range());
-        scanner.setConsistencyLevel(ScannerBase.ConsistencyLevel.EVENTUAL);
-        for (Map.Entry<Key,Value> entry : scanner) {
-          // Verify initial data
-          assertEquals("value1", entry.getValue().toString());
-        }
+      // generate 100 rows of data
+      write(client, table, generateMutations(0, 100, tr -> true));
 
-        // Add new data to the table
-        try (BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig())) {
-          Mutation m = new Mutation("row2");
-          m.put("cf", "cq", "value2");
-          writer.addMutation(m);
-        }
+      // need flush table so that eventual scan can see it.
+      client.tableOperations().flush(table);
 
-        // Run second scan with eventual consistency
-        scanner.setConsistencyLevel(ScannerBase.ConsistencyLevel.EVENTUAL);
-        boolean sawRow2 = false;
-        for (Map.Entry<Key,Value> entry : scanner) {
-          if (entry.getKey().getRow().toString().equals("row2")) {
-            sawRow2 = true;
-            break;
-          }
-        }
-        // Verify the new data is not visible
-        assertFalse(sawRow2);
-      }
+      Thread.sleep(10000);
+
+      // should see all data that was flushed in eventual scan
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+
+      // should not see data with col vis set
+      verifyData(client, table, Authorizations.EMPTY, generateKeys(0, 100, tr -> tr.vis.isEmpty()),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+
+      // write some more rows after 100 and verfy those are not seen by eventual scan until table is
+      // flushed.
+      write(client, table, generateMutations(100, 200, tr -> true));
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+
+      // need flush table so that eventual scan can see it.
+      client.tableOperations().flush(table);
+
+      Thread.sleep(10000);
+
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 200),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+
+      getCluster().getClusterControl().stop(ServerType.SCAN_SERVER);
     }
   }
 
