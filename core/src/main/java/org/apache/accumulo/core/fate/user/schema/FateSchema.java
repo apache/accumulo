@@ -35,6 +35,9 @@ public class FateSchema {
 
     public static final String CREATE_TIME = "ctime";
     public static final ColumnFQ CREATE_TIME_COLUMN = new ColumnFQ(NAME, new Text(CREATE_TIME));
+
+    public static final String RESERVATION = "reservation";
+    public static final ColumnFQ RESERVATION_COLUMN = new ColumnFQ(NAME, new Text(RESERVATION));
   }
 
   public static class TxInfoColumnFamily {

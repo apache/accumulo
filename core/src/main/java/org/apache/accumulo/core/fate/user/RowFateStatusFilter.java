@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.ALL_STATUS
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -31,11 +32,13 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
-import org.apache.accumulo.core.iterators.Filter;
+import org.apache.accumulo.core.fate.user.schema.FateSchema;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.hadoop.io.Text;
 
-public class FateStatusFilter extends Filter {
+public class RowFateStatusFilter extends WholeRowIterator {
 
   private EnumSet<ReadOnlyFateStore.TStatus> valuesToAccept;
 
@@ -53,9 +56,15 @@ public class FateStatusFilter extends Filter {
   }
 
   @Override
-  public boolean accept(Key k, Value v) {
-    var tstatus = ReadOnlyFateStore.TStatus.valueOf(v.toString());
-    return valuesToAccept.contains(tstatus);
+  protected boolean filter(Text currentRow, List<Key> keys, List<Value> values) {
+    for (int i = 0; i < keys.size(); i++) {
+      Key key = keys.get(i);
+      if (FateSchema.TxColumnFamily.STATUS_COLUMN.hasColumns(key)
+          && valuesToAccept.contains(ReadOnlyFateStore.TStatus.valueOf(values.get(i).toString()))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public static void configureScanner(ScannerBase scanner,
@@ -63,9 +72,11 @@ public class FateStatusFilter extends Filter {
     // only filter when getting a subset of statuses
     if (!statuses.equals(ALL_STATUSES)) {
       String statusesStr = statuses.stream().map(Enum::name).collect(Collectors.joining(","));
-      var iterSettings = new IteratorSetting(100, "statuses", FateStatusFilter.class);
+      var iterSettings = new IteratorSetting(100, "statuses", RowFateStatusFilter.class);
       iterSettings.addOption("statuses", statusesStr);
       scanner.addScanIterator(iterSettings);
+    } else {
+      scanner.addScanIterator(new IteratorSetting(100, WholeRowIterator.class));
     }
   }
 }

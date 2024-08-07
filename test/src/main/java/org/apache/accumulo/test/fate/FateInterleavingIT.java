@@ -189,7 +189,7 @@ public abstract class FateInterleavingIT extends SharedMiniClusterBase
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    return new Fate<>(new FilTestEnv(client), store, r -> r + "", config);
+    return new Fate<>(new FilTestEnv(client), store, false, r -> r + "", config);
   }
 
   private static Entry<String,String> toIdStep(Entry<Key,Value> e) {

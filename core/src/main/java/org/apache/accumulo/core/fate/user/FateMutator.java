@@ -20,8 +20,10 @@ package org.apache.accumulo.core.fate.user;
 
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.user.schema.FateSchema;
 
 public interface FateMutator<T> {
 
@@ -30,6 +32,42 @@ public interface FateMutator<T> {
   FateMutator<T> putKey(FateKey fateKey);
 
   FateMutator<T> putCreateTime(long ctime);
+
+  /**
+   * Add a conditional mutation to {@link FateSchema.TxColumnFamily#RESERVATION_COLUMN} that will
+   * put the reservation if there is not already a reservation present
+   *
+   * @param reservation the reservation to attempt to put
+   * @return the FateMutator with this added mutation
+   */
+  FateMutator<T> putReservedTx(FateStore.FateReservation reservation);
+
+  /**
+   * Add a conditional mutation to {@link FateSchema.TxColumnFamily#RESERVATION_COLUMN} that will
+   * put the reservation if the column doesn't exist yet. This should only be used for
+   * {@link UserFateStore#createAndReserve(FateKey)}
+   *
+   * @param reservation the reservation to attempt to put
+   * @return the FateMutator with this added mutation
+   */
+  FateMutator<T> putReservedTxOnCreation(FateStore.FateReservation reservation);
+
+  /**
+   * Add a conditional mutation to {@link FateSchema.TxColumnFamily#RESERVATION_COLUMN} that will
+   * remove the given reservation if it matches what is present in the column.
+   *
+   * @param reservation the reservation to attempt to remove
+   * @return the FateMutator with this added mutation
+   */
+  FateMutator<T> putUnreserveTx(FateStore.FateReservation reservation);
+
+  /**
+   * Add a conditional mutation to {@link FateSchema.TxColumnFamily#RESERVATION_COLUMN} that will
+   * put the initial column value if it has not already been set yet
+   *
+   * @return the FateMutator with this added mutation
+   */
+  FateMutator<T> putInitReservationVal();
 
   FateMutator<T> putName(byte[] data);
 

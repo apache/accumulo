@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
+
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -39,6 +41,6 @@ public class MetaFateInterleavingIT extends FateInterleavingIT {
     String path = ZK_ROOT + Constants.ZFATE;
     ZooReaderWriter zk = sctx.getZooReaderWriter();
     zk.mkdirs(ZK_ROOT);
-    testMethod.execute(new MetaFateStore<>(path, zk), sctx);
+    testMethod.execute(new MetaFateStore<>(path, zk, createDummyLockID(), null), sctx);
   }
 }

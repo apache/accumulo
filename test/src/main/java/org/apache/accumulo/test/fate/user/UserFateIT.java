@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate.user;
 
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.apache.accumulo.test.fate.user.UserFateStoreIT.createFateTable;
 
 import java.util.stream.StreamSupport;
@@ -60,8 +61,8 @@ public class UserFateIT extends FateIT {
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       createFateTable(client, table);
-      testMethod.execute(new UserFateStore<>(client, table, maxDeferred, fateIdGenerator),
-          getCluster().getServerContext());
+      testMethod.execute(new UserFateStore<>(client, table, createDummyLockID(), null, maxDeferred,
+          fateIdGenerator), getCluster().getServerContext());
     }
   }
 

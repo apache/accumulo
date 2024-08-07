@@ -37,6 +37,8 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -73,7 +75,8 @@ public class Fate<T> {
   private final FateStore<T> store;
   private final T environment;
   private final ScheduledThreadPoolExecutor fatePoolWatcher;
-  private final ExecutorService executor;
+  private final ExecutorService transactionExecutor;
+  private final ExecutorService deadResCleanerExecutor;
 
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
@@ -324,12 +327,24 @@ public class Fate<T> {
   }
 
   /**
+   * A thread that finds reservations held by dead processes and unreserves them
+   */
+  private class DeadReservationCleaner implements Runnable {
+    @Override
+    public void run() {
+      if (keepRunning.get()) {
+        store.deleteDeadReservations();
+      }
+    }
+  }
+
+  /**
    * Creates a Fault-tolerant executor.
    *
    * @param toLogStrFunc A function that converts Repo to Strings that are suitable for logging
    */
-  public Fate(T environment, FateStore<T> store, Function<Repo<T>,String> toLogStrFunc,
-      AccumuloConfiguration conf) {
+  public Fate(T environment, FateStore<T> store, boolean runDeadResCleaner,
+      Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf) {
     this.store = FateLogger.wrap(store, toLogStrFunc);
     this.environment = environment;
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
@@ -360,7 +375,19 @@ public class Fate<T> {
         }
       }
     }, 3, SECONDS));
-    this.executor = pool;
+    this.transactionExecutor = pool;
+
+    ScheduledExecutorService deadResCleanerExecutor = null;
+    if (runDeadResCleaner) {
+      // Create a dead reservation cleaner for this store that will periodically clean up
+      // reservations held by dead processes, if they exist.
+      deadResCleanerExecutor = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,
+          store.type() + "-dead-reservation-cleaner-pool");
+      ScheduledFuture<?> deadReservationCleaner = deadResCleanerExecutor
+          .scheduleWithFixedDelay(new DeadReservationCleaner(), 3, 30, SECONDS);
+      ThreadPools.watchCriticalScheduledTask(deadReservationCleaner);
+    }
+    this.deadResCleanerExecutor = deadResCleanerExecutor;
 
     this.workFinder = Threads.createThread("Fate work finder", new WorkFinder());
     this.workFinder.start();
@@ -530,18 +557,29 @@ public class Fate<T> {
   public void shutdown(long timeout, TimeUnit timeUnit) {
     if (keepRunning.compareAndSet(true, false)) {
       fatePoolWatcher.shutdown();
-      executor.shutdown();
+      transactionExecutor.shutdown();
       workFinder.interrupt();
+      if (deadResCleanerExecutor != null) {
+        deadResCleanerExecutor.shutdown();
+      }
     }
 
     if (timeout > 0) {
       long start = System.nanoTime();
 
       while ((System.nanoTime() - start) < timeUnit.toNanos(timeout)
-          && (workFinder.isAlive() || !executor.isTerminated())) {
+          && (workFinder.isAlive() || !transactionExecutor.isTerminated()
+              || (deadResCleanerExecutor != null && !deadResCleanerExecutor.isTerminated()))) {
         try {
-          if (!executor.awaitTermination(1, SECONDS)) {
+          if (!transactionExecutor.awaitTermination(1, SECONDS)) {
             log.debug("Fate {} is waiting for worker threads to terminate", store.type());
+            continue;
+          }
+
+          if (deadResCleanerExecutor != null
+              && !deadResCleanerExecutor.awaitTermination(1, SECONDS)) {
+            log.debug("Fate {} is waiting for dead reservation cleaner thread to terminate",
+                store.type());
             continue;
           }
 
@@ -555,15 +593,20 @@ public class Fate<T> {
         }
       }
 
-      if (workFinder.isAlive() || !executor.isTerminated()) {
+      if (workFinder.isAlive() || !transactionExecutor.isTerminated()
+          || (deadResCleanerExecutor != null && !deadResCleanerExecutor.isTerminated())) {
         log.warn(
-            "Waited for {}ms for all fate {} background threads to stop, but some are still running. workFinder:{} executor:{}",
+            "Waited for {}ms for all fate {} background threads to stop, but some are still running. workFinder:{} transactionExecutor:{} deadResCleanerExecutor:{}",
             TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), store.type(),
-            workFinder.isAlive(), !executor.isTerminated());
+            workFinder.isAlive(), !transactionExecutor.isTerminated(),
+            (deadResCleanerExecutor != null && !deadResCleanerExecutor.isTerminated()));
       }
     }
 
     // interrupt the background threads
-    executor.shutdownNow();
+    transactionExecutor.shutdownNow();
+    if (deadResCleanerExecutor != null) {
+      deadResCleanerExecutor.shutdownNow();
+    }
   }
 }
