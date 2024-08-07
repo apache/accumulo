@@ -126,7 +126,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
     // The LockID (provided by the Manager running the FATE which uses this store) which is used for
     // identifying dead Managers, so their reservations can be deleted and picked up again since
     // they can no longer be worked on.
-    private final ZooUtil.LockID lockID; // TODO 4131 not sure if this is the best type for this
+    private final ZooUtil.LockID lockID;
     // The UUID generated on a reservation attempt (tryReserve()) used to uniquely identify that
     // attempt. This is useful for the edge case where the reservation is sent to the server
     // (Tablet Server for UserFateStore and the ZooKeeper Server for MetaFateStore), but the server

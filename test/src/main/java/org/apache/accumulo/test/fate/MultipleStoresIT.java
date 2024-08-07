@@ -66,10 +66,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-// TODO 4131 could potentially have separate classes for testing MetaFateStore and UserFateStore
-// similar to how FateTestRunner is used, however that interface doesn't work as nicely here
-// since we are using multiple stores instead of just one. Can do something similar to
-// FateTestRunner here if desired
 public class MultipleStoresIT extends SharedMiniClusterBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(MultipleStoresIT.class);

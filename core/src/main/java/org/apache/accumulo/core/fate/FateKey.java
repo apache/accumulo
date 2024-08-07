@@ -32,9 +32,6 @@ import org.apache.hadoop.io.DataInputBuffer;
 
 public class FateKey {
 
-  // TODO 4131 noticed FateKey is logged, but doesn't have a toString()
-  // a toString() method should be added.
-
   private final FateKeyType type;
   private final Optional<KeyExtent> keyExtent;
   private final Optional<ExternalCompactionId> compactionId;

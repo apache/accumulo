@@ -59,7 +59,6 @@ import com.google.common.base.Suppliers;
 
 //TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
-// TODO 4131 noticed this class is not in the fate.zookeeper package. Should it be?
 public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(MetaFateStore.class);

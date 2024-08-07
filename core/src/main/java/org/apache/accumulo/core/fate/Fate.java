@@ -379,12 +379,10 @@ public class Fate<T> {
 
     ScheduledExecutorService deadResCleanerExecutor = null;
     if (runDeadResCleaner) {
-      // Create a dead reservation cleaner for this store that will periodically (every 30 seconds)
-      // clean up reservations held by dead processes, if they exist.
+      // Create a dead reservation cleaner for this store that will periodically clean up
+      // reservations held by dead processes, if they exist.
       deadResCleanerExecutor = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,
           store.type() + "-dead-reservation-cleaner-pool");
-      // TODO 4131 periodic cleanup runs every 30 seconds
-      // Should this be longer? Shorter? A configurable Property? A function of something?
       ScheduledFuture<?> deadReservationCleaner = deadResCleanerExecutor
           .scheduleWithFixedDelay(new DeadReservationCleaner(), 3, 30, SECONDS);
       ThreadPools.watchCriticalScheduledTask(deadReservationCleaner);

@@ -56,10 +56,6 @@ import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-// TODO 4131 should probably add support to AbstractFateStore, MetaFateStore,
-// and UserFateStore to accept null lockID (maybe make this field Optional<>).
-// This could replace the current createDummyLockID(). This support
-// is needed since MFS and UFS aren't always created in the context of a Manager.
 public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(AbstractFateStore.class);
@@ -323,13 +319,6 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       int currNumCallers = concurrentStatusChangeCallers.incrementAndGet();
 
       try {
-        // TODO 4131
-        // TODO make the max time a function of the number of concurrent callers, as the number of
-        // concurrent callers increases then increase the max wait time
-        // TODO could support signaling within this instance for known events
-        // TODO made the maxWait low so this would be responsive... that may put a lot of load in
-        // the case there are lots of things waiting...
-        // Made maxWait = num of curr callers
         var retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(25))
             .incrementBy(Duration.ofMillis(25)).maxWait(Duration.ofSeconds(currNumCallers))
             .backOffFactor(1.5).logInterval(Duration.ofMinutes(3)).createRetry();
@@ -447,8 +436,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   /**
-   * TODO 4131 this is a temporary method used to create a dummy lock when using a FateStore outside
-   * of the context of a Manager (one example is testing).
+   * this is a temporary method used to create a dummy lock when using a FateStore outside the
+   * context of a Manager (one example is testing) so reservations can still be made.
    *
    * @return a dummy {@link ZooUtil.LockID}
    */
