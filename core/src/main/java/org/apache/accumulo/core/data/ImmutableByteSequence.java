@@ -26,6 +26,8 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.util.ByteBufferUtil;
 
+import com.google.common.base.Preconditions;
+
 /**
  * An immutable implementation of {@link ByteSequence} that copies data in its constructor and never
  * lets its internal byte array escape. This class is final to prevent it from being made mutable in
@@ -47,12 +49,16 @@ final class ImmutableByteSequence extends ByteSequence {
   private boolean hashIsOne = false;
 
   ImmutableByteSequence(ByteSequence data) {
+    Preconditions.checkState(!(data instanceof ImmutableByteSequence));
     if (data.isBackedByArray()) {
       this.data =
           Arrays.copyOfRange(data.getBackingArray(), data.offset(), data.offset() + data.length());
     } else {
-      var dataArray = data.toArray();
-      this.data = Arrays.copyOf(dataArray, dataArray.length);
+      final int len = data.length();
+      this.data = new byte[len];
+      for (int i = 0; i < len; i++) {
+        this.data[i] = data.byteAt(i);
+      }
     }
   }
 
