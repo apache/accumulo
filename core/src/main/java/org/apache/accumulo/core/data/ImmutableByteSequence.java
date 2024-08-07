@@ -62,7 +62,7 @@ final class ImmutableByteSequence extends ByteSequence {
    * @param data byte data
    */
   ImmutableByteSequence(byte[] data) {
-    this.data = Arrays.copyOf(data, data.length);
+    this(data, 0, data.length);
   }
 
   /**
