@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -70,8 +71,8 @@ public class DataVersionIT extends SharedMiniClusterBase {
         // Check to see if both paths exist at the same time
         assertTrue(fs.exists(rootPath));
         assertTrue(fs.exists(newPath));
-        assertTrue(exitCode != 0,
-            "Expected non-zero exit code for " + p + " process, but got " + exitCode);
+        assertNotEquals(0, exitCode, "Expected non-zero exit code for server type "
+            + st.prettyPrint() + ", but got " + exitCode);
 
       }
     }
