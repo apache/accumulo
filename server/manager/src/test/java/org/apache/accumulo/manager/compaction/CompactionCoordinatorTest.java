@@ -148,13 +148,10 @@ public class CompactionCoordinatorTest {
     }
 
     @Override
-    protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
+    protected void startCompactorZKCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
 
     @Override
-    protected void startRunningCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
-
-    @Override
-    protected void startIdleCompactionWatcher() {
+    protected void startInternalStateCleaner(ScheduledThreadPoolExecutor schedExecutor) {
       // This is called from CompactionCoordinator.run(). Counting down
       // the latch will exit the run method
       this.shutdown.countDown();
@@ -194,6 +191,11 @@ public class CompactionCoordinatorTest {
     @Override
     protected List<RunningCompaction> getCompactionsRunningOnCompactors() {
       return runningCompactions;
+    }
+
+    @Override
+    protected Map<String,Set<HostAndPort>> getRunningCompactors() {
+      return Map.of();
     }
 
     @Override
@@ -434,13 +436,13 @@ public class CompactionCoordinatorTest {
     coordinator.getRunning().put(ecid2, new RunningCompaction(new TExternalCompaction()));
     coordinator.getRunning().put(ecid3, new RunningCompaction(new TExternalCompaction()));
 
-    coordinator.cleanUpRunning();
+    coordinator.cleanUpInternalState();
 
     assertEquals(Set.of(ecid1, ecid2, ecid3), coordinator.getRunning().keySet());
 
     coordinator.setMetadataCompactionIds(Set.of(ecid1, ecid2));
 
-    coordinator.cleanUpRunning();
+    coordinator.cleanUpInternalState();
 
     assertEquals(Set.of(ecid1, ecid2), coordinator.getRunning().keySet());
 
