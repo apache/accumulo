@@ -114,7 +114,7 @@ public class RowHashIT extends ConfigurableMacBase {
       for (Entry<Key,Value> entry : s) {
         MessageDigest md = MessageDigest.getInstance("MD5");
         byte[] check = Base64.getEncoder().encode(md.digest(("row" + i).getBytes(UTF_8)));
-        assertEquals(entry.getValue().toString(), new String(check));
+        assertEquals(entry.getValue().toString(), new String(check, UTF_8));
         i++;
       }
     }

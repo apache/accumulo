@@ -214,7 +214,7 @@ public class IndexedDocIteratorTest {
 
       Text d = IndexedDocIterator.parseDocID(k);
       assertTrue(docs.contains(d));
-      assertTrue(new String(v.get()).endsWith(" docID=" + d));
+      assertTrue(new String(v.get(), UTF_8).endsWith(" docID=" + d));
 
       iter.next();
     }
@@ -251,7 +251,7 @@ public class IndexedDocIteratorTest {
       Value v = iter.getTopValue();
       Text d = IndexedDocIterator.parseDocID(k);
       assertTrue(docs.contains(d));
-      assertTrue(new String(v.get()).endsWith(" docID=" + d));
+      assertTrue(new String(v.get(), UTF_8).endsWith(" docID=" + d));
       iter.next();
     }
     assertEquals(hitCount, docs.size());
@@ -296,7 +296,7 @@ public class IndexedDocIteratorTest {
       Value v = iter.getTopValue();
       Text d = IndexedDocIterator.parseDocID(k);
       assertTrue(docs.contains(d));
-      assertTrue(new String(v.get()).endsWith(" docID=" + d));
+      assertTrue(new String(v.get(), UTF_8).endsWith(" docID=" + d));
       iter.next();
     }
     assertEquals(hitCount, docs.size());
@@ -339,7 +339,7 @@ public class IndexedDocIteratorTest {
       Value v = iter.getTopValue();
       Text d = IndexedDocIterator.parseDocID(k);
       assertTrue(docs.contains(d));
-      assertTrue(new String(v.get()).endsWith(" docID=" + d));
+      assertTrue(new String(v.get(), UTF_8).endsWith(" docID=" + d));
       iter.next();
     }
     assertEquals(hitCount, docs.size());

@@ -73,7 +73,7 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
           socket.getOutputStream().write("wchs\n".getBytes(UTF_8), 0, 5);
           byte[] buffer = new byte[1024];
           int n = socket.getInputStream().read(buffer);
-          String response = new String(buffer, 0, n);
+          String response = new String(buffer, 0, n, UTF_8);
           total = Long.parseLong(response.split(":")[1].trim());
           log.info("Total: {}", total);
           if (total > MIN && total < MAX) {
