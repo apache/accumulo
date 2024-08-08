@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily.UNSPLITTABLE_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
@@ -293,6 +294,15 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
             new Condition(SUSPEND_COLUMN.getColumnFamily(), SUSPEND_COLUMN.getColumnQualifier());
         if (tabletMetadata.getSuspend() != null) {
           c.setValue(tabletMetadata.getSuspend().toValue());
+        }
+        mutation.addCondition(c);
+      }
+        break;
+      case UNSPLITTABLE: {
+        Condition c = new Condition(UNSPLITTABLE_COLUMN.getColumnFamily(),
+            UNSPLITTABLE_COLUMN.getColumnQualifier());
+        if (tabletMetadata.getUnSplittable() != null) {
+          c.setValue(tabletMetadata.getUnSplittable().toBase64());
         }
         mutation.addCondition(c);
       }

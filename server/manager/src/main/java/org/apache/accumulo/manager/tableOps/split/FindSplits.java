@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.split;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
 
 import java.util.Optional;
 import java.util.SortedSet;
@@ -130,7 +131,7 @@ public class FindSplits extends ManagerRepo {
           log.debug("Setting unsplittable metadata on tablet {}. hashCode: {}",
               tabletMetadata.getExtent(), unSplittableMeta);
           var mutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
-              .requireSame(tabletMetadata, FILES).setUnSplittable(unSplittableMeta);
+              .requireSame(tabletMetadata, FILES, UNSPLITTABLE).setUnSplittable(unSplittableMeta);
           mutator.submit(tm -> unSplittableMeta.equals(tm.getUnSplittable()));
 
           // Case 2: If the unsplittable marker has already been previously set, but we do not need
@@ -142,7 +143,7 @@ public class FindSplits extends ManagerRepo {
           log.info("Tablet {} no longer needs to split, deleting unsplittable marker.",
               tabletMetadata.getExtent());
           var mutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
-              .requireSame(tabletMetadata, FILES).deleteUnSplittable();
+              .requireSame(tabletMetadata, FILES, UNSPLITTABLE).deleteUnSplittable();
           mutator.submit(tm -> tm.getUnSplittable() == null);
           // Case 3: The table config and/or set of files changed since the tablet mgmt iterator
           // examined this tablet.
