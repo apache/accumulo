@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.coordinator;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.assertEquals;
@@ -453,7 +454,7 @@ public class CompactionCoordinatorTest {
     TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     TKeyExtent extent = new TKeyExtent();
-    extent.setTable("1".getBytes());
+    extent.setTable("1".getBytes(UTF_8));
     runningCompactions.add(new RunningCompaction(job, tserverAddress.toString(), "queue"));
     expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);

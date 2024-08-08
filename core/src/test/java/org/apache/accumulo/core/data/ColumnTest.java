@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.data;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -39,11 +40,11 @@ public class ColumnTest {
   @BeforeAll
   public static void setup() {
     col = new Column[5];
-    col[0] = new Column("colfam".getBytes(), "colq".getBytes(), "colv".getBytes());
-    col[1] = new Column("colfam".getBytes(), "colq".getBytes(), "colv".getBytes());
+    col[0] = new Column("colfam".getBytes(UTF_8), "colq".getBytes(UTF_8), "colv".getBytes(UTF_8));
+    col[1] = new Column("colfam".getBytes(UTF_8), "colq".getBytes(UTF_8), "colv".getBytes(UTF_8));
     col[2] = new Column(new byte[0], new byte[0], new byte[0]);
     col[3] = new Column(null, null, null);
-    col[4] = new Column("colfam".getBytes(), "cq".getBytes(), "cv".getBytes());
+    col[4] = new Column("colfam".getBytes(UTF_8), "cq".getBytes(UTF_8), "cv".getBytes(UTF_8));
   }
 
   @Test

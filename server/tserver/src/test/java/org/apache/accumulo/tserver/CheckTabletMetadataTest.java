@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.tserver.AssignmentHandler.checkTabletMetadata;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -94,8 +95,8 @@ public class CheckTabletMetadataTest {
 
     put(tabletMeta, "1<", TabletColumnFamily.PREV_ROW_COLUMN,
         TabletColumnFamily.encodePrevEndRow(null).get());
-    put(tabletMeta, "1<", ServerColumnFamily.DIRECTORY_COLUMN, "t1".getBytes());
-    put(tabletMeta, "1<", ServerColumnFamily.TIME_COLUMN, "M0".getBytes());
+    put(tabletMeta, "1<", ServerColumnFamily.DIRECTORY_COLUMN, "t1".getBytes(UTF_8));
+    put(tabletMeta, "1<", ServerColumnFamily.TIME_COLUMN, "M0".getBytes(UTF_8));
     put(tabletMeta, "1<", FutureLocationColumnFamily.NAME, "4", "127.0.0.1:9997");
 
     TServerInstance tsi = new TServerInstance("127.0.0.1:9997", 4);

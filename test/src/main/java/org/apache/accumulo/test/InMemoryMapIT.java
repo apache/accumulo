@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -375,7 +376,7 @@ public class InMemoryMapIT extends WithTestNames {
         if (value.length() > 0) {
           value.append(",");
         }
-        value.append(new String(bytes.toArray()));
+        value.append(new String(bytes.toArray(), UTF_8));
       }
       configuration.set("table.group." + entry.getKey(), value.toString());
       enabledLGs.append(entry.getKey());

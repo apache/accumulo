@@ -226,7 +226,8 @@ public class RegExFilterTest {
     String multiByteText = new String("\u6d67\u6F68\u7067");
     String multiByteRegex = new String(".*\u6F68.*");
 
-    Key k4 = new Key("boo4".getBytes(), "hoo".getBytes(), "20080203".getBytes(), "".getBytes(), 1L);
+    Key k4 = new Key("boo4".getBytes(UTF_8), "hoo".getBytes(UTF_8), "20080203".getBytes(UTF_8),
+        "".getBytes(UTF_8), 1L);
     Value inVal = new Value(multiByteText);
     tm.put(k4, inVal);
 
@@ -248,7 +249,7 @@ public class RegExFilterTest {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
     String s1 = "first", s2 = "second";
-    byte[] b1 = s1.getBytes(), b2 = s2.getBytes(), ball;
+    byte[] b1 = s1.getBytes(UTF_8), b2 = s2.getBytes(UTF_8), ball;
     ball = new byte[b1.length + b2.length + 1];
     System.arraycopy(b1, 0, ball, 0, b1.length);
     ball[b1.length] = (byte) 0;

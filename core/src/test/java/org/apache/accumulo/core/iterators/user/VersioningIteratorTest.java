@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -308,7 +309,7 @@ public class VersioningIteratorTest {
     it.seek(testRange, EMPTY_COL_FAMS, false);
 
     assertTrue(it.hasTop());
-    assertTrue(it.getTopValue().contentEquals("00".getBytes()));
+    assertTrue(it.getTopValue().contentEquals("00".getBytes(UTF_8)));
     it.next();
     assertFalse(it.hasTop());
   }

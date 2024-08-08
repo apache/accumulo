@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl.lexicoder;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,8 +28,8 @@ import org.junit.jupiter.api.Test;
 public class ByteUtilsTest {
 
   private final byte[] empty = new byte[0];
-  private final byte[] noSplits = "nosplits".getBytes();
-  private final byte[] splitAt5 = ("1234" + (char) 0x00 + "56789").getBytes();
+  private final byte[] noSplits = "nosplits".getBytes(UTF_8);
+  private final byte[] splitAt5 = ("1234" + (char) 0x00 + "56789").getBytes(UTF_8);
 
   @Test
   public void testSplit() {
@@ -45,8 +46,8 @@ public class ByteUtilsTest {
 
     result = ByteUtils.split(splitAt5);
     assertEquals(2, result.length);
-    assertArrayEquals("1234".getBytes(), result[0]);
-    assertArrayEquals("56789".getBytes(), result[1]);
+    assertArrayEquals("1234".getBytes(UTF_8), result[0]);
+    assertArrayEquals("56789".getBytes(UTF_8), result[1]);
   }
 
   @Test
@@ -59,20 +60,20 @@ public class ByteUtilsTest {
     result = ByteUtils.split(splitAt5, offset, splitAt5.length - offset);
     assertEquals(2, result.length);
     assertArrayEquals(empty, result[0]);
-    assertArrayEquals("56789".getBytes(), result[1]);
+    assertArrayEquals("56789".getBytes(UTF_8), result[1]);
 
     // should only see 1 split at this offset
     offset = 5;
     result = ByteUtils.split(splitAt5, offset, splitAt5.length - offset);
     assertEquals(1, result.length);
-    assertArrayEquals("56789".getBytes(), result[0]);
+    assertArrayEquals("56789".getBytes(UTF_8), result[0]);
 
     // still one split, but smaller ending
     offset = 5;
     int len = splitAt5.length - offset - 1;
     result = ByteUtils.split(splitAt5, offset, len);
     assertEquals(1, result.length);
-    assertArrayEquals("5678".getBytes(), result[0]);
+    assertArrayEquals("5678".getBytes(UTF_8), result[0]);
   }
 
   @Test

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -177,13 +178,13 @@ public class RowDeletingIteratorTest {
         new TestIE(IteratorScope.scan, false));
 
     HashSet<ByteSequence> cols = new HashSet<>();
-    cols.add(new ArrayByteSequence("cf1".getBytes()));
+    cols.add(new ArrayByteSequence("cf1".getBytes(UTF_8)));
 
     rdi.seek(new Range(), cols, true);
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
 
     cols.clear();
-    cols.add(new ArrayByteSequence("".getBytes()));
+    cols.add(new ArrayByteSequence("".getBytes(UTF_8)));
     rdi.seek(new Range(), cols, false);
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
 

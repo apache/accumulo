@@ -607,7 +607,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
           while (results.hasNext()) {
             Result result = results.next();
-            String k = new String(result.getMutation().getRow());
+            String k = new String(result.getMutation().getRow(), UTF_8);
             assertFalse(actual.containsKey(k),
                 "Did not expect to see multiple results for the row: " + k);
             actual.put(k, result.getStatus());
@@ -743,7 +743,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         while (results.hasNext()) {
           Result result = results.next();
-          String k = new String(result.getMutation().getRow());
+          String k = new String(result.getMutation().getRow(), UTF_8);
           assertFalse(actual.containsKey(k),
               "Did not expect to see multiple results for the row: " + k);
           actual.put(k, result.getStatus());
@@ -846,7 +846,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         int rejected = 0;
         while (results.hasNext()) {
           Result result = results.next();
-          if (new String(result.getMutation().getRow()).equals("99006")) {
+          if (new String(result.getMutation().getRow(), UTF_8).equals("99006")) {
             assertEquals(Status.ACCEPTED, result.getStatus());
             accepted++;
           } else {
@@ -1017,7 +1017,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         HashSet<String> rows = new HashSet<>();
         while (results.hasNext()) {
           Result result = results.next();
-          String row = new String(result.getMutation().getRow());
+          String row = new String(result.getMutation().getRow(), UTF_8);
           switch (row) {
             case "19059":
               assertEquals(Status.ACCEPTED, result.getStatus());

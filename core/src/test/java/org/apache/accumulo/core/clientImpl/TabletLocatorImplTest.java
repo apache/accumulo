@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -271,7 +272,7 @@ public class TabletLocatorImplTest {
     ArrayList<String> efs = new ArrayList<>(List.of(efailures));
 
     for (Mutation mutation : afailures) {
-      afs.add(new String(mutation.getRow()));
+      afs.add(new String(mutation.getRow(), UTF_8));
     }
 
     Collections.sort(afs);
@@ -296,7 +297,7 @@ public class TabletLocatorImplTest {
         ArrayList<String> aRows = new ArrayList<>();
 
         for (Mutation m : atb.getMutations().get(ke)) {
-          aRows.add(new String(m.getRow()));
+          aRows.add(new String(m.getRow(), UTF_8));
         }
 
         Collections.sort(eRows);

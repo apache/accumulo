@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -102,7 +104,7 @@ public class TestStatsDSink implements Closeable {
         DatagramPacket packet = new DatagramPacket(buf, len);
         try {
           sock.receive(packet);
-          received.add(new String(packet.getData(), 0, packet.getLength()));
+          received.add(new String(packet.getData(), 0, packet.getLength(), UTF_8));
         } catch (IOException e) {
           if (!sock.isClosed()) {
             LOG.error("Error receiving packet", e);

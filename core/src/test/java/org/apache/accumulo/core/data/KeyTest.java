@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.data;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -39,10 +40,14 @@ public class KeyTest {
 
   @Test
   public void testDeletedCompare() {
-    Key k1 = new Key("r1".getBytes(), "cf".getBytes(), "cq".getBytes(), new byte[0], 0, false);
-    Key k2 = new Key("r1".getBytes(), "cf".getBytes(), "cq".getBytes(), new byte[0], 0, false);
-    Key k3 = new Key("r1".getBytes(), "cf".getBytes(), "cq".getBytes(), new byte[0], 0, true);
-    Key k4 = new Key("r1".getBytes(), "cf".getBytes(), "cq".getBytes(), new byte[0], 0, true);
+    Key k1 = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8), new byte[0],
+        0, false);
+    Key k2 = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8), new byte[0],
+        0, false);
+    Key k3 = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8), new byte[0],
+        0, true);
+    Key k4 = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8), new byte[0],
+        0, true);
 
     assertEquals(k1, k2);
     assertEquals(k3, k4);
@@ -52,10 +57,10 @@ public class KeyTest {
 
   @Test
   public void testCopyData() {
-    byte[] row = "r".getBytes();
-    byte[] cf = "cf".getBytes();
-    byte[] cq = "cq".getBytes();
-    byte[] cv = "cv".getBytes();
+    byte[] row = "r".getBytes(UTF_8);
+    byte[] cf = "cf".getBytes(UTF_8);
+    byte[] cq = "cq".getBytes(UTF_8);
+    byte[] cv = "cv".getBytes(UTF_8);
 
     Key k1 = new Key(row, cf, cq, cv, 5L, false, false);
     Key k2 = new Key(row, cf, cq, cv, 5L, false, true);
@@ -86,11 +91,11 @@ public class KeyTest {
 
   @Test
   public void testCopyDataWithByteArrayConstructors() {
-    byte[] row = "r".getBytes();
-    byte[] cf = "cf".getBytes();
-    byte[] cq = "cq".getBytes();
-    byte[] cv = "cv".getBytes();
-    byte[] empty = "".getBytes();
+    byte[] row = "r".getBytes(UTF_8);
+    byte[] cf = "cf".getBytes(UTF_8);
+    byte[] cq = "cq".getBytes(UTF_8);
+    byte[] cv = "cv".getBytes(UTF_8);
+    byte[] empty = "".getBytes(UTF_8);
 
     Key kRow = new Key(row);
     Key kRowcolFam = new Key(row, cf);
@@ -171,10 +176,10 @@ public class KeyTest {
   }
 
   private void assertTextValueConversionToByteArray(Key key) {
-    byte[] row = "r".getBytes();
-    byte[] cf = "cf".getBytes();
-    byte[] cq = "cq".getBytes();
-    byte[] cv = "cv".getBytes();
+    byte[] row = "r".getBytes(UTF_8);
+    byte[] cf = "cf".getBytes(UTF_8);
+    byte[] cq = "cq".getBytes(UTF_8);
+    byte[] cv = "cv".getBytes(UTF_8);
     // show Text values submitted in constructor
     // are converted to byte array containing
     // the same value

@@ -45,8 +45,8 @@ public class VisibilityFilterTest {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
     tm.put(new Key("r1", "cf1", "cq1", "A&"), new Value());
-    SortedKeyValueIterator<Key,Value> filter =
-        VisibilityFilter.wrap(new SortedMapIterator(tm), new Authorizations("A"), "".getBytes());
+    SortedKeyValueIterator<Key,Value> filter = VisibilityFilter.wrap(new SortedMapIterator(tm),
+        new Authorizations("A"), "".getBytes(UTF_8));
 
     filter.seek(new Range(), new HashSet<>(), false);
     assertFalse(filter.hasTop());

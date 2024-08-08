@@ -689,10 +689,10 @@ public class ServiceLockIT {
       TestALW lw = new TestALW();
 
       zl.lock(lw, "test1".getBytes(UTF_8));
-      assertEquals("test1", new String(zk.getData(zl.getLockPath(), null, null)));
+      assertEquals("test1", new String(zk.getData(zl.getLockPath(), null, null), UTF_8));
 
       zl.replaceLockData("test2".getBytes(UTF_8));
-      assertEquals("test2", new String(zk.getData(zl.getLockPath(), null, null)));
+      assertEquals("test2", new String(zk.getData(zl.getLockPath(), null, null), UTF_8));
     }
   }
 }

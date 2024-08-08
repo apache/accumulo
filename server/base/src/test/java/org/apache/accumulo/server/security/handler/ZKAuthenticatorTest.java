@@ -66,7 +66,7 @@ public class ZKAuthenticatorTest {
   public void testAuthorizationConversion() {
     ByteArraySet auths = new ByteArraySet();
     for (int i = 0; i < 300; i += 3) {
-      auths.add(Integer.toString(i).getBytes());
+      auths.add(Integer.toString(i).getBytes(UTF_8));
     }
 
     Authorizations converted = new Authorizations(auths);
@@ -116,7 +116,7 @@ public class ZKAuthenticatorTest {
   @Deprecated
   @Test
   public void testOutdatedEncryption() throws AccumuloException {
-    byte[] rawPass = "myPassword".getBytes();
+    byte[] rawPass = "myPassword".getBytes(UTF_8);
     byte[] storedBytes;
 
     storedBytes = ZKSecurityTool.createOutdatedPass(rawPass);
@@ -125,7 +125,7 @@ public class ZKAuthenticatorTest {
 
   @Test
   public void testEncryptionDifference() throws AccumuloException {
-    byte[] rawPass = "myPassword".getBytes();
+    byte[] rawPass = "myPassword".getBytes(UTF_8);
     @SuppressWarnings("deprecation")
     byte[] storedBytes = ZKSecurityTool.createOutdatedPass(rawPass);
     assertFalse(ZKSecurityTool.checkCryptPass(rawPass, storedBytes));

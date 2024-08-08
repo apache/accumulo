@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.data;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -44,12 +45,12 @@ public class ServerMutationTest {
 
     assertEquals(2, updates.size());
 
-    assertEquals("r1", new String(m.getRow()));
+    assertEquals("r1", new String(m.getRow(), UTF_8));
     ColumnUpdate cu = updates.get(0);
 
-    assertEquals("cf1", new String(cu.getColumnFamily()));
-    assertEquals("cq1", new String(cu.getColumnQualifier()));
-    assertEquals("", new String(cu.getColumnVisibility()));
+    assertEquals("cf1", new String(cu.getColumnFamily(), UTF_8));
+    assertEquals("cq1", new String(cu.getColumnQualifier(), UTF_8));
+    assertEquals("", new String(cu.getColumnVisibility(), UTF_8));
     assertFalse(cu.hasTimestamp());
     assertEquals(42L, cu.getTimestamp());
 
@@ -59,19 +60,19 @@ public class ServerMutationTest {
     updates = m2.getUpdates();
 
     assertEquals(2, updates.size());
-    assertEquals("r1", new String(m2.getRow()));
+    assertEquals("r1", new String(m2.getRow(), UTF_8));
 
     cu = updates.get(0);
-    assertEquals("cf1", new String(cu.getColumnFamily()));
-    assertEquals("cq1", new String(cu.getColumnQualifier()));
+    assertEquals("cf1", new String(cu.getColumnFamily(), UTF_8));
+    assertEquals("cq1", new String(cu.getColumnQualifier(), UTF_8));
     assertFalse(cu.hasTimestamp());
     assertEquals(42L, cu.getTimestamp());
 
     cu = updates.get(1);
 
-    assertEquals("r1", new String(m2.getRow()));
-    assertEquals("cf2", new String(cu.getColumnFamily()));
-    assertEquals("cq2", new String(cu.getColumnQualifier()));
+    assertEquals("r1", new String(m2.getRow(), UTF_8));
+    assertEquals("cf2", new String(cu.getColumnFamily(), UTF_8));
+    assertEquals("cq2", new String(cu.getColumnQualifier(), UTF_8));
     assertTrue(cu.hasTimestamp());
     assertEquals(56, cu.getTimestamp());
 
