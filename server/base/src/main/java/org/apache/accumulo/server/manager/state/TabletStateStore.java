@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -34,11 +35,15 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
  */
 public interface TabletStateStore extends Iterable<TabletLocationState> {
+
+  Logger log = LoggerFactory.getLogger(TabletStateStore.class);
 
   /**
    * Get the level for this state store
@@ -66,8 +71,8 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
         .onClose(() -> {
           try {
             iterator.close();
-          } catch (Exception e) {
-            throw new RuntimeException("Failed to close iterator", e);
+          } catch (IOException e) {
+            log.warn("Error closing iterator", e);
           }
         });
   }
