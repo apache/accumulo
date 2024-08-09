@@ -21,7 +21,6 @@ package org.apache.accumulo.core.clientImpl;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -39,7 +38,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
-import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,12 +120,12 @@ public class RootClientTabletCache extends ClientTabletCache {
   protected CachedTablet getRootTabletLocation(ClientContext context) {
     Logger log = LoggerFactory.getLogger(this.getClass());
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Looking up root tablet location in zookeeper.",
           Thread.currentThread().getId());
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
     var zpath = RootTabletMetadata.zooPath(context);
@@ -135,9 +134,8 @@ public class RootClientTabletCache extends ClientTabletCache {
         .getLocation();
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
-          String.format("%.3f secs", timer.scale(SECONDS)));
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     if (loc == null || loc.getType() != LocationType.CURRENT) {

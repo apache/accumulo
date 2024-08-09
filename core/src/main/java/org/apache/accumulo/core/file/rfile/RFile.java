@@ -78,7 +78,6 @@ import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.Local
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -993,7 +992,7 @@ public class RFile {
           // causing the build of an index... doing this could slow down some use cases and
           // and speed up others.
 
-          MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
+          final var valbs = new ArrayByteSequence(new byte[64], 0, 0);
           SkippR skippr =
               RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey(), entriesLeft);
           if (skippr.skipped > 0) {
@@ -1055,7 +1054,7 @@ public class RFile {
             hasTop = true;
           }
 
-          MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
+          final var valbs = new ArrayByteSequence(new byte[64], 0, 0);
 
           Key currKey = null;
 
@@ -1072,7 +1071,7 @@ public class RFile {
                 val = new Value();
 
                 val.readFields(currBlock);
-                valbs = new MutableByteSequence(val.get(), 0, val.getSize());
+                valbs.reset(val.get(), 0, val.getSize());
 
                 // just consumed one key from the input stream, so subtract one from entries left
                 entriesLeft = bie.getEntriesLeft() - 1;

@@ -50,7 +50,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -122,6 +121,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
+import org.apache.accumulo.manager.metrics.BalancerMetrics;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.Splitter;
@@ -221,6 +221,7 @@ public class Manager extends AbstractServer
 
   protected volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
+  private final BalancerMetrics balancerMetrics = new BalancerMetrics();
 
   private ManagerState state = ManagerState.INITIAL;
 
@@ -237,7 +238,6 @@ public class Manager extends AbstractServer
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
-  private final AtomicBoolean managerUpgrading = new AtomicBoolean(false);
 
   private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
@@ -313,40 +313,42 @@ public class Manager extends AbstractServer
       /* UNLOAD_ROOT_TABLET */      {O, O, O, X, X, X, X},
       /* STOP */                    {O, O, O, O, O, X, X}};
   //@formatter:on
-  synchronized void setManagerState(ManagerState newState) {
-    if (state.equals(newState)) {
+  synchronized void setManagerState(final ManagerState newState) {
+    if (state == newState) {
       return;
     }
     if (!transitionOK[state.ordinal()][newState.ordinal()]) {
-      log.error("Programmer error: manager should not transition from {} to {}", state, newState);
+      throw new IllegalStateException(String.format(
+          "Programmer error: manager should not transition from %s to %s", state, newState));
     }
-    ManagerState oldState = state;
+    final ManagerState oldState = state;
     state = newState;
     nextEvent.event("State changed from %s to %s", oldState, newState);
-    if (newState == ManagerState.STOP) {
-      // Give the server a little time before shutdown so the client
-      // thread requesting the stop can return
-      ScheduledFuture<?> future = getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
-        // This frees the main thread and will cause the manager to exit
-        clientService.stop();
-        grpcClientService.stop();
-        Manager.this.nextEvent.event("stopped event loop");
-      }, 100L, 1000L, MILLISECONDS);
-      ThreadPools.watchNonCriticalScheduledTask(future);
-    }
-
-    if (oldState != newState && (newState == ManagerState.HAVE_LOCK)) {
-      new PreUpgradeValidation().validate(getContext(), nextEvent);
-      upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
-    }
-
-    if (oldState != newState && (newState == ManagerState.NORMAL)) {
-      if (fateRefs.get() != null) {
-        throw new IllegalStateException("Access to Fate should not have been"
-            + " initialized prior to the Manager finishing upgrades. Please save"
-            + " all logs and file a bug.");
-      }
-      upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(getContext(), nextEvent);
+    switch (newState) {
+      case STOP:
+        // Give the server a little time before shutdown so the client
+        // thread requesting the stop can return
+        final var future = getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
+          // This frees the main thread and will cause the manager to exit
+          clientService.stop();
+          grpcClientService.stop();
+          Manager.this.nextEvent.event("stopped event loop");
+        }, 100L, 1000L, MILLISECONDS);
+        ThreadPools.watchNonCriticalScheduledTask(future);
+        break;
+      case HAVE_LOCK:
+        if (isUpgrading()) {
+          new PreUpgradeValidation().validate(getContext(), nextEvent);
+          upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
+        }
+        break;
+      case NORMAL:
+        if (isUpgrading()) {
+          upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(getContext(), nextEvent);
+        }
+        break;
+      default:
+        break;
     }
   }
 
@@ -547,6 +549,10 @@ public class Manager extends AbstractServer
     return splitter;
   }
 
+  public MetricsProducer getBalancerMetrics() {
+    return balancerMetrics;
+  }
+
   public UpgradeCoordinator.UpgradeStatus getUpgradeStatus() {
     return upgradeCoordinator.getStatus();
   }
@@ -729,10 +735,8 @@ public class Manager extends AbstractServer
               setManagerState(ManagerState.NORMAL);
               break;
             case SAFE_MODE:
-              if (getManagerState() == ManagerState.NORMAL) {
-                setManagerState(ManagerState.SAFE_MODE);
-              }
-              if (getManagerState() == ManagerState.HAVE_LOCK) {
+              if (getManagerState() == ManagerState.NORMAL
+                  || getManagerState() == ManagerState.HAVE_LOCK) {
                 setManagerState(ManagerState.SAFE_MODE);
               }
               break;
@@ -961,6 +965,7 @@ public class Manager extends AbstractServer
         } while (migrationsOutForLevel > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
         totalMigrationsOut += migrationsOutForLevel;
       }
+      balancerMetrics.assignMigratingCount(migrations::size);
 
       if (totalMigrationsOut == 0) {
         synchronized (balancedNotifier) {
@@ -1108,8 +1113,7 @@ public class Manager extends AbstractServer
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator =
-        new CompactionCoordinator(context, security, fateRefs, getResourceGroup(), this);
+    compactionCoordinator = new CompactionCoordinator(context, security, fateRefs, this);
 
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
@@ -1152,16 +1156,12 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Exception getting manager lock", e);
     }
 
-    // If UpgradeStatus is not at complete by this moment, then things are currently
-    // upgrading.
-    if (upgradeCoordinator.getStatus() != UpgradeCoordinator.UpgradeStatus.COMPLETE) {
-      managerUpgrading.set(true);
-    }
-
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addServiceTags(getApplicationName(), sa.getAddress(), getResourceGroup());
     ManagerMetrics managerMetrics = new ManagerMetrics(getConfiguration(), this);
     var producers = managerMetrics.getProducers(getConfiguration(), this);
+    producers.add(balancerMetrics);
+
     metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
     metricsInfo.init();
 
@@ -1252,15 +1252,17 @@ public class Manager extends AbstractServer
     // Once we are sure the upgrade is complete, we can safely allow fate use.
     try {
       // wait for metadata upgrade running in background to complete
-      if (null != upgradeMetadataFuture) {
+      if (upgradeMetadataFuture != null) {
         upgradeMetadataFuture.get();
       }
-      // Everything is fully upgraded by this point.
-      managerUpgrading.set(false);
     } catch (ExecutionException | InterruptedException e) {
       throw new IllegalStateException("Metadata upgrade failed", e);
     }
 
+    // Everything should be fully upgraded by this point, but check before starting fate
+    if (isUpgrading()) {
+      throw new IllegalStateException("Upgrade coordinator is unexpectedly not complete");
+    }
     try {
       var metaInstance = initializeFateInstance(context,
           new MetaFateStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
@@ -1720,11 +1722,11 @@ public class Manager extends AbstractServer
   }
 
   public void assignedTablet(KeyExtent extent) {
-    if (extent.isMeta() && getManagerState().equals(ManagerState.UNLOAD_ROOT_TABLET)) {
+    if (extent.isMeta() && getManagerState() == ManagerState.UNLOAD_ROOT_TABLET) {
       setManagerState(ManagerState.UNLOAD_METADATA_TABLETS);
     }
     // probably too late, but try anyhow
-    if (extent.isRootTablet() && getManagerState().equals(ManagerState.STOP)) {
+    if (extent.isRootTablet() && getManagerState() == ManagerState.STOP) {
       setManagerState(ManagerState.UNLOAD_ROOT_TABLET);
     }
   }
@@ -1822,7 +1824,7 @@ public class Manager extends AbstractServer
 
   @Override
   public boolean isUpgrading() {
-    return managerUpgrading.get();
+    return upgradeCoordinator.getStatus() != UpgradeCoordinator.UpgradeStatus.COMPLETE;
   }
 
   void initializeBalancer() {

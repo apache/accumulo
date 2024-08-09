@@ -129,7 +129,7 @@ public class CompactionCoordinatorTest {
 
     public TestCoordinator(ServerContext ctx, SecurityOperation security,
         List<RunningCompaction> runningCompactions, Manager manager) {
-      super(ctx, security, fateInstances, "TEST_GROUP", manager);
+      super(ctx, security, fateInstances, manager);
       this.runningCompactions = runningCompactions;
     }
 
