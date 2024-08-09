@@ -21,6 +21,8 @@ package org.apache.accumulo.core.util;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Tracks the amount of time left from an initial duration.
  */
@@ -39,6 +41,7 @@ public class CountDownTimer {
    * return 0 and always return 0 from that point.
    */
   public static CountDownTimer startNew(Duration duration) {
+    Preconditions.checkArgument(!duration.isNegative());
     return new CountDownTimer(duration.toNanos());
   }
 

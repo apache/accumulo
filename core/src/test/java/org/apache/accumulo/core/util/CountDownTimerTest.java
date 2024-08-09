@@ -18,8 +18,7 @@
  */
 package org.apache.accumulo.core.util;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -52,5 +51,11 @@ public class CountDownTimerTest {
     assertEquals(0, timer1.timeLeft(TimeUnit.MILLISECONDS));
     assertEquals(0, timer2.timeLeft(TimeUnit.MILLISECONDS));
     assertEquals(0, timer3.timeLeft(TimeUnit.MILLISECONDS));
+  }
+
+  @Test
+  public void testNegative() {
+    assertThrows(IllegalArgumentException.class,
+        () -> CountDownTimer.startNew(Duration.ofMillis(-1)));
   }
 }
