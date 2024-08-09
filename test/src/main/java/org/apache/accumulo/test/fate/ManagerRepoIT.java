@@ -65,6 +65,7 @@ import org.apache.accumulo.manager.tableOps.split.AllocateDirsAndEnsureOnline;
 import org.apache.accumulo.manager.tableOps.split.FindSplits;
 import org.apache.accumulo.manager.tableOps.split.PreSplit;
 import org.apache.accumulo.manager.tableOps.split.SplitInfo;
+import org.apache.accumulo.test.LargeSplitRowIT;
 import org.apache.accumulo.test.ample.metadata.TestAmple;
 import org.apache.accumulo.test.ample.metadata.TestAmple.TestServerAmpleImpl;
 import org.apache.hadoop.io.Text;
@@ -247,6 +248,9 @@ public class ManagerRepoIT extends SharedMiniClusterBase {
     }
   }
 
+  /**
+   * The test {@link LargeSplitRowIT#testUnsplittableCleanup()} is similar to this test.
+   */
   @Test
   public void testFindSplitsDeleteUnsplittable() throws Exception {
 
