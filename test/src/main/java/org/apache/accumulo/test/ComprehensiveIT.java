@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toMap;
+import static org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel.EVENTUAL;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -91,7 +92,10 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
@@ -119,9 +123,24 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(ComprehensiveIT.class);
 
+  private static class ComprehensiveITConfiguration implements MiniClusterConfigurationCallback {
+
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
+        org.apache.hadoop.conf.Configuration coreSite) {
+      cfg.setNumScanServers(1);
+
+      // Timeout scan sessions after being idle for 3 seconds
+      cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
+      cfg.setProperty(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION, "5s");
+
+    }
+  }
+
   @BeforeAll
   public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniCluster();
+    ComprehensiveITConfiguration c = new ComprehensiveITConfiguration();
+    SharedMiniClusterBase.startMiniClusterWithConfig(c);
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.securityOperations().changeUserAuthorizations("root", AUTHORIZATIONS);
@@ -131,6 +150,50 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
   @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  @Test
+  public void testEventualScan() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      String table = getUniqueNames(1)[0];
+      client.tableOperations().create(table);
+
+      // Start Scan Server
+      getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
+
+      // generate 100 rows of data
+      write(client, table, generateMutations(0, 100, tr -> true));
+
+      // need flush table so that eventual scan can see it.
+      client.tableOperations().flush(table);
+
+      Thread.sleep(10000);
+
+      // should see all data that was flushed in eventual scan
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+
+      // should not see data with col vis set
+      verifyData(client, table, Authorizations.EMPTY, generateKeys(0, 100, tr -> tr.vis.isEmpty()),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+
+      // write some more rows after 100 and verfy those are not seen by eventual scan until table is
+      // flushed.
+      write(client, table, generateMutations(100, 200, tr -> true));
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+
+      // need flush table so that eventual scan can see it.
+      client.tableOperations().flush(table);
+
+      Thread.sleep(10000);
+
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 200),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+
+      getCluster().getClusterControl().stop(ServerType.SCAN_SERVER);
+    }
   }
 
   @Test
