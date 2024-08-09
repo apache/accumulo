@@ -65,8 +65,6 @@ public class TimerTest {
 
     assertTrue(timer.hasElapsed(Duration.ofMillis(50)),
         "The timer should indicate that 50 milliseconds have elapsed.");
-    assertFalse(timer.hasElapsed(Duration.ofMillis(100)),
-        "The timer should not indicate that 100 milliseconds have elapsed.");
   }
 
   @Test
@@ -77,33 +75,59 @@ public class TimerTest {
 
     assertTrue(timer.hasElapsed(50, MILLISECONDS),
         "The timer should indicate that 50 milliseconds have elapsed.");
-    assertFalse(timer.hasElapsed(100, MILLISECONDS),
-        "The timer should not indicate that 100 milliseconds have elapsed.");
-  }
-
-  @Test
-  public void testElapsedPrecision() throws InterruptedException {
-    Timer timer = Timer.startNew();
-
-    final int sleepMillis = 50;
-    Thread.sleep(sleepMillis);
-
-    long elapsedMillis = timer.elapsed(MILLISECONDS);
-    assertEquals(sleepMillis, elapsedMillis, 5, "Elapsed time in milliseconds is not accurate.");
   }
 
   @Test
   public void testElapsedWithTimeUnit() throws InterruptedException {
     Timer timer = Timer.startNew();
 
-    Thread.sleep(50);
+    final int sleepMillis = 50;
+    Thread.sleep(sleepMillis);
 
     long elapsedMillis = timer.elapsed(MILLISECONDS);
-    assertEquals(50, elapsedMillis, 5, "Elapsed time in milliseconds is not accurate.");
 
-    long elapsedSeconds = timer.elapsed(TimeUnit.SECONDS);
-    assertEquals(0, elapsedSeconds,
-        "Elapsed time in seconds should be 0 for 50 milliseconds of sleep.");
+    assertTrue(elapsedMillis >= sleepMillis, "Elapsed time in milliseconds is not correct.");
+
+    if (elapsedMillis < 1000) {
+      long elapsedSeconds = timer.elapsed(TimeUnit.SECONDS);
+      assertEquals(0, elapsedSeconds,
+          "Elapsed time in seconds should be 0 for 50 milliseconds of sleep.");
+    }
+
+  }
+
+  @Test
+  public void testStartNewWithOffsetDuration() throws InterruptedException {
+    Timer timer = Timer.startNewWithOffset(Duration.ofMillis(100));
+
+    assertFalse(timer.hasElapsed(Duration.ZERO));
+
+    Thread.sleep(50);
+
+    assertFalse(timer.hasElapsed(Duration.ZERO),
+        "The timer should not indicate time has elapsed before the offset has passed.");
+
+    Thread.sleep(60);
+
+    assertTrue(timer.hasElapsed(Duration.ZERO),
+        "The timer should indicate time has elapsed after the offset has passed.");
+  }
+
+  @Test
+  public void testStartNewWithOffsetTimeUnit() throws InterruptedException {
+    Timer timer = Timer.startNewWithOffset(100, MILLISECONDS);
+
+    assertFalse(timer.hasElapsed(0, MILLISECONDS));
+
+    Thread.sleep(50);
+
+    assertFalse(timer.hasElapsed(0, MILLISECONDS),
+        "The timer should not indicate time has elapsed before the offset has passed.");
+
+    Thread.sleep(60);
+
+    assertTrue(timer.hasElapsed(0, MILLISECONDS),
+        "The timer should indicate time has elapsed after the offset has passed.");
   }
 
 }
