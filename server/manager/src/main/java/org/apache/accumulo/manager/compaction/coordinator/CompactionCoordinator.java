@@ -27,6 +27,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.rpc.grpc.ThriftProtobufUtil.convert;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -43,6 +44,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
@@ -59,21 +61,13 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
-import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
-import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -95,15 +89,9 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metadata.schema.filters.HasExternalCompactionsFilter;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
-import org.apache.accumulo.core.tabletserver.thrift.InputFile;
-import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
@@ -113,6 +101,25 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.grpc.compaction.protobuf.CancelRequest;
+import org.apache.accumulo.grpc.compaction.protobuf.CompactionCompletedRequest;
+import org.apache.accumulo.grpc.compaction.protobuf.CompactionCoordinatorServiceGrpc;
+import org.apache.accumulo.grpc.compaction.protobuf.CompactionFailedRequest;
+import org.apache.accumulo.grpc.compaction.protobuf.CompactionJobRequest;
+import org.apache.accumulo.grpc.compaction.protobuf.GetCompletedCompactionsRequest;
+import org.apache.accumulo.grpc.compaction.protobuf.GetRunningCompactionsRequest;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionKind;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionState;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionStatusUpdate;
+import org.apache.accumulo.grpc.compaction.protobuf.PCredentials;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompaction;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionJob;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionList;
+import org.apache.accumulo.grpc.compaction.protobuf.PInputFile;
+import org.apache.accumulo.grpc.compaction.protobuf.PIteratorConfig;
+import org.apache.accumulo.grpc.compaction.protobuf.PNextCompactionJob;
+import org.apache.accumulo.grpc.compaction.protobuf.ProtoTInfo;
+import org.apache.accumulo.grpc.compaction.protobuf.UpdateCompactionStatusRequest;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CommitCompaction;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CompactionCommitData;
@@ -127,7 +134,6 @@ import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,12 +146,15 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
+import com.google.protobuf.Empty;
 
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
-public class CompactionCoordinator
-    implements CompactionCoordinatorService.Iface, Runnable, MetricsProducer {
+public class CompactionCoordinator implements Runnable, MetricsProducer {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
 
@@ -185,6 +194,8 @@ public class CompactionCoordinator
 
   private final LoadingCache<String,Integer> compactorCounts;
   private final int jobQueueInitialSize;
+
+  private final GrpcCompactionCoordinatorService grpcService;
 
   public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
       AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances, Manager manager) {
@@ -228,6 +239,8 @@ public class CompactionCoordinator
     compactorCounts = ctx.getCaches().createNewBuilder(CacheName.COMPACTOR_COUNTS, false)
         .expireAfterWrite(30, TimeUnit.SECONDS).build(this::countCompactors);
     // At this point the manager does not have its lock so no actions should be taken yet
+
+    grpcService = new GrpcCompactionCoordinatorService();
   }
 
   protected int countCompactors(String groupName) {
@@ -303,9 +316,8 @@ public class CompactionCoordinator
     } else {
       LOG.info("Found {} running external compactions", running.size());
       running.forEach(rc -> {
-        TCompactionStatusUpdate update = new TCompactionStatusUpdate();
-        update.setState(TCompactionState.IN_PROGRESS);
-        update.setMessage(RESTART_UPDATE_MSG);
+        PCompactionStatusUpdate update = PCompactionStatusUpdate.newBuilder()
+            .setState(PCompactionState.IN_PROGRESS).setMessage(RESTART_UPDATE_MSG).build();
         rc.addUpdate(System.currentTimeMillis(), update);
         RUNNING_CACHE.put(ExternalCompactionId.of(rc.getJob().getExternalCompactionId()), rc);
       });
@@ -364,21 +376,12 @@ public class CompactionCoordinator
     return RUNNING_CACHE.size();
   }
 
-  /**
-   * Return the next compaction job from the queue to a Compactor
-   *
-   * @param groupName group
-   * @param compactorAddress compactor address
-   * @throws ThriftSecurityException when permission error
-   * @return compaction job
-   */
-  @Override
-  public TNextCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
-      String groupName, String compactorAddress, String externalCompactionId)
-      throws ThriftSecurityException {
+  public CompletableFuture<PNextCompactionJob> getAsyncCompactionJob(ProtoTInfo ptinfo,
+      PCredentials credentials, String groupName, String compactorAddress,
+      String externalCompactionId) throws ThriftSecurityException {
 
     // do not expect users to call this directly, expect compactors to call this method
-    if (!security.canPerformSystemActions(credentials)) {
+    if (!security.canPerformSystemActions(convert(credentials))) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
@@ -386,12 +389,8 @@ public class CompactionCoordinator
     LOG.trace("getCompactionJob called for group {} by compactor {}", groupId, compactorAddress);
     TIME_COMPACTOR_LAST_CHECKED.put(groupId, System.currentTimeMillis());
 
-    TExternalCompactionJob result = null;
-
-    CompactionJobQueues.MetaJob metaJob = jobQueues.poll(groupId);
-
-    while (metaJob != null) {
-
+    return jobQueues.getAsync(groupId).thenApply(metaJob -> {
+      LOG.trace("Next metaJob is ready {}", metaJob.getJob());
       Optional<CompactionConfig> compactionConfig = getCompactionConfig(metaJob);
 
       // this method may reread the metadata, do not use the metadata in metaJob for anything after
@@ -408,34 +407,26 @@ public class CompactionCoordinator
         ecm = reserveCompaction(metaJob, compactorAddress, cid);
       }
 
+      final PExternalCompactionJob result;
       if (ecm != null) {
-        result = createThriftJob(externalCompactionId, ecm, metaJob, compactionConfig);
+        result = createRpcJob(externalCompactionId, ecm, metaJob, compactionConfig);
         // It is possible that by the time this added that the the compactor that made this request
         // is dead. In this cases the compaction is not actually running.
         RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
             new RunningCompaction(result, compactorAddress, groupName));
         TabletLogger.compacting(metaJob.getTabletMetadata(), cid, compactorAddress,
             metaJob.getJob());
-        break;
+        LOG.info("Found job {}", result.getExternalCompactionId());
       } else {
-        LOG.debug(
-            "Unable to reserve compaction job for {}, pulling another off the queue for group {}",
-            metaJob.getTabletMetadata().getExtent(), groupName);
-        metaJob = jobQueues.poll(CompactorGroupId.of(groupName));
+        LOG.debug("Unable to reserve compaction job for {} {}, returning empty job to compactor {}",
+            groupName, metaJob.getTabletMetadata().getExtent(), compactorAddress);
+        result = PExternalCompactionJob.newBuilder().build();
       }
-    }
 
-    if (metaJob == null) {
-      LOG.debug("No jobs found in group {} ", groupName);
-    }
+      return PNextCompactionJob.newBuilder().setJob(result)
+          .setCompactorCount(compactorCounts.get(groupName)).build();
+    });
 
-    if (result == null) {
-      LOG.trace("No jobs found for group {}, returning empty job to compactor {}", groupName,
-          compactorAddress);
-      result = new TExternalCompactionJob();
-    }
-
-    return new TNextCompactionJob(result, compactorCounts.get(groupName));
   }
 
   @VisibleForTesting
@@ -618,9 +609,8 @@ public class CompactionCoordinator
     return null;
   }
 
-  protected TExternalCompactionJob createThriftJob(String externalCompactionId,
-      CompactionMetadata ecm, CompactionJobQueues.MetaJob metaJob,
-      Optional<CompactionConfig> compactionConfig) {
+  protected PExternalCompactionJob createRpcJob(String externalCompactionId, CompactionMetadata ecm,
+      CompactionJobQueues.MetaJob metaJob, Optional<CompactionConfig> compactionConfig) {
 
     Set<CompactableFile> selectedFiles;
     if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
@@ -635,13 +625,14 @@ public class CompactionCoordinator
     Map<String,String> overrides = CompactionPluginUtils.computeOverrides(compactionConfig, ctx,
         metaJob.getTabletMetadata().getExtent(), metaJob.getJob().getFiles(), selectedFiles);
 
-    IteratorConfig iteratorSettings = SystemIteratorUtil
+    PIteratorConfig iteratorSettings = SystemIteratorUtil
         .toIteratorConfig(compactionConfig.map(CompactionConfig::getIterators).orElse(List.of()));
 
     var files = ecm.getJobFiles().stream().map(storedTabletFile -> {
       var dfv = metaJob.getTabletMetadata().getFilesMap().get(storedTabletFile);
-      return new InputFile(storedTabletFile.getMetadata(), dfv.getSize(), dfv.getNumEntries(),
-          dfv.getTime());
+      return PInputFile.newBuilder().setMetadataFileEntry(storedTabletFile.getMetadata())
+          .setSize(dfv.getSize()).setEntries(dfv.getNumEntries()).setTimestamp(dfv.getTime())
+          .build();
     }).collect(toList());
 
     // The fateId here corresponds to the Fate transaction that is driving a user initiated
@@ -653,11 +644,30 @@ public class CompactionCoordinator
       fateId = metaJob.getTabletMetadata().getSelectedFiles().getFateId();
     }
 
-    return new TExternalCompactionJob(externalCompactionId,
-        metaJob.getTabletMetadata().getExtent().toThrift(), files, iteratorSettings,
-        ecm.getCompactTmpName().getNormalizedPathStr(), ecm.getPropagateDeletes(),
-        TCompactionKind.valueOf(ecm.getKind().name()), fateId == null ? null : fateId.toThrift(),
-        overrides);
+    PExternalCompactionJob.Builder builder =
+        PExternalCompactionJob.newBuilder().setExternalCompactionId(externalCompactionId)
+            .setExtent(metaJob.getTabletMetadata().getExtent().toProtobuf()).addAllFiles(files)
+            .setIteratorSettings(iteratorSettings)
+            .setOutputFile(ecm.getCompactTmpName().getNormalizedPathStr())
+            .setPropagateDeletes(ecm.getPropagateDeletes()).setKind(convertKind(ecm.getKind()))
+            .putAllOverrides(overrides);
+
+    if (fateId != null) {
+      builder.setFateId(convert(fateId.toThrift()));
+    }
+
+    return builder.build();
+  }
+
+  protected static PCompactionKind convertKind(CompactionKind kind) {
+    switch (kind) {
+      case SYSTEM:
+        return PCompactionKind.SYSTEM;
+      case USER:
+        return PCompactionKind.USER;
+      default:
+        throw new IllegalArgumentException("Unexpected TCompactionKind: " + kind);
+    }
   }
 
   @Override
@@ -676,10 +686,6 @@ public class CompactionCoordinator
     jobQueues.add(tabletMetadata, jobs);
   }
 
-  public CompactionCoordinatorService.Iface getThriftService() {
-    return this;
-  }
-
   private Optional<CompactionConfig> getCompactionConfig(CompactionJobQueues.MetaJob metaJob) {
     if (metaJob.getJob().getKind() == CompactionKind.USER
         && metaJob.getTabletMetadata().getSelectedFiles() != null) {
@@ -688,111 +694,6 @@ public class CompactionCoordinator
       return Optional.ofNullable(cconf);
     }
     return Optional.empty();
-  }
-
-  /**
-   * Compactors calls this method when they have finished a compaction. This method does the
-   * following.
-   *
-   * <ol>
-   * <li>Reads the tablets metadata and determines if the compaction can commit. Its possible that
-   * things changed while the compaction was running and it can no longer commit.</li>
-   * <li>Commit the compaction using a conditional mutation. If the tablets files or location
-   * changed since reading the tablets metadata, then conditional mutation will fail. When this
-   * happens it will reread the metadata and go back to step 1 conceptually. When committing a
-   * compaction the compacted files are removed and scan entries are added to the tablet in case the
-   * files are in use, this prevents GC from deleting the files between updating tablet metadata and
-   * refreshing the tablet. The scan entries are only added when a tablet has a location.</li>
-   * <li>After successful commit a refresh request is sent to the tablet if it has a location. This
-   * will cause the tablet to start using the newly compacted files for future scans. Also the
-   * tablet can delete the scan entries if there are no active scans using them.</li>
-   * </ol>
-   *
-   * <p>
-   * User compactions will be refreshed as part of the fate operation. The user compaction fate
-   * operation will see the compaction was committed after this code updates the tablet metadata,
-   * however if it were to rely on this code to do the refresh it would not be able to know when the
-   * refresh was actually done. Therefore, user compactions will refresh as part of the fate
-   * operation so that it's known to be done before the fate operation returns. Since the fate
-   * operation will do it, there is no need to do it here for user compactions.
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @param externalCompactionId compaction id
-   * @param textent tablet extent
-   * @param stats compaction stats
-   * @throws ThriftSecurityException when permission error
-   */
-  @Override
-  public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
-      throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    // maybe fate has not started yet
-    var localFates = fateInstances.get();
-    while (localFates == null) {
-      UtilWaitThread.sleep(100);
-      if (shutdown.getCount() == 0) {
-        return;
-      }
-      localFates = fateInstances.get();
-    }
-
-    var extent = KeyExtent.fromThrift(textent);
-    var localFate = localFates.get(FateInstanceType.fromTableId(extent.tableId()));
-
-    LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
-        extent);
-    final var ecid = ExternalCompactionId.of(externalCompactionId);
-
-    var tabletMeta =
-        ctx.getAmple().readTablet(extent, ECOMP, SELECTED, LOCATION, FILES, COMPACTED, OPID);
-
-    var tableState = manager.getContext().getTableState(extent.tableId());
-    if (tableState != TableState.ONLINE) {
-      // Its important this check is done after the compaction id is set in the metadata table to
-      // avoid race conditions with the client code that waits for tables to go offline. That code
-      // looks for compaction ids in the metadata table after setting the table state. When that
-      // client code sees nothing for a tablet its important that nothing will changes the tablets
-      // files after that point in time which this check ensure.
-      LOG.debug("Not committing compaction {} for {} because of table state {}", ecid, extent,
-          tableState);
-      // cleanup metadata table and files related to the compaction
-      compactionsFailed(Map.of(ecid, extent));
-      return;
-    }
-
-    if (!CommitCompaction.canCommitCompaction(ecid, tabletMeta)) {
-      return;
-    }
-
-    // Start a fate transaction to commit the compaction.
-    CompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
-    var renameOp = new RenameCompactionFile(new CompactionCommitData(ecid, extent, ecm, stats));
-    var txid = localFate.seedTransaction("COMMIT_COMPACTION", FateKey.forCompactionCommit(ecid),
-        renameOp, true, "Commit compaction " + ecid);
-
-    txid.ifPresentOrElse(fateId -> LOG.debug("initiated compaction commit {} {}", ecid, fateId),
-        () -> LOG.debug("compaction commit already initiated for {}", ecid));
-  }
-
-  @Override
-  public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      TKeyExtent extent) throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    KeyExtent fromThriftExtent = KeyExtent.fromThrift(extent);
-    LOG.info("Compaction failed, id: {}, extent: {}", externalCompactionId, fromThriftExtent);
-    final var ecid = ExternalCompactionId.of(externalCompactionId);
-    compactionsFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
   }
 
   void compactionsFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
@@ -896,33 +797,6 @@ public class CompactionCoordinator
     compactions.forEach((k, v) -> recordCompletion(k));
   }
 
-  /**
-   * Compactor calls to update the status of the assigned compaction
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @param externalCompactionId compaction id
-   * @param update compaction status update
-   * @param timestamp timestamp of the message
-   * @throws ThriftSecurityException when permission error
-   */
-  @Override
-  public void updateCompactionStatus(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TCompactionStatusUpdate update, long timestamp)
-      throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}", externalCompactionId,
-        timestamp, update);
-    final RunningCompaction rc = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
-    if (null != rc) {
-      rc.addUpdate(timestamp, update);
-    }
-  }
-
   public void recordCompletion(ExternalCompactionId ecid) {
     var rc = RUNNING_CACHE.remove(ecid);
     if (rc != null) {
@@ -961,82 +835,6 @@ public class CompactionCoordinator
     if (idsToRemove.size() > 0) {
       LOG.debug("Removed stale entries from RUNNING_CACHE : {}", idsToRemove);
     }
-  }
-
-  /**
-   * Return information about running compactions
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @return map of ECID to TExternalCompaction objects
-   * @throws ThriftSecurityException permission error
-   */
-  @Override
-  public TExternalCompactionList getRunningCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    final TExternalCompactionList result = new TExternalCompactionList();
-    RUNNING_CACHE.forEach((ecid, rc) -> {
-      TExternalCompaction trc = new TExternalCompaction();
-      trc.setGroupName(rc.getGroupName());
-      trc.setCompactor(rc.getCompactorAddress());
-      trc.setUpdates(rc.getUpdates());
-      trc.setJob(rc.getJob());
-      result.putToCompactions(ecid.canonical(), trc);
-    });
-    return result;
-  }
-
-  /**
-   * Return information about recently completed compactions
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @return map of ECID to TExternalCompaction objects
-   * @throws ThriftSecurityException permission error
-   */
-  @Override
-  public TExternalCompactionList getCompletedCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    final TExternalCompactionList result = new TExternalCompactionList();
-    completed.asMap().forEach((ecid, rc) -> {
-      TExternalCompaction trc = new TExternalCompaction();
-      trc.setGroupName(rc.getGroupName());
-      trc.setCompactor(rc.getCompactorAddress());
-      trc.setJob(rc.getJob());
-      trc.setUpdates(rc.getUpdates());
-      result.putToCompactions(ecid.canonical(), trc);
-    });
-    return result;
-  }
-
-  @Override
-  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
-    var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
-    var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
-    try {
-      NamespaceId nsId = this.ctx.getNamespaceId(extent.tableId());
-      if (!security.canCompact(credentials, extent.tableId(), nsId)) {
-        throw new AccumuloSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-      }
-    } catch (TableNotFoundException e) {
-      throw new ThriftTableOperationException(extent.tableId().canonical(), null,
-          TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
-    }
-
-    cancelCompactionOnCompactor(runningCompaction.getCompactorAddress(), externalCompactionId);
   }
 
   /* Method exists to be called from test */
@@ -1137,5 +935,333 @@ public class CompactionCoordinator
     }
 
     return Set.of();
+  }
+
+  public CompactionCoordinatorServiceGrpc.CompactionCoordinatorServiceImplBase getGrpcService() {
+    return new GrpcCompactionCoordinatorService();
+  }
+
+  private class GrpcCompactionCoordinatorService
+      extends CompactionCoordinatorServiceGrpc.CompactionCoordinatorServiceImplBase {
+
+    @Override
+    public void getCompactionJob(CompactionJobRequest request,
+        StreamObserver<PNextCompactionJob> responseObserver) {
+
+      var credentials = request.getCredentials();
+      var ptinfo = request.getPtinfo();
+
+      try {
+        LOG.debug("Received compaction job grpc {}", request.getExternalCompactionId());
+
+        // Get the next job as a future as we need to wait until something is available
+        var result = CompactionCoordinator.this.getAsyncCompactionJob(ptinfo, credentials,
+            request.getGroupName(), request.getCompactor(), request.getExternalCompactionId());
+
+        // Async send back to the compactor when a new job is ready
+        // Need the unused var for errorprone
+        var unused = result.thenAccept(ecj -> {
+          LOG.debug("Received next compaction job {}", ecj);
+          responseObserver.onNext(ecj);
+          responseObserver.onCompleted();
+        }).exceptionally(e -> {
+          LOG.warn("Received exception processing compaction job {}", e.getMessage());
+          LOG.debug(e.getMessage(), e);
+          responseObserver.onError(new StatusRuntimeException(Status.INTERNAL));
+          return null;
+        });
+
+      } catch (ThriftSecurityException e) {
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
+    }
+
+    /**
+     * Compactors calls this method when they have finished a compaction. This method does the
+     * following.
+     *
+     * <ol>
+     * <li>Reads the tablets metadata and determines if the compaction can commit. Its possible that
+     * things changed while the compaction was running and it can no longer commit.</li>
+     * <li>Commit the compaction using a conditional mutation. If the tablets files or location
+     * changed since reading the tablets metadata, then conditional mutation will fail. When this
+     * happens it will reread the metadata and go back to step 1 conceptually. When committing a
+     * compaction the compacted files are removed and scan entries are added to the tablet in case
+     * the files are in use, this prevents GC from deleting the files between updating tablet
+     * metadata and refreshing the tablet. The scan entries are only added when a tablet has a
+     * location.</li>
+     * <li>After successful commit a refresh request is sent to the tablet if it has a location.
+     * This will cause the tablet to start using the newly compacted files for future scans. Also
+     * the tablet can delete the scan entries if there are no active scans using them.</li>
+     * </ol>
+     *
+     * <p>
+     * User compactions will be refreshed as part of the fate operation. The user compaction fate
+     * operation will see the compaction was committed after this code updates the tablet metadata,
+     * however if it were to rely on this code to do the refresh it would not be able to know when
+     * the refresh was actually done. Therefore, user compactions will refresh as part of the fate
+     * operation so that it's known to be done before the fate operation returns. Since the fate
+     * operation will do it, there is no need to do it here for user compactions.
+     *
+     * @param request CompactionCompletedRequest
+     */
+    @Override
+    public void compactionCompleted(CompactionCompletedRequest request,
+        StreamObserver<Empty> responseObserver) {
+
+      // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // getCompactionJob() ?
+
+      var credentials = convert(request.getCredentials());
+
+      try {
+        // do not expect users to call this directly, expect other tservers to call this method
+        if (!security.canPerformSystemActions(credentials)) {
+          throw new AccumuloSecurityException(credentials.getPrincipal(),
+              SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+        }
+
+        // maybe fate has not started yet
+        var localFates = fateInstances.get();
+        while (localFates == null) {
+          UtilWaitThread.sleep(100);
+          if (shutdown.getCount() == 0) {
+            return;
+          }
+          localFates = fateInstances.get();
+        }
+
+        var extent = KeyExtent.fromProtobuf(request.getExtent());
+        var localFate = localFates.get(FateInstanceType.fromTableId(extent.tableId()));
+
+        LOG.info("Compaction completed, id: {}, stats: {}, extent: {}",
+            request.getExternalCompactionId(), request.getStats(), extent);
+        final var ecid = ExternalCompactionId.of(request.getExternalCompactionId());
+
+        var tabletMeta =
+            ctx.getAmple().readTablet(extent, ECOMP, SELECTED, LOCATION, FILES, COMPACTED, OPID);
+
+        var tableState = manager.getContext().getTableState(extent.tableId());
+        if (tableState != TableState.ONLINE) {
+          // Its important this check is done after the compaction id is set in the metadata table
+          // to avoid race conditions with the client code that waits for tables to go offline.
+          // That codelooks for compaction ids in the metadata table after setting the table
+          // state. When that client code sees nothing for a tablet its important that nothing
+          // will change the tablets files after that point in time which this check ensure.
+          LOG.debug("Not committing compaction {} for {} because of table state {}", ecid, extent,
+              tableState);
+          // cleanup metadata table and files related to the compaction
+          compactionsFailed(Map.of(ecid, extent));
+          return;
+        }
+
+        if (!CommitCompaction.canCommitCompaction(ecid, tabletMeta)) {
+          return;
+        }
+
+        // Start a fate transaction to commit the compaction.
+        CompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
+        var renameOp = new RenameCompactionFile(
+            new CompactionCommitData(ecid, extent, ecm, request.getStats()));
+        var txid = localFate.seedTransaction("COMMIT_COMPACTION", FateKey.forCompactionCommit(ecid),
+            renameOp, true, "Commit compaction " + ecid);
+
+        txid.ifPresentOrElse(fateId -> LOG.debug("initiated compaction commit {} {}", ecid, fateId),
+            () -> LOG.debug("compaction commit already initiated for {}", ecid));
+
+        responseObserver.onNext(Empty.getDefaultInstance());
+        responseObserver.onCompleted();
+      } catch (ThriftSecurityException e) {
+        responseObserver.onError(e);
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        responseObserver.onError(e);
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
+    }
+
+    @Override
+    public void updateCompactionStatus(UpdateCompactionStatusRequest request,
+        StreamObserver<Empty> responseObserver) {
+
+      // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // getCompactionJob() ?
+
+      var credentials = convert(request.getCredentials());
+
+      try {
+        // do not expect users to call this directly, expect other tservers to call this method
+        if (!security.canPerformSystemActions(credentials)) {
+          throw new AccumuloSecurityException(credentials.getPrincipal(),
+              SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+        }
+        LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}",
+            request.getExternalCompactionId(), request.getTimestamp(), request.getStatus());
+        final RunningCompaction rc =
+            RUNNING_CACHE.get(ExternalCompactionId.of(request.getExternalCompactionId()));
+        if (null != rc) {
+          rc.addUpdate(request.getTimestamp(), request.getStatus());
+        }
+        responseObserver.onNext(Empty.getDefaultInstance());
+        responseObserver.onCompleted();
+      } catch (ThriftSecurityException e) {
+        responseObserver.onError(e);
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        responseObserver.onError(e);
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
+    }
+
+    @Override
+    public void compactionFailed(CompactionFailedRequest request,
+        StreamObserver<Empty> responseObserver) {
+
+      // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // getCompactionJob() ?
+
+      var credentials = convert(request.getCredentials());
+
+      try {
+        // do not expect users to call this directly, expect other tservers to call this method
+        if (!security.canPerformSystemActions(credentials)) {
+          throw new AccumuloSecurityException(credentials.getPrincipal(),
+              SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+        }
+        KeyExtent extent = KeyExtent.fromProtobuf(request.getExtent());
+        LOG.info("Compaction failed, id: {}, extent: {}", request.getExternalCompactionId(),
+            extent);
+        final var ecid = ExternalCompactionId.of(request.getExternalCompactionId());
+        compactionsFailed(Map.of(ecid, extent));
+
+        responseObserver.onNext(Empty.getDefaultInstance());
+        responseObserver.onCompleted();
+      } catch (ThriftSecurityException e) {
+        responseObserver.onError(e);
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        responseObserver.onError(e);
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
+    }
+
+    @Override
+    public void getRunningCompactions(GetRunningCompactionsRequest request,
+        StreamObserver<PExternalCompactionList> responseObserver) {
+
+      // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // getCompactionJob() ?
+
+      var credentials = convert(request.getCredentials());
+
+      try {
+        // do not expect users to call this directly, expect other tservers to call this method
+        if (!security.canPerformSystemActions(credentials)) {
+          throw new AccumuloSecurityException(credentials.getPrincipal(),
+              SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+        }
+
+        final PExternalCompactionList.Builder resultBuilder = PExternalCompactionList.newBuilder();
+        RUNNING_CACHE.forEach((ecid, rc) -> {
+          PExternalCompaction prc = PExternalCompaction.newBuilder().setGroupName(rc.getGroupName())
+              .setCompactor(rc.getCompactorAddress()).setJob(rc.getJob())
+              .putAllUpdates(rc.getUpdates()).build();
+
+          LOG.info("Running compaction: {}", prc);
+          resultBuilder.putCompactions(ecid.canonical(), prc);
+        });
+        responseObserver.onNext(resultBuilder.build());
+        responseObserver.onCompleted();
+      } catch (ThriftSecurityException e) {
+        responseObserver.onError(e);
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        responseObserver.onError(e);
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
+    }
+
+    /**
+     * Return information about recently completed compactions
+     *
+     */
+    @Override
+    public void getCompletedCompactions(GetCompletedCompactionsRequest request,
+        StreamObserver<PExternalCompactionList> responseObserver) {
+
+      // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // getCompactionJob() ?
+
+      var credentials = convert(request.getCredentials());
+
+      try {
+        // do not expect users to call this directly, expect other tservers to call this method
+        if (!security.canPerformSystemActions(credentials)) {
+          throw new AccumuloSecurityException(credentials.getPrincipal(),
+              SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+        }
+        final PExternalCompactionList.Builder resultBuilder = PExternalCompactionList.newBuilder();
+
+        completed.asMap().forEach((ecid, rc) -> {
+          PExternalCompaction prc = PExternalCompaction.newBuilder().setGroupName(rc.getGroupName())
+              .setCompactor(rc.getCompactorAddress()).setJob(rc.getJob())
+              .putAllUpdates(rc.getUpdates()).build();
+          resultBuilder.putCompactions(ecid.canonical(), prc);
+        });
+        responseObserver.onNext(resultBuilder.build());
+        responseObserver.onCompleted();
+      } catch (ThriftSecurityException e) {
+        responseObserver.onError(e);
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        responseObserver.onError(e);
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
+    }
+
+    @Override
+    public void cancel(CancelRequest request, StreamObserver<Empty> responseObserver) {
+      // TODO: Do we want to offload this processing to a new thread like we plan to do with
+      // getCompactionJob() ?
+
+      var credentials = convert(request.getCredentials());
+
+      try {
+        var runningCompaction =
+            RUNNING_CACHE.get(ExternalCompactionId.of(request.getExternalCompactionId()));
+        var extent = KeyExtent.fromProtobuf(runningCompaction.getJob().getExtent());
+        try {
+          NamespaceId nsId = CompactionCoordinator.this.ctx.getNamespaceId(extent.tableId());
+          if (!security.canCompact(credentials, extent.tableId(), nsId)) {
+            throw new AccumuloSecurityException(credentials.getPrincipal(),
+                SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+          }
+        } catch (TableNotFoundException e) {
+          throw new ThriftTableOperationException(extent.tableId().canonical(), null,
+              TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
+        }
+
+        cancelCompactionOnCompactor(runningCompaction.getCompactorAddress(),
+            request.getExternalCompactionId());
+
+        responseObserver.onNext(Empty.getDefaultInstance());
+        responseObserver.onCompleted();
+      } catch (ThriftSecurityException | ThriftTableOperationException e) {
+        responseObserver.onError(e);
+        throw new RuntimeException(e);
+      } catch (Exception e) {
+        responseObserver.onError(e);
+        LOG.error(e.getMessage(), e);
+        throw e;
+      }
+    }
   }
 }

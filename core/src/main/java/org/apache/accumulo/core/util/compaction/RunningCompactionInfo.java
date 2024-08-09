@@ -24,9 +24,9 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionStatusUpdate;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,26 +49,26 @@ public class RunningCompactionInfo {
    * Info parsed about the external running compaction. Calculate the progress, which is defined as
    * the percentage of bytesRead / bytesToBeCompacted of the last update.
    */
-  public RunningCompactionInfo(TExternalCompaction ec) {
-    requireNonNull(ec, "Thrift external compaction is null.");
-    var updates = requireNonNull(ec.getUpdates(), "Missing Thrift external compaction updates");
+  public RunningCompactionInfo(PExternalCompaction ec) {
+    requireNonNull(ec, "Protobuf external compaction is null.");
+    var updates = requireNonNull(ec.getUpdatesMap(), "Missing Thrift external compaction updates");
     var job = requireNonNull(ec.getJob(), "Thrift external compaction job is null");
 
     server = ec.getCompactor();
     queueName = ec.getGroupName();
     ecid = job.getExternalCompactionId();
     kind = job.getKind().name();
-    tableId = KeyExtent.fromThrift(job.getExtent()).tableId().canonical();
-    numFiles = job.getFiles().size();
+    tableId = KeyExtent.fromProtobuf(job.getExtent()).tableId().canonical();
+    numFiles = job.getFilesList().size();
 
     // parse the updates map
     long nowMillis = System.currentTimeMillis();
     float percent = 0f;
     long updateMillis;
-    TCompactionStatusUpdate last;
+    PCompactionStatusUpdate last;
 
     // sort updates by key, which is a timestamp
-    TreeMap<Long,TCompactionStatusUpdate> sorted = new TreeMap<>(updates);
+    TreeMap<Long,PCompactionStatusUpdate> sorted = new TreeMap<>(updates);
     var lastEntry = sorted.lastEntry();
 
     // last entry is all we care about so bail if null
@@ -103,7 +103,7 @@ public class RunningCompactionInfo {
     if (updates.isEmpty()) {
       status = "na";
     } else {
-      status = last.state.name();
+      status = last.getState().name();
     }
     log.debug("Parsed running compaction {} for {} with progress = {}%", status, ecid, progress);
     if (sinceLastUpdateSeconds > 30) {

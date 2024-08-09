@@ -84,6 +84,7 @@
     <module>hadoop-mapreduce</module>
     <module>iterator-test-harness</module>
     <module>minicluster</module>
+    <module>rpc/grpc</module>
     <module>server/base</module>
     <module>server/compactor</module>
     <module>server/gc</module>
@@ -162,6 +163,13 @@
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
         <version>2.16.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>1.65.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -290,6 +298,11 @@
         <version>33.0.0-jre</version>
       </dependency>
       <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>3.25.3</version>
+      </dependency>
+      <dependency>
         <groupId>com.lmax</groupId>
         <artifactId>disruptor</artifactId>
         <!-- log4j doesn't support 4 yet; see https://github.com/apache/logging-log4j2/issues/1829 -->
@@ -333,6 +346,11 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-gc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-grpc</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -839,6 +857,7 @@
             <configFile>${rootlocation}/src/build/eclipse-codestyle.xml</configFile>
             <excludes>
               <exclude>**/thrift/*.java</exclude>
+              <exclude>**/protobuf/*.java</exclude>
             </excludes>
             <lineEnding>LF</lineEnding>
             <skipCssFormatting>true</skipCssFormatting>
@@ -878,6 +897,7 @@
             <groups>java.,javax.,jakarta.,org.,com.</groups>
             <excludes>
               <exclude>**/thrift/*.java</exclude>
+              <exclude>**/protobuf/*.java</exclude>
             </excludes>
           </configuration>
         </plugin>
@@ -931,6 +951,8 @@
                 <!-- ignore log4j dep used for annotations and needed for compile time linting -->
                 <unused>biz.aQute.bnd:biz.aQute.bnd.annotation:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
+                <!-- Used by grpc at runtime -->
+                <undeclared>io.grpc:grpc-netty-shaded:jar:*</undeclared>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
@@ -1103,7 +1125,7 @@
           </checkstyleRules>
           <violationSeverity>warning</violationSeverity>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <excludes>**/thrift/*.java</excludes>
+          <excludes>**/thrift/*.java,**/protobuf/*.java</excludes>
         </configuration>
         <dependencies>
           <dependency>
@@ -1532,6 +1554,36 @@
       </build>
     </profile>
     <profile>
+      <id>add-protobuf-java-source</id>
+      <activation>
+        <file>
+          <exists>src/main/protobuf-gen-java</exists>
+        </file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>add-protobuf-java-source</id>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <phase>generate-sources</phase>
+                <configuration>
+                  <sources>
+                    <source>src/main/protobuf-gen-java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <id>add-spotbugs-excludes</id>
       <activation>
         <file>
@@ -1605,7 +1657,7 @@
                 <arg>-XDcompilePolicy=simple</arg>
                 <arg>
                   -Xplugin:ErrorProne \
-                  -XepExcludedPaths:.*/(thrift|generated-sources|src/test)/.* \
+                  -XepExcludedPaths:.*/(thrift|protobuf|generated-sources|src/test)/.* \
                   -XepDisableWarningsInGeneratedCode \
                   -XepDisableAllWarnings \
                   <!-- ERROR patterns to specifically ignore -->

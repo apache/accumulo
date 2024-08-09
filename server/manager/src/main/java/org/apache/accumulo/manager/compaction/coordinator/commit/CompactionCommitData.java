@@ -30,7 +30,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionStats;
 
 public class CompactionCommitData implements Serializable {
   private static final long serialVersionUID = 1L;
@@ -39,10 +39,10 @@ public class CompactionCommitData implements Serializable {
   final String outputTmpPath;
   final String ecid;
   final TKeyExtent textent;
-  final TCompactionStats stats;
+  final PCompactionStats stats;
 
   public CompactionCommitData(ExternalCompactionId ecid, KeyExtent extent, CompactionMetadata ecm,
-      TCompactionStats stats) {
+      PCompactionStats stats) {
     this.ecid = ecid.canonical();
     this.textent = extent.toThrift();
     this.kind = ecm.getKind();

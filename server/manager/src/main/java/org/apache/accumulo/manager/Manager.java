@@ -57,6 +57,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
@@ -133,6 +134,7 @@ import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.grpc.CompactionCoordinatorServiceServer;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.LiveTServersSnapshot;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -215,6 +217,8 @@ public class Manager extends AbstractServer
 
   ServiceLock managerLock = null;
   private TServer clientService = null;
+  private CompactionCoordinatorServiceServer grpcClientService = null;
+
   protected volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
   private final BalancerMetrics balancerMetrics = new BalancerMetrics();
@@ -327,6 +331,7 @@ public class Manager extends AbstractServer
         final var future = getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
           // This frees the main thread and will cause the manager to exit
           clientService.stop();
+          grpcClientService.stop();
           Manager.this.nextEvent.event("stopped event loop");
         }, 100L, 1000L, MILLISECONDS);
         ThreadPools.watchNonCriticalScheduledTask(future);
@@ -1116,8 +1121,8 @@ public class Manager extends AbstractServer
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
 
     ServerAddress sa;
-    var processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler,
-        compactionCoordinator.getThriftService(), haProxy, getContext());
+    var processor =
+        ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
@@ -1128,6 +1133,20 @@ public class Manager extends AbstractServer
     }
     clientService = sa.server;
     log.info("Started Manager client service at {}", sa.address);
+
+    final CompactionCoordinatorServiceServer grpcService;
+    try {
+      // Start up the grpc compaction service
+      // TODO determine property name and default port to use for this, for now just using to
+      // manager.port.grpc.client
+      final IntStream port = getConfiguration().getPortStream(Property.MANAGER_GRPC_CLIENTPORT);
+      grpcService = new CompactionCoordinatorServiceServer(compactionCoordinator.getGrpcService(),
+          port.findFirst().orElseThrow());
+      grpcService.start();
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to start grpc server on host " + getHostname(), e);
+    }
+    grpcClientService = grpcService;
 
     // block until we can obtain the ZK lock for the manager
     ServiceLockData sld;
@@ -1315,6 +1334,7 @@ public class Manager extends AbstractServer
     while (clientService.isServing()) {
       sleepUninterruptibly(500, MILLISECONDS);
     }
+
     log.info("Shutting down fate.");
     getFateRefs().keySet().forEach(type -> fate(type).shutdown(0, MINUTES));
 

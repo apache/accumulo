@@ -45,8 +45,8 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionStats;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.ServerContext;
@@ -157,7 +157,7 @@ public class CommitCompaction extends ManagerRepo {
     return tablet;
   }
 
-  private void updateTabletForCompaction(TCompactionStats stats, ExternalCompactionId ecid,
+  private void updateTabletForCompaction(PCompactionStats stats, ExternalCompactionId ecid,
       TabletMetadata tablet, Optional<ReferencedTabletFile> newDatafile, CompactionMetadata ecm,
       Ample.ConditionalTabletMutator tabletMutator) {
 

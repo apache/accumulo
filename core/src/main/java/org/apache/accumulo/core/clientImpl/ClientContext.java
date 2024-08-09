@@ -102,6 +102,7 @@ import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.grpc.compaction.protobuf.PCredentials;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,7 +141,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<SaslConnectionParams> saslSupplier;
   private final Supplier<SslConnectionParams> sslSupplier;
   private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
-  private TCredentials rpcCreds;
+  private RpcCredentialsHolder rpcCreds;
   private ThriftTransportPool thriftTransportPool;
 
   private volatile boolean closed = false;
@@ -457,13 +458,22 @@ public class ClientContext implements AccumuloClient {
    * Serialize the credentials just before initiating the RPC call
    */
   public synchronized TCredentials rpcCreds() {
+    return getRpcCreds().thrift();
+  }
+
+  public synchronized PCredentials gRpcCreds() {
+    return getRpcCreds().protobuf();
+  }
+
+  private synchronized RpcCredentialsHolder getRpcCreds() {
     ensureOpen();
     if (getCredentials().getToken().isDestroyed()) {
       rpcCreds = null;
     }
 
     if (rpcCreds == null) {
-      rpcCreds = getCredentials().toThrift(getInstanceID());
+      rpcCreds = new RpcCredentialsHolder(() -> getCredentials().toThrift(getInstanceID()),
+          () -> getCredentials().toProtobuf(getInstanceID()));
     }
 
     return rpcCreds;
@@ -1093,4 +1103,23 @@ public class ClientContext implements AccumuloClient {
     return caches;
   }
 
+  private static class RpcCredentialsHolder {
+
+    private final com.google.common.base.Supplier<TCredentials> tCreds;
+    private final com.google.common.base.Supplier<PCredentials> pCreds;
+
+    RpcCredentialsHolder(com.google.common.base.Supplier<TCredentials> tCreds,
+        com.google.common.base.Supplier<PCredentials> pCreds) {
+      this.tCreds = Suppliers.memoize(tCreds);
+      this.pCreds = Suppliers.memoize(pCreds);
+    }
+
+    TCredentials thrift() {
+      return tCreds.get();
+    }
+
+    PCredentials protobuf() {
+      return pCreds.get();
+    }
+  }
 }

@@ -28,6 +28,7 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.wr
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -43,9 +44,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
-import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -56,6 +54,10 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionState;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionStatusUpdate;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompaction;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionList;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
@@ -67,8 +69,6 @@ import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -132,7 +132,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       client.tableOperations().merge(table1, start, end);
 
       confirmCompactionCompleted(getCluster().getServerContext(), ecids,
-          TCompactionState.CANCELLED);
+          PCompactionState.CANCELLED);
 
       // ensure compaction ids were deleted by merge operation from metadata table
       try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
@@ -226,28 +226,27 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
     final Map<ExternalCompactionId,RunningCompactionInfo> results = new HashMap<>();
 
     while (results.isEmpty()) {
-      TExternalCompactionList running = null;
-      while (running == null || running.getCompactions() == null) {
+      PExternalCompactionList running = null;
+      while (running == null || running.getCompactionsMap().isEmpty()) {
         try {
           Optional<HostAndPort> coordinatorHost =
               ExternalCompactionUtil.findCompactionCoordinator(ctx);
           if (coordinatorHost.isEmpty()) {
-            throw new TTransportException(
-                "Unable to get CompactionCoordinator address from ZooKeeper");
+            throw new IOException("Unable to get CompactionCoordinator address from ZooKeeper");
           }
           running = getRunningCompactions(ctx, coordinatorHost);
-        } catch (TException t) {
+        } catch (IOException t) {
           running = null;
           Thread.sleep(2000);
         }
       }
       for (ExternalCompactionId ecid : ecids) {
-        final TExternalCompaction tec = running.getCompactions().get(ecid.canonical());
-        if (tec != null && tec.getUpdatesSize() > 0) {
+        final PExternalCompaction tec = running.getCompactionsMap().get(ecid.canonical());
+        if (tec != null && tec.getUpdatesCount() > 0) {
           // When the coordinator restarts it inserts a message into the updates. If this
           // is the last message, then don't insert this into the results. We want to get
           // an actual update from the Compactor.
-          TreeMap<Long,TCompactionStatusUpdate> sorted = new TreeMap<>(tec.getUpdates());
+          TreeMap<Long,PCompactionStatusUpdate> sorted = new TreeMap<>(tec.getUpdatesMap());
           var lastEntry = sorted.lastEntry();
           if (lastEntry.getValue().getMessage().equals(CompactionCoordinator.RESTART_UPDATE_MSG)) {
             continue;

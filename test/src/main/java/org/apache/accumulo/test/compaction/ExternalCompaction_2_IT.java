@@ -49,7 +49,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -57,6 +56,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.grpc.compaction.protobuf.PCompactionState;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -122,7 +122,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       client.tableOperations().addSplits(table1, splits);
 
       confirmCompactionCompleted(getCluster().getServerContext(), ecids,
-          TCompactionState.CANCELLED);
+          PCompactionState.CANCELLED);
 
       // ensure compaction ids were deleted by split operation from metadata table
       try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
@@ -139,7 +139,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
 
       // Verify that the tmp file are cleaned up
       Wait.waitFor(() -> FindCompactionTmpFiles
-          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 0, 60_000);
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).isEmpty(), 60_000);
     }
   }
 
@@ -192,7 +192,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       assertEquals(TableOperationsImpl.COMPACTION_CANCELED_MSG, e.getMessage());
 
       confirmCompactionCompleted(getCluster().getServerContext(), ecids,
-          TCompactionState.CANCELLED);
+          PCompactionState.CANCELLED);
 
       // ensure the canceled compaction deletes any tablet metadata related to the compaction
       while (countTablets(getCluster().getServerContext(), table1,
@@ -202,7 +202,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
 
       // Verify that the tmp file are cleaned up
       Wait.waitFor(() -> FindCompactionTmpFiles
-          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 0);
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).isEmpty());
     }
   }
 
@@ -236,7 +236,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       client.tableOperations().delete(table1);
 
       confirmCompactionCompleted(getCluster().getServerContext(), ecids,
-          TCompactionState.CANCELLED);
+          PCompactionState.CANCELLED);
 
       // Ensure compaction did not write anything to metadata table after delete table
       try (var scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
@@ -292,7 +292,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
 
       LoggerFactory.getLogger(getClass()).debug("Table deleted.");
 
-      confirmCompactionCompleted(ctx, ecids, TCompactionState.CANCELLED);
+      confirmCompactionCompleted(ctx, ecids, PCompactionState.CANCELLED);
 
       LoggerFactory.getLogger(getClass()).debug("Confirmed compaction cancelled.");
 

@@ -62,12 +62,20 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+    </dependency>
+    <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
     </dependency>
     <dependency>
       <groupId>commons-logging</groupId>
       <artifactId>commons-logging</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-api</artifactId>
     </dependency>
     <dependency>
       <groupId>io.micrometer</groupId>
@@ -84,6 +92,10 @@
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-access</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-grpc</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -136,6 +148,11 @@
     <dependency>
       <groupId>org.yaml</groupId>
       <artifactId>snakeyaml</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-netty-shaded</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -258,12 +275,14 @@
               <excludes>
                 <exclude>.*[.]impl[.].*</exclude>
                 <exclude>.*[.]thrift[.].*</exclude>
+                <exclude>.*[.]protobuf[.].*</exclude>
                 <exclude>org[.]apache[.]accumulo[.]core[.]security[.]crypto[.].*</exclude>
               </excludes>
               <allows>
-                <!--Allow API data types to reference thrift types, but do not
-		     analyze thrift types -->
+                <!--Allow API data types to reference thrift/protobuf types, but do not
+		     analyze thrift/protobuf types -->
                 <allow>org[.]apache[.]accumulo[.].*[.]thrift[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.].*[.]protobuf[.].*</allow>
                 <!--Type from hadoop used in API. If adding a new type from
 		     Hadoop to the Accumulo API ensure its annotated as
 		     stable.-->
@@ -395,6 +414,13 @@
         </executions>
       </plugin>
     </plugins>
+    <extensions>
+      <extension>
+        <groupId>kr.motd.maven</groupId>
+        <artifactId>os-maven-plugin</artifactId>
+        <version>1.7.1</version>
+      </extension>
+    </extensions>
   </build>
   <profiles>
     <profile>

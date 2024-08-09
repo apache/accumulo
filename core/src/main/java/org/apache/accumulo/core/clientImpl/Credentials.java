@@ -30,6 +30,9 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Authe
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.grpc.compaction.protobuf.PCredentials;
+
+import com.google.protobuf.ByteString;
 
 /**
  * A wrapper for internal use. This class carries the instance, principal, and authentication token
@@ -97,6 +100,18 @@ public class Credentials {
           new AccumuloSecurityException(getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED));
     }
     return tCreds;
+  }
+
+  public PCredentials toProtobuf(InstanceId instanceID) {
+    PCredentials pCreds = PCredentials.newBuilder().setPrincipal(getPrincipal())
+        .setTokenClassName(getToken().getClass().getName())
+        .setToken(ByteString.copyFrom(AuthenticationTokenSerializer.serialize(getToken())))
+        .setInstanceId(instanceID.canonical()).build();
+    if (getToken().isDestroyed()) {
+      throw new IllegalStateException("Token has been destroyed",
+          new AccumuloSecurityException(getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED));
+    }
+    return pCreds;
   }
 
   /**

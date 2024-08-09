@@ -54,8 +54,11 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.grpc.compaction.protobuf.PKeyExtent;
 import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
+
+import com.google.protobuf.ByteString;
 
 /**
  * keeps track of information needed to identify a tablet
@@ -126,6 +129,32 @@ public class KeyExtent implements Comparable<KeyExtent> {
     return new TKeyExtent(ByteBuffer.wrap(tableId().canonical().getBytes(UTF_8)),
         endRow() == null ? null : TextUtil.getByteBuffer(endRow()),
         prevEndRow() == null ? null : TextUtil.getByteBuffer(prevEndRow()));
+  }
+
+  /**
+   * Convert to Protobuf form.
+   */
+  public PKeyExtent toProtobuf() {
+    PKeyExtent.Builder builder = PKeyExtent.newBuilder().setTable(tableId().canonical());
+    if (endRow() != null) {
+      builder.setEndRow(ByteString.copyFrom(endRow().getBytes()));
+    }
+    if (prevEndRow() != null) {
+      builder.setPrevEndRow(ByteString.copyFrom(prevEndRow().getBytes()));
+    }
+    return builder.build();
+  }
+
+  /**
+   * Create a KeyExtent from its Protobuf form.
+   *
+   * @param pke the KeyExtent in its Protobuf object form
+   */
+  public static KeyExtent fromProtobuf(PKeyExtent pke) {
+    TableId tableId = TableId.of(pke.getTable());
+    Text endRow = !pke.hasEndRow() ? null : new Text(pke.getEndRow().toByteArray());
+    Text prevEndRow = !pke.hasPrevEndRow() ? null : new Text(pke.getPrevEndRow().toByteArray());
+    return new KeyExtent(tableId, endRow, prevEndRow);
   }
 
   /**

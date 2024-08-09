@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
+import static org.apache.accumulo.core.rpc.grpc.ThriftProtobufUtil.convert;
 import static org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator.canReserveCompaction;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
@@ -30,7 +31,6 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
@@ -42,16 +42,13 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.CompactionConfig;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -77,14 +74,16 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.time.SteadyTime;
+import org.apache.accumulo.grpc.compaction.protobuf.PCredentials;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompaction;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionJob;
+import org.apache.accumulo.grpc.compaction.protobuf.PNextCompactionJob;
+import org.apache.accumulo.grpc.compaction.protobuf.ProtoTInfo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
@@ -160,15 +159,6 @@ public class CompactionCoordinatorTest {
       this.shutdown.countDown();
     }
 
-    @Override
-    public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-        String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
-        throws ThriftSecurityException {}
-
-    @Override
-    public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-        TKeyExtent extent) throws ThriftSecurityException {}
-
     void setMetadataCompactionIds(Set<ExternalCompactionId> mci) {
       metadataCompactionIds = mci;
     }
@@ -217,18 +207,19 @@ public class CompactionCoordinatorTest {
     }
 
     @Override
-    protected TExternalCompactionJob createThriftJob(String externalCompactionId,
+    protected PExternalCompactionJob createRpcJob(String externalCompactionId,
         CompactionMetadata ecm, MetaJob metaJob, Optional<CompactionConfig> compactionConfig) {
-      return new TExternalCompactionJob(externalCompactionId,
-          metaJob.getTabletMetadata().getExtent().toThrift(), List.of(),
-          SystemIteratorUtil.toIteratorConfig(List.of()),
-          ecm.getCompactTmpName().getNormalizedPathStr(), ecm.getPropagateDeletes(),
-          TCompactionKind.valueOf(ecm.getKind().name()),
-          FateId
-              .from(FateInstanceType.fromTableId(metaJob.getTabletMetadata().getExtent().tableId()),
-                  UUID.randomUUID())
-              .toThrift(),
-          Map.of());
+      return PExternalCompactionJob.newBuilder().setExternalCompactionId(externalCompactionId)
+          .setExtent(metaJob.getTabletMetadata().getExtent().toProtobuf())
+          .setIteratorSettings(SystemIteratorUtil.toIteratorConfig(List.of()))
+          .setOutputFile(ecm.getCompactTmpName().getNormalizedPathStr())
+          .setPropagateDeletes(ecm.getPropagateDeletes()).setKind(convertKind(ecm.getKind()))
+          .setFateId(
+              convert(FateId
+                  .from(FateInstanceType.fromTableId(
+                      metaJob.getTabletMetadata().getExtent().tableId()), UUID.randomUUID())
+                  .toThrift()))
+          .build();
     }
 
     @Override
@@ -277,8 +268,8 @@ public class CompactionCoordinatorTest {
 
     List<RunningCompaction> runningCompactions = new ArrayList<>();
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
-    TExternalCompactionJob job = EasyMock.createNiceMock(TExternalCompactionJob.class);
-    expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
+    PExternalCompactionJob job =
+        PExternalCompactionJob.newBuilder().setExternalCompactionId(eci.canonical()).build();
     TKeyExtent extent = new TKeyExtent();
     extent.setTable("1".getBytes());
     runningCompactions.add(new RunningCompaction(job, tserverAddr.toString(), GROUP_ID.toString()));
@@ -289,7 +280,7 @@ public class CompactionCoordinatorTest {
     expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
         .anyTimes();
 
-    EasyMock.replay(context, job, security, manager);
+    EasyMock.replay(context, security, manager);
 
     var coordinator = new TestCoordinator(context, security, runningCompactions, manager);
     coordinator.resetInternals();
@@ -307,7 +298,7 @@ public class CompactionCoordinatorTest {
     assertEquals(GROUP_ID.toString(), rc.getGroupName());
     assertEquals(tserverAddr.toString(), rc.getCompactorAddress());
 
-    EasyMock.verify(context, job, security);
+    EasyMock.verify(context, security);
   }
 
   @Test
@@ -326,10 +317,12 @@ public class CompactionCoordinatorTest {
     expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
 
     TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
+
     expect(context.rpcCreds()).andReturn(creds).anyTimes();
 
     AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
-    expect(security.canPerformSystemActions(creds)).andReturn(true).anyTimes();
+    expect(security.canPerformSystemActions(anyObject(TCredentials.class))).andReturn(true)
+        .anyTimes();
 
     KeyExtent ke = new KeyExtent(TableId.of("2a"), new Text("z"), new Text("b"));
     TabletMetadata tm = EasyMock.createNiceMock(TabletMetadata.class);
@@ -362,12 +355,13 @@ public class CompactionCoordinatorTest {
 
     // Get the next job
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
-    TNextCompactionJob nextJob = coordinator.getCompactionJob(new TInfo(), creds,
-        GROUP_ID.toString(), "localhost:10241", eci.toString());
-    assertEquals(3, nextJob.getCompactorCount());
-    TExternalCompactionJob createdJob = nextJob.getJob();
+    CompletableFuture<PNextCompactionJob> nextJob = coordinator.getAsyncCompactionJob(
+        ProtoTInfo.newBuilder().build(), PCredentials.newBuilder().build(), GROUP_ID.toString(),
+        "localhost:10241", eci.toString());
+    assertEquals(3, nextJob.get().getCompactorCount());
+    PExternalCompactionJob createdJob = nextJob.get().getJob();
     assertEquals(eci.toString(), createdJob.getExternalCompactionId());
-    assertEquals(ke, KeyExtent.fromThrift(createdJob.getExtent()));
+    assertEquals(ke, KeyExtent.fromProtobuf(createdJob.getExtent()));
 
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(1, coordinator.getRunning().size());
@@ -390,7 +384,7 @@ public class CompactionCoordinatorTest {
     TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
 
     AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
-    expect(security.canPerformSystemActions(creds)).andReturn(true);
+    expect(security.canPerformSystemActions(anyObject(TCredentials.class))).andReturn(true);
 
     Manager manager = EasyMock.createNiceMock(Manager.class);
     expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
@@ -399,10 +393,12 @@ public class CompactionCoordinatorTest {
     EasyMock.replay(context, creds, security, manager);
 
     var coordinator = new TestCoordinator(context, security, new ArrayList<>(), manager);
-    TNextCompactionJob nextJob = coordinator.getCompactionJob(TraceUtil.traceInfo(), creds,
-        GROUP_ID.toString(), "localhost:10240", UUID.randomUUID().toString());
-    assertEquals(3, nextJob.getCompactorCount());
-    assertNull(nextJob.getJob().getExternalCompactionId());
+    CompletableFuture<PNextCompactionJob> nextJob = coordinator.getAsyncCompactionJob(
+        TraceUtil.protoTraceInfo(), PCredentials.newBuilder().build(), GROUP_ID.toString(),
+        "localhost:10240", UUID.randomUUID().toString());
+    Thread.sleep(100);
+    // No jobs
+    assertFalse(nextJob.isDone());
 
     EasyMock.verify(context, creds, security);
   }
@@ -430,9 +426,12 @@ public class CompactionCoordinatorTest {
     var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
     var ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
 
-    coordinator.getRunning().put(ecid1, new RunningCompaction(new TExternalCompaction()));
-    coordinator.getRunning().put(ecid2, new RunningCompaction(new TExternalCompaction()));
-    coordinator.getRunning().put(ecid3, new RunningCompaction(new TExternalCompaction()));
+    coordinator.getRunning().put(ecid1,
+        new RunningCompaction(PExternalCompaction.newBuilder().build()));
+    coordinator.getRunning().put(ecid2,
+        new RunningCompaction(PExternalCompaction.newBuilder().build()));
+    coordinator.getRunning().put(ecid3,
+        new RunningCompaction(PExternalCompaction.newBuilder().build()));
 
     coordinator.cleanUpRunning();
 

@@ -1,0 +1,159 @@
+//
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+//
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "org.apache.accumulo.grpc.compaction.protobuf";
+option java_outer_classname = "CompactionCoordinatorServiceProto";
+
+import "google/protobuf/empty.proto";
+import "security.proto";
+import "client.proto";
+import "data.proto";
+import "tabletserver.proto";
+import "manager.proto";
+
+package compaction_coordinator;
+
+// Interface exported by the server.
+service CompactionCoordinatorService {
+  /*
+   * Called by Compactor to get the next compaction job
+   */
+  rpc GetCompactionJob(CompactionJobRequest) returns (PNextCompactionJob);
+
+  /*
+   * Called by Compactor on successful completion of compaction job
+   */
+  rpc CompactionCompleted(CompactionCompletedRequest) returns (google.protobuf.Empty);
+
+  /*
+   * Called by Compactor to update the Coordinator with the state of the compaction
+   */
+  rpc UpdateCompactionStatus(UpdateCompactionStatusRequest) returns (google.protobuf.Empty);
+
+  /*
+   * Called by Compactor on unsuccessful completion of compaction job
+   */
+  rpc CompactionFailed(CompactionFailedRequest) returns (google.protobuf.Empty);
+
+  /*
+   * Called by the Monitor to get progress information
+   */
+  rpc GetRunningCompactions(GetRunningCompactionsRequest) returns (PExternalCompactionList);
+
+  /*
+   * Called by the Monitor to get progress information
+   */
+  rpc GetCompletedCompactions(GetCompletedCompactionsRequest) returns (PExternalCompactionList);
+
+  /*
+   * Called by Compactor on unsuccessful completion of compaction job
+   */
+  rpc Cancel(CancelRequest) returns (google.protobuf.Empty);
+}
+
+message CompactionJobRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+  string groupName = 3;
+  string compactor = 4;
+  string externalCompactionId = 5;
+}
+
+message CompactionCompletedRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+  string externalCompactionId = 3;
+  data.PKeyExtent extent = 4;
+  tabletserver.PCompactionStats stats = 5;
+}
+
+message UpdateCompactionStatusRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+  string externalCompactionId = 3;
+  PCompactionStatusUpdate status = 4;
+  int64  timestamp = 5;
+}
+
+message CompactionFailedRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+  string externalCompactionId = 3;
+  data.PKeyExtent extent = 4;
+}
+
+message GetRunningCompactionsRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+}
+
+message GetCompletedCompactionsRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+}
+
+message CancelRequest {
+  client.ProtoTInfo ptinfo = 1;
+  security.PCredentials credentials = 2;
+  string externalCompactionId = 3;
+}
+
+message PExternalCompaction {
+  string groupName = 1;
+  string compactor = 2;
+  map<int64, PCompactionStatusUpdate> updates = 3;
+  tabletserver.PExternalCompactionJob job = 4;
+
+}
+
+message PExternalCompactionList {
+  map<string, PExternalCompaction> compactions = 1;
+}
+
+message PNextCompactionJob {
+  tabletserver.PExternalCompactionJob job = 1;
+  int32 compactorCount = 2;
+}
+
+enum PCompactionState {
+  // Coordinator should set state to ASSIGNED when getCompactionJob is called by Compactor
+  ASSIGNED = 0;
+  // Compactor should set state to STARTED when compaction has successfully begun
+  STARTED = 1;
+  // Compactor can call repeatedly with an updated message to reflect percentage complete
+  IN_PROGRESS = 2;
+  // Compactor should set state to SUCCEEDED when compaction job has successfully finished
+  SUCCEEDED = 3;
+  // Compactor should set state to FAILED when compaction job fails, message should be mandatory
+  FAILED = 4;
+  // Compactor should set state to CANCELLED to acknowledge that it has stopped compacting
+  CANCELLED = 5;
+}
+
+message PCompactionStatusUpdate {
+  PCompactionState state = 1;
+  string message = 2;
+  int64 entriesToBeCompacted = 3;
+  int64 entriesRead = 4;
+  int64 entriesWritten = 5;
+  int64 compactionAgeNanos = 6;
+}

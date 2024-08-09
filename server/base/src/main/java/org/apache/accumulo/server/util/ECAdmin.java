@@ -18,18 +18,20 @@
  */
 package org.apache.accumulo.server.util;
 
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.grpc.GrpcUtil;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
+import org.apache.accumulo.grpc.compaction.protobuf.CancelRequest;
+import org.apache.accumulo.grpc.compaction.protobuf.CompactionCoordinatorServiceGrpc;
+import org.apache.accumulo.grpc.compaction.protobuf.CompactionCoordinatorServiceGrpc.CompactionCoordinatorServiceBlockingStub;
+import org.apache.accumulo.grpc.compaction.protobuf.GetRunningCompactionsRequest;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionList;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -131,16 +133,19 @@ public class ECAdmin implements KeywordExecutable {
   }
 
   private void cancelCompaction(ServerContext context, String ecid) {
-    CompactionCoordinatorService.Client coordinatorClient = null;
+    CompactionCoordinatorServiceBlockingStub coordinatorClient = null;
     ecid = ExternalCompactionId.from(ecid).canonical();
     try {
       coordinatorClient = getCoordinatorClient(context);
-      coordinatorClient.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
+      var ignored =
+          coordinatorClient.cancel(CancelRequest.newBuilder().setPtinfo(TraceUtil.protoTraceInfo())
+              .setCredentials(context.gRpcCreds()).setExternalCompactionId(ecid).build());
       System.out.println("Cancel sent to coordinator for " + ecid);
     } catch (Exception e) {
       throw new IllegalStateException("Exception calling cancel compaction for " + ecid, e);
     } finally {
-      ThriftUtil.returnClient(coordinatorClient, context);
+      // TODO: cleanup if using grpc pooling in future
+      // ThriftUtil.returnClient(coordinatorClient, context);
     }
   }
 
@@ -154,16 +159,17 @@ public class ECAdmin implements KeywordExecutable {
   }
 
   private void runningCompactions(ServerContext context, boolean details) {
-    CompactionCoordinatorService.Client coordinatorClient = null;
-    TExternalCompactionList running;
+    CompactionCoordinatorServiceBlockingStub coordinatorClient = null;
+    PExternalCompactionList running;
     try {
       coordinatorClient = getCoordinatorClient(context);
-      running = coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      running = coordinatorClient.getRunningCompactions(GetRunningCompactionsRequest.newBuilder()
+          .setPtinfo(TraceUtil.protoTraceInfo()).setCredentials(context.gRpcCreds()).build());
       if (running == null) {
         System.out.println("No running compactions found.");
         return;
       }
-      var ecidMap = running.getCompactions();
+      var ecidMap = running.getCompactionsMap();
       if (ecidMap == null) {
         System.out.println("No running compactions found.");
         return;
@@ -172,9 +178,9 @@ public class ECAdmin implements KeywordExecutable {
         if (ec != null) {
           var runningCompaction = new RunningCompaction(ec);
           var addr = runningCompaction.getCompactorAddress();
-          var kind = runningCompaction.getJob().kind;
+          var kind = runningCompaction.getJob().getKind();
           var group = runningCompaction.getGroupName();
-          var ke = KeyExtent.fromThrift(runningCompaction.getJob().extent);
+          var ke = KeyExtent.fromProtobuf(runningCompaction.getJob().getExtent());
           System.out.format("%s %s %s %s TableId: %s\n", ecid, addr, kind, group, ke.tableId());
           if (details) {
             var runningCompactionInfo = new RunningCompactionInfo(ec);
@@ -191,19 +197,24 @@ public class ECAdmin implements KeywordExecutable {
     } catch (Exception e) {
       throw new IllegalStateException("Unable to get running compactions.", e);
     } finally {
-      ThriftUtil.returnClient(coordinatorClient, context);
+      // TODO: clean up if we use pooling with grpc
+      // ThriftUtil.returnClient(coordinatorClient, context);
     }
   }
 
-  private CompactionCoordinatorService.Client getCoordinatorClient(ServerContext context) {
+  private CompactionCoordinatorServiceBlockingStub getCoordinatorClient(ServerContext context) {
     var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
     if (coordinatorHost.isEmpty()) {
       throw new IllegalStateException("Unable to find coordinator. Check that it is running.");
     }
     HostAndPort address = coordinatorHost.orElseThrow();
-    CompactionCoordinatorService.Client coordinatorClient;
+    CompactionCoordinatorServiceBlockingStub coordinatorClient;
     try {
-      coordinatorClient = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, context);
+      // TODO: coordinatorHost contains the Thrift port so right now only host is used.
+      // we eventually need the gRPC port and will need to store than in Zk.
+      // GrpcUtil for now just uses the property in the context for the port
+      coordinatorClient = CompactionCoordinatorServiceGrpc
+          .newBlockingStub(GrpcUtil.getChannel(coordinatorHost.orElseThrow(), context));
     } catch (Exception e) {
       throw new IllegalStateException("Unable to get Compaction coordinator at " + address, e);
     }

@@ -30,32 +30,32 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
-import org.apache.accumulo.core.tabletserver.thrift.TIteratorSetting;
+import org.apache.accumulo.grpc.compaction.protobuf.PIteratorConfig;
+import org.apache.accumulo.grpc.compaction.protobuf.PIteratorSetting;
 
 /**
  * System utility class. Not for client use.
  */
 public class SystemIteratorUtil {
 
-  public static TIteratorSetting toTIteratorSetting(IteratorSetting is) {
-    return new TIteratorSetting(is.getPriority(), is.getName(), is.getIteratorClass(),
-        is.getOptions());
+  public static PIteratorSetting toPIteratorSetting(IteratorSetting is) {
+    return PIteratorSetting.newBuilder().setPriority(is.getPriority()).setName(is.getName())
+        .setIteratorClass(is.getIteratorClass()).putAllProperties(is.getOptions()).build();
   }
 
-  public static IteratorSetting toIteratorSetting(TIteratorSetting tis) {
-    return new IteratorSetting(tis.getPriority(), tis.getName(), tis.getIteratorClass(),
-        tis.getProperties());
+  public static IteratorSetting toIteratorSetting(PIteratorSetting pis) {
+    return new IteratorSetting(pis.getPriority(), pis.getName(), pis.getIteratorClass(),
+        pis.getPropertiesMap());
   }
 
-  public static IteratorConfig toIteratorConfig(List<IteratorSetting> iterators) {
-    ArrayList<TIteratorSetting> tisList = new ArrayList<>();
+  public static PIteratorConfig toIteratorConfig(List<IteratorSetting> iterators) {
+    ArrayList<PIteratorSetting> pisList = new ArrayList<>();
 
     for (IteratorSetting iteratorSetting : iterators) {
-      tisList.add(toTIteratorSetting(iteratorSetting));
+      pisList.add(toPIteratorSetting(iteratorSetting));
     }
 
-    return new IteratorConfig(tisList);
+    return PIteratorConfig.newBuilder().addAllIterators(pisList).build();
   }
 
   public static SortedKeyValueIterator<Key,Value> setupSystemScanIterators(

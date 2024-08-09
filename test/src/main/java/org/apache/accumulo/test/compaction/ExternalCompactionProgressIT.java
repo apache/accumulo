@@ -45,8 +45,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil;
@@ -56,6 +54,8 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompaction;
+import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionList;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
@@ -328,8 +328,8 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
 
-    TExternalCompactionList ecList = getRunningCompactions(ctx, coordinatorHost);
-    Map<String,TExternalCompaction> ecMap = ecList.getCompactions();
+    PExternalCompactionList ecList = getRunningCompactions(ctx, coordinatorHost);
+    Map<String,PExternalCompaction> ecMap = ecList.getCompactionsMap();
     if (ecMap != null) {
       ecMap.forEach((ecid, ec) -> {
         // returns null if it's a new mapping
