@@ -18,7 +18,10 @@
  */
 package org.apache.accumulo.test.fate;
 
+import static org.apache.accumulo.core.client.ConditionalWriter.Status.ACCEPTED;
+import static org.apache.accumulo.core.client.ConditionalWriter.Status.UNKNOWN;
 import static org.apache.accumulo.test.ample.TestAmpleUtil.mockWithAmple;
+import static org.apache.accumulo.test.ample.metadata.ConditionalWriterInterceptor.withStatus;
 import static org.apache.accumulo.test.ample.metadata.TestAmple.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -62,6 +65,7 @@ import org.apache.accumulo.manager.tableOps.split.AllocateDirsAndEnsureOnline;
 import org.apache.accumulo.manager.tableOps.split.FindSplits;
 import org.apache.accumulo.manager.tableOps.split.PreSplit;
 import org.apache.accumulo.manager.tableOps.split.SplitInfo;
+import org.apache.accumulo.test.LargeSplitRowIT;
 import org.apache.accumulo.test.ample.metadata.TestAmple;
 import org.apache.accumulo.test.ample.metadata.TestAmple.TestServerAmpleImpl;
 import org.apache.hadoop.io.Text;
@@ -203,8 +207,9 @@ public class ManagerRepoIT extends SharedMiniClusterBase {
 
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(userTable));
 
-      TestServerAmpleImpl testAmple = (TestServerAmpleImpl) TestAmple
-          .create(getCluster().getServerContext(), Map.of(DataLevel.USER, metadataTable));
+      TestServerAmpleImpl testAmple =
+          (TestServerAmpleImpl) TestAmple.create(getCluster().getServerContext(),
+              Map.of(DataLevel.USER, metadataTable), () -> withStatus(ACCEPTED, UNKNOWN, 1));
       // Prevent UNSPLITTABLE_COLUMN just in case a system split tried to run on the table
       // before we copied it and inserted the column
       testAmple.createMetadataFromExisting(client, tableId,
@@ -240,6 +245,65 @@ public class ManagerRepoIT extends SharedMiniClusterBase {
       // so if the test is updated to test UpdateTablets this can be checked
       assertEquals(metadata,
           testAmple.readTablet(new KeyExtent(tableId, null, null)).getUnSplittable());
+    }
+  }
+
+  /**
+   * The test {@link LargeSplitRowIT#testUnsplittableCleanup()} is similar to this test.
+   */
+  @Test
+  public void testFindSplitsDeleteUnsplittable() throws Exception {
+
+    String[] tableNames = getUniqueNames(2);
+    String metadataTable = tableNames[0];
+    String userTable = tableNames[1];
+
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+      TestAmple.createMetadataTable(client, metadataTable);
+
+      // Create table with a smaller max end row size
+      createUnsplittableTable(client, userTable);
+      populateUnsplittableTable(client, userTable);
+
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(userTable));
+
+      TestServerAmpleImpl testAmple =
+          (TestServerAmpleImpl) TestAmple.create(getCluster().getServerContext(),
+              Map.of(DataLevel.USER, metadataTable), () -> withStatus(ACCEPTED, UNKNOWN, 1));
+      // Prevent UNSPLITTABLE_COLUMN just in case a system split tried to run on the table
+      // before we copied it and inserted the column
+      testAmple.createMetadataFromExisting(client, tableId,
+          not(SplitColumnFamily.UNSPLITTABLE_COLUMN));
+
+      KeyExtent extent = new KeyExtent(tableId, null, null);
+      Manager manager = mockWithAmple(getCluster().getServerContext(), testAmple);
+
+      FindSplits findSplits = new FindSplits(extent);
+      PreSplit preSplit = (PreSplit) findSplits
+          .call(FateId.from(FateInstanceType.USER, UUID.randomUUID()), manager);
+
+      // The table should not need splitting
+      assertNull(preSplit);
+
+      // Verify metadata has unsplittable column
+      var metadata = testAmple.readTablet(new KeyExtent(tableId, null, null)).getUnSplittable();
+      assertNotNull(metadata);
+
+      // Increase the split threshold such that the tablet no longer needs to split. This will also
+      // make the config differ from what is in the unsplittable column.
+      client.tableOperations().setProperty(userTable, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+          "1M");
+
+      findSplits = new FindSplits(extent);
+      preSplit = (PreSplit) findSplits.call(FateId.from(FateInstanceType.USER, UUID.randomUUID()),
+          manager);
+
+      // The table SHOULD not need splitting
+      assertNull(preSplit);
+
+      // The tablet no longer needs to split so the unsplittable column should have been deleted
+      assertNull(testAmple.readTablet(new KeyExtent(tableId, null, null)).getUnSplittable());
     }
   }
 
