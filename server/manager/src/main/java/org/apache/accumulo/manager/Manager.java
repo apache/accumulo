@@ -108,9 +108,9 @@ import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.metrics.BalancerMetrics;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
@@ -1179,10 +1179,10 @@ public class Manager extends AbstractServer
     // wait at least 10 seconds
     final Duration timeToWait =
         Comparators.max(Duration.ofSeconds(10), Duration.ofMillis(rpcTimeout / 3));
-    final NanoTime startTime = NanoTime.now();
+    final Timer startTime = Timer.startNew();
     // Wait for all tasks to complete
     while (!tasks.isEmpty()) {
-      boolean cancel = (startTime.elapsed().compareTo(timeToWait) > 0);
+      boolean cancel = (startTime.hasElapsed(timeToWait));
       Iterator<Future<?>> iter = tasks.iterator();
       while (iter.hasNext()) {
         Future<?> f = iter.next();
