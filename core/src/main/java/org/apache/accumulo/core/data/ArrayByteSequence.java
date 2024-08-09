@@ -28,7 +28,7 @@ import java.util.Objects;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 
 /**
- * An implementation of {@link ByteSequence} that uses a backing byte array.
+ * A mutable implementation of {@link ByteSequence} that uses a backing byte array.
  */
 public class ArrayByteSequence extends ByteSequence implements Serializable {
 
@@ -120,9 +120,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
 
   @Override
   public byte byteAt(int i) {
-
     Objects.checkIndex(i, length);
-
     return data[offset + i];
   }
 
@@ -160,9 +158,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
 
   @Override
   public ByteSequence subSequence(int start, int end) {
-
     Objects.checkFromToIndex(start, end, length);
-
     return new ArrayByteSequence(data, offset + start, end - start);
   }
 
