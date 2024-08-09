@@ -43,8 +43,8 @@ import java.util.Set;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
@@ -64,7 +64,7 @@ public class ZooStore<T> implements TStore<T> {
   private ZooReaderWriter zk;
   private String lastReserved = "";
   private Set<Long> reserved;
-  private Map<Long,NanoTime> deferred;
+  private Map<Long,CountDownTimer> deferred;
   private long statusChangeEvents = 0;
   private int reservationsWaiting = 0;
 
@@ -164,7 +164,7 @@ public class ZooStore<T> implements TStore<T> {
             }
 
             if (deferred.containsKey(tid)) {
-              if (deferred.get(tid).elapsed().compareTo(Duration.ZERO) > 0) {
+              if (deferred.get(tid).timeLeft(MILLISECONDS) == 0) {
                 deferred.remove(tid);
               } else {
                 continue;
@@ -203,9 +203,8 @@ public class ZooStore<T> implements TStore<T> {
             if (deferred.isEmpty()) {
               this.wait(5000);
             } else {
-              var now = NanoTime.now();
               long minWait = deferred.values().stream()
-                  .mapToLong(nanoTime -> nanoTime.subtract(now).toMillis()).min().orElseThrow();
+                  .mapToLong(timer -> timer.timeLeft(MILLISECONDS)).min().orElseThrow();
               if (minWait > 0) {
                 this.wait(Math.min(minWait, 5000));
               }
@@ -285,7 +284,7 @@ public class ZooStore<T> implements TStore<T> {
       }
 
       if (deferTime.compareTo(Duration.ZERO) > 0) {
-        deferred.put(tid, NanoTime.nowPlus(deferTime));
+        deferred.put(tid, CountDownTimer.startNew(deferTime));
       }
 
       this.notifyAll();
