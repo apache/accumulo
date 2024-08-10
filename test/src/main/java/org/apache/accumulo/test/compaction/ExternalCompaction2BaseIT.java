@@ -59,32 +59,28 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
-public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
+public class ExternalCompaction2BaseIT extends SharedMiniClusterBase {
 
-  public static class ExternalCompaction2Config implements MiniClusterConfigurationCallback {
+  static class ExternalCompaction2Config implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
     }
   }
 
-  @BeforeAll
-  public static void beforeTests() throws Exception {
-    startMiniClusterWithConfig(new ExternalCompaction2Config());
-    getCluster().getClusterControl().stop(ServerType.COMPACTOR);
-    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
-        ExternalDoNothingCompactor.class);
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @Test
