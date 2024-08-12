@@ -89,7 +89,8 @@ public class CheckCompactionConfig implements KeywordExecutable {
     };
   }
 
-  public static void validate(AccumuloConfiguration config) throws ReflectiveOperationException, SecurityException, IllegalArgumentException {
+  public static void validate(AccumuloConfiguration config)
+      throws ReflectiveOperationException, SecurityException, IllegalArgumentException {
     var servicesConfig = new CompactionServicesConfig(config);
     ServiceEnvironment senv = createServiceEnvironment(config);
 
@@ -128,9 +129,9 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
 
     log.info("Properties file has passed all checks.");
-    
+
   }
-  
+
   static class Opts extends Help {
     @Parameter(description = "<path> Local path to file containing compaction configuration",
         required = true)
