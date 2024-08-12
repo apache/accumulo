@@ -65,12 +65,12 @@ public class CheckCompactionConfigTest extends WithTestNames {
     String inputString = ("compaction.service.cs1.planner="
         + "org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner \n"
         + "compaction.service.cs1.planner.opts.groups=\\\n"
-        + "[{'group':'small','maxSize':'16M'},{'group':'medium','maxSize':'128M'},\\\n"
-        + "{'group':'large'}] \ncompaction.service.cs2.planner="
+        + "[{'group':'cs1_small','maxSize':'16M'},{'group':'cs1_medium','maxSize':'128M'},\\\n"
+        + "{'group':'cs1_large'}] \ncompaction.service.cs2.planner="
         + "org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner \n"
         + "compaction.service.cs2.planner.opts.groups=\\\n"
-        + "[{'group':'small','maxSize':'16M'},{'group':'medium','maxSize':'128M'},\\\n"
-        + "{'group':'large'}]").replaceAll("'", "\"");
+        + "[{'group':'cs2_small','maxSize':'16M'},{'group':'cs2_medium','maxSize':'128M'},\\\n"
+        + "{'group':'cs2_large'}]").replaceAll("'", "\"");
 
     String filePath = writeToFileAndReturnPath(inputString);
 
@@ -82,15 +82,15 @@ public class CheckCompactionConfigTest extends WithTestNames {
     String inputString = ("compaction.service.cs1.planner="
         + "org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner \n"
         + "compaction.service.cs1.planner.opts.groups=\\\n"
-        + "[{'group':'small','maxSize':'16M'},{'group':'medium','maxSize':'128M'},\\\n"
-        + "{'group':'large'}] \ncompaction.service.cs2.planner="
+        + "[{'group':'cs1_small','maxSize':'16M'},{'group':'cs1_medium','maxSize':'128M'},\\\n"
+        + "{'group':'cs1_large'}] \ncompaction.service.cs2.planner="
         + "org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner \n"
         + "compaction.service.cs2.planner.opts.groups=\\\n"
-        + "[{'group':'small','maxSize':'16M'}, {'group':'medium','maxSize':'128M'},\\\n"
-        + "{'group':'large'}] \ncompaction.service.cs3.planner="
+        + "[{'group':'cs2_small','maxSize':'16M'}, {'group':'cs2_medium','maxSize':'128M'},\\\n"
+        + "{'group':'cs2_large'}] \ncompaction.service.cs3.planner="
         + "org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner \n"
         + "compaction.service.cs3.planner.opts.groups=\\\n"
-        + "[{'group':'small','maxSize':'16M'},{'group':'large'}]").replaceAll("'", "\"");
+        + "[{'group':'cs3_small','maxSize':'16M'},{'group':'cs3_large'}]").replaceAll("'", "\"");
 
     String filePath = writeToFileAndReturnPath(inputString);
     CheckCompactionConfig.main(new String[] {filePath});
@@ -178,4 +178,23 @@ public class CheckCompactionConfigTest extends WithTestNames {
     log.info("Wrote to path: {}\nWith string:\n{}", file.getAbsolutePath(), inputString);
     return file.getAbsolutePath();
   }
+
+  @Test
+  public void testGroupReuse() throws Exception {
+    String inputString = ("compaction.service.cs1.planner="
+        + "org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner \n"
+        + "compaction.service.cs1.planner.opts.groups=\\\n"
+        + "[{'group':'small','maxSize':'16M'},{'group':'medium','maxSize':'128M'},\\\n"
+        + "{'group':'large'}] \ncompaction.service.cs2.planner="
+        + "org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner \n"
+        + "compaction.service.cs2.planner.opts.groups=\\\n"
+        + "[{'group':'small','maxSize':'16M'},{'group':'medium','maxSize':'128M'},\\\n"
+        + "{'group':'large'}]").replaceAll("'", "\"");
+
+    String filePath = writeToFileAndReturnPath(inputString);
+
+    assertThrows(IllegalStateException.class,
+        () -> CheckCompactionConfig.main(new String[] {filePath}));
+  }
+
 }

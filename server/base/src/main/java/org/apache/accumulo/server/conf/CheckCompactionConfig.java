@@ -22,6 +22,10 @@ import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME
 
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.cli.Help;
@@ -31,6 +35,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
@@ -54,6 +59,89 @@ import com.google.auto.service.AutoService;
 public class CheckCompactionConfig implements KeywordExecutable {
 
   private final static Logger log = LoggerFactory.getLogger(CheckCompactionConfig.class);
+
+  private static ServiceEnvironment createServiceEnvironment(AccumuloConfiguration config) {
+    return new ServiceEnvironment() {
+
+      @Override
+      public <T> T instantiate(TableId tableId, String className, Class<T> base) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public <T> T instantiate(String className, Class<T> base) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public String getTableName(TableId tableId) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public Configuration getConfiguration(TableId tableId) {
+        return new ConfigurationImpl(config);
+      }
+
+      @Override
+      public Configuration getConfiguration() {
+        return new ConfigurationImpl(config);
+      }
+    };
+  }
+
+  public static void validate(AccumuloConfiguration config) throws ReflectiveOperationException,
+      SecurityException, IllegalArgumentException, IllegalStateException {
+    var servicesConfig = new CompactionServicesConfig(config);
+    ServiceEnvironment senv = createServiceEnvironment(config);
+
+    Set<String> defaultService = Set.of(DEFAULT_COMPACTION_SERVICE_NAME);
+    if (servicesConfig.getPlanners().keySet().equals(defaultService)) {
+      log.warn("Only the default compaction service was created - {}", defaultService);
+      return;
+    }
+
+    Map<CompactorGroupId,Set<String>> groupToServices = new HashMap<>();
+
+    for (var entry : servicesConfig.getPlanners().entrySet()) {
+      String serviceId = entry.getKey();
+      String plannerClassName = entry.getValue();
+
+      log.info("Service id: {}, planner class:{}", serviceId, plannerClassName);
+
+      Class<? extends CompactionPlanner> plannerClass =
+          Class.forName(plannerClassName).asSubclass(CompactionPlanner.class);
+      CompactionPlanner planner = plannerClass.getDeclaredConstructor().newInstance();
+
+      var initParams = new CompactionPlannerInitParams(CompactionServiceId.of(serviceId),
+          servicesConfig.getPlannerPrefix(serviceId), servicesConfig.getOptions().get(serviceId),
+          senv);
+
+      planner.init(initParams);
+
+      initParams.getRequestedGroups().forEach(groupId -> {
+        log.info("Compaction service '{}' requested with compactor group '{}'", serviceId, groupId);
+        groupToServices.computeIfAbsent(groupId, f -> new HashSet<>()).add(serviceId);
+      });
+    }
+
+    boolean dupesFound = false;
+    for (Entry<CompactorGroupId,Set<String>> e : groupToServices.entrySet()) {
+      if (e.getValue().size() > 1) {
+        log.warn("Compaction services " + e.getValue().toString()
+            + " mapped to the same compactor group: " + e.getKey());
+        dupesFound = true;
+      }
+    }
+
+    if (dupesFound) {
+      throw new IllegalStateException(
+          "Multiple compaction services configured to use the same group. This could lead"
+              + " to undesired behavior. Please fix the configuration");
+    }
+
+    log.info("Properties file has passed all checks.");
+  }
 
   static class Opts extends Help {
     @Parameter(description = "<path> Local path to file containing compaction configuration",
@@ -90,66 +178,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
 
     AccumuloConfiguration config = SiteConfiguration.fromFile(path.toFile()).build();
-    var servicesConfig = new CompactionServicesConfig(config);
-    ServiceEnvironment senv = createServiceEnvironment(config);
-
-    Set<String> defaultService = Set.of(DEFAULT_COMPACTION_SERVICE_NAME);
-    if (servicesConfig.getPlanners().keySet().equals(defaultService)) {
-      log.warn("Only the default compaction service was created - {}", defaultService);
-      return;
-    }
-
-    for (var entry : servicesConfig.getPlanners().entrySet()) {
-      String serviceId = entry.getKey();
-      String plannerClassName = entry.getValue();
-
-      log.info("Service id: {}, planner class:{}", serviceId, plannerClassName);
-
-      Class<? extends CompactionPlanner> plannerClass =
-          Class.forName(plannerClassName).asSubclass(CompactionPlanner.class);
-      CompactionPlanner planner = plannerClass.getDeclaredConstructor().newInstance();
-
-      var initParams = new CompactionPlannerInitParams(CompactionServiceId.of(serviceId),
-          servicesConfig.getPlannerPrefix(serviceId), servicesConfig.getOptions().get(serviceId),
-          senv);
-
-      planner.init(initParams);
-
-      initParams.getRequestedGroups().forEach(
-          (groupId -> log.info("Compaction service '{}' requested with compactor group '{}'",
-              serviceId, groupId)));
-    }
-
-    log.info("Properties file has passed all checks.");
+    validate(config);
   }
 
-  private ServiceEnvironment createServiceEnvironment(AccumuloConfiguration config) {
-    return new ServiceEnvironment() {
-
-      @Override
-      public <T> T instantiate(TableId tableId, String className, Class<T> base) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public <T> T instantiate(String className, Class<T> base) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public String getTableName(TableId tableId) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public Configuration getConfiguration(TableId tableId) {
-        return new ConfigurationImpl(config);
-      }
-
-      @Override
-      public Configuration getConfiguration() {
-        return new ConfigurationImpl(config);
-      }
-    };
-  }
 }
