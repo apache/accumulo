@@ -21,7 +21,7 @@ package org.apache.accumulo.test.compaction;
 import org.apache.accumulo.minicluster.ServerType;
 import org.junit.jupiter.api.BeforeAll;
 
-public class ExternalCompaction2_IT extends ExternalCompaction2BaseIT {
+public class ExternalCompaction_2_IT extends ExternalCompaction2BaseIT {
 
   @BeforeAll
   public static void beforeTests() throws Exception {

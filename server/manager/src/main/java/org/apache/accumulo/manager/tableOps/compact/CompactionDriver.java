@@ -69,7 +69,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-class CompactionDriver extends ManagerRepo {
+public class CompactionDriver extends ManagerRepo {
 
   private static final Logger log = LoggerFactory.getLogger(CompactionDriver.class);
 
