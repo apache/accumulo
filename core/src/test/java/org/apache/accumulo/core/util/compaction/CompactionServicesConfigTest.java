@@ -53,9 +53,8 @@ public class CompactionServicesConfigTest {
   @Test
   public void testCompactionRateLimits() {
     ConfigurationCopy conf = new ConfigurationCopy();
-    CompactionServicesConfig compactionConfig;
 
     conf.set(prefix.getKey() + "cs1.planner", RatioBasedCompactionPlanner.class.getName());
-    compactionConfig = new CompactionServicesConfig(conf);
+    new CompactionServicesConfig(conf);
   }
 }
