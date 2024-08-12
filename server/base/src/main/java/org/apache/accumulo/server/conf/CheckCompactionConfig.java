@@ -90,6 +90,11 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
 
     AccumuloConfiguration config = SiteConfiguration.fromFile(path.toFile()).build();
+    validate(config);
+  }
+
+  public static void validate(AccumuloConfiguration config)
+      throws ReflectiveOperationException, SecurityException, IllegalArgumentException {
     var servicesConfig = new CompactionServicesConfig(config);
     ServiceEnvironment senv = createServiceEnvironment(config);
 
@@ -121,9 +126,10 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
 
     log.info("Properties file has passed all checks.");
+
   }
 
-  private ServiceEnvironment createServiceEnvironment(AccumuloConfiguration config) {
+  private static ServiceEnvironment createServiceEnvironment(AccumuloConfiguration config) {
     return new ServiceEnvironment() {
 
       @Override
@@ -152,4 +158,5 @@ public class CheckCompactionConfig implements KeywordExecutable {
       }
     };
   }
+
 }
