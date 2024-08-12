@@ -99,7 +99,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public AsyncConditionalTabletsMutator
       conditionallyMutateTablets(Consumer<ConditionalResult> resultsConsumer) {
-    return new AsyncConditionalTabletsMutatorImpl(context, getTableMapper(), resultsConsumer);
+    return new AsyncConditionalTabletsMutatorImpl(resultsConsumer,
+        () -> new ConditionalTabletsMutatorImpl(context, getTableMapper()));
   }
 
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.ample.metadata;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata.TableOptions;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
@@ -122,8 +124,8 @@ public class TestAmple {
     @Override
     public AsyncConditionalTabletsMutator
         conditionallyMutateTablets(Consumer<ConditionalResult> resultsConsumer) {
-      return new AsyncConditionalTabletsMutatorImpl(getContext(), getTableMapper(),
-          resultsConsumer);
+      return new AsyncConditionalTabletsMutatorImpl(resultsConsumer,
+          () -> conditionallyMutateTablets(cwInterceptor.get()));
     }
 
     @Override
@@ -199,6 +201,13 @@ public class TestAmple {
       Objects.requireNonNull(interceptor);
 
       return new ConditionalTabletsMutatorImpl(getContext(), tables::get) {
+
+        @Override
+        protected Retry createUnknownRetry() {
+          return Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(3))
+              .incrementBy(Duration.ofMillis(3)).maxWait(Duration.ofMillis(50)).backOffFactor(1.5)
+              .logInterval(Duration.ofMinutes(3)).createRetry();
+        }
 
         @Override
         protected ConditionalWriter createConditionalWriter(Ample.DataLevel dataLevel)

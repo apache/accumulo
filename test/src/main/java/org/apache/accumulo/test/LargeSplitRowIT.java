@@ -51,6 +51,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.split.SplitUtils;
+import org.apache.accumulo.test.fate.ManagerRepoIT;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
@@ -345,8 +346,11 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     }
   }
 
-  // Test the unsplittable column is cleaned up if a previously marked unsplittable tablet
-  // no longer needs to be split
+  /**
+   * Test the unsplittable column is cleaned up if a previously marked unsplittable tablet /* no
+   * longer needs to be split. The test {@link ManagerRepoIT#testFindSplitsDeleteUnsplittable()} is
+   * similar to this test.
+   */
   @Test
   @Timeout(60)
   public void testUnsplittableCleanup() throws Exception {
