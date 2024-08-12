@@ -59,41 +59,37 @@ public class CheckCompactionConfig implements KeywordExecutable {
   final static String META = "meta";
   final static String ROOT = "root";
 
-  static class Opts extends Help {
-    @Parameter(description = "<path> Local path to file containing compaction configuration",
-        required = true)
-    String filePath;
+  private static ServiceEnvironment createServiceEnvironment(AccumuloConfiguration config) {
+    return new ServiceEnvironment() {
+
+      @Override
+      public <T> T instantiate(TableId tableId, String className, Class<T> base) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public <T> T instantiate(String className, Class<T> base) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public String getTableName(TableId tableId) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public Configuration getConfiguration(TableId tableId) {
+        return new ConfigurationImpl(config);
+      }
+
+      @Override
+      public Configuration getConfiguration() {
+        return new ConfigurationImpl(config);
+      }
+    };
   }
 
-  @Override
-  public String keyword() {
-    return "check-compaction-config";
-  }
-
-  @Override
-  public String description() {
-    return "Verifies compaction config within a given file";
-  }
-
-  public static void main(String[] args) throws Exception {
-    new CheckCompactionConfig().execute(args);
-  }
-
-  @Override
-  public void execute(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(keyword(), args);
-
-    if (opts.filePath == null) {
-      throw new IllegalArgumentException("No properties file was given");
-    }
-
-    Path path = Path.of(opts.filePath);
-    if (!path.toFile().exists()) {
-      throw new FileNotFoundException("File at given path could not be found");
-    }
-
-    AccumuloConfiguration config = SiteConfiguration.fromFile(path.toFile()).build();
+  public static void validate(AccumuloConfiguration config) throws ReflectiveOperationException, SecurityException, IllegalArgumentException {
     var servicesConfig = new CompactionServicesConfig(config);
     ServiceEnvironment senv = createServiceEnvironment(config);
 
@@ -132,35 +128,45 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
 
     log.info("Properties file has passed all checks.");
+    
+  }
+  
+  static class Opts extends Help {
+    @Parameter(description = "<path> Local path to file containing compaction configuration",
+        required = true)
+    String filePath;
   }
 
-  private ServiceEnvironment createServiceEnvironment(AccumuloConfiguration config) {
-    return new ServiceEnvironment() {
-
-      @Override
-      public <T> T instantiate(TableId tableId, String className, Class<T> base) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public <T> T instantiate(String className, Class<T> base) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public String getTableName(TableId tableId) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public Configuration getConfiguration(TableId tableId) {
-        return new ConfigurationImpl(config);
-      }
-
-      @Override
-      public Configuration getConfiguration() {
-        return new ConfigurationImpl(config);
-      }
-    };
+  @Override
+  public String keyword() {
+    return "check-compaction-config";
   }
+
+  @Override
+  public String description() {
+    return "Verifies compaction config within a given file";
+  }
+
+  public static void main(String[] args) throws Exception {
+    new CheckCompactionConfig().execute(args);
+  }
+
+  @Override
+  public void execute(String[] args) throws Exception {
+    Opts opts = new Opts();
+    opts.parseArgs(keyword(), args);
+
+    if (opts.filePath == null) {
+      throw new IllegalArgumentException("No properties file was given");
+    }
+
+    Path path = Path.of(opts.filePath);
+    if (!path.toFile().exists()) {
+      throw new FileNotFoundException("File at given path could not be found");
+    }
+
+    AccumuloConfiguration config = SiteConfiguration.fromFile(path.toFile()).build();
+    validate(config);
+  }
+
 }
