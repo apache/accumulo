@@ -445,7 +445,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       CheckCompactionConfig.validate(manager.getConfiguration());
     } catch (SecurityException | IllegalArgumentException | IllegalStateException
         | ReflectiveOperationException e) {
-      LOG.error("Error validating compaction configuration, not performing compactions.", e);
+      LOG.error(
+          "Error validating compaction configuration, all compactions are paused until the configuration is fixed.",
+          e);
       compactionGenerator = null;
     }
 
