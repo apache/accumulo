@@ -21,11 +21,9 @@ package org.apache.accumulo.core.util.compaction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 
 import com.google.common.collect.Sets;
@@ -38,7 +36,6 @@ public class CompactionServicesConfig {
 
   private final Map<String,String> planners = new HashMap<>();
   private final Map<String,String> plannerPrefixes = new HashMap<>();
-  private final Map<String,Long> rateLimits = new HashMap<>();
   private final Map<String,Map<String,String>> options = new HashMap<>();
 
   private static final Property prefix = Property.COMPACTION_SERVICE_PREFIX;
@@ -57,21 +54,19 @@ public class CompactionServicesConfig {
   }
 
   public CompactionServicesConfig(PluginEnvironment.Configuration conf) {
-    // TODO will probably not need rate limit eventually and the 2nd param predicate can go away
     this(getConfiguration(prefix -> {
       var props = conf.getWithPrefix(prefix.getKey());
       Map<String,String> stripped = new HashMap<>();
       props.forEach((k, v) -> stripped.put(k.substring(prefix.getKey().length()), v));
       return stripped;
-    }), property -> conf.isSet(property.getKey()));
+    }));
   }
 
   public CompactionServicesConfig(AccumuloConfiguration aconf) {
-    this(getConfiguration(aconf::getAllPropertiesWithPrefixStripped), aconf::isPropertySet);
+    this(getConfiguration(aconf::getAllPropertiesWithPrefixStripped));
   }
 
-  private CompactionServicesConfig(Map<String,Map<String,String>> configs,
-      Predicate<Property> isSetPredicate) {
+  private CompactionServicesConfig(Map<String,Map<String,String>> configs) {
     configs.forEach((prefix, props) -> {
       props.forEach((prop, val) -> {
         String[] tokens = prop.split("\\.");
@@ -80,11 +75,6 @@ public class CompactionServicesConfig {
           planners.put(tokens[0], val);
         } else if (tokens.length == 4 && tokens[1].equals("planner") && tokens[2].equals("opts")) {
           options.computeIfAbsent(tokens[0], k -> new HashMap<>()).put(tokens[3], val);
-        } else if (tokens.length == 3 && tokens[1].equals("rate") && tokens[2].equals("limit")) {
-          var eprop = Property.getPropertyByKey(prop);
-          if (eprop == null || isSetPredicate.test(eprop)) {
-            rateLimits.put(tokens[0], ConfigurationTypeHelper.getFixedMemoryAsBytes(val));
-          }
         } else {
           throw new IllegalArgumentException(
               "Malformed compaction service property " + prefix + prop);
@@ -103,8 +93,7 @@ public class CompactionServicesConfig {
   public boolean equals(Object o) {
     if (o instanceof CompactionServicesConfig) {
       var oc = (CompactionServicesConfig) o;
-      return getPlanners().equals(oc.getPlanners()) && getOptions().equals(oc.getOptions())
-          && getRateLimits().equals(oc.getRateLimits());
+      return getPlanners().equals(oc.getPlanners()) && getOptions().equals(oc.getOptions());
     }
 
     return false;
@@ -112,7 +101,7 @@ public class CompactionServicesConfig {
 
   @Override
   public int hashCode() {
-    return Objects.hash(getPlanners(), getOptions(), getRateLimits());
+    return Objects.hash(getPlanners(), getOptions());
   }
 
   public Map<String,String> getPlanners() {
@@ -121,10 +110,6 @@ public class CompactionServicesConfig {
 
   public String getPlannerPrefix(String service) {
     return plannerPrefixes.get(service);
-  }
-
-  public Map<String,Long> getRateLimits() {
-    return rateLimits;
   }
 
   public Map<String,Map<String,String>> getOptions() {

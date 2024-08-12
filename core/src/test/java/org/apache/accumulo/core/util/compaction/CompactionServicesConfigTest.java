@@ -56,8 +56,6 @@ public class CompactionServicesConfigTest {
     CompactionServicesConfig compactionConfig;
 
     conf.set(prefix.getKey() + "cs1.planner", RatioBasedCompactionPlanner.class.getName());
-    conf.set(prefix.getKey() + "cs1.rate.limit", "2M");
     compactionConfig = new CompactionServicesConfig(conf);
-    assertEquals(2097152, compactionConfig.getRateLimits().get("cs1"));
   }
 }
