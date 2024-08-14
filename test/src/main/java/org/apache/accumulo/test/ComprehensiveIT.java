@@ -166,8 +166,15 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       write(client, table, generateMutations(0, 100, tr -> true));
 
       // need flush table so that eventual scan can see it.
+
+      long minWait = 5_000;
+      var startTime = System.currentTimeMillis();
       client.tableOperations().flush(table, null, null, true);
-      Thread.sleep(5000);
+      var duration = System.currentTimeMillis() - startTime;
+      // if duration is less than minWait, wait the remainder + 0.5 seconds.
+      if (minWait > duration) {
+        Thread.sleep((minWait - duration) + 500);
+      }
 
       // should see all data that was flushed in eventual scan
       verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),
@@ -184,8 +191,13 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
           scanner -> scanner.setConsistencyLevel(EVENTUAL));
 
       // need flush table so that eventual scan can see it.
+      startTime = System.currentTimeMillis();
       client.tableOperations().flush(table, null, null, true);
-      Thread.sleep(5000);
+      duration = System.currentTimeMillis() - startTime;
+      // if duration is less than minWait, wait the remainder + 0.5 seconds.
+      if (minWait > duration) {
+        Thread.sleep((minWait - duration) + 500);
+      }
 
       verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 200),
           scanner -> scanner.setConsistencyLevel(EVENTUAL));
