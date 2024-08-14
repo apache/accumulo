@@ -167,6 +167,7 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
       // need flush table so that eventual scan can see it.
       client.tableOperations().flush(table, null, null, true);
+      Thread.sleep(5000);
 
       // should see all data that was flushed in eventual scan
       verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),
@@ -184,6 +185,7 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
       // need flush table so that eventual scan can see it.
       client.tableOperations().flush(table, null, null, true);
+      Thread.sleep(5000);
 
       verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 200),
           scanner -> scanner.setConsistencyLevel(EVENTUAL));
