@@ -110,8 +110,7 @@ public class GarbageCollectWriteAheadLogsTest {
     marker.removeWalMarker(server1, id);
     EasyMock.expectLastCall().once();
     EasyMock.replay(context, fs, marker, tserverSet);
-    GarbageCollectWriteAheadLogs gc =
-        new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false) {
+    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false) {
           @Override
           @Deprecated
           protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {

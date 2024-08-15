@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  */
 public interface TabletStateStore extends Iterable<TabletLocationState> {
 
-  Logger log = LoggerFactory.getLogger(TabletStateStore.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletStateStore.class);
 
   /**
    * Get the level for this state store

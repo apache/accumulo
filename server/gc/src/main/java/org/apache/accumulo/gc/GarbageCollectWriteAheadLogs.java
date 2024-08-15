@@ -107,9 +107,15 @@ public class GarbageCollectWriteAheadLogs {
     Stream<TabletLocationState> userStream =
         TabletStateStore.getStoreForLevel(DataLevel.USER, context).stream();
     return Streams.concat(rootStream, metadataStream, userStream).onClose(() -> {
-      rootStream.close();
-      metadataStream.close();
-      userStream.close();
+      try {
+        rootStream.close();
+      } finally {
+        try {
+          metadataStream.close();
+        } finally {
+          userStream.close();
+        }
+      }
     });
   }
 
