@@ -59,7 +59,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Streams;
 
@@ -75,6 +74,7 @@ public class GarbageCollectWriteAheadLogs {
   private final LiveTServerSet liveServers;
   private final WalStateManager walMarker;
   private final AtomicBoolean hasCollected = new AtomicBoolean(false);
+  private final Stream<TabletLocationState> store;
 
   /**
    * Creates a new GC WAL object.
@@ -85,20 +85,21 @@ public class GarbageCollectWriteAheadLogs {
    */
   GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
       final LiveTServerSet liveServers, boolean useTrash) {
+    this(context, fs, liveServers, useTrash, new WalStateManager(context), createStore(context));
+  }
+
+  GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
+      final LiveTServerSet liveServers, boolean useTrash, final WalStateManager walMarker,
+      final Stream<TabletLocationState> store) {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
     this.liveServers = liveServers;
-    this.walMarker = createWalStateManager(context);
+    this.walMarker = walMarker;
+    this.store = store;
   }
 
-  @VisibleForTesting
-  WalStateManager createWalStateManager(ServerContext context) {
-    return new WalStateManager(context);
-  }
-
-  @VisibleForTesting
-  Stream<TabletLocationState> createStore() {
+  private static Stream<TabletLocationState> createStore(final ServerContext context) {
     Stream<TabletLocationState> rootStream =
         TabletStateStore.getStoreForLevel(DataLevel.ROOT, context).stream();
     Stream<TabletLocationState> metadataStream =
@@ -108,12 +109,18 @@ public class GarbageCollectWriteAheadLogs {
     return Streams.concat(rootStream, metadataStream, userStream).onClose(() -> {
       try {
         rootStream.close();
-      } finally {
-        try {
-          metadataStream.close();
-        } finally {
-          userStream.close();
-        }
+      } catch (Exception e) {
+        log.error("Failed to close rootStream", e);
+      }
+      try {
+        metadataStream.close();
+      } catch (Exception e) {
+        log.error("Failed to close metadataStream", e);
+      }
+      try {
+        userStream.close();
+      } catch (Exception e) {
+        log.error("Failed to close userStream", e);
       }
     });
   }
@@ -308,33 +315,32 @@ public class GarbageCollectWriteAheadLogs {
     }
 
     // remove any entries if there's a log reference (recovery hasn't finished)
-    try (Stream<TabletLocationState> store = createStore()) {
-      store.forEach(state -> {
-        // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
-        // Easiest to just ignore all the WALs for the dead server.
-        if (state.getState(liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {
-          Set<UUID> idsToIgnore = candidates.remove(state.current.getServerInstance());
+    store.forEach(state -> {
+      // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
+      // Easiest to just ignore all the WALs for the dead server.
+      if (state.getState(liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {
+        Set<UUID> idsToIgnore = candidates.remove(state.current.getServerInstance());
+        if (idsToIgnore != null) {
+          result.keySet().removeAll(idsToIgnore);
+          recoveryLogs.keySet().removeAll(idsToIgnore);
+        }
+      }
+      // Tablet is being recovered and has WAL references, remove all the WALs for the dead server
+      // that made the WALs.
+      for (Collection<String> wals : state.walogs) {
+        for (String wal : wals) {
+          UUID walUUID = path2uuid(new Path(wal));
+          TServerInstance dead = result.get(walUUID);
+          // There's a reference to a log file, so skip that server's logs
+          Set<UUID> idsToIgnore = candidates.remove(dead);
           if (idsToIgnore != null) {
             result.keySet().removeAll(idsToIgnore);
             recoveryLogs.keySet().removeAll(idsToIgnore);
           }
         }
-        // Tablet is being recovered and has WAL references, remove all the WALs for the dead server
-        // that made the WALs.
-        for (Collection<String> wals : state.walogs) {
-          for (String wal : wals) {
-            UUID walUUID = path2uuid(new Path(wal));
-            TServerInstance dead = result.get(walUUID);
-            // There's a reference to a log file, so skip that server's logs
-            Set<UUID> idsToIgnore = candidates.remove(dead);
-            if (idsToIgnore != null) {
-              result.keySet().removeAll(idsToIgnore);
-              recoveryLogs.keySet().removeAll(idsToIgnore);
-            }
-          }
-        }
-      });
-    }
+      }
+    });
+    store.close();
 
     // Remove OPEN and CLOSED logs for live servers: they are still in use
     for (TServerInstance liveServer : liveServers) {
