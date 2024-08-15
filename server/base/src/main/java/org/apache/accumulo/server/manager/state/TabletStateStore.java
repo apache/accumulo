@@ -72,7 +72,7 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
           try {
             iterator.close();
           } catch (IOException e) {
-            log.warn("Error closing iterator", e);
+            throw new UncheckedIOException(e);
           }
         });
   }
