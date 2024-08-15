@@ -109,18 +109,12 @@ public class GarbageCollectWriteAheadLogs {
     return Streams.concat(rootStream, metadataStream, userStream).onClose(() -> {
       try {
         rootStream.close();
-      } catch (Exception e) {
-        log.error("Failed to close rootStream", e);
-      }
-      try {
-        metadataStream.close();
-      } catch (Exception e) {
-        log.error("Failed to close metadataStream", e);
-      }
-      try {
-        userStream.close();
-      } catch (Exception e) {
-        log.error("Failed to close userStream", e);
+      } finally {
+        try {
+          metadataStream.close();
+        } finally {
+          userStream.close();
+        }
       }
     });
   }
