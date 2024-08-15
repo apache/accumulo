@@ -40,14 +40,13 @@ public class KeyTest {
 
   @Test
   public void testDeletedCompare() {
-    Key k1 = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8), new byte[0],
-        0, false);
-    Key k2 = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8), new byte[0],
-        0, false);
-    Key k3 = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8), new byte[0],
-        0, true);
-    Key k4 = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8), new byte[0],
-        0, true);
+    final byte[] row = "r1".getBytes(UTF_8);
+    final byte[] cf = "cf".getBytes(UTF_8);
+    final byte[] cq = "cq".getBytes(UTF_8);
+    Key k1 = new Key(row, cf, cq, new byte[0], 0, false);
+    Key k2 = new Key(row, cf, cq, new byte[0], 0, false);
+    Key k3 = new Key(row, cf, cq, new byte[0], 0, true);
+    Key k4 = new Key(row, cf, cq, new byte[0], 0, true);
 
     assertEquals(k1, k2);
     assertEquals(k3, k4);
