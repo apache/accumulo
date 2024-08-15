@@ -144,8 +144,8 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
-        int i = scanner.stream().map(Map.Entry::getValue).map(Value::get).map(String::new)
-            .map(Integer::parseInt).collect(onlyElement());
+        int i = scanner.stream().map(Map.Entry::getValue).map(Value::get)
+            .map(e -> new String(e, UTF_8)).map(Integer::parseInt).collect(onlyElement());
         assertEquals(100, i);
       }
     }
