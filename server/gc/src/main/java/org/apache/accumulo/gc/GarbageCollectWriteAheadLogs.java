@@ -74,7 +74,7 @@ public class GarbageCollectWriteAheadLogs {
   private final boolean useTrash;
   private final LiveTServerSet liveServers;
   private final WalStateManager walMarker;
-  private final AtomicBoolean hasCollected;
+  private final AtomicBoolean hasCollected = new AtomicBoolean(false);
 
   /**
    * Creates a new GC WAL object.
@@ -90,7 +90,6 @@ public class GarbageCollectWriteAheadLogs {
     this.useTrash = useTrash;
     this.liveServers = liveServers;
     this.walMarker = createWalStateManager(context);
-    this.hasCollected = new AtomicBoolean(false);
   }
 
   @VisibleForTesting
@@ -120,7 +119,8 @@ public class GarbageCollectWriteAheadLogs {
   }
 
   public void collect(GCStatus status) {
-    Preconditions.checkState(!hasCollected.get(), "Can only call collect once per object");
+    Preconditions.checkState(hasCollected.compareAndSet(false, true),
+        "collect() has already been called on this object (which should only be called once)");
     try {
       long count;
       long fileScanStop;
@@ -223,7 +223,6 @@ public class GarbageCollectWriteAheadLogs {
       } finally {
         span5.end();
       }
-      hasCollected.set(true);
     } catch (Exception e) {
       log.error("exception occurred while garbage collecting write ahead logs", e);
     } finally {
