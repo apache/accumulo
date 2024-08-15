@@ -152,29 +152,28 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
     EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<>(WalState.CLOSED, path));
     EasyMock.replay(context, marker, tserverSet, fs);
-    GarbageCollectWriteAheadLogs gc =
-        new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false) {
-          @Override
-          @Deprecated
-          protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
-            return 0;
-          }
+    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false) {
+      @Override
+      @Deprecated
+      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
+        return 0;
+      }
 
-          @Override
-          protected Map<UUID,Path> getSortedWALogs() {
-            return Collections.emptyMap();
-          }
+      @Override
+      protected Map<UUID,Path> getSortedWALogs() {
+        return Collections.emptyMap();
+      }
 
-          @Override
-          WalStateManager createWalStateManager(ServerContext context) {
-            return marker;
-          }
+      @Override
+      WalStateManager createWalStateManager(ServerContext context) {
+        return marker;
+      }
 
-          @Override
-          Stream<TabletLocationState> createStore() {
-            return tabletOnServer1List;
-          }
-        };
+      @Override
+      Stream<TabletLocationState> createStore() {
+        return tabletOnServer1List;
+      }
+    };
     gc.collect(status);
     EasyMock.verify(context, marker, tserverSet, fs);
   }
@@ -216,23 +215,22 @@ public class GarbageCollectWriteAheadLogsTest {
     marker.forget(server2);
     EasyMock.expectLastCall().once();
     EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner);
-    GarbageCollectWriteAheadLogs gc =
-        new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false) {
-          @Override
-          protected Map<UUID,Path> getSortedWALogs() {
-            return Collections.emptyMap();
-          }
+    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false) {
+      @Override
+      protected Map<UUID,Path> getSortedWALogs() {
+        return Collections.emptyMap();
+      }
 
-          @Override
-          WalStateManager createWalStateManager(ServerContext context) {
-            return marker;
-          }
+      @Override
+      WalStateManager createWalStateManager(ServerContext context) {
+        return marker;
+      }
 
-          @Override
-          Stream<TabletLocationState> createStore() {
-            return tabletOnServer1List;
-          }
-        };
+      @Override
+      Stream<TabletLocationState> createStore() {
+        return tabletOnServer1List;
+      }
+    };
     gc.collect(status);
     EasyMock.verify(context, fs, marker, tserverSet, rscanner, mscanner);
   }
@@ -269,23 +267,22 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expectLastCall().once();
     EasyMock.expect(mscanner.iterator()).andReturn(emptyKV);
     EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner);
-    GarbageCollectWriteAheadLogs gc =
-        new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false) {
-          @Override
-          protected Map<UUID,Path> getSortedWALogs() {
-            return Collections.emptyMap();
-          }
+    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false) {
+      @Override
+      protected Map<UUID,Path> getSortedWALogs() {
+        return Collections.emptyMap();
+      }
 
-          @Override
-          WalStateManager createWalStateManager(ServerContext context) {
-            return marker;
-          }
+      @Override
+      WalStateManager createWalStateManager(ServerContext context) {
+        return marker;
+      }
 
-          @Override
-          Stream<TabletLocationState> createStore() {
-            return tabletOnServer2List;
-          }
-        };
+      @Override
+      Stream<TabletLocationState> createStore() {
+        return tabletOnServer2List;
+      }
+    };
     gc.collect(status);
     EasyMock.verify(context, fs, marker, tserverSet, rscanner, mscanner);
   }
@@ -327,23 +324,22 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expectLastCall().once();
     EasyMock.expect(mscanner.iterator()).andReturn(replicationWork.entrySet().iterator());
     EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner);
-    GarbageCollectWriteAheadLogs gc =
-        new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false) {
-          @Override
-          protected Map<UUID,Path> getSortedWALogs() {
-            return Collections.emptyMap();
-          }
+    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false) {
+      @Override
+      protected Map<UUID,Path> getSortedWALogs() {
+        return Collections.emptyMap();
+      }
 
-          @Override
-          WalStateManager createWalStateManager(ServerContext context) {
-            return marker;
-          }
+      @Override
+      WalStateManager createWalStateManager(ServerContext context) {
+        return marker;
+      }
 
-          @Override
-          Stream<TabletLocationState> createStore() {
-            return tabletOnServer1List;
-          }
-        };
+      @Override
+      Stream<TabletLocationState> createStore() {
+        return tabletOnServer1List;
+      }
+    };
     gc.collect(status);
     EasyMock.verify(context, fs, marker, tserverSet, rscanner, mscanner);
   }
