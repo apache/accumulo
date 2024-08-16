@@ -88,6 +88,17 @@ public class GarbageCollectWriteAheadLogs {
     this(context, fs, liveServers, useTrash, new WalStateManager(context), createStore(context));
   }
 
+  /**
+   * Creates a new GC WAL object. Meant for testing -- allows for mocked objects.
+   *
+   *
+   * @param context the collection server's context
+   * @param fs volume manager to use
+   * @param liveServers a started LiveTServerSet instance
+   * @param useTrash true to move files to trash rather than delete them
+   * @param walMarker a WalStateManager instance
+   * @param store a stream of TabletLocationState objects
+   */
   GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
       final LiveTServerSet liveServers, boolean useTrash, final WalStateManager walMarker,
       final Stream<TabletLocationState> store) {
