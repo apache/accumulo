@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.mapred;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -233,8 +234,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
-        int actual = scanner.stream().map(Entry::getValue).map(Value::get).map(String::new)
-            .map(Integer::parseInt).collect(onlyElement());
+        int actual = scanner.stream().map(Entry::getValue).map(Value::get)
+            .map(e -> new String(e, UTF_8)).map(Integer::parseInt).collect(onlyElement());
         assertEquals(100, actual);
       }
     }
