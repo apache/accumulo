@@ -46,6 +46,7 @@ import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
+import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -259,6 +260,11 @@ public class UpgradeCoordinator {
     } catch (AccumuloException | AccumuloSecurityException | NamespaceNotFoundException
         | TableNotFoundException e) {
       throw new IllegalStateException("Error checking properties", e);
+    }
+    try {
+      CheckCompactionConfig.validate(context.getConfiguration());
+    } catch (SecurityException | IllegalArgumentException | ReflectiveOperationException e) {
+      throw new IllegalStateException("Error validating compaction configuration", e);
     }
   }
 
