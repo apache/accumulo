@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import org.apache.accumulo.minicluster.ServerType;
 import org.junit.jupiter.api.BeforeAll;
 
 public class ExternalCompaction_2_IT extends ExternalCompaction2BaseIT {
@@ -26,8 +25,5 @@ public class ExternalCompaction_2_IT extends ExternalCompaction2BaseIT {
   @BeforeAll
   public static void beforeTests() throws Exception {
     startMiniClusterWithConfig(new ExternalCompaction2Config());
-    getCluster().getClusterControl().stop(ServerType.COMPACTOR);
-    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
-        ExternalDoNothingCompactor.class);
   }
 }
