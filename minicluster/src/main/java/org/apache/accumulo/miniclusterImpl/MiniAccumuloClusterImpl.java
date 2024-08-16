@@ -542,7 +542,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               s.getOutputStream().flush();
               byte[] buffer = new byte[100];
               int n = s.getInputStream().read(buffer);
-              if (n >= 4 && new String(buffer, 0, 4).equals("imok")) {
+              if (n >= 4 && new String(buffer, 0, 4, UTF_8).equals("imok")) {
                 break;
               }
             } catch (IOException | RuntimeException e) {

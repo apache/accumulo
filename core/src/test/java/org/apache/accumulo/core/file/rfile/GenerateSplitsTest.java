@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.file.rfile.GenerateSplits.getEvenlySpacedSplits;
 import static org.apache.accumulo.core.file.rfile.GenerateSplits.main;
 import static org.apache.accumulo.core.file.rfile.RFileTest.newColFamByteSequence;
@@ -124,7 +125,7 @@ public class GenerateSplitsTest {
 
   private String decode(boolean decode, String string) {
     if (decode) {
-      return new String(Base64.getDecoder().decode(string));
+      return new String(Base64.getDecoder().decode(string), UTF_8);
     }
     return string;
   }
