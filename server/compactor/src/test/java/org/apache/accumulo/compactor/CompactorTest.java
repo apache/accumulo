@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.compactor;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -334,7 +335,7 @@ public class CompactorTest {
     expect(job.isSetExternalCompactionId()).andReturn(true).anyTimes();
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     expect(job.getExtent()).andReturn(extent).anyTimes();
-    expect(extent.getTable()).andReturn("testTable".getBytes()).anyTimes();
+    expect(extent.getTable()).andReturn("testTable".getBytes(UTF_8)).anyTimes();
 
     var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     conf.set(Property.INSTANCE_ZK_TIMEOUT, "1d");
@@ -437,7 +438,7 @@ public class CompactorTest {
     expect(job.isSetExternalCompactionId()).andReturn(true).anyTimes();
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     expect(job.getExtent()).andReturn(extent).anyTimes();
-    expect(extent.getTable()).andReturn("testTable".getBytes()).anyTimes();
+    expect(extent.getTable()).andReturn("testTable".getBytes(UTF_8)).anyTimes();
 
     var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     conf.set(Property.INSTANCE_ZK_TIMEOUT, "1d");

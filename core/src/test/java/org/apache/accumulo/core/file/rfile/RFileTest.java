@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -347,7 +348,8 @@ public class RFileTest {
   }
 
   static Key newKey(String row, String cf, String cq, String cv, long ts) {
-    return new Key(row.getBytes(), cf.getBytes(), cq.getBytes(), cv.getBytes(), ts);
+    return new Key(row.getBytes(UTF_8), cf.getBytes(UTF_8), cq.getBytes(UTF_8), cv.getBytes(UTF_8),
+        ts);
   }
 
   static Value newValue(String val) {
@@ -2282,7 +2284,7 @@ public class RFileTest {
     // If we get here, we have encrypted bytes
     for (Property prop : Property.values()) {
       if (prop.isSensitive()) {
-        byte[] toCheck = prop.getKey().getBytes();
+        byte[] toCheck = prop.getKey().getBytes(UTF_8);
         assertEquals(-1, Bytes.indexOf(rfBytes, toCheck));
       }
     }

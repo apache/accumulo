@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.Socket;
@@ -69,10 +70,10 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
       final HostAndPort hostAndPort = HostAndPort.fromString(zooKeepers);
       for (int i = 0; i < 5; i++) {
         try (Socket socket = new Socket(hostAndPort.getHost(), hostAndPort.getPort())) {
-          socket.getOutputStream().write("wchs\n".getBytes(), 0, 5);
+          socket.getOutputStream().write("wchs\n".getBytes(UTF_8), 0, 5);
           byte[] buffer = new byte[1024];
           int n = socket.getInputStream().read(buffer);
-          String response = new String(buffer, 0, n);
+          String response = new String(buffer, 0, n, UTF_8);
           total = Long.parseLong(response.split(":")[1].trim());
           log.info("Total: {}", total);
           if (total > MIN && total < MAX) {

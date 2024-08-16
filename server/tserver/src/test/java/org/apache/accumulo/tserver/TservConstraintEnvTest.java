@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -42,7 +43,7 @@ public class TservConstraintEnvTest {
     TCredentials goodCred = createMock(TCredentials.class);
     TCredentials badCred = createMock(TCredentials.class);
 
-    ByteSequence bs = new ArrayByteSequence("foo".getBytes());
+    ByteSequence bs = new ArrayByteSequence("foo".getBytes(UTF_8));
     List<ByteBuffer> bbList =
         Collections.singletonList(ByteBuffer.wrap(bs.getBackingArray(), bs.offset(), bs.length()));
 
