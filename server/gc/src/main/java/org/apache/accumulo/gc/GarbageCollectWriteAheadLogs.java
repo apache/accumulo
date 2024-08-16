@@ -100,12 +100,9 @@ public class GarbageCollectWriteAheadLogs {
   }
 
   private static Stream<TabletLocationState> createStore(final ServerContext context) {
-    Stream<TabletLocationState> rootStream =
-        TabletStateStore.getStoreForLevel(DataLevel.ROOT, context).stream();
-    Stream<TabletLocationState> metadataStream =
-        TabletStateStore.getStoreForLevel(DataLevel.METADATA, context).stream();
-    Stream<TabletLocationState> userStream =
-        TabletStateStore.getStoreForLevel(DataLevel.USER, context).stream();
+    var rootStream = TabletStateStore.getStoreForLevel(DataLevel.ROOT, context).stream();
+    var metadataStream = TabletStateStore.getStoreForLevel(DataLevel.METADATA, context).stream();
+    var userStream = TabletStateStore.getStoreForLevel(DataLevel.USER, context).stream();
     return Streams.concat(rootStream, metadataStream, userStream).onClose(() -> {
       try {
         rootStream.close();
@@ -309,32 +306,35 @@ public class GarbageCollectWriteAheadLogs {
     }
 
     // remove any entries if there's a log reference (recovery hasn't finished)
-    store.forEach(state -> {
-      // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
-      // Easiest to just ignore all the WALs for the dead server.
-      if (state.getState(liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {
-        Set<UUID> idsToIgnore = candidates.remove(state.current.getServerInstance());
-        if (idsToIgnore != null) {
-          result.keySet().removeAll(idsToIgnore);
-          recoveryLogs.keySet().removeAll(idsToIgnore);
-        }
-      }
-      // Tablet is being recovered and has WAL references, remove all the WALs for the dead server
-      // that made the WALs.
-      for (Collection<String> wals : state.walogs) {
-        for (String wal : wals) {
-          UUID walUUID = path2uuid(new Path(wal));
-          TServerInstance dead = result.get(walUUID);
-          // There's a reference to a log file, so skip that server's logs
-          Set<UUID> idsToIgnore = candidates.remove(dead);
+    try {
+      store.forEach(state -> {
+        // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
+        // Easiest to just ignore all the WALs for the dead server.
+        if (state.getState(liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {
+          Set<UUID> idsToIgnore = candidates.remove(state.current.getServerInstance());
           if (idsToIgnore != null) {
             result.keySet().removeAll(idsToIgnore);
             recoveryLogs.keySet().removeAll(idsToIgnore);
           }
         }
-      }
-    });
-    store.close();
+        // Tablet is being recovered and has WAL references, remove all the WALs for the dead server
+        // that made the WALs.
+        for (Collection<String> wals : state.walogs) {
+          for (String wal : wals) {
+            UUID walUUID = path2uuid(new Path(wal));
+            TServerInstance dead = result.get(walUUID);
+            // There's a reference to a log file, so skip that server's logs
+            Set<UUID> idsToIgnore = candidates.remove(dead);
+            if (idsToIgnore != null) {
+              result.keySet().removeAll(idsToIgnore);
+              recoveryLogs.keySet().removeAll(idsToIgnore);
+            }
+          }
+        }
+      });
+    } finally {
+      store.close();
+    }
 
     // Remove OPEN and CLOSED logs for live servers: they are still in use
     for (TServerInstance liveServer : liveServers) {
