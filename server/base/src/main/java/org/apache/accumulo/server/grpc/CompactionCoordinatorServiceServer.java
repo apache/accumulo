@@ -19,9 +19,12 @@
 package org.apache.accumulo.server.grpc;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.rpc.grpc.GrpcUtil;
 import org.apache.accumulo.grpc.compaction.protobuf.CompactionCoordinatorServiceGrpc;
+import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +32,7 @@ import io.grpc.Grpc;
 import io.grpc.InsecureServerCredentials;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 
 /**
  * Simple wrapper to start/stop the grpc server
@@ -50,7 +54,18 @@ public class CompactionCoordinatorServiceServer {
   public CompactionCoordinatorServiceServer(ServerBuilder<?> serverBuilder,
       CompactionCoordinatorServiceGrpc.CompactionCoordinatorServiceImplBase service, int port) {
     this.port = port;
-    server = serverBuilder.addService(service).build();
+    this.server = serverBuilder.addService(service).build();
+  }
+
+  public CompactionCoordinatorServiceServer(ServerContext context,
+      CompactionCoordinatorServiceGrpc.CompactionCoordinatorServiceImplBase service, int port) {
+    this.port = port;
+    var serverBuilder = NettyServerBuilder.forPort(port);
+
+    Optional.ofNullable(context.getServerSslParams()).ifPresent(
+        sslParams -> serverBuilder.sslContext(GrpcUtil.buildSslContext(sslParams, true)));
+
+    this.server = serverBuilder.addService(service).build();
   }
 
   public void start() throws IOException {
