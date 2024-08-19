@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,19 +47,19 @@ public class KeyShortenerTest {
    * append 0xff to end of string
    */
   private byte[] apendFF(String s) {
-    return Bytes.concat(s.getBytes(), FF);
+    return Bytes.concat(s.getBytes(UTF_8), FF);
   }
 
   /**
    * append 0x00 to end of string
    */
   private byte[] append00(String s) {
-    return Bytes.concat(s.getBytes(), new byte[] {(byte) 0x00});
+    return Bytes.concat(s.getBytes(UTF_8), new byte[] {(byte) 0x00});
   }
 
   private byte[] toBytes(Object o) {
     if (o instanceof String) {
-      return ((String) o).getBytes();
+      return ((String) o).getBytes(UTF_8);
     } else if (o instanceof byte[]) {
       return (byte[]) o;
     }
@@ -104,8 +105,8 @@ public class KeyShortenerTest {
 
   @Test
   public void testOneCharacterDifferenceAndFF() {
-    byte[] ff1 = Bytes.concat(apendFF("mop"), "b".getBytes());
-    byte[] ff2 = Bytes.concat(apendFF("mop"), FF, "b".getBytes());
+    byte[] ff1 = Bytes.concat(apendFF("mop"), "b".getBytes(UTF_8));
+    byte[] ff2 = Bytes.concat(apendFF("mop"), FF, "b".getBytes(UTF_8));
 
     String eff1 = "moq";
 
