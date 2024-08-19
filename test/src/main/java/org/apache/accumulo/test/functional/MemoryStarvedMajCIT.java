@@ -22,7 +22,6 @@ import static org.apache.accumulo.test.util.Wait.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,6 +82,9 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
       Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
           TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));
       cfg.setSystemProperties(sysProps);
+
+      // Set a compactor that will consume and free memory when we need it to
+      cfg.setServerClass(ServerType.COMPACTOR, MemoryConsumingCompactor.class);
     }
   }
 
@@ -137,25 +139,6 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
 
       ClientContext ctx = (ClientContext) client;
 
-      // Kill the normal compactors and wait until their addresses in ZK are cleared
-      getCluster().getConfig().getClusterServerConfiguration().getCompactorConfiguration().keySet()
-          .forEach(resourceGroup -> {
-            List<Process> procs = getCluster().getClusterControl().getCompactors(resourceGroup);
-            for (int i = 0; i < procs.size(); i++) {
-              LOG.info("Stopping compactor process: {}", procs.get(i).pid());
-              try {
-                procs.get(i).destroyForcibly().waitFor();
-              } catch (InterruptedException e) {
-                fail("Interrupted trying to stop compactor process");
-              }
-            }
-            getCluster().getClusterControl().getCompactors(resourceGroup).clear();
-          });
-      Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx).size() == 0, 60_000);
-
-      // Start the Compactors that will consume and free memory when we need it to
-      getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
-          MemoryConsumingCompactor.class);
       Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx).size() == 1, 60_000);
       Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx)
           .get(Constants.DEFAULT_RESOURCE_GROUP_NAME).size() == 1, 60_000);
