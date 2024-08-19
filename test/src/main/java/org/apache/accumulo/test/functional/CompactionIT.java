@@ -865,7 +865,7 @@ public class CompactionIT extends CompactionBaseIT {
           RatioBasedCompactionPlanner.class.getName());
       c.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.groups",
-          ("[{'group':'" + COMPACTOR_GROUP_2 + "'}]").replaceAll("'", "\""));
+          ("[{'group':'" + COMPACTOR_GROUP_1 + "'}]").replaceAll("'", "\""));
 
       // set table 1 to a compaction service newcs
       c.tableOperations().setProperty(table1,

@@ -70,7 +70,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
-public class ExternalCompaction2BaseIT extends SharedMiniClusterBase {
+public abstract class ExternalCompaction2BaseIT extends SharedMiniClusterBase {
 
   static class ExternalCompaction2Config implements MiniClusterConfigurationCallback {
     @Override

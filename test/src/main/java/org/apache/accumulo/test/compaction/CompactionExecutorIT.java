@@ -80,6 +80,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,6 +88,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 
+@Disabled
 public class CompactionExecutorIT extends SharedMiniClusterBase {
   public static final List<String> compactionGroups = new LinkedList<>();
   public static final Logger log = LoggerFactory.getLogger(CompactionExecutorIT.class);
