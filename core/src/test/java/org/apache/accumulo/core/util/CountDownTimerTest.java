@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,29 +31,61 @@ import org.junit.jupiter.api.Test;
 public class CountDownTimerTest {
   @Test
   public void testCountDownTimer() throws Exception {
+
+    long start = System.nanoTime();
+
     var timer1 = CountDownTimer.startNew(Duration.ofMillis(100));
     Thread.sleep(10);
-    var timer2 = CountDownTimer.startNew(Duration.ofMillis(100));
+    var timer2 = CountDownTimer.startNew(100, TimeUnit.MILLISECONDS);
     Thread.sleep(10);
     var timer3 = CountDownTimer.startNew(Duration.ofMillis(100));
     Thread.sleep(10);
+
+    boolean expired1 = timer1.isExpired();
+    boolean expired2 = timer1.isExpired();
+    boolean expired3 = timer1.isExpired();
 
     var left3 = timer3.timeLeft(TimeUnit.MILLISECONDS);
     var left2 = timer2.timeLeft(TimeUnit.MILLISECONDS);
     var left1 = timer1.timeLeft(TimeUnit.MILLISECONDS);
 
+    long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
     assertTrue(left3 <= 90);
     assertTrue(left2 <= 80);
     assertTrue(left1 <= 70);
 
-    assertTrue(left3 >= left2);
-    assertTrue(left2 >= left1);
+    assertTrue(Math.max(left3 - 10, 0) >= left2);
+    assertTrue(Math.max(left2 - 10, 0) >= left1);
+    assertTrue(left1 >= 100 - elapsed);
     assertTrue(left1 >= 0);
+
+    if (left1 > 0) {
+      assertFalse(expired1);
+    } else {
+      assertTrue(expired1);
+    }
+
+    if (left2 > 0) {
+      assertFalse(expired2);
+    } else {
+      assertTrue(expired2);
+    }
+
+    if (left3 > 0) {
+      assertFalse(expired3);
+    } else {
+      assertTrue(expired3);
+    }
 
     Thread.sleep(92);
     assertEquals(0, timer1.timeLeft(TimeUnit.MILLISECONDS));
     assertEquals(0, timer2.timeLeft(TimeUnit.MILLISECONDS));
     assertEquals(0, timer3.timeLeft(TimeUnit.MILLISECONDS));
+
+    assertTrue(timer1.isExpired());
+    assertTrue(timer2.isExpired());
+    assertTrue(timer3.isExpired());
   }
 
   @Test

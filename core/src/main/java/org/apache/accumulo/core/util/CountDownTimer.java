@@ -46,6 +46,16 @@ public class CountDownTimer {
   }
 
   /**
+   * Starts a timer that will track the time left from the initial duration. For example starting a
+   * CountDownTimer with a duration of 100ms will return 90ms left after 10ms. After 110ms it should
+   * return 0 and always return 0 from that point.
+   */
+  public static CountDownTimer startNew(long duration, TimeUnit unit) {
+    Preconditions.checkArgument(duration >= 0);
+    return new CountDownTimer(unit.toNanos(duration));
+  }
+
+  /**
    * @return the amount of time left in the countdown or zero if the time is up.
    */
   public long timeLeft(TimeUnit unit) {
@@ -56,5 +66,13 @@ public class CountDownTimer {
     }
 
     return unit.convert(timeLeft, TimeUnit.NANOSECONDS);
+  }
+
+  /**
+   * @return true if the elapsed time since creation is greater than or equals to the initial
+   *         duration, otherwise return false.
+   */
+  public boolean isExpired() {
+    return timeLeft(TimeUnit.NANOSECONDS) == 0;
   }
 }

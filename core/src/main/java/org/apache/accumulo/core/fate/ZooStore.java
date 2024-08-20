@@ -164,7 +164,7 @@ public class ZooStore<T> implements TStore<T> {
             }
 
             if (deferred.containsKey(tid)) {
-              if (deferred.get(tid).timeLeft(MILLISECONDS) == 0) {
+              if (deferred.get(tid).isExpired()) {
                 deferred.remove(tid);
               } else {
                 continue;
