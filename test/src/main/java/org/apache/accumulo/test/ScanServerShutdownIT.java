@@ -57,7 +57,7 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
         org.apache.hadoop.conf.Configuration coreSite) {
 
-      cfg.getClusterServerConfiguration().setNumDefaultScanServers(0);
+      cfg.getClusterServerConfiguration().setNumDefaultScanServers(1);
 
       // Timeout scan sessions after being idle for 3 seconds
       cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
@@ -65,6 +65,9 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
       // Configure the scan server to only have 1 scan executor thread. This means
       // that the scan server will run scans serially, not concurrently.
       cfg.setProperty(Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS, "1");
+
+      // Set our custom implementation that shuts down after 3 batch scans
+      cfg.setServerClass(ServerType.SCAN_SERVER, SelfStoppingScanServer.class);
     }
   }
 
@@ -86,14 +89,6 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
     String zooRoot = ctx.getZooKeeperRoot();
     ZooReaderWriter zrw = ctx.getZooReaderWriter();
     String scanServerRoot = zooRoot + Constants.ZSSERVERS;
-
-    Wait.waitFor(() -> zrw.getChildren(scanServerRoot).size() == 0);
-
-    // Stop normal ScanServers so that we can start our custom implementation
-    // that shuts down after 3 batch scans
-    getCluster().getConfig().getClusterServerConfiguration().setNumDefaultScanServers(1);
-    getCluster().getClusterControl().start(ServerType.SCAN_SERVER, null, 1,
-        SelfStoppingScanServer.class);
 
     // Wait for the ScanServer to register in ZK
     Wait.waitFor(() -> zrw.getChildren(scanServerRoot).size() == 1);
