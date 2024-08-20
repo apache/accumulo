@@ -249,7 +249,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     int busyTimeoutMultiplier;
     String maxBusyTimeout;
     String group = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
-    String timeToWaitForScanServers = "0s";
+    String timeToWaitForScanServers = "100d";
 
     transient boolean parsed = false;
     transient long parsedMaxBusyTimeout;
