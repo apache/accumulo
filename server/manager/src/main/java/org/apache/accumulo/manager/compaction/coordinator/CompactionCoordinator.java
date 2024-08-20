@@ -1128,7 +1128,7 @@ public class CompactionCoordinator
     // after getting the snapshot.
     final Set<ExternalCompactionId> idsInMetadata = readExternalCompactionIds();
 
-    var idsToRemove = Sets.difference(idsSnapshot, idsInMetadata);
+    final Set<ExternalCompactionId> idsToRemove = Sets.difference(idsSnapshot, idsInMetadata);
 
     // remove ids that are in the running set but not in the metadata table
     idsToRemove.forEach(this::recordCompletion);
@@ -1140,7 +1140,7 @@ public class CompactionCoordinator
     Set<CompactorGroupId> groupsInConfiguration = null;
     try {
       groupsInConfiguration = getCompactionServicesConfigurationGroups();
-    } catch (IllegalArgumentException | SecurityException | ReflectiveOperationException e) {
+    } catch (RuntimeException | ReflectiveOperationException e) {
       LOG.error(
           "Error getting groups from the compaction services configuration. Unable to clean up internal state.",
           e);
@@ -1198,18 +1198,17 @@ public class CompactionCoordinator
           compactorsWithNoGroups);
     }
 
-    long now = System.currentTimeMillis();
+    final long now = System.currentTimeMillis();
+    final long warningTime = getMissingCompactorWarningTime();
     Map<String,Set<HostAndPort>> idleCompactors = getIdleCompactors(runningCompactors);
     for (CompactorGroupId groupName : groupsInConfiguration) {
       long lastCheckTime = TIME_COMPACTOR_LAST_CHECKED.getOrDefault(groupName, 0L);
-      if ((now - lastCheckTime) > getMissingCompactorWarningTime()
-          && jobQueues.getQueuedJobs(groupName) > 0
+      if ((now - lastCheckTime) > warningTime && jobQueues.getQueuedJobs(groupName) > 0
           && idleCompactors.containsKey(groupName.canonical())) {
         LOG.warn(
             "The group {} has queued jobs and {} idle compactors, however none have checked in "
                 + "with coordinator for {}ms",
-            groupName, idleCompactors.get(groupName.canonical()).size(),
-            getMissingCompactorWarningTime());
+            groupName, idleCompactors.get(groupName.canonical()).size(), warningTime);
       }
     }
   }
