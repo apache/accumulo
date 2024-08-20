@@ -263,7 +263,7 @@ public class UpgradeCoordinator {
     }
     try {
       CheckCompactionConfig.validate(context.getConfiguration());
-    } catch (SecurityException | IllegalArgumentException | ReflectiveOperationException e) {
+    } catch (RuntimeException | ReflectiveOperationException e) {
       throw new IllegalStateException("Error validating compaction configuration", e);
     }
   }
