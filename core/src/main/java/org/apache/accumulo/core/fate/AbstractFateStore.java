@@ -36,14 +36,15 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +69,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   };
 
   protected final Set<FateId> reserved;
-  protected final Map<FateId,NanoTime> deferred;
+  protected final Map<FateId,CountDownTimer> deferred;
   private final int maxDeferred;
   private final AtomicBoolean deferredOverflow = new AtomicBoolean();
   private final FateIdGenerator fateIdGenerator;
@@ -171,11 +172,10 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
               synchronized (AbstractFateStore.this) {
                 var deferredTime = deferred.get(fateId);
                 if (deferredTime != null) {
-                  if (deferredTime.elapsed().isNegative()) {
-                    // negative elapsed time indicates the deferral time is in the future
-                    return false;
-                  } else {
+                  if (deferredTime.isExpired()) {
                     deferred.remove(fateId);
+                  } else {
+                    return false;
                   }
                 }
                 return !reserved.contains(fateId);
@@ -194,9 +194,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
           long waitTime = 5000;
           synchronized (AbstractFateStore.this) {
             if (!deferred.isEmpty()) {
-              var now = NanoTime.now();
               waitTime = deferred.values().stream()
-                  .mapToLong(nanoTime -> nanoTime.subtract(now).toMillis()).min().getAsLong();
+                  .mapToLong(countDownTimer -> countDownTimer.timeLeft(TimeUnit.MILLISECONDS)).min()
+                  .getAsLong();
             }
           }
 
@@ -420,7 +420,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
             deferredOverflow.set(true);
             deferred.clear();
           } else {
-            deferred.put(fateId, NanoTime.nowPlus(deferTime));
+            deferred.put(fateId, CountDownTimer.startNew(deferTime));
           }
         }
       }
