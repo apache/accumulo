@@ -169,7 +169,6 @@ public class CompactionCoordinator
       new ConcurrentHashMap<>();
 
   /* Map of group name to last time compactor called to get a compaction job */
-  // ELASTICITY_TODO #4403 need to clean out groups that are no longer configured..
   private final Map<CompactorGroupId,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
 
   private final ServerContext ctx;
@@ -191,6 +190,8 @@ public class CompactionCoordinator
 
   private final LoadingCache<String,Integer> compactorCounts;
   private final int jobQueueInitialSize;
+
+  private volatile long coordinatorStartTime;
 
   public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
       AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances, Manager manager) {
@@ -274,6 +275,7 @@ public class CompactionCoordinator
   @Override
   public void run() {
 
+    this.coordinatorStartTime = System.currentTimeMillis();
     startCompactorZKCleaner(schedExecutor);
 
     // On a re-start of the coordinator it's possible that external compactions are in-progress.
@@ -1202,7 +1204,8 @@ public class CompactionCoordinator
     final long warningTime = getMissingCompactorWarningTime();
     Map<String,Set<HostAndPort>> idleCompactors = getIdleCompactors(runningCompactors);
     for (CompactorGroupId groupName : groupsInConfiguration) {
-      long lastCheckTime = TIME_COMPACTOR_LAST_CHECKED.getOrDefault(groupName, 0L);
+      long lastCheckTime =
+          TIME_COMPACTOR_LAST_CHECKED.getOrDefault(groupName, coordinatorStartTime);
       if ((now - lastCheckTime) > warningTime && jobQueues.getQueuedJobs(groupName) > 0
           && idleCompactors.containsKey(groupName.canonical())) {
         LOG.warn(
