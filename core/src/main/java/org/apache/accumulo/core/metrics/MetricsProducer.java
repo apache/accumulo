@@ -634,6 +634,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
+ * <td>{@link #METRICS_MANAGER_COMPACTION_SVC_ERRORS}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
  * <td>{@link #METRICS_MANAGER_USER_TGW_ERRORS}</td>
  * <td>Gauge</td>
  * <td></td>
@@ -700,6 +707,8 @@ public interface MetricsProducer {
   String METRICS_MANAGER_ROOT_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tabletmgmt.root.errors";
   String METRICS_MANAGER_META_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tabletmgmt.meta.errors";
   String METRICS_MANAGER_USER_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tabletmgmt.user.errors";
+  String METRICS_MANAGER_COMPACTION_SVC_ERRORS =
+      METRICS_MANAGER_PREFIX + "compaction.svc.misconfigured";
 
   String METRICS_MAJC_PREFIX = "accumulo.compactions.majc.";
   String METRICS_MAJC_QUEUED = METRICS_MAJC_PREFIX + "queued";

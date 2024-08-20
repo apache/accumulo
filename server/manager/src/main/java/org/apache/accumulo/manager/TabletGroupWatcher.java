@@ -443,11 +443,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     try {
       CheckCompactionConfig.validate(manager.getConfiguration());
-    } catch (SecurityException | IllegalArgumentException | IllegalStateException
-        | ReflectiveOperationException e) {
+      this.metrics.clearCompactionServiceConfigurationError();
+    } catch (RuntimeException | ReflectiveOperationException e) {
+      this.metrics.setCompactionServiceConfigurationError();
       LOG.error(
-          "Error validating compaction configuration, all compactions are paused until the configuration is fixed.",
-          e);
+          "Error validating compaction configuration, all {} compactions are paused until the configuration is fixed.",
+          store.getLevel(), e);
       compactionGenerator = null;
     }
 
