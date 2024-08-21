@@ -41,7 +41,7 @@ public class ColumnVisibilityTest {
 
   private void shouldThrow(String... strings) {
     for (String s : strings) {
-      final byte[] sBytes = s.getBytes();
+      final byte[] sBytes = s.getBytes(UTF_8);
       assertThrows(IllegalArgumentException.class, () -> new ColumnVisibility(sBytes),
           "Should throw: " + s);
     }
@@ -49,7 +49,7 @@ public class ColumnVisibilityTest {
 
   private void shouldNotThrow(String... strings) {
     for (String s : strings) {
-      new ColumnVisibility(s.getBytes());
+      new ColumnVisibility(s.getBytes(UTF_8));
     }
   }
 
@@ -95,8 +95,8 @@ public class ColumnVisibilityTest {
   @SuppressWarnings("deprecation")
   public void normalized(String... values) {
     for (int i = 0; i < values.length; i += 2) {
-      ColumnVisibility cv = new ColumnVisibility(values[i].getBytes());
-      assertArrayEquals(cv.flatten(), values[i + 1].getBytes());
+      ColumnVisibility cv = new ColumnVisibility(values[i].getBytes(UTF_8));
+      assertArrayEquals(cv.flatten(), values[i + 1].getBytes(UTF_8));
     }
   }
 

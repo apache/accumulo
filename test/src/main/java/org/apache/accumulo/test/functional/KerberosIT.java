@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -366,7 +367,7 @@ public class KerberosIT extends AccumuloITBase {
       final long ts = 1000L;
       try (BatchWriter bw = client.createBatchWriter(table)) {
         Mutation m = new Mutation("a");
-        m.put("b", "c", new ColumnVisibility(viz.getBytes()), ts, "d");
+        m.put("b", "c", new ColumnVisibility(viz.getBytes(UTF_8)), ts, "d");
         bw.addMutation(m);
       }
 

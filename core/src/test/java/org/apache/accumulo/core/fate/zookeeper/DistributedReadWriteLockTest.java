@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.fate.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.SortedMap;
@@ -90,7 +91,7 @@ public class DistributedReadWriteLockTest {
     data.read();
     QueueLock qlock = new MockQueueLock();
 
-    final ReadWriteLock locker = new DistributedReadWriteLock(qlock, "locker1".getBytes());
+    final ReadWriteLock locker = new DistributedReadWriteLock(qlock, "locker1".getBytes(UTF_8));
     final Lock readLock = locker.readLock();
     final Lock writeLock = locker.writeLock();
     readLock.lock();

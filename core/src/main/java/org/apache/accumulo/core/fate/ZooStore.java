@@ -39,11 +39,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -64,7 +64,7 @@ public class ZooStore<T> implements TStore<T> {
   private ZooReaderWriter zk;
   private String lastReserved = "";
   private Set<Long> reserved;
-  private Map<Long,Long> deferred;
+  private Map<Long,CountDownTimer> deferred;
   private long statusChangeEvents = 0;
   private int reservationsWaiting = 0;
 
@@ -164,10 +164,8 @@ public class ZooStore<T> implements TStore<T> {
             }
 
             if (deferred.containsKey(tid)) {
-              long deferredTime = deferred.get(tid);
-              long currentTime = System.nanoTime();
-              if ((currentTime - deferredTime) >= 0) {
-                deferred.remove(tid); // Remove if the deferred time has passed
+              if (deferred.get(tid).isExpired()) {
+                deferred.remove(tid);
               } else {
                 continue;
               }
@@ -205,16 +203,10 @@ public class ZooStore<T> implements TStore<T> {
             if (deferred.isEmpty()) {
               this.wait(5000);
             } else {
-              long currentTime = System.nanoTime();
-              long minWaitNanos =
-                  deferred.values().stream().mapToLong(deferredTime -> deferredTime - currentTime)
-                      .filter(remainingTime -> remainingTime > 0) // future deferred times only
-                      .min().orElseThrow();
-
-              long minWaitMillis = Math.min(TimeUnit.NANOSECONDS.toMillis(minWaitNanos), 5000);
-
-              if (minWaitMillis > 0) {
-                this.wait(minWaitMillis);
+              long minWait = deferred.values().stream()
+                  .mapToLong(timer -> timer.timeLeft(MILLISECONDS)).min().orElseThrow();
+              if (minWait > 0) {
+                this.wait(Math.min(minWait, 5000));
               }
             }
           }
@@ -292,8 +284,7 @@ public class ZooStore<T> implements TStore<T> {
       }
 
       if (deferTime.compareTo(Duration.ZERO) > 0) {
-        long deferredTime = System.nanoTime() + deferTime.toNanos();
-        deferred.put(tid, deferredTime);
+        deferred.put(tid, CountDownTimer.startNew(deferTime));
       }
 
       this.notifyAll();
