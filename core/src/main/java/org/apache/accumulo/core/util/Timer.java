@@ -46,27 +46,6 @@ public final class Timer {
   }
 
   /**
-   * Creates a new Timer with an offset applied.
-   *
-   * @param offset the duration of the offset to apply.
-   * @return a new Timer instance with the specified offset.
-   */
-  public static Timer startNewWithOffset(Duration offset) {
-    return new Timer(offset.toNanos());
-  }
-
-  /**
-   * Creates a new Timer with an offset applied.
-   *
-   * @param offset the duration of the offset to apply.
-   * @param unit the TimeUnit of the offset.
-   * @return a new Timer instance with the specified offset.
-   */
-  public static Timer startNewWithOffset(long offset, TimeUnit unit) {
-    return new Timer(unit.toNanos(offset));
-  }
-
-  /**
    * Resets the start point for this timer.
    */
   public void restart() {
