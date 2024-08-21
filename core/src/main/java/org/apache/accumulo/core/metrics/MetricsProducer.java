@@ -405,25 +405,25 @@ import io.micrometer.core.instrument.MeterRegistry;
  * </tr>
  * <!-- scan server -->
  * <tr>
- * <th>N/A</th>
- * <th>N/A</th>
- * <th>{@value #METRICS_SCAN_RESERVATION_TOTAL_TIMER}</th>
- * <th>Timer</th>
- * <th>Time to reserve a tablets files for scan</th>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_SCAN_RESERVATION_TOTAL_TIMER}</td>
+ * <td>Timer</td>
+ * <td>Time to reserve a tablets files for scan</td>
  * </tr>
  * <tr>
- * <th>N/A</th>
- * <th>N/A</th>
- * <th>{@value #METRICS_SCAN_BUSY_TIMEOUT_COUNTER}</th>
- * <th>Counter</th>
- * <th>Count of the scans where a busy timeout happened</th>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_SCAN_BUSY_TIMEOUT_COUNTER}</td>
+ * <td>Counter</td>
+ * <td>Count of the scans where a busy timeout happened</td>
  * </tr>
  * <tr>
- * <th>N/A</th>
- * <th>N/A</th>
- * <th>{@value #METRICS_SCAN_TABLET_METADATA_CACHE}</th>
- * <th>Cache</th>
- * <th>scan server tablet cache metrics</th>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_SCAN_TABLET_METADATA_CACHE}</td>
+ * <td>Cache</td>
+ * <td>scan server tablet cache metrics</td>
  * </tr>
  * <!-- scans -->
  * <tr>
@@ -634,6 +634,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
+ * <td>{@link #METRICS_MANAGER_COMPACTION_SVC_ERRORS}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
  * <td>{@link #METRICS_MANAGER_USER_TGW_ERRORS}</td>
  * <td>Gauge</td>
  * <td></td>
@@ -700,6 +707,8 @@ public interface MetricsProducer {
   String METRICS_MANAGER_ROOT_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tabletmgmt.root.errors";
   String METRICS_MANAGER_META_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tabletmgmt.meta.errors";
   String METRICS_MANAGER_USER_TGW_ERRORS = METRICS_MANAGER_PREFIX + "tabletmgmt.user.errors";
+  String METRICS_MANAGER_COMPACTION_SVC_ERRORS =
+      METRICS_MANAGER_PREFIX + "compaction.svc.misconfigured";
 
   String METRICS_MAJC_PREFIX = "accumulo.compactions.majc.";
   String METRICS_MAJC_QUEUED = METRICS_MAJC_PREFIX + "queued";

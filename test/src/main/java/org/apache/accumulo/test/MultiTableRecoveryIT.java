@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -74,7 +75,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
       System.out.println("Creating tables");
       for (String tableName : tables) {
         c.tableOperations().create(tableName);
-        values[i] = Integer.toString(i).getBytes();
+        values[i] = Integer.toString(i).getBytes(UTF_8);
         writers[i] = c.createBatchWriter(tableName);
         i++;
       }

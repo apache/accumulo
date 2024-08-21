@@ -24,11 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -61,14 +59,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.MoreCollectors;
 
 public class UserFateStoreIT extends SharedMiniClusterBase {
 
-  private static final Logger log = LoggerFactory.getLogger(UserFateStore.class);
   private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
 
   @BeforeAll
@@ -147,37 +142,6 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
         assertTrue(tablets.stream()
             .allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
       }
-    }
-  }
-
-  @Test
-  public void testCreateWithCollisionAndExceedRetryLimit() throws Exception {
-    String table = getUniqueNames(1)[0];
-    try (ClientContext client =
-        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
-      createFateTable(client, table);
-
-      UUID[] uuids = new UUID[5];
-      for (int i = 0; i < uuids.length; i++) {
-        uuids[i] = UUID.randomUUID();
-      }
-      List<UUID> txids =
-          List.of(uuids[0], uuids[0], uuids[0], uuids[1], uuids[2], uuids[2], uuids[2], uuids[2],
-              uuids[3], uuids[3], uuids[4], uuids[4], uuids[4], uuids[4], uuids[4], uuids[4]);
-      List<FateId> fateIds = txids.stream().map(txid -> FateId.from(fateInstanceType, txid))
-          .collect(Collectors.toList());
-      Set<FateId> expectedFateIds = new LinkedHashSet<>(fateIds);
-      TestUserFateStore store = new TestUserFateStore(client, table, fateIds);
-
-      // call create and expect we get the unique txids
-      for (FateId expectedFateId : expectedFateIds) {
-        FateId fateId = store.create();
-        log.info("Created fate id: " + fateId);
-        assertEquals(expectedFateId, fateId, "Expected " + expectedFateId + " but got " + fateId);
-      }
-
-      // Calling create again on 5L should throw an exception since we've exceeded the max retries
-      assertThrows(IllegalStateException.class, store::create);
     }
   }
 

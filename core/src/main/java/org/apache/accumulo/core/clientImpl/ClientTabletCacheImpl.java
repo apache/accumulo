@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -57,9 +57,9 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
@@ -191,12 +191,12 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       InvalidTabletHostingRequestException {
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Binning {} mutations for table {}", Thread.currentThread().getId(),
           mutations.size(), tableId);
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
     ArrayList<T> notInCache = new ArrayList<>();
@@ -262,10 +262,9 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     requestTabletHosting(context, locationLess);
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Binned {} mutations for table {} to {} tservers in {}",
           Thread.currentThread().getId(), mutations.size(), tableId, binnedMutations.size(),
-          String.format("%.3f secs", timer.scale(SECONDS)));
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
   }
@@ -416,12 +415,12 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
      * logging. Therefore methods called by this are not synchronized and should not log.
      */
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Binning {} ranges for table {}", Thread.currentThread().getId(),
           ranges.size(), tableId);
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
     LockCheckerSession lcSession = new LockCheckerSession();
@@ -471,9 +470,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Binned {} ranges for table {} in {}", Thread.currentThread().getId(),
-          ranges.size(), tableId, String.format("%.3f secs", timer.scale(SECONDS)));
+          ranges.size(), tableId, String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return failures;
@@ -553,12 +551,12 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       InvalidTabletHostingRequestException {
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Locating tablet  table={} row={} skipRow={}",
           Thread.currentThread().getId(), tableId, TextUtil.truncate(row), skipRow);
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
     LockCheckerSession lcSession = new LockCheckerSession();
@@ -566,10 +564,9 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
         _findTablet(context, row, skipRow, false, true, lcSession, locationNeed, NanoTime.now());
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Located tablet {} at {} in {}", Thread.currentThread().getId(),
           (tl == null ? "null" : tl.getExtent()), (tl == null ? "null" : tl.getTserverLocation()),
-          String.format("%.3f secs", timer.scale(SECONDS)));
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     if (tl != null && locationNeed == LocationNeed.REQUIRED) {

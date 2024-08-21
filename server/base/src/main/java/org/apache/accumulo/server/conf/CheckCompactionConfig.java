@@ -22,6 +22,10 @@ import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME
 
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.cli.Help;
@@ -31,6 +35,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
@@ -90,6 +95,11 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
 
     AccumuloConfiguration config = SiteConfiguration.fromFile(path.toFile()).build();
+    validate(config);
+  }
+
+  public static void validate(AccumuloConfiguration config)
+      throws ReflectiveOperationException, SecurityException, IllegalArgumentException {
     var servicesConfig = new CompactionServicesConfig(config);
     ServiceEnvironment senv = createServiceEnvironment(config);
 
@@ -99,6 +109,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
       return;
     }
 
+    Map<CompactorGroupId,Set<String>> groupToServices = new HashMap<>();
     for (var entry : servicesConfig.getPlanners().entrySet()) {
       String serviceId = entry.getKey();
       String plannerClassName = entry.getValue();
@@ -115,15 +126,32 @@ public class CheckCompactionConfig implements KeywordExecutable {
 
       planner.init(initParams);
 
-      initParams.getRequestedGroups().forEach(
-          (groupId -> log.info("Compaction service '{}' requested with compactor group '{}'",
-              serviceId, groupId)));
+      initParams.getRequestedGroups().forEach(groupId -> {
+        log.info("Compaction service '{}' requested with compactor group '{}'", serviceId, groupId);
+        groupToServices.computeIfAbsent(groupId, f -> new HashSet<>()).add(serviceId);
+      });
+    }
+
+    boolean dupesFound = false;
+    for (Entry<CompactorGroupId,Set<String>> e : groupToServices.entrySet()) {
+      if (e.getValue().size() > 1) {
+        log.warn("Compaction services " + e.getValue().toString()
+            + " mapped to the same compactor group: " + e.getKey());
+        dupesFound = true;
+      }
+    }
+
+    if (dupesFound) {
+      throw new IllegalStateException(
+          "Multiple compaction services configured to use the same group. This could lead"
+              + " to undesired behavior. Please fix the configuration");
     }
 
     log.info("Properties file has passed all checks.");
+
   }
 
-  private ServiceEnvironment createServiceEnvironment(AccumuloConfiguration config) {
+  private static ServiceEnvironment createServiceEnvironment(AccumuloConfiguration config) {
     return new ServiceEnvironment() {
 
       @Override
@@ -152,4 +180,5 @@ public class CheckCompactionConfig implements KeywordExecutable {
       }
     };
   }
+
 }

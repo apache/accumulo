@@ -95,9 +95,10 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   public FateId create() {
-    final int maxAttempts = 5;
 
-    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+    int attempt = 0;
+    while (true) {
+
       FateId fateId = getFateId();
 
       if (attempt >= 1) {
@@ -113,13 +114,12 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
           return fateId;
         case UNKNOWN:
         case REJECTED:
+          attempt++;
           continue;
         default:
           throw new IllegalStateException("Unknown status " + status);
       }
     }
-
-    throw new IllegalStateException("Failed to create new id after " + maxAttempts + " attempts");
   }
 
   public FateId getFateId() {

@@ -192,16 +192,6 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       cfg.setProperty(csp + "cs4.planner.opts.filesPerCompaction", "11");
       cfg.setProperty(csp + "cs4.planner.opts.process", "USER");
 
-      // Setup three planner that fail to initialize or plan, these planners should not impede
-      // tablet assignment.
-      cfg.setProperty(csp + "cse1.planner", ErroringPlanner.class.getName());
-      cfg.setProperty(csp + "cse1.planner.opts.failInInit", "true");
-
-      cfg.setProperty(csp + "cse2.planner", ErroringPlanner.class.getName());
-      cfg.setProperty(csp + "cse2.planner.opts.failInInit", "false");
-
-      cfg.setProperty(csp + "cse3.planner", "NonExistentPlanner20240522");
-
       // this is meant to be dynamically reconfigured
       cfg.setProperty(csp + "recfg.planner", TestPlanner.class.getName());
       cfg.setProperty(csp + "recfg.planner.opts.groups", "[{'group':'i1'},{'group':'i2'}]");
@@ -260,6 +250,18 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     // This test ensures that a table w/ failing compaction planner can still be read and written.
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      // Setup three planner that fail to initialize or plan, these planners should not impede
+      // tablet assignment.
+      var csp = Property.COMPACTION_SERVICE_PREFIX.getKey();
+      client.instanceOperations().setProperty(csp + "cse1.planner",
+          ErroringPlanner.class.getName());
+      client.instanceOperations().setProperty(csp + "cse1.planner.opts.failInInit", "true");
+      client.instanceOperations().setProperty(csp + "cse2.planner",
+          ErroringPlanner.class.getName());
+      client.instanceOperations().setProperty(csp + "cse2.planner.opts.failInInit", "false");
+      client.instanceOperations().setProperty(csp + "cse3.planner", "NonExistentPlanner20240522");
+
       createTable(client, "fail1", "cse1");
       createTable(client, "fail2", "cse2");
       createTable(client, "fail3", "cse3");
@@ -281,6 +283,14 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       assertEquals(30, getFiles(client, "fail1").size());
       assertEquals(30, getFiles(client, "fail2").size());
       assertEquals(30, getFiles(client, "fail3").size());
+
+      // Remove the properties for the invalid planners
+      client.instanceOperations().removeProperty(csp + "cse1.planner");
+      client.instanceOperations().removeProperty(csp + "cse1.planner.opts.failInInit");
+      client.instanceOperations().removeProperty(csp + "cse2.planner");
+      client.instanceOperations().removeProperty(csp + "cse2.planner.opts.failInInit");
+      client.instanceOperations().removeProperty(csp + "cse3.planner");
+
     }
   }
 

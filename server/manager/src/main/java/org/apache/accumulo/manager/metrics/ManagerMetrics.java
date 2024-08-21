@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -42,6 +43,7 @@ public class ManagerMetrics implements MetricsProducer {
   private final AtomicLong rootTGWErrorsGauge = new AtomicLong(0);
   private final AtomicLong metadataTGWErrorsGauge = new AtomicLong(0);
   private final AtomicLong userTGWErrorsGauge = new AtomicLong(0);
+  private final AtomicInteger compactionConfigurationError = new AtomicInteger(0);
 
   public ManagerMetrics(final AccumuloConfiguration conf, final Manager manager) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
@@ -69,12 +71,22 @@ public class ManagerMetrics implements MetricsProducer {
     }
   }
 
+  public void setCompactionServiceConfigurationError() {
+    this.compactionConfigurationError.set(1);
+  }
+
+  public void clearCompactionServiceConfigurationError() {
+    this.compactionConfigurationError.set(0);
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
     fateMetrics.forEach(fm -> fm.registerMetrics(registry));
     registry.gauge(METRICS_MANAGER_ROOT_TGW_ERRORS, rootTGWErrorsGauge);
     registry.gauge(METRICS_MANAGER_META_TGW_ERRORS, metadataTGWErrorsGauge);
     registry.gauge(METRICS_MANAGER_USER_TGW_ERRORS, userTGWErrorsGauge);
+    registry.gauge(METRICS_MANAGER_COMPACTION_SVC_ERRORS, compactionConfigurationError,
+        AtomicInteger::get);
   }
 
   public List<MetricsProducer> getProducers(AccumuloConfiguration conf, Manager manager) {

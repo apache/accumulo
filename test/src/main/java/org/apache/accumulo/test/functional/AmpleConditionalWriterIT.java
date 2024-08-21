@@ -34,6 +34,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -96,6 +97,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadataBuilder;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.metadata.schema.filters.GcWalsFilter;
 import org.apache.accumulo.core.metadata.schema.filters.HasCurrentFilter;
 import org.apache.accumulo.core.metadata.schema.filters.TabletMetadataFilter;
@@ -1688,6 +1690,62 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           context.getAmple().readTablet(e1).getTabletAvailability());
       assertEquals(TabletAvailability.UNHOSTED,
           context.getAmple().readTablet(e2).getTabletAvailability());
+    }
+  }
+
+  @Test
+  public void testUnsplittable() {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      var context = cluster.getServerContext();
+
+      var ctmi = new ConditionalTabletsMutatorImpl(context);
+
+      var tabletMeta1 = TabletMetadata.builder(e1).build(UNSPLITTABLE);
+
+      // require the UNSPLITTABLE column to be absent when it is absent
+      UnSplittableMetadata usm1 =
+          UnSplittableMetadata.toUnSplittable(e1, 1000, 100000, 32, Set.of());
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, UNSPLITTABLE)
+          .setUnSplittable(usm1).submit(tm -> false);
+      var results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      var tabletMeta2 = context.getAmple().readTablet(e1);
+      assertEquals(usm1.toBase64(), tabletMeta2.getUnSplittable().toBase64());
+
+      // require the UNSPLITTABLE column to be absent when it is not absent
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, UNSPLITTABLE)
+          .deleteUnSplittable().submit(tm -> false);
+      results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      assertEquals(usm1.toBase64(), context.getAmple().readTablet(e1).getUnSplittable().toBase64());
+
+      UnSplittableMetadata usm2 =
+          UnSplittableMetadata.toUnSplittable(e1, 1001, 100001, 33, Set.of());
+      var tabletMeta3 = TabletMetadata.builder(e1).setUnSplittable(usm2).build(UNSPLITTABLE);
+      // require the UNSPLITTABLE column to be usm2 when it is actually usm1
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta3, UNSPLITTABLE)
+          .deleteUnSplittable().submit(tm -> false);
+      results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      assertEquals(usm1.toBase64(), context.getAmple().readTablet(e1).getUnSplittable().toBase64());
+
+      // require the UNSPLITTABLE column to be usm1 when it is actually usm1
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta2, UNSPLITTABLE)
+          .deleteUnSplittable().submit(tm -> false);
+      results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertNull(context.getAmple().readTablet(e1).getUnSplittable());
+
+      // require the UNSPLITTABLE column to be usm1 when it is actually absent
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta2, UNSPLITTABLE)
+          .setUnSplittable(usm2).submit(tm -> false);
+      results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      assertNull(context.getAmple().readTablet(e1).getUnSplittable());
     }
   }
 

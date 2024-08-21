@@ -163,6 +163,12 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
     }
   }
 
+  protected Retry createUnknownRetry() {
+    return Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
+        .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(2)).backOffFactor(1.5)
+        .logInterval(Duration.ofMinutes(3)).createRetry();
+  }
+
   private Iterator<ConditionalWriter.Result> writeMutations(ConditionalWriter conditionalWriter) {
     var results = conditionalWriter.write(mutations.iterator());
 
@@ -175,9 +181,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
     while (!unknownResults.isEmpty()) {
       try {
         if (retry == null) {
-          retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
-              .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(2)).backOffFactor(1.5)
-              .logInterval(Duration.ofMinutes(3)).createRetry();
+          retry = createUnknownRetry();
         }
         retry.waitForNextAttempt(log, "handle conditional mutations with unknown status");
       } catch (InterruptedException e) {
