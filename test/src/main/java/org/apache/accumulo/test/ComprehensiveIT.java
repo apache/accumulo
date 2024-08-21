@@ -37,6 +37,7 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -72,6 +73,7 @@ import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.client.summary.CountingSummarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Condition;
@@ -92,6 +94,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelector;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -129,11 +132,7 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
         org.apache.hadoop.conf.Configuration coreSite) {
       cfg.setNumScanServers(1);
-
-      // Timeout scan sessions after being idle for 3 seconds
-      cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
       cfg.setProperty(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION, "5s");
-
     }
   }
 
@@ -154,7 +153,14 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
 
   @Test
   public void testEventualScan() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+    Properties props = new Properties();
+    props.putAll(getClientProps());
+    props.put(ClientProperty.SCAN_SERVER_SELECTOR.getKey(),
+        ConfigurableScanServerSelector.class.getName());
+    props.put(ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey() + "profiles",
+        "[{'isDefault':true,'timeToWaitForScanServers' : '10d','maxBusyTimeout':'5m','busyTimeoutMultiplier':4,'attemptPlans':[{\"servers\":\"100%\", \"busyTimeout\":\"3ms\"}]}]");
+
+    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
 
       String table = getUniqueNames(1)[0];
       client.tableOperations().create(table);
@@ -166,15 +172,9 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       write(client, table, generateMutations(0, 100, tr -> true));
 
       // need flush table so that eventual scan can see it.
-
-      long minWait = 5_000;
-      var startTime = System.currentTimeMillis();
+      getCluster().getClusterControl().stop(ServerType.SCAN_SERVER);
       client.tableOperations().flush(table, null, null, true);
-      var duration = System.currentTimeMillis() - startTime;
-      // if duration is less than minWait, wait the remainder + 0.5 seconds.
-      if (minWait > duration) {
-        Thread.sleep((minWait - duration) + 500);
-      }
+      getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
 
       // should see all data that was flushed in eventual scan
       verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),
@@ -184,20 +184,16 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       verifyData(client, table, Authorizations.EMPTY, generateKeys(0, 100, tr -> tr.vis.isEmpty()),
           scanner -> scanner.setConsistencyLevel(EVENTUAL));
 
-      // write some more rows after 100 and verfy those are not seen by eventual scan until table is
-      // flushed.
+      // write some more rows after 100 and verify those are not seen by eventual scan until table
+      // is flushed.
       write(client, table, generateMutations(100, 200, tr -> true));
       verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),
           scanner -> scanner.setConsistencyLevel(EVENTUAL));
 
       // need flush table so that eventual scan can see it.
-      startTime = System.currentTimeMillis();
+      getCluster().getClusterControl().stop(ServerType.SCAN_SERVER);
       client.tableOperations().flush(table, null, null, true);
-      duration = System.currentTimeMillis() - startTime;
-      // if duration is less than minWait, wait the remainder + 0.5 seconds.
-      if (minWait > duration) {
-        Thread.sleep((minWait - duration) + 500);
-      }
+      getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
 
       verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 200),
           scanner -> scanner.setConsistencyLevel(EVENTUAL));
