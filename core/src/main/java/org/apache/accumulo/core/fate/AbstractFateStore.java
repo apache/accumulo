@@ -193,12 +193,10 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       if (seen.get() == 0) {
         if (beforeCount == unreservedRunnableCount.getCount()) {
           long waitTime = 5000;
-          synchronized (AbstractFateStore.this) {
-            if (!deferred.isEmpty()) {
-              waitTime = deferred.values().stream()
-                  .mapToLong(countDownTimer -> countDownTimer.timeLeft(TimeUnit.MILLISECONDS)).min()
-                  .getAsLong();
-            }
+          if (!deferred.isEmpty()) {
+            waitTime = deferred.values().stream()
+                .mapToLong(countDownTimer -> countDownTimer.timeLeft(TimeUnit.MILLISECONDS)).min()
+                .getAsLong();
           }
 
           if (waitTime > 0) {
