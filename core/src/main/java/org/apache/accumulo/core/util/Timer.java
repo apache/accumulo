@@ -32,10 +32,6 @@ public final class Timer {
     this.startNanos = System.nanoTime();
   }
 
-  private Timer(long offsetNanos) {
-    this.startNanos = System.nanoTime() + offsetNanos;
-  }
-
   /**
    * Creates and starts a new Timer instance.
    *
