@@ -140,7 +140,8 @@ public interface IteratorEnvironment {
   }
 
   /**
-   * True if compaction was user initiated.
+   * True if compaction was user initiated. Will throw IllegalStateException if
+   * {@link #getIteratorScope()} != {@link IteratorScope#majc}.
    *
    * @since 2.0.0
    */

@@ -37,6 +37,8 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientServiceEnvironmentImpl;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
@@ -54,6 +56,8 @@ import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Suppliers;
 
 /**
  * A scanner that instantiates iterators on the client side instead of on the tablet server. This
@@ -91,10 +95,13 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     private SamplerConfiguration samplerConfig;
     private boolean sampleEnabled;
+    private final Supplier<ServiceEnvironment> serviceEnvironment;
 
     ClientSideIteratorEnvironment(boolean sampleEnabled, SamplerConfiguration samplerConfig) {
       this.sampleEnabled = sampleEnabled;
       this.samplerConfig = samplerConfig;
+      this.serviceEnvironment =
+          Suppliers.memoize(() -> new ClientServiceEnvironmentImpl(context.get()));
     }
 
     @Override
@@ -111,7 +118,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     @Override
     public boolean isUserCompaction() {
-      return false;
+      throw new IllegalStateException(
+          "Asked about user initiated compaction type when scope is " + getIteratorScope());
     }
 
     @Override
@@ -134,15 +142,22 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       return samplerConfig;
     }
 
+    @Override
+    @Deprecated(since = "2.0.0")
+    public AccumuloConfiguration getConfig() {
+      var ctx = context.get();
+      try {
+        return new ConfigurationCopy(
+            ctx.tableOperations().getConfiguration(ctx.getTableName(tableId.get())));
+      } catch (AccumuloException | TableNotFoundException e) {
+        throw new RuntimeException("Error getting table configuration", e);
+      }
+    }
+
     @Deprecated(since = "2.1.0")
     @Override
     public ServiceEnvironment getServiceEnv() {
-      return new ClientServiceEnvironmentImpl(context.get());
-    }
-
-    @Override
-    public PluginEnvironment getPluginEnv() {
-      return new ClientServiceEnvironmentImpl(context.get());
+      return serviceEnvironment.get();
     }
 
     @Override

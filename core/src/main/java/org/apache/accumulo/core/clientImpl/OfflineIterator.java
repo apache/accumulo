@@ -31,10 +31,10 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -73,6 +73,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Suppliers;
+
 class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   static class OfflineIteratorEnvironment implements IteratorEnvironment {
@@ -83,6 +85,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     private final SamplerConfiguration sampleConf;
     private final ClientContext context;
     private final TableId tableId;
+    private final Supplier<ServiceEnvironment> serviceEnvironment;
 
     public OfflineIteratorEnvironment(ClientContext context, TableId tableId, Authorizations auths,
         AccumuloConfiguration acuTableConf, boolean useSample, SamplerConfiguration samplerConf) {
@@ -92,6 +95,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       this.conf = acuTableConf;
       this.useSample = useSample;
       this.sampleConf = samplerConf;
+      this.serviceEnvironment = Suppliers.memoize(() -> new ClientServiceEnvironmentImpl(context));
     }
 
     @Deprecated(since = "2.0.0")
@@ -107,12 +111,14 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     @Override
     public boolean isFullMajorCompaction() {
-      return false;
+      throw new IllegalStateException(
+          "Asked about major compaction type when scope is " + getIteratorScope());
     }
 
     @Override
     public boolean isUserCompaction() {
-      return false;
+      throw new IllegalStateException(
+          "Asked about user initiated compaction type when scope is " + getIteratorScope());
     }
 
     private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators =
@@ -160,12 +166,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     @Deprecated(since = "2.1.0")
     @Override
     public ServiceEnvironment getServiceEnv() {
-      return new ClientServiceEnvironmentImpl(context);
-    }
-
-    @Override
-    public PluginEnvironment getPluginEnv() {
-      return new ClientServiceEnvironmentImpl(context);
+      return serviceEnvironment.get();
     }
 
     @Override

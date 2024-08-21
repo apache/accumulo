@@ -19,22 +19,28 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.rfile.RFile;
+import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -43,10 +49,15 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
+import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -147,7 +158,9 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
    */
   private static void testEnv(IteratorScope scope, Map<String,String> opts,
       IteratorEnvironment env) {
-    TableId expectedTableId = TableId.of(opts.get("expected.table.id"));
+    // In some cases, a table id won't be provided (e.g., testing the env of RFileScanner)
+    String tableIdStr = opts.get("expected.table.id");
+    TableId expectedTableId = tableIdStr != null ? TableId.of(tableIdStr) : null;
 
     // verify getServiceEnv() and getPluginEnv() are the same objects,
     // so further checks only need to use getPluginEnv()
@@ -172,9 +185,14 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     if (!"value1".equals(tableConf.getTableCustom("iterator.env.test"))) {
       throw new RuntimeException("Test failed - Expected table property not found in table conf.");
     }
-    var systemConf = pluginEnv.getConfiguration();
-    if (systemConf.get("table.custom.iterator.env.test") != null) {
-      throw new RuntimeException("Test failed - Unexpected table property found in system conf.");
+    if (!env.getClass().getName().contains("RFileScanner$IterEnv")) {
+      var systemConf = pluginEnv.getConfiguration();
+      if (systemConf.get("table.custom.iterator.env.test") != null) {
+        throw new RuntimeException("Test failed - Unexpected table property found in system conf.");
+      }
+    } else {
+      // We expect RFileScanner's IterEnv to throw an UOE
+      assertThrows(UnsupportedOperationException.class, pluginEnv::getConfiguration);
     }
 
     // check other environment settings
@@ -184,7 +202,7 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     if (env.isSamplingEnabled()) {
       throw new RuntimeException("Test failed - isSamplingEnabled returned true, expected false");
     }
-    if (!expectedTableId.equals(env.getTableId())) {
+    if (!Objects.equals(expectedTableId, env.getTableId())) {
       throw new RuntimeException("Test failed - Error getting Table ID");
     }
   }
@@ -203,10 +221,13 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    String[] tables = getUniqueNames(3);
+    String[] tables = getUniqueNames(5);
     testScan(tables[0], ScanIter.class);
-    testCompact(tables[1], MajcIter.class);
-    testMinCompact(tables[2], MincIter.class);
+    testRFileScan(ScanIter.class);
+    testOfflineScan(tables[1], ScanIter.class);
+    testClientSideScan(tables[2], ScanIter.class);
+    testCompact(tables[3], MajcIter.class);
+    testMinCompact(tables[4], MincIter.class);
   }
 
   private void testScan(String tableName,
@@ -219,6 +240,49 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
       scan.addScanIterator(cfg);
       Iterator<Map.Entry<Key,Value>> iter = scan.iterator();
       iter.forEachRemaining(e -> assertEquals("cf1", e.getKey().getColumnFamily().toString()));
+    }
+  }
+
+  private void testRFileScan(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass)
+      throws Exception {
+    LocalFileSystem fs = FileSystem.getLocal(new Configuration());
+    String rFilePath = createRFile(fs);
+    IteratorSetting is = new IteratorSetting(1, iteratorClass);
+
+    try (Scanner scanner = RFile.newScanner().from(rFilePath).withFileSystem(fs)
+        .withTableProperties(getTableConfig().getProperties()).build()) {
+      scanner.addScanIterator(is);
+      var unused = scanner.iterator();
+    }
+  }
+
+  public void testOfflineScan(String tableName,
+      Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) throws Exception {
+    writeData(tableName);
+    TableId tableId = getServerContext().getTableId(tableName);
+    getServerContext().tableOperations().offline(tableName, true);
+    IteratorSetting is = new IteratorSetting(1, iteratorClass);
+    is.addOption("expected.table.id",
+        getServerContext().tableOperations().tableIdMap().get(tableName));
+
+    try (OfflineScanner scanner =
+        new OfflineScanner(getServerContext(), tableId, new Authorizations())) {
+      scanner.addScanIterator(is);
+      var unused = scanner.iterator();
+    }
+  }
+
+  public void testClientSideScan(String tableName,
+      Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) throws Exception {
+    writeData(tableName);
+    IteratorSetting is = new IteratorSetting(1, iteratorClass);
+    is.addOption("expected.table.id",
+        getServerContext().tableOperations().tableIdMap().get(tableName));
+
+    try (Scanner scanner = client.createScanner(tableName);
+        var clientIterScanner = new ClientSideIteratorScanner(scanner)) {
+      clientIterScanner.addScanIterator(is);
+      var unused = clientIterScanner.iterator();
     }
   }
 
@@ -265,5 +329,16 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
       m.at().family("cf1").qualifier("cq1").put("val3");
       bw.addMutation(m);
     }
+  }
+
+  private String createRFile(FileSystem fs) throws Exception {
+    Path dir = new Path(System.getProperty("user.dir") + "/target/rfilescan-iterenv-test/testrf");
+
+    FunctionalTestUtils.createRFiles(client, fs, dir.toString(), 1, 1, 1);
+    fs.deleteOnExit(dir);
+
+    var listStatus = fs.listStatus(dir);
+    assertEquals(1, listStatus.length);
+    return Arrays.stream(fs.listStatus(dir)).findFirst().orElseThrow().getPath().toString();
   }
 }

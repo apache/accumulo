@@ -44,6 +44,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
@@ -66,13 +67,16 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 
 class RFileScanner extends ScannerOptions implements Scanner {
 
@@ -311,6 +315,12 @@ class RFileScanner extends ScannerOptions implements Scanner {
   }
 
   private class IterEnv implements IteratorEnvironment {
+    private final Supplier<ServiceEnvironment> serviceEnvironment;
+
+    private IterEnv() {
+      this.serviceEnvironment = Suppliers.memoize(this::createServiceEnv);
+    }
+
     @Override
     public IteratorScope getIteratorScope() {
       return IteratorScope.scan;
@@ -318,7 +328,14 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
     @Override
     public boolean isFullMajorCompaction() {
-      return false;
+      throw new IllegalStateException(
+          "Asked about major compaction type when scope is " + getIteratorScope());
+    }
+
+    @Override
+    public boolean isUserCompaction() {
+      throw new IllegalStateException(
+          "Asked about user initiated compaction type when scope is " + getIteratorScope());
     }
 
     @Override
@@ -334,6 +351,52 @@ class RFileScanner extends ScannerOptions implements Scanner {
     @Override
     public SamplerConfiguration getSamplerConfiguration() {
       return RFileScanner.this.getSamplerConfiguration();
+    }
+
+    @Override
+    public TableId getTableId() {
+      return null;
+    }
+
+    @Override
+    @Deprecated(since = "2.0.0")
+    public AccumuloConfiguration getConfig() {
+      return tableConf;
+    }
+
+    @Override
+    @Deprecated(since = "2.1.0")
+    public ServiceEnvironment getServiceEnv() {
+      return serviceEnvironment.get();
+    }
+
+    private ServiceEnvironment createServiceEnv() {
+      return new ServiceEnvironment() {
+        @Override
+        public <T> T instantiate(TableId tableId, String className, Class<T> base) {
+          throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <T> T instantiate(String className, Class<T> base) {
+          throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String getTableName(TableId tableId) {
+          throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Configuration getConfiguration(TableId tableId) {
+          return new ConfigurationImpl(tableConf);
+        }
+
+        @Override
+        public Configuration getConfiguration() {
+          throw new UnsupportedOperationException();
+        }
+      };
     }
   }
 
