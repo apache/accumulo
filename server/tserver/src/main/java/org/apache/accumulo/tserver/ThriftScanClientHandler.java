@@ -214,6 +214,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     long sid = server.getSessionManager().createSession(scanSession, true);
 
+    scanParams.setSessionDisabler(() -> server.getSessionManager().disableReservations(sid));
+
     ScanResult scanResult;
     try {
       scanResult = continueScan(tinfo, sid, scanSession, busyTimeout);
@@ -439,6 +441,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     }
 
     long sid = server.getSessionManager().createSession(mss, true);
+
+    scanParams.setSessionDisabler(() -> server.getSessionManager().disableReservations(sid));
 
     MultiScanResult result;
     try {
