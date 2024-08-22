@@ -20,12 +20,12 @@ package org.apache.accumulo.core.lock;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
@@ -563,7 +563,7 @@ public class ServiceLock implements Watcher {
     Timer start = Timer.startNew();
     while (zooKeeper.exists(pathToDelete, null) != null) {
       Thread.onSpinWait();
-      if (start.hasElapsed(10, TimeUnit.SECONDS)) {
+      if (start.hasElapsed(10, SECONDS)) {
         start.restart();
         LOG.debug("[{}] Still waiting for zookeeper to delete all at {}", vmLockPrefix,
             pathToDelete);

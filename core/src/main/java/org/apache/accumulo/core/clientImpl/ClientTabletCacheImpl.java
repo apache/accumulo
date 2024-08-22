@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -237,14 +238,14 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
         // Want to ignore any entries in the cache w/o a location that were created before the
         // following time. Entries created after the following time may have been populated by the
         // following loop, and we want to use those.
-        long cacheCutoffTimestamp = System.nanoTime();
+        Timer cacheCutoffTimer = Timer.startNew();
 
         for (T mutation : notInCache) {
 
           row.set(mutation.getRow());
 
           CachedTablet tl = _findTablet(context, row, false, false, false, lcSession,
-              LocationNeed.REQUIRED, cacheCutoffTimestamp);
+              LocationNeed.REQUIRED, cacheCutoffTimer);
 
           if (!addMutation(binnedMutations, mutation, tl, lcSession)) {
             failures.add(mutation);
@@ -327,7 +328,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     // Use anything in the cache w/o a location populated after this point in time. Cache entries
     // w/o a location created before the following time should be ignored and the metadata table
     // consulted.
-    long cacheCutoffTimestamp = System.nanoTime();
+    Timer cacheCutoffTimer = Timer.startNew();
 
     l1: for (Range range : ranges) {
 
@@ -347,7 +348,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
         tl = lcSession.checkLock(findTabletInCache(startRow));
       } else {
         tl = _findTablet(context, startRow, false, false, false, lcSession, locationNeed,
-            cacheCutoffTimestamp);
+            cacheCutoffTimer);
       }
 
       if (tl == null) {
@@ -366,7 +367,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
           tl = lcSession.checkLock(findTabletInCache(row));
         } else {
           tl = _findTablet(context, tl.getExtent().endRow(), true, false, false, lcSession,
-              locationNeed, cacheCutoffTimestamp);
+              locationNeed, cacheCutoffTimer);
         }
 
         if (tl == null) {
@@ -560,7 +561,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
     LockCheckerSession lcSession = new LockCheckerSession();
     CachedTablet tl =
-        _findTablet(context, row, skipRow, false, true, lcSession, locationNeed, System.nanoTime());
+        _findTablet(context, row, skipRow, false, true, lcSession, locationNeed, Timer.startNew());
 
     if (timer != null) {
       log.trace("tid={} Located tablet {} at {} in {}", Thread.currentThread().getId(),
@@ -612,7 +613,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       // Use anything in the cache w/o a location populated after this point in time. Cache entries
       // w/o a location created before the following time should be ignored and the metadata table
       // consulted.
-      long cacheCutoffTimestamp = System.nanoTime();
+      Timer cacheCutoffTimer = Timer.startNew();
 
       for (int i = 0; i < hostAheadCount; i++) {
         if (currTablet.endRow() == null || hostAheadRange
@@ -621,7 +622,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
         }
 
         CachedTablet followingTablet = _findTablet(context, currTablet.endRow(), true, false, true,
-            lcSession, locationNeed, cacheCutoffTimestamp);
+            lcSession, locationNeed, cacheCutoffTimer);
 
         if (followingTablet == null) {
           break;
@@ -860,14 +861,13 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   }
 
   /**
-   * @param cacheCutoffTimestamp Tablets w/o locations are cached. When LocationNeed is REQUIRED,
-   *        this System.nanoTime() value is used to determine if cached entries w/o a location
-   *        should be used or of we should instead ignore them and reread the tablet information
-   *        from the metadata table.
+   * @param cacheCutoffTimer Tablets w/o locations are cached. When LocationNeed is REQUIRED, this
+   *        Timer value is used to determine if cached entries w/o a location should be used or of
+   *        we should instead ignore them and reread the tablet information from the metadata table.
    */
   protected CachedTablet _findTablet(ClientContext context, Text row, boolean skipRow,
       boolean retry, boolean lock, LockCheckerSession lcSession, LocationNeed locationNeed,
-      long cacheCutoffTimestamp) throws AccumuloException, AccumuloSecurityException,
+      Timer cacheCutoffTimer) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, InvalidTabletHostingRequestException {
 
     if (skipRow) {
@@ -889,7 +889,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     if (tl == null || (locationNeed == LocationNeed.REQUIRED && tl.getTserverLocation().isEmpty()
-        && tl.getCreationTimestamp() - cacheCutoffTimestamp < 0)) {
+        && tl.getCreationTimer().elapsed(NANOSECONDS) > cacheCutoffTimer.elapsed(NANOSECONDS))) {
 
       // not in cache OR the cached entry was created before the cut off time, so obtain info from
       // metadata table

@@ -312,7 +312,6 @@ public abstract class ClientTabletCache {
     private final boolean hostingRequested;
 
     private final Timer creationTimer = Timer.startNew();
-    private final long creationTimestamp = System.nanoTime();
 
     public CachedTablet(KeyExtent tablet_extent, String tablet_location, String session,
         TabletAvailability availability, boolean hostingRequested) {
@@ -398,13 +397,6 @@ public abstract class ClientTabletCache {
      */
     public Timer getCreationTimer() {
       return creationTimer;
-    }
-
-    /**
-     * @return a System.nanoTime() timestamp that was taken when this object was created
-     */
-    public long getCreationTimestamp() {
-      return creationTimestamp;
     }
 
     public boolean wasHostingRequested() {
