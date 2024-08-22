@@ -393,11 +393,17 @@ public abstract class ClientTabletCache {
       return this.availability;
     }
 
-    public Timer getTimer() {
+    /**
+     * @return a timer that was started when this object was created
+     */
+    public Timer getCreationTimer() {
       return creationTimer;
     }
 
-    public long getCreationTime() {
+    /**
+     * @return a System.nanoTime() timestamp that was taken when this object was created
+     */
+    public long getCreationTimestamp() {
       return creationTimestamp;
     }
 

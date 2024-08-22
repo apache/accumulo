@@ -683,14 +683,14 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
     List<TKeyExtent> extentsToBringOnline = new ArrayList<>();
     for (var cachedTablet : tabletsWithNoLocation) {
-      if (cachedTablet.getTimer().elapsed().compareTo(STALE_DURATION) < 0) {
+      if (cachedTablet.getCreationTimer().elapsed().compareTo(STALE_DURATION) < 0) {
         if (cachedTablet.getAvailability() == TabletAvailability.ONDEMAND) {
           if (!cachedTablet.wasHostingRequested()) {
             extentsToBringOnline.add(cachedTablet.getExtent().toThrift());
             log.trace("requesting ondemand tablet to be hosted {}", cachedTablet.getExtent());
           } else {
             log.trace("ignoring ondemand tablet that already has a hosting request in place {} {}",
-                cachedTablet.getExtent(), cachedTablet.getTimer().elapsed());
+                cachedTablet.getExtent(), cachedTablet.getCreationTimer().elapsed());
           }
         } else if (cachedTablet.getAvailability() == TabletAvailability.UNHOSTED) {
           throw new InvalidTabletHostingRequestException("Extent " + cachedTablet.getExtent()
@@ -861,8 +861,9 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
   /**
    * @param cacheCutoffTimestamp Tablets w/o locations are cached. When LocationNeed is REQUIRED,
-   *        this cut off is used to determine if cached entries w/o a location should be used or of
-   *        we should instead ignore them and reread the tablet information from the metadata table.
+   *        this System.nanoTime() value is used to determine if cached entries w/o a location
+   *        should be used or of we should instead ignore them and reread the tablet information
+   *        from the metadata table.
    */
   protected CachedTablet _findTablet(ClientContext context, Text row, boolean skipRow,
       boolean retry, boolean lock, LockCheckerSession lcSession, LocationNeed locationNeed,
@@ -888,7 +889,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     if (tl == null || (locationNeed == LocationNeed.REQUIRED && tl.getTserverLocation().isEmpty()
-        && tl.getCreationTime() - cacheCutoffTimestamp < 0)) {
+        && tl.getCreationTimestamp() - cacheCutoffTimestamp < 0)) {
 
       // not in cache OR the cached entry was created before the cut off time, so obtain info from
       // metadata table
