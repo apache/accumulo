@@ -51,6 +51,7 @@ import org.junit.jupiter.api.Test;
 
 public class ZombieScanIT extends ConfigurableMacBase {
 
+  @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);
 
