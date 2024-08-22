@@ -82,6 +82,9 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
   private static final byte[] EMPTY_BYTES = new byte[0];
   private static final Range EMPTY_RANGE = new Range();
+  private static final String errorMsg =
+      "This scanner is unrelated to any table or accumulo instance;"
+          + " it operates directly on files. Therefore, it can not support this operation.";
 
   private Range range;
   private BlockCacheManager blockCacheManager = null;
@@ -92,6 +95,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private long readaheadThreshold = 3;
   private AccumuloConfiguration tableConf;
   private CryptoService cryptoService;
+  private final TableId dummyTableId;
 
   static class Opts {
     InputArgs in;
@@ -229,6 +233,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
     this.cryptoService =
         CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE, opts.tableConfig);
+    this.dummyTableId = TableId.of("RFileScannerFakeTableId");
   }
 
   @Override
@@ -355,7 +360,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
     @Override
     public TableId getTableId() {
-      return null;
+      return dummyTableId;
     }
 
     @Override
@@ -373,28 +378,33 @@ class RFileScanner extends ScannerOptions implements Scanner {
     private ServiceEnvironment createServiceEnv() {
       return new ServiceEnvironment() {
         @Override
-        public <T> T instantiate(TableId tableId, String className, Class<T> base) {
-          throw new UnsupportedOperationException();
+        public <T> T instantiate(TableId tableId, String className, Class<T> base)
+            throws ReflectiveOperationException {
+          return instantiate(className, base);
         }
 
         @Override
-        public <T> T instantiate(String className, Class<T> base) {
-          throw new UnsupportedOperationException();
+        public <T> T instantiate(String className, Class<T> base)
+            throws ReflectiveOperationException {
+          return this.getClass().getClassLoader().loadClass(className).asSubclass(base)
+              .getDeclaredConstructor().newInstance();
         }
 
         @Override
         public String getTableName(TableId tableId) {
-          throw new UnsupportedOperationException();
+          throw new UnsupportedOperationException(errorMsg);
         }
 
         @Override
         public Configuration getConfiguration(TableId tableId) {
+          Preconditions.checkArgument(tableId.equals(getTableId()), "Expected " + getTableId()
+              + " but got " + tableId + " when requesting the table config");
           return new ConfigurationImpl(tableConf);
         }
 
         @Override
         public Configuration getConfiguration() {
-          throw new UnsupportedOperationException();
+          throw new UnsupportedOperationException(errorMsg);
         }
       };
     }
