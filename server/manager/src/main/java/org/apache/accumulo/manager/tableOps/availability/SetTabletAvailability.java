@@ -40,7 +40,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.time.NanoTime;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -97,7 +97,7 @@ public class SetTabletAvailability extends ManagerRepo {
       }
     };
 
-    var start = NanoTime.now();
+    var start = Timer.startNew();
     try (
         TabletsMetadata m = manager.getContext().getAmple().readTablets().forTable(tableId)
             .overlapping(scanRangeStart, true, null).build();

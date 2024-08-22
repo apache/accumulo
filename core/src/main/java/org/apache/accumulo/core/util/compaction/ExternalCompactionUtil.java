@@ -47,8 +47,8 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -279,7 +279,7 @@ public class ExternalCompactionUtil {
   }
 
   public static int countCompactors(String groupName, ClientContext context) {
-    var start = NanoTime.now();
+    var start = Timer.startNew();
     String groupRoot = context.getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + groupName;
     List<String> children = context.getZooCache().getChildren(groupRoot);
     if (children == null) {
