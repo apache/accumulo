@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.manager.tableOps.availability;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -42,7 +40,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -99,7 +97,7 @@ public class SetTabletAvailability extends ManagerRepo {
       }
     };
 
-    var start = Timer.startNew();
+    var start = NanoTime.now();
     try (
         TabletsMetadata m = manager.getContext().getAmple().readTablets().forTable(tableId)
             .overlapping(scanRangeStart, true, null).build();
@@ -141,7 +139,7 @@ public class SetTabletAvailability extends ManagerRepo {
     }
 
     if (notAccepted.get() > 0) {
-      return Math.min(30000, Math.max(start.elapsed(MILLISECONDS), 1));
+      return Math.min(30000, Math.max(start.elapsed().toMillis(), 1));
     } else {
       return 0;
     }

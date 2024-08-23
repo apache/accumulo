@@ -20,7 +20,6 @@ package org.apache.accumulo.core.lock;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,8 +32,8 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UuidUtil;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -560,11 +559,11 @@ public class ServiceLock implements Watcher {
     ZooUtil.recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
 
     // Wait for the delete to happen on the server before exiting method
-    Timer start = Timer.startNew();
+    NanoTime start = NanoTime.now();
     while (zooKeeper.exists(pathToDelete, null) != null) {
       Thread.onSpinWait();
-      if (start.hasElapsed(10, SECONDS)) {
-        start.restart();
+      if (NanoTime.now().subtract(start).toSeconds() > 10) {
+        start = NanoTime.now();
         LOG.debug("[{}] Still waiting for zookeeper to delete all at {}", vmLockPrefix,
             pathToDelete);
       }

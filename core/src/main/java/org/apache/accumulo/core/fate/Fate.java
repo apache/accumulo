@@ -52,10 +52,10 @@ import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.util.ShutdownUtil;
-import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -307,18 +307,18 @@ public class Fate<T> {
   }
 
   protected long executeIsReady(FateId fateId, Repo<T> op) throws Exception {
-    var startTime = Timer.startNew();
+    var startTime = NanoTime.now();
     var deferTime = op.isReady(fateId, environment);
     log.debug("Running {}.isReady() {} took {} ms and returned {}", op.getName(), fateId,
-        startTime.elapsed(MILLISECONDS), deferTime);
+        startTime.elapsed().toMillis(), deferTime);
     return deferTime;
   }
 
   protected Repo<T> executeCall(FateId fateId, Repo<T> op) throws Exception {
-    var startTime = Timer.startNew();
+    var startTime = NanoTime.now();
     var next = op.call(fateId, environment);
     log.debug("Running {}.call() {} took {} ms and returned {}", op.getName(), fateId,
-        startTime.elapsed(MILLISECONDS), next == null ? "null" : next.getName());
+        startTime.elapsed().toMillis(), next == null ? "null" : next.getName());
 
     return next;
   }

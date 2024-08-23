@@ -91,10 +91,10 @@ import org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -720,7 +720,7 @@ public class ScanServer extends AbstractServer
   @VisibleForTesting
   ScanReservation reserveFilesInstrumented(Map<KeyExtent,List<TRange>> extents)
       throws AccumuloException {
-    Timer start = Timer.startNew();
+    NanoTime start = NanoTime.now();
     try {
       return reserveFiles(extents);
     } finally {
@@ -761,7 +761,7 @@ public class ScanServer extends AbstractServer
 
   @VisibleForTesting
   ScanReservation reserveFilesInstrumented(long scanId) throws NoSuchScanIDException {
-    Timer start = Timer.startNew();
+    NanoTime start = NanoTime.now();
     try {
       return reserveFiles(scanId);
     } finally {

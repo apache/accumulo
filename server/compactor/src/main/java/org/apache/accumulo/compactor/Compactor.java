@@ -95,11 +95,11 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -514,12 +514,12 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     return new FileCompactorRunnable() {
 
       private final AtomicReference<FileCompactor> compactor = new AtomicReference<>();
-      private volatile Timer compactionStartTime;
+      private volatile NanoTime compactionStartTime;
 
       @Override
       public void initialize() throws RetriesExceededException {
         LOG.info("Starting up compaction runnable for job: {}", job);
-        this.compactionStartTime = Timer.startNew();
+        this.compactionStartTime = NanoTime.now();
         TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.STARTED,
             "Compaction started", -1, -1, -1, getCompactionAge().toNanos());
         updateCompactionState(job, update);
