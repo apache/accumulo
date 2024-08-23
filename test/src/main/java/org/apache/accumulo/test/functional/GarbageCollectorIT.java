@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -422,7 +423,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         if (locks != null && !locks.isEmpty()) {
           String lockPath = path + "/" + locks.get(0);
 
-          String gcLoc = new String(zk.getData(lockPath));
+          String gcLoc = new String(zk.getData(lockPath), UTF_8);
 
           assertTrue(gcLoc.startsWith(Service.GC_CLIENT.name()),
               "Found unexpected data in zookeeper for GC location: " + gcLoc);

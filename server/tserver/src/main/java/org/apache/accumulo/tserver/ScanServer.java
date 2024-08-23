@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCAN_SERVER_TABLET_METADATA_CACHE_POOL;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -259,8 +260,8 @@ public class ScanServer extends AbstractServer
           "Tablet metadata cache refresh percentage is '%s' but must be less than 1",
           cacheRefreshPercentage);
 
-      tmCacheExecutor = context.threadPools().getPoolBuilder("scanServerTmCache").numCoreThreads(8)
-          .enableThreadPoolMetrics().build();
+      tmCacheExecutor = context.threadPools().getPoolBuilder(SCAN_SERVER_TABLET_METADATA_CACHE_POOL)
+          .numCoreThreads(8).enableThreadPoolMetrics().build();
       var builder = Caffeine.newBuilder().expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
           .scheduler(Scheduler.systemScheduler()).executor(tmCacheExecutor).recordStats();
       if (cacheRefreshPercentage > 0) {

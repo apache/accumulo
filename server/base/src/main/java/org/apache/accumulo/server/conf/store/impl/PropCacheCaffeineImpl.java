@@ -45,8 +45,8 @@ public class PropCacheCaffeineImpl implements PropCache {
   public static final int EXPIRE_MIN = 60;
   private static final Logger log = LoggerFactory.getLogger(PropCacheCaffeineImpl.class);
   private static final Executor executor =
-      ThreadPools.getServerThreadPools().getPoolBuilder("caffeine-tasks").numCoreThreads(1)
-          .numMaxThreads(20).withTimeOut(60L, SECONDS).build();
+      ThreadPools.getServerThreadPools().getPoolBuilder("caffeine.prop.cache.tasks")
+          .numCoreThreads(1).numMaxThreads(20).withTimeOut(60L, SECONDS).build();
 
   private final LoadingCache<PropStoreKey<?>,VersionedProperties> cache;
 

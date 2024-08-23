@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
@@ -38,7 +37,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
-import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,21 +99,20 @@ public class RootTabletLocator extends TabletLocator {
   protected TabletLocation getRootTabletLocation(ClientContext context) {
     Logger log = LoggerFactory.getLogger(this.getClass());
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Looking up root tablet location in zookeeper.",
           Thread.currentThread().getId());
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
     Location loc = context.getAmple()
         .readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL, LOCATION).getLocation();
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
-          String.format("%.3f secs", timer.scale(SECONDS)));
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     if (loc == null || loc.getType() != LocationType.CURRENT) {

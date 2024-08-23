@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.compactions;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTION_SERVICE_COMPACTION_PLANNER_POOL;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -132,8 +133,9 @@ public class CompactionService {
 
     this.executors = Map.copyOf(tmpExecutors);
 
-    this.planningExecutor = ThreadPools.getServerThreadPools().getPoolBuilder("CompactionPlanner")
-        .numCoreThreads(1).numMaxThreads(1).withTimeOut(0L, MILLISECONDS).build();
+    this.planningExecutor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(COMPACTION_SERVICE_COMPACTION_PLANNER_POOL).numCoreThreads(1)
+        .numMaxThreads(1).withTimeOut(0L, MILLISECONDS).build();
 
     this.queuedForPlanning = new EnumMap<>(CompactionKind.class);
     for (CompactionKind kind : CompactionKind.values()) {

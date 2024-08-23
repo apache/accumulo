@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
@@ -65,8 +66,8 @@ public abstract class LexicoderTest {
     assertSortOrder(lexicoder, null, data);
   }
 
-  public static final byte[] START_PAD = "start".getBytes();
-  public static final byte[] END_PAD = "end".getBytes();
+  public static final byte[] START_PAD = "start".getBytes(UTF_8);
+  public static final byte[] END_PAD = "end".getBytes(UTF_8);
 
   /** Asserts a value can be encoded and decoded back to original value */
   public static <T> void assertDecodes(Lexicoder<T> lexicoder, T expected) {

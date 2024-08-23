@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.crypto;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_FACTORY;
 import static org.apache.accumulo.core.crypto.CryptoUtils.getFileDecrypter;
 import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.TABLE;
@@ -290,7 +291,7 @@ public class CryptoTest {
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
     String stringifiedMarkerBytes =
-        getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING, MARKER_INT);
+        getStringifiedBytes("U+1F47B".getBytes(UTF_8), MARKER_STRING, MARKER_INT);
 
     assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
@@ -304,7 +305,7 @@ public class CryptoTest {
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
     String stringifiedMarkerBytes =
-        getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING, MARKER_INT);
+        getStringifiedBytes("U+1F47B".getBytes(UTF_8), MARKER_STRING, MARKER_INT);
 
     assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
