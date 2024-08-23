@@ -88,4 +88,12 @@ public final class Timer {
     return unit.convert(getElapsedNanos(), TimeUnit.NANOSECONDS);
   }
 
+  /**
+   * @return true if this timer was started/reset after the other timer was started/reset, false
+   *         otherwise
+   */
+  public boolean startedAfter(Timer otherTimer) {
+    return (startNanos - otherTimer.startNanos) > 0;
+  }
+
 }

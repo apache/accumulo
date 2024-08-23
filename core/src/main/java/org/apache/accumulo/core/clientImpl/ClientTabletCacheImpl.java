@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -889,10 +888,10 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     if (tl == null || (locationNeed == LocationNeed.REQUIRED && tl.getTserverLocation().isEmpty()
-        && tl.getCreationTimer().elapsed(NANOSECONDS) > cacheCutoffTimer.elapsed(NANOSECONDS))) {
+        && cacheCutoffTimer.startedAfter(tl.getCreationTimer()))) {
 
-      // not in cache OR the cached entry was created before the cut off time, so obtain info from
-      // metadata table
+      // not in cache OR the cutoff timer was started after when the cached entry timer was started,
+      // so obtain info from metadata table
       if (lock) {
         wLock.lock();
         try {
