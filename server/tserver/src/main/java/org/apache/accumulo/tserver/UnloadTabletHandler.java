@@ -23,7 +23,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
-import org.apache.accumulo.core.util.time.NanoTime;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.manager.state.DistributedStoreException;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
@@ -37,7 +37,7 @@ class UnloadTabletHandler implements Runnable {
   private final KeyExtent extent;
   private final TUnloadTabletGoal goalState;
   private final SteadyTime requestTime;
-  private final NanoTime createTime;
+  private final Timer createTime;
   private final TabletServer server;
 
   public UnloadTabletHandler(TabletServer server, KeyExtent extent, TUnloadTabletGoal goalState,
@@ -46,7 +46,7 @@ class UnloadTabletHandler implements Runnable {
     this.goalState = goalState;
     this.server = server;
     this.requestTime = requestTime;
-    this.createTime = NanoTime.now();
+    this.createTime = Timer.startNew();
   }
 
   @Override
