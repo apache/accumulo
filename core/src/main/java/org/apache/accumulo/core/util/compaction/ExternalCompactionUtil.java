@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.util.compaction;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTIONS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTION_IDS_POOL;
 
@@ -295,7 +296,7 @@ public class ExternalCompactionUtil {
       }
     }
 
-    long elapsed = start.elapsed().toMillis();
+    long elapsed = start.elapsed(MILLISECONDS);
     if (elapsed > 100) {
       LOG.debug("Took {} ms to count {} compactors for {}", elapsed, count, groupName);
     } else {

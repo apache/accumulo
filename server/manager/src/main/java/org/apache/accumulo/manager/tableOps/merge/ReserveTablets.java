@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
@@ -97,7 +98,7 @@ public class ReserveTablets extends ManagerRepo {
         count++;
       }
     }
-    var maxSleepTime = Math.min(60000, startTime.elapsed().toMillis());
+    var maxSleepTime = Math.min(60000, startTime.elapsed(MILLISECONDS));
 
     log.debug(
         "{} reserve tablets op:{} count:{} other opids:{} opids set:{} locations:{} accepted:{} wals:{}",

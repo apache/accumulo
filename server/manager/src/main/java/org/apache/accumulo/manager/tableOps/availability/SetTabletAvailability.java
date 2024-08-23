@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.availability;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -139,7 +141,7 @@ public class SetTabletAvailability extends ManagerRepo {
     }
 
     if (notAccepted.get() > 0) {
-      return Math.min(30000, Math.max(start.elapsed().toMillis(), 1));
+      return Math.min(30000, Math.max(start.elapsed(MILLISECONDS), 1));
     } else {
       return 0;
     }

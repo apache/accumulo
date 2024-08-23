@@ -310,7 +310,7 @@ public class Fate<T> {
     var startTime = Timer.startNew();
     var deferTime = op.isReady(fateId, environment);
     log.debug("Running {}.isReady() {} took {} ms and returned {}", op.getName(), fateId,
-        startTime.elapsed().toMillis(), deferTime);
+        startTime.elapsed(MILLISECONDS), deferTime);
     return deferTime;
   }
 
@@ -318,7 +318,7 @@ public class Fate<T> {
     var startTime = Timer.startNew();
     var next = op.call(fateId, environment);
     log.debug("Running {}.call() {} took {} ms and returned {}", op.getName(), fateId,
-        startTime.elapsed().toMillis(), next == null ? "null" : next.getName());
+        startTime.elapsed(MILLISECONDS), next == null ? "null" : next.getName());
 
     return next;
   }
