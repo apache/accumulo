@@ -85,6 +85,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private static final String errorMsg =
       "This scanner is unrelated to any table or accumulo instance;"
           + " it operates directly on files. Therefore, it can not support this operation.";
+  private static final TableId dummyTableId = TableId.of("RFileScannerFakeTableId");
 
   private Range range;
   private BlockCacheManager blockCacheManager = null;
@@ -95,7 +96,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private long readaheadThreshold = 3;
   private AccumuloConfiguration tableConf;
   private CryptoService cryptoService;
-  private final TableId dummyTableId;
 
   static class Opts {
     InputArgs in;
@@ -233,7 +233,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
     this.cryptoService =
         CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE, opts.tableConfig);
-    this.dummyTableId = TableId.of("RFileScannerFakeTableId");
   }
 
   @Override
@@ -392,7 +391,9 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
         @Override
         public String getTableName(TableId tableId) {
-          throw new UnsupportedOperationException(errorMsg);
+          Preconditions.checkArgument(tableId.equals(getTableId()), "Expected " + getTableId()
+              + " but got " + tableId + " when requesting the table config");
+          return tableId.canonical();
         }
 
         @Override
