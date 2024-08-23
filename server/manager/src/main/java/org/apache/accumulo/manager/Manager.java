@@ -1069,7 +1069,7 @@ public class Manager extends AbstractServer
     final Timer startTime = Timer.startNew();
     // Wait for all tasks to complete
     while (!tasks.isEmpty()) {
-      boolean cancel = (startTime.hasElapsed(timeToWait));
+      boolean cancel = startTime.hasElapsed(timeToWait);
       Iterator<Future<?>> iter = tasks.iterator();
       while (iter.hasNext()) {
         Future<?> f = iter.next();
