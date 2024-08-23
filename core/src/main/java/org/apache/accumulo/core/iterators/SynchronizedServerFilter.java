@@ -39,6 +39,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedExcepti
 public abstract class SynchronizedServerFilter implements SortedKeyValueIterator<Key,Value> {
 
   protected final SortedKeyValueIterator<Key,Value> source;
+  private int interruptCheckCount = 0;
 
   public SynchronizedServerFilter(SortedKeyValueIterator<Key,Value> source) {
     this.source = source;
@@ -49,7 +50,7 @@ public abstract class SynchronizedServerFilter implements SortedKeyValueIterator
 
   @Override
   public synchronized void next() throws IOException {
-    if (Thread.interrupted()) {
+    if (interruptCheckCount++ % 100 == 0 && Thread.currentThread().isInterrupted()) {
       throw new IterationInterruptedException("Thread has been interrupted.");
     }
     source.next();
@@ -59,7 +60,7 @@ public abstract class SynchronizedServerFilter implements SortedKeyValueIterator
   @Override
   public synchronized void seek(Range range, Collection<ByteSequence> columnFamilies,
       boolean inclusive) throws IOException {
-    if (Thread.interrupted()) {
+    if (interruptCheckCount++ % 100 == 0 && Thread.currentThread().isInterrupted()) {
       throw new IterationInterruptedException("Thread has been interrupted.");
     }
     source.seek(range, columnFamilies, inclusive);
@@ -78,7 +79,7 @@ public abstract class SynchronizedServerFilter implements SortedKeyValueIterator
 
   @Override
   public synchronized boolean hasTop() {
-    if (Thread.interrupted()) {
+    if (interruptCheckCount++ % 100 == 0 && Thread.currentThread().isInterrupted()) {
       throw new IterationInterruptedException("Thread has been interrupted.");
     }
     return source.hasTop();

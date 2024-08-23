@@ -883,7 +883,8 @@ public class RFile {
 
     private CachableBlockFile.CachedBlockRead getDataBlock(IndexEntry indexEntry)
         throws IOException {
-      if (interruptFlag != null && interruptFlag.get()) {
+      if (Thread.currentThread().isInterrupted()
+          || (interruptFlag != null && interruptFlag.get())) {
         throw new IterationInterruptedException();
       }
 
@@ -908,7 +909,8 @@ public class RFile {
         throw new IllegalArgumentException("I do not know how to filter column families");
       }
 
-      if (interruptFlag != null && interruptFlag.get()) {
+      if (Thread.currentThread().isInterrupted()
+          || (interruptFlag != null && interruptFlag.get())) {
         throw new IterationInterruptedException();
       }
 
