@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 class FinishCloneTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private CloneInfo cloneInfo;
+  private final CloneInfo cloneInfo;
 
   public FinishCloneTable(CloneInfo cloneInfo) {
     this.cloneInfo = cloneInfo;

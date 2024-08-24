@@ -91,7 +91,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
 
   private ServiceLock gcLock;
-  private Timer lastCompactorCheck = Timer.startNew();
+  private final Timer lastCompactorCheck = Timer.startNew();
 
   SimpleGarbageCollector(ConfigOpts opts, String[] args) {
     super("gc", opts, ServerContext::new, args);

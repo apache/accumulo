@@ -108,7 +108,7 @@ public class CompactionJobPriorityQueue {
   // efficiently removing entries from anywhere in the queue. Efficient removal is needed for the
   // case where tablets decided to issues different compaction jobs than what is currently queued.
   private final TreeMap<CjpqKey,CompactionJobQueues.MetaJob> jobQueue;
-  private AtomicInteger maxSize;
+  private final AtomicInteger maxSize;
   private final AtomicLong rejectedJobs;
   private final AtomicLong dequeuedJobs;
   private final ArrayDeque<CompletableFuture<CompactionJobQueues.MetaJob>> futures;

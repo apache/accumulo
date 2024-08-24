@@ -56,7 +56,7 @@ public class CompactRange extends ManagerRepo {
   private final NamespaceId namespaceId;
   private byte[] startRow;
   private byte[] endRow;
-  private byte[] config;
+  private final byte[] config;
 
   public CompactRange(NamespaceId namespaceId, TableId tableId, CompactionConfig compactionConfig)
       throws AcceptableThriftTableOperationException {
