@@ -43,8 +43,8 @@ public enum TabletServerState {
 
   private byte id;
 
-  private static HashMap<Byte,TabletServerState> mapping;
-  private static HashSet<TabletServerState> badStates;
+  private static final HashMap<Byte,TabletServerState> mapping;
+  private static final HashSet<TabletServerState> badStates;
 
   static {
     mapping = new HashMap<>(TabletServerState.values().length);

@@ -59,13 +59,13 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   private final ServerContext context;
   private Ample.DataLevel dataLevel = null;
 
-  private List<ConditionalMutation> mutations = new ArrayList<>();
+  private final List<ConditionalMutation> mutations = new ArrayList<>();
 
-  private Map<Text,KeyExtent> extents = new HashMap<>();
+  private final Map<Text,KeyExtent> extents = new HashMap<>();
 
   private boolean active = true;
 
-  Map<KeyExtent,Ample.RejectionHandler> rejectedHandlers = new HashMap<>();
+  final Map<KeyExtent,Ample.RejectionHandler> rejectedHandlers = new HashMap<>();
   private final Function<DataLevel,String> tableMapper;
 
   public ConditionalTabletsMutatorImpl(ServerContext context) {

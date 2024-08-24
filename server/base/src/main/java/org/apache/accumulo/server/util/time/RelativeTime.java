@@ -29,7 +29,7 @@ public class RelativeTime extends BaseRelativeTime {
     super(new SystemTime());
   }
 
-  private static BaseRelativeTime instance = new RelativeTime();
+  private static final BaseRelativeTime instance = new RelativeTime();
 
   public static BaseRelativeTime getInstance() {
     return instance;

@@ -184,9 +184,9 @@ public class LiveTServerSet implements Watcher {
   }
 
   static class TServerInfo {
-    TServerConnection connection;
-    TServerInstance instance;
-    String resourceGroup;
+    final TServerConnection connection;
+    final TServerInstance instance;
+    final String resourceGroup;
 
     TServerInfo(TServerInstance instance, TServerConnection connection, String resourceGroup) {
       this.connection = connection;

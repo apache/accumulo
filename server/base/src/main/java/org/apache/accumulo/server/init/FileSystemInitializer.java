@@ -73,10 +73,12 @@ public class FileSystemInitializer {
   }
 
   public static class InitialTablet {
-    TableId tableId;
-    String dirName;
-    Text prevEndRow, endRow, extent;
-    String[] files;
+    final TableId tableId;
+    final String dirName;
+    final Text prevEndRow;
+    final Text endRow;
+    final Text extent;
+    final String[] files;
 
     InitialTablet(TableId tableId, String dirName, Text prevEndRow, Text endRow, String... files) {
       this.tableId = tableId;
