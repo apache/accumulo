@@ -34,7 +34,7 @@ class ClonePermissions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private CloneInfo cloneInfo;
+  private final CloneInfo cloneInfo;
 
   public ClonePermissions(CloneInfo cloneInfo) {
     this.cloneInfo = cloneInfo;

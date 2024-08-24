@@ -176,7 +176,7 @@ public class CompactionCoordinator
   private final CompactionJobQueues jobQueues;
   private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
   // Exposed for tests
-  protected CountDownLatch shutdown = new CountDownLatch(1);
+  protected final CountDownLatch shutdown = new CountDownLatch(1);
 
   private final ScheduledThreadPoolExecutor schedExecutor;
 
@@ -185,7 +185,7 @@ public class CompactionCoordinator
   private final Cache<Path,Integer> tabletDirCache;
   private final DeadCompactionDetector deadCompactionDetector;
 
-  private QueueMetrics queueMetrics;
+  private final QueueMetrics queueMetrics;
   private final Manager manager;
 
   private final LoadingCache<String,Integer> compactorCounts;

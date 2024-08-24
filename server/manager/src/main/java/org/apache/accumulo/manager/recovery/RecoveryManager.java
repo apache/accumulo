@@ -59,13 +59,13 @@ public class RecoveryManager {
 
   private static final Logger log = LoggerFactory.getLogger(RecoveryManager.class);
 
-  private Map<String,Long> recoveryDelay = new HashMap<>();
-  private Set<String> closeTasksQueued = new HashSet<>();
-  private Set<String> sortsQueued = new HashSet<>();
-  private Cache<Path,Boolean> existenceCache;
-  private ScheduledExecutorService executor;
-  private Manager manager;
-  private ZooCache zooCache;
+  private final Map<String,Long> recoveryDelay = new HashMap<>();
+  private final Set<String> closeTasksQueued = new HashSet<>();
+  private final Set<String> sortsQueued = new HashSet<>();
+  private final Cache<Path,Boolean> existenceCache;
+  private final ScheduledExecutorService executor;
+  private final Manager manager;
+  private final ZooCache zooCache;
 
   public RecoveryManager(Manager manager, long timeToCacheExistsInMillis) {
     this.manager = manager;
@@ -88,10 +88,10 @@ public class RecoveryManager {
   }
 
   private class LogSortTask implements Runnable {
-    private String source;
-    private String destination;
-    private String sortId;
-    private LogCloser closer;
+    private final String source;
+    private final String destination;
+    private final String sortId;
+    private final LogCloser closer;
 
     public LogSortTask(LogCloser closer, String source, String destination, String sortId) {
       this.closer = closer;

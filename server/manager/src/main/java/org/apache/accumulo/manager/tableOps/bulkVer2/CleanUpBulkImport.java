@@ -50,7 +50,7 @@ public class CleanUpBulkImport extends ManagerRepo {
 
   private static final Logger log = LoggerFactory.getLogger(CleanUpBulkImport.class);
 
-  private BulkInfo info;
+  private final BulkInfo info;
 
   public CleanUpBulkImport(BulkInfo info) {
     this.info = info;

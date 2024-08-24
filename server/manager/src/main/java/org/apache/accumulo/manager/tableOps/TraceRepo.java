@@ -33,8 +33,8 @@ public class TraceRepo<T> implements Repo<T> {
 
   private static final long serialVersionUID = 1L;
 
-  TInfo tinfo;
-  Repo<T> repo;
+  final TInfo tinfo;
+  final Repo<T> repo;
 
   public TraceRepo(Repo<T> repo) {
     this.repo = repo;

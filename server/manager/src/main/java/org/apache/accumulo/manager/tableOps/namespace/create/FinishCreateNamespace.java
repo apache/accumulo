@@ -30,7 +30,7 @@ class FinishCreateNamespace extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private NamespaceInfo namespaceInfo;
+  private final NamespaceInfo namespaceInfo;
 
   public FinishCreateNamespace(NamespaceInfo ti) {
     this.namespaceInfo = ti;
