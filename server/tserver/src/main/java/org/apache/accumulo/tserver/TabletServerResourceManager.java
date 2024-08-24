@@ -456,7 +456,7 @@ public class TabletServerResourceManager {
     private final Map<KeyExtent,TabletMemoryReport> tabletReports;
     private final LinkedBlockingQueue<TabletMemoryReport> memUsageReports;
     private long lastMemCheckTime = System.currentTimeMillis();
-    private long maxMem;
+    private final long maxMem;
     private long lastMemTotal = 0;
     private final Thread memoryGuardThread;
     private final Thread minorCompactionInitiatorThread;
@@ -641,7 +641,7 @@ public class TabletServerResourceManager {
 
   public class TabletResourceManager {
 
-    private volatile boolean openFilesReserved = false;
+    private final boolean openFilesReserved = false;
 
     private volatile boolean closed = false;
 

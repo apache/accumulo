@@ -205,7 +205,7 @@ public class ScanServer extends AbstractServer
   private ScanServerMetrics scanServerMetrics;
   private BlockCacheMetrics blockCacheMetrics;
 
-  private ZooCache managerLockCache;
+  private final ZooCache managerLockCache;
 
   public ScanServer(ConfigOpts opts, String[] args) {
     super("sserver", opts, ServerContext::new, args);
