@@ -793,7 +793,7 @@ public class ScanServer extends AbstractServer
     return new ScanReservation(scanSessionFiles, myReservationId);
   }
 
-  private static Set<StoredTabletFile> getScanSessionFiles(ScanSession session) {
+  private static Set<StoredTabletFile> getScanSessionFiles(ScanSession<?> session) {
     if (session instanceof SingleScanSession) {
       var sss = (SingleScanSession) session;
       return Set.copyOf(session.getTabletResolver().getTablet(sss.extent).getDatafiles().keySet());

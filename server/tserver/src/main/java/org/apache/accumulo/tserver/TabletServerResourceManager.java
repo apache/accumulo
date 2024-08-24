@@ -785,7 +785,7 @@ public class TabletServerResourceManager {
 
   }
 
-  public void executeReadAhead(KeyExtent tablet, ScanDispatcher dispatcher, ScanSession scanInfo,
+  public void executeReadAhead(KeyExtent tablet, ScanDispatcher dispatcher, ScanSession<?> scanInfo,
       Runnable task) {
 
     task = ScanSession.wrap(scanInfo, task);

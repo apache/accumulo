@@ -30,7 +30,7 @@ public class Session {
   public final String client;
   public long lastAccessTime;
   public long startTime;
-  State state = State.NEW;
+  private State state = State.NEW;
   boolean allowReservation = true;
   private final TCredentials credentials;
 
@@ -49,6 +49,14 @@ public class Session {
 
   public boolean cleanup() {
     return true;
+  }
+
+  public void setState(State state) {
+    this.state = state;
+  }
+
+  public State getState() {
+    return state;
   }
 
   @Override
