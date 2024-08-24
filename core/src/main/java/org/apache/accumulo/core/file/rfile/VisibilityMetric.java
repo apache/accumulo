@@ -26,9 +26,11 @@ package org.apache.accumulo.core.file.rfile;
  */
 public class VisibilityMetric {
 
-  private long visLG, visBlock;
-  private double visLGPer, visBlockPer;
-  private String visibility;
+  private final long visLG;
+  private final long visBlock;
+  private final double visLGPer;
+  private final double visBlockPer;
+  private final String visibility;
 
   public VisibilityMetric(String visibility, long visLG, double visLGPer, long visBlock,
       double visBlockPer) {

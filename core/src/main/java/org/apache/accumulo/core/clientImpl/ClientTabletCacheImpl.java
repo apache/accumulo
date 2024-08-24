@@ -93,12 +93,12 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     return o1.compareTo(o2);
   };
 
-  protected TableId tableId;
-  protected ClientTabletCache parent;
-  protected TreeMap<Text,CachedTablet> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
-  protected CachedTabletObtainer tabletObtainer;
+  protected final TableId tableId;
+  protected final ClientTabletCache parent;
+  protected final TreeMap<Text,CachedTablet> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
+  protected final CachedTabletObtainer tabletObtainer;
   private final TabletServerLockChecker lockChecker;
-  protected Text lastTabletRow;
+  protected final Text lastTabletRow;
 
   private final TreeSet<KeyExtent> badExtents = new TreeSet<>();
   private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();

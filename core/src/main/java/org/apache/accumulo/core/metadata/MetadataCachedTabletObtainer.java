@@ -70,8 +70,8 @@ import org.slf4j.LoggerFactory;
 public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
   private static final Logger log = LoggerFactory.getLogger(MetadataCachedTabletObtainer.class);
 
-  private SortedSet<Column> locCols;
-  private ArrayList<Column> columns;
+  private final SortedSet<Column> locCols;
+  private final ArrayList<Column> columns;
 
   public MetadataCachedTabletObtainer() {
 

@@ -36,7 +36,7 @@ import org.apache.accumulo.core.singletons.SingletonService;
  */
 public class ZooCacheFactory {
 
-  private static Map<String,ZooCache> instances = new HashMap<>();
+  private static final Map<String,ZooCache> instances = new HashMap<>();
   private static boolean enabled = true;
 
   public ZooCacheFactory() {}

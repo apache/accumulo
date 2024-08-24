@@ -45,7 +45,7 @@ public enum SystemPermission {
 
   private byte permID;
 
-  private static HashMap<Byte,SystemPermission> mapping;
+  private static final HashMap<Byte,SystemPermission> mapping;
   static {
     mapping = new HashMap<>(SystemPermission.values().length);
     for (SystemPermission perm : SystemPermission.values()) {

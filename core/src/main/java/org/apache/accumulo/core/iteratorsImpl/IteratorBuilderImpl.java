@@ -27,7 +27,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 public class IteratorBuilderImpl
     implements IteratorBuilder.IteratorBuilderEnv, IteratorBuilder.IteratorBuilderOptions {
 
-  Collection<IterInfo> iters;
+  final Collection<IterInfo> iters;
   Map<String,Map<String,String>> iterOpts;
   IteratorEnvironment iteratorEnvironment;
   boolean useAccumuloClassLoader = false;

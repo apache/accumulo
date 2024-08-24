@@ -415,7 +415,7 @@ public abstract class GroupBalancer implements TabletBalancer {
   }
 
   private static class Move {
-    TserverGroupInfo dest;
+    final TserverGroupInfo dest;
     int count;
 
     public Move(TserverGroupInfo dest, int num) {

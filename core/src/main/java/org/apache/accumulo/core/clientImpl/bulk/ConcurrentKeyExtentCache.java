@@ -45,19 +45,20 @@ import com.google.common.annotations.VisibleForTesting;
 
 class ConcurrentKeyExtentCache implements KeyExtentCache {
 
-  private static Logger log = LoggerFactory.getLogger(ConcurrentKeyExtentCache.class);
+  private static final Logger log = LoggerFactory.getLogger(ConcurrentKeyExtentCache.class);
 
   private static final Text MAX = new Text();
 
-  private Set<Text> rowsToLookup = Collections.synchronizedSet(new HashSet<>());
+  private final Set<Text> rowsToLookup = Collections.synchronizedSet(new HashSet<>());
 
-  List<Text> lookupRows = new ArrayList<>();
+  final List<Text> lookupRows = new ArrayList<>();
 
-  private ConcurrentSkipListMap<Text,KeyExtent> extents = new ConcurrentSkipListMap<>((t1, t2) -> {
-    return (t1 == t2) ? 0 : (t1 == MAX ? 1 : (t2 == MAX ? -1 : t1.compareTo(t2)));
-  });
-  private TableId tableId;
-  private ClientContext ctx;
+  private final ConcurrentSkipListMap<Text,KeyExtent> extents =
+      new ConcurrentSkipListMap<>((t1, t2) -> {
+        return (t1 == t2) ? 0 : (t1 == MAX ? 1 : (t2 == MAX ? -1 : t1.compareTo(t2)));
+      });
+  private final TableId tableId;
+  private final ClientContext ctx;
 
   ConcurrentKeyExtentCache(TableId tableId, ClientContext ctx) {
     this.tableId = tableId;

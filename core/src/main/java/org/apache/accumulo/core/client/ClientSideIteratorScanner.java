@@ -89,8 +89,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
   private class ClientSideIteratorEnvironment implements IteratorEnvironment {
 
-    private SamplerConfiguration samplerConfig;
-    private boolean sampleEnabled;
+    private final SamplerConfiguration samplerConfig;
+    private final boolean sampleEnabled;
 
     ClientSideIteratorEnvironment(boolean sampleEnabled, SamplerConfiguration samplerConfig) {
       this.sampleEnabled = sampleEnabled;
@@ -150,7 +150,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
    * use it as a source.
    */
   private class ScannerTranslatorImpl implements SortedKeyValueIterator<Key,Value> {
-    protected Scanner scanner;
+    protected final Scanner scanner;
     Iterator<Entry<Key,Value>> iter;
     Entry<Key,Value> top = null;
     private SamplerConfiguration samplerConfig;

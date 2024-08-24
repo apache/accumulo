@@ -61,7 +61,7 @@ public class TableLoadBalancer implements TabletBalancer {
   public static final String TABLE_ASSIGNMENT_GROUP_PROPERTY = "table.custom.assignment.group";
 
   protected BalancerEnvironment environment;
-  Map<TableId,TabletBalancer> perTableBalancers = new HashMap<>();
+  final Map<TableId,TabletBalancer> perTableBalancers = new HashMap<>();
 
   @Override
   public void init(BalancerEnvironment balancerEnvironment) {

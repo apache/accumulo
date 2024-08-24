@@ -62,14 +62,14 @@ public class CfCqSliceOpts {
       + " indicating whether to include the maximum column in the slice range."
       + " Optional parameter, default is true.";
 
-  Text minCf;
-  Text minCq;
+  final Text minCf;
+  final Text minCq;
 
-  Text maxCf;
-  Text maxCq;
+  final Text maxCf;
+  final Text maxCq;
 
-  boolean minInclusive;
-  boolean maxInclusive;
+  final boolean minInclusive;
+  final boolean maxInclusive;
 
   public CfCqSliceOpts(CfCqSliceOpts o) {
     minCf = new Text(o.minCf);

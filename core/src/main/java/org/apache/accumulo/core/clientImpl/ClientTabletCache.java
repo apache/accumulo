@@ -190,8 +190,8 @@ public abstract class ClientTabletCache {
   public abstract void invalidateCache(ClientContext context, String server);
 
   private static class InstanceKey {
-    InstanceId instanceId;
-    TableId tableId;
+    final InstanceId instanceId;
+    final TableId tableId;
 
     InstanceKey(InstanceId instanceId, TableId table) {
       this.instanceId = instanceId;
@@ -405,8 +405,8 @@ public abstract class ClientTabletCache {
   }
 
   public static class TabletServerMutations<T extends Mutation> {
-    private Map<KeyExtent,List<T>> mutations;
-    private String tserverSession;
+    private final Map<KeyExtent,List<T>> mutations;
+    private final String tserverSession;
 
     public TabletServerMutations(String tserverSession) {
       this.tserverSession = tserverSession;
