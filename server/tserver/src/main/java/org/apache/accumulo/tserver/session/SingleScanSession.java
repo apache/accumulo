@@ -69,6 +69,6 @@ public class SingleScanSession extends ScanSession {
         ret = true;
       }
     }
-    return ret;
+    return ret && super.cleanup();
   }
 }
