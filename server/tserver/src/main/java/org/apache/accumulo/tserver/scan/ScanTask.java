@@ -34,8 +34,8 @@ public abstract class ScanTask<T> implements Runnable {
   protected final TabletHostingServer server;
   protected AtomicBoolean interruptFlag;
   protected ArrayBlockingQueue<Object> resultQueue;
-  protected AtomicInteger state;
-  protected AtomicReference<ScanRunState> runState;
+  protected final AtomicInteger state;
+  protected final AtomicReference<ScanRunState> runState;
 
   private static final int INITIAL = 1;
   private static final int ADDED = 2;

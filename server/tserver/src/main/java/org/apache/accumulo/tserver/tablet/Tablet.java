@@ -215,7 +215,7 @@ public class Tablet extends TabletBase {
   }
 
   public static class LookupResult {
-    public List<Range> unfinishedRanges = new ArrayList<>();
+    public final List<Range> unfinishedRanges = new ArrayList<>();
     public long bytesAdded = 0;
     public long dataSize = 0;
     public boolean closed = false;
