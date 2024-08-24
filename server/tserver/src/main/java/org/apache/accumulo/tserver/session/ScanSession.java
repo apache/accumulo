@@ -49,8 +49,8 @@ public abstract class ScanSession<T> extends Session implements ScanInfo {
 
   public static class ScanMeasurer implements Runnable {
 
-    private ScanSession<?> session;
-    private Runnable task;
+    private final ScanSession<?> session;
+    private final Runnable task;
 
     ScanMeasurer(ScanSession<?> session, Runnable task) {
       this.session = session;
@@ -75,11 +75,11 @@ public abstract class ScanSession<T> extends Session implements ScanInfo {
   }
 
   private OptionalLong lastRunTime = OptionalLong.empty();
-  private Stat idleStats = new Stat();
-  public Stat runStats = new Stat();
+  private final Stat idleStats = new Stat();
+  public final Stat runStats = new Stat();
 
   public final ScanParameters scanParams;
-  private Map<String,String> executionHints;
+  private final Map<String,String> executionHints;
   private final TabletResolver tabletResolver;
 
   private volatile ScanTask<T> scanTask;
@@ -132,7 +132,7 @@ public abstract class ScanSession<T> extends Session implements ScanInfo {
 
   private class IterConfImpl implements IteratorConfiguration {
 
-    private IterInfo ii;
+    private final IterInfo ii;
 
     IterConfImpl(IterInfo ii) {
       this.ii = ii;
