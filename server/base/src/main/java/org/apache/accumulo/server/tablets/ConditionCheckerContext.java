@@ -51,16 +51,16 @@ import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.hadoop.io.Text;
 
 public class ConditionCheckerContext {
-  private CompressedIterators compressedIters;
+  private final CompressedIterators compressedIters;
 
-  private List<IterInfo> tableIters;
-  private Map<String,Map<String,String>> tableIterOpts;
-  private TabletIteratorEnvironment tie;
-  private String context;
+  private final List<IterInfo> tableIters;
+  private final Map<String,Map<String,String>> tableIterOpts;
+  private final TabletIteratorEnvironment tie;
+  private final String context;
 
   private static class MergedIterConfig {
-    List<IterInfo> mergedIters;
-    Map<String,Map<String,String>> mergedItersOpts;
+    final List<IterInfo> mergedIters;
+    final Map<String,Map<String,String>> mergedItersOpts;
 
     MergedIterConfig(List<IterInfo> mergedIters, Map<String,Map<String,String>> mergedItersOpts) {
       this.mergedIters = mergedIters;
@@ -68,7 +68,7 @@ public class ConditionCheckerContext {
     }
   }
 
-  private Map<ByteSequence,MergedIterConfig> mergedIterCache = new HashMap<>();
+  private final Map<ByteSequence,MergedIterConfig> mergedIterCache = new HashMap<>();
 
   public ConditionCheckerContext(ServerContext context, CompressedIterators compressedIters,
       TableConfiguration tableConf) {
@@ -144,9 +144,9 @@ public class ConditionCheckerContext {
 
   public class ConditionChecker {
 
-    private List<ServerConditionalMutation> conditionsToCheck;
-    private List<ServerConditionalMutation> okMutations;
-    private List<TCMResult> results;
+    private final List<ServerConditionalMutation> conditionsToCheck;
+    private final List<ServerConditionalMutation> okMutations;
+    private final List<TCMResult> results;
     private boolean checked = false;
 
     public ConditionChecker(List<ServerConditionalMutation> conditionsToCheck,

@@ -58,12 +58,13 @@ public class DistributedWorkQueue {
 
   private static final Logger log = LoggerFactory.getLogger(DistributedWorkQueue.class);
 
-  private ZooReaderWriter zoo;
-  private String path;
-  private ServerContext context;
-  private long timerInitialDelay, timerPeriod;
+  private final ZooReaderWriter zoo;
+  private final String path;
+  private final ServerContext context;
+  private final long timerInitialDelay;
+  private final long timerPeriod;
 
-  private AtomicInteger numTask = new AtomicInteger(0);
+  private final AtomicInteger numTask = new AtomicInteger(0);
 
   /**
    * Finds a child in {@code children} that is not currently being processed and adds a Runnable to

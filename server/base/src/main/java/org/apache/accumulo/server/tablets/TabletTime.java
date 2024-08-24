@@ -148,7 +148,7 @@ public abstract class TabletTime {
   }
 
   static class LogicalTime extends TabletTime {
-    AtomicLong nextTime;
+    final AtomicLong nextTime;
 
     private LogicalTime(Long time) {
       this.nextTime = new AtomicLong(time + 1);

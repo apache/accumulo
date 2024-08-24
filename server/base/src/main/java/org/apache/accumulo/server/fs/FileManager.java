@@ -68,9 +68,9 @@ public class FileManager {
   private int maxOpen;
 
   private static class OpenReader implements Comparable<OpenReader> {
-    long releaseTime;
-    FileSKVIterator reader;
-    StoredTabletFile file;
+    final long releaseTime;
+    final FileSKVIterator reader;
+    final StoredTabletFile file;
 
     public OpenReader(StoredTabletFile file, FileSKVIterator reader) {
       this.file = file;
@@ -383,7 +383,7 @@ public class FileManager {
   static class FileDataSource implements DataSource {
 
     private SortedKeyValueIterator<Key,Value> iter;
-    private ArrayList<FileDataSource> deepCopies;
+    private final ArrayList<FileDataSource> deepCopies;
     private boolean current = true;
     private IteratorEnvironment env;
     private StoredTabletFile file;
@@ -456,11 +456,11 @@ public class FileManager {
 
   public class ScanFileManager {
 
-    private ArrayList<FileDataSource> dataSources;
-    private ArrayList<FileSKVIterator> tabletReservedReaders;
-    private KeyExtent tablet;
+    private final ArrayList<FileDataSource> dataSources;
+    private final ArrayList<FileSKVIterator> tabletReservedReaders;
+    private final KeyExtent tablet;
     private boolean continueOnFailure;
-    private CacheProvider cacheProvider;
+    private final CacheProvider cacheProvider;
 
     ScanFileManager(KeyExtent tablet, CacheProvider cacheProvider) {
       tabletReservedReaders = new ArrayList<>();

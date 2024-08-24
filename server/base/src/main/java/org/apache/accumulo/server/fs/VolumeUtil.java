@@ -88,8 +88,8 @@ public class VolumeUtil {
 
   public static class TabletFiles {
     public String dirName;
-    public List<LogEntry> logEntries;
-    public SortedMap<StoredTabletFile,DataFileValue> datafiles;
+    public final List<LogEntry> logEntries;
+    public final SortedMap<StoredTabletFile,DataFileValue> datafiles;
 
     public TabletFiles() {
       logEntries = new ArrayList<>();
