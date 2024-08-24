@@ -192,7 +192,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
   private static class AttemptPlan {
     String servers;
     String busyTimeout;
-    final String salt = "";
+    String salt = "";
 
     transient double serversRatio;
     transient int parsedServers;
@@ -246,11 +246,11 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
   protected static class Profile {
     public List<AttemptPlan> attemptPlans;
     List<String> scanTypeActivations;
-    final boolean isDefault = false;
+    boolean isDefault = false;
     int busyTimeoutMultiplier;
     String maxBusyTimeout;
-    final String group = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
-    final String timeToWaitForScanServers = "0s";
+    String group = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
+    String timeToWaitForScanServers = "0s";
 
     transient boolean parsed = false;
     transient long parsedMaxBusyTimeout;
