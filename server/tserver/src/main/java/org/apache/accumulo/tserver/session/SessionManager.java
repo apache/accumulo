@@ -368,11 +368,11 @@ public class SessionManager {
 
       if (session instanceof SingleScanSession) {
         SingleScanSession ss = (SingleScanSession) session;
-        nbt = ss.nextBatchTask;
+        nbt = ss.getScanTask();
         tableID = ss.extent.tableId();
       } else if (session instanceof MultiScanSession) {
         MultiScanSession mss = (MultiScanSession) session;
-        nbt = mss.lookupTask;
+        nbt = mss.getScanTask();
         tableID = mss.threadPoolExtent.tableId();
       }
 
@@ -407,7 +407,7 @@ public class SessionManager {
 
         ScanState state = ScanState.RUNNING;
 
-        ScanTask<ScanBatch> nbt = ss.nextBatchTask;
+        ScanTask<ScanBatch> nbt = ss.getScanTask();
         if (nbt == null) {
           state = ScanState.IDLE;
         } else {
@@ -443,7 +443,7 @@ public class SessionManager {
 
         ScanState state = ScanState.RUNNING;
 
-        ScanTask<MultiScanResult> nbt = mss.lookupTask;
+        ScanTask<MultiScanResult> nbt = mss.getScanTask();
         if (nbt == null) {
           state = ScanState.IDLE;
         } else {

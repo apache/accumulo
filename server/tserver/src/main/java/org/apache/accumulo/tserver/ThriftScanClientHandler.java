@@ -252,17 +252,17 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     server.getScanMetrics().incrementContinueScan(1.0D);
 
-    if (scanSession.nextBatchTask == null) {
-      scanSession.nextBatchTask = new NextBatchTask(server, scanID, scanSession.interruptFlag);
+    if (scanSession.getScanTask() == null) {
+      scanSession.setScanTask(new NextBatchTask(server, scanID, scanSession.interruptFlag));
       server.getResourceManager().executeReadAhead(scanSession.extent,
-          getScanDispatcher(scanSession.extent), scanSession, scanSession.nextBatchTask);
+          getScanDispatcher(scanSession.extent), scanSession, scanSession.getScanTask());
     }
 
     ScanBatch bresult;
     try {
-      bresult = scanSession.nextBatchTask.get(busyTimeout, MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS,
+      bresult = scanSession.getScanTask().get(busyTimeout, MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS,
           TimeUnit.MILLISECONDS);
-      scanSession.nextBatchTask = null;
+      scanSession.setScanTask(null);
     } catch (ExecutionException e) {
       server.getSessionManager().removeSession(scanID);
       if (e.getCause() instanceof NotServingTabletException) {
@@ -276,7 +276,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
         sleepUninterruptibly(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
         List<KVEntry> empty = Collections.emptyList();
         bresult = new ScanBatch(empty, true);
-        scanSession.nextBatchTask = null;
+        scanSession.setScanTask(null);
       } else {
         throw new RuntimeException(e);
       }
@@ -311,9 +311,9 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     if (scanResult.more && scanSession.batchCount > scanSession.readaheadThreshold) {
       // start reading next batch while current batch is transmitted
       // to client
-      scanSession.nextBatchTask = new NextBatchTask(server, scanID, scanSession.interruptFlag);
+      scanSession.setScanTask(new NextBatchTask(server, scanID, scanSession.interruptFlag));
       server.getResourceManager().executeReadAhead(scanSession.extent,
-          getScanDispatcher(scanSession.extent), scanSession, scanSession.nextBatchTask);
+          getScanDispatcher(scanSession.extent), scanSession, scanSession.getScanTask());
     }
 
     if (!scanResult.more) {
@@ -472,17 +472,17 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     server.getScanMetrics().incrementContinueScan(1.0D);
 
-    if (session.lookupTask == null) {
-      session.lookupTask = new LookupTask(server, scanID);
+    if (session.getScanTask() == null) {
+      session.setScanTask(new LookupTask(server, scanID));
       server.getResourceManager().executeReadAhead(session.threadPoolExtent,
-          getScanDispatcher(session.threadPoolExtent), session, session.lookupTask);
+          getScanDispatcher(session.threadPoolExtent), session, session.getScanTask());
     }
 
     try {
 
-      MultiScanResult scanResult = session.lookupTask.get(busyTimeout,
+      MultiScanResult scanResult = session.getScanTask().get(busyTimeout,
           MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
-      session.lookupTask = null;
+      session.setScanTask(null);
       return scanResult;
     } catch (ExecutionException e) {
       server.getSessionManager().removeSession(scanID);
