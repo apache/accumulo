@@ -81,6 +81,7 @@ import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
+import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -440,6 +441,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         new CompactionJobGenerator(new ServiceEnvironmentImpl(manager.getContext()),
             tableMgmtParams.getCompactionHints(), tableMgmtParams.getSteadyTime());
 
+    try {
+      CheckCompactionConfig.validate(manager.getConfiguration());
+      this.metrics.clearCompactionServiceConfigurationError();
+    } catch (RuntimeException | ReflectiveOperationException e) {
+      this.metrics.setCompactionServiceConfigurationError();
+      LOG.error(
+          "Error validating compaction configuration, all {} compactions are paused until the configuration is fixed.",
+          store.getLevel(), e);
+      compactionGenerator = null;
+    }
+
     Set<TServerInstance> filteredServersToShutdown =
         new HashSet<>(tableMgmtParams.getServersToShutdown());
 
@@ -588,7 +600,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         manager.getSplitter().initiateSplit(new SeedSplitTask(manager, tm.getExtent()));
       }
 
-      if (actions.contains(ManagementAction.NEEDS_COMPACTING)) {
+      if (actions.contains(ManagementAction.NEEDS_COMPACTING) && compactionGenerator != null) {
         var jobs = compactionGenerator.generateJobs(tm,
             TabletManagementIterator.determineCompactionKinds(actions));
         LOG.debug("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());

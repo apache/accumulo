@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.util.compaction;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.rpc.grpc.ThriftProtobufUtil.convert;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTIONS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTION_IDS_POOL;
@@ -48,8 +49,8 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.grpc.compaction.protobuf.PExternalCompactionJob;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -281,7 +282,7 @@ public class ExternalCompactionUtil {
   }
 
   public static int countCompactors(String groupName, ClientContext context) {
-    var start = NanoTime.now();
+    var start = Timer.startNew();
     String groupRoot = context.getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + groupName;
     List<String> children = context.getZooCache().getChildren(groupRoot);
     if (children == null) {
@@ -297,7 +298,7 @@ public class ExternalCompactionUtil {
       }
     }
 
-    long elapsed = start.elapsed().toMillis();
+    long elapsed = start.elapsed(MILLISECONDS);
     if (elapsed > 100) {
       LOG.debug("Took {} ms to count {} compactors for {}", elapsed, count, groupName);
     } else {

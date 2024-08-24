@@ -59,6 +59,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.grpc.compaction.protobuf.PCompactionState;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
@@ -69,12 +70,13 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
-public class ExternalCompaction2BaseIT extends SharedMiniClusterBase {
+public abstract class ExternalCompaction2BaseIT extends SharedMiniClusterBase {
 
   static class ExternalCompaction2Config implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
+      cfg.setServerClass(ServerType.COMPACTOR, ExternalDoNothingCompactor.class);
     }
   }
 

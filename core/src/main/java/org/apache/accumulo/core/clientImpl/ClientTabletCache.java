@@ -44,8 +44,8 @@ import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Interner;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -311,7 +311,7 @@ public abstract class ClientTabletCache {
     private final TabletAvailability availability;
     private final boolean hostingRequested;
 
-    private final NanoTime creationTime = NanoTime.now();
+    private final Timer creationTimer = Timer.startNew();
 
     public CachedTablet(KeyExtent tablet_extent, String tablet_location, String session,
         TabletAvailability availability, boolean hostingRequested) {
@@ -392,8 +392,11 @@ public abstract class ClientTabletCache {
       return this.availability;
     }
 
-    public NanoTime getCreationTime() {
-      return creationTime;
+    /**
+     * @return a timer that was started when this object was created
+     */
+    public Timer getCreationTimer() {
+      return creationTimer;
     }
 
     public boolean wasHostingRequested() {
