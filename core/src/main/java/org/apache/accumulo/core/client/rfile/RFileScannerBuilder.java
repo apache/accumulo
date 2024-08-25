@@ -77,7 +77,7 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
     }
   }
 
-  private RFileScanner.Opts opts = new RFileScanner.Opts();
+  private final RFileScanner.Opts opts = new RFileScanner.Opts();
 
   @Override
   public ScannerOptions withoutSystemIterators() {

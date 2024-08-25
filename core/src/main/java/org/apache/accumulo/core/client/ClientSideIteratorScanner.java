@@ -89,8 +89,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
   private class ClientSideIteratorEnvironment implements IteratorEnvironment {
 
-    private SamplerConfiguration samplerConfig;
-    private boolean sampleEnabled;
+    private final SamplerConfiguration samplerConfig;
+    private final boolean sampleEnabled;
 
     ClientSideIteratorEnvironment(boolean sampleEnabled, SamplerConfiguration samplerConfig) {
       this.sampleEnabled = sampleEnabled;

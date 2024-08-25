@@ -41,10 +41,10 @@ import org.slf4j.LoggerFactory;
 public class RenameTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private TableId tableId;
-  private NamespaceId namespaceId;
-  private String oldTableName;
-  private String newTableName;
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
+  private final String oldTableName;
+  private final String newTableName;
 
   @Override
   public long isReady(long tid, Manager env) throws Exception {

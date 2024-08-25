@@ -70,7 +70,7 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
   private boolean inclusive;
   private Collection<ByteSequence> columnFamilies;
 
-  private boolean onlySwitchAfterRow;
+  private final boolean onlySwitchAfterRow;
 
   // Synchronization on copies synchronizes operations across all deep copies of this instance.
   //

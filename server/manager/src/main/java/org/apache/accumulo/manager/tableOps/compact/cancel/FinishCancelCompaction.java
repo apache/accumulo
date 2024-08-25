@@ -28,8 +28,8 @@ import org.apache.accumulo.manager.tableOps.Utils;
 
 class FinishCancelCompaction extends ManagerRepo {
   private static final long serialVersionUID = 1L;
-  private TableId tableId;
-  private NamespaceId namespaceId;
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
 
   public FinishCancelCompaction(NamespaceId namespaceId, TableId tableId) {
     this.tableId = tableId;

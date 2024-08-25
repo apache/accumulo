@@ -192,7 +192,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
   public Iterator<ProblemReport> iterator(final TableId table) {
     return new Iterator<>() {
 
-      ZooReaderWriter zoo = context.getZooReaderWriter();
+      final ZooReaderWriter zoo = context.getZooReaderWriter();
       private int iter1Count = 0;
       private Iterator<String> iter1;
 

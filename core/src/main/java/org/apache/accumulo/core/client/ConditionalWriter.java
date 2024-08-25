@@ -33,8 +33,8 @@ public interface ConditionalWriter extends AutoCloseable {
   class Result {
 
     private Status status;
-    private ConditionalMutation mutation;
-    private String server;
+    private final ConditionalMutation mutation;
+    private final String server;
     private Exception exception;
 
     public Result(Status s, ConditionalMutation m, String server) {

@@ -32,8 +32,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
 public class SplitReportMessage implements ManagerMessage {
-  private Map<KeyExtent,Text> extents;
-  private KeyExtent old_extent;
+  private final Map<KeyExtent,Text> extents;
+  private final KeyExtent old_extent;
 
   public SplitReportMessage(KeyExtent old_extent, KeyExtent ne1, Text np1, KeyExtent ne2,
       Text np2) {
