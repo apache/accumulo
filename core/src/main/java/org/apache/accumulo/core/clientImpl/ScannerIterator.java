@@ -49,26 +49,26 @@ import com.google.common.base.Preconditions;
 public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   // scanner options
-  private long timeOut;
+  private final long timeOut;
 
   // scanner state
   private Iterator<KeyValue> iter;
   private final ScanState scanState;
 
-  private ScannerOptions options;
+  private final ScannerOptions options;
 
   private Future<List<KeyValue>> readAheadOperation;
 
   private boolean finished = false;
 
   private long batchCount = 0;
-  private long readaheadThreshold;
+  private final long readaheadThreshold;
 
-  private ScannerImpl.Reporter reporter;
+  private final ScannerImpl.Reporter reporter;
 
   private final ClientContext context;
 
-  private AtomicBoolean closed = new AtomicBoolean(false);
+  private final AtomicBoolean closed = new AtomicBoolean(false);
 
   ScannerIterator(ClientContext context, TableId tableId, Authorizations authorizations,
       Range range, int size, long timeOut, ScannerOptions options, boolean isolated,

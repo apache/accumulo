@@ -25,7 +25,7 @@ package org.apache.accumulo.core.client.lexicoder;
  */
 public class DoubleLexicoder extends AbstractLexicoder<Double> {
 
-  private ULongLexicoder longEncoder = new ULongLexicoder();
+  private final ULongLexicoder longEncoder = new ULongLexicoder();
 
   @Override
   public byte[] encode(Double d) {

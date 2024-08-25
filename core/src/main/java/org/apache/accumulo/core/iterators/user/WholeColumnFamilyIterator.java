@@ -145,8 +145,8 @@ public class WholeColumnFamilyIterator
     return new Value(out.toByteArray());
   }
 
-  List<Key> keys = new ArrayList<>();
-  List<Value> values = new ArrayList<>();
+  final List<Key> keys = new ArrayList<>();
+  final List<Value> values = new ArrayList<>();
 
   private void prepKeys() throws IOException {
     if (topKey != null) {

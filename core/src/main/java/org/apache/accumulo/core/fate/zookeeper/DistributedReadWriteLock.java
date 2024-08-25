@@ -113,8 +113,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
   static class ReadLock implements DistributedLock {
 
-    QueueLock qlock;
-    byte[] userData;
+    final QueueLock qlock;
+    final byte[] userData;
     long entry = -1;
 
     ReadLock(QueueLock qlock, byte[] userData) {
@@ -241,8 +241,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     }
   }
 
-  private QueueLock qlock;
-  private byte[] data;
+  private final QueueLock qlock;
+  private final byte[] data;
 
   public DistributedReadWriteLock(QueueLock qlock, byte[] data) {
     this.qlock = qlock;

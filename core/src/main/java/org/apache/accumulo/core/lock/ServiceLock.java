@@ -130,7 +130,7 @@ public class ServiceLock implements Watcher {
   private static class LockWatcherWrapper implements AccumuloLockWatcher {
 
     boolean acquiredLock = false;
-    LockWatcher lw;
+    final LockWatcher lw;
 
     public LockWatcherWrapper(LockWatcher lw2) {
       this.lw = lw2;

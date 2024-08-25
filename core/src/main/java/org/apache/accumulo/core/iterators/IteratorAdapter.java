@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.Value;
 
 public class IteratorAdapter implements Iterator<Entry<Key,Value>> {
 
-  SortedKeyValueIterator<Key,Value> inner;
+  final SortedKeyValueIterator<Key,Value> inner;
 
   public IteratorAdapter(SortedKeyValueIterator<Key,Value> inner) {
     this.inner = inner;

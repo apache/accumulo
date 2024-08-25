@@ -57,8 +57,8 @@ public class SummaryReader {
 
   private static class CompositeCache implements BlockCache {
 
-    private BlockCache summaryCache;
-    private BlockCache indexCache;
+    private final BlockCache summaryCache;
+    private final BlockCache indexCache;
 
     CompositeCache(BlockCache summaryCache, BlockCache indexCache) {
       this.summaryCache = summaryCache;

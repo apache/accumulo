@@ -38,8 +38,8 @@ public class Bulk {
    * WARNING : do not change this class, its used for serialization to Json
    */
   public static class Mapping {
-    private Tablet tablet;
-    private Collection<FileInfo> files;
+    private final Tablet tablet;
+    private final Collection<FileInfo> files;
 
     public Mapping(KeyExtent tablet, Files files) {
       this.tablet = toTablet(tablet);
@@ -64,8 +64,8 @@ public class Bulk {
    */
   public static class Tablet {
 
-    private byte[] endRow;
-    private byte[] prevEndRow;
+    private final byte[] endRow;
+    private final byte[] prevEndRow;
 
     public Tablet(Text endRow, Text prevEndRow) {
       this.endRow = endRow == null ? null : TextUtil.getBytes(endRow);
@@ -156,7 +156,7 @@ public class Bulk {
   }
 
   public static class Files implements Iterable<FileInfo> {
-    Map<String,FileInfo> files = new HashMap<>();
+    final Map<String,FileInfo> files = new HashMap<>();
 
     public Files(Collection<FileInfo> files) {
       files.forEach(this::add);

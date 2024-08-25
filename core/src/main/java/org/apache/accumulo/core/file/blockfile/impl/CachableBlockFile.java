@@ -241,9 +241,9 @@ public class CachableBlockFile {
     }
 
     private class RawBlockLoader extends BaseBlockLoader {
-      private long offset;
-      private long compressedSize;
-      private long rawSize;
+      private final long offset;
+      private final long compressedSize;
+      private final long rawSize;
 
       private RawBlockLoader(long offset, long compressedSize, long rawSize, boolean loadingMeta) {
         super(loadingMeta);
@@ -267,7 +267,7 @@ public class CachableBlockFile {
     }
 
     private class OffsetBlockLoader extends BaseBlockLoader {
-      private int blockIndex;
+      private final int blockIndex;
 
       private OffsetBlockLoader(int blockIndex, boolean loadingMeta) {
         super(loadingMeta);
@@ -289,7 +289,7 @@ public class CachableBlockFile {
     }
 
     private class MetaBlockLoader extends BaseBlockLoader {
-      String blockName;
+      final String blockName;
 
       MetaBlockLoader(String blockName) {
         super(true);
@@ -316,7 +316,7 @@ public class CachableBlockFile {
 
       abstract String getBlockId();
 
-      private boolean loadingMetaBlock;
+      private final boolean loadingMetaBlock;
 
       public BaseBlockLoader(boolean loadingMetaBlock) {
         this.loadingMetaBlock = loadingMetaBlock;
@@ -489,9 +489,9 @@ public class CachableBlockFile {
   }
 
   public static class CachedBlockRead extends DataInputStream {
-    private SeekableByteArrayInputStream seekableInput;
+    private final SeekableByteArrayInputStream seekableInput;
     private final CacheEntry cb;
-    boolean indexable;
+    final boolean indexable;
 
     public CachedBlockRead(InputStream in) {
       super(in);
