@@ -136,7 +136,7 @@ public class ScanServer extends AbstractServer
         description = "Optional group name that will be made available to the ScanServerSelector client plugin.  If not specified will be set to '"
             + ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME
             + "'.  Groups support at least two use cases : dedicating resources to scans and/or using different hardware for scans.")
-    private String groupName = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
+    private final String groupName = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
 
     public String getGroupName() {
       return groupName;
@@ -209,7 +209,7 @@ public class ScanServer extends AbstractServer
   private ScanServerMetrics scanServerMetrics;
   private BlockCacheMetrics blockCacheMetrics;
 
-  private ZooCache managerLockCache;
+  private final ZooCache managerLockCache;
 
   private final String groupName;
 

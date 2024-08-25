@@ -58,7 +58,7 @@ public class GrepIterator extends Filter {
   private static final String MATCH_VALUE_OPT = "matchValue";
 
   private byte[] term;
-  private int[] right = new int[256];
+  private final int[] right = new int[256];
 
   private boolean matchRow = true;
   private boolean matchColFam = true;

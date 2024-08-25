@@ -23,8 +23,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.apache.accumulo.core.data.Value;
 
 public class DataFileValue {
-  private long size;
-  private long numEntries;
+  private final long size;
+  private final long numEntries;
   private long time = -1;
 
   public DataFileValue(long size, long numEntries, long time) {

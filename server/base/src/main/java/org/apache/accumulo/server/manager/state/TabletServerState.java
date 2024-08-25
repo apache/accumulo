@@ -41,10 +41,10 @@ public enum TabletServerState {
   BAD_VERSION_AND_INSTANCE_AND_CONFIG((byte) 107),
   BAD_INSTANCE_AND_CONFIG((byte) 108);
 
-  private byte id;
+  private final byte id;
 
-  private static HashMap<Byte,TabletServerState> mapping;
-  private static HashSet<TabletServerState> badStates;
+  private static final HashMap<Byte,TabletServerState> mapping;
+  private static final HashSet<TabletServerState> badStates;
 
   static {
     mapping = new HashMap<>(TabletServerState.values().length);

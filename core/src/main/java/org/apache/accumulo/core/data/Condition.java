@@ -36,8 +36,8 @@ import org.apache.hadoop.io.Text;
  */
 public class Condition {
 
-  private ByteSequence cf;
-  private ByteSequence cq;
+  private final ByteSequence cf;
+  private final ByteSequence cq;
   private ByteSequence cv;
   private ByteSequence val;
   private Long ts;

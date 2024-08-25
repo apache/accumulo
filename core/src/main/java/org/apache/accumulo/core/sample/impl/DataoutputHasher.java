@@ -26,7 +26,7 @@ import com.google.common.hash.Hasher;
 
 public class DataoutputHasher implements DataOutput {
 
-  private Hasher hasher;
+  private final Hasher hasher;
 
   public DataoutputHasher(Hasher hasher) {
     this.hasher = hasher;

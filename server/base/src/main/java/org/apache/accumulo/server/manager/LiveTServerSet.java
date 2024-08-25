@@ -238,12 +238,12 @@ public class LiveTServerSet implements Watcher {
   }
 
   // The set of active tservers with locks, indexed by their name in zookeeper
-  private Map<String,TServerInfo> current = new HashMap<>();
+  private final Map<String,TServerInfo> current = new HashMap<>();
   // as above, indexed by TServerInstance
-  private Map<TServerInstance,TServerInfo> currentInstances = new HashMap<>();
+  private final Map<TServerInstance,TServerInfo> currentInstances = new HashMap<>();
 
   // The set of entries in zookeeper without locks, and the first time each was noticed
-  private Map<String,Long> locklessServers = new HashMap<>();
+  private final Map<String,Long> locklessServers = new HashMap<>();
 
   public LiveTServerSet(ServerContext context, Listener cback) {
     this.cback = cback;

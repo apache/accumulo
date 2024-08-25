@@ -44,9 +44,9 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 
 public class ProblemReport {
-  private TableId tableId;
-  private ProblemType problemType;
-  private String resource;
+  private final TableId tableId;
+  private final ProblemType problemType;
+  private final String resource;
   private String exception;
   private String server;
   private long creationTime;

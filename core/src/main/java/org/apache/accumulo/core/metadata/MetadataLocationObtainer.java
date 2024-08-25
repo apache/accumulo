@@ -67,8 +67,8 @@ import org.slf4j.LoggerFactory;
 public class MetadataLocationObtainer implements TabletLocationObtainer {
   private static final Logger log = LoggerFactory.getLogger(MetadataLocationObtainer.class);
 
-  private SortedSet<Column> locCols;
-  private ArrayList<Column> columns;
+  private final SortedSet<Column> locCols;
+  private final ArrayList<Column> columns;
 
   public MetadataLocationObtainer() {
 

@@ -136,7 +136,7 @@ public class CompactionCoordinator extends AbstractServer
   // Exposed for tests
   protected volatile Boolean shutdown = false;
 
-  private ScheduledThreadPoolExecutor schedExecutor;
+  private final ScheduledThreadPoolExecutor schedExecutor;
 
   private final LoadingCache<String,Integer> compactorCounts;
 

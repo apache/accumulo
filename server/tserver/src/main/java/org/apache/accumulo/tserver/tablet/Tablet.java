@@ -158,7 +158,7 @@ public class Tablet extends TabletBase {
   private long persistedTime;
 
   private Location lastLocation = null;
-  private volatile Set<Path> checkedTabletDirs = new ConcurrentSkipListSet<>();
+  private final Set<Path> checkedTabletDirs = new ConcurrentSkipListSet<>();
 
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
 
@@ -176,8 +176,8 @@ public class Tablet extends TabletBase {
 
   private boolean updatingFlushID = false;
 
-  private AtomicLong lastFlushID = new AtomicLong(-1);
-  private AtomicLong lastCompactID = new AtomicLong(-1);
+  private final AtomicLong lastFlushID = new AtomicLong(-1);
+  private final AtomicLong lastCompactID = new AtomicLong(-1);
 
   public long getLastCompactId() {
     return lastCompactID.get();
@@ -196,7 +196,7 @@ public class Tablet extends TabletBase {
     WAITING_TO_START, IN_PROGRESS
   }
 
-  private CompactableImpl compactable;
+  private final CompactableImpl compactable;
 
   private volatile CompactionState minorCompactionState = null;
 

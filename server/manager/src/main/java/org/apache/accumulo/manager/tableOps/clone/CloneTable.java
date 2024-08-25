@@ -32,7 +32,7 @@ import org.apache.accumulo.manager.tableOps.Utils;
 public class CloneTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private CloneInfo cloneInfo;
+  private final CloneInfo cloneInfo;
 
   public CloneTable(String user, NamespaceId namespaceId, TableId srcTableId, String tableName,
       Map<String,String> propertiesToSet, Set<String> propertiesToExclude, boolean keepOffline) {

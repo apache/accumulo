@@ -33,8 +33,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public class TimeSettingIterator implements InterruptibleIterator {
 
-  private SortedKeyValueIterator<Key,Value> source;
-  private long time;
+  private final SortedKeyValueIterator<Key,Value> source;
+  private final long time;
   private Range range;
 
   public TimeSettingIterator(SortedKeyValueIterator<Key,Value> source, long time) {

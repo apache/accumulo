@@ -41,10 +41,10 @@ public class CleanUpBulkImport extends ManagerRepo {
 
   private static final Logger log = LoggerFactory.getLogger(CleanUpBulkImport.class);
 
-  private TableId tableId;
-  private String source;
-  private String bulk;
-  private String error;
+  private final TableId tableId;
+  private final String source;
+  private final String bulk;
+  private final String error;
 
   CleanUpBulkImport(TableId tableId, String source, String bulk, String error) {
     this.tableId = tableId;

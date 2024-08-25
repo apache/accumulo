@@ -120,13 +120,13 @@ public class UpgradeCoordinator {
     public abstract boolean isParentLevelUpgraded(KeyExtent extent);
   }
 
-  private static Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
+  private static final Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
 
   private int currentVersion;
 
   // unmodifiable map of "current version" -> upgrader to next version.
   // Sorted so upgrades execute in order from the oldest supported data version to current
-  private Map<Integer,Upgrader> upgraders =
+  private final Map<Integer,Upgrader> upgraders =
       Collections.unmodifiableMap(new TreeMap<>(Map.of(AccumuloDataVersion.SHORTEN_RFILE_KEYS,
           new Upgrader8to9(), AccumuloDataVersion.CRYPTO_CHANGES, new Upgrader9to10())));
 
