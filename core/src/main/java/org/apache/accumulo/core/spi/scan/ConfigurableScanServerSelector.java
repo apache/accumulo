@@ -99,8 +99,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * </ul>
  * If duration is not specified this setting defaults to 100 years, which for all practical purposes
  * will never fall back to tablet servers. Waiting for scan servers is done via
- * {@link org.apache.accumulo.core.spi.scan.ScanServerSelector.SelectorParameters#waitUntil(Supplier, Duration, String)}</li>.
- * To immediately fall back to tablet servers when no scan servers are present set this to zero.
+ * {@link org.apache.accumulo.core.spi.scan.ScanServerSelector.SelectorParameters#waitUntil(Supplier, Duration, String)}.
+ * To immediately fall back to tablet servers when no scan servers are present set this to
+ * zero.</li>
  * <li><b>attemptPlans : </b> A list of configuration to use for each scan attempt. Each list object
  * has the following fields:
  * <ul>
