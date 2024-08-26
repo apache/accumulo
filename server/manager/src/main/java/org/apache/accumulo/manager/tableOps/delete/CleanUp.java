@@ -59,8 +59,8 @@ class CleanUp extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableId tableId;
-  private NamespaceId namespaceId;
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
 
   private long creationTime;
 

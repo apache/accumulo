@@ -33,7 +33,7 @@ import com.google.common.base.Preconditions;
 
 public class TabletsMutatorImpl implements TabletsMutator {
 
-  private ServerContext context;
+  private final ServerContext context;
 
   private BatchWriter rootWriter;
   private BatchWriter metaWriter;

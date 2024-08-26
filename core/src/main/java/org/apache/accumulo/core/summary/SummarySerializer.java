@@ -56,8 +56,8 @@ import com.google.common.collect.ImmutableMap;
  */
 class SummarySerializer {
 
-  private SummarizerConfiguration sconf;
-  private LgSummaries[] allSummaries;
+  private final SummarizerConfiguration sconf;
+  private final LgSummaries[] allSummaries;
 
   private SummarySerializer(SummarizerConfiguration sconf, LgSummaries[] allSummaries) {
     this.sconf = sconf;
@@ -126,11 +126,11 @@ class SummarySerializer {
   }
 
   private static class LgBuilder {
-    private Summarizer summarizer;
-    private SummarizerConfiguration conf;
+    private final Summarizer summarizer;
+    private final SummarizerConfiguration conf;
     private Collector collector;
 
-    private int maxSummaries = 10;
+    private final int maxSummaries = 10;
 
     private int cutoff = 1000;
     private int count = 0;
@@ -139,9 +139,9 @@ class SummarySerializer {
 
     private Key lastKey;
 
-    private SummaryStoreImpl sci = new SummaryStoreImpl();
+    private final SummaryStoreImpl sci = new SummaryStoreImpl();
 
-    private String name;
+    private final String name;
 
     private boolean sawFirst = false;
     private Text firstRow;
@@ -270,14 +270,14 @@ class SummarySerializer {
   }
 
   public static class Builder {
-    private Summarizer kvs;
+    private final Summarizer kvs;
 
-    private SummarizerConfiguration conf;
+    private final SummarizerConfiguration conf;
 
-    private List<LgBuilder> locGroups;
+    private final List<LgBuilder> locGroups;
     private LgBuilder lgb;
 
-    private long maxSize;
+    private final long maxSize;
 
     public Builder(SummarizerConfiguration conf, Summarizer kvs, long maxSize) {
       this.conf = conf;
@@ -421,9 +421,9 @@ class SummarySerializer {
 
   private static class LgSummaries {
 
-    private Text firstRow;
-    private SummaryInfo[] summaries;
-    private String lgroupName;
+    private final Text firstRow;
+    private final SummaryInfo[] summaries;
+    private final String lgroupName;
 
     LgSummaries(Text firstRow, SummaryInfo[] summaries, String lgroupName) {
       this.firstRow = firstRow;

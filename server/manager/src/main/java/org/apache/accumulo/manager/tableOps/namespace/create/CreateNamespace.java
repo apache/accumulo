@@ -29,7 +29,7 @@ import org.apache.accumulo.manager.tableOps.Utils;
 public class CreateNamespace extends ManagerRepo {
   private static final long serialVersionUID = 1L;
 
-  private NamespaceInfo namespaceInfo;
+  private final NamespaceInfo namespaceInfo;
 
   public CreateNamespace(String user, String namespaceName, Map<String,String> props) {
     namespaceInfo = new NamespaceInfo();

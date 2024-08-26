@@ -53,9 +53,9 @@ public abstract class TypedValueCombiner<V> extends Combiner {
    * decode method of an Encoder.
    */
   private static class VIterator<V> implements Iterator<V> {
-    private Iterator<Value> source;
-    private Encoder<V> encoder;
-    private boolean lossy;
+    private final Iterator<Value> source;
+    private final Encoder<V> encoder;
+    private final boolean lossy;
 
     /**
      * Constructs an {@code Iterator<V>} from an {@code Iterator<Value>}

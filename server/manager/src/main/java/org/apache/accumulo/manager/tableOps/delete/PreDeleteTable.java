@@ -41,8 +41,8 @@ public class PreDeleteTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableId tableId;
-  private NamespaceId namespaceId;
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
 
   public PreDeleteTable(NamespaceId namespaceId, TableId tableId) {
     this.tableId = tableId;

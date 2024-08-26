@@ -69,7 +69,7 @@ import org.slf4j.LoggerFactory;
 
 public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   private final ClientContext context;
-  private TableOperationsImpl tableOps;
+  private final TableOperationsImpl tableOps;
 
   private static final Logger log = LoggerFactory.getLogger(TableOperations.class);
 

@@ -92,7 +92,7 @@ public class BloomFilterLayer {
     private int numKeys;
     private int vectorSize;
 
-    private FileSKVWriter writer;
+    private final FileSKVWriter writer;
     private KeyFunctor transformer = null;
     private boolean closed = false;
     private long length = -1;
@@ -204,7 +204,7 @@ public class BloomFilterLayer {
     private volatile DynamicBloomFilter bloomFilter;
     private int loadRequest = 0;
     private int loadThreshold = 1;
-    private int maxLoadThreads;
+    private final int maxLoadThreads;
     private Runnable loadTask;
     private volatile KeyFunctor transformer = null;
     private volatile boolean closed = false;
@@ -348,8 +348,8 @@ public class BloomFilterLayer {
 
   public static class Reader implements FileSKVIterator {
 
-    private BloomFilterLoader bfl;
-    private FileSKVIterator reader;
+    private final BloomFilterLoader bfl;
+    private final FileSKVIterator reader;
 
     public Reader(FileSKVIterator reader, AccumuloConfiguration acuconf) {
       this.reader = reader;

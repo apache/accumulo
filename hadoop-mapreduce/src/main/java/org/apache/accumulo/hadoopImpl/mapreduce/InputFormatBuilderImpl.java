@@ -46,7 +46,7 @@ public class InputFormatBuilderImpl<T>
     implements InputFormatBuilder, InputFormatBuilder.ClientParams<T>,
     InputFormatBuilder.TableParams<T>, InputFormatBuilder.InputFormatOptions<T> {
 
-  private Class<?> callingClass;
+  private final Class<?> callingClass;
   private Properties clientProps;
   private String clientPropsPath;
   private String currentTable;
