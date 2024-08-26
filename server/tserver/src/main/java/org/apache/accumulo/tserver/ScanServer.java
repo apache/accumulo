@@ -206,7 +206,7 @@ public class ScanServer extends AbstractServer
   private ScanServerMetrics scanServerMetrics;
   private BlockCacheMetrics blockCacheMetrics;
 
-  private ZooCache managerLockCache;
+  private final ZooCache managerLockCache;
 
   private final String groupName;
 

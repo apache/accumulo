@@ -30,7 +30,7 @@ public class TableNotFoundException extends Exception {
    */
   private static final long serialVersionUID = 1L;
 
-  private String tableName;
+  private final String tableName;
 
   /**
    * @param tableId the internal id of the table that was sought

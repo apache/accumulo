@@ -43,7 +43,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private ImportedTableInfo tableInfo;
+  private final ImportedTableInfo tableInfo;
 
   ImportPopulateZookeeper(ImportedTableInfo ti) {
     this.tableInfo = ti;

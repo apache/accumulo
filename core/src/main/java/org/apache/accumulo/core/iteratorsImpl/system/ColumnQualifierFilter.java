@@ -32,8 +32,8 @@ import org.apache.accumulo.core.iterators.ServerFilter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public class ColumnQualifierFilter extends ServerFilter {
-  private HashSet<ByteSequence> columnFamilies;
-  private HashMap<ByteSequence,HashSet<ByteSequence>> columnsQualifiers;
+  private final HashSet<ByteSequence> columnFamilies;
+  private final HashMap<ByteSequence,HashSet<ByteSequence>> columnsQualifiers;
 
   private ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator, Set<Column> columns) {
     super(iterator);

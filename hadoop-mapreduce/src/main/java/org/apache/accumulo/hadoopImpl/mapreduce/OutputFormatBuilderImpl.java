@@ -37,7 +37,7 @@ public class OutputFormatBuilderImpl<T>
   // optional values
   private Optional<String> defaultTableName = Optional.empty();
   private boolean createTables = false;
-  private boolean simulationMode = false;
+  private final boolean simulationMode = false;
 
   public OutputFormatBuilderImpl(Class<?> callingClass) {
     this.callingClass = callingClass;

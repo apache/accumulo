@@ -42,15 +42,15 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 public class TabletData {
   private MetadataTime time = null;
   private SortedMap<StoredTabletFile,DataFileValue> dataFiles = new TreeMap<>();
-  private List<LogEntry> logEntries = new ArrayList<>();
-  private HashSet<StoredTabletFile> scanFiles = new HashSet<>();
+  private final List<LogEntry> logEntries = new ArrayList<>();
+  private final HashSet<StoredTabletFile> scanFiles = new HashSet<>();
   private long flushID = -1;
   private long compactID = -1;
   private Location lastLocation = null;
   private Map<Long,List<ReferencedTabletFile>> bulkImported = new HashMap<>();
   private long splitTime = 0;
   private String directoryName = null;
-  private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
+  private final Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
 
   // Read tablet data from metadata tables
   public TabletData(TabletMetadata meta) {
