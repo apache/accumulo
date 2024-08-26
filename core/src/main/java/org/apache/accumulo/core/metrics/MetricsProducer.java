@@ -463,6 +463,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
  * derived</td>
  * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_SCAN_ZOMBIE_THREADS}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
  * <!-- major compactions -->
  * <tr>
  * <td>{i|e}_{compactionServiceName}_{executor_name}_queued</td>
