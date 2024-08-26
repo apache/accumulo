@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.metrics;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -41,7 +42,7 @@ public class TabletServerScanMetrics implements MetricsProducer {
   private Counter continueScanCalls = NoopMetrics.useNoopCounter();;
   private Counter closeScanCalls = NoopMetrics.useNoopCounter();;
   private Counter busyTimeoutCount = NoopMetrics.useNoopCounter();;
-
+  private final AtomicLong zombieScanThreads = new AtomicLong(0);
   private final LongAdder lookupCount = new LongAdder();
   private final LongAdder queryResultCount = new LongAdder();
   private final LongAdder queryResultBytes = new LongAdder();
@@ -119,6 +120,14 @@ public class TabletServerScanMetrics implements MetricsProducer {
     busyTimeoutCount.increment(value);
   }
 
+  public void setZombieScanThreads(long count) {
+    zombieScanThreads.set(count);
+  }
+
+  public long getZombieThreadsCount() {
+    return zombieScanThreads.get();
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
     Gauge.builder(METRICS_SCAN_OPEN_FILES, openFiles::get)
@@ -148,6 +157,9 @@ public class TabletServerScanMetrics implements MetricsProducer {
         .description("Query rate (bytes/sec)").register(registry);
     Gauge.builder(METRICS_SCAN_SCANNED_ENTRIES, this, TabletServerScanMetrics::getScannedCount)
         .description("Scanned rate").register(registry);
+    Gauge.builder(METRICS_SCAN_ZOMBIE_THREADS, this, TabletServerScanMetrics::getZombieThreadsCount)
+        .description("Number of scan threads that have no associated client session")
+        .register(registry);
   }
 
 }
