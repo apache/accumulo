@@ -109,7 +109,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
         // this should block forever
         semaphore.acquire(6);
         return ht;
-      }catch (InterruptedException ie){
+      } catch (InterruptedException ie) {
         throw new IllegalStateException(ie);
       }
     }
@@ -121,7 +121,10 @@ public class ZombieScanIT extends ConfigurableMacBase {
   @Test
   public void testMetrics() throws Exception {
 
-    Wait.waitFor(() -> { var zsmc = getZombieScansMetric(); return zsmc == -1 || zsmc == 0;});
+    Wait.waitFor(() -> {
+      var zsmc = getZombieScansMetric();
+      return zsmc == -1 || zsmc == 0;
+    });
 
     String table = getUniqueNames(1)[0];
 
@@ -152,7 +155,8 @@ public class ZombieScanIT extends ConfigurableMacBase {
       Wait.waitFor(() -> countScansForTable(table, c) == 8);
 
       // Cancel the scan threads. This will cause the sessions on the server side to timeout and
-      // become inactive.  The stuck threads on the server side related to the timed out sessions will be interrupted.
+      // become inactive. The stuck threads on the server side related to the timed out sessions
+      // will be interrupted.
       Wait.waitFor(() -> {
         futures.forEach(future -> future.cancel(true));
         return futures.stream().allMatch(Future::isDone);
@@ -174,7 +178,8 @@ public class ZombieScanIT extends ConfigurableMacBase {
 
       Wait.waitFor(() -> countScansForTable(table, c) == 8);
 
-      // Cancel the client side scan threads.  Should cause the server side threads to be interrupted.
+      // Cancel the client side scan threads. Should cause the server side threads to be
+      // interrupted.
       Wait.waitFor(() -> {
         futures.forEach(future -> future.cancel(true));
         return futures.stream().allMatch(Future::isDone);
@@ -193,16 +198,16 @@ public class ZombieScanIT extends ConfigurableMacBase {
   }
 
   private Future<String> startStuckScan(AccumuloClient c, String table, ExecutorService executor,
-                                        String row, boolean canInterrupt) {
+      String row, boolean canInterrupt) {
     return executor.submit(() -> {
       try (var scanner = c.createScanner(table)) {
         String className;
-        if(canInterrupt) {
+        if (canInterrupt) {
           className = StuckIterator.class.getName();
         } else {
           className = ZombieIterator.class.getName();
         }
-        IteratorSetting iter = new IteratorSetting(100, "Z",className);
+        IteratorSetting iter = new IteratorSetting(100, "Z", className);
         scanner.addScanIterator(iter);
         scanner.setRange(new Range(row));
         return scanner.stream().findFirst().map(e -> e.getKey().getRowData().toString())
@@ -212,11 +217,11 @@ public class ZombieScanIT extends ConfigurableMacBase {
   }
 
   private Future<String> startStuckBatchScan(AccumuloClient c, String table,
-                                             ExecutorService executor, String row, boolean canInterrupt) {
+      ExecutorService executor, String row, boolean canInterrupt) {
     return executor.submit(() -> {
       try (var scanner = c.createBatchScanner(table)) {
         String className;
-        if(canInterrupt) {
+        if (canInterrupt) {
           className = StuckIterator.class.getName();
         } else {
           className = ZombieIterator.class.getName();
@@ -237,14 +242,12 @@ public class ZombieScanIT extends ConfigurableMacBase {
         .mapToInt(metric -> Integer.parseInt(metric.getValue())).max().orElse(-1);
   }
 
-  private static long countScansForTable(String table, AccumuloClient client)
-      throws Exception {
+  private static long countScansForTable(String table, AccumuloClient client) throws Exception {
     var tservers = client.instanceOperations().getTabletServers();
     long count = 0;
     for (String tserver : tservers) {
       count += client.instanceOperations().getActiveScans(tserver).stream()
-          .filter(activeScan -> activeScan.getTable().equals(table))
-          .count();
+          .filter(activeScan -> activeScan.getTable().equals(table)).count();
     }
     return count;
   }

@@ -206,10 +206,13 @@ public abstract class ScanSession<T> extends Session implements ScanInfo {
   public void clearScanTask() {
     scanTaskRef.getAndUpdate(currScanTask -> {
       // For tracking zombie scan threads, do not want to clear the scan task if it has an active
-      // thread. When the thread is not null and the task has produced a result, the thread should be in
+      // thread. When the thread is not null and the task has produced a result, the thread should
+      // be in
       // the process of clearing itself from the scan task.
-      Preconditions.checkState(currScanTask == null || currScanTask.getScanThread() == null
-          || currScanTask.producedResult(), "Can not clear scan task that is still running and has not produced a result");
+      Preconditions.checkState(
+          currScanTask == null || currScanTask.getScanThread() == null
+              || currScanTask.producedResult(),
+          "Can not clear scan task that is still running and has not produced a result");
       return null;
     });
   }
