@@ -45,9 +45,9 @@ public class TableRangeOp extends ManagerRepo {
 
   private final TableId tableId;
   private final NamespaceId namespaceId;
-  private byte[] startRow;
-  private byte[] endRow;
-  private Operation op;
+  private final byte[] startRow;
+  private final byte[] endRow;
+  private final Operation op;
 
   @Override
   public long isReady(long tid, Manager env) throws Exception {

@@ -96,38 +96,4 @@ public class TimerTest {
 
   }
 
-  @Test
-  public void testStartNewWithOffsetDuration() throws InterruptedException {
-    Timer timer = Timer.startNewWithOffset(Duration.ofMillis(100));
-
-    assertFalse(timer.hasElapsed(Duration.ZERO));
-
-    Thread.sleep(50);
-
-    assertFalse(timer.hasElapsed(Duration.ZERO),
-        "The timer should not indicate time has elapsed before the offset has passed.");
-
-    Thread.sleep(60);
-
-    assertTrue(timer.hasElapsed(Duration.ZERO),
-        "The timer should indicate time has elapsed after the offset has passed.");
-  }
-
-  @Test
-  public void testStartNewWithOffsetTimeUnit() throws InterruptedException {
-    Timer timer = Timer.startNewWithOffset(100, MILLISECONDS);
-
-    assertFalse(timer.hasElapsed(0, MILLISECONDS));
-
-    Thread.sleep(50);
-
-    assertFalse(timer.hasElapsed(0, MILLISECONDS),
-        "The timer should not indicate time has elapsed before the offset has passed.");
-
-    Thread.sleep(60);
-
-    assertTrue(timer.hasElapsed(0, MILLISECONDS),
-        "The timer should indicate time has elapsed after the offset has passed.");
-  }
-
 }

@@ -36,7 +36,7 @@ import org.apache.accumulo.core.data.Value;
  */
 public class ShardedTableDistributionFormatter extends AggregatingFormatter {
 
-  private Map<String,HashSet<String>> countsByDay = new HashMap<>();
+  private final Map<String,HashSet<String>> countsByDay = new HashMap<>();
 
   @Override
   protected void aggregateStats(Entry<Key,Value> entry) {

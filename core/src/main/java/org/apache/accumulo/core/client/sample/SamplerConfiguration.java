@@ -33,7 +33,7 @@ import java.util.Map.Entry;
  */
 public class SamplerConfiguration {
 
-  private String className;
+  private final String className;
   private Map<String,String> options = new HashMap<>();
 
   public SamplerConfiguration(Class<? extends Sampler> samplerClass) {

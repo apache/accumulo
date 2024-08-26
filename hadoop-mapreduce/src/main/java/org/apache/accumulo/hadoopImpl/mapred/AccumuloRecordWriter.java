@@ -52,11 +52,11 @@ public class AccumuloRecordWriter implements RecordWriter<Text,Mutation> {
   private static final Class<AccumuloOutputFormat> CLASS = AccumuloOutputFormat.class;
   private static final Logger log = LoggerFactory.getLogger(AccumuloRecordWriter.class);
   private MultiTableBatchWriter mtbw = null;
-  private HashMap<Text,BatchWriter> bws;
-  private Text defaultTableName;
+  private final HashMap<Text,BatchWriter> bws;
+  private final Text defaultTableName;
 
-  private boolean simulate;
-  private boolean createTables;
+  private final boolean simulate;
+  private final boolean createTables;
 
   private long mutCount = 0;
   private long valCount = 0;

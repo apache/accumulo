@@ -60,11 +60,11 @@ class CompactionDriver extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private long compactId;
+  private final long compactId;
   private final TableId tableId;
   private final NamespaceId namespaceId;
-  private byte[] startRow;
-  private byte[] endRow;
+  private final byte[] startRow;
+  private final byte[] endRow;
 
   private static final Logger log = LoggerFactory.getLogger(CompactionDriver.class);
 

@@ -29,7 +29,7 @@ public class NamespaceNotFoundException extends Exception {
    */
   private static final long serialVersionUID = 1L;
 
-  private String namespace;
+  private final String namespace;
 
   /**
    * @param namespaceId the internal id of the namespace that was sought

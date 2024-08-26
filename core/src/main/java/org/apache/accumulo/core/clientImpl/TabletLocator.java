@@ -246,8 +246,8 @@ public abstract class TabletLocator {
   }
 
   public static class TabletServerMutations<T extends Mutation> {
-    private Map<KeyExtent,List<T>> mutations;
-    private String tserverSession;
+    private final Map<KeyExtent,List<T>> mutations;
+    private final String tserverSession;
 
     public TabletServerMutations(String tserverSession) {
       this.tserverSession = tserverSession;

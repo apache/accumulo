@@ -59,10 +59,10 @@ public class InternalCompactionExecutor implements CompactionExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(InternalCompactionExecutor.class);
 
-  private PriorityBlockingQueue<Runnable> queue;
+  private final PriorityBlockingQueue<Runnable> queue;
   private final CompactionExecutorId ceid;
-  private AtomicLong cancelCount = new AtomicLong();
-  private ThreadPoolExecutor threadPool;
+  private final AtomicLong cancelCount = new AtomicLong();
+  private final ThreadPoolExecutor threadPool;
 
   // This set provides an accurate count of queued compactions for metrics. The PriorityQueue is
   // not used because its size may be off due to it containing cancelled compactions. The collection

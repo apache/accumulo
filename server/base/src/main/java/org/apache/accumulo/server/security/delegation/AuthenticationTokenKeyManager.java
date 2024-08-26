@@ -36,8 +36,8 @@ public class AuthenticationTokenKeyManager implements Runnable {
   private final ZooAuthenticationKeyDistributor keyDistributor;
 
   private long lastKeyUpdate = 0;
-  private long keyUpdateInterval;
-  private long tokenMaxLifetime;
+  private final long keyUpdateInterval;
+  private final long tokenMaxLifetime;
   private int idSeq = 0;
   private volatile boolean keepRunning = true, initialized = false;
 

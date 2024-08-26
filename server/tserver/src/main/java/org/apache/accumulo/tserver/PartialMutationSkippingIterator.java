@@ -30,7 +30,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 
 class PartialMutationSkippingIterator extends SkippingIterator implements InterruptibleIterator {
 
-  private int kvCount;
+  private final int kvCount;
 
   public PartialMutationSkippingIterator(SortedKeyValueIterator<Key,Value> source, int maxKVCount) {
     setSource(source);

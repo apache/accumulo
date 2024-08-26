@@ -34,11 +34,12 @@ import org.apache.accumulo.core.spi.common.Stats;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.tserver.scan.ScanParameters;
+import org.apache.accumulo.tserver.scan.ScanTask;
 import org.apache.accumulo.tserver.tablet.TabletBase;
 
 import com.google.common.base.Preconditions;
 
-public abstract class ScanSession extends Session implements ScanInfo {
+public abstract class ScanSession<T> extends Session implements ScanInfo {
 
   public interface TabletResolver {
     TabletBase getTablet(KeyExtent extent);
@@ -48,10 +49,10 @@ public abstract class ScanSession extends Session implements ScanInfo {
 
   public static class ScanMeasurer implements Runnable {
 
-    private ScanSession session;
-    private Runnable task;
+    private final ScanSession<?> session;
+    private final Runnable task;
 
-    ScanMeasurer(ScanSession session, Runnable task) {
+    ScanMeasurer(ScanSession<?> session, Runnable task) {
       this.session = session;
       this.task = task;
     }
@@ -69,17 +70,19 @@ public abstract class ScanSession extends Session implements ScanInfo {
     }
   }
 
-  public static ScanMeasurer wrap(ScanSession scanInfo, Runnable r) {
+  public static ScanMeasurer wrap(ScanSession<?> scanInfo, Runnable r) {
     return new ScanMeasurer(scanInfo, r);
   }
 
   private OptionalLong lastRunTime = OptionalLong.empty();
-  private Stat idleStats = new Stat();
-  public Stat runStats = new Stat();
+  private final Stat idleStats = new Stat();
+  public final Stat runStats = new Stat();
 
   public final ScanParameters scanParams;
-  private Map<String,String> executionHints;
+  private final Map<String,String> executionHints;
   private final TabletResolver tabletResolver;
+
+  private volatile ScanTask<T> scanTask;
 
   ScanSession(TCredentials credentials, ScanParameters scanParams,
       Map<String,String> executionHints, TabletResolver tabletResolver) {
@@ -129,7 +132,7 @@ public abstract class ScanSession extends Session implements ScanInfo {
 
   private class IterConfImpl implements IteratorConfiguration {
 
-    private IterInfo ii;
+    private final IterInfo ii;
 
     IterConfImpl(IterInfo ii) {
       this.ii = ii;
@@ -180,13 +183,18 @@ public abstract class ScanSession extends Session implements ScanInfo {
     return tabletResolver;
   }
 
+  public ScanTask<T> getScanTask() {
+    return scanTask;
+  }
+
+  public void setScanTask(ScanTask<T> scanTask) {
+    this.scanTask = scanTask;
+  }
+
   @Override
   public boolean cleanup() {
     tabletResolver.close();
-    if (!super.cleanup()) {
-      return false;
-    }
-    return true;
+    return super.cleanup();
   }
 
   @Override

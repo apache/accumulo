@@ -28,9 +28,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.tserver.scan.ScanParameters;
-import org.apache.accumulo.tserver.scan.ScanTask;
 
-public class MultiScanSession extends ScanSession {
+public class MultiScanSession extends ScanSession<MultiScanResult> {
   public final KeyExtent threadPoolExtent;
   public final Map<KeyExtent,List<Range>> queries;
   public final Set<KeyExtent> exents;
@@ -40,8 +39,6 @@ public class MultiScanSession extends ScanSession {
   public int numTablets;
   public int numEntries;
   public long totalLookupTime;
-
-  public volatile ScanTask<MultiScanResult> lookupTask;
 
   public MultiScanSession(TCredentials credentials, KeyExtent threadPoolExtent,
       Map<KeyExtent,List<Range>> queries, ScanParameters scanParams,
@@ -64,8 +61,10 @@ public class MultiScanSession extends ScanSession {
 
   @Override
   public boolean cleanup() {
-    if (lookupTask != null) {
-      lookupTask.cancel(true);
+    // read volatile once to avoid race conditions
+    var localScanTask = getScanTask();
+    if (localScanTask != null) {
+      localScanTask.cancel(true);
     }
     // the cancellation should provide us the safety to return true here
     return super.cleanup();
