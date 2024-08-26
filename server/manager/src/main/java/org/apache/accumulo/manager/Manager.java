@@ -1677,10 +1677,10 @@ public class Manager extends AbstractServer
         getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
 
     UUID zooLockUUID = UUID.randomUUID();
+    managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
     while (true) {
 
       ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
-      managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
       managerLock.lock(managerLockWatcher, managerClientAddress.getBytes(UTF_8));
 
       managerLockWatcher.waitForChange();
