@@ -1616,10 +1616,11 @@ public class Manager extends AbstractServer
     UUID zooLockUUID = UUID.randomUUID();
     ServiceLockData sld =
         new ServiceLockData(zooLockUUID, managerClientAddress, ThriftService.MANAGER);
+
+    managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
     while (true) {
 
       ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
-      managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
       managerLock.lock(managerLockWatcher, sld);
 
       managerLockWatcher.waitForChange();
