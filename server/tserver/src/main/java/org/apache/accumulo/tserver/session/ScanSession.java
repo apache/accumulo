@@ -228,7 +228,7 @@ public abstract class ScanSession<T> extends Session implements ScanInfo {
         var changeTimeMillis = elaspedSinceStateChange(TimeUnit.MILLISECONDS);
         var exception =
             new Exception("Fake exception to capture stack trace of zombie scan.  Thread id:"
-                + scanStackTrace.threadId);
+                + scanStackTrace.threadId + " thread name:" + scanStackTrace.threadName);
         exception.setStackTrace(scanStackTrace.stackTrace);
         log.warn(
             "Scan session with no client active for {}ms has a zombie scan thread. Scan session info : {} ",

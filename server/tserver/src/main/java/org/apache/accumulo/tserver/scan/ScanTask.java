@@ -84,11 +84,13 @@ public abstract class ScanTask<T> implements Runnable {
 
   public static class ScanThreadStackTrace {
     public final long threadId;
+    public final String threadName;
     public final StackTraceElement[] stackTrace;
 
     private ScanThreadStackTrace(Thread thread) {
       this.threadId = thread.getId();
       this.stackTrace = thread.getStackTrace();
+      this.threadName = thread.getName();
     }
   }
 
