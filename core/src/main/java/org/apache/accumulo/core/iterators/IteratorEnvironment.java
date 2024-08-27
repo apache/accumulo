@@ -43,7 +43,7 @@ public interface IteratorEnvironment {
   }
 
   /**
-   * @deprecated since 2.0.0. This method was using an unstable non public type. Use
+   * @deprecated since 2.0.0. This method was using an unstable, non-public type. Use
    *             {@link #getPluginEnv()}
    */
   @Deprecated(since = "2.0.0")
@@ -52,16 +52,16 @@ public interface IteratorEnvironment {
   }
 
   /**
-   * Return the executed scope of the Iterator. Value will be one of the following:
-   * {@link IteratorScope#scan}, {@link IteratorScope#minc}, {@link IteratorScope#majc}
+   * @return the executed scope of the Iterator. Value will be one of the following:
+   *         {@link IteratorScope#scan}, {@link IteratorScope#minc}, {@link IteratorScope#majc}
    */
   default IteratorScope getIteratorScope() {
     throw new UnsupportedOperationException();
   }
 
   /**
-   * Return true if the compaction is a full major compaction. Will throw IllegalStateException if
-   * {@link #getIteratorScope()} != {@link IteratorScope#majc}.
+   * @return true if the compaction is a full major compaction; false otherwise
+   * @throws IllegalStateException if {@link #getIteratorScope()} != {@link IteratorScope#majc}.
    */
   default boolean isFullMajorCompaction() {
     throw new UnsupportedOperationException();
@@ -76,8 +76,9 @@ public interface IteratorEnvironment {
   }
 
   /**
-   * Return the Scan Authorizations used in this Iterator. Will throw UnsupportedOperationException
-   * if {@link #getIteratorScope()} != {@link IteratorScope#scan}.
+   * @return the Scan Authorizations used in this Iterator.
+   * @throws UnsupportedOperationException if {@link #getIteratorScope()} !=
+   *         {@link IteratorScope#scan}.
    */
   default Authorizations getAuthorizations() {
     throw new UnsupportedOperationException();
@@ -123,7 +124,7 @@ public interface IteratorEnvironment {
    * is for a deep copy created with an environment created by calling
    * {@link #cloneWithSamplingEnabled()}
    *
-   * @return true if sampling is enabled for this environment.
+   * @return true if sampling is enabled for this environment; false otherwise
    * @since 1.8.0
    */
   default boolean isSamplingEnabled() {
@@ -132,7 +133,7 @@ public interface IteratorEnvironment {
 
   /**
    *
-   * @return sampling configuration is sampling is enabled for environment, otherwise returns null.
+   * @return sampling configuration if sampling is enabled for environment, otherwise null.
    * @since 1.8.0
    */
   default SamplerConfiguration getSamplerConfiguration() {
@@ -140,8 +141,8 @@ public interface IteratorEnvironment {
   }
 
   /**
-   * True if compaction was user initiated. Will throw IllegalStateException if
-   * {@link #getIteratorScope()} != {@link IteratorScope#majc}.
+   * @return true if compaction was user initiated; false otherwise
+   * @throws IllegalStateException if {@link #getIteratorScope()} != {@link IteratorScope#majc}.
    *
    * @since 2.0.0
    */
@@ -158,7 +159,7 @@ public interface IteratorEnvironment {
    * </pre>
    *
    * @since 2.0.0
-   * @deprecated since 2.1.0. This method was using a non public API type. Use
+   * @deprecated since 2.1.0. This method was using a non-public API type. Use
    *             {@link #getPluginEnv()} instead because it has better stability guarantees.
    */
   @Deprecated(since = "2.1.0")
@@ -181,7 +182,7 @@ public interface IteratorEnvironment {
   }
 
   /**
-   * Return the table Id associated with this iterator.
+   * @return the table Id associated with this iterator.
    *
    * @since 2.0.0
    */
