@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -80,6 +81,9 @@ public enum Property {
       "Properties in this category related to the configuration of SSL keys for"
           + " RPC. See also `instance.ssl.enabled`.",
       "1.6.0"),
+  RPC_MAX_MESSAGE_SIZE("rpc.message.size.max", Integer.toString(Integer.MAX_VALUE),
+      PropertyType.BYTES, "The maximum size of a message that can be received by a server.",
+      "2.1.3"),
   RPC_BACKLOG("rpc.backlog", "50", PropertyType.COUNT,
       "Configures the TCP backlog for the server side sockets created by Thrift."
           + " This property is not used for SSL type server sockets. A value of zero"
@@ -273,8 +277,6 @@ public enum Property {
           + " This does not equate to how often tickets are actually renewed (which is"
           + " performed at 80% of the ticket lifetime).",
       "1.6.5"),
-  GENERAL_MAX_MESSAGE_SIZE("general.server.message.size.max", "1G", PropertyType.BYTES,
-      "The maximum size of a message that can be sent to a server.", "1.5.0"),
   @Experimental
   GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
       "Enables tracing functionality using OpenTelemetry (assuming OpenTelemetry is configured).",
@@ -303,8 +305,8 @@ public enum Property {
       PropertyType.TIMEDURATION, "The length of time between generation of new secret keys.",
       "1.7.0"),
   GENERAL_IDLE_PROCESS_INTERVAL("general.metrics.process.idle", "5m", PropertyType.TIMEDURATION,
-      "Amount of time a process must be idle before the accumulo.server.idle metric is incremented.",
-      "4.0.0"),
+      "Amount of time a process must be idle before it is considered to be idle by the metrics system.",
+      "2.1.3"),
   GENERAL_LOW_MEM_DETECTOR_INTERVAL("general.low.mem.detector.interval", "5s",
       PropertyType.TIMEDURATION, "The time interval between low memory checks.", "3.0.0"),
   GENERAL_LOW_MEM_DETECTOR_THRESHOLD("general.low.mem.detector.threshold", "0.05",
@@ -339,8 +341,15 @@ public enum Property {
       "Enables metrics functionality using Micrometer.", "2.1.0"),
   GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
       PropertyType.BOOLEAN, "Enables JVM metrics functionality using Micrometer.", "2.1.0"),
-  GENERAL_MICROMETER_FACTORY("general.micrometer.factory", "", PropertyType.CLASSNAME,
-      "Name of class that implements MeterRegistryFactory.", "2.1.0"),
+  GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
+      "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory",
+      PropertyType.CLASSNAMELIST,
+      "A comma separated list of one or more class names that implements"
+          + " org.apache.accumulo.core.spi.metrics.MeterRegistryFactory. Prior to"
+          + " 2.1.3 this was a single value and the default was an empty string.  In 2.1.3 the default"
+          + " was changed and it now can accept multiple class names. The metrics spi was introduced in 2.1.3,"
+          + " the deprecated factory is org.apache.accumulo.core.metrics.MeterRegistryFactory.",
+      "2.1.0"),
   GENERAL_MICROMETER_USER_TAGS("general.micrometer.user.tags", "", PropertyType.STRING,
       "A comma separated list of tags to emit with all metrics from the process. Example:"
           + "\"tag1=value1,tag2=value2\".",
@@ -436,10 +445,22 @@ public enum Property {
   MANAGER_SPLIT_WORKER_THREADS("manager.split.inspection.threadpool.size", "8", PropertyType.COUNT,
       "The number of threads used to inspect tablets files to find split points.", "4.0.0"),
 
-  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE("manager.compaction.major.service.queue.size",
-      // ELASTICITY_TODO: It might be good to note that there is a priority queue per compactor
-      // resource group
-      "10000", PropertyType.COUNT, "The max size of the priority queue.", "4.0"),
+  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE(
+      "manager.compaction.major.service.queue.initial.size", "10000", PropertyType.COUNT,
+      "The initial size of each resource groups compaction job priority queue.", "4.0.0"),
+  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR(
+      "manager.compaction.major.service.queue.size.factor", "3.0", PropertyType.FRACTION,
+      "The dynamic resizing of the compaction job priority queue is based on"
+          + " the number of compactors for the group multiplied by this factor.",
+      "4.0.0"),
+  SPLIT_PREFIX("split.", null, PropertyType.PREFIX,
+      "System wide properties related to splitting tablets.", "3.1.0"),
+  SPLIT_MAXOPEN("split.files.max", "300", PropertyType.COUNT,
+      "To find a tablets split points, all RFiles are opened and their indexes"
+          + " are read. This setting determines how many RFiles can be opened at once."
+          + " When there are more RFiles than this setting the tablet will be marked"
+          + " as un-splittable.",
+      "3.1.0"),
   // properties that are specific to scan server behavior
   @Experimental
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
@@ -466,17 +487,24 @@ public enum Property {
       "3.0.0"),
   @Experimental
   SSERV_CACHED_TABLET_METADATA_EXPIRATION("sserver.cache.metadata.expiration", "5m",
-      PropertyType.TIMEDURATION, "The time after which cached tablet metadata will be refreshed.",
+      PropertyType.TIMEDURATION,
+      "The time after which cached tablet metadata will be expired if not previously refreshed.",
       "2.1.0"),
   @Experimental
+  SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT("sserver.cache.metadata.refresh.percent", ".75",
+      PropertyType.FRACTION,
+      "The time after which cached tablet metadata will be refreshed, expressed as a "
+          + "percentage of the expiration time. Cache hits after this time, but before the "
+          + "expiration time, will trigger a background refresh for future hits. "
+          + "Value must be less than 100%. Set to 0 will disable refresh.",
+      "2.1.3"),
+  @Experimental
   SSERV_PORTSEARCH("sserver.port.search", "true", PropertyType.BOOLEAN,
-      "if the ports above are in use, search higher ports until one is available.", "2.1.0"),
+      "if the sserver.port.client ports are in use, search higher ports until one is available.",
+      "2.1.0"),
   @Experimental
   SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers.", "2.1.0"),
-  @Experimental
-  SSERV_MAX_MESSAGE_SIZE("sserver.server.message.size.max", "1G", PropertyType.BYTES,
-      "The maximum size of a message that can be sent to a scan server.", "2.1.0"),
   @Experimental
   SSERV_MINTHREADS("sserver.server.threads.minimum", "2", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
@@ -509,7 +537,7 @@ public enum Property {
   SSERV_SCAN_EXECUTORS_META_THREADS("sserver.scan.executors.meta.threads", "8", PropertyType.COUNT,
       "The number of threads for the metadata table scan executor.", "2.1.0"),
   @Experimental
-  SSERVER_SCAN_REFERENCE_EXPIRATION_TIME("sserver.scan.reference.expiration", "5m",
+  SSERV_SCAN_REFERENCE_EXPIRATION_TIME("sserver.scan.reference.expiration", "5m",
       PropertyType.TIMEDURATION,
       "The amount of time a scan reference is unused before its deleted from metadata table.",
       "2.1.0"),
@@ -538,21 +566,14 @@ public enum Property {
       "Specifies the size of the cache for RFile index blocks.", "1.3.5"),
   TSERV_SUMMARYCACHE_SIZE("tserver.cache.summary.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for summary data on each tablet server.", "2.0.0"),
-  TSERV_PORTSEARCH("tserver.port.search", "false", PropertyType.BOOLEAN,
-      "if the ports above are in use, search higher ports until one is available.", "1.3.5"),
+  TSERV_PORTSEARCH("tserver.port.search", "true", PropertyType.BOOLEAN,
+      "if the tserver.port.client ports are in use, search higher ports until one is available.",
+      "1.3.5"),
   TSERV_CLIENTPORT("tserver.port.client", "9997", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers.", "1.3.5"),
   TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "5%", PropertyType.MEMORY,
       "The amount of memory used to store write-ahead-log mutations before flushing them.",
       "1.7.0"),
-  TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN("tserver.tablet.split.midpoint.files.max", "300",
-      PropertyType.COUNT,
-      "To find a tablets split points, all RFiles are opened and their indexes"
-          + " are read. This setting determines how many RFiles can be opened at once."
-          + " When there are more RFiles than this setting multiple passes must be"
-          + " made, which is slower. However opening too many RFiles at once can cause"
-          + " problems.",
-      "1.3.5"),
   TSERV_WAL_MAX_REFERENCED("tserver.wal.max.referenced", "3", PropertyType.COUNT,
       "When a tablet server has more than this many write ahead logs, any tablet referencing older "
           + "logs over this threshold is minor compacted.  Also any tablet referencing this many "
@@ -654,8 +675,6 @@ public enum Property {
       "2.1.0"),
   TSERV_THREADCHECK("tserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the server thread pool.", "1.4.0"),
-  TSERV_MAX_MESSAGE_SIZE("tserver.server.message.size.max", "1G", PropertyType.BYTES,
-      "The maximum size of a message that can be sent to a tablet server.", "1.6.0"),
   TSERV_LOG_BUSY_TABLETS_COUNT("tserver.log.busy.tablets.count", "0", PropertyType.COUNT,
       "Number of busiest tablets to log. Logged at interval controlled by "
           + "tserver.log.busy.tablets.interval. If <= 0, logging of busy tablets is disabled.",
@@ -855,12 +874,6 @@ public enum Property {
           + "specified time.  If a system compaction cancels a hold and runs, then the user compaction"
           + " can reselect and hold files after the system compaction runs.",
       "2.1.0"),
-  TABLE_COMPACTION_SELECTOR("table.compaction.selector", "", PropertyType.CLASSNAME,
-      "A configurable selector for a table that can periodically select file for mandatory "
-          + "compaction, even if the files do not meet the compaction ratio.",
-      "2.1.0"),
-  TABLE_COMPACTION_SELECTOR_OPTS("table.compaction.selector.opts.", null, PropertyType.PREFIX,
-      "Options for the table compaction dispatcher.", "2.1.0"),
   TABLE_COMPACTION_CONFIGURER("table.compaction.configurer", "", PropertyType.CLASSNAME,
       "A plugin that can dynamically configure compaction output files based on input files.",
       "2.1.0"),
@@ -1100,7 +1113,7 @@ public enum Property {
       "4.0.0"),
   @Experimental
   COMPACTOR_PORTSEARCH("compactor.port.search", "true", PropertyType.BOOLEAN,
-      "If the compactor.port.client is in use, search higher ports until one is available.",
+      "If the compactor.port.client ports are in use, search higher ports until one is available.",
       "2.1.0"),
   @Experimental
   COMPACTOR_CLIENTPORT("compactor.port.client", "9133", PropertyType.PORT,
@@ -1123,9 +1136,6 @@ public enum Property {
   @Experimental
   COMPACTOR_THREADCHECK("compactor.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the server thread pool.", "2.1.0"),
-  @Experimental
-  COMPACTOR_MAX_MESSAGE_SIZE("compactor.message.size.max", "10M", PropertyType.BYTES,
-      "The maximum size of a message that can be sent to a tablet server.", "2.1.0"),
   @Experimental
   COMPACTOR_GROUP_NAME("compactor.group", Constants.DEFAULT_RESOURCE_GROUP_NAME,
       PropertyType.STRING, "Resource group name for this Compactor.", "3.0.0"),
@@ -1414,21 +1424,41 @@ public enum Property {
             || key.startsWith(TABLE_SUMMARIZER_PREFIX.getKey())
             || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())
             || key.startsWith(TABLE_COMPACTION_DISPATCHER_OPTS.getKey())
-            || key.startsWith(TABLE_COMPACTION_CONFIGURER_OPTS.getKey())
-            || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey()))
+            || key.startsWith(TABLE_COMPACTION_CONFIGURER_OPTS.getKey()))
         || key.startsWith(TABLE_CRYPTO_PREFIX.getKey()));
   }
 
+  // these properties are fixed to a specific value at startup and require a restart for changes to
+  // take effect; these are always system-level properties, and not namespace or table properties
   public static final EnumSet<Property> fixedProperties = EnumSet.of(
       // port options
-      GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT,
+      GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT, SSERV_CLIENTPORT, SSERV_PORTSEARCH,
+      COMPACTOR_PORTSEARCH, TSERV_PORTSEARCH,
 
-      // tserver cache options
+      // max message options
+      RPC_MAX_MESSAGE_SIZE,
+
+      // compaction coordiantor properties
+      MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE,
+
+      // block cache options
       TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
-      TSERV_SUMMARYCACHE_SIZE,
+      TSERV_SUMMARYCACHE_SIZE, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
+
+      // blocksize options
+      TSERV_DEFAULT_BLOCKSIZE, SSERV_DEFAULT_BLOCKSIZE,
+
+      // sserver specific options
+      SSERV_SCAN_REFERENCE_EXPIRATION_TIME, SSERV_CACHED_TABLET_METADATA_EXPIRATION,
+
+      // thread options
+      TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT, SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT,
+      MANAGER_MINTHREADS, MANAGER_MINTHREADS_TIMEOUT, COMPACTOR_MINTHREADS,
+      COMPACTOR_MINTHREADS_TIMEOUT,
 
       // others
-      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
+      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME,
+      TSERV_SESSION_MAXIDLE, TSERV_UPDATE_SESSION_MAXIDLE);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
@@ -1452,6 +1482,7 @@ public enum Property {
     return key.startsWith(Property.TABLE_PREFIX.getKey())
         || key.startsWith(Property.TSERV_PREFIX.getKey())
         || key.startsWith(Property.COMPACTION_SERVICE_PREFIX.getKey())
+        || key.startsWith(Property.SSERV_PREFIX.getKey())
         || key.startsWith(Property.MANAGER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
@@ -1497,6 +1528,9 @@ public enum Property {
    */
   public static <T> T createTableInstanceFromPropertyName(AccumuloConfiguration conf,
       Property property, Class<T> base, T defaultInstance) {
+    Objects.requireNonNull(conf, "configuration cannot be null");
+    Objects.requireNonNull(property, "property cannot be null");
+    Objects.requireNonNull(base, "base class cannot be null");
     String clazzName = conf.get(property);
     String context = ClassLoaderUtil.tableContext(conf);
     return ConfigurationTypeHelper.getClassInstance(context, clazzName, base, defaultInstance);

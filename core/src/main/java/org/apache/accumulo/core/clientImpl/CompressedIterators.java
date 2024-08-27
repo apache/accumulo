@@ -31,11 +31,11 @@ import org.apache.accumulo.core.util.UnsynchronizedBuffer;
 
 public class CompressedIterators {
   private Map<String,Integer> symbolMap;
-  private List<String> symbolTable;
+  private final List<String> symbolTable;
 
   public static class IterConfig {
-    public List<IterInfo> ssiList = new ArrayList<>();
-    public Map<String,Map<String,String>> ssio = new HashMap<>();
+    public final List<IterInfo> ssiList = new ArrayList<>();
+    public final Map<String,Map<String,String>> ssio = new HashMap<>();
   }
 
   public CompressedIterators() {

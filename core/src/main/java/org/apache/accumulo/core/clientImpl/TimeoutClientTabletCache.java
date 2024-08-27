@@ -40,7 +40,7 @@ import org.apache.hadoop.io.Text;
  */
 public class TimeoutClientTabletCache extends SyncingClientTabletCache {
 
-  private long timeout;
+  private final long timeout;
   private Long firstFailTime = null;
 
   private void failed() {

@@ -20,6 +20,7 @@ package org.apache.accumulo.core.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -32,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
@@ -351,10 +351,10 @@ public class AdminUtil<T> {
    * @param waitingLocks populated list of locks held by transaction - or an empty map if none.
    * @return current fate and lock status
    */
-  private FateStatus getTransactionStatus(Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores,
-      Set<FateId> fateIdFilter, EnumSet<TStatus> statusFilter,
-      EnumSet<FateInstanceType> typesFilter, Map<FateId,List<String>> heldLocks,
-      Map<FateId,List<String>> waitingLocks) {
+  public static <T> FateStatus getTransactionStatus(
+      Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, Set<FateId> fateIdFilter,
+      EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter,
+      Map<FateId,List<String>> heldLocks, Map<FateId,List<String>> waitingLocks) {
     final List<TransactionStatus> statuses = new ArrayList<>();
 
     fateStores.forEach((type, store) -> {
@@ -362,7 +362,6 @@ public class AdminUtil<T> {
         fateIds.forEach(fateId -> {
 
           ReadOnlyFateTxStore<T> txStore = store.read(fateId);
-
           String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
 
           List<String> hlocks = heldLocks.remove(fateId);
@@ -398,15 +397,15 @@ public class AdminUtil<T> {
     return new FateStatus(statuses, heldLocks, waitingLocks);
   }
 
-  private boolean includeByStatus(TStatus status, EnumSet<TStatus> statusFilter) {
+  private static boolean includeByStatus(TStatus status, EnumSet<TStatus> statusFilter) {
     return statusFilter == null || statusFilter.isEmpty() || statusFilter.contains(status);
   }
 
-  private boolean includeByFateId(FateId fateId, Set<FateId> fateIdFilter) {
+  private static boolean includeByFateId(FateId fateId, Set<FateId> fateIdFilter) {
     return fateIdFilter == null || fateIdFilter.isEmpty() || fateIdFilter.contains(fateId);
   }
 
-  private boolean includeByInstanceType(FateInstanceType type,
+  private static boolean includeByInstanceType(FateInstanceType type,
       EnumSet<FateInstanceType> typesFilter) {
     return typesFilter == null || typesFilter.isEmpty() || typesFilter.contains(type);
   }
@@ -482,7 +481,7 @@ public class AdminUtil<T> {
           break;
       }
     } finally {
-      txStore.unreserve(0, TimeUnit.MILLISECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
     return state;
   }
@@ -532,7 +531,7 @@ public class AdminUtil<T> {
           break;
       }
     } finally {
-      txStore.unreserve(0, TimeUnit.MILLISECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
 
     return state;

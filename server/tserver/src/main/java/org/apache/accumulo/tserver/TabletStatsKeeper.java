@@ -32,7 +32,7 @@ public class TabletStatsKeeper {
     MINOR
   }
 
-  private ActionStats[] map = {minor};
+  private final ActionStats[] map = {minor};
 
   public void updateTime(Operation operation, long queued, long start, long count, boolean failed) {
     try {

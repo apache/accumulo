@@ -39,12 +39,12 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
-import org.apache.accumulo.core.iterators.user.GcWalsFilter;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metadata.schema.filters.GcWalsFilter;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
@@ -72,7 +72,7 @@ public class GarbageCollectWriteAheadLogs {
   private final VolumeManager fs;
   private final LiveTServerSet liveServers;
   private final WalStateManager walMarker;
-  private final AtomicBoolean hasCollected;
+  private final AtomicBoolean hasCollected = new AtomicBoolean(false);
 
   /**
    * Creates a new GC WAL object.
@@ -82,16 +82,24 @@ public class GarbageCollectWriteAheadLogs {
    */
   GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
       final LiveTServerSet liveServers) {
+    this(context, fs, liveServers, new WalStateManager(context));
+  }
+
+  /**
+   * Creates a new GC WAL object. Meant for testing -- allows for mocked objects.
+   *
+   *
+   * @param context the collection server's context
+   * @param fs volume manager to use
+   * @param liveServers a started LiveTServerSet instance
+   * @param walMarker a WalStateManager instance
+   */
+  GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
+      final LiveTServerSet liveServers, final WalStateManager walMarker) {
     this.context = context;
     this.fs = fs;
     this.liveServers = liveServers;
-    this.walMarker = createWalStateManager(context);
-    this.hasCollected = new AtomicBoolean(false);
-  }
-
-  @VisibleForTesting
-  WalStateManager createWalStateManager(ServerContext context) {
-    return new WalStateManager(context);
+    this.walMarker = walMarker;
   }
 
   @VisibleForTesting
@@ -105,7 +113,8 @@ public class GarbageCollectWriteAheadLogs {
   }
 
   public void collect(GCStatus status) {
-    Preconditions.checkState(!hasCollected.get(), "Can only call collect once per object");
+    Preconditions.checkState(hasCollected.compareAndSet(false, true),
+        "collect() has already been called on this object (which should only be called once)");
     try {
       long count;
       long fileScanStop;
@@ -193,7 +202,6 @@ public class GarbageCollectWriteAheadLogs {
       } finally {
         span5.end();
       }
-      hasCollected.set(true);
     } catch (Exception e) {
       log.error("exception occurred while garbage collecting write ahead logs", e);
     } finally {

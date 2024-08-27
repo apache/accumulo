@@ -79,10 +79,10 @@ public class TableDiskUsage {
 
   private static final Logger log = LoggerFactory.getLogger(TableDiskUsage.class);
   private int nextInternalId = 0;
-  private Map<TableId,Integer> internalIds = new HashMap<>();
-  private Map<Integer,TableId> externalIds = new HashMap<>();
-  private Map<String,Integer[]> tableFiles = new HashMap<>();
-  private Map<String,Long> fileSizes = new HashMap<>();
+  private final Map<TableId,Integer> internalIds = new HashMap<>();
+  private final Map<Integer,TableId> externalIds = new HashMap<>();
+  private final Map<String,Integer[]> tableFiles = new HashMap<>();
+  private final Map<String,Long> fileSizes = new HashMap<>();
 
   void addTable(TableId tableId) {
     if (internalIds.containsKey(tableId)) {
@@ -329,7 +329,7 @@ public class TableDiskUsage {
 
   static class Opts extends ServerUtilOpts {
     @Parameter(description = " <table> { <table> ... } ")
-    List<String> tables = new ArrayList<>();
+    final List<String> tables = new ArrayList<>();
   }
 
   public static void main(String[] args) throws Exception {

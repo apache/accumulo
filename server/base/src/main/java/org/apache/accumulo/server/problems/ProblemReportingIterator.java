@@ -37,8 +37,8 @@ public class ProblemReportingIterator implements InterruptibleIterator {
   private final SortedKeyValueIterator<Key,Value> source;
   private boolean sawError = false;
   private final boolean continueOnError;
-  private String resource;
-  private TableId tableId;
+  private final String resource;
+  private final TableId tableId;
   private final ServerContext context;
 
   public ProblemReportingIterator(ServerContext context, TableId tableId, String resource,

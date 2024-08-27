@@ -137,7 +137,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     }
   }
 
-  private EnumMap<ThriftService,ServiceDescriptor> services;
+  private final EnumMap<ThriftService,ServiceDescriptor> services;
 
   public ServiceLockData(ServiceDescriptors sds) {
     this.services = new EnumMap<>(ThriftService.class);

@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.manager.split;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -27,12 +30,16 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.util.FileUtil;
-import org.apache.accumulo.server.util.FileUtil.FileInfo;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -40,7 +47,75 @@ import com.github.benmanes.caffeine.cache.Weigher;
 
 public class Splitter {
 
+  private static final Logger LOG = LoggerFactory.getLogger(Splitter.class);
+
   private final ThreadPoolExecutor splitExecutor;
+
+  public static class FileInfo {
+    final Text firstRow;
+    final Text lastRow;
+
+    public FileInfo(Text firstRow, Text lastRow) {
+      this.firstRow = firstRow;
+      this.lastRow = lastRow;
+    }
+
+    public Text getFirstRow() {
+      return firstRow;
+    }
+
+    public Text getLastRow() {
+      return lastRow;
+    }
+  }
+
+  public static <T extends TabletFile> Map<T,FileInfo> tryToGetFirstAndLastRows(
+      ServerContext context, TableConfiguration tableConf, Set<T> dataFiles) {
+
+    HashMap<T,FileInfo> dataFilesInfo = new HashMap<>();
+
+    long t1 = System.currentTimeMillis();
+
+    for (T dataFile : dataFiles) {
+
+      FileSKVIterator reader = null;
+      FileSystem ns = context.getVolumeManager().getFileSystemByPath(dataFile.getPath());
+      try {
+        reader = FileOperations.getInstance().newReaderBuilder()
+            .forFile(dataFile, ns, ns.getConf(), tableConf.getCryptoService())
+            .withTableConfiguration(tableConf).build();
+
+        Text firstRow = reader.getFirstRow();
+        if (firstRow != null) {
+          dataFilesInfo.put(dataFile, new FileInfo(firstRow, reader.getLastRow()));
+        }
+
+      } catch (IOException ioe) {
+        LOG.warn("Failed to read data file to determine first and last key : " + dataFile, ioe);
+      } finally {
+        if (reader != null) {
+          try {
+            reader.close();
+          } catch (IOException ioe) {
+            LOG.warn("failed to close " + dataFile, ioe);
+          }
+        }
+      }
+
+    }
+
+    long t2 = System.currentTimeMillis();
+
+    String message = String.format("Found first and last keys for %d data files in %6.2f secs",
+        dataFiles.size(), (t2 - t1) / 1000.0);
+    if (t2 - t1 > 500) {
+      LOG.debug(message);
+    } else {
+      LOG.trace(message);
+    }
+
+    return dataFilesInfo;
+  }
 
   private static class CacheKey {
 
@@ -72,7 +147,7 @@ public class Splitter {
 
   }
 
-  LoadingCache<CacheKey,FileInfo> splitFileCache;
+  final LoadingCache<CacheKey,FileInfo> splitFileCache;
 
   public Splitter(ServerContext context) {
     int numThreads = context.getConfiguration().getCount(Property.MANAGER_SPLIT_WORKER_THREADS);
@@ -95,7 +170,7 @@ public class Splitter {
 
     CacheLoader<CacheKey,FileInfo> loader = key -> {
       TableConfiguration tableConf = context.getTableConfiguration(key.tableId);
-      return FileUtil.tryToGetFirstAndLastRows(context, tableConf, Set.of(key.tabletFile))
+      return tryToGetFirstAndLastRows(context, tableConf, Set.of(key.tabletFile))
           .get(key.tabletFile);
     };
 

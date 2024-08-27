@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.manager.state;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.AbstractMap;
@@ -28,13 +26,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -44,10 +43,10 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.hadoop.fs.Path;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,24 +74,19 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
       TabletManagementParameters parameters) {
     Preconditions.checkArgument(parameters.getLevel() == getLevel());
 
-    final String zpath = ctx.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
     final TabletIteratorEnvironment env = new TabletIteratorEnvironment(ctx, IteratorScope.scan,
         ctx.getTableConfiguration(AccumuloTable.ROOT.tableId()), AccumuloTable.ROOT.tableId());
-    final WholeRowIterator wri = new WholeRowIterator();
     final TabletManagementIterator tmi = new TabletManagementIterator();
     final AtomicBoolean closed = new AtomicBoolean(false);
 
     try {
-      final byte[] rootTabletMetadata =
-          ctx.getZooReaderWriter().getZooKeeper().getData(zpath, false, null);
-      final RootTabletMetadata rtm = new RootTabletMetadata(new String(rootTabletMetadata, UTF_8));
+      final RootTabletMetadata rtm = RootTabletMetadata.read(ctx);
       final SortedMapIterator iter = new SortedMapIterator(rtm.toKeyValues());
-      wri.init(iter, Map.of(), env);
-      tmi.init(wri,
+      tmi.init(iter,
           Map.of(TabletManagementIterator.TABLET_GOAL_STATE_PARAMS_OPTION, parameters.serialize()),
           env);
       tmi.seek(new Range(), null, true);
-    } catch (KeeperException | InterruptedException | IOException e2) {
+    } catch (IOException e2) {
       throw new IllegalStateException(
           "Error setting up TabletManagementIterator for the root tablet", e2);
     }
@@ -156,10 +150,10 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments)
+  public Set<KeyExtent> setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
     validateAssignments(assignments);
-    super.setFutureLocations(assignments);
+    return super.setFutureLocations(assignments);
   }
 
   @Override
@@ -190,7 +184,7 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
 
   @Override
   public void suspend(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     validateTablets(tablets);
     super.suspend(tablets, logsForDeadServers, suspensionTimestamp);
@@ -198,7 +192,7 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
 
   @Override
   protected void processSuspension(Ample.ConditionalTabletMutator tabletMutator, TabletMetadata tm,
-      long suspensionTimestamp) {
+      SteadyTime suspensionTimestamp) {
     // No support for suspending root tablet, so this is a NOOP
   }
 

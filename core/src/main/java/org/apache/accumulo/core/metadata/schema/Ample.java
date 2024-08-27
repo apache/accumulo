@@ -21,30 +21,28 @@ package org.apache.accumulo.core.metadata.schema;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
+import org.apache.accumulo.core.metadata.ScanServerRefStore;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -124,24 +122,6 @@ public interface Ample {
   }
 
   /**
-   * Controls how Accumulo metadata is read. Currently this only impacts reading the root tablet
-   * stored in Zookeeper. Reading data stored in the Accumulo metadata table is always immediate
-   * consistency.
-   */
-  public enum ReadConsistency {
-    /**
-     * Read data in a way that is slower, but should always yield the latest data. In addition to
-     * being slower, it's possible this read consistency can place higher load on shared resource
-     * which can negatively impact an entire cluster.
-     */
-    IMMEDIATE,
-    /**
-     * Read data in a way that may be faster but may yield out of date data.
-     */
-    EVENTUAL
-  }
-
-  /**
    * Enables status based processing of GcCandidates.
    */
   public enum GcCandidateType {
@@ -160,25 +140,12 @@ public interface Ample {
   }
 
   /**
-   * Read a single tablets metadata. No checking is done for prev row, so it could differ. The
-   * method will read the data using {@link ReadConsistency#IMMEDIATE}.
-   *
-   * @param extent Reads tablet metadata using the table id and end row from this extent.
-   * @param colsToFetch What tablets columns to fetch. If empty, then everything is fetched.
-   */
-  default TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch) {
-    return readTablet(extent, ReadConsistency.IMMEDIATE, colsToFetch);
-  }
-
-  /**
    * Read a single tablets metadata. No checking is done for prev row, so it could differ.
    *
    * @param extent Reads tablet metadata using the table id and end row from this extent.
-   * @param readConsistency Controls how the data is read.
    * @param colsToFetch What tablets columns to fetch. If empty, then everything is fetched.
    */
-  TabletMetadata readTablet(KeyExtent extent, ReadConsistency readConsistency,
-      ColumnType... colsToFetch);
+  TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch);
 
   /**
    * Entry point for reading multiple tablets' metadata. Generates a TabletsMetadata builder object
@@ -364,8 +331,6 @@ public interface Ample {
 
     T deleteLocation(Location location);
 
-    T putZooLock(String zookeeperRoot, ServiceLock zooLock);
-
     T putDirName(String dirName);
 
     T putWal(LogEntry logEntry);
@@ -378,7 +343,7 @@ public interface Ample {
 
     T deleteBulkFile(StoredTabletFile bulkref);
 
-    T putSuspension(TServerInstance tserver, long suspensionTime);
+    T putSuspension(TServerInstance tserver, SteadyTime suspensionTime);
 
     T deleteSuspension();
 
@@ -410,7 +375,7 @@ public interface Ample {
      * @throws IllegalArgumentException if rows in keys do not match tablet row or column visibility
      *         is not empty
      */
-    T deleteAll(Set<Key> keys);
+    T deleteAll(Collection<Map.Entry<Key,Value>> entries);
 
     T setMerged();
 
@@ -423,6 +388,14 @@ public interface Ample {
     T setUnSplittable(UnSplittableMetadata unSplittableMeta);
 
     T deleteUnSplittable();
+
+    T putCloned();
+
+    /**
+     * By default the server lock is automatically added to mutations unless this method is set to
+     * false.
+     */
+    T automaticallyPutServerLock(boolean b);
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
@@ -632,43 +605,6 @@ public interface Ample {
   }
 
   /**
-   * Insert ScanServer references to Tablet files
-   *
-   * @param scanRefs set of scan server ref table file objects
-   */
-  default void putScanServerFileReferences(Collection<ScanServerRefTabletFile> scanRefs) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Get ScanServer references to Tablet files
-   *
-   * @return stream of scan server references
-   */
-  default Stream<ScanServerRefTabletFile> getScanServerFileReferences() {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Delete the set of scan server references
-   *
-   * @param refsToDelete set of scan server references to delete
-   */
-  default void deleteScanServerFileReferences(Collection<ScanServerRefTabletFile> refsToDelete) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Delete scan server references for this server
-   *
-   * @param serverAddress address of server, cannot be null
-   * @param serverSessionId server session id, cannot be null
-   */
-  default void deleteScanServerFileReferences(String serverAddress, UUID serverSessionId) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
    * Create a Bulk Load In Progress flag in the metadata table
    *
    * @param path The bulk directory filepath
@@ -684,6 +620,10 @@ public interface Ample {
    * @param path The bulk directory filepath
    */
   default void removeBulkLoadInProgressFlag(String path) {
+    throw new UnsupportedOperationException();
+  }
+
+  default ScanServerRefStore scanServerRefs() {
     throw new UnsupportedOperationException();
   }
 }

@@ -31,6 +31,7 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
 import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -51,6 +52,7 @@ import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.util.ShutdownUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -144,8 +146,8 @@ public class Fate<T> {
     @Override
     public void run() {
       while (keepRunning.get()) {
-        long deferTime = 0;
         FateTxStore<T> txStore = null;
+        ExecutionState state = new ExecutionState();
         try {
           var optionalopStore = reserveFateTx();
           if (optionalopStore.isPresent()) {
@@ -153,59 +155,74 @@ public class Fate<T> {
           } else {
             continue;
           }
-          TStatus status = txStore.getStatus();
-          Repo<T> op = txStore.top();
-          if (status == FAILED_IN_PROGRESS) {
-            processFailed(txStore, op);
-          } else if (status == SUBMITTED || status == IN_PROGRESS) {
-            Repo<T> prevOp = null;
+          state.status = txStore.getStatus();
+          state.op = txStore.top();
+          if (state.status == FAILED_IN_PROGRESS) {
+            processFailed(txStore, state.op);
+          } else if (state.status == SUBMITTED || state.status == IN_PROGRESS) {
             try {
-              deferTime = op.isReady(txStore.getID(), environment);
-
-              // Here, deferTime is only used to determine success (zero) or failure (non-zero),
-              // proceeding on success and returning to the while loop on failure.
-              // The value of deferTime is only used as a wait time in FateStore.unreserve
-              if (deferTime == 0) {
-                prevOp = op;
-                if (status == SUBMITTED) {
-                  txStore.setStatus(IN_PROGRESS);
-                }
-                op = op.call(txStore.getID(), environment);
-              } else {
+              execute(txStore, state);
+              if (state.op != null && state.deferTime != 0) {
+                // The current op is not ready to execute
                 continue;
               }
-
+            } catch (StackOverflowException e) {
+              // the op that failed to push onto the stack was never executed, so no need to undo
+              // it just transition to failed and undo the ops that executed
+              transitionToFailed(txStore, e);
+              continue;
             } catch (Exception e) {
               blockIfHadoopShutdown(txStore.getID(), e);
               transitionToFailed(txStore, e);
               continue;
             }
 
-            if (op == null) {
+            if (state.op == null) {
               // transaction is finished
-              String ret = prevOp.getReturn();
+              String ret = state.prevOp.getReturn();
               if (ret != null) {
                 txStore.setTransactionInfo(TxInfo.RETURN_VALUE, ret);
               }
               txStore.setStatus(SUCCESSFUL);
               doCleanUp(txStore);
-            } else {
-              try {
-                txStore.push(op);
-              } catch (StackOverflowException e) {
-                // the op that failed to push onto the stack was never executed, so no need to undo
-                // it
-                // just transition to failed and undo the ops that executed
-                transitionToFailed(txStore, e);
-                continue;
-              }
             }
           }
         } catch (Exception e) {
           runnerLog.error("Uncaught exception in FATE runner thread.", e);
         } finally {
           if (txStore != null) {
-            txStore.unreserve(deferTime, TimeUnit.MILLISECONDS);
+            txStore.unreserve(Duration.ofMillis(state.deferTime));
+          }
+        }
+      }
+    }
+
+    private class ExecutionState {
+      Repo<T> prevOp = null;
+      Repo<T> op = null;
+      long deferTime = 0;
+      TStatus status;
+    }
+
+    // Executes as many steps of a fate operation as possible
+    private void execute(final FateTxStore<T> txStore, final ExecutionState state)
+        throws Exception {
+      while (state.op != null && state.deferTime == 0) {
+        state.deferTime = executeIsReady(txStore.getID(), state.op);
+
+        if (state.deferTime == 0) {
+          if (state.status == SUBMITTED) {
+            txStore.setStatus(IN_PROGRESS);
+            state.status = IN_PROGRESS;
+          }
+
+          state.prevOp = state.op;
+          state.op = executeCall(txStore.getID(), state.op);
+
+          if (state.op != null) {
+            // persist the completion of this step before starting to run the next so in the case of
+            // process death the completed steps are not rerun
+            txStore.push(state.op);
           }
         }
       }
@@ -289,6 +306,23 @@ public class Fate<T> {
 
   }
 
+  protected long executeIsReady(FateId fateId, Repo<T> op) throws Exception {
+    var startTime = Timer.startNew();
+    var deferTime = op.isReady(fateId, environment);
+    log.debug("Running {}.isReady() {} took {} ms and returned {}", op.getName(), fateId,
+        startTime.elapsed(MILLISECONDS), deferTime);
+    return deferTime;
+  }
+
+  protected Repo<T> executeCall(FateId fateId, Repo<T> op) throws Exception {
+    var startTime = Timer.startNew();
+    var next = op.call(fateId, environment);
+    log.debug("Running {}.call() {} took {} ms and returned {}", op.getName(), fateId,
+        startTime.elapsed(MILLISECONDS), next == null ? "null" : next.getName());
+
+    return next;
+  }
+
   /**
    * Creates a Fault-tolerant executor.
    *
@@ -348,7 +382,7 @@ public class Fate<T> {
         Preconditions.checkState(txStore.getStatus() == NEW);
         seedTransaction(txName, fateId, repo, autoCleanUp, goalMessage, txStore);
       } finally {
-        txStore.unreserve(0, MILLISECONDS);
+        txStore.unreserve(Duration.ZERO);
       }
       return fateId;
     });
@@ -385,7 +419,7 @@ public class Fate<T> {
         seedTransaction(txName, fateId, repo, autoCleanUp, goalMessage, txStore);
       }
     } finally {
-      txStore.unreserve(0, TimeUnit.MILLISECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
 
   }
@@ -422,7 +456,7 @@ public class Fate<T> {
             return false;
           }
         } finally {
-          txStore.unreserve(0, TimeUnit.MILLISECONDS);
+          txStore.unreserve(Duration.ZERO);
         }
       } else {
         // reserved, lets retry.
@@ -452,7 +486,7 @@ public class Fate<T> {
           break;
       }
     } finally {
-      txStore.unreserve(0, TimeUnit.MILLISECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
   }
 
@@ -465,7 +499,7 @@ public class Fate<T> {
       }
       return (String) txStore.getTransactionInfo(TxInfo.RETURN_VALUE);
     } finally {
-      txStore.unreserve(0, TimeUnit.MILLISECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
   }
 
@@ -479,7 +513,7 @@ public class Fate<T> {
       }
       return (Exception) txStore.getTransactionInfo(TxInfo.EXCEPTION);
     } finally {
-      txStore.unreserve(0, TimeUnit.MILLISECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
   }
 

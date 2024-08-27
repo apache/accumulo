@@ -20,6 +20,7 @@ package org.apache.accumulo.core.fate;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.ALL_STATUSES;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -31,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -137,14 +139,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       for (int i = 0; i < RETRIES; i++) {
         String txpath = getTXPath(fateId);
         try {
-          String top;
-          try {
-            top = findTop(txpath);
-            if (top == null) {
-              return null;
-            }
-          } catch (KeeperException.NoNodeException ex) {
-            throw new IllegalStateException(ex);
+          String top = findTop(txpath);
+          if (top == null) {
+            return null;
           }
 
           byte[] ser = zk.getData(txpath + "/" + top);
@@ -163,7 +160,12 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     }
 
     private String findTop(String txpath) throws KeeperException, InterruptedException {
-      List<String> ops = zk.getChildren(txpath);
+      List<String> ops;
+      try {
+        ops = zk.getChildren(txpath);
+      } catch (NoNodeException e) {
+        return null;
+      }
 
       ops = new ArrayList<>(ops);
 
@@ -356,9 +358,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected Stream<FateIdStatus> getTransactions() {
+  protected Stream<FateIdStatus> getTransactions(Set<TStatus> statuses) {
     try {
-      return zk.getChildren(path).stream().map(strTxid -> {
+      Stream<FateIdStatus> stream = zk.getChildren(path).stream().map(strTxid -> {
         String txUUIDStr = strTxid.split("_")[1];
         FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
         // Memoizing for two reasons. First the status may never be requested, so in that case avoid
@@ -371,6 +373,12 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
           }
         };
       });
+
+      if (!ALL_STATUSES.equals(statuses)) {
+        stream = stream.filter(s -> statuses.contains(s.getStatus()));
+      }
+
+      return stream;
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
@@ -378,7 +386,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   public Stream<FateKey> list(FateKey.FateKeyType type) {
-    return getTransactions().flatMap(fis -> getKey(fis.getFateId()).stream())
+    return getTransactions(ALL_STATUSES).flatMap(fis -> getKey(fis.getFateId()).stream())
         .filter(fateKey -> fateKey.getType() == type);
   }
 

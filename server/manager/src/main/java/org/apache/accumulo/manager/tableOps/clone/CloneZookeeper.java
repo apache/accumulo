@@ -34,7 +34,7 @@ class CloneZookeeper extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private CloneInfo cloneInfo;
+  private final CloneInfo cloneInfo;
 
   public CloneZookeeper(CloneInfo cloneInfo, ClientContext context)
       throws NamespaceNotFoundException {
@@ -61,8 +61,8 @@ class CloneZookeeper extends ManagerRepo {
     try {
       // write tableName & tableId to zookeeper
 
-      Utils.checkTableDoesNotExist(environment.getContext(), cloneInfo.tableName, cloneInfo.tableId,
-          TableOperation.CLONE);
+      Utils.checkTableNameDoesNotExist(environment.getContext(), cloneInfo.tableName,
+          cloneInfo.tableId, TableOperation.CLONE);
 
       environment.getTableManager().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
           cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,

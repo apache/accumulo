@@ -27,13 +27,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -41,12 +41,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
@@ -77,7 +80,6 @@ import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -86,20 +88,22 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.spi.compaction.CompactionPlan;
+import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.accumulo.test.compaction.ExternalCompactionTestUtils;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.transport.TTransportException;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,11 +111,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterators;
+import com.google.common.net.HostAndPort;
 
-public class CompactionIT extends AccumuloClusterHarness {
-
-  public static final String COMPACTOR_GROUP_1 = "cg1";
-  public static final String COMPACTOR_GROUP_2 = "cg2";
+public class CompactionIT extends CompactionBaseIT {
 
   public static class TestFilter extends Filter {
 
@@ -218,26 +220,32 @@ public class CompactionIT extends AccumuloClusterHarness {
 
   }
 
-  private static final Logger log = LoggerFactory.getLogger(CompactionIT.class);
+  public static class TestPlanner implements CompactionPlanner {
+    private static final Logger LOG = LoggerFactory.getLogger(TestPlanner.class);
 
-  private static final int MAX_DATA = 1000;
+    RatioBasedCompactionPlanner p = new RatioBasedCompactionPlanner();
+
+    @Override
+    public void init(InitParameters params) {
+      p.init(params);
+    }
+
+    @Override
+    public CompactionPlan makePlan(PlanningParameters params) {
+      return () -> p.makePlan(params).getJobs().stream().map(job -> {
+        LOG.debug("Plan job priority is {}:{}", job.getKind(), job.getPriority());
+        return new CompactionJobImpl(
+            job.getKind() == CompactionKind.SYSTEM ? Short.MAX_VALUE : job.getPriority(),
+            job.getGroup(), job.getFiles(), job.getKind(), Optional.empty());
+      }).collect(toList());
+    }
+  }
+
+  private static final Logger log = LoggerFactory.getLogger(CompactionIT.class);
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
-  }
-
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
-    cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "1s");
-    cfg.setProperty(Property.COMPACTOR_MIN_JOB_WAIT_TIME, "100ms");
-    cfg.setProperty(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "1s");
-    // use raw local file system so walogs sync and flush will work
-    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-
-    cfg.getClusterServerConfiguration().addCompactorResourceGroup(COMPACTOR_GROUP_1, 1);
-    cfg.getClusterServerConfiguration().addCompactorResourceGroup(COMPACTOR_GROUP_2, 1);
   }
 
   private long countTablets(String tableName, Predicate<TabletMetadata> tabletTest) {
@@ -796,36 +804,6 @@ public class CompactionIT extends AccumuloClusterHarness {
     }
   }
 
-  /**
-   * Was used in debugging {@link #testGetSelectedFilesForCompaction}. May be useful later.
-   *
-   * @param client An accumulo client
-   * @param tableName The name of the table
-   * @return a map of the RFiles to their size in bytes
-   */
-  private Map<String,Long> getFileSizeMap(AccumuloClient client, String tableName) {
-    var tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-    Map<String,Long> map = new HashMap<>();
-
-    try (var tabletsMeta =
-        TabletsMetadata.builder(client).forTable(tableId).fetch(ColumnType.FILES).build()) {
-      for (TabletMetadata tm : tabletsMeta) {
-        for (StoredTabletFile stf : tm.getFiles()) {
-          try {
-            String filePath = stf.getPath().toString();
-            Long fileSize =
-                FileSystem.getLocal(new Configuration()).getFileStatus(stf.getPath()).getLen();
-            map.put(filePath, fileSize);
-          } catch (IOException e) {
-            throw new UncheckedIOException(e);
-          }
-        }
-      }
-
-      return map;
-    }
-  }
-
   @Test
   public void testDeleteCompactionService() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
@@ -887,7 +865,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           RatioBasedCompactionPlanner.class.getName());
       c.instanceOperations().setProperty(
           Property.COMPACTION_SERVICE_PREFIX.getKey() + "newcs.planner.opts.groups",
-          ("[{'group':'" + COMPACTOR_GROUP_2 + "'}]").replaceAll("'", "\""));
+          ("[{'group':'" + COMPACTOR_GROUP_1 + "'}]").replaceAll("'", "\""));
 
       // set table 1 to a compaction service newcs
       c.tableOperations().setProperty(table1,
@@ -913,120 +891,228 @@ public class CompactionIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testUserCompactionRequested() throws Exception {
+  public void testCancelUserCompactionTimeoutExceeded() throws Exception {
+    testCancelUserCompactionTimeout(true);
+  }
 
-    String tableName = getUniqueNames(1)[0];
+  @Test
+  public void testCancelUserCompactionTimeoutNotExceeded() throws Exception {
+    testCancelUserCompactionTimeout(false);
+  }
+
+  private void testCancelUserCompactionTimeout(boolean timeout) throws Exception {
+
+    var uniqueNames = getUniqueNames(2);
+    String table1 = uniqueNames[0];
+    String table2 = uniqueNames[1];
+
     try (final AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      // configure tablet compaction iterator that slows compaction down so we can test
-      // that the USER_COMPACTION_REQUESTED column is set when a user compaction is requested
-      // when a system compaction is running and blocking
+      // create a compaction service that uses a Planner that will schedule system jobs
+      // at a higher priority than user jobs
+      client.instanceOperations().setProperty(
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "testcancel.planner",
+          TestPlanner.class.getName());
+      client.instanceOperations().setProperty(
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "testcancel.planner.opts.groups",
+          ("[{'group':'" + COMPACTOR_GROUP_1 + "'}]").replaceAll("'", "\""));
 
+      // create two tables that uses the compaction service
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+          SimpleCompactionDispatcher.class.getName());
+      props.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "testcancel");
+      // Disable system compactions to start for these tables
+      props.put(Property.TABLE_MAJC_RATIO.getKey(), "20");
+
+      // configure tablet compaction iterator that slows compaction down
       var ntc = new NewTableConfiguration();
       IteratorSetting iterSetting = new IteratorSetting(50, SlowIterator.class);
-      SlowIterator.setSleepTime(iterSetting, 1);
+      SlowIterator.setSleepTime(iterSetting, 5);
       ntc.attachIterator(iterSetting, EnumSet.of(IteratorScope.majc));
-      ntc.setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "20"));
-      client.tableOperations().create(tableName, ntc);
+      ntc.setProperties(props);
 
-      // Insert MAX_DATA rows
-      writeRows((ClientContext) client, tableName, MAX_DATA, false);
+      // Create two tables and write some data
+      client.tableOperations().create(table1, ntc);
+      client.tableOperations().create(table2, ntc);
+      writeRows((ClientContext) client, table1, MAX_DATA, true);
+      writeRows((ClientContext) client, table2, MAX_DATA, true);
 
-      // set the compaction ratio 1 to trigger a system compaction
-      client.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1");
+      var ctx = getCluster().getServerContext();
+      Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
+      if (coordinatorHost.isEmpty()) {
+        throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
+      }
 
-      var tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+      // Start a compaction for table2, this is done so that the compactor will be busy
+      // and new jobs will queue up and wait
+      client.tableOperations().compact(table2, new CompactionConfig().setWait(false));
+
+      var tableId = TableId.of(client.tableOperations().tableIdMap().get(table1));
       var extent = new KeyExtent(tableId, null, null);
 
-      AtomicReference<ExternalCompactionId> initialCompaction = new AtomicReference<>();
+      // If timeout is true then set a short timeout so the system job can cancel the user job
+      // Otherwise the long timeout should prevent the system from clearing the selected files
+      var expiration = timeout ? "100ms" : "100s";
+      client.tableOperations().setProperty(table1,
+          Property.TABLE_COMPACTION_SELECTION_EXPIRATION.getKey(), expiration);
 
-      // Wait for the system compaction to start
+      // Submit a user job for table1 that will be put on the queue and waiting
+      // for the current job to finish
+      client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
+      // Wait for the fate operation to write selectedFiles
       Wait.waitFor(() -> {
         var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
-        var externalCompactions = tabletMeta.getExternalCompactions();
-        log.debug("Current external compactions {}", externalCompactions.size());
-        var current = externalCompactions.keySet().stream().findFirst();
-        current.ifPresent(initialCompaction::set);
-        return current.isPresent();
-      }, Wait.MAX_WAIT_MILLIS, 100);
-
-      // Trigger a user compaction which should be blocked by the system compaction
-      // and should result in the userRequestedCompactions column being set so no more
-      // system compactions run
-      client.tableOperations().compact(tableName, new CompactionConfig().setWait(false));
-      Wait.waitFor(() -> {
-        var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
-        var userRequestedCompactions = tabletMeta.getUserCompactionsRequested().size();
-        log.debug("Current user requested compaction markers {}", userRequestedCompactions);
-        return userRequestedCompactions == 1;
-      }, Wait.MAX_WAIT_MILLIS, 100);
-
-      // Send more data to trigger another system compaction but the user compaction
-      // should go next and the column marker should block it
-      writeRows((ClientContext) client, tableName, MAX_DATA, false);
-
-      // Verify that when the next compaction starts it is a USER compaction as the
-      // SYSTEM compaction should be blocked by the marker
-      Wait.waitFor(() -> {
-        var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
-        log.debug("Waiting for USER compaction to start {}", extent);
-
-        var userRequestedCompactions = tabletMeta.getUserCompactionsRequested().size();
-        log.debug("Current user requested compaction markers {}", userRequestedCompactions);
-        var externalCompactions = tabletMeta.getExternalCompactions();
-        log.debug("External compactions size {}", externalCompactions.size());
-        var current = externalCompactions.entrySet().stream().findFirst();
-        current.ifPresent(c -> log.debug("Current running compaction {}", c.getKey()));
-
-        if (current.isPresent()) {
-          var currentCompaction = current.orElseThrow();
-          // Next compaction started - verify it is a USER compaction and not SYSTEM
-          if (!current.orElseThrow().getKey().equals(initialCompaction.get())) {
-            log.debug("Next compaction {} started as type {}", currentCompaction.getKey(),
-                currentCompaction.getValue().getKind());
-            assertEquals(CompactionKind.USER, currentCompaction.getValue().getKind());
-            return true;
-          }
+        var selectedFiles = tabletMeta.getSelectedFiles();
+        if (selectedFiles != null) {
+          return !selectedFiles.getFiles().isEmpty();
         }
         return false;
-      }, Wait.MAX_WAIT_MILLIS, 100);
+      }, Wait.MAX_WAIT_MILLIS, 10);
 
-      // Wait for the user compaction to complete and clear the compactions requested column
-      Wait.waitFor(() -> {
-        var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
-        var userRequestedCompactions = tabletMeta.getUserCompactionsRequested().size();
-        log.debug("Current user requested compaction markers {}", userRequestedCompactions);
-        return userRequestedCompactions == 0;
-      }, Wait.MAX_WAIT_MILLIS, 100);
+      // Change the ratio so a system compaction will attempt to be scheduled for table 1
+      client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.getKey(), "1");
+
+      if (timeout) {
+        // Because of the custom planner, the system compaction should now take priority
+        // System compactions were previously not eligible to run if selectedFiles existed
+        // for a user compaction already (and they overlapped). But now system compaction jobs
+        // are eligible to run if the user compaction has not started or completed any jobs
+        // and the expiration period has been exceeded.
+        // When this happens the system compaction will delete the selectedFiles column
+        Wait.waitFor(() -> {
+          var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
+          return tabletMeta.getSelectedFiles() == null;
+        }, Wait.MAX_WAIT_MILLIS, 100);
+
+        // Wait for the system compaction to be running
+        Wait.waitFor(() -> {
+          var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
+          var externalCompactions = tabletMeta.getExternalCompactions();
+          assertTrue(externalCompactions.values().stream()
+              .allMatch(ec -> ec.getKind() == CompactionKind.SYSTEM));
+          return externalCompactions.size() == 1;
+        }, Wait.MAX_WAIT_MILLIS, 10);
+
+        // Wait for the user compaction to now run after the system finishes
+        Wait.waitFor(() -> {
+          var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
+          var externalCompactions = tabletMeta.getExternalCompactions();
+          var running = externalCompactions.values().stream()
+              .filter(ec -> ec.getKind() == CompactionKind.USER).count();
+          return running == 1;
+        }, Wait.MAX_WAIT_MILLIS, 100);
+      } else {
+        // Wait for the user compaction to run, there should no system compactions scheduled
+        // even though system has the higher priority in the test because the timeout was
+        // not exceeded
+        Wait.waitFor(() -> {
+          var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
+          var externalCompactions = tabletMeta.getExternalCompactions();
+          assertTrue(externalCompactions.values().stream()
+              .allMatch(ec -> ec.getKind() == CompactionKind.USER));
+          return externalCompactions.size() == 1;
+        }, Wait.MAX_WAIT_MILLIS, 10);
+      }
 
       // Wait and verify all compactions finish
       Wait.waitFor(() -> {
         var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
         var externalCompactions = tabletMeta.getExternalCompactions().size();
-        log.debug("Current external compactions {}", externalCompactions);
-        return externalCompactions == 0;
+        log.debug("Waiting for compactions to finish, count {}", externalCompactions);
+        return externalCompactions == 0 && tabletMeta.getCompacted().isEmpty()
+            && tabletMeta.getSelectedFiles() == null;
       }, Wait.MAX_WAIT_MILLIS, 100);
     }
 
-    ExternalCompactionTestUtils.assertNoCompactionMetadata(getServerContext(), tableName);
+    ExternalCompactionTestUtils.assertNoCompactionMetadata(getServerContext(), table1);
   }
 
-  private void writeRows(ClientContext client, String tableName, int rows, boolean wait)
-      throws Exception {
-    try (BatchWriter bw = client.createBatchWriter(tableName)) {
-      for (int i = 0; i < rows; i++) {
-        Mutation m = new Mutation(String.format("r:%04d", i));
-        m.put("", "", "" + i);
-        bw.addMutation(m);
+  @Test
+  public void testOfflineAndCompactions() throws Exception {
+    var uniqueNames = getUniqueNames(1);
+    String table = uniqueNames[0];
 
-        if (i % 75 == 0) {
-          // create many files as this will cause a system compaction
-          bw.flush();
-          client.tableOperations().flush(tableName, null, null, wait);
+    // This test exercises concurrent compactions and table offline.
+
+    try (final AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 1; i < 32; i++) {
+        splits.add(new Text(String.format("r:%04d", i)));
+      }
+
+      client.tableOperations().create(table, new NewTableConfiguration().withSplits(splits));
+      writeRows(client, table, 33, true);
+      // create two files per tablet
+      writeRows(client, table, 33, true);
+
+      var ctx = getCluster().getServerContext();
+      var tableId = ctx.getTableId(table);
+
+      // verify assumptions of test, expect all tablets to have files
+      var files0 = getFiles(ctx, tableId);
+      assertEquals(32, files0.size());
+      assertFalse(files0.values().stream().anyMatch(Set::isEmpty));
+
+      // lower the tables compaction ratio to cause system compactions
+      client.tableOperations().setProperty(table, Property.TABLE_MAJC_RATIO.getKey(), "1");
+
+      // start a bunch of compactions in the background
+      var executor = Executors.newCachedThreadPool();
+      List<Future<?>> futures = new ArrayList<>();
+      // start user compactions on a subset of the tables tablets, system compactions should attempt
+      // to run on all tablets. With concurrency should get a mix.
+      for (int i = 1; i < 20; i++) {
+        var startRow = new Text(String.format("r:%04d", i - 1));
+        var endRow = new Text(String.format("r:%04d", i));
+        futures.add(executor.submit(() -> {
+          CompactionConfig config = new CompactionConfig();
+          config.setWait(true);
+          config.setStartRow(startRow);
+          config.setEndRow(endRow);
+          client.tableOperations().compact(table, config);
+          return null;
+        }));
+      }
+
+      log.debug("Waiting for offline");
+      // take tablet offline while there are concurrent compactions
+      client.tableOperations().offline(table, true);
+
+      // grab a snapshot of all the tablets files after waiting for offline, do not expect any
+      // tablets files to change at this point
+      var files1 = getFiles(ctx, tableId);
+
+      // wait for the background compactions
+      log.debug("Waiting for futures");
+      for (var future : futures) {
+        try {
+          future.get();
+        } catch (ExecutionException ee) {
+          // its ok if some of the compactions fail because the table was concurrently taken offline
+          assertTrue(ee.getMessage().contains("is offline"));
         }
       }
+
+      // grab a second snapshot of the tablets files after all the background operations completed
+      var files2 = getFiles(ctx, tableId);
+
+      // do not expect the files to have changed after the offline operation returned.
+      assertEquals(files1, files2);
+
+      executor.shutdown();
     }
-    client.tableOperations().flush(tableName, null, null, wait);
+  }
+
+  private Map<KeyExtent,Set<StoredTabletFile>> getFiles(ServerContext ctx, TableId tableId) {
+    Map<KeyExtent,Set<StoredTabletFile>> files = new HashMap<>();
+    try (var tablets = ctx.getAmple().readTablets().forTable(tableId).build()) {
+      for (var tablet : tablets) {
+        files.put(tablet.getExtent(), tablet.getFiles());
+      }
+    }
+    return files;
   }
 
   /**

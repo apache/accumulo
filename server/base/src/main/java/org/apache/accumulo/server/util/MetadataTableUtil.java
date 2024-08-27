@@ -31,14 +31,10 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
@@ -59,14 +55,11 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -74,7 +67,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -103,62 +95,6 @@ public class MetadataTableUtil {
   public static void putLockID(ServerContext context, ServiceLock zooLock, Mutation m) {
     ServerColumnFamily.LOCK_COLUMN.put(m,
         new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
-  }
-
-  public static void update(ServerContext context, ServiceLock zooLock, Mutation m,
-      KeyExtent extent) {
-
-    if (zooLock != null) {
-      putLockID(context, zooLock, m);
-    }
-
-    String metaTable = Ample.DataLevel.of(extent.tableId()).metaTable();
-    while (true) {
-      try (BatchWriter writer = context.createBatchWriter(metaTable)) {
-        writer.addMutation(m);
-        writer.flush();
-        return;
-      } catch (MutationsRejectedException e) {
-
-        if (!e.getConstraintViolationSummaries().isEmpty()) {
-          // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
-          throw new IllegalArgumentException(e);
-        }
-      } catch (TableNotFoundException e) {
-        logUpdateFailure(m, extent, e);
-      }
-
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
-    }
-  }
-
-  private static void logUpdateFailure(Mutation m, KeyExtent extent, Exception e) {
-    log.error("Failed to write metadata updates for extent {} {}", extent, m.prettyPrint(), e);
-  }
-
-  public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(FateId fateId,
-      KeyExtent extent, Map<ReferencedTabletFile,DataFileValue> estSizes, MetadataTime time,
-      ServerContext context, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putTime(time);
-
-    Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>(estSizes.size());
-    estSizes.forEach((tf, dfv) -> {
-      tablet.putFile(tf, dfv);
-      tablet.putBulkFile(tf, fateId);
-      newFiles.put(tf.insert(), dfv);
-    });
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-    tablet.mutate();
-    return newFiles;
-  }
-
-  public static void removeScanFiles(KeyExtent extent, Set<StoredTabletFile> scanFiles,
-      ServerContext context, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    scanFiles.forEach(tablet::deleteScan);
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-    tablet.mutate();
   }
 
   public static void deleteTable(TableId tableId, boolean insertDeletes, ServerContext context,
@@ -244,21 +180,13 @@ public class MetadataTableUtil {
     return new Pair<>(result, sizes);
   }
 
-  public static void removeUnusedWALEntries(ServerContext context, KeyExtent extent,
-      final Collection<LogEntry> entries, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    entries.forEach(tablet::deleteWal);
-    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
-    tablet.mutate();
-  }
-
   private static Mutation createCloneMutation(TableId srcTableId, TableId tableId,
-      Map<Key,Value> tablet) {
+      Iterable<Entry<Key,Value>> tablet) {
 
-    KeyExtent ke = KeyExtent.fromMetaRow(tablet.keySet().iterator().next().getRow());
+    KeyExtent ke = KeyExtent.fromMetaRow(tablet.iterator().next().getKey().getRow());
     Mutation m = new Mutation(TabletsSection.encodeRow(tableId, ke.endRow()));
 
-    for (Entry<Key,Value> entry : tablet.entrySet()) {
+    for (Entry<Key,Value> entry : tablet) {
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
         String cf = entry.getKey().getColumnQualifier().toString();
         if (!cf.startsWith("../") && !cf.contains(":")) {
@@ -394,7 +322,7 @@ public class MetadataTableUtil {
           // delete existing cloned tablet entry
           Mutation m = new Mutation(cloneTablet.getExtent().toMetaRow());
 
-          for (Entry<Key,Value> entry : cloneTablet.getKeyValues().entrySet()) {
+          for (Entry<Key,Value> entry : cloneTablet.getKeyValues()) {
             Key k = entry.getKey();
             m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), k.getTimestamp());
           }

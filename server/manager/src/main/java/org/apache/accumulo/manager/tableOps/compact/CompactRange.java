@@ -20,24 +20,33 @@ package org.apache.accumulo.manager.tableOps.compact;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.MoreCollectors;
 
 public class CompactRange extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(CompactRange.class);
@@ -47,7 +56,7 @@ public class CompactRange extends ManagerRepo {
   private final NamespaceId namespaceId;
   private byte[] startRow;
   private byte[] endRow;
-  private byte[] config;
+  private final byte[] config;
 
   public CompactRange(NamespaceId namespaceId, TableId tableId, CompactionConfig compactionConfig)
       throws AcceptableThriftTableOperationException {
@@ -83,7 +92,38 @@ public class CompactRange extends ManagerRepo {
   @Override
   public Repo<Manager> call(final FateId fateId, Manager env) throws Exception {
     CompactionConfigStorage.setConfig(env.getContext(), fateId, config);
-    return new CompactionDriver(namespaceId, tableId, startRow, endRow);
+    KeyExtent keyExtent;
+    byte[] prevRowOfStartRowTablet = startRow;
+    byte[] endRowOfEndRowTablet = endRow;
+
+    if (startRow != null) {
+      // The startRow in a compaction range is not inclusive, so do not want to find the tablet
+      // containing startRow but instead find the tablet that contains the next possible row after
+      // startRow
+      Text nextPossibleRow = new Key(startRow).followingKey(PartialKey.ROW).getRow();
+      keyExtent = findContaining(env.getContext().getAmple(), tableId, nextPossibleRow);
+      prevRowOfStartRowTablet =
+          keyExtent.prevEndRow() == null ? null : TextUtil.getBytes(keyExtent.prevEndRow());
+    }
+
+    if (endRow != null) {
+      // find the tablet containing endRow and pass its end row to the CompactionDriver constructor.
+      keyExtent = findContaining(env.getContext().getAmple(), tableId, new Text(endRow));
+      endRowOfEndRowTablet =
+          keyExtent.endRow() == null ? null : TextUtil.getBytes(keyExtent.endRow());
+    }
+    return new CompactionDriver(namespaceId, tableId, prevRowOfStartRowTablet,
+        endRowOfEndRowTablet);
+  }
+
+  private static KeyExtent findContaining(Ample ample, TableId tableId, Text row) {
+    Objects.requireNonNull(row);
+    try (var tablets = ample.readTablets().forTable(tableId).overlapping(row, true, row)
+        .fetch(TabletMetadata.ColumnType.PREV_ROW).build()) {
+      return tablets.stream().collect(MoreCollectors.onlyElement()).getExtent();
+
+    }
+
   }
 
   @Override

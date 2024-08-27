@@ -25,7 +25,7 @@ import org.apache.accumulo.core.summary.SummaryCollection;
 
 public class SummarySession extends Session {
 
-  private Future<SummaryCollection> future;
+  private final Future<SummaryCollection> future;
 
   public SummarySession(TCredentials credentials, Future<SummaryCollection> future) {
     super(credentials);

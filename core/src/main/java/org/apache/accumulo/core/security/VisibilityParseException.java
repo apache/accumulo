@@ -22,12 +22,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.text.ParseException;
 
+import org.apache.accumulo.access.InvalidAccessExpressionException;
+
 /**
  * An exception thrown when a visibility string cannot be parsed.
  */
 public class VisibilityParseException extends ParseException {
   private static final long serialVersionUID = 1L;
-  private String visibility;
+  private final String visibility;
 
   /**
    * Creates a new exception.
@@ -39,6 +41,15 @@ public class VisibilityParseException extends ParseException {
   public VisibilityParseException(String reason, byte[] visibility, int errorOffset) {
     super(reason, errorOffset);
     this.visibility = new String(visibility, UTF_8);
+  }
+
+  /**
+   * @since 3.1.0
+   */
+  public VisibilityParseException(InvalidAccessExpressionException e) {
+    // TODO need to look at output for this
+    super(e.getDescription(), e.getIndex());
+    this.visibility = e.getPattern();
   }
 
   @Override

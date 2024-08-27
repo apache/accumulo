@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static com.google.common.base.Preconditions.checkState;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
@@ -61,14 +60,9 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.iterators.user.TabletMetadataFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -85,10 +79,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sp
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.filters.TabletMetadataFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
@@ -114,12 +108,13 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private boolean checkConsistency = false;
     private boolean saveKeyValues;
     private TableId tableId;
-    private ReadConsistency readConsistency = ReadConsistency.IMMEDIATE;
     private final AccumuloClient _client;
     private final List<TabletMetadataFilter> tabletMetadataFilters = new ArrayList<>();
+    private final Function<DataLevel,String> tableMapper;
 
-    Builder(AccumuloClient client) {
+    Builder(AccumuloClient client, Function<DataLevel,String> tableMapper) {
       this._client = client;
+      this.tableMapper = Objects.requireNonNull(tableMapper);
     }
 
     @Override
@@ -152,7 +147,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           level, table);
       if (level == DataLevel.ROOT) {
         ClientContext ctx = ((ClientContext) _client);
-        return new TabletsMetadata(getRootMetadata(ctx, readConsistency));
+        return new TabletsMetadata(getRootMetadata(ctx));
       } else {
         return buildNonRoot(_client);
       }
@@ -175,12 +170,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
       for (DataLevel level : groupedExtents.keySet()) {
         if (level == DataLevel.ROOT) {
-          iterables.add(() -> Iterators
-              .singletonIterator(getRootMetadata((ClientContext) client, readConsistency)));
+          iterables.add(() -> Iterators.singletonIterator(getRootMetadata((ClientContext) client)));
         } else {
           try {
             BatchScanner scanner =
-                client.createBatchScanner(level.metaTable(), Authorizations.EMPTY);
+                client.createBatchScanner(tableMapper.apply(level), Authorizations.EMPTY);
 
             var ranges =
                 groupedExtents.get(level).stream().map(KeyExtent::toMetaRange).collect(toList());
@@ -253,7 +247,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private TabletsMetadata buildNonRoot(AccumuloClient client) {
       try {
 
-        String resolvedTable = table == null ? level.metaTable() : table;
+        String resolvedTable = table == null ? tableMapper.apply(level) : table;
 
         Scanner scanner =
             new IsolatedScanner(client.createScanner(resolvedTable, Authorizations.EMPTY));
@@ -495,12 +489,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       this.tabletMetadataFilters.add(filter);
       return this;
     }
-
-    @Override
-    public Options readConsistency(ReadConsistency readConsistency) {
-      this.readConsistency = Objects.requireNonNull(readConsistency);
-      return this;
-    }
   }
 
   public interface Options {
@@ -520,12 +508,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      * Saves the key values seen in the metadata table for each tablet.
      */
     Options saveKeyValues();
-
-    /**
-     * Controls how the data is read. If not, set then the default is
-     * {@link ReadConsistency#IMMEDIATE}
-     */
-    Options readConsistency(ReadConsistency readConsistency);
 
     /**
      * Adds a filter to be applied while fetching the data. Filters are applied in the order they
@@ -653,35 +635,16 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   }
 
   public static TableOptions builder(AccumuloClient client) {
-    return new Builder(client);
+    return new Builder(client, DataLevel::metaTable);
   }
 
-  private static TabletMetadata getRootMetadata(ClientContext ctx,
-      ReadConsistency readConsistency) {
-    String zkRoot = ctx.getZooKeeperRoot();
-    switch (readConsistency) {
-      case EVENTUAL:
-        return getRootMetadata(zkRoot, ctx.getZooCache());
-      case IMMEDIATE:
-        ZooReader zooReader = ctx.getZooReader();
-        try {
-          var path = zkRoot + RootTable.ZROOT_TABLET;
-          // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from
-          // zookeeper
-          zooReader.sync(path);
-          byte[] bytes = zooReader.getData(path);
-          return new RootTabletMetadata(new String(bytes, UTF_8)).toTabletMetadata();
-        } catch (InterruptedException | KeeperException e) {
-          throw new IllegalStateException(e);
-        }
-      default:
-        throw new IllegalArgumentException("Unknown consistency level " + readConsistency);
-    }
+  public static TableOptions builder(AccumuloClient client,
+      Function<DataLevel,String> tableMapper) {
+    return new Builder(client, tableMapper);
   }
 
-  public static TabletMetadata getRootMetadata(String zkRoot, ZooCache zc) {
-    byte[] jsonBytes = zc.get(zkRoot + RootTable.ZROOT_TABLET);
-    return new RootTabletMetadata(new String(jsonBytes, UTF_8)).toTabletMetadata();
+  private static TabletMetadata getRootMetadata(ClientContext ctx) {
+    return RootTabletMetadata.read(ctx).toTabletMetadata();
   }
 
   private final AutoCloseable closeable;

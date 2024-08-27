@@ -20,12 +20,13 @@ package org.apache.accumulo.manager;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Math.min;
-import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,20 +40,22 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.logging.ConditionalLogger.EscalatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
@@ -60,17 +63,15 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
@@ -80,6 +81,7 @@ import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
+import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -94,33 +96,23 @@ import org.apache.accumulo.server.manager.state.TabletManagementParameters;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
-  public static class BadLocationStateException extends Exception {
-    private static final long serialVersionUID = 2L;
-
-    // store as byte array because Text isn't Serializable
-    private final byte[] metadataTableEntry;
-
-    public BadLocationStateException(String msg, Text row) {
-      super(msg);
-      this.metadataTableEntry = TextUtil.getBytes(requireNonNull(row));
-    }
-
-    public Text getEncodedEndRow() {
-      return new Text(metadataTableEntry);
-    }
-  }
-
   private static final Logger LOG = LoggerFactory.getLogger(TabletGroupWatcher.class);
+
+  private static final Logger TABLET_UNLOAD_LOGGER =
+      new EscalatingLogger(Manager.log, Duration.ofMinutes(5), 1000, Level.INFO);
+
   private final Manager manager;
   private final TabletStateStore store;
   private final TabletGroupWatcher dependentWatcher;
@@ -128,7 +120,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private SortedSet<TServerInstance> lastScanServers = Collections.emptySortedSet();
   private final EventHandler eventHandler;
   private final ManagerMetrics metrics;
-  private WalStateManager walStateManager;
+  private final WalStateManager walStateManager;
   private volatile Set<TServerInstance> filteredServersToShutdown = Set.of();
 
   TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher,
@@ -154,12 +146,25 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     return stats.getLast(tableId);
   }
 
+  public Ample.DataLevel getLevel() {
+    return store.getLevel();
+  }
+
   /**
    * True if the collection of live tservers specified in 'candidates' hasn't changed since the last
    * time an assignment scan was started.
    */
   synchronized boolean isSameTserversAsLastScan(Set<TServerInstance> candidates) {
-    return candidates.equals(lastScanServers);
+    boolean same = candidates.equals(lastScanServers);
+    if (!same && Manager.log.isTraceEnabled()) {
+      Manager.log.trace("{} set difference candidates-lastScanServers : {}", store.name(),
+          Sets.difference(candidates, lastScanServers));
+      Manager.log.trace("{} set difference lastScanServers-candidates : {}", store.name(),
+          Sets.difference(lastScanServers, candidates));
+      Manager.log.trace("{} set intersection(lastScanServers,candidates) size : {}", store.name(),
+          Sets.intersection(lastScanServers, candidates).size());
+    }
+    return same;
   }
 
   /**
@@ -238,29 +243,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
             rangesToProcess.drainTo(ranges);
 
-            if (manager.getManagerGoalState() == ManagerGoalState.CLEAN_STOP) {
-              // only do full scans when trying to shutdown
+            if (!processRanges(ranges)) {
               setNeedsFullScan();
-              continue;
-            }
-
-            TabletManagementParameters tabletMgmtParams = createTabletManagementParameters(false);
-
-            var currentTservers = getCurrentTservers(tabletMgmtParams.getOnlineTsevers());
-            if (currentTservers.isEmpty()) {
-              setNeedsFullScan();
-              continue;
-            }
-
-            try (var iter = store.iterator(ranges, tabletMgmtParams)) {
-              long t1 = System.currentTimeMillis();
-              manageTablets(iter, tabletMgmtParams, currentTservers, false);
-              long t2 = System.currentTimeMillis();
-              Manager.log.debug(String.format("[%s]: partial scan time %.2f seconds for %,d ranges",
-                  store.name(), (t2 - t1) / 1000., ranges.size()));
-            } catch (Exception e) {
-              Manager.log.error("Error processing {} ranges for store {} ", ranges.size(),
-                  store.name(), e);
             }
           }
         } catch (InterruptedException e) {
@@ -270,7 +254,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
 
     EventHandler() {
-      rangesToProcess = new ArrayBlockingQueue<>(3000);
+      rangesToProcess = new ArrayBlockingQueue<>(10000);
 
       Threads
           .createThread("TGW [" + store.name() + "] event range processor", new RangeProccessor())
@@ -322,6 +306,77 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
+  private boolean processRanges(List<Range> ranges) {
+    if (manager.getManagerGoalState() == ManagerGoalState.CLEAN_STOP) {
+      return false;
+    }
+
+    TabletManagementParameters tabletMgmtParams = createTabletManagementParameters(false);
+
+    var currentTservers = getCurrentTservers(tabletMgmtParams.getOnlineTsevers());
+    if (currentTservers.isEmpty()) {
+      return false;
+    }
+
+    try (var iter = store.iterator(ranges, tabletMgmtParams)) {
+      long t1 = System.currentTimeMillis();
+      manageTablets(iter, tabletMgmtParams, currentTservers, false);
+      long t2 = System.currentTimeMillis();
+      Manager.log.debug(String.format("[%s]: partial scan time %.2f seconds for %,d ranges",
+          store.name(), (t2 - t1) / 1000., ranges.size()));
+    } catch (Exception e) {
+      Manager.log.error("Error processing {} ranges for store {} ", ranges.size(), store.name(), e);
+    }
+
+    return true;
+  }
+
+  private final Set<KeyExtent> hostingRequestInProgress = new ConcurrentSkipListSet<>();
+
+  public void hostOndemand(Collection<KeyExtent> extents) {
+    // This is only expected to be called for the user level
+    Preconditions.checkState(getLevel() == Ample.DataLevel.USER);
+
+    final List<KeyExtent> inProgress = new ArrayList<>();
+    extents.forEach(ke -> {
+      if (hostingRequestInProgress.add(ke)) {
+        LOG.info("Tablet hosting requested for: {} ", ke);
+        inProgress.add(ke);
+      } else {
+        LOG.trace("Ignoring hosting request because another thread is currently processing it {}",
+            ke);
+      }
+    });
+    // Do not add any code here, it may interfere with the finally block removing extents from
+    // hostingRequestInProgress
+    try (var mutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+      inProgress.forEach(ke -> {
+        mutator.mutateTablet(ke).requireAbsentOperation()
+            .requireTabletAvailability(TabletAvailability.ONDEMAND).requireAbsentLocation()
+            .setHostingRequested().submit(TabletMetadata::getHostingRequested);
+
+      });
+
+      List<Range> ranges = new ArrayList<>();
+
+      mutator.process().forEach((extent, result) -> {
+        if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
+          // cache this success for a bit
+          ranges.add(extent.toMetaRange());
+        } else {
+          if (LOG.isTraceEnabled()) {
+            // only read the metadata if the logging is enabled
+            LOG.trace("Failed to set hosting request {}", result.readMetadata());
+          }
+        }
+      });
+
+      processRanges(ranges);
+    } finally {
+      inProgress.forEach(hostingRequestInProgress::remove);
+    }
+  }
+
   private TabletManagementParameters
       createTabletManagementParameters(boolean lookForTabletsNeedingVolReplacement) {
 
@@ -347,7 +402,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
         store.getLevel(), manager.getCompactionHints(store.getLevel()), canSuspendTablets(),
         lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
-            : Map.of());
+            : Map.of(),
+        manager.getSteadyTime());
   }
 
   private Set<TServerInstance> getFilteredServersToShutdown() {
@@ -355,7 +411,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   private static class TableMgmtStats {
-    int[] counts = new int[TabletState.values().length];
+    final int[] counts = new int[TabletState.values().length];
     private int totalUnloaded;
     private long totalVolumeReplacements;
     private int tabletsWithErrors;
@@ -364,8 +420,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private TableMgmtStats manageTablets(Iterator<TabletManagement> iter,
       TabletManagementParameters tableMgmtParams,
       SortedMap<TServerInstance,TabletServerStatus> currentTServers, boolean isFullScan)
-      throws BadLocationStateException, TException, DistributedStoreException, WalMarkerException,
-      IOException {
+      throws TException, DistributedStoreException, WalMarkerException, IOException {
 
     final TableMgmtStats tableMgmtStats = new TableMgmtStats();
     final boolean shuttingDownAllTabletServers =
@@ -382,8 +437,20 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     TabletLists tLists = new TabletLists(currentTServers, tableMgmtParams.getGroupedTServers(),
         tableMgmtParams.getServersToShutdown());
 
-    CompactionJobGenerator compactionGenerator = new CompactionJobGenerator(
-        new ServiceEnvironmentImpl(manager.getContext()), tableMgmtParams.getCompactionHints());
+    CompactionJobGenerator compactionGenerator =
+        new CompactionJobGenerator(new ServiceEnvironmentImpl(manager.getContext()),
+            tableMgmtParams.getCompactionHints(), tableMgmtParams.getSteadyTime());
+
+    try {
+      CheckCompactionConfig.validate(manager.getConfiguration());
+      this.metrics.clearCompactionServiceConfigurationError();
+    } catch (RuntimeException | ReflectiveOperationException e) {
+      this.metrics.setCompactionServiceConfigurationError();
+      LOG.error(
+          "Error validating compaction configuration, all {} compactions are paused until the configuration is fixed.",
+          store.getLevel(), e);
+      compactionGenerator = null;
+    }
 
     Set<TServerInstance> filteredServersToShutdown =
         new HashSet<>(tableMgmtParams.getServersToShutdown());
@@ -497,9 +564,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       }
 
       if (actions.contains(ManagementAction.BAD_STATE) && tm.isFutureAndCurrentLocationSet()) {
-        throw new BadLocationStateException(
-            tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
-            tm.getExtent().toMetaRow());
+        Manager.log.error("{}, saw tablet with multiple locations, which should not happen",
+            tm.getExtent());
+        logIncorrectTabletLocations(tm);
+        // take no further action for this tablet
+        continue;
       }
 
       final Location location = tm.getLocation();
@@ -531,18 +600,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         manager.getSplitter().initiateSplit(new SeedSplitTask(manager, tm.getExtent()));
       }
 
-      if (actions.contains(ManagementAction.NEEDS_COMPACTING)) {
+      if (actions.contains(ManagementAction.NEEDS_COMPACTING) && compactionGenerator != null) {
         var jobs = compactionGenerator.generateJobs(tm,
             TabletManagementIterator.determineCompactionKinds(actions));
         LOG.debug("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());
         manager.getCompactionCoordinator().addJobs(tm, jobs);
       }
-
-      // ELASITICITY_TODO the case where a planner generates compactions at time T1 for tablet
-      // and later at time T2 generates nothing for the same tablet is not being handled. At
-      // time T1 something could have been queued. However at time T2 we will not clear those
-      // entries from the queue because we see nothing here for that case. After a full
-      // metadata scan could remove any tablets that were not updated during the scan.
 
       if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)
           || actions.contains(ManagementAction.NEEDS_RECOVERY)) {
@@ -603,10 +666,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               TServerConnection client =
                   manager.tserverSet.getConnection(location.getServerInstance());
               if (client != null) {
-                LOG.debug("Requesting tserver {} unload tablet {}", location.getServerInstance(),
-                    tm.getExtent());
+                TABLET_UNLOAD_LOGGER.trace("[{}] Requesting TabletServer {} unload {} {}",
+                    store.name(), location.getServerInstance(), tm.getExtent(), goal.howUnload());
                 client.unloadTablet(manager.managerLock, tm.getExtent(), goal.howUnload(),
-                    manager.getSteadyTime());
+                    manager.getSteadyTime().getMillis());
                 tableMgmtStats.totalUnloaded++;
                 unloaded++;
               } else {
@@ -689,8 +752,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // replacement. We only want to stop looking for tablets that need volume replacement when
           // we have successfully processed all tablet metadata and no more volume replacements are
           // being performed.
+          Manager.log.debug("[{}] saw {} tablets needing volume replacement", store.name(),
+              tabletMgmtStats.totalVolumeReplacements);
           lookForTabletsNeedingVolReplacement = tabletMgmtStats.totalVolumeReplacements != 0
               || tabletMgmtStats.tabletsWithErrors != 0;
+          if (!lookForTabletsNeedingVolReplacement) {
+            Manager.log.debug("[{}] no longer looking for volume replacements", store.name());
+          }
         }
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
@@ -724,9 +792,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // Create an event at the store level, this will force the next scan to be a full scan
           manager.nextEvent.event(store.getLevel(), "Set of tablet servers changed");
         }
-      } catch (BadLocationStateException e) {
-        Manager.log.error("{}, attempting to repair", e.getMessage());
-        repairMetadata(e.getEncodedEndRow());
       } catch (Exception ex) {
         Manager.log.error("Error processing table state for store " + store.name(), ex);
         sleepUninterruptibly(Manager.WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);
@@ -770,7 +835,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private void hostSuspendedTablet(TabletLists tLists, TabletMetadata tm, Location location,
       TableConfiguration tableConf) {
-    if (manager.getSteadyTime() - tm.getSuspend().suspensionTime
+    if (manager.getSteadyTime().minus(tm.getSuspend().suspensionTime).toMillis()
         < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
       // Tablet is suspended. See if its tablet server is back.
       TServerInstance returnInstance = null;
@@ -815,61 +880,52 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
-  private void repairMetadata(Text row) {
-    Manager.log.debug("Attempting repair on {}", row);
-    // ACCUMULO-2261 if a dying tserver writes a location before its lock information propagates, it
-    // may cause duplicate assignment.
-    // Attempt to find the dead server entry and remove it.
-    try {
-      Map<Key,Value> future = new HashMap<>();
-      Map<Key,Value> assigned = new HashMap<>();
-      KeyExtent extent = KeyExtent.fromMetaRow(row);
-      String table = AccumuloTable.METADATA.tableName();
-      if (extent.isMeta()) {
-        table = AccumuloTable.ROOT.tableName();
-      }
-      Scanner scanner = manager.getContext().createScanner(table, Authorizations.EMPTY);
+  /**
+   * Read tablet metadata entries for tablet that have multiple locations. Not using Ample because
+   * it throws an exception when tablets have multiple locations.
+   */
+  private Stream<? extends Entry<Key,Value>> getMetaEntries(KeyExtent extent)
+      throws TableNotFoundException, InterruptedException, KeeperException {
+    Ample.DataLevel level = Ample.DataLevel.of(extent.tableId());
+    if (level == Ample.DataLevel.ROOT) {
+      return RootTabletMetadata.read(manager.getContext()).getKeyValues();
+    } else {
+      Scanner scanner = manager.getContext().createScanner(level.metaTable(), Authorizations.EMPTY);
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
-      scanner.setRange(new Range(row));
-      for (Entry<Key,Value> entry : scanner) {
-        if (entry.getKey().getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
-          assigned.put(entry.getKey(), entry.getValue());
-        } else if (entry.getKey().getColumnFamily().equals(FutureLocationColumnFamily.NAME)) {
-          future.put(entry.getKey(), entry.getValue());
-        }
+      scanner.setRange(new Range(extent.toMetaRow()));
+      return scanner.stream().onClose(scanner::close);
+    }
+  }
+
+  private void logIncorrectTabletLocations(TabletMetadata tabletMetadata) {
+    try {
+      Map<Key,Value> locations = new HashMap<>();
+      KeyExtent extent = tabletMetadata.getExtent();
+
+      try (Stream<? extends Entry<Key,Value>> entries = getMetaEntries(extent)) {
+        entries.forEach(entry -> {
+          var family = entry.getKey().getColumnFamily();
+          if (family.equals(CurrentLocationColumnFamily.NAME)
+              || family.equals(FutureLocationColumnFamily.NAME)) {
+            locations.put(entry.getKey(), entry.getValue());
+          }
+        });
       }
-      if (!future.isEmpty() && !assigned.isEmpty()) {
-        Manager.log.warn("Found a tablet assigned and hosted, attempting to repair");
-      } else if (future.size() > 1 && assigned.isEmpty()) {
-        Manager.log.warn("Found a tablet assigned to multiple servers, attempting to repair");
-      } else if (future.isEmpty() && assigned.size() > 1) {
-        Manager.log.warn("Found a tablet hosted on multiple servers, attempting to repair");
+
+      if (locations.size() <= 1) {
+        Manager.log.trace("Tablet {} seems to have correct location based on inspection",
+            tabletMetadata.getExtent());
       } else {
-        Manager.log.info("Attempted a repair, but nothing seems to be obviously wrong. {} {}",
-            assigned, future);
-        return;
-      }
-      Iterator<Entry<Key,Value>> iter =
-          Iterators.concat(future.entrySet().iterator(), assigned.entrySet().iterator());
-      while (iter.hasNext()) {
-        Entry<Key,Value> entry = iter.next();
-        TServerInstance alive = manager.tserverSet.find(entry.getValue().toString());
-        if (alive == null) {
-          Manager.log.info("Removing entry  {}", entry);
-          BatchWriter bw = manager.getContext().createBatchWriter(table);
-          Mutation m = new Mutation(entry.getKey().getRow());
-          m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
-          bw.addMutation(m);
-          bw.close();
-          return;
+        for (Map.Entry<Key,Value> entry : locations.entrySet()) {
+          TServerInstance alive = manager.tserverSet.find(entry.getValue().toString());
+          Manager.log.debug("Saw duplicate location key:{} value:{} alive:{} ", entry.getKey(),
+              entry.getValue(), alive != null);
         }
       }
-      Manager.log.error(
-          "Metadata table is inconsistent at {} and all assigned/future tservers are still online.",
-          row);
     } catch (Exception e) {
-      Manager.log.error("Error attempting repair of metadata " + row + ": " + e, e);
+      Manager.log.error("Error attempting investigation of metadata {}: {}",
+          tabletMetadata == null ? null : tabletMetadata.getExtent(), e, e);
     }
   }
 
@@ -966,19 +1022,30 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       flushLock.unlock();
     }
 
+    Set<KeyExtent> failedFuture = Set.of();
     if (!tLists.assignments.isEmpty()) {
       Manager.log.info(String.format("Assigning %d tablets", tLists.assignments.size()));
-      store.setFutureLocations(tLists.assignments);
+      failedFuture = store.setFutureLocations(tLists.assignments);
     }
     tLists.assignments.addAll(tLists.assigned);
     for (Assignment a : tLists.assignments) {
-      TServerConnection client = manager.tserverSet.getConnection(a.server);
-      if (client != null) {
-        client.assignTablet(manager.managerLock, a.tablet);
-      } else {
-        Manager.log.warn("Could not connect to server {}", a.server);
+      if (failedFuture.contains(a.tablet)) {
+        // do not ask a tserver to load a tablet where the future location could not be set
+        continue;
       }
-      manager.assignedTablet(a.tablet);
+      try {
+        TServerConnection client = manager.tserverSet.getConnection(a.server);
+        if (client != null) {
+          client.assignTablet(manager.managerLock, a.tablet);
+          manager.assignedTablet(a.tablet);
+        } else {
+          Manager.log.warn("Could not connect to server {} for assignment of {}", a.server,
+              a.tablet);
+        }
+      } catch (TException tException) {
+        Manager.log.warn("Could not connect to server {} for assignment of {}", a.server, a.tablet,
+            tException);
+      }
     }
 
     replaceVolumes(tLists.volumeReplacements);
@@ -996,11 +1063,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         vr.filesToRemove.forEach(tabletMutator::deleteFile);
         vr.filesToAdd.forEach(tabletMutator::putFile);
 
-        tabletMutator.putZooLock(manager.getContext().getZooKeeperRoot(), manager.getManagerLock());
-
-        tabletMutator.submit(
-            tm -> tm.getLogs().containsAll(vr.logsToAdd) && tm.getFiles().containsAll(vr.filesToAdd
-                .keySet().stream().map(ReferencedTabletFile::insert).collect(Collectors.toSet())));
+        tabletMutator.submit(tm -> {
+          // Check to see if the logs and files are removed. Checking if the new files or logs were
+          // added has a race condition, those could have been successfully added and then removed
+          // before this check runs, like if a compaction runs. Once the old volumes are removed
+          // nothing should ever add them again.
+          var logsRemoved =
+              Collections.disjoint(Set.copyOf(tm.getLogs()), Set.copyOf(vr.logsToRemove));
+          var filesRemoved = Collections.disjoint(tm.getFiles(), Set.copyOf(vr.filesToRemove));
+          LOG.debug(
+              "replaceVolume conditional mutation rejection check {} logsRemoved:{} filesRemoved:{}",
+              tm.getExtent(), logsRemoved, filesRemoved);
+          return logsRemoved && filesRemoved;
+        });
       }
 
       tabletsMutator.process().forEach((extent, result) -> {

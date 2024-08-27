@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import java.util.Set;
+import java.util.Collection;
+import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -51,6 +53,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Us
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -63,6 +66,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   protected final Mutation mutation;
   protected AutoCloseable closeAfterMutate;
   protected boolean updatesEnabled = true;
+  protected boolean putServerLock = true;
 
   @SuppressWarnings("unchecked")
   private T getThis() {
@@ -162,6 +166,19 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     }
   }
 
+  protected Text getLocationFamilyText(LocationType type) {
+    switch (type) {
+      case CURRENT:
+        return CurrentLocationColumnFamily.NAME;
+      case FUTURE:
+        return FutureLocationColumnFamily.NAME;
+      case LAST:
+        return LastLocationColumnFamily.NAME;
+      default:
+        throw new IllegalArgumentException();
+    }
+  }
+
   @Override
   public T putLocation(Location location) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
@@ -177,8 +194,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     return getThis();
   }
 
-  @Override
-  public T putZooLock(String zookeeperRoot, ServiceLock zooLock) {
+  protected T putZooLock(String zookeeperRoot, ServiceLock zooLock) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     ServerColumnFamily.LOCK_COLUMN.put(mutation,
         new Value(zooLock.getLockID().serialize(zookeeperRoot + "/")));
@@ -232,7 +248,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putSuspension(TServerInstance tServer, long suspensionTime) {
+  public T putSuspension(TServerInstance tServer, SteadyTime suspensionTime) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.put(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
         SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier(),
@@ -309,15 +325,17 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T deleteAll(Set<Key> keys) {
+  public T deleteAll(Collection<Map.Entry<Key,Value>> entries) {
     ByteSequence row = new ArrayByteSequence(mutation.getRow());
-    keys.forEach(key -> {
+    entries.forEach(e -> {
+      var key = e.getKey();
       Preconditions.checkArgument(key.getRowData().equals(row), "Unexpected row %s %s", row, key);
       Preconditions.checkArgument(key.getColumnVisibilityData().length() == 0,
           "Non empty column visibility %s", key);
     });
 
-    keys.forEach(key -> {
+    entries.forEach(e -> {
+      var key = e.getKey();
       mutation.putDelete(key.getColumnFamily(), key.getColumnQualifier());
     });
 
@@ -357,6 +375,18 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T deleteUnSplittable() {
     SplitColumnFamily.UNSPLITTABLE_COLUMN.putDelete(mutation);
+    return getThis();
+  }
+
+  @Override
+  public T putCloned() {
+    mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
+    return getThis();
+  }
+
+  @Override
+  public T automaticallyPutServerLock(boolean b) {
+    putServerLock = b;
     return getThis();
   }
 

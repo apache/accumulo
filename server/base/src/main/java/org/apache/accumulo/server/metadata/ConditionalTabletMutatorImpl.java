@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily.UNSPLITTABLE_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
@@ -31,8 +32,10 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -41,6 +44,7 @@ import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedFilesIterator;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -52,12 +56,14 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Us
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.metadata.iterators.LocationExistsIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
-import org.apache.accumulo.server.metadata.iterators.SetEqualityIterator;
+import org.apache.accumulo.server.metadata.iterators.SetEncodingIterator;
 import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
 
 import com.google.common.base.Preconditions;
@@ -73,6 +79,8 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
 
   private final BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer;
 
+  private final ServerContext context;
+  private final ServiceLock lock;
   private final KeyExtent extent;
 
   private boolean sawOperationRequirement = false;
@@ -87,26 +95,65 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     this.parent = parent;
     this.rejectionHandlerConsumer = rejectionHandlerConsumer;
     this.extent = extent;
+    this.context = context;
+    this.lock = this.context.getServiceLock();
+    Objects.requireNonNull(this.lock, "ServiceLock not set on ServerContext");
   }
 
   @Override
   public Ample.ConditionalTabletMutator requireAbsentLocation() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, LocationExistsIterator.class);
-    Condition c = new Condition("", "").setIterators(is);
-    mutation.addCondition(c);
+
+    // It is not expected the encoder will actually be called, so throw an exception if it is.
+    Function<Location,byte[]> encoder = l -> {
+      throw new UnsupportedOperationException();
+    };
+
+    // The column families for each location type should conceptually be an empty set, so create
+    // conditions that check for this.
+    var condition1 = SetEncodingIterator.createCondition(Set.of(), encoder,
+        getLocationFamilyText(LocationType.FUTURE));
+    var condition2 = SetEncodingIterator.createCondition(Set.of(), encoder,
+        getLocationFamilyText(LocationType.CURRENT));
+
+    // Add the conditions for both location column families, both conditions must be met for the
+    // mutation to be applied.
+    mutation.addCondition(condition1);
+    mutation.addCondition(condition2);
+
     return this;
   }
 
   @Override
   public Ample.ConditionalTabletMutator requireLocation(Location location) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    Preconditions.checkArgument(location.getType() == TabletMetadata.LocationType.FUTURE
-        || location.getType() == TabletMetadata.LocationType.CURRENT);
+    Preconditions.checkArgument(
+        location.getType() == LocationType.FUTURE || location.getType() == LocationType.CURRENT);
     sawOperationRequirement = true;
-    Condition c = new Condition(getLocationFamily(location.getType()), location.getSession())
-        .setValue(location.getHostPort());
-    mutation.addCondition(c);
+
+    Function<Location,Pair<byte[],byte[]>> encoder =
+        l -> new Pair<>(location.getSession().getBytes(UTF_8),
+            location.getHostPort().getBytes(UTF_8));
+
+    // The location column family can have multiple column qualifiers set. When requiring a location
+    // we want to check the location is set AND that no other location qualifiers are set on the
+    // column family. So the condition should conceptually check that the column family is a map of
+    // size one with only our expected location set in the map.
+    var condition1 = SetEncodingIterator.createConditionWithVal(Set.of(location), encoder,
+        getLocationFamilyText(location.getType()));
+
+    // Conceptually the column family for the other location type should be an empty map, so create
+    // a condition that checks this.
+    var otherLocType =
+        location.getType() == LocationType.CURRENT ? LocationType.FUTURE : LocationType.CURRENT;
+    var condition2 = SetEncodingIterator.createConditionWithVal(Set.of(), encoder,
+        getLocationFamilyText(otherLocType));
+
+    // Add the conditions for both location column families, both conditions must be met for the
+    // mutation to be applied.
+    mutation.addCondition(condition1);
+    mutation.addCondition(condition2);
+
     return this;
   }
 
@@ -166,16 +213,18 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
       case PREV_ROW:
         throw new IllegalStateException("PREV_ROW already set from Extent");
       case LOGS: {
-        Condition c = SetEqualityIterator.createCondition(new HashSet<>(tabletMetadata.getLogs()),
+        Condition c = SetEncodingIterator.createCondition(new HashSet<>(tabletMetadata.getLogs()),
             logEntry -> logEntry.getColumnQualifier().toString().getBytes(UTF_8),
             LogColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;
       case FILES: {
-        // ELASTICITY_TODO compare values?
-        Condition c = SetEqualityIterator.createCondition(tabletMetadata.getFiles(),
-            stf -> stf.getMetadata().getBytes(UTF_8), DataFileColumnFamily.NAME);
+        Condition c =
+            SetEncodingIterator.createConditionWithVal(tabletMetadata.getFilesMap().entrySet(),
+                entry -> new Pair<>(entry.getKey().getMetadata().getBytes(UTF_8),
+                    entry.getValue().encode()),
+                DataFileColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;
@@ -193,7 +242,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         break;
       case ECOMP: {
         Condition c =
-            SetEqualityIterator.createCondition(tabletMetadata.getExternalCompactions().keySet(),
+            SetEncodingIterator.createCondition(tabletMetadata.getExternalCompactions().keySet(),
                 ecid -> ecid.canonical().getBytes(UTF_8), ExternalCompactionColumnFamily.NAME);
         mutation.addCondition(c);
       }
@@ -206,13 +255,13 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         }
         break;
       case LOADED: {
-        Condition c = SetEqualityIterator.createCondition(tabletMetadata.getLoaded().keySet(),
+        Condition c = SetEncodingIterator.createCondition(tabletMetadata.getLoaded().keySet(),
             stf -> stf.getMetadata().getBytes(UTF_8), BulkFileColumnFamily.NAME);
         mutation.addCondition(c);
       }
         break;
       case COMPACTED: {
-        Condition c = SetEqualityIterator.createCondition(tabletMetadata.getCompacted(),
+        Condition c = SetEncodingIterator.createCondition(tabletMetadata.getCompacted(),
             fTid -> fTid.canonical().getBytes(UTF_8), CompactedColumnFamily.NAME);
         mutation.addCondition(c);
       }
@@ -235,7 +284,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         break;
       case USER_COMPACTION_REQUESTED: {
         Condition c =
-            SetEqualityIterator.createCondition(tabletMetadata.getUserCompactionsRequested(),
+            SetEncodingIterator.createCondition(tabletMetadata.getUserCompactionsRequested(),
                 fTid -> fTid.canonical().getBytes(UTF_8), UserCompactionRequestedColumnFamily.NAME);
         mutation.addCondition(c);
       }
@@ -244,8 +293,16 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         Condition c =
             new Condition(SUSPEND_COLUMN.getColumnFamily(), SUSPEND_COLUMN.getColumnQualifier());
         if (tabletMetadata.getSuspend() != null) {
-          c.setValue(tabletMetadata.getSuspend().server + "|"
-              + tabletMetadata.getSuspend().suspensionTime);
+          c.setValue(tabletMetadata.getSuspend().toValue());
+        }
+        mutation.addCondition(c);
+      }
+        break;
+      case UNSPLITTABLE: {
+        Condition c = new Condition(UNSPLITTABLE_COLUMN.getColumnFamily(),
+            UNSPLITTABLE_COLUMN.getColumnQualifier());
+        if (tabletMetadata.getUnSplittable() != null) {
+          c.setValue(tabletMetadata.getUnSplittable().toBase64());
         }
         mutation.addCondition(c);
       }
@@ -269,8 +326,9 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   @Override
   public Ample.ConditionalTabletMutator requireAbsentLogs() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    // create a tablet metadata with an empty set of logs and require the same as that
-    requireSameSingle(TabletMetadata.builder(extent).build(ColumnType.LOGS), ColumnType.LOGS);
+    Condition c = SetEncodingIterator.createCondition(Set.<LogEntry>of(),
+        logEntry -> logEntry.getColumnQualifier().toString().getBytes(UTF_8), LogColumnFamily.NAME);
+    mutation.addCondition(c);
     return this;
   }
 
@@ -283,6 +341,9 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
           new Condition(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier())
               .setValue(encodePrevEndRow(extent.prevEndRow()).get());
       mutation.addCondition(c);
+    }
+    if (putServerLock) {
+      this.putZooLock(context.getZooKeeperRoot(), lock);
     }
     getMutation();
     mutationConsumer.accept(mutation);

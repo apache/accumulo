@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.CLONED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
@@ -40,8 +41,9 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.EnumSet;
-import java.util.Set;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -51,11 +53,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.io.Text;
 
 public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadataBuilder> {
@@ -72,7 +74,7 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   private final InternalBuilder internalBuilder;
-  EnumSet<TabletMetadata.ColumnType> fetched;
+  final EnumSet<TabletMetadata.ColumnType> fetched;
 
   protected TabletMetadataBuilder(KeyExtent extent) {
     internalBuilder = new InternalBuilder(extent);
@@ -145,11 +147,6 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder putZooLock(String zookeeperRoot, ServiceLock zooLock) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public TabletMetadataBuilder putDirName(String dirName) {
     fetched.add(DIR);
     internalBuilder.putDirName(dirName);
@@ -188,7 +185,7 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder putSuspension(TServerInstance tserver, long suspensionTime) {
+  public TabletMetadataBuilder putSuspension(TServerInstance tserver, SteadyTime suspensionTime) {
     fetched.add(SUSPEND);
     internalBuilder.putSuspension(tserver, suspensionTime);
     return this;
@@ -268,7 +265,7 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder deleteAll(Set<Key> keys) {
+  public TabletMetadataBuilder deleteAll(Collection<Map.Entry<Key,Value>> entries) {
     throw new UnsupportedOperationException();
   }
 
@@ -305,6 +302,18 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
 
   @Override
   public TabletMetadataBuilder deleteUnSplittable() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public TabletMetadataBuilder putCloned() {
+    fetched.add(CLONED);
+    internalBuilder.putCloned();
+    return this;
+  }
+
+  @Override
+  public TabletMetadataBuilder automaticallyPutServerLock(boolean b) {
     throw new UnsupportedOperationException();
   }
 

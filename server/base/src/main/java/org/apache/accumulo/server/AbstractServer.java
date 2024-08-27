@@ -21,7 +21,7 @@ package org.apache.accumulo.server;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -30,7 +30,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
@@ -51,14 +50,15 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   protected final long idleReportingPeriodNanos;
   private volatile long idlePeriodStartNanos = 0L;
 
-  protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
+  protected AbstractServer(String appName, ConfigOpts opts,
+      Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
     this.applicationName = appName;
     opts.parseArgs(appName, args);
     var siteConfig = opts.getSiteConfiguration();
     this.hostname = siteConfig.get(Property.GENERAL_PROCESS_BIND_ADDRESS);
     this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
     SecurityUtil.serverLogin(siteConfig);
-    context = new ServerContext(siteConfig);
+    context = serverContextFactory.apply(siteConfig);
     Logger log = LoggerFactory.getLogger(getClass());
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
@@ -79,18 +79,30 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
         context.getConfiguration().getTimeInMillis(Property.GENERAL_IDLE_PROCESS_INTERVAL));
   }
 
-  protected void idleProcessCheck(Supplier<Boolean> idleCondition) {
-    boolean idle = idleCondition.get();
-    if (!idle || idleReportingPeriodNanos == 0) {
+  /**
+   * Updates the idle status of the server to set the idle process metric. The server must be idle
+   * for multiple calls over a specified period for the metric to reflect the idle state. If the
+   * server is busy or the idle period hasn't started, it resets the idle tracking.
+   *
+   * @param isIdle whether the server is idle
+   */
+  protected void updateIdleStatus(boolean isIdle) {
+    boolean shouldResetIdlePeriod = !isIdle || idleReportingPeriodNanos == 0;
+    boolean isIdlePeriodNotStarted = idlePeriodStartNanos == 0;
+    boolean hasExceededIdlePeriod =
+        (System.nanoTime() - idlePeriodStartNanos) > idleReportingPeriodNanos;
+
+    if (shouldResetIdlePeriod) {
+      // Reset idle period and set idle metric to false
       idlePeriodStartNanos = 0;
-    } else if (idlePeriodStartNanos == 0) {
+      processMetrics.setIdleValue(false);
+    } else if (isIdlePeriodNotStarted) {
+      // Start tracking idle period
       idlePeriodStartNanos = System.nanoTime();
-    } else if ((System.nanoTime() - idlePeriodStartNanos) > idleReportingPeriodNanos) {
-      // increment the counter and reset the start of the idle period.
-      processMetrics.incrementIdleCounter();
+    } else if (hasExceededIdlePeriod) {
+      // Set idle metric to true and reset the start of the idle period
+      processMetrics.setIdleValue(true);
       idlePeriodStartNanos = 0;
-    } else {
-      // idleStartPeriod is non-zero, but we have not hit the idleStopPeriod yet
     }
   }
 
@@ -147,9 +159,11 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     return getContext().getConfiguration();
   }
 
-  @Override
-  public void close() {
-    MetricsUtil.close();
+  public String getApplicationName() {
+    return applicationName;
   }
+
+  @Override
+  public void close() {}
 
 }

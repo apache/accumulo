@@ -426,13 +426,15 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
   /**
    * @param prop Property to check
-   * @return true if the given property has explicitly been set by a user, false otherwise
+   * @return true if the given property has explicitly been set by a user, false otherwise; for
+   *         runtime-fixed properties, this returns true only if the property was set by the user
+   *         when the property's value was first read and entered a fixed state
    */
   public abstract boolean isPropertySet(Property prop);
 
   private static class RefCount<T> {
-    T obj;
-    long count;
+    final T obj;
+    final long count;
 
     RefCount(long c, T r) {
       this.count = c;
@@ -468,6 +470,12 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
       if (rc == null || rc.count != uc) {
         T newObj = converter.apply(AccumuloConfiguration.this);
+
+        if (newObj == null) {
+          // The converter should not return a null value and the Deriver
+          // should not store and return a null value.
+          throw new IllegalStateException("Deriver returned a null value");
+        }
 
         // very important to record the update count that was obtained before recomputing.
         RefCount<T> nrc = new RefCount<>(uc, newObj);
@@ -507,6 +515,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    *        this function will be kept and called by the returned deriver.
    * @return The returned supplier will automatically re-derive the object any time this
    *         configuration changes. When configuration is not changing, the same object is returned.
+   * @throws IllegalStateException When a null return value is returned by the converter.
    *
    */
   public <T> Deriver<T> newDeriver(Function<AccumuloConfiguration,T> converter) {

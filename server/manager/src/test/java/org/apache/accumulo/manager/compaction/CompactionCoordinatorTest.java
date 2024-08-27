@@ -23,7 +23,11 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 import static org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator.canReserveCompaction;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -39,6 +43,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -46,6 +51,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -66,6 +72,7 @@ import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -77,6 +84,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
@@ -100,6 +108,20 @@ public class CompactionCoordinatorTest {
 
   private static final CompactorGroupId GROUP_ID = CompactorGroupId.of("R2DQ");
 
+  private final HostAndPort tserverAddr = HostAndPort.fromParts("192.168.1.1", 9090);
+
+  public MetricsInfo getMockMetrics() {
+    MetricsInfo metricsInfo = createMock(MetricsInfo.class);
+    metricsInfo.addServiceTags(anyObject(), anyObject(), anyObject());
+    expectLastCall().anyTimes();
+    metricsInfo.addMetricsProducers(anyObject());
+    expectLastCall().anyTimes();
+    metricsInfo.init();
+    expectLastCall().anyTimes();
+    replay(metricsInfo);
+    return metricsInfo;
+  }
+
   public class TestCoordinator extends CompactionCoordinator {
 
     private final List<RunningCompaction> runningCompactions;
@@ -107,9 +129,14 @@ public class CompactionCoordinatorTest {
     private Set<ExternalCompactionId> metadataCompactionIds = null;
 
     public TestCoordinator(ServerContext ctx, SecurityOperation security,
-        List<RunningCompaction> runningCompactions) {
-      super(ctx, security, fateInstances);
+        List<RunningCompaction> runningCompactions, Manager manager) {
+      super(ctx, security, fateInstances, manager);
       this.runningCompactions = runningCompactions;
+    }
+
+    @Override
+    protected int countCompactors(String groupName) {
+      return 3;
     }
 
     @Override
@@ -121,13 +148,10 @@ public class CompactionCoordinatorTest {
     }
 
     @Override
-    protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
+    protected void startCompactorZKCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
 
     @Override
-    protected void startRunningCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
-
-    @Override
-    protected void startIdleCompactionWatcher() {
+    protected void startInternalStateCleaner(ScheduledThreadPoolExecutor schedExecutor) {
       // This is called from CompactionCoordinator.run(). Counting down
       // the latch will exit the run method
       this.shutdown.countDown();
@@ -167,6 +191,11 @@ public class CompactionCoordinatorTest {
     @Override
     protected List<RunningCompaction> getCompactionsRunningOnCompactors() {
       return runningCompactions;
+    }
+
+    @Override
+    protected Map<String,Set<HostAndPort>> getRunningCompactors() {
+      return Map.of();
     }
 
     @Override
@@ -216,11 +245,18 @@ public class CompactionCoordinatorTest {
     expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
 
+    MetricsInfo metricsInfo = getMockMetrics();
+    expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
+
     AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
 
-    EasyMock.replay(context, security);
+    Manager manager = EasyMock.createNiceMock(Manager.class);
+    expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
+        .anyTimes();
 
-    var coordinator = new TestCoordinator(context, security, new ArrayList<>());
+    EasyMock.replay(context, security, manager);
+
+    var coordinator = new TestCoordinator(context, security, new ArrayList<>(), manager);
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
     coordinator.run();
@@ -228,7 +264,7 @@ public class CompactionCoordinatorTest {
 
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
-    EasyMock.verify(context, security);
+    EasyMock.verify(context, security, metricsInfo);
   }
 
   @Test
@@ -238,7 +274,8 @@ public class CompactionCoordinatorTest {
     expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
 
-    HostAndPort tserverAddress = HostAndPort.fromString("localhost:9997");
+    MetricsInfo metricsInfo = getMockMetrics();
+    expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
 
     List<RunningCompaction> runningCompactions = new ArrayList<>();
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
@@ -246,14 +283,17 @@ public class CompactionCoordinatorTest {
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     TKeyExtent extent = new TKeyExtent();
     extent.setTable("1".getBytes());
-    runningCompactions
-        .add(new RunningCompaction(job, tserverAddress.toString(), GROUP_ID.toString()));
+    runningCompactions.add(new RunningCompaction(job, tserverAddr.toString(), GROUP_ID.toString()));
 
     AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
 
-    EasyMock.replay(context, job, security);
+    Manager manager = EasyMock.createNiceMock(Manager.class);
+    expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
+        .anyTimes();
 
-    var coordinator = new TestCoordinator(context, security, runningCompactions);
+    EasyMock.replay(context, job, security, manager);
+
+    var coordinator = new TestCoordinator(context, security, runningCompactions, manager);
     coordinator.resetInternals();
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
@@ -267,7 +307,7 @@ public class CompactionCoordinatorTest {
     assertEquals(eci, ecomp.getKey());
     RunningCompaction rc = ecomp.getValue();
     assertEquals(GROUP_ID.toString(), rc.getGroupName());
-    assertEquals(tserverAddress.toString(), rc.getCompactorAddress());
+    assertEquals(tserverAddr.toString(), rc.getCompactorAddress());
 
     EasyMock.verify(context, job, security);
   }
@@ -284,6 +324,9 @@ public class CompactionCoordinatorTest {
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
     expect(context.getTableConfiguration(TableId.of("2a"))).andReturn(tconf).anyTimes();
 
+    MetricsInfo metricsInfo = getMockMetrics();
+    expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
+
     TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
     expect(context.rpcCreds()).andReturn(creds).anyTimes();
 
@@ -295,10 +338,13 @@ public class CompactionCoordinatorTest {
     expect(tm.getExtent()).andReturn(ke).anyTimes();
     expect(tm.getFiles()).andReturn(Collections.emptySet()).anyTimes();
     expect(tm.getTableId()).andReturn(ke.tableId()).anyTimes();
+    Manager manager = EasyMock.createNiceMock(Manager.class);
+    expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
+        .anyTimes();
 
-    EasyMock.replay(tconf, context, creds, tm, security);
+    EasyMock.replay(tconf, context, creds, tm, security, manager);
 
-    var coordinator = new TestCoordinator(context, security, new ArrayList<>());
+    var coordinator = new TestCoordinator(context, security, new ArrayList<>(), manager);
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
     // Use coordinator.run() to populate the internal data structures. This is tested in a different
@@ -318,8 +364,10 @@ public class CompactionCoordinatorTest {
 
     // Get the next job
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
-    TExternalCompactionJob createdJob = coordinator.getCompactionJob(new TInfo(), creds,
+    TNextCompactionJob nextJob = coordinator.getCompactionJob(new TInfo(), creds,
         GROUP_ID.toString(), "localhost:10241", eci.toString());
+    assertEquals(3, nextJob.getCompactorCount());
+    TExternalCompactionJob createdJob = nextJob.getJob();
     assertEquals(eci.toString(), createdJob.getExternalCompactionId());
     assertEquals(ke, KeyExtent.fromThrift(createdJob.getExtent()));
 
@@ -346,12 +394,17 @@ public class CompactionCoordinatorTest {
     AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
     expect(security.canPerformSystemActions(creds)).andReturn(true);
 
-    EasyMock.replay(context, creds, security);
+    Manager manager = EasyMock.createNiceMock(Manager.class);
+    expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
+        .anyTimes();
 
-    var coordinator = new TestCoordinator(context, security, new ArrayList<>());
-    TExternalCompactionJob job = coordinator.getCompactionJob(TraceUtil.traceInfo(), creds,
+    EasyMock.replay(context, creds, security, manager);
+
+    var coordinator = new TestCoordinator(context, security, new ArrayList<>(), manager);
+    TNextCompactionJob nextJob = coordinator.getCompactionJob(TraceUtil.traceInfo(), creds,
         GROUP_ID.toString(), "localhost:10240", UUID.randomUUID().toString());
-    assertNull(job.getExternalCompactionId());
+    assertEquals(3, nextJob.getCompactorCount());
+    assertNull(nextJob.getJob().getExternalCompactionId());
 
     EasyMock.verify(context, creds, security);
   }
@@ -366,10 +419,14 @@ public class CompactionCoordinatorTest {
     TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
 
     AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
+    Manager manager = EasyMock.createNiceMock(Manager.class);
+    expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
+        .anyTimes();
 
-    EasyMock.replay(context, creds, security);
+    EasyMock.replay(context, creds, security, manager);
 
-    TestCoordinator coordinator = new TestCoordinator(context, security, new ArrayList<>());
+    TestCoordinator coordinator =
+        new TestCoordinator(context, security, new ArrayList<>(), manager);
 
     var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
     var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
@@ -379,13 +436,13 @@ public class CompactionCoordinatorTest {
     coordinator.getRunning().put(ecid2, new RunningCompaction(new TExternalCompaction()));
     coordinator.getRunning().put(ecid3, new RunningCompaction(new TExternalCompaction()));
 
-    coordinator.cleanUpRunning();
+    coordinator.cleanUpInternalState();
 
     assertEquals(Set.of(ecid1, ecid2, ecid3), coordinator.getRunning().keySet());
 
     coordinator.setMetadataCompactionIds(Set.of(ecid1, ecid2));
 
-    coordinator.cleanUpRunning();
+    coordinator.cleanUpInternalState();
 
     assertEquals(Set.of(ecid1, ecid2), coordinator.getRunning().keySet());
 
@@ -407,6 +464,12 @@ public class CompactionCoordinatorTest {
     EasyMock.expect(context.getTableState(tableId1)).andReturn(TableState.ONLINE).atLeastOnce();
     EasyMock.expect(context.getTableState(tableId2)).andReturn(TableState.OFFLINE).atLeastOnce();
 
+    TableConfiguration tableConf = EasyMock.createMock(TableConfiguration.class);
+    EasyMock.expect(tableConf.getTimeInMillis(Property.TABLE_COMPACTION_SELECTION_EXPIRATION))
+        .andReturn(100L).atLeastOnce();
+
+    EasyMock.expect(context.getTableConfiguration(anyObject())).andReturn(tableConf).atLeastOnce();
+
     FateId fateId1 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
 
     CompactorGroupId cgid = CompactorGroupId.of("G1");
@@ -420,7 +483,7 @@ public class CompactionCoordinatorTest {
     CompactionMetadata cm2 = new CompactionMetadata(Set.of(file3), tmp2, "localhost:5555",
         CompactionKind.USER, (short) 5, cgid, false, fateId1);
 
-    EasyMock.replay(context);
+    EasyMock.replay(context, tableConf);
 
     KeyExtent extent1 = new KeyExtent(tableId1, null, null);
 
@@ -429,36 +492,43 @@ public class CompactionCoordinatorTest {
     var cid1 = ExternalCompactionId.generate(UUID.randomUUID());
     var cid2 = ExternalCompactionId.generate(UUID.randomUUID());
 
-    var selected = new SelectedFiles(Set.of(file1, file2, file3), false, fateId1);
+    var selectedWithoutComp = new SelectedFiles(Set.of(file1, file2, file3), false, fateId1,
+        SteadyTime.from(100, TimeUnit.SECONDS));
+    var selectedWithComp = new SelectedFiles(Set.of(file1, file2, file3), false, fateId1, 1,
+        SteadyTime.from(100, TimeUnit.SECONDS));
+
+    var time = SteadyTime.from(1000, TimeUnit.SECONDS);
 
     // should not be able to compact an offline table
     var tabletOffline = TabletMetadata.builder(new KeyExtent(tableId2, null, null))
         .putFile(file1, dfv).putFile(file2, dfv).putFile(file3, dfv).putFile(file4, dfv)
         .build(OPID, ECOMP, USER_COMPACTION_REQUESTED, SELECTED);
-    assertFalse(
-        canReserveCompaction(tabletOffline, CompactionKind.SYSTEM, Set.of(file1, file2), context));
+    assertFalse(canReserveCompaction(tabletOffline, CompactionKind.SYSTEM, Set.of(file1, file2),
+        context, time));
 
     // nothing should prevent this compaction
     var tablet1 =
         TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv).putFile(file3, dfv)
             .putFile(file4, dfv).build(OPID, ECOMP, USER_COMPACTION_REQUESTED, SELECTED);
-    assertTrue(canReserveCompaction(tablet1, CompactionKind.SYSTEM, Set.of(file1, file2), context));
+    assertTrue(
+        canReserveCompaction(tablet1, CompactionKind.SYSTEM, Set.of(file1, file2), context, time));
 
     // should not be able to do a user compaction unless selected files are present
-    assertFalse(canReserveCompaction(tablet1, CompactionKind.USER, Set.of(file1, file2), context));
+    assertFalse(
+        canReserveCompaction(tablet1, CompactionKind.USER, Set.of(file1, file2), context, time));
 
     // should not be able to compact a tablet with user compaction request in place
     var tablet3 =
         TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv).putFile(file3, dfv)
             .putFile(file4, dfv).putUserCompactionRequested(fateId1).build(OPID, ECOMP, SELECTED);
     assertFalse(
-        canReserveCompaction(tablet3, CompactionKind.SYSTEM, Set.of(file1, file2), context));
+        canReserveCompaction(tablet3, CompactionKind.SYSTEM, Set.of(file1, file2), context, time));
 
     // should not be able to compact a tablet when the job has files not present in the tablet
     var tablet4 = TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv)
         .putFile(file3, dfv).build(OPID, ECOMP, USER_COMPACTION_REQUESTED, SELECTED);
-    assertFalse(
-        canReserveCompaction(tablet4, CompactionKind.SYSTEM, Set.of(file1, file2, file4), context));
+    assertFalse(canReserveCompaction(tablet4, CompactionKind.SYSTEM, Set.of(file1, file2, file4),
+        context, time));
 
     // should not be able to compact a tablet with an operation id present
     TabletOperationId opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId1);
@@ -466,64 +536,81 @@ public class CompactionCoordinatorTest {
         .putFile(file3, dfv).putFile(file4, dfv).putOperation(opid)
         .build(ECOMP, USER_COMPACTION_REQUESTED, SELECTED);
     assertFalse(
-        canReserveCompaction(tablet5, CompactionKind.SYSTEM, Set.of(file1, file2), context));
+        canReserveCompaction(tablet5, CompactionKind.SYSTEM, Set.of(file1, file2), context, time));
 
     // should not be able to compact a tablet if the job files overlaps with running compactions
     var tablet6 = TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv)
         .putFile(file3, dfv).putFile(file4, dfv).putExternalCompaction(cid1, cm1)
         .putExternalCompaction(cid2, cm2).build(OPID, USER_COMPACTION_REQUESTED, SELECTED);
     assertFalse(
-        canReserveCompaction(tablet6, CompactionKind.SYSTEM, Set.of(file1, file2), context));
+        canReserveCompaction(tablet6, CompactionKind.SYSTEM, Set.of(file1, file2), context, time));
     // should be able to compact the file that is outside of the set of files currently compacting
-    assertTrue(canReserveCompaction(tablet6, CompactionKind.SYSTEM, Set.of(file4), context));
+    assertTrue(canReserveCompaction(tablet6, CompactionKind.SYSTEM, Set.of(file4), context, time));
 
     // create a tablet with a selected set of files
-    var selTablet = TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv)
-        .putFile(file3, dfv).putFile(file4, dfv).putSelectedFiles(selected)
+    var selTabletWithComp = TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv)
+        .putFile(file3, dfv).putFile(file4, dfv).putSelectedFiles(selectedWithComp)
         .build(OPID, USER_COMPACTION_REQUESTED, ECOMP);
+    // 0 completed jobs
+    var selTabletWithoutComp = TabletMetadata.builder(extent1).putFile(file1, dfv)
+        .putFile(file2, dfv).putFile(file3, dfv).putFile(file4, dfv)
+        .putSelectedFiles(selectedWithoutComp).build(OPID, USER_COMPACTION_REQUESTED, ECOMP);
+
+    // Should be able to start if no completed and overlap
+    assertTrue(canReserveCompaction(selTabletWithoutComp, CompactionKind.SYSTEM,
+        Set.of(file1, file2), context, time));
+    assertTrue(canReserveCompaction(selTabletWithoutComp, CompactionKind.SYSTEM,
+        Set.of(file3, file4), context, time));
+
     // should not be able to start a system compaction if the set of files overlaps with the
     // selected files
-    assertFalse(
-        canReserveCompaction(selTablet, CompactionKind.SYSTEM, Set.of(file1, file2), context));
-    assertFalse(
-        canReserveCompaction(selTablet, CompactionKind.SYSTEM, Set.of(file3, file4), context));
+    assertFalse(canReserveCompaction(selTabletWithComp, CompactionKind.SYSTEM, Set.of(file1, file2),
+        context, time));
+    assertFalse(canReserveCompaction(selTabletWithComp, CompactionKind.SYSTEM, Set.of(file3, file4),
+        context, time));
     // should be able to start a system compaction on the set of files not in the selected set
-    assertTrue(canReserveCompaction(selTablet, CompactionKind.SYSTEM, Set.of(file4), context));
+    assertTrue(canReserveCompaction(selTabletWithComp, CompactionKind.SYSTEM, Set.of(file4),
+        context, time));
     // should be able to start user compactions on files that are selected
-    assertTrue(canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file1, file2), context));
-    assertTrue(canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file2, file3), context));
-    assertTrue(
-        canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file1, file2, file3), context));
+    assertTrue(canReserveCompaction(selTabletWithComp, CompactionKind.USER, Set.of(file1, file2),
+        context, time));
+    assertTrue(canReserveCompaction(selTabletWithComp, CompactionKind.USER, Set.of(file2, file3),
+        context, time));
+    assertTrue(canReserveCompaction(selTabletWithComp, CompactionKind.USER,
+        Set.of(file1, file2, file3), context, time));
     // should not be able to start user compactions on files that fall outside of the selected set
+    assertFalse(canReserveCompaction(selTabletWithComp, CompactionKind.USER, Set.of(file1, file4),
+        context, time));
     assertFalse(
-        canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file1, file4), context));
-    assertFalse(canReserveCompaction(selTablet, CompactionKind.USER, Set.of(file4), context));
-    assertFalse(canReserveCompaction(selTablet, CompactionKind.USER,
-        Set.of(file1, file2, file3, file4), context));
+        canReserveCompaction(selTabletWithComp, CompactionKind.USER, Set.of(file4), context, time));
+    assertFalse(canReserveCompaction(selTabletWithComp, CompactionKind.USER,
+        Set.of(file1, file2, file3, file4), context, time));
 
     // test selected files and running compaction
     var selRunningTablet = TabletMetadata.builder(extent1).putFile(file1, dfv).putFile(file2, dfv)
-        .putFile(file3, dfv).putFile(file4, dfv).putSelectedFiles(selected)
+        .putFile(file3, dfv).putFile(file4, dfv).putSelectedFiles(selectedWithComp)
         .putExternalCompaction(cid2, cm2).build(OPID, USER_COMPACTION_REQUESTED);
     // should be able to compact files that are in the selected set and not in the running set
-    assertTrue(
-        canReserveCompaction(selRunningTablet, CompactionKind.USER, Set.of(file1, file2), context));
+    assertTrue(canReserveCompaction(selRunningTablet, CompactionKind.USER, Set.of(file1, file2),
+        context, time));
     // should not be able to compact because files overlap the running set
-    assertFalse(
-        canReserveCompaction(selRunningTablet, CompactionKind.USER, Set.of(file2, file3), context));
+    assertFalse(canReserveCompaction(selRunningTablet, CompactionKind.USER, Set.of(file2, file3),
+        context, time));
     // should not be able to start a system compaction if the set of files overlaps with the
     // selected files and/or the running set
     assertFalse(canReserveCompaction(selRunningTablet, CompactionKind.SYSTEM, Set.of(file1, file2),
-        context));
+        context, time));
     assertFalse(canReserveCompaction(selRunningTablet, CompactionKind.SYSTEM, Set.of(file3, file4),
-        context));
+        context, time));
     // should be able to start a system compaction on the set of files not in the selected set
-    assertTrue(
-        canReserveCompaction(selRunningTablet, CompactionKind.SYSTEM, Set.of(file4), context));
+    assertTrue(canReserveCompaction(selRunningTablet, CompactionKind.SYSTEM, Set.of(file4), context,
+        time));
 
     // should not be able to compact a tablet that does not exists
-    assertFalse(canReserveCompaction(null, CompactionKind.SYSTEM, Set.of(file1, file2), context));
-    assertFalse(canReserveCompaction(null, CompactionKind.USER, Set.of(file1, file2), context));
+    assertFalse(
+        canReserveCompaction(null, CompactionKind.SYSTEM, Set.of(file1, file2), context, time));
+    assertFalse(
+        canReserveCompaction(null, CompactionKind.USER, Set.of(file1, file2), context, time));
 
     EasyMock.verify(context);
   }

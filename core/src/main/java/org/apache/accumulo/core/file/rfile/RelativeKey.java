@@ -23,9 +23,9 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.accumulo.core.util.UnsynchronizedBuffer;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
@@ -204,9 +204,9 @@ public class RelativeKey implements Writable {
   }
 
   public static class SkippR {
-    RelativeKey rk;
-    int skipped;
-    Key prevKey;
+    final RelativeKey rk;
+    final int skipped;
+    final Key prevKey;
 
     SkippR(RelativeKey rk, int skipped, Key prevKey) {
       this.rk = rk;
@@ -215,12 +215,12 @@ public class RelativeKey implements Writable {
     }
   }
 
-  public static SkippR fastSkip(DataInput in, Key seekKey, MutableByteSequence value, Key prevKey,
+  public static SkippR fastSkip(DataInput in, Key seekKey, ArrayByteSequence value, Key prevKey,
       Key currKey, int entriesLeft) throws IOException {
     // this method mostly avoids object allocation and only does compares when the row changes
 
-    MutableByteSequence row, cf, cq, cv;
-    MutableByteSequence prow, pcf, pcq, pcv;
+    ArrayByteSequence row, cf, cq, cv;
+    ArrayByteSequence prow, pcf, pcq, pcv;
 
     ByteSequence stopRow = seekKey.getRowData();
     ByteSequence stopCF = seekKey.getColumnFamilyData();
@@ -234,16 +234,16 @@ public class RelativeKey implements Writable {
 
     if (currKey != null) {
 
-      prow = new MutableByteSequence(currKey.getRowData());
-      pcf = new MutableByteSequence(currKey.getColumnFamilyData());
-      pcq = new MutableByteSequence(currKey.getColumnQualifierData());
-      pcv = new MutableByteSequence(currKey.getColumnVisibilityData());
+      prow = new ArrayByteSequence(currKey.getRowData());
+      pcf = new ArrayByteSequence(currKey.getColumnFamilyData());
+      pcq = new ArrayByteSequence(currKey.getColumnQualifierData());
+      pcv = new ArrayByteSequence(currKey.getColumnVisibilityData());
       pts = currKey.getTimestamp();
 
-      row = new MutableByteSequence(currKey.getRowData());
-      cf = new MutableByteSequence(currKey.getColumnFamilyData());
-      cq = new MutableByteSequence(currKey.getColumnQualifierData());
-      cv = new MutableByteSequence(currKey.getColumnVisibilityData());
+      row = new ArrayByteSequence(currKey.getRowData());
+      cf = new ArrayByteSequence(currKey.getColumnFamilyData());
+      cq = new ArrayByteSequence(currKey.getColumnQualifierData());
+      cv = new ArrayByteSequence(currKey.getColumnVisibilityData());
       ts = currKey.getTimestamp();
 
       rowCmp = row.compareTo(stopRow);
@@ -273,15 +273,15 @@ public class RelativeKey implements Writable {
       }
 
     } else {
-      row = new MutableByteSequence(new byte[64], 0, 0);
-      cf = new MutableByteSequence(new byte[64], 0, 0);
-      cq = new MutableByteSequence(new byte[64], 0, 0);
-      cv = new MutableByteSequence(new byte[64], 0, 0);
+      row = new ArrayByteSequence(new byte[64], 0, 0);
+      cf = new ArrayByteSequence(new byte[64], 0, 0);
+      cq = new ArrayByteSequence(new byte[64], 0, 0);
+      cv = new ArrayByteSequence(new byte[64], 0, 0);
 
-      prow = new MutableByteSequence(new byte[64], 0, 0);
-      pcf = new MutableByteSequence(new byte[64], 0, 0);
-      pcq = new MutableByteSequence(new byte[64], 0, 0);
-      pcv = new MutableByteSequence(new byte[64], 0, 0);
+      prow = new ArrayByteSequence(new byte[64], 0, 0);
+      pcf = new ArrayByteSequence(new byte[64], 0, 0);
+      pcq = new ArrayByteSequence(new byte[64], 0, 0);
+      pcv = new ArrayByteSequence(new byte[64], 0, 0);
     }
 
     byte fieldsSame = -1;
@@ -304,7 +304,7 @@ public class RelativeKey implements Writable {
 
       if ((fieldsSame & ROW_SAME) != ROW_SAME) {
 
-        MutableByteSequence tmp = prow;
+        ArrayByteSequence tmp = prow;
         prow = row;
         row = tmp;
 
@@ -321,7 +321,7 @@ public class RelativeKey implements Writable {
 
       if ((fieldsSame & CF_SAME) != CF_SAME) {
 
-        MutableByteSequence tmp = pcf;
+        ArrayByteSequence tmp = pcf;
         pcf = cf;
         cf = tmp;
 
@@ -337,7 +337,7 @@ public class RelativeKey implements Writable {
 
       if ((fieldsSame & CQ_SAME) != CQ_SAME) {
 
-        MutableByteSequence tmp = pcq;
+        ArrayByteSequence tmp = pcq;
         pcq = cq;
         cq = tmp;
 
@@ -353,7 +353,7 @@ public class RelativeKey implements Writable {
 
       if ((fieldsSame & CV_SAME) != CV_SAME) {
 
-        MutableByteSequence tmp = pcv;
+        ArrayByteSequence tmp = pcv;
         pcv = cv;
         cv = tmp;
 
@@ -397,7 +397,7 @@ public class RelativeKey implements Writable {
     }
 
     if (count > 1) {
-      MutableByteSequence trow, tcf, tcq, tcv;
+      ArrayByteSequence trow, tcf, tcq, tcv;
       long tts;
 
       // when the current keys field is same as the last, then
@@ -432,24 +432,24 @@ public class RelativeKey implements Writable {
     return new SkippR(result, count, newPrevKey);
   }
 
-  private static void read(DataInput in, MutableByteSequence mbseq) throws IOException {
+  private static void read(DataInput in, ArrayByteSequence mbseq) throws IOException {
     int len = WritableUtils.readVInt(in);
     read(in, mbseq, len);
   }
 
-  private static void readValue(DataInput in, MutableByteSequence mbseq) throws IOException {
+  private static void readValue(DataInput in, ArrayByteSequence mbseq) throws IOException {
     int len = in.readInt();
     read(in, mbseq, len);
   }
 
-  private static void read(DataInput in, MutableByteSequence mbseqDestination, int len)
+  private static void read(DataInput in, ArrayByteSequence mbseqDestination, int len)
       throws IOException {
-    if (mbseqDestination.getBackingArray().length < len) {
-      mbseqDestination.setArray(new byte[UnsynchronizedBuffer.nextArraySize(len)], 0, 0);
+    byte[] buf = mbseqDestination.getBackingArray();
+    if (buf.length < len) {
+      buf = new byte[UnsynchronizedBuffer.nextArraySize(len)];
     }
-
-    in.readFully(mbseqDestination.getBackingArray(), 0, len);
-    mbseqDestination.setLength(len);
+    in.readFully(buf, 0, len);
+    mbseqDestination.reset(buf, 0, len);
   }
 
   private static byte[] readPrefix(DataInput in, ByteSequence prefixSource) throws IOException {
@@ -467,24 +467,24 @@ public class RelativeKey implements Writable {
     return data;
   }
 
-  private static void readPrefix(DataInput in, MutableByteSequence dest, ByteSequence prefixSource)
+  private static void readPrefix(DataInput in, ArrayByteSequence dest, ByteSequence prefixSource)
       throws IOException {
     int prefixLen = WritableUtils.readVInt(in);
     int remainingLen = WritableUtils.readVInt(in);
     int len = prefixLen + remainingLen;
-    if (dest.getBackingArray().length < len) {
-      dest.setArray(new byte[UnsynchronizedBuffer.nextArraySize(len)], 0, 0);
+    byte[] buf = dest.getBackingArray();
+    if (buf.length < len) {
+      buf = new byte[UnsynchronizedBuffer.nextArraySize(len)];
     }
     if (prefixSource.isBackedByArray()) {
-      System.arraycopy(prefixSource.getBackingArray(), prefixSource.offset(),
-          dest.getBackingArray(), 0, prefixLen);
+      System.arraycopy(prefixSource.getBackingArray(), prefixSource.offset(), buf, 0, prefixLen);
     } else {
       byte[] prefixArray = prefixSource.toArray();
-      System.arraycopy(prefixArray, 0, dest.getBackingArray(), 0, prefixLen);
+      System.arraycopy(prefixArray, 0, buf, 0, prefixLen);
     }
     // read remaining
-    in.readFully(dest.getBackingArray(), prefixLen, remainingLen);
-    dest.setLength(len);
+    in.readFully(buf, prefixLen, remainingLen);
+    dest.reset(buf, 0, len);
   }
 
   private static byte[] read(DataInput in) throws IOException {

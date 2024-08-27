@@ -32,7 +32,7 @@ class SetupPermissions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   SetupPermissions(TableInfo ti) {
     this.tableInfo = ti;
@@ -46,7 +46,8 @@ class SetupPermissions extends ManagerRepo {
       for (TablePermission permission : TablePermission.values()) {
         try {
           security.grantTablePermission(env.getContext().rpcCreds(), tableInfo.getUser(),
-              tableInfo.getTableId(), permission, tableInfo.getNamespaceId());
+              tableInfo.getTableId(), tableInfo.getTableName(), permission,
+              tableInfo.getNamespaceId());
         } catch (ThriftSecurityException e) {
           LoggerFactory.getLogger(SetupPermissions.class).error("{}", e.getMessage(), e);
           throw e;

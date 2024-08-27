@@ -87,7 +87,7 @@ import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.tableOps.ChangeTableState;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
-import org.apache.accumulo.manager.tableOps.availability.SetTabletAvailability;
+import org.apache.accumulo.manager.tableOps.availability.LockTable;
 import org.apache.accumulo.manager.tableOps.bulkVer2.PrepBulkImport;
 import org.apache.accumulo.manager.tableOps.clone.CloneTable;
 import org.apache.accumulo.manager.tableOps.compact.CompactRange;
@@ -711,8 +711,7 @@ class FateServiceHandler implements FateService.Iface {
         goalMessage += "Set availability for table: " + tableName + "(" + tableId + ") range: "
             + tRange + " to: " + tabletAvailability.name();
         manager.fate(type).seedTransaction(op.toString(), fateId,
-            new TraceRepo<>(
-                new SetTabletAvailability(tableId, namespaceId, tRange, tabletAvailability)),
+            new TraceRepo<>(new LockTable(tableId, namespaceId, tRange, tabletAvailability)),
             autoCleanup, goalMessage);
         break;
       }

@@ -524,8 +524,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       // Report that we have a bar tablet on this server
       TKeyExtent tke = new TKeyExtent();
       tke.setTable(BAR.getId().canonical().getBytes(UTF_8));
-      tke.setEndRow("11".getBytes());
-      tke.setPrevEndRow("10".getBytes());
+      tke.setEndRow("11".getBytes(UTF_8));
+      tke.setPrevEndRow("10".getBytes(UTF_8));
       TabletStats tstats = new TabletStats();
       tstats.setExtent(tke);
       TabletStatistics ts = new TabletStatisticsImpl(tstats);
@@ -534,8 +534,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       // Report that we have a foo tablet on this server
       TKeyExtent tke = new TKeyExtent();
       tke.setTable(FOO.getId().canonical().getBytes(UTF_8));
-      tke.setEndRow("1".getBytes());
-      tke.setPrevEndRow("0".getBytes());
+      tke.setEndRow("1".getBytes(UTF_8));
+      tke.setPrevEndRow("0".getBytes(UTF_8));
       TabletStats tstats = new TabletStats();
       tstats.setExtent(tke);
       TabletStatistics ts = new TabletStatisticsImpl(tstats);

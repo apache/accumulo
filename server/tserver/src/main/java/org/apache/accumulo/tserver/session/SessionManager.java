@@ -36,7 +36,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -80,15 +79,15 @@ public class SessionManager {
     Runnable r = () -> sweep(maxIdle, maxUpdateIdle);
 
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(r,
-        0, Math.max(maxIdle / 2, 1000), TimeUnit.MILLISECONDS));
+        0, Math.max(maxIdle / 2, 1000), MILLISECONDS));
   }
 
   public long createSession(Session session, boolean reserve) {
     long sid = RANDOM.get().nextLong();
 
     synchronized (session) {
-      Preconditions.checkArgument(session.state == State.NEW);
-      session.state = reserve ? State.RESERVED : State.UNRESERVED;
+      Preconditions.checkArgument(session.getState() == State.NEW);
+      session.setState(reserve ? State.RESERVED : State.UNRESERVED);
       session.startTime = session.lastAccessTime = System.currentTimeMillis();
     }
 
@@ -111,14 +110,14 @@ public class SessionManager {
     Session session = sessions.get(sessionId);
     if (session != null) {
       synchronized (session) {
-        if (session.state == State.RESERVED) {
+        if (session.getState() == State.RESERVED) {
           throw new IllegalStateException(
               "Attempted to reserved session that is already reserved " + sessionId);
         }
-        if (session.state == State.REMOVED) {
+        if (session.getState() == State.REMOVED) {
           return null;
         }
-        session.state = State.RESERVED;
+        session.setState(State.RESERVED);
       }
     }
 
@@ -131,11 +130,11 @@ public class SessionManager {
     if (session != null) {
       synchronized (session) {
 
-        if (session.state == State.REMOVED) {
+        if (session.getState() == State.REMOVED) {
           return null;
         }
 
-        while (wait && session.state == State.RESERVED) {
+        while (wait && session.getState() == State.RESERVED) {
           try {
             session.wait(1000);
           } catch (InterruptedException e) {
@@ -143,14 +142,14 @@ public class SessionManager {
           }
         }
 
-        if (session.state == State.RESERVED) {
+        if (session.getState() == State.RESERVED) {
           throw new IllegalStateException(
               "Attempted to reserved session that is already reserved " + sessionId);
         }
-        if (session.state == State.REMOVED) {
+        if (session.getState() == State.REMOVED) {
           return null;
         }
-        session.state = State.RESERVED;
+        session.setState(State.RESERVED);
       }
     }
 
@@ -160,14 +159,14 @@ public class SessionManager {
 
   public void unreserveSession(Session session) {
     synchronized (session) {
-      if (session.state == State.REMOVED) {
+      if (session.getState() == State.REMOVED) {
         return;
       }
-      if (session.state != State.RESERVED) {
-        throw new IllegalStateException("Cannon unreserve, state: " + session.state);
+      if (session.getState() != State.RESERVED) {
+        throw new IllegalStateException("Cannon unreserve, state: " + session.getState());
       }
       session.notifyAll();
-      session.state = State.UNRESERVED;
+      session.setState(State.UNRESERVED);
       session.lastAccessTime = System.currentTimeMillis();
     }
   }
@@ -184,7 +183,7 @@ public class SessionManager {
 
     if (session != null) {
       synchronized (session) {
-        if (session.state == State.REMOVED) {
+        if (session.getState() == State.REMOVED) {
           return null;
         }
         session.lastAccessTime = System.currentTimeMillis();
@@ -204,12 +203,12 @@ public class SessionManager {
     if (session != null) {
       boolean doCleanup = false;
       synchronized (session) {
-        if (session.state != State.REMOVED) {
+        if (session.getState() != State.REMOVED) {
           if (unreserve) {
             unreserveSession(session);
           }
           doCleanup = true;
-          session.state = State.REMOVED;
+          session.setState(State.REMOVED);
         }
       }
 
@@ -229,10 +228,10 @@ public class SessionManager {
     }
 
     synchronized (session) {
-      if (session.state == State.RESERVED) {
+      if (session.getState() == State.RESERVED) {
         return false;
       }
-      session.state = State.REMOVED;
+      session.setState(State.REMOVED);
     }
 
     sessions.remove(sessionId);
@@ -274,7 +273,7 @@ public class SessionManager {
     while (iter.hasNext()) {
       Session session = iter.next();
       synchronized (session) {
-        if (session.state == State.UNRESERVED) {
+        if (session.getState() == State.UNRESERVED) {
           long configuredIdle = maxIdle;
           if (session instanceof UpdateSession) {
             configuredIdle = maxUpdateIdle;
@@ -285,7 +284,7 @@ public class SessionManager {
                 session.client, idleTime);
             iter.remove();
             sessionsToCleanup.add(session);
-            session.state = State.REMOVED;
+            session.setState(State.REMOVED);
           }
         }
       }
@@ -316,8 +315,9 @@ public class SessionManager {
           if (session2 != null) {
             boolean shouldRemove = false;
             synchronized (session2) {
-              if (session2.lastAccessTime == removeTime && session2.state == State.UNRESERVED) {
-                session2.state = State.REMOVED;
+              if (session2.lastAccessTime == removeTime
+                  && session2.getState() == State.UNRESERVED) {
+                session2.setState(State.REMOVED);
                 shouldRemove = true;
               }
             }
@@ -332,8 +332,7 @@ public class SessionManager {
         }
       };
 
-      ScheduledFuture<?> future =
-          ctx.getScheduledExecutor().schedule(r, delay, TimeUnit.MILLISECONDS);
+      ScheduledFuture<?> future = ctx.getScheduledExecutor().schedule(r, delay, MILLISECONDS);
       ThreadPools.watchNonCriticalScheduledTask(future);
     }
   }
@@ -358,11 +357,11 @@ public class SessionManager {
 
       if (session instanceof SingleScanSession) {
         SingleScanSession ss = (SingleScanSession) session;
-        nbt = ss.nextBatchTask;
+        nbt = ss.getScanTask();
         tableID = ss.extent.tableId();
       } else if (session instanceof MultiScanSession) {
         MultiScanSession mss = (MultiScanSession) session;
-        nbt = mss.lookupTask;
+        nbt = mss.getScanTask();
         tableID = mss.threadPoolExtent.tableId();
       }
 
@@ -397,7 +396,7 @@ public class SessionManager {
 
         ScanState state = ScanState.RUNNING;
 
-        ScanTask<ScanBatch> nbt = ss.nextBatchTask;
+        ScanTask<ScanBatch> nbt = ss.getScanTask();
         if (nbt == null) {
           state = ScanState.IDLE;
         } else {
@@ -433,7 +432,7 @@ public class SessionManager {
 
         ScanState state = ScanState.RUNNING;
 
-        ScanTask<MultiScanResult> nbt = mss.lookupTask;
+        ScanTask<MultiScanResult> nbt = mss.getScanTask();
         if (nbt == null) {
           state = ScanState.IDLE;
         } else {

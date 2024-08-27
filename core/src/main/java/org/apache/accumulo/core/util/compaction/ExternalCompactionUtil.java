@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.core.util.compaction;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTIONS_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTION_IDS_POOL;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -25,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -43,6 +48,7 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -107,9 +113,9 @@ public class ExternalCompactionUtil {
   /**
    * @return map of group names to compactor addresses
    */
-  public static Map<String,List<HostAndPort>> getCompactorAddrs(ClientContext context) {
+  public static Map<String,Set<HostAndPort>> getCompactorAddrs(ClientContext context) {
     try {
-      final Map<String,List<HostAndPort>> groupsAndAddresses = new HashMap<>();
+      final Map<String,Set<HostAndPort>> groupsAndAddresses = new HashMap<>();
       final String compactorGroupsPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
       ZooReader zooReader = context.getZooReader();
       List<String> groups = zooReader.getChildren(compactorGroupsPath);
@@ -123,7 +129,7 @@ public class ExternalCompactionUtil {
                 zooReader.getChildren(compactorGroupsPath + "/" + group + "/" + compactor);
             if (!children.isEmpty()) {
               LOG.trace("Found live compactor {} ", compactor);
-              groupsAndAddresses.putIfAbsent(group, new ArrayList<>());
+              groupsAndAddresses.putIfAbsent(group, new HashSet<>());
               groupsAndAddresses.get(group).add(HostAndPort.fromString(compactor));
             }
           }
@@ -219,7 +225,7 @@ public class ExternalCompactionUtil {
   public static List<RunningCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
     final List<RunningCompactionFuture> rcFutures = new ArrayList<>();
     final ExecutorService executor = ThreadPools.getServerThreadPools()
-        .getPoolBuilder("CompactorRunningCompactions").numCoreThreads(16).build();
+        .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
 
     getCompactorAddrs(context).forEach((group, hp) -> {
       hp.forEach(hostAndPort -> {
@@ -247,7 +253,7 @@ public class ExternalCompactionUtil {
   public static Collection<ExternalCompactionId>
       getCompactionIdsRunningOnCompactors(ClientContext context) {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
-        .getPoolBuilder("CompactorRunningCompactions").numCoreThreads(16).build();
+        .getPoolBuilder(COMPACTOR_RUNNING_COMPACTION_IDS_POOL).numCoreThreads(16).build();
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
     getCompactorAddrs(context).forEach((q, hp) -> {
@@ -274,6 +280,7 @@ public class ExternalCompactionUtil {
   }
 
   public static int countCompactors(String groupName, ClientContext context) {
+    var start = Timer.startNew();
     String groupRoot = context.getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + groupName;
     List<String> children = context.getZooCache().getChildren(groupRoot);
     if (children == null) {
@@ -287,6 +294,13 @@ public class ExternalCompactionUtil {
       if (children2 != null && !children2.isEmpty()) {
         count++;
       }
+    }
+
+    long elapsed = start.elapsed(MILLISECONDS);
+    if (elapsed > 100) {
+      LOG.debug("Took {} ms to count {} compactors for {}", elapsed, count, groupName);
+    } else {
+      LOG.trace("Took {} ms to count {} compactors for {}", elapsed, count, groupName);
     }
 
     return count;

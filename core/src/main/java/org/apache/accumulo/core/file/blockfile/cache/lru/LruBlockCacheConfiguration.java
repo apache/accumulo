@@ -157,8 +157,8 @@ public final class LruBlockCacheConfiguration {
   }
 
   public static class Builder {
-    private Map<String,String> props = new HashMap<>();
-    private String prefix;
+    private final Map<String,String> props = new HashMap<>();
+    private final String prefix;
 
     private Builder(String prefix) {
       this.prefix = prefix;
@@ -236,6 +236,10 @@ public final class LruBlockCacheConfiguration {
 
   public long getMaxSize() {
     return conf.getMaxSize(type);
+  }
+
+  public CacheType getCacheType() {
+    return type;
   }
 
   public long getBlockSize() {

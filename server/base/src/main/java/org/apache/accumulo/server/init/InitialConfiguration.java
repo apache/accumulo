@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.fate.user.schema.FateSchema;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -32,7 +33,7 @@ import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.hadoop.conf.Configuration;
 
-class InitialConfiguration {
+public class InitialConfiguration {
 
   // config only for root table
   private final HashMap<String,String> initialRootConf = new HashMap<>();
@@ -42,10 +43,12 @@ class InitialConfiguration {
   private final HashMap<String,String> initialMetaConf = new HashMap<>();
   // config for only fate table
   private final HashMap<String,String> initialFateTableConf = new HashMap<>();
+  // config for only scan ref table
+  private final HashMap<String,String> initialScanRefTableConf = new HashMap<>();
   private final Configuration hadoopConf;
   private final SiteConfiguration siteConf;
 
-  InitialConfiguration(Configuration hadoopConf, SiteConfiguration siteConf) {
+  public InitialConfiguration(Configuration hadoopConf, SiteConfiguration siteConf) {
     this.hadoopConf = hadoopConf;
     this.siteConf = siteConf;
 
@@ -85,6 +88,13 @@ class InitialConfiguration {
 
     initialFateTableConf.putAll(commonConfig);
     initialFateTableConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "256M");
+    // Create a locality group that contains status so its fast to scan. When fate looks for work is
+    // scans this family.
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "status",
+        FateSchema.TxColumnFamily.STR_NAME);
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "status");
+
+    initialScanRefTableConf.putAll(commonConfig);
 
     int max = hadoopConf.getInt("dfs.replication.max", 512);
     // Hadoop 0.23 switched the min value configuration name
@@ -127,6 +137,10 @@ class InitialConfiguration {
 
   HashMap<String,String> getFateTableConf() {
     return initialFateTableConf;
+  }
+
+  HashMap<String,String> getScanRefTableConf() {
+    return initialScanRefTableConf;
   }
 
   Configuration getHadoopConf() {

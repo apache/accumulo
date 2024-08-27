@@ -32,7 +32,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.crypto.CryptoTest;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFile.FencedIndex;
 import org.apache.accumulo.core.file.rfile.RFile.FencedReader;
@@ -181,7 +183,7 @@ public class FencedRFileTest extends AbstractRFileTest {
     final TestRFile trf = initTestFile();
 
     // Fence off the file to contain only 1 row (r_00001)
-    Range range = new Range(new Range("r_000001"));
+    Range range = new Range("r_000001");
     trf.openReader(range);
 
     // Open a fenced reader
@@ -310,6 +312,74 @@ public class FencedRFileTest extends AbstractRFileTest {
 
     reader.reset();
     assertFalse(reader.hasTop());
+  }
+
+  @Test
+  public void testEstimateOverlappingEntries() throws IOException {
+    final TestRFile trf = new TestRFile(conf);
+    // set block sizes lower to get a better estimate
+    trf.openWriter(true, 100, 100);
+    // write a test file with 1024 entries
+    writeTestFile(trf);
+    trf.closeWriter();
+
+    // Test with infinite start/end range for fenced file
+    Range range = new Range();
+    trf.openReader(range);
+    FencedReader reader = (FencedReader) trf.iter;
+    // Expect entire range to be seen, so we can re-use the same verifyEstimate() tests
+    // used for non-fenced files
+    verifyEstimated(reader);
+    trf.closeReader();
+
+    // Test with start/end range for fenced file that covers full file
+    range = new Range(null, false, "r_000004", true);
+    trf.openReader(range);
+    reader = (FencedReader) trf.iter;
+    verifyEstimated(reader);
+    trf.closeReader();
+
+    // Fence off the file to contain only 1 row (r_00001)
+    range = new Range("r_000001", false, "r_000002", true);
+    trf.openReader(range);
+    reader = (FencedReader) trf.iter;
+
+    // Key extent is null end/prev end row but file is fenced to 1 row
+    var extent = new KeyExtent(TableId.of("1"), null, null);
+    long estimated = reader.estimateOverlappingEntries(extent);
+    // One row contains 256 but will overestimate slightly
+    assertEquals(258, estimated);
+
+    // Disjoint, fenced file is set to row 1 and KeyExtent is row 0
+    estimated = reader
+        .estimateOverlappingEntries(new KeyExtent(TableId.of("1"), new Text("r_000001"), null));
+    assertEquals(0, estimated);
+    trf.closeReader();
+
+    // Fence off the file to contain only 2 rows (r_00001 and r_000002)
+    range = new Range("r_000001", false, "r_000003", true);
+    trf.openReader(range);
+    reader = (FencedReader) trf.iter;
+
+    // Key extent is null end/prev end row but file is fenced to 2 rows
+    extent = new KeyExtent(TableId.of("1"), null, null);
+    estimated = reader.estimateOverlappingEntries(extent);
+    // two rows contain 512 but will overestimate slightly
+    assertEquals(514, estimated);
+
+    // 1 overlapping row
+    extent = new KeyExtent(TableId.of("1"), new Text("r_000002"), null);
+    estimated = reader.estimateOverlappingEntries(extent);
+    assertEquals(258, estimated);
+    trf.closeReader();
+
+    // Invalid row range
+    range = new Range("r_000001", true, "r_000003", true);
+    trf.openReader(range);
+    final var r = (FencedReader) trf.iter;
+    assertThrows(IllegalArgumentException.class,
+        () -> r.estimateOverlappingEntries(new KeyExtent(TableId.of("1"), null, null)));
+    trf.closeReader();
   }
 
   private int testFencing(List<Range> fencedRange, List<Range> expectedRange) throws IOException {

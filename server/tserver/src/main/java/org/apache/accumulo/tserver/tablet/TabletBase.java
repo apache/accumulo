@@ -76,9 +76,9 @@ public abstract class TabletBase {
   protected final ServerContext context;
   private final TabletHostingServer server;
 
-  protected AtomicLong lookupCount = new AtomicLong(0);
-  protected AtomicLong queryResultCount = new AtomicLong(0);
-  protected AtomicLong queryResultBytes = new AtomicLong(0);
+  protected final AtomicLong lookupCount = new AtomicLong(0);
+  protected final AtomicLong queryResultCount = new AtomicLong(0);
+  protected final AtomicLong queryResultBytes = new AtomicLong(0);
   protected final AtomicLong scannedCount = new AtomicLong(0);
 
   protected final Set<ScanDataSource> activeScans = new HashSet<>();
@@ -208,7 +208,7 @@ public abstract class TabletBase {
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       this.lookupCount.incrementAndGet();
-      this.server.getScanMetrics().incrementLookupCount(1);
+      this.server.getScanMetrics().incrementLookupCount();
       result = lookup(iter, ranges, results, scanParams, maxResultSize);
       return result;
     } catch (IOException | RuntimeException e) {

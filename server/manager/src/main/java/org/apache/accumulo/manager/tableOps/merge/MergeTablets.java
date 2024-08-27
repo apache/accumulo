@@ -93,11 +93,22 @@ public class MergeTablets extends ManagerRepo {
           firstTabletMeta = Objects.requireNonNull(tabletMeta);
         }
 
+        // determine if this is the last tablet in the merge range
+        boolean isLastTablet = (range.endRow() == null && tabletMeta.getExtent().endRow() == null)
+            || (range.endRow() != null && tabletMeta.getExtent().contains(range.endRow()));
+
         if (prevExtent == null) {
           prevExtent = tabletMeta.getExtent();
         } else {
-          Preconditions.checkState(
-              Objects.equals(prevExtent.endRow(), tabletMeta.getExtent().prevEndRow()),
+          boolean pointsToPrevious =
+              Objects.equals(prevExtent.endRow(), tabletMeta.getExtent().prevEndRow());
+          boolean isAlreadyMerged = isLastTablet && tabletMeta.hasMerged()
+              && Objects.equals(firstTabletMeta.getPrevEndRow(), tabletMeta.getPrevEndRow());
+
+          // Need to ensure the tablets being merged form a proper linked list. In the case where
+          // this operation is running a second time the last tablet will not form a linked list and
+          // that is ok.
+          Preconditions.checkState(pointsToPrevious || isAlreadyMerged,
               "%s unexpectedly saw a hole in the metadata table %s %s", fateId, prevExtent,
               tabletMeta.getExtent());
           prevExtent = tabletMeta.getExtent();
@@ -109,9 +120,6 @@ public class MergeTablets extends ManagerRepo {
         maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, tabletMeta.getTime());
         tabletAvailabilities.add(tabletMeta.getTabletAvailability());
 
-        // determine if this is the last tablet in the merge range
-        boolean isLastTablet = (range.endRow() == null && tabletMeta.getExtent().endRow() == null)
-            || (range.endRow() != null && tabletMeta.getExtent().contains(range.endRow()));
         if (isLastTablet) {
           lastTabletMeta = tabletMeta;
         } else {

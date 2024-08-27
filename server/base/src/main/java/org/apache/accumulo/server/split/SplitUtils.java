@@ -29,8 +29,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -188,13 +186,6 @@ public class SplitUtils {
   }
 
   public static int calculateDesiredSplits(long esitimatedSize, long splitThreshold) {
-    // ELASTICITY_TODO tablets used to always split into 2 tablets. Now the split operation will
-    // split into many. How does this impact a tablet with many files and the estimated sizes after
-    // split vs the old method. Need to run test where we add lots of data to a single tablet,
-    // change the split thresh, wait for splits, then look at the estimated sizes, then compact and
-    // look at the sizes after. For example if a tablet has 10M of data and the split thesh is set
-    // to 100K, what will the est sizes look like across the tablets after splitting and then after
-    // compacting?
     return (int) Math.floor((double) esitimatedSize / (double) splitThreshold);
   }
 
@@ -203,9 +194,7 @@ public class SplitUtils {
     var threshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
 
-    // ELASTICITY_TODO rename and deprecate property. This is not executing in the tablet server
-    // anymore.
-    int maxFilesToOpen = tableConf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
+    int maxFilesToOpen = tableConf.getCount(Property.SPLIT_MAXOPEN);
 
     var estimatedSize = tabletMetadata.getFileSize();
     if (!needsSplit(context, tabletMetadata)) {
@@ -303,12 +292,6 @@ public class SplitUtils {
     return needsSplit(splitThreshold, tabletMetadata);
   }
 
-  public static boolean needsSplit(final Configuration tableConf, TabletMetadata tabletMetadata) {
-    var splitThreshold = ConfigurationTypeHelper
-        .getFixedMemoryAsBytes(tableConf.get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
-    return needsSplit(splitThreshold, tabletMetadata);
-  }
-
   public static boolean needsSplit(long splitThreshold, TabletMetadata tabletMetadata) {
     return tabletMetadata.getFileSize() > splitThreshold;
   }
@@ -318,7 +301,7 @@ public class SplitUtils {
     var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
     var splitThreshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
-    int maxFilesToOpen = tableConf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
+    int maxFilesToOpen = tableConf.getCount(Property.SPLIT_MAXOPEN);
 
     var unSplittableMetadata = UnSplittableMetadata.toUnSplittable(tabletMetadata.getExtent(),
         splitThreshold, maxEndRowSize, maxFilesToOpen, tabletMetadata.getFiles());

@@ -45,6 +45,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -59,6 +60,7 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Result;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
@@ -69,6 +71,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ConditionalWriterImpl;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
@@ -605,7 +609,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
           while (results.hasNext()) {
             Result result = results.next();
-            String k = new String(result.getMutation().getRow());
+            String k = new String(result.getMutation().getRow(), UTF_8);
             assertFalse(actual.containsKey(k),
                 "Did not expect to see multiple results for the row: " + k);
             actual.put(k, result.getStatus());
@@ -741,7 +745,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         while (results.hasNext()) {
           Result result = results.next();
-          String k = new String(result.getMutation().getRow());
+          String k = new String(result.getMutation().getRow(), UTF_8);
           assertFalse(actual.containsKey(k),
               "Did not expect to see multiple results for the row: " + k);
           actual.put(k, result.getStatus());
@@ -844,7 +848,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         int rejected = 0;
         while (results.hasNext()) {
           Result result = results.next();
-          if (new String(result.getMutation().getRow()).equals("99006")) {
+          if (new String(result.getMutation().getRow(), UTF_8).equals("99006")) {
             assertEquals(Status.ACCEPTED, result.getStatus());
             accepted++;
           } else {
@@ -1015,7 +1019,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         HashSet<String> rows = new HashSet<>();
         while (results.hasNext()) {
           Result result = results.next();
-          String row = new String(result.getMutation().getRow());
+          String row = new String(result.getMutation().getRow(), UTF_8);
           switch (row) {
             case "19059":
               assertEquals(Status.ACCEPTED, result.getStatus());
@@ -1533,6 +1537,36 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         cm1.put("data", "x", "a");
 
         assertThrows(IllegalArgumentException.class, () -> cw.write(cm1));
+      }
+    }
+  }
+
+  @Test
+  public void testCreateConditionalWriterUsesClientProps() throws Exception {
+    // Tests that creating a conditional writer includes the client properties that were set
+    String tableName = getUniqueNames(1)[0];
+    var clientProps = getClientProps();
+    // Set non-default values for all conditional writer props
+    clientProps.setProperty(ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getKey(), "99");
+    clientProps.setProperty(ClientProperty.CONDITIONAL_WRITER_THREADS_MAX.getKey(), "101");
+    clientProps.setProperty(ClientProperty.CONDITIONAL_WRITER_DURABILITY.getKey(),
+        Durability.NONE.name());
+    try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
+      client.tableOperations().create(tableName);
+
+      try (
+          ConditionalWriterImpl cw1 =
+              (ConditionalWriterImpl) client.createConditionalWriter(tableName);
+          ConditionalWriterImpl cw2 =
+              (ConditionalWriterImpl) client.createConditionalWriter(tableName,
+                  new ConditionalWriterConfig().setMaxWriteThreads(200))) {
+        // verify we see the non-default prop values
+        assertEquals(99, cw1.getConfig().getTimeout(TimeUnit.SECONDS));
+        assertEquals(101, cw1.getConfig().getMaxWriteThreads());
+        assertEquals(Durability.NONE, cw1.getConfig().getDurability());
+        assertEquals(99, cw2.getConfig().getTimeout(TimeUnit.SECONDS));
+        assertEquals(200, cw2.getConfig().getMaxWriteThreads());
+        assertEquals(Durability.NONE, cw2.getConfig().getDurability());
       }
     }
   }

@@ -49,7 +49,7 @@ public class ZooAuthenticationKeyDistributor {
 
   private final ZooReaderWriter zk;
   private final String baseNode;
-  private AtomicBoolean initialized = new AtomicBoolean(false);
+  private final AtomicBoolean initialized = new AtomicBoolean(false);
 
   public ZooAuthenticationKeyDistributor(ZooReaderWriter zk, String baseNode) {
     requireNonNull(zk);

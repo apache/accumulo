@@ -83,13 +83,25 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * certain scans. Second groups can be used to have different hardware/VM types for scans, for
  * example could have some scans use expensive high memory VMs and others use cheaper burstable
  * VMs.</li>
- * <li><b>enableTabletServerFallback : </b> When there are no scans servers, this setting determines
- * if fallback to tablet servers is desired. Falling back to tablet servers may cause tablets to be
- * loaded that are not currently loaded. When this setting is false and there are no scan servers,
- * it will wait for scan servers to be available. This setting avoids loading tablets on tablet
- * servers when scans servers are temporarily unavailable which could be caused by normal cluster
- * activity. If not specified this setting defaults to true. Set to false to avoid tablet server
- * fallback. Waiting for scan servers is done via
+ * <li><b>timeToWaitForScanServers : </b> When there are no scans servers, this setting determines
+ * how long to wait for scan servers to become available before falling back to tablet servers.
+ * Falling back to tablet servers may cause tablets to be loaded that are not currently loaded. When
+ * this setting is given a wait time and there are no scan servers, it will wait for scan servers to
+ * be available. This setting avoids loading tablets on tablet servers when scans servers are
+ * temporarily unavailable which could be caused by normal cluster activity. You can specify the
+ * wait time using different units to precisely control the wait duration. The supported units are:
+ * <ul>
+ * <li>"d" for days</li>
+ * <li>"h" for hours</li>
+ * <li>"m" for minutes</li>
+ * <li>"s" for seconds</li>
+ * <li>"ms" for milliseconds</li>
+ * </ul>
+ * If duration is not specified this setting defaults to 0s, and will disable the wait for scan
+ * servers and will fall back to tablet servers immediately. When set to a large value, the selector
+ * will effectively wait for scan servers to become available before falling back to tablet servers.
+ * To ensure the selector never falls back to scanning tablet servers an unrealistic wait time can
+ * be set. For instance 10000d should be sufficient. Setting Waiting for scan servers is done via
  * {@link org.apache.accumulo.core.spi.scan.ScanServerSelector.SelectorParameters#waitUntil(Supplier, Duration, String)}</li>
  * <li><b>attemptPlans : </b> A list of configuration to use for each scan attempt. Each list object
  * has the following fields:
@@ -124,7 +136,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *       "maxBusyTimeout":"20m",
  *       "busyTimeoutMultiplier":8,
  *       "group":"lowcost",
- *       "enableTabletServerFallback":false,
+ *       "timeToWaitForScanServers": "120s",
  *       "attemptPlans":[
  *         {"servers":"1", "busyTimeout":"10s"},
  *         {"servers":"3", "busyTimeout":"30s","salt":"42"},
@@ -226,21 +238,24 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       parse();
       return parsedBusyTimeout;
     }
+
   }
 
   @SuppressFBWarnings(value = {"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_FIELD"},
       justification = "Object deserialized by GSON")
-  private static class Profile {
+  protected static class Profile {
     public List<AttemptPlan> attemptPlans;
     List<String> scanTypeActivations;
     boolean isDefault = false;
     int busyTimeoutMultiplier;
     String maxBusyTimeout;
     String group = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
-    boolean enableTabletServerFallback = true;
+    String timeToWaitForScanServers = "0s";
 
     transient boolean parsed = false;
     transient long parsedMaxBusyTimeout;
+
+    transient Duration parsedTimeToWaitForScanServers;
 
     int getNumServers(int attempt, int totalServers) {
       int index = Math.min(attempt, attemptPlans.size() - 1);
@@ -252,6 +267,8 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
         return;
       }
       parsedMaxBusyTimeout = ConfigurationTypeHelper.getTimeInMillis(maxBusyTimeout);
+      parsedTimeToWaitForScanServers =
+          Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(timeToWaitForScanServers));
       parsed = true;
     }
 
@@ -271,6 +288,11 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     public String getSalt(int attempts) {
       int index = Math.min(attempts, attemptPlans.size() - 1);
       return attemptPlans.get(index).salt;
+    }
+
+    Duration getTimeToWaitForScanServers() {
+      parse();
+      return parsedTimeToWaitForScanServers;
     }
   }
 
@@ -315,7 +337,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
           .computeIfAbsent(sserver.getGroup(), k -> new ArrayList<>()).add(sserver.getAddress()));
       groupedServers.values().forEach(ssAddrs -> Collections.sort(ssAddrs));
       return groupedServers;
-    }, 100, TimeUnit.MILLISECONDS);
+    }, 3, TimeUnit.SECONDS);
 
     var opts = params.getOptions();
 
@@ -344,16 +366,14 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     List<String> orderedScanServers =
         orderedScanServersSupplier.get().getOrDefault(profile.group, List.of());
 
+    Duration scanServerWaitTime = profile.getTimeToWaitForScanServers();
+
     var finalProfile = profile;
-    if (orderedScanServers.isEmpty() && !profile.enableTabletServerFallback) {
+    if (orderedScanServers.isEmpty() && !scanServerWaitTime.isZero()) {
       // Wait for scan servers in the configured group to be present.
-      orderedScanServers =
-          params
-              .waitUntil(
-                  () -> Optional
-                      .ofNullable(orderedScanServersSupplier.get().get(finalProfile.group)),
-                  Duration.ofMillis(Long.MAX_VALUE), "scan servers in group : " + profile.group)
-              .orElseThrow();
+      orderedScanServers = params.waitUntil(
+          () -> Optional.ofNullable(orderedScanServersSupplier.get().get(finalProfile.group)),
+          scanServerWaitTime, "scan servers in group : " + profile.group).orElseThrow();
       // at this point the list should be non empty unless there is a bug
       Preconditions.checkState(!orderedScanServers.isEmpty());
     }
@@ -380,27 +400,9 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     Map<TabletId,String> serversToUse = new HashMap<>();
 
-    // get the max number of busy attempts, treat errors as busy attempts
-    int attempts = params.getTablets().stream()
-        .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
+    int maxAttempts = selectServers(params, profile, orderedScanServers, serversToUse);
 
-    int numServers = profile.getNumServers(attempts, orderedScanServers.size());
-
-    for (TabletId tablet : params.getTablets()) {
-
-      String serverToUse = null;
-
-      var hashCode = hashTablet(tablet, profile.getSalt(attempts));
-
-      int serverIndex = (Math.abs(hashCode.asInt()) + RANDOM.get().nextInt(numServers))
-          % orderedScanServers.size();
-
-      serverToUse = orderedScanServers.get(serverIndex);
-
-      serversToUse.put(tablet, serverToUse);
-    }
-
-    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(attempts));
+    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(maxAttempts));
 
     return new ScanServerSelections() {
       @Override
@@ -420,7 +422,30 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     };
   }
 
-  private HashCode hashTablet(TabletId tablet, String salt) {
+  protected int selectServers(ScanServerSelector.SelectorParameters params, Profile profile,
+      List<String> orderedScanServers, Map<TabletId,String> serversToUse) {
+
+    int attempts = params.getTablets().stream()
+        .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
+
+    int numServers = profile.getNumServers(attempts, orderedScanServers.size());
+    for (TabletId tablet : params.getTablets()) {
+
+      String serverToUse = null;
+
+      var hashCode = hashTablet(tablet, profile.getSalt(attempts));
+
+      int serverIndex = (Math.abs(hashCode.asInt()) + RANDOM.get().nextInt(numServers))
+          % orderedScanServers.size();
+
+      serverToUse = orderedScanServers.get(serverIndex);
+
+      serversToUse.put(tablet, serverToUse);
+    }
+    return attempts;
+  }
+
+  final HashCode hashTablet(TabletId tablet, String salt) {
     var hasher = Hashing.murmur3_128().newHasher();
 
     if (tablet.getEndRow() != null) {

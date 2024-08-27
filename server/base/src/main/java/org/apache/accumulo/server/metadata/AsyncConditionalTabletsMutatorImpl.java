@@ -25,31 +25,33 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.server.ServerContext;
+
+import com.google.common.annotations.VisibleForTesting;
 
 public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditionalTabletsMutator {
   private final Consumer<Ample.ConditionalResult> resultsConsumer;
   private final ExecutorService executor;
+  private final Supplier<Ample.ConditionalTabletsMutator> mutatorFactory;
   private Future<Map<KeyExtent,Ample.ConditionalResult>> backgroundProcessing = null;
-  private ConditionalTabletsMutatorImpl bufferingMutator;
-  private final ServerContext context;
+  private Ample.ConditionalTabletsMutator bufferingMutator;
   private long mutatedTablets = 0;
   public static final int BATCH_SIZE = 1000;
 
-  AsyncConditionalTabletsMutatorImpl(ServerContext context,
-      Consumer<Ample.ConditionalResult> resultsConsumer) {
+  @VisibleForTesting
+  public AsyncConditionalTabletsMutatorImpl(Consumer<Ample.ConditionalResult> resultsConsumer,
+      Supplier<Ample.ConditionalTabletsMutator> mutatorFactory) {
     this.resultsConsumer = Objects.requireNonNull(resultsConsumer);
-    this.bufferingMutator = new ConditionalTabletsMutatorImpl(context);
-    this.context = context;
+    this.mutatorFactory = mutatorFactory;
+    this.bufferingMutator = mutatorFactory.get();
     var creatorId = Thread.currentThread().getId();
     this.executor = Executors.newSingleThreadExecutor(runnable -> Threads.createThread(
         "Async conditional tablets mutator background thread, created by : #" + creatorId,
         runnable));
-
   }
 
   @Override
@@ -73,7 +75,7 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
         return result;
       });
 
-      bufferingMutator = new ConditionalTabletsMutatorImpl(context);
+      bufferingMutator = mutatorFactory.get();
       mutatedTablets = 0;
     }
     mutatedTablets++;
@@ -95,4 +97,5 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
     bufferingMutator.close();
     executor.shutdownNow();
   }
+
 }

@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.SortedSet;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -40,6 +39,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -79,10 +79,9 @@ public class TabletLogger {
     locLog.debug("Loading {} on {}", extent, server);
   }
 
-  public static void suspended(KeyExtent extent, HostAndPort server, long time, TimeUnit timeUnit,
+  public static void suspended(KeyExtent extent, HostAndPort server, SteadyTime time,
       int numWalogs) {
-    locLog.debug("Suspended {} to {} at {} ms with {} walogs", extent, server,
-        timeUnit.toMillis(time), numWalogs);
+    locLog.debug("Suspended {} to {} at {} ms with {} walogs", extent, server, time, numWalogs);
   }
 
   public static void unsuspended(KeyExtent extent) {

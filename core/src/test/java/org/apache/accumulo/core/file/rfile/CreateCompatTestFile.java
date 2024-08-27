@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -46,7 +48,8 @@ public class CreateCompatTestFile {
   }
 
   private static Key newKey(String row, String cf, String cq, String cv, long ts) {
-    return new Key(row.getBytes(), cf.getBytes(), cq.getBytes(), cv.getBytes(), ts);
+    return new Key(row.getBytes(UTF_8), cf.getBytes(UTF_8), cq.getBytes(UTF_8), cv.getBytes(UTF_8),
+        ts);
   }
 
   private static Value newValue(String val) {

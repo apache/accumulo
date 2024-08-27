@@ -25,8 +25,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
 
 public class ServerConditionalMutation extends ServerMutation {
 
-  private long cmid;
-  private List<TCondition> conditions;
+  private final long cmid;
+  private final List<TCondition> conditions;
 
   public ServerConditionalMutation(TConditionalMutation input) {
     super(input.mutation);

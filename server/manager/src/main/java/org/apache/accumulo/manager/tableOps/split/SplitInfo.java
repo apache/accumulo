@@ -37,7 +37,7 @@ public class SplitInfo implements Serializable {
   private final byte[] endRow;
   private final byte[][] splits;
 
-  SplitInfo(KeyExtent extent, SortedSet<Text> splits) {
+  public SplitInfo(KeyExtent extent, SortedSet<Text> splits) {
     this.tableId = extent.tableId();
     this.prevEndRow = extent.prevEndRow() == null ? null : TextUtil.getBytes(extent.prevEndRow());
     this.endRow = extent.endRow() == null ? null : TextUtil.getBytes(extent.endRow());

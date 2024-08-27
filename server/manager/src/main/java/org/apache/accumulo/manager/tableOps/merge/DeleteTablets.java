@@ -100,11 +100,17 @@ public class DeleteTablets extends ManagerRepo {
           break;
         }
 
-        tabletMeta.getKeyValues().keySet().forEach(key -> {
-          log.trace("{} deleting {}", fateId, key);
-        });
+        if (log.isTraceEnabled()) {
+          tabletMeta.getKeyValues().forEach(entry -> {
+            log.trace("{} deleting {}", fateId, entry.getKey());
+          });
+        }
 
-        tabletMutator.deleteAll(tabletMeta.getKeyValues().keySet());
+        tabletMutator.deleteAll(tabletMeta.getKeyValues());
+
+        // the entire tablet is being deleted, so do not want to add lock entry to the tablet
+        tabletMutator.automaticallyPutServerLock(false);
+
         // if the tablet no longer exists, then it was successful
         tabletMutator.submit(Ample.RejectionHandler.acceptAbsentTablet());
         submitted++;

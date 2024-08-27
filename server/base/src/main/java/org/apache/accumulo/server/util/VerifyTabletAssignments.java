@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.UTILITY_VERIFY_TABLET_ASSIGNMENTS;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -31,9 +33,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.data.Range;
@@ -45,7 +44,7 @@ import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.metadata.MetadataServicer;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
@@ -81,8 +80,7 @@ public class VerifyTabletAssignments {
   }
 
   private static void checkTable(final ClientContext context, final boolean verbose,
-      String tableName, HashSet<KeyExtent> check) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, InterruptedException {
+      String tableName, HashSet<KeyExtent> check) throws InterruptedException {
 
     if (check == null) {
       System.out.println("Checking table " + tableName);
@@ -90,37 +88,37 @@ public class VerifyTabletAssignments {
       System.out.println("Checking table " + tableName + " again, failures " + check.size());
     }
 
-    TreeMap<KeyExtent,String> tabletLocations = new TreeMap<>();
-
     TableId tableId = context.getTableNameToIdMap().get(tableName);
-    MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
 
     final HashSet<KeyExtent> failures = new HashSet<>();
 
     Map<HostAndPort,List<KeyExtent>> extentsPerServer = new TreeMap<>(new HostAndPortComparator());
 
-    for (Entry<KeyExtent,String> entry : tabletLocations.entrySet()) {
-      KeyExtent keyExtent = entry.getKey();
-      String loc = entry.getValue();
-      if (loc == null) {
-        System.out.println(" Tablet " + keyExtent + " has no location");
-      } else if (verbose) {
-        System.out.println(" Tablet " + keyExtent + " is located at " + loc);
-      }
+    try (var tabletsMeta = context.getAmple().readTablets().forTable(tableId)
+        .fetch(TabletMetadata.ColumnType.LOCATION).checkConsistency().build()) {
+      for (var tabletMeta : tabletsMeta) {
+        var loc = tabletMeta.getLocation();
+        var keyExtent = tabletMeta.getExtent();
+        if (loc == null || loc.getType() != TabletMetadata.LocationType.CURRENT) {
+          System.out.println(" Tablet " + keyExtent + " has no location");
+        } else if (verbose) {
+          System.out.println(" Tablet " + keyExtent + " is located at " + loc);
+        }
 
-      if (loc != null) {
-        final HostAndPort parsedLoc = HostAndPort.fromString(loc);
-        List<KeyExtent> extentList =
-            extentsPerServer.computeIfAbsent(parsedLoc, k -> new ArrayList<>());
+        if (loc != null) {
+          final HostAndPort parsedLoc = loc.getHostAndPort();
+          List<KeyExtent> extentList =
+              extentsPerServer.computeIfAbsent(parsedLoc, k -> new ArrayList<>());
 
-        if (check == null || check.contains(keyExtent)) {
-          extentList.add(keyExtent);
+          if (check == null || check.contains(keyExtent)) {
+            extentList.add(keyExtent);
+          }
         }
       }
     }
 
-    ExecutorService tp = ThreadPools.getServerThreadPools().getPoolBuilder("CheckTabletServer")
-        .numCoreThreads(20).build();
+    ExecutorService tp = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(UTILITY_VERIFY_TABLET_ASSIGNMENTS).numCoreThreads(20).build();
 
     for (final Entry<HostAndPort,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
       Runnable r = () -> {

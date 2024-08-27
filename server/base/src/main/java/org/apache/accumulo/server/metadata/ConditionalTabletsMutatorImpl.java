@@ -18,14 +18,18 @@
  */
 package org.apache.accumulo.server.metadata;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -35,6 +39,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.server.ServerContext;
@@ -54,16 +59,23 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   private final ServerContext context;
   private Ample.DataLevel dataLevel = null;
 
-  private List<ConditionalMutation> mutations = new ArrayList<>();
+  private final List<ConditionalMutation> mutations = new ArrayList<>();
 
-  private Map<Text,KeyExtent> extents = new HashMap<>();
+  private final Map<Text,KeyExtent> extents = new HashMap<>();
 
   private boolean active = true;
 
-  Map<KeyExtent,Ample.RejectionHandler> rejectedHandlers = new HashMap<>();
+  final Map<KeyExtent,Ample.RejectionHandler> rejectedHandlers = new HashMap<>();
+  private final Function<DataLevel,String> tableMapper;
 
   public ConditionalTabletsMutatorImpl(ServerContext context) {
+    this(context, DataLevel::metaTable);
+  }
+
+  public ConditionalTabletsMutatorImpl(ServerContext context,
+      Function<DataLevel,String> tableMapper) {
     this.context = context;
+    this.tableMapper = Objects.requireNonNull(tableMapper);
   }
 
   @Override
@@ -90,7 +102,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
     if (dataLevel == Ample.DataLevel.ROOT) {
       return new RootConditionalWriter(context);
     } else {
-      return context.createConditionalWriter(dataLevel.metaTable());
+      return context.createConditionalWriter(getTableMapper().apply(dataLevel));
     }
   }
 
@@ -131,6 +143,16 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
       try {
         if (result.getStatus() == ConditionalWriter.Status.UNKNOWN) {
+          if (log.isTraceEnabled()) {
+            // log detailed information about the mutation
+            log.trace("Saw {} status for conditional mutation {} {}", result.getStatus(),
+                result.getTabletServer(), result.getMutation().prettyPrint());
+          } else if (log.isDebugEnabled()) {
+            // log a single line of info that makes it apparent this happened and gives enough
+            // information to investigate
+            log.debug("Saw {} status for conditional mutation {} {}", result.getStatus(),
+                result.getTabletServer(), new String(result.getMutation().getRow(), UTF_8));
+          }
           unknownResults.add(result);
         } else {
           resultsList.add(result);
@@ -139,6 +161,12 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
         throw new RuntimeException(e);
       }
     }
+  }
+
+  protected Retry createUnknownRetry() {
+    return Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
+        .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(2)).backOffFactor(1.5)
+        .logInterval(Duration.ofMinutes(3)).createRetry();
   }
 
   private Iterator<ConditionalWriter.Result> writeMutations(ConditionalWriter conditionalWriter) {
@@ -153,9 +181,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
     while (!unknownResults.isEmpty()) {
       try {
         if (retry == null) {
-          retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
-              .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(2)).backOffFactor(1.5)
-              .logInterval(Duration.ofMinutes(3)).createRetry();
+          retry = createUnknownRetry();
         }
         retry.waitForNextAttempt(log, "handle conditional mutations with unknown status");
       } catch (InterruptedException e) {
@@ -231,10 +257,22 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
               var handler = rejectedHandlers.get(extent);
               if (tabletMetadata == null && handler.callWhenTabletDoesNotExists()
                   && handler.test(null)) {
-                return Status.ACCEPTED;
+                status = Status.ACCEPTED;
               }
               if (tabletMetadata != null && handler.test(tabletMetadata)) {
-                return Status.ACCEPTED;
+                status = Status.ACCEPTED;
+              }
+
+              if (log.isTraceEnabled()) {
+                // log detailed info about tablet metadata and mutation
+                log.trace("Mutation was rejected, status:{} {} {}", status, tabletMetadata,
+                    result.getMutation().prettyPrint());
+              } else if (log.isDebugEnabled()) {
+                // log a single line of info that makes it apparent this happened and gives enough
+                // information to investigate
+                log.debug("Mutation was rejected, status:{} extent:{} row:{}", status,
+                    tabletMetadata == null ? null : tabletMetadata.getExtent(),
+                    new String(result.getMutation().getRow(), UTF_8));
               }
             }
 
@@ -273,9 +311,6 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   private void ensureAllExtentsSeen(HashMap<KeyExtent,ConditionalWriter.Result> resultsMap,
       Set<KeyExtent> extentsSet) {
     if (!resultsMap.keySet().equals(Set.copyOf(extents.values()))) {
-      // ELASTICITY_TODO this check can trigger if someone forgets to submit, could check for
-      // that
-
       Sets.difference(resultsMap.keySet(), extentsSet)
           .forEach(extent -> log.error("Unexpected extent seen in in result {}", extent));
 
@@ -286,10 +321,19 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
         log.error("result seen {} {}", keyExtent, new Text(result.getMutation().getRow()));
       });
 
-      throw new AssertionError("Not all extents were seen, this is unexpected");
+      // There are at least two possible causes for this condition. First there is a bug in the
+      // ConditionalWriter, and it did not return a result for a mutation that was given to it.
+      // Second, Ample code was not used correctly and mutating an extent was started but never
+      // submitted.
+      throw new IllegalStateException("Not all extents were seen, this is unexpected.");
     }
   }
 
   @Override
   public void close() {}
+
+  protected Function<DataLevel,String> getTableMapper() {
+    return tableMapper;
+  }
+
 }

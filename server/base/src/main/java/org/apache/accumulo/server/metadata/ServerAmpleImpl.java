@@ -25,13 +25,8 @@ import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -47,7 +42,7 @@ import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
+import org.apache.accumulo.core.metadata.ScanServerRefStore;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -55,7 +50,6 @@ import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
@@ -64,15 +58,24 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
-  private static Logger log = LoggerFactory.getLogger(ServerAmpleImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(ServerAmpleImpl.class);
 
-  private ServerContext context;
+  private final ServerContext context;
+  private final ScanServerRefStore scanServerRefStore;
 
   public ServerAmpleImpl(ServerContext context) {
-    super(context);
+    this(context, DataLevel::metaTable);
+  }
+
+  public ServerAmpleImpl(ServerContext context, Function<DataLevel,String> tableMapper) {
+    super(context, tableMapper);
     this.context = context;
+    this.scanServerRefStore =
+        new ScanServerRefStoreImpl(context, AccumuloTable.SCAN_REF.tableName());
   }
 
   @Override
@@ -85,18 +88,19 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   @Override
   public TabletsMutator mutateTablets() {
-    return new TabletsMutatorImpl(context);
+    return new TabletsMutatorImpl(context, getTableMapper());
   }
 
   @Override
   public ConditionalTabletsMutator conditionallyMutateTablets() {
-    return new ConditionalTabletsMutatorImpl(context);
+    return new ConditionalTabletsMutatorImpl(context, getTableMapper());
   }
 
   @Override
   public AsyncConditionalTabletsMutator
       conditionallyMutateTablets(Consumer<ConditionalResult> resultsConsumer) {
-    return new AsyncConditionalTabletsMutatorImpl(context, resultsConsumer);
+    return new AsyncConditionalTabletsMutatorImpl(resultsConsumer,
+        () -> new ConditionalTabletsMutatorImpl(context, getTableMapper()));
   }
 
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {
@@ -131,7 +135,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       return;
     }
 
-    try (BatchWriter writer = context.createBatchWriter(DataLevel.of(tableId).metaTable())) {
+    try (BatchWriter writer = context.createBatchWriter(getMetaTable(DataLevel.of(tableId)))) {
       for (StoredTabletFile file : candidates) {
         writer.addMutation(createDeleteMutation(file));
       }
@@ -150,7 +154,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       return;
     }
 
-    try (BatchWriter writer = context.createBatchWriter(DataLevel.of(tableId).metaTable())) {
+    try (BatchWriter writer = context.createBatchWriter(getMetaTable(DataLevel.of(tableId)))) {
       for (var fileOrDir : candidates) {
         writer.addMutation(createDeleteMutation(fileOrDir));
       }
@@ -204,7 +208,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       return;
     }
 
-    try (BatchWriter writer = context.createBatchWriter(level.metaTable())) {
+    try (BatchWriter writer = context.createBatchWriter(getMetaTable(level))) {
       if (type == GcCandidateType.VALID) {
         for (GcCandidate candidate : candidates) {
           Mutation m = new Mutation(DeletesSection.encodeRow(candidate.getPath()));
@@ -242,7 +246,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
       Scanner scanner;
       try {
-        scanner = context.createScanner(level.metaTable(), Authorizations.EMPTY);
+        scanner = context.createScanner(getMetaTable(level), Authorizations.EMPTY);
       } catch (TableNotFoundException e) {
         throw new IllegalStateException(e);
       }
@@ -273,69 +277,16 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void putScanServerFileReferences(Collection<ScanServerRefTabletFile> scanRefs) {
-    try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
-      String prefix = ScanServerFileReferenceSection.getRowPrefix();
-      for (ScanServerRefTabletFile ref : scanRefs) {
-        Mutation m = new Mutation(prefix + ref.getRowSuffix());
-        m.put(ref.getServerAddress(), ref.getServerLockUUID(), ref.getValue());
-        writer.addMutation(m);
-      }
-    } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new IllegalStateException(
-          "Error inserting scan server file references into " + DataLevel.USER.metaTable(), e);
-    }
+  public ScanServerRefStore scanServerRefs() {
+    return scanServerRefStore;
   }
 
-  @Override
-  public Stream<ScanServerRefTabletFile> getScanServerFileReferences() {
-    try {
-      Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY);
-      scanner.setRange(ScanServerFileReferenceSection.getRange());
-      int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
-      return scanner.stream().onClose(scanner::close)
-          .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
-              e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()));
-    } catch (TableNotFoundException e) {
-      throw new IllegalStateException(DataLevel.USER.metaTable() + " not found!", e);
-    }
+  @VisibleForTesting
+  protected ServerContext getContext() {
+    return context;
   }
 
-  @Override
-  public void deleteScanServerFileReferences(String serverAddress, UUID scanServerLockUUID) {
-    Objects.requireNonNull(serverAddress, "Server address must be supplied");
-    Objects.requireNonNull(scanServerLockUUID, "Server uuid must be supplied");
-    try (
-        Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY)) {
-      scanner.setRange(ScanServerFileReferenceSection.getRange());
-      scanner.fetchColumn(new Text(serverAddress), new Text(scanServerLockUUID.toString()));
-
-      int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
-      Set<ScanServerRefTabletFile> refsToDelete = StreamSupport.stream(scanner.spliterator(), false)
-          .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
-              e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()))
-          .collect(Collectors.toSet());
-
-      if (!refsToDelete.isEmpty()) {
-        this.deleteScanServerFileReferences(refsToDelete);
-      }
-    } catch (TableNotFoundException e) {
-      throw new IllegalStateException(DataLevel.USER.metaTable() + " not found!", e);
-    }
-  }
-
-  @Override
-  public void deleteScanServerFileReferences(Collection<ScanServerRefTabletFile> refsToDelete) {
-    try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
-      String prefix = ScanServerFileReferenceSection.getRowPrefix();
-      for (ScanServerRefTabletFile ref : refsToDelete) {
-        Mutation m = new Mutation(prefix + ref.getRowSuffix());
-        m.putDelete(ref.getServerAddress(), ref.getServerLockUUID());
-        writer.addMutation(m);
-      }
-      log.debug("Deleted scan server file reference entries for files: {}", refsToDelete);
-    } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new IllegalStateException(e);
-    }
+  private String getMetaTable(DataLevel dataLevel) {
+    return getTableMapper().apply(dataLevel);
   }
 }

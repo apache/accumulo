@@ -35,8 +35,8 @@ import org.apache.accumulo.core.iterators.ServerWrappingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public class DeletingIterator extends ServerWrappingIterator {
-  private boolean propagateDeletes;
-  private Key workKey = new Key();
+  private final boolean propagateDeletes;
+  private final Key workKey = new Key();
 
   public enum Behavior {
     PROCESS, FAIL

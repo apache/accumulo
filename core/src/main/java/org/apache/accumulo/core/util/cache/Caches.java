@@ -23,7 +23,6 @@ import static com.google.common.base.Suppliers.memoize;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,9 +39,10 @@ public class Caches implements MetricsProducer {
     COMBINER_LOGGED_MSGS,
     COMPACTIONS_COMPLETED,
     COMPACTION_CONFIGS,
+    COMPACTOR_COUNTS,
     COMPACTION_DIR_CACHE,
     COMPACTION_DISPATCHERS,
-    COMPACTION_SERVICE_UNKNOWN,
+    COMPACTION_SERVICE_ID,
     COMPACTOR_GROUP_ID,
     COMPRESSION_ALGORITHM,
     CRYPT_PASSWORDS,
@@ -64,7 +64,7 @@ public class Caches implements MetricsProducer {
     TABLE_ZOO_HELPER_CACHE,
     TSRM_FILE_LENGTHS,
     TINYLFU_BLOCK_CACHE,
-    VOLUME_HDFS_CONFIGS;
+    VOLUME_HDFS_CONFIGS
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(Caches.class);
@@ -86,8 +86,7 @@ public class Caches implements MetricsProducer {
   private boolean setupMicrometerMetrics(Caffeine<Object,Object> cacheBuilder, String name) {
     if (registry != null) {
       try {
-        cacheBuilder.recordStats(
-            () -> new CaffeineStatsCounter(registry, name, MetricsUtil.getCommonTags()));
+        cacheBuilder.recordStats(() -> new CaffeineStatsCounter(registry, name));
         LOG.trace("Metrics enabled for {} cache.", name);
         return true;
       } catch (IllegalStateException e) {

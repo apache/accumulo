@@ -21,7 +21,7 @@ package org.apache.accumulo.test;
 import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.test.TableOperationsIT.setExpectedTabletAvailability;
-import static org.apache.accumulo.test.TableOperationsIT.verifyTabletAvailabilites;
+import static org.apache.accumulo.test.TableOperationsIT.verifyTabletAvailabilities;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -35,10 +35,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
@@ -49,7 +50,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.admin.AvailabilityForTablet;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -57,6 +57,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -405,14 +406,14 @@ public class ImportExportIT extends AccumuloClusterHarness {
       client.tableOperations().setTabletAvailability(srcTable, range, TabletAvailability.HOSTED);
 
       // verify
-      List<AvailabilityForTablet> expectedTabletAvailability = new ArrayList<>();
+      Map<TabletId,TabletAvailability> expectedTabletAvailability = new HashMap<>();
       setExpectedTabletAvailability(expectedTabletAvailability, srcTableId, "h", null,
           TabletAvailability.ONDEMAND);
       setExpectedTabletAvailability(expectedTabletAvailability, srcTableId, "q", "h",
           TabletAvailability.UNHOSTED);
       setExpectedTabletAvailability(expectedTabletAvailability, srcTableId, null, "q",
           TabletAvailability.HOSTED);
-      verifyTabletAvailabilites(client, srcTable, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(client, srcTable, new Range(), expectedTabletAvailability);
 
       // Add a split within each of the existing tablets. Adding 'd', 'm', and 'v'
       splits = Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("v")));
@@ -432,7 +433,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
           TabletAvailability.HOSTED);
       setExpectedTabletAvailability(expectedTabletAvailability, srcTableId, null, "v",
           TabletAvailability.HOSTED);
-      verifyTabletAvailabilites(client, srcTable, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(client, srcTable, new Range(), expectedTabletAvailability);
 
       // Make a directory we can use to throw the export and import directories
       // Must exist on the filesystem the cluster is running.
@@ -609,8 +610,11 @@ public class ImportExportIT extends AccumuloClusterHarness {
   private Set<Range> createRanges() {
     // Split file into ranges of 10000, 20000, and 5000 for a total of 35000
     return Set.of(
-        new Range("row_" + String.format("%010d", 100), "row_" + String.format("%010d", 199)),
-        new Range("row_" + String.format("%010d", 300), "row_" + String.format("%010d", 499)),
-        new Range("row_" + String.format("%010d", 700), "row_" + String.format("%010d", 749)));
+        new Range("row_" + String.format("%010d", 99), false, "row_" + String.format("%010d", 199),
+            true),
+        new Range("row_" + String.format("%010d", 299), false, "row_" + String.format("%010d", 499),
+            true),
+        new Range("row_" + String.format("%010d", 699), false, "row_" + String.format("%010d", 749),
+            true));
   }
 }

@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -50,7 +51,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.compactor.ExtCEnv.CompactorIterEnv;
@@ -346,7 +346,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     FateStore.FateTxStore<Manager> fateTx = fateStore
         .createAndReserve(FateKey.forCompactionCommit(allCids.get(tableId).get(0))).orElseThrow();
     var fateId = fateTx.getID();
-    fateTx.unreserve(0, TimeUnit.MILLISECONDS);
+    fateTx.unreserve(Duration.ZERO);
 
     // Read the tablet metadata
     var tabletsMeta = ctx.getAmple().readTablets().forTable(tableId).build().stream()
@@ -397,7 +397,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     // remaining external compaction id
     var fateTx = fateStore.reserve(fateId);
     fateTx.delete();
-    fateTx.unreserve(0, TimeUnit.MILLISECONDS);
+    fateTx.unreserve(Duration.ZERO);
 
     // wait for the remaining compaction id to be removed
     Wait.waitFor(() -> {
@@ -658,13 +658,13 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       // Split file in table1 into two files each fenced off by 100 rows for a total of 200
       splitFilesIntoRanges(getCluster().getServerContext(), table1,
-          Set.of(new Range(new Text(row(100)), new Text(row(199))),
-              new Range(new Text(row(300)), new Text(row(399)))));
+          Set.of(new Range(new Text(row(99)), false, new Text(row(199)), true),
+              new Range(new Text(row(299)), false, new Text(row(399)), true)));
       assertEquals(2, countFencedFiles(getCluster().getServerContext(), table1));
 
       // Fence file in table2 to 600 rows
       splitFilesIntoRanges(getCluster().getServerContext(), table2,
-          Set.of(new Range(new Text(row(200)), new Text(row(799)))));
+          Set.of(new Range(new Text(row(199)), false, new Text(row(799)), true)));
       assertEquals(1, countFencedFiles(getCluster().getServerContext(), table2));
 
       // Verify that a subset of the data is now seen after fencing

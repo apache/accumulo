@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.compaction.queue;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,7 +30,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -41,6 +43,7 @@ import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 /**
@@ -57,6 +60,9 @@ public class CompactionJobPriorityQueue {
   private static final Logger log = LoggerFactory.getLogger(CompactionJobPriorityQueue.class);
 
   private final CompactorGroupId groupId;
+
+  @VisibleForTesting
+  static final int FUTURE_CHECK_THRESHOLD = 10_000;
 
   private class CjpqKey implements Comparable<CjpqKey> {
     private final CompactionJob job;
@@ -102,9 +108,11 @@ public class CompactionJobPriorityQueue {
   // efficiently removing entries from anywhere in the queue. Efficient removal is needed for the
   // case where tablets decided to issues different compaction jobs than what is currently queued.
   private final TreeMap<CjpqKey,CompactionJobQueues.MetaJob> jobQueue;
-  private final int maxSize;
+  private final AtomicInteger maxSize;
   private final AtomicLong rejectedJobs;
   private final AtomicLong dequeuedJobs;
+  private final ArrayDeque<CompletableFuture<CompactionJobQueues.MetaJob>> futures;
+  private long futuresAdded = 0;
 
   private static class TabletJobs {
     final long generation;
@@ -122,22 +130,17 @@ public class CompactionJobPriorityQueue {
 
   private final AtomicLong nextSeq = new AtomicLong(0);
 
-  private final AtomicBoolean closed = new AtomicBoolean(false);
-
   public CompactionJobPriorityQueue(CompactorGroupId groupId, int maxSize) {
     this.jobQueue = new TreeMap<>();
-    this.maxSize = maxSize;
+    this.maxSize = new AtomicInteger(maxSize);
     this.tabletJobs = new HashMap<>();
     this.groupId = groupId;
     this.rejectedJobs = new AtomicLong(0);
     this.dequeuedJobs = new AtomicLong(0);
+    this.futures = new ArrayDeque<>();
   }
 
   public synchronized void removeOlderGenerations(Ample.DataLevel level, long currGeneration) {
-    if (closed.get()) {
-      return;
-    }
-
     List<KeyExtent> removals = new ArrayList<>();
 
     tabletJobs.forEach((extent, jobs) -> {
@@ -160,16 +163,26 @@ public class CompactionJobPriorityQueue {
   public synchronized int add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs,
       long generation) {
     Preconditions.checkArgument(jobs.stream().allMatch(job -> job.getGroup().equals(groupId)));
-    if (closed.get()) {
-      return -1;
-    }
 
     removePreviousSubmissions(tabletMetadata.getExtent());
 
     HashSet<CjpqKey> newEntries = new HashSet<>(jobs.size());
 
     int jobsAdded = 0;
-    for (CompactionJob job : jobs) {
+    outer: for (CompactionJob job : jobs) {
+      var future = futures.poll();
+      while (future != null) {
+        // its expected that if futures are present then the queue is empty, if this is not true
+        // then there is a bug
+        Preconditions.checkState(jobQueue.isEmpty());
+        if (future.complete(new CompactionJobQueues.MetaJob(job, tabletMetadata))) {
+          // successfully completed a future with this job, so do not need to queue the job
+          jobsAdded++;
+          continue outer;
+        } // else the future was canceled or timed out so could not complete it
+        future = futures.poll();
+      }
+
       CjpqKey cjqpKey = addJobToQueue(tabletMetadata, job);
       if (cjqpKey != null) {
         checkState(newEntries.add(cjqpKey));
@@ -189,8 +202,12 @@ public class CompactionJobPriorityQueue {
     return jobsAdded;
   }
 
-  public long getMaxSize() {
-    return maxSize;
+  public synchronized int getMaxSize() {
+    return maxSize.get();
+  }
+
+  public synchronized void setMaxSize(int maxSize) {
+    this.maxSize.set(maxSize);
   }
 
   public long getRejectedJobs() {
@@ -227,23 +244,40 @@ public class CompactionJobPriorityQueue {
     return first == null ? null : first.getValue();
   }
 
+  public synchronized CompletableFuture<CompactionJobQueues.MetaJob> getAsync() {
+    var job = jobQueue.pollFirstEntry();
+    if (job != null) {
+      return CompletableFuture.completedFuture(job.getValue());
+    }
+
+    // There is currently nothing in the queue, so create an uncompleted future and queue it up to
+    // be completed when something does arrive.
+    CompletableFuture<CompactionJobQueues.MetaJob> future = new CompletableFuture<>();
+    futures.add(future);
+    futuresAdded++;
+    // Handle the case where nothing is ever being added to this queue and futures are constantly
+    // being obtained and cancelled. If nothing is done these canceled futures would just keep
+    // building up in memory. The following code periodically checks to see if there are canceled
+    // futures to remove.
+    if (futuresAdded % FUTURE_CHECK_THRESHOLD == 0
+        && futures.size() >= 2 * FUTURE_CHECK_THRESHOLD) {
+      futures.removeIf(CompletableFuture::isDone);
+      // It is not expected that the future we just created would be done, if it were it would have
+      // been removed.
+      Preconditions.checkState(!future.isDone());
+    }
+    return future;
+  }
+
+  @VisibleForTesting
+  synchronized int futuresSize() {
+    return futures.size();
+  }
+
   // exists for tests
   synchronized CompactionJobQueues.MetaJob peek() {
     var firstEntry = jobQueue.firstEntry();
     return firstEntry == null ? null : firstEntry.getValue();
-  }
-
-  public boolean isClosed() {
-    return closed.get();
-  }
-
-  public synchronized boolean closeIfEmpty() {
-    if (jobQueue.isEmpty()) {
-      closed.set(true);
-      return true;
-    }
-
-    return false;
   }
 
   private void removePreviousSubmissions(KeyExtent extent) {
@@ -255,7 +289,7 @@ public class CompactionJobPriorityQueue {
   }
 
   private CjpqKey addJobToQueue(TabletMetadata tabletMetadata, CompactionJob job) {
-    if (jobQueue.size() >= maxSize) {
+    if (jobQueue.size() >= maxSize.get()) {
       var lastEntry = jobQueue.lastKey();
       if (job.getPriority() <= lastEntry.job.getPriority()) {
         // the queue is full and this job has a lower or same priority than the lowest job in the
@@ -274,5 +308,10 @@ public class CompactionJobPriorityQueue {
     var key = new CjpqKey(job);
     jobQueue.put(key, new CompactionJobQueues.MetaJob(job, tabletMetadata));
     return key;
+  }
+
+  public synchronized void clear() {
+    jobQueue.clear();
+    tabletJobs.clear();
   }
 }

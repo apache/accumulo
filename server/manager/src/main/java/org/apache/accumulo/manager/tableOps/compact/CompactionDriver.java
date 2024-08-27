@@ -46,6 +46,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -61,11 +62,14 @@ import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
+import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class CompactionDriver extends ManagerRepo {
+import com.google.common.base.Preconditions;
+
+public class CompactionDriver extends ManagerRepo {
 
   private static final Logger log = LoggerFactory.getLogger(CompactionDriver.class);
 
@@ -73,8 +77,8 @@ class CompactionDriver extends ManagerRepo {
 
   private final TableId tableId;
   private final NamespaceId namespaceId;
-  private byte[] startRow;
-  private byte[] endRow;
+  private final byte[] startRow;
+  private final byte[] endRow;
 
   public CompactionDriver(NamespaceId namespaceId, TableId tableId, byte[] startRow,
       byte[] endRow) {
@@ -108,6 +112,11 @@ class CompactionDriver extends ManagerRepo {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OTHER,
           TableOperationsImpl.TABLE_DELETED_MSG);
+    }
+
+    if (manager.getContext().getTableState(tableId) != TableState.ONLINE) {
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
+          TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, "The table is not online.");
     }
 
     long t1 = System.currentTimeMillis();
@@ -238,17 +247,22 @@ class CompactionDriver extends ManagerRepo {
             noneSelected++;
           } else {
             var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
-                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED);
-            var selectedFiles =
-                new SelectedFiles(filesToCompact, tablet.getFiles().equals(filesToCompact), fateId);
+                .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED, USER_COMPACTION_REQUESTED);
+            var selectedFiles = new SelectedFiles(filesToCompact,
+                tablet.getFiles().equals(filesToCompact), fateId, manager.getSteadyTime());
 
             mutator.putSelectedFiles(selectedFiles);
+
+            // We no longer need to include this marker if files are selected
+            if (tablet.getUserCompactionsRequested().contains(fateId)) {
+              mutator.deleteUserCompactionRequested(fateId);
+            }
 
             selectionsSubmitted.put(tablet.getExtent(), filesToCompact);
 
             mutator.submit(tabletMetadata -> tabletMetadata.getSelectedFiles() != null
-                && tabletMetadata.getSelectedFiles().getMetadataValue()
-                    .equals(selectedFiles.getMetadataValue()));
+                && tabletMetadata.getSelectedFiles().getFateId().equals(fateId)
+                || tabletMetadata.getCompacted().contains(fateId));
 
             if (minSelected == null || tablet.getExtent().compareTo(minSelected) < 0) {
               minSelected = tablet.getExtent();
@@ -300,6 +314,13 @@ class CompactionDriver extends ManagerRepo {
 
     long t2 = System.currentTimeMillis();
 
+    // The Fate operation gets a table lock that prevents the table from being deleted while this is
+    // running, so seeing zero tablets in the metadata table is unexpected.
+    Preconditions.checkState(total > 0,
+        "No tablets were seen for table %s in the compaction range %s %s", tableId,
+        startRow == null ? new Text() : new Text(startRow),
+        endRow == null ? new Text() : new Text(endRow));
+
     log.debug(
         "{} tablet stats, total:{} complete:{} selected_now:{} selected_prev:{} selected_by_other:{} "
             + "no_files:{} none_selected:{} user_compaction_requested:{} user_compaction_waiting:{} "
@@ -314,8 +335,6 @@ class CompactionDriver extends ManagerRepo {
     }
 
     return total - complete;
-
-    // ELASTICITIY_TODO need to handle seeing zero tablets
   }
 
   @Override
@@ -337,8 +356,6 @@ class CompactionDriver extends ManagerRepo {
    */
   private void cleanupTabletMetadata(FateId fateId, Manager manager) throws Exception {
     var ample = manager.getContext().getAmple();
-
-    // ELASTICITY_TODO use existing compaction logging
 
     boolean allCleanedUp = false;
 

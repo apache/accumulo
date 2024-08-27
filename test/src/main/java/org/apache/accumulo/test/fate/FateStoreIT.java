@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -56,6 +55,7 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT.TestRepo;
@@ -65,6 +65,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.Sets;
 
 public abstract class FateStoreIT extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
 
@@ -188,7 +189,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       FateTxStore<TestEnv> txStore = store.reserve(fateId);
       txStore.setStatus(TStatus.SUBMITTED);
       assertTrue(txStore.timeCreated() > 0);
-      txStore.unreserve(10, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ofSeconds(10));
     }
 
     // Verify we have 10 transactions and all are deferred
@@ -218,7 +219,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       transactions.add(fateId);
       FateTxStore<TestEnv> txStore = store.reserve(fateId);
       txStore.setStatus(TStatus.SUBMITTED);
-      txStore.unreserve(30, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ofSeconds(30));
 
       // Verify we have 11 transactions stored and none
       // deferred anymore because of the overflow
@@ -241,7 +242,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       // still be false as we are under the limit
       assertFalse(store.isDeferredOverflow());
       txStore = store.reserve(store.create());
-      txStore.unreserve(30, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ofSeconds(30));
       assertEquals(1, store.getDeferredCount());
       assertFalse(store.isDeferredOverflow());
     } finally {
@@ -250,6 +251,44 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       // All stores should already be unreserved
       store.list().forEach(
           fateIdStatus -> store.tryReserve(fateIdStatus.getFateId()).orElseThrow().delete());
+    }
+  }
+
+  @Test
+  public void testListStatus() throws Exception {
+    executeTest(this::testListStatus);
+  }
+
+  protected void testListStatus(FateStore<TestEnv> store, ServerContext sctx) throws Exception {
+    try {
+      Map<FateId,TStatus> expectedStatus = new HashMap<>();
+
+      for (int i = 0; i < 5; i++) {
+        for (var status : TStatus.values()) {
+          var fateId = store.create();
+          var txStore = store.reserve(fateId);
+          txStore.setStatus(status);
+          txStore.unreserve(Duration.ZERO);
+          expectedStatus.put(fateId, status);
+        }
+      }
+
+      for (var statuses : Sets.powerSet(Set.of(TStatus.values()))) {
+        var expected =
+            expectedStatus.entrySet().stream().filter(e -> statuses.contains(e.getValue()))
+                .map(Map.Entry::getKey).collect(Collectors.toSet());
+        var actual = store.list(statuses).map(FateIdStatus::getFateId).collect(Collectors.toSet());
+        assertEquals(expected, actual);
+      }
+    } finally {
+      // Cleanup so we don't interfere with other tests
+      // All stores should already be unreserved
+      store.list().forEach(fateIdStatus -> {
+        var txStore = store.tryReserve(fateIdStatus.getFateId()).orElseThrow();
+        txStore.setStatus(TStatus.SUCCESSFUL);
+        txStore.delete();
+        txStore.unreserve(Duration.ZERO);
+      });
     }
   }
 
@@ -284,8 +323,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     } finally {
       txStore1.delete();
       txStore2.delete();
-      txStore1.unreserve(0, TimeUnit.SECONDS);
-      txStore2.unreserve(0, TimeUnit.SECONDS);
+      txStore1.unreserve(Duration.ZERO);
+      txStore2.unreserve(Duration.ZERO);
     }
   }
 
@@ -314,7 +353,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertEquals(1, store.list().count());
     } finally {
       txStore.delete();
-      txStore.unreserve(0, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
   }
 
@@ -342,7 +381,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     } finally {
       txStore.setStatus(TStatus.SUCCESSFUL);
       txStore.delete();
-      txStore.unreserve(0, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
 
     try {
@@ -352,7 +391,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertEquals(TStatus.NEW, txStore.getStatus());
     } finally {
       txStore.delete();
-      txStore.unreserve(0, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
 
   }
@@ -383,7 +422,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertEquals(fateKey1, txStore.getKey().orElseThrow());
     } finally {
       txStore.delete();
-      txStore.unreserve(0, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
 
   }
@@ -417,9 +456,31 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertEquals(TStatus.NEW, txStore.getStatus());
     } finally {
       txStore.delete();
-      txStore.unreserve(0, TimeUnit.SECONDS);
+      txStore.unreserve(Duration.ZERO);
     }
 
+  }
+
+  @Test
+  public void testAbsent() throws Exception {
+    executeTest(this::testAbsent);
+  }
+
+  protected void testAbsent(FateStore<TestEnv> store, ServerContext sctx) {
+    // Ensure both store implementations have consistent behavior when reading a fateId that does
+    // not exists.
+
+    var fateId = FateId.from(store.type(), UUID.randomUUID());
+    var txStore = store.read(fateId);
+
+    assertEquals(TStatus.UNKNOWN, txStore.getStatus());
+    assertNull(txStore.top());
+    assertNull(txStore.getTransactionInfo(TxInfo.TX_NAME));
+    assertEquals(0, txStore.timeCreated());
+    assertEquals(Optional.empty(), txStore.getKey());
+    assertEquals(fateId, txStore.getID());
+    assertEquals(List.of(), txStore.getStack());
+    assertEquals(new Pair<>(TStatus.UNKNOWN, Optional.empty()), txStore.getStatusAndKey());
   }
 
   @Test
@@ -450,7 +511,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     for (FateKey fateKey : List.of(fateKey1, fateKey2, fateKey3, fateKey4)) {
       var fateTx = store.createAndReserve(fateKey).orElseThrow();
       fateKeyIds.put(fateKey, fateTx.getID());
-      fateTx.unreserve(0, TimeUnit.MILLISECONDS);
+      fateTx.unreserve(Duration.ZERO);
     }
 
     HashSet<FateId> allIds = new HashSet<>();

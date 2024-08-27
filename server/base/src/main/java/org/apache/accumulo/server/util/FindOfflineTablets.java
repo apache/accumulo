@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -117,8 +118,9 @@ public class FindOfflineTablets {
       Set<TServerInstance> liveTServers = tservers.getCurrentServers();
       TabletState state = TabletState.compute(tabletMetadata, liveTServers);
       if (state != null && state != TabletState.HOSTED
+          && tabletMetadata.getTabletAvailability() == TabletAvailability.HOSTED
           && context.getTableManager().getTableState(tabletMetadata.getTableId())
-              != TableState.OFFLINE) {
+              == TableState.ONLINE) {
         System.out.println(tabletMetadata.getExtent() + " is " + state + "  #walogs:"
             + tabletMetadata.getLogs().size());
         offline++;

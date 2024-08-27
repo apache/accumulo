@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -92,6 +93,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionInfo;
 import org.apache.accumulo.server.compaction.FileCompactor;
@@ -730,28 +732,30 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       Map<TKeyExtent,List<TConditionalMutation>> mutations, List<String> symbols)
       throws NoSuchScanIDException, TException {
 
-    ConditionalSession cs = (ConditionalSession) server.sessionManager.reserveSession(sessID);
-
-    if (cs == null || cs.interruptFlag.get()) {
-      throw new NoSuchScanIDException();
-    }
-
-    if (!cs.tableId.equals(AccumuloTable.METADATA.tableId())
-        && !cs.tableId.equals(AccumuloTable.ROOT.tableId())) {
-      try {
-        server.resourceManager.waitUntilCommitsAreEnabled();
-      } catch (HoldTimeoutException hte) {
-        // Assumption is that the client has timed out and is gone. If that's not the case throw
-        // an exception that will cause it to retry.
-        log.debug("HoldTimeoutException during conditionalUpdate, reporting no such session");
-        throw new NoSuchScanIDException();
-      }
-    }
-
-    TableId tid = cs.tableId;
-    long opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
+    ConditionalSession cs = null;
+    Long opid = null;
 
     try {
+      cs = (ConditionalSession) server.sessionManager.reserveSession(sessID);
+      if (cs == null || cs.interruptFlag.get()) {
+        throw new NoSuchScanIDException();
+      }
+
+      if (!cs.tableId.equals(AccumuloTable.METADATA.tableId())
+          && !cs.tableId.equals(AccumuloTable.ROOT.tableId())) {
+        try {
+          server.resourceManager.waitUntilCommitsAreEnabled();
+        } catch (HoldTimeoutException hte) {
+          // Assumption is that the client has timed out and is gone. If that's not the case throw
+          // an exception that will cause it to retry.
+          log.debug("HoldTimeoutException during conditionalUpdate, reporting no such session");
+          throw new NoSuchScanIDException();
+        }
+      }
+
+      TableId tid = cs.tableId;
+      opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
+
       // @formatter:off
       Map<KeyExtent, List<ServerConditionalMutation>> updates = mutations.entrySet().stream().collect(Collectors.toMap(
                       entry -> KeyExtent.fromThrift(entry.getKey()),
@@ -777,24 +781,34 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     } catch (IOException ioe) {
       throw new TException(ioe);
     } catch (Exception e) {
-      log.warn("Exception returned for conditionalUpdate. tableId: {}, opid: {}", tid, opid, e);
+      log.warn("Exception returned for conditionalUpdate. tableId: {}, opid: {}",
+          cs == null ? null : cs.tableId, opid, e);
       throw e;
     } finally {
-      writeTracker.finishWrite(opid);
-      server.sessionManager.unreserveSession(sessID);
+      if (opid != null) {
+        writeTracker.finishWrite(opid);
+      }
+      if (cs != null) {
+        server.sessionManager.unreserveSession(sessID);
+      }
     }
   }
 
   @Override
   public void invalidateConditionalUpdate(TInfo tinfo, long sessID) {
-    // this method should wait for any running conditional update to complete
-    // after this method returns a conditional update should not be able to start
+    // For the given session, this method should wait for any running conditional update to
+    // complete. After this method returns a conditional update should not be able to start against
+    // this session and nothing should be running.
 
     ConditionalSession cs = (ConditionalSession) server.sessionManager.getSession(sessID);
     if (cs != null) {
+      // Setting this may cause anything running to fail. Setting this will prevent anything from
+      // starting.
       cs.interruptFlag.set(true);
     }
 
+    // If a thread is currently running and working on the update, then this should block until it
+    // un-reserves the session.
     cs = (ConditionalSession) server.sessionManager.reserveSession(sessID, true);
     if (cs != null) {
       server.sessionManager.removeSession(sessID, true);
@@ -973,8 +987,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     KeyExtent extent = KeyExtent.fromThrift(textent);
 
-    server.resourceManager.addMigration(extent,
-        new UnloadTabletHandler(server, extent, goal, requestTime));
+    server.resourceManager.addMigration(extent, new UnloadTabletHandler(server, extent, goal,
+        SteadyTime.from(requestTime, TimeUnit.MILLISECONDS)));
   }
 
   @Override
@@ -1096,80 +1110,47 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     // handle that more expensive case if needed.
     var tabletsSnapshot = server.getOnlineTablets();
 
-    Set<KeyExtent> notFound = new HashSet<>();
+    Map<KeyExtent,Tablet.RefreshSession> refreshSessions = new HashMap<>();
+
+    // Created this as synchronized list because it's passed to a lambda that could possibly run in
+    // another thread.
+    List<TKeyExtent> unableToRefresh = Collections.synchronizedList(new ArrayList<>());
 
     for (var tkextent : refreshes) {
       var extent = KeyExtent.fromThrift(tkextent);
-
       var tablet = tabletsSnapshot.get(extent);
       if (tablet != null) {
-        // ELASTICITY_TODO use a batch reader to read all tablets metadata at once instead of one by
-        // one. This may be a bit tricky from a synchronization perspective (with multiple tablets
-        // and multiple concurrent refresh request), so defer doing this until after removing
-        // functionality from the tablet. No need to make the change now and have to change it
-        // later.
-        tablet.refreshMetadata(RefreshPurpose.REFRESH_RPC);
+        refreshSessions.put(extent, tablet.startRefresh());
       } else {
-        notFound.add(extent);
+        unableToRefresh.add(extent.toThrift());
       }
     }
 
-    if (!notFound.isEmpty()) {
-      // Some tablets were not found, lets see if they are loading or moved to online while doing
-      // the refreshes above.
-      List<TKeyExtent> unableToRefresh = new ArrayList<>();
-      List<Tablet> foundTablets = new ArrayList<>();
-
-      synchronized (server.unopenedTablets) {
-        synchronized (server.openingTablets) {
-          synchronized (server.onlineTablets) {
-            // Get the snapshot again, however this time nothing will be changing while we iterate
-            // over the snapshot because all three locks are held.
-            tabletsSnapshot = server.getOnlineTablets();
-            for (var extent : notFound) {
-              // TODO investigate if its safe to ignore tablets in the unopened set because they
-              // have not yet read any metadata
-              if (server.unopenedTablets.contains(extent)
-                  || server.openingTablets.contains(extent)) {
-                // Can not refresh these tablets that are in the process of loading, but they may
-                // still need refreshing because we don't know when they read their metadata
-                // relative to the refresh event.
-                unableToRefresh.add(extent.toThrift());
-              } else {
-                var tablet = tabletsSnapshot.get(extent);
-                if (tablet != null) {
-                  // Intentionally not calling refresh on the tablet while holding these locks.
-                  foundTablets.add(tablet);
-                }
-              }
-            }
-
-            // If a tablet is not in any of the three sets then that is ok, it either means the
-            // tablet has not begun to load at all yet in which case it will see the metadata when
-            // it does load later OR it means the tablet has already completely unloaded. There is
-            // nothing to report back for either case.
-          }
+    // Read the metadata for all of the tablets that need to be refreshed. Its very important that
+    // this metadata read is done after calling Tablet.startRefresh, this is because the refresh
+    // session can detect changes that may necessitate rereading the tablet metadata. The refresh
+    // session assumes the metadata was read after the session was created in order to determine if
+    // its still valid.
+    try (var tabletsMeta = context.getAmple().readTablets()
+        .forTablets(refreshSessions.keySet(), Optional.of(e -> unableToRefresh.add(e.toThrift())))
+        .build()) {
+      for (var tabletMeta : tabletsMeta) {
+        var refreshSession = refreshSessions.get(tabletMeta.getExtent());
+        if (!refreshSession.refreshMetadata(RefreshPurpose.REFRESH_RPC, tabletMeta)) {
+          unableToRefresh.add(tabletMeta.getExtent().toThrift());
         }
       }
-
-      for (var tablet : foundTablets) {
-        tablet.refreshMetadata(RefreshPurpose.REFRESH_RPC);
-      }
-
-      if (log.isDebugEnabled()) {
-        for (var extent : unableToRefresh) {
-          // these tablet could hold up bulk import, lets logs the specific tablet in case it stays
-          // like this
-          log.debug("Unable to refresh tablet that is currently loading : {}",
-              KeyExtent.fromThrift(extent));
-        }
-      }
-
-      return unableToRefresh;
     }
 
-    // no problematic extents to report
-    return List.of();
+    if (log.isDebugEnabled()) {
+      for (var extent : unableToRefresh) {
+        // these tablet could hold up bulk import, lets logs the specific tablet in case it stays
+        // like this
+        log.debug("Unable to refresh tablet : {}", KeyExtent.fromThrift(extent));
+      }
+    }
+
+    return unableToRefresh;
   }
 
   @Override

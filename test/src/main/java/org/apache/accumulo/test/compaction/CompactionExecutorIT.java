@@ -152,6 +152,21 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     }
   }
 
+  public static class ErroringPlanner implements CompactionPlanner {
+    @Override
+    public void init(InitParameters params) {
+      if (Boolean.parseBoolean(params.getOptions().getOrDefault("failInInit", "false"))) {
+        throw new IllegalStateException("error initializing");
+      }
+
+    }
+
+    @Override
+    public CompactionPlan makePlan(PlanningParameters params) {
+      throw new IllegalStateException("error planning");
+    }
+  }
+
   public static class CompactionExecutorITConfig implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
@@ -227,6 +242,55 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
               throw new RuntimeException(e);
             }
           });
+    }
+  }
+
+  @Test
+  public void testFailingPlanners() throws Exception {
+    // This test ensures that a table w/ failing compaction planner can still be read and written.
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      // Setup three planner that fail to initialize or plan, these planners should not impede
+      // tablet assignment.
+      var csp = Property.COMPACTION_SERVICE_PREFIX.getKey();
+      client.instanceOperations().setProperty(csp + "cse1.planner",
+          ErroringPlanner.class.getName());
+      client.instanceOperations().setProperty(csp + "cse1.planner.opts.failInInit", "true");
+      client.instanceOperations().setProperty(csp + "cse2.planner",
+          ErroringPlanner.class.getName());
+      client.instanceOperations().setProperty(csp + "cse2.planner.opts.failInInit", "false");
+      client.instanceOperations().setProperty(csp + "cse3.planner", "NonExistentPlanner20240522");
+
+      createTable(client, "fail1", "cse1");
+      createTable(client, "fail2", "cse2");
+      createTable(client, "fail3", "cse3");
+
+      // ensure tablets can still be assigned and written w/ failing compaction services
+      addFiles(client, "fail1", 30);
+      addFiles(client, "fail2", 30);
+      addFiles(client, "fail3", 30);
+
+      // ensure tablets can still be assigned and scanned w/ failing compaction services
+      assertEquals(30, scanTable(client, "fail1").size());
+      assertEquals(30, scanTable(client, "fail2").size());
+      assertEquals(30, scanTable(client, "fail3").size());
+
+      // compactions should never run on these tables, but sleep a bit to be sure
+      Thread.sleep(2000);
+
+      // do no expect any compactions to run
+      assertEquals(30, getFiles(client, "fail1").size());
+      assertEquals(30, getFiles(client, "fail2").size());
+      assertEquals(30, getFiles(client, "fail3").size());
+
+      // Remove the properties for the invalid planners
+      client.instanceOperations().removeProperty(csp + "cse1.planner");
+      client.instanceOperations().removeProperty(csp + "cse1.planner.opts.failInInit");
+      client.instanceOperations().removeProperty(csp + "cse2.planner");
+      client.instanceOperations().removeProperty(csp + "cse2.planner.opts.failInInit");
+      client.instanceOperations().removeProperty(csp + "cse3.planner");
+
     }
   }
 

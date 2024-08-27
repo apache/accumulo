@@ -120,7 +120,7 @@ public class CommitCompaction extends ManagerRepo {
         var tabletMutator = tabletsMutator.mutateTablet(getExtent()).requireAbsentOperation()
             .requireCompaction(ecid).requireSame(tablet, FILES, LOCATION);
 
-        if (ecm.getKind() == CompactionKind.USER || ecm.getKind() == CompactionKind.SELECTOR) {
+        if (ecm.getKind() == CompactionKind.USER) {
           tabletMutator.requireSame(tablet, SELECTED, COMPACTED);
         }
 
@@ -130,10 +130,11 @@ public class CommitCompaction extends ManagerRepo {
         tabletMutator
             .submit(tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid));
 
-        // TODO expensive logging
-        LOG.debug("Compaction completed {} added {} removed {}", tablet.getExtent(), newDatafile,
-            ecm.getJobFiles().stream().map(AbstractTabletFile::getFileName)
-                .collect(Collectors.toList()));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Compaction completed {} added {} removed {}", tablet.getExtent(), newDatafile,
+              ecm.getJobFiles().stream().map(AbstractTabletFile::getFileName)
+                  .collect(Collectors.toList()));
+        }
 
         var result = tabletsMutator.process().get(getExtent());
         if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
@@ -159,7 +160,7 @@ public class CommitCompaction extends ManagerRepo {
   private void updateTabletForCompaction(TCompactionStats stats, ExternalCompactionId ecid,
       TabletMetadata tablet, Optional<ReferencedTabletFile> newDatafile, CompactionMetadata ecm,
       Ample.ConditionalTabletMutator tabletMutator) {
-    // ELASTICITY_TODO improve logging adapt to use existing tablet files logging
+
     if (ecm.getKind() == CompactionKind.USER) {
       if (tablet.getSelectedFiles().getFiles().equals(ecm.getJobFiles())) {
         // all files selected for the user compactions are finished, so the tablet is finish and
@@ -171,8 +172,7 @@ public class CommitCompaction extends ManagerRepo {
             "Tablet %s unexpected has selected files and compacted columns for %s",
             tablet.getExtent(), fateId);
 
-        // TODO set to trace
-        LOG.debug("All selected files compacted for {} setting compacted for {}",
+        LOG.trace("All selected files compacted for {} setting compacted for {}",
             tablet.getExtent(), tablet.getSelectedFiles().getFateId());
 
         tabletMutator.deleteSelectedFiles();
@@ -187,21 +187,20 @@ public class CommitCompaction extends ManagerRepo {
         newSelectedFileSet.removeAll(ecm.getJobFiles());
 
         if (newDatafile.isPresent()) {
-          // TODO set to trace
-          LOG.debug(
+          LOG.trace(
               "Not all selected files for {} are done, adding new selected file {} from compaction",
               tablet.getExtent(), newDatafile.orElseThrow().getPath().getName());
           newSelectedFileSet.add(newDatafile.orElseThrow().insert());
         } else {
-          // TODO set to trace
-          LOG.debug(
+          LOG.trace(
               "Not all selected files for {} are done, compaction produced no output so not adding to selected set.",
               tablet.getExtent());
         }
 
-        tabletMutator.putSelectedFiles(
-            new SelectedFiles(newSelectedFileSet, tablet.getSelectedFiles().initiallySelectedAll(),
-                tablet.getSelectedFiles().getFateId()));
+        tabletMutator.putSelectedFiles(new SelectedFiles(newSelectedFileSet,
+            tablet.getSelectedFiles().initiallySelectedAll(), tablet.getSelectedFiles().getFateId(),
+            tablet.getSelectedFiles().getCompletedJobs() + 1,
+            tablet.getSelectedFiles().getSelectedTime()));
       }
     }
 
@@ -219,7 +218,6 @@ public class CommitCompaction extends ManagerRepo {
     }
   }
 
-  // ELASTICITY_TODO unit test this method
   public static boolean canCommitCompaction(ExternalCompactionId ecid,
       TabletMetadata tabletMetadata) {
 
@@ -244,7 +242,7 @@ public class CommitCompaction extends ManagerRepo {
       return false;
     }
 
-    if (ecm.getKind() == CompactionKind.USER || ecm.getKind() == CompactionKind.SELECTOR) {
+    if (ecm.getKind() == CompactionKind.USER) {
       if (tabletMetadata.getSelectedFiles() == null) {
         // when the compaction is canceled, selected files are deleted
         LOG.debug(
@@ -258,6 +256,7 @@ public class CommitCompaction extends ManagerRepo {
         LOG.debug(
             "Received completion notification for user compaction where its fate txid did not match the tablets {} {} {} {}",
             ecid, extent, ecm.getFateId(), tabletMetadata.getSelectedFiles().getFateId());
+        return false;
       }
 
       if (!tabletMetadata.getSelectedFiles().getFiles().containsAll(ecm.getJobFiles())) {

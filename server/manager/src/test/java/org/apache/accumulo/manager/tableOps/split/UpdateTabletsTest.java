@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
@@ -58,7 +59,6 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
-import org.apache.accumulo.server.util.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -72,8 +72,8 @@ public class UpdateTabletsTest {
         .insert();
   }
 
-  FileUtil.FileInfo newFileInfo(String start, String end) {
-    return new FileUtil.FileInfo(new Text(start), new Text(end));
+  Splitter.FileInfo newFileInfo(String start, String end) {
+    return new Splitter.FileInfo(new Text(start), new Text(end));
   }
 
   /**
@@ -230,6 +230,9 @@ public class UpdateTabletsTest {
     EasyMock.expect(splitter.getCachedFileInfo(tableId, file3)).andReturn(newFileInfo("d", "f"));
     EasyMock.expect(splitter.getCachedFileInfo(tableId, file4)).andReturn(newFileInfo("d", "j"));
     EasyMock.expect(manager.getSplitter()).andReturn(splitter).atLeastOnce();
+
+    ServiceLock managerLock = EasyMock.mock(ServiceLock.class);
+    EasyMock.expect(context.getServiceLock()).andReturn(managerLock).anyTimes();
 
     // Setup the metadata for the tablet that is going to split, set as many columns as possible on
     // it.

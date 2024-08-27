@@ -19,10 +19,10 @@
 package org.apache.accumulo.tserver;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCAN_SERVER_TABLET_METADATA_CACHE_POOL;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -79,9 +80,10 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
+import org.apache.accumulo.core.tabletscan.thrift.ScanServerBusyException;
 import org.apache.accumulo.core.tabletscan.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletscan.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
@@ -89,6 +91,7 @@ import org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -175,6 +178,7 @@ public class ScanServer extends AbstractServer
   private UUID serverLockUUID;
   private final TabletMetadataLoader tabletMetadataLoader;
   private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
+  private final ThreadPoolExecutor tmCacheExecutor;
   // tracks file reservations that are in the process of being added or removed from the metadata
   // table
   private final Set<StoredTabletFile> influxFiles = new HashSet<>();
@@ -195,14 +199,16 @@ public class ScanServer extends AbstractServer
   private final TabletServerResourceManager resourceManager;
   HostAndPort clientAddress;
 
-  private volatile boolean serverStopRequested = false;
+  protected volatile boolean serverStopRequested = false;
   private ServiceLock scanServerLock;
   protected TabletServerScanMetrics scanMetrics;
+  private ScanServerMetrics scanServerMetrics;
+  private BlockCacheMetrics blockCacheMetrics;
 
-  private ZooCache managerLockCache;
+  private final ZooCache managerLockCache;
 
   public ScanServer(ConfigOpts opts, String[] args) {
-    super("sserver", opts, args);
+    super("sserver", opts, ServerContext::new, args);
 
     context = super.getContext();
     log.info("Version " + Constants.VERSION);
@@ -226,22 +232,47 @@ public class ScanServer extends AbstractServer
         getConfiguration().getTimeInMillis(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION);
 
     long scanServerReservationExpiration =
-        getConfiguration().getTimeInMillis(Property.SSERVER_SCAN_REFERENCE_EXPIRATION_TIME);
+        getConfiguration().getTimeInMillis(Property.SSERV_SCAN_REFERENCE_EXPIRATION_TIME);
 
     tabletMetadataLoader = new TabletMetadataLoader(getContext().getAmple());
 
     if (cacheExpiration == 0L) {
       LOG.warn("Tablet metadata caching disabled, may cause excessive scans on metadata table.");
       tabletMetadataCache = null;
+      tmCacheExecutor = null;
     } else {
       if (cacheExpiration < 60000) {
         LOG.warn(
             "Tablet metadata caching less than one minute, may cause excessive scans on metadata table.");
       }
-      tabletMetadataCache =
+
+      // Get the cache refresh percentage property
+      // Value must be less than 100% as 100 or over would effectively disable it
+      double cacheRefreshPercentage =
+          getConfiguration().getFraction(Property.SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT);
+      Preconditions.checkArgument(cacheRefreshPercentage < cacheExpiration,
+          "Tablet metadata cache refresh percentage is '%s' but must be less than 1",
+          cacheRefreshPercentage);
+
+      tmCacheExecutor = context.threadPools().getPoolBuilder(SCAN_SERVER_TABLET_METADATA_CACHE_POOL)
+          .numCoreThreads(8).enableThreadPoolMetrics().build();
+      var builder =
           context.getCaches().createNewBuilder(CacheName.SCAN_SERVER_TABLET_METADATA, true)
               .expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
-              .scheduler(Scheduler.systemScheduler()).build(tabletMetadataLoader);
+              .scheduler(Scheduler.systemScheduler()).executor(tmCacheExecutor).recordStats();
+      if (cacheRefreshPercentage > 0) {
+        // Compute the refresh time as a percentage of the expiration time
+        // Cache hits after this time, but before expiration, will trigger a background
+        // non-blocking refresh of the entry so future cache hits get an updated entry
+        // without having to block for a refresh
+        long cacheRefresh = (long) (cacheExpiration * cacheRefreshPercentage);
+        LOG.debug("Tablet metadata refresh percentage set to {}, refresh time set to {} ms",
+            cacheRefreshPercentage, cacheRefresh);
+        builder.refreshAfterWrite(cacheRefresh, TimeUnit.MILLISECONDS);
+      } else {
+        LOG.warn("Tablet metadata cache refresh disabled, may cause blocking on cache expiration.");
+      }
+      tabletMetadataCache = builder.build(tabletMetadataLoader);
     }
 
     delegate = newThriftScanClientHandler(new WriteTracker());
@@ -277,13 +308,10 @@ public class ScanServer extends AbstractServer
     TProcessor processor =
         ThriftProcessorTypes.getScanServerTProcessor(clientHandler, this, getContext());
 
-    Property maxMessageSizeProperty =
-        (getConfiguration().get(Property.SSERV_MAX_MESSAGE_SIZE) != null
-            ? Property.SSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS,
-        Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK, maxMessageSizeProperty);
+        Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK);
 
     LOG.info("address = {}", sp.address);
     return sp;
@@ -376,20 +404,20 @@ public class ScanServer extends AbstractServer
       throw new RuntimeException("Failed to start the compactor client service", e1);
     }
 
-    try {
-      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          clientAddress, getContext().getInstanceName(), this.getResourceGroup());
-      scanMetrics = new TabletServerScanMetrics();
-      MetricsUtil.initializeProducers(this, scanMetrics);
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-        | SecurityException e1) {
-      LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
-    }
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addServiceTags(getApplicationName(), clientAddress, getResourceGroup());
 
+    scanMetrics = new TabletServerScanMetrics();
+    scanServerMetrics = new ScanServerMetrics(tabletMetadataCache);
+    blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),
+        resourceManager.getDataCache(), resourceManager.getSummaryCache());
+
+    metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics);
+    metricsInfo.init();
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 
     ServiceLock lock = announceExistence();
+    this.getContext().setServiceLock(lock);
 
     int threadPoolSize = getConfiguration().getCount(Property.SSERV_WAL_SORT_MAX_CONCURRENT);
     if (threadPoolSize > 0) {
@@ -410,17 +438,15 @@ public class ScanServer extends AbstractServer
     try {
       while (!serverStopRequested) {
         UtilWaitThread.sleep(1000);
-        idleProcessCheck(() -> {
-          return sessionManager.getActiveScans().isEmpty()
-              && tabletMetadataCache.estimatedSize() == 0;
-        });
+        updateIdleStatus(
+            sessionManager.getActiveScans().isEmpty() && tabletMetadataCache.estimatedSize() == 0);
       }
     } finally {
       LOG.info("Stopping Thrift Servers");
       address.server.stop();
 
       LOG.info("Removing server scan references");
-      this.getContext().getAmple().deleteScanServerFileReferences(clientAddress.toString(),
+      this.getContext().getAmple().scanServerRefs().delete(clientAddress.toString(),
           serverLockUUID);
 
       try {
@@ -431,6 +457,11 @@ public class ScanServer extends AbstractServer
         }
       } catch (IOException e) {
         LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
+      }
+
+      if (tmCacheExecutor != null) {
+        LOG.debug("Shutting down TabletMetadataCache executor");
+        tmCacheExecutor.shutdownNow();
       }
 
       context.getLowMemoryDetector().logGCInfo(getConfiguration());
@@ -540,6 +571,10 @@ public class ScanServer extends AbstractServer
         extents);
 
     Map<KeyExtent,TabletMetadata> tabletsMetadata = getTabletMetadata(extents);
+    if (!(tabletsMetadata instanceof HashMap)) {
+      // the map returned by getTabletMetadata may not be mutable
+      tabletsMetadata = new HashMap<>(tabletsMetadata);
+    }
 
     for (KeyExtent extent : extents) {
       var tabletMetadata = tabletsMetadata.get(extent);
@@ -552,10 +587,6 @@ public class ScanServer extends AbstractServer
         LOG.info("RFFS {} extent unable to load {} as AssignmentHandler returned false",
             myReservationId, extent);
         failures.add(extent);
-        if (!(tabletsMetadata instanceof HashMap)) {
-          // the map returned by getTabletMetadata may not be mutable
-          tabletsMetadata = new HashMap<>(tabletsMetadata);
-        }
         tabletsMetadata.remove(extent);
       }
     }
@@ -614,8 +645,8 @@ public class ScanServer extends AbstractServer
 
       for (StoredTabletFile file : allFiles.keySet()) {
         if (!reservedFiles.containsKey(file)) {
-          refs.add(new ScanServerRefTabletFile(file.getNormalizedPathStr(), serverAddress,
-              serverLockUUID));
+          refs.add(new ScanServerRefTabletFile(serverLockUUID, serverAddress,
+              file.getNormalizedPathStr()));
           filesToReserve.add(file);
           tabletsToCheck.add(Objects.requireNonNull(allFiles.get(file)));
           LOG.trace("RFFS {} need to add scan ref for file {}", myReservationId, file);
@@ -623,7 +654,8 @@ public class ScanServer extends AbstractServer
       }
 
       if (!filesToReserve.isEmpty()) {
-        getContext().getAmple().putScanServerFileReferences(refs);
+        scanServerMetrics.recordWriteOutReservationTime(
+            () -> getContext().getAmple().scanServerRefs().put(refs));
 
         // After we insert the scan server refs we need to check and see if the tablet is still
         // using the file. As long as the tablet is still using the files then the Accumulo GC
@@ -640,14 +672,9 @@ public class ScanServer extends AbstractServer
         for (KeyExtent extent : tabletsToCheck) {
           TabletMetadata metadataAfter = tabletsToCheckMetadata.get(extent);
           if (metadataAfter == null) {
-            getContext().getAmple().deleteScanServerFileReferences(refs);
             LOG.info("RFFS {} extent unable to load {} as metadata no longer referencing files",
                 myReservationId, extent);
             failures.add(extent);
-            if (!(tabletsMetadata instanceof HashMap)) {
-              // the map returned by getTabletMetadata may not be mutable
-              tabletsMetadata = new HashMap<>(tabletsMetadata);
-            }
             tabletsMetadata.remove(extent);
           } else {
             // remove files that are still referenced
@@ -661,7 +688,8 @@ public class ScanServer extends AbstractServer
         if (!filesToReserve.isEmpty()) {
           LOG.info("RFFS {} tablet files changed while attempting to reference files {}",
               myReservationId, filesToReserve);
-          getContext().getAmple().deleteScanServerFileReferences(refs);
+          getContext().getAmple().scanServerRefs().delete(refs);
+          scanServerMetrics.incrementReservationConflictCount();
           return null;
         }
       }
@@ -687,6 +715,18 @@ public class ScanServer extends AbstractServer
         reservationsWriteLock.unlock();
       }
     }
+  }
+
+  @VisibleForTesting
+  ScanReservation reserveFilesInstrumented(Map<KeyExtent,List<TRange>> extents)
+      throws AccumuloException {
+    Timer start = Timer.startNew();
+    try {
+      return reserveFiles(extents);
+    } finally {
+      scanServerMetrics.recordTotalReservationTime(start.elapsed());
+    }
+
   }
 
   protected ScanReservation reserveFiles(Map<KeyExtent,List<TRange>> extents)
@@ -717,6 +757,16 @@ public class ScanServer extends AbstractServer
     });
 
     return new ScanReservation(tabletsMetadata, myReservationId, failures);
+  }
+
+  @VisibleForTesting
+  ScanReservation reserveFilesInstrumented(long scanId) throws NoSuchScanIDException {
+    Timer start = Timer.startNew();
+    try {
+      return reserveFiles(scanId);
+    } finally {
+      scanServerMetrics.recordTotalReservationTime(start.elapsed());
+    }
   }
 
   protected ScanReservation reserveFiles(long scanId) throws NoSuchScanIDException {
@@ -757,7 +807,7 @@ public class ScanServer extends AbstractServer
     return new ScanReservation(scanSessionFiles, myReservationId);
   }
 
-  private static Set<StoredTabletFile> getScanSessionFiles(ScanSession session) {
+  private static Set<StoredTabletFile> getScanSessionFiles(ScanSession<?> session) {
     if (session instanceof SingleScanSession) {
       var sss = (SingleScanSession) session;
       return Set.copyOf(session.getTabletResolver().getTablet(sss.extent).getDatafiles().keySet());
@@ -815,7 +865,7 @@ public class ScanServer extends AbstractServer
       if (!confirmed.isEmpty()) {
         try {
           // Do this metadata operation is done w/o holding the lock
-          getContext().getAmple().deleteScanServerFileReferences(refsToDelete);
+          getContext().getAmple().scanServerRefs().delete(refsToDelete);
           if (LOG.isTraceEnabled()) {
             confirmed.forEach(refToDelete -> LOG.trace(
                 "RFFS referenced files has not been used recently, removing reference {}",
@@ -896,6 +946,11 @@ public class ScanServer extends AbstractServer
     };
   }
 
+  /* Exposed for testing */
+  protected boolean isSystemUser(TCredentials creds) {
+    return context.getSecurityOperation().isSystemUser(creds);
+  }
+
   @Override
   public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent,
       TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
@@ -906,8 +961,14 @@ public class ScanServer extends AbstractServer
       TooManyFilesException, TSampleNotPresentException, TException {
 
     KeyExtent extent = getKeyExtent(textent);
+
+    if (extent.isSystemTable() && !isSystemUser(credentials)) {
+      throw new TException(
+          "Only the system user can perform eventual consistency scans on the root and metadata tables");
+    }
+
     try (ScanReservation reservation =
-        reserveFiles(Map.of(extent, Collections.singletonList(range)))) {
+        reserveFilesInstrumented(Map.of(extent, Collections.singletonList(range)))) {
 
       if (reservation.getFailures().containsKey(textent)) {
         throw new NotServingTabletException(extent.toThrift());
@@ -921,7 +982,9 @@ public class ScanServer extends AbstractServer
           busyTimeout);
 
       return is;
-
+    } catch (ScanServerBusyException be) {
+      scanServerMetrics.incrementBusy();
+      throw be;
     } catch (AccumuloException | IOException e) {
       LOG.error("Error starting scan", e);
       throw new RuntimeException(e);
@@ -934,9 +997,12 @@ public class ScanServer extends AbstractServer
       TSampleNotPresentException, TException {
     LOG.trace("continue scan: {}", scanID);
 
-    try (ScanReservation reservation = reserveFiles(scanID)) {
+    try (ScanReservation reservation = reserveFilesInstrumented(scanID)) {
       Preconditions.checkState(reservation.getFailures().isEmpty());
       return delegate.continueScan(tinfo, scanID, busyTimeout);
+    } catch (ScanServerBusyException be) {
+      scanServerMetrics.incrementBusy();
+      throw be;
     }
   }
 
@@ -962,10 +1028,16 @@ public class ScanServer extends AbstractServer
 
     for (Entry<TKeyExtent,List<TRange>> entry : tbatch.entrySet()) {
       KeyExtent extent = getKeyExtent(entry.getKey());
+
+      if (extent.isSystemTable() && !isSystemUser(credentials)) {
+        throw new TException(
+            "Only the system user can perform eventual consistency scans on the root and metadata tables");
+      }
+
       batch.put(extent, entry.getValue());
     }
 
-    try (ScanReservation reservation = reserveFiles(batch)) {
+    try (ScanReservation reservation = reserveFilesInstrumented(batch)) {
 
       HashMap<KeyExtent,TabletBase> tablets = new HashMap<>();
       reservation.getTabletMetadataExtents().forEach(extent -> {
@@ -982,6 +1054,9 @@ public class ScanServer extends AbstractServer
 
       LOG.trace("started scan: {}", ims.getScanID());
       return ims;
+    } catch (ScanServerBusyException be) {
+      scanServerMetrics.incrementBusy();
+      throw be;
     } catch (TException e) {
       LOG.error("Error starting scan", e);
       throw e;
@@ -996,9 +1071,12 @@ public class ScanServer extends AbstractServer
       throws NoSuchScanIDException, TSampleNotPresentException, TException {
     LOG.trace("continue multi scan: {}", scanID);
 
-    try (ScanReservation reservation = reserveFiles(scanID)) {
+    try (ScanReservation reservation = reserveFilesInstrumented(scanID)) {
       Preconditions.checkState(reservation.getFailures().isEmpty());
       return delegate.continueMultiScan(tinfo, scanID, busyTimeout);
+    } catch (ScanServerBusyException be) {
+      scanServerMetrics.incrementBusy();
+      throw be;
     }
   }
 

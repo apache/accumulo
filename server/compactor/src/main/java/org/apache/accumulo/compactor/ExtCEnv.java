@@ -37,12 +37,12 @@ import com.google.common.annotations.VisibleForTesting;
 public class ExtCEnv implements CompactionEnv {
 
   private final CompactionJobHolder jobHolder;
-  private TExternalCompactionJob job;
-  private String groupName;
+  private final TExternalCompactionJob job;
+  private final String groupName;
 
   public static class CompactorIterEnv extends TabletIteratorEnvironment {
 
-    private String groupName;
+    private final String groupName;
 
     public CompactorIterEnv(ServerContext context, IteratorScope scope, boolean fullMajC,
         AccumuloConfiguration tableConfig, TableId tableId, CompactionKind kind, String groupName) {
@@ -90,7 +90,6 @@ public class ExtCEnv implements CompactionEnv {
     switch (job.getKind()) {
       case USER:
         return TCompactionReason.USER;
-      case SELECTOR:
       case SYSTEM:
         return TCompactionReason.SYSTEM;
       default:

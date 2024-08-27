@@ -23,9 +23,11 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -35,6 +37,7 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -106,8 +109,8 @@ public class TabletRefresher {
 
         // Ask tablet server to reload the metadata for these tablets. The tablet server returns
         // the list of extents it was hosting but was unable to refresh (the tablets could be in
-        // the process of loading). If it is not currently hosting the tablet it treats that as
-        // refreshed and does not return anything for it.
+        // the process of loading). If it is not currently hosting the tablet it does not return
+        // anything for it.
         Future<List<TKeyExtent>> future = threadPool
             .submit(() -> sendSyncRefreshRequest(context, logId, entry.getKey(), entry.getValue()));
 
@@ -142,6 +145,48 @@ public class TabletRefresher {
       }
 
       if (!refreshesNeeded.isEmpty()) {
+        // look for any tablets where the location changed, these tablets will no longer need a
+        // refresh because when the tablet loads at the new location it will see the new tablet
+        // metadata
+        HashMap<KeyExtent,TabletMetadata.Location> prevLocations = new HashMap<>();
+        refreshesNeeded.forEach((loc, extents) -> {
+          for (TKeyExtent te : extents) {
+            var extent = KeyExtent.fromThrift(te);
+            prevLocations.put(extent, loc);
+          }
+        });
+
+        // Build a map of tablets that exist and their current location. No need to includes tablets
+        // that no longer exists or do not have a location as later logic is ok w/ these being null.
+        HashMap<KeyExtent,TabletMetadata.Location> currLocations = new HashMap<>();
+        try (var tablets =
+            context.getAmple().readTablets().forTablets(prevLocations.keySet(), Optional.empty())
+                .fetch(ColumnType.LOCATION).build()) {
+          tablets.forEach(tablet -> {
+            if (tablet.getLocation() != null) {
+              currLocations.put(tablet.getExtent(), tablet.getLocation());
+            }
+          });
+        }
+
+        refreshesNeeded.clear();
+
+        var finalrefreshesNeeded = refreshesNeeded;
+        // rebuild refreshesNeeded only including those where the location is still the same
+        prevLocations.forEach((extent, prevLoc) -> {
+          var currLoc = currLocations.get(extent);
+          // currLoc may be null and this is ok because it should not be equal then
+          if (prevLoc.equals(currLoc)) {
+            finalrefreshesNeeded.computeIfAbsent(currLoc, k -> new ArrayList<>())
+                .add(extent.toThrift());
+          } else {
+            log.trace("The location of {} changed from {} to {}, so refresh no longer needed",
+                extent, prevLoc, currLoc);
+          }
+        });
+      }
+
+      if (!refreshesNeeded.isEmpty()) {
         try {
           retry.waitForNextAttempt(log, logId + " waiting for " + refreshesNeeded.size()
               + " tservers to refresh their tablets metadata");
@@ -170,9 +215,6 @@ public class TabletRefresher {
       return unrefreshed;
     } catch (TException ex) {
       log.debug("rpc failed server: " + location + ", " + logId + " " + ex.getMessage(), ex);
-
-      // ELASTICITY_TODO are there any other exceptions we should catch in this method and check if
-      // the tserver is till alive?
 
       // something went wrong w/ RPC return all extents as unrefreshed
       return refreshes;

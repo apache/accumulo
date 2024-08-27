@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_UPGRADE_COORDINATOR_METADATA_POOL;
 import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_ENCODING;
 import static org.apache.accumulo.server.AccumuloDataVersion.REMOVE_DEPRECATIONS_FOR_VERSION_3;
 import static org.apache.accumulo.server.AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
@@ -38,8 +39,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ConfigCheckUtil;
-import org.apache.accumulo.core.fate.MetaFateStore;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
@@ -47,6 +46,7 @@ import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
+import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -200,8 +200,9 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do metadata upgrade %s", status);
 
     if (currentVersion < AccumuloDataVersion.get()) {
-      return ThreadPools.getServerThreadPools().getPoolBuilder("UpgradeMetadataThreads")
-          .numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE).withTimeOut(60L, SECONDS)
+      return ThreadPools.getServerThreadPools()
+          .getPoolBuilder(MANAGER_UPGRADE_COORDINATOR_METADATA_POOL).numCoreThreads(0)
+          .numMaxThreads(Integer.MAX_VALUE).withTimeOut(60L, SECONDS)
           .withQueue(new SynchronousQueue<>()).build().submit(() -> {
             try {
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
@@ -260,6 +261,11 @@ public class UpgradeCoordinator {
         | TableNotFoundException e) {
       throw new IllegalStateException("Error checking properties", e);
     }
+    try {
+      CheckCompactionConfig.validate(context.getConfiguration());
+    } catch (RuntimeException | ReflectiveOperationException e) {
+      throw new IllegalStateException("Error validating compaction configuration", e);
+    }
   }
 
   // visible for testing
@@ -307,17 +313,19 @@ public class UpgradeCoordinator {
       justification = "Want to immediately stop all manager threads on upgrade error")
   private void abortIfFateTransactions(ServerContext context) {
     try {
-      final ReadOnlyFateStore<UpgradeCoordinator> fate = new MetaFateStore<>(
-          context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter());
-      try (var idStream = fate.list()) {
-        if (idStream.findFirst().isPresent()) {
-          throw new AccumuloException("Aborting upgrade because there are"
-              + " outstanding FATE transactions from a previous Accumulo version."
-              + " You can start the tservers and then use the shell to delete completed "
-              + " transactions. If there are incomplete transactions, you will need to roll"
-              + " back and fix those issues. Please see the following page for more information: "
-              + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
-        }
+      // The current version of the code creates the new accumulo.fate table on upgrade, so no
+      // attempt is made to read it here. Attempting to read it this point would likely cause a hang
+      // as tablets are not assigned when this is called. The Fate code is not used to read from
+      // zookeeper below because the serialization format changed in zookeeper, that is why a direct
+      // read is performed.
+      if (!context.getZooReader().getChildren(context.getZooKeeperRoot() + Constants.ZFATE)
+          .isEmpty()) {
+        throw new AccumuloException("Aborting upgrade because there are"
+            + " outstanding FATE transactions from a previous Accumulo version."
+            + " You can start the tservers and then use the shell to delete completed "
+            + " transactions. If there are incomplete transactions, you will need to roll"
+            + " back and fix those issues. Please see the following page for more information: "
+            + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
       }
     } catch (Exception exception) {
       log.error("Problem verifying Fate readiness", exception);

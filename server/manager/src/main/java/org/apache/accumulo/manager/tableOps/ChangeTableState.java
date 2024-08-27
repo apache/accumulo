@@ -33,9 +33,9 @@ import org.slf4j.LoggerFactory;
 public class ChangeTableState extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private TableId tableId;
-  private NamespaceId namespaceId;
-  private TableOperation top;
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
+  private final TableOperation top;
   private final EnumSet<TableState> expectedCurrStates;
 
   public ChangeTableState(NamespaceId namespaceId, TableId tableId, TableOperation top,

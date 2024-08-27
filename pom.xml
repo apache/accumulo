@@ -134,7 +134,7 @@
     <maven.version.ignore>.+-SNAPSHOT,(?i).*(alpha|beta)[0-9.-]*,(?i).*[.-](m|rc)[0-9]+</maven.version.ignore>
     <minimalJavaBuildVersion>17</minimalJavaBuildVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2023-08-14T08:11:10Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2024-07-29T06:03:16Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
@@ -144,11 +144,12 @@
     <surefire.reuseForks>true</surefire.reuseForks>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- dependency and plugin versions managed with properties -->
+    <version.accumulo-access>1.0.0-SNAPSHOT</version.accumulo-access>
     <version.auto-service>1.1.1</version.auto-service>
-    <version.bouncycastle>1.77</version.bouncycastle>
+    <version.bouncycastle>1.78.1</version.bouncycastle>
     <version.curator>5.5.0</version.curator>
     <version.errorprone>2.24.1</version.errorprone>
-    <version.hadoop>3.3.6</version.hadoop>
+    <version.hadoop>3.4.0</version.hadoop>
     <version.opentelemetry>1.34.1</version.opentelemetry>
     <version.powermock>2.0.9</version.powermock>
     <version.slf4j>2.0.12</version.slf4j>
@@ -312,7 +313,12 @@
       <dependency>
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging</artifactId>
-        <version>1.2</version>
+        <version>1.3.3</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-access</artifactId>
+        <version>${version.accumulo-access}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -502,13 +508,6 @@
         <groupId>org.apache.thrift</groupId>
         <artifactId>libthrift</artifactId>
         <version>${version.thrift}</version>
-        <!-- exclude vulnerable lib see https://issues.apache.org/jira/browse/HTTPCLIENT-1803 -->
-        <exclusions>
-          <exclusion>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.zookeeper</groupId>
@@ -980,7 +979,7 @@
                 <bannedDependencies>
                   <excludes>
                     <!-- we redirect logging to log4j2, so we should have those bridges instead -->
-                    <!-- commons-logging is allowed because log4j-jcl uses it as a dependency -->
+                    <!-- commons-logging is allowed because it natively sends to log4j2 or slf4j -->
                     <exclude>ch.qos.logback:*</exclude>
                     <exclude>ch.qos.reload4j:*</exclude>
                     <exclude>log4j:*</exclude>

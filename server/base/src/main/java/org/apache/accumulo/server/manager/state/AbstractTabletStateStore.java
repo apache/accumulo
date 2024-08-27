@@ -18,28 +18,37 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public abstract class AbstractTabletStateStore implements TabletStateStore {
 
+  private static final Logger LOG = LoggerFactory.getLogger(AbstractTabletStateStore.class);
+
   private final Ample ample;
 
-  protected AbstractTabletStateStore(ClientContext context) {
+  protected AbstractTabletStateStore(ServerContext context) {
     this.ample = context.getAmple();
   }
 
@@ -72,7 +81,7 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments)
+  public Set<KeyExtent> setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (Assignment assignment : assignments) {
@@ -86,13 +95,18 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
             });
       }
 
-      var results = tabletsMutator.process();
+      Map<KeyExtent,ConditionalResult> results = tabletsMutator.process();
+      List<KeyExtent> failed = new ArrayList<>();
 
-      if (results.values().stream().anyMatch(result -> result.getStatus() != Status.ACCEPTED)) {
-        throw new DistributedStoreException(
-            "failed to set tablet location, conditional mutation failed. ");
+      for (Entry<KeyExtent,ConditionalResult> entry : results.entrySet()) {
+        if (entry.getValue().getStatus() != Status.ACCEPTED) {
+          LOG.debug("Likely concurrent FATE operation prevented setting future location for {}, "
+              + "Manager will retry soon.", entry.getKey());
+          failed.add(entry.getKey());
+        }
       }
 
+      return Set.copyOf(failed);
     } catch (RuntimeException ex) {
       throw new DistributedStoreException(ex);
     }
@@ -101,21 +115,21 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
   @Override
   public void unassign(Collection<TabletMetadata> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
-    unassign(tablets, logsForDeadServers, -1);
+    unassign(tablets, logsForDeadServers, null);
   }
 
   @Override
   public void suspend(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     unassign(tablets, logsForDeadServers, suspensionTimestamp);
   }
 
   protected abstract void processSuspension(Ample.ConditionalTabletMutator tabletMutator,
-      TabletMetadata tm, long suspensionTimestamp);
+      TabletMetadata tm, SteadyTime suspensionTimestamp);
 
   private void unassign(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (TabletMetadata tm : tablets) {

@@ -171,7 +171,7 @@ public class SortedLogRecovery {
 
   static class DeduplicatingIterator implements Iterator<Entry<LogFileKey,LogFileValue>> {
 
-    private PeekingIterator<Entry<LogFileKey,LogFileValue>> source;
+    private final PeekingIterator<Entry<LogFileKey,LogFileValue>> source;
 
     public DeduplicatingIterator(Iterator<Entry<LogFileKey,LogFileValue>> source) {
       this.source = Iterators.peekingIterator(source);

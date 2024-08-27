@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.minicluster.MemoryUnit;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -47,7 +52,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class SplitMillionIT extends AccumuloClusterHarness {
+public class SplitMillionIT extends ConfigurableMacBase {
 
   private static final Logger log = LoggerFactory.getLogger(SplitMillionIT.class);
 
@@ -59,14 +64,29 @@ public class SplitMillionIT extends AccumuloClusterHarness {
     }
   }
 
+  @Override
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setMemory(ServerType.MANAGER, 1, MemoryUnit.GIGABYTE);
+    cfg.setMemory(ServerType.TABLET_SERVER, 1, MemoryUnit.GIGABYTE);
+  }
+
   @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
       justification = "predictable random is ok for testing")
   @Test
   public void testOneMillionTablets() throws Exception {
 
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
+
+      // pre split the metadata table
+      var tableId = getServerContext().getTableId(tableName);
+      SortedSet<Text> metaSplits = new TreeSet<>();
+      for (int i = 1; i < 10; i++) {
+        String metaSplit = String.format("%s;%010d", tableId, 100_000_000 / 10 * i);
+        metaSplits.add(new Text(metaSplit));
+      }
+      c.tableOperations().addSplits(AccumuloTable.METADATA.tableName(), metaSplits);
 
       SortedSet<Text> splits = new TreeSet<>();
 
@@ -89,41 +109,48 @@ public class SplitMillionIT extends AccumuloClusterHarness {
               IntStream.of(0, 1, 99_999_998, 99_999_999))
           .toArray();
 
-      // read and write to a few of the 1 million tablets. The following should touch the first,
-      // last, and a few middle tablets.
-      for (var rowInt : rows) {
+      long t1 = System.currentTimeMillis();
+      try (var scanner = c.createBatchScanner(tableName)) {
+        var ranges = Arrays.stream(rows).mapToObj(rowInt -> String.format("%010d", rowInt))
+            .map(Range::new).collect(Collectors.toList());
+        scanner.setRanges(ranges);
+        assertEquals(0, scanner.stream().count());
+      }
+      long t2 = System.currentTimeMillis();
+      log.info("Time to scan {} rows {}ms", rows.length, (t2 - t1));
 
-        var row = String.format("%010d", rowInt);
-
-        long t1 = System.currentTimeMillis();
-        try (var scanner = c.createScanner(tableName)) {
-          scanner.setRange(new Range(row));
-          assertEquals(0, scanner.stream().count());
-        }
-
-        long t2 = System.currentTimeMillis();
-
-        try (var writer = c.createBatchWriter(tableName)) {
+      t1 = System.currentTimeMillis();
+      try (var writer = c.createBatchWriter(tableName)) {
+        for (var rowInt : rows) {
+          var row = String.format("%010d", rowInt);
           Mutation m = new Mutation(row);
           m.put("c", "x", "200");
           m.put("c", "y", "900");
           m.put("c", "z", "300");
           writer.addMutation(m);
         }
+      }
+      t2 = System.currentTimeMillis();
+      log.info("Time to write {} rows {}ms", rows.length, (t2 - t1));
+
+      // read and write to a few of the 1 million tablets. The following should touch the first,
+      // last, and a few middle tablets.
+      for (var rowInt : rows) {
+        var row = String.format("%010d", rowInt);
 
         long t3 = System.currentTimeMillis();
         verifyRow(c, tableName, row, Map.of("x", "200", "y", "900", "z", "300"));
         long t4 = System.currentTimeMillis();
-        log.info("Row: {} scan1: {}ms write: {}ms scan2: {}ms", row, t2 - t1, t3 - t2, t4 - t3);
+        log.info("Row: {}  scan: {}ms", row, t4 - t3);
       }
 
       long count;
-      long t1 = System.currentTimeMillis();
+      t1 = System.currentTimeMillis();
       try (var tabletInformation =
           c.tableOperations().getTabletInformation(tableName, new Range())) {
         count = tabletInformation.count();
       }
-      long t2 = System.currentTimeMillis();
+      t2 = System.currentTimeMillis();
       assertEquals(1_000_000, count);
       log.info("Time to scan all tablets information : {}ms", t2 - t1);
 
