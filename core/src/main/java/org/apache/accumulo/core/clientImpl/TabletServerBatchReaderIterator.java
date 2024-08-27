@@ -884,6 +884,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
       }
 
+      // Tracks unclosed scan session id for the case when the following try block exits with an
+      // exception.
+      Long scanIdToClose = null;
       try {
 
         Timer timer = null;
@@ -917,6 +920,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
             SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
             options.batchTimeout, options.classLoaderContext, execHints, busyTimeout);
+        scanIdToClose = imsr.scanID;
         if (waitForWrites) {
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
         }
@@ -983,9 +987,23 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
 
         client.closeMultiScan(TraceUtil.traceInfo(), imsr.scanID);
+        scanIdToClose = null;
 
       } finally {
-        ThriftUtil.returnClient(client, context);
+        try {
+          if (scanIdToClose != null) {
+            // If this code is running it is likely that an exception happened and the scan session
+            // was never closed. Make a best effort attempt to close the scan session which will
+            // clean up server side resources. When the batch scanner is closed it will interrupt
+            // the threads in its thread pool which could cause an interrupted exception in this
+            // code.
+            client.closeMultiScan(TraceUtil.traceInfo(), scanIdToClose);
+          }
+        } catch (Exception e) {
+          log.trace("Failed to close scan session in finally {} {}", server, scanIdToClose, e);
+        } finally {
+          ThriftUtil.returnClient(client, context);
+        }
       }
     } catch (TTransportException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage());

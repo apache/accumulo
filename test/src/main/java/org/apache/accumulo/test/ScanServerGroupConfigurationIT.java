@@ -56,6 +56,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
      "   \"maxBusyTimeout\": \"5m\","+
      "   \"busyTimeoutMultiplier\": 8,"+
      "   \"scanTypeActivations\": [],"+
+     "   \"timeToWaitForScanServers\":\"0s\","+
      "   \"attemptPlans\": ["+
      "     {"+
      "       \"servers\": \"3\","+
@@ -79,6 +80,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
      "   \"busyTimeoutMultiplier\": 8,"+
      "   \"group\": \"GROUP1\","+
      "   \"scanTypeActivations\": [\"use_group1\"],"+
+     "   \"timeToWaitForScanServers\":\"0s\","+
      "   \"attemptPlans\": ["+
      "     {"+
      "       \"servers\": \"3\","+

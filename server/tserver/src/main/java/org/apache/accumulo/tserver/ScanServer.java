@@ -408,6 +408,7 @@ public class ScanServer extends AbstractServer
     metricsInfo.addServiceTags(getApplicationName(), clientAddress, getResourceGroup());
 
     scanMetrics = new TabletServerScanMetrics();
+    sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);
     scanServerMetrics = new ScanServerMetrics(tabletMetadataCache);
     blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),
         resourceManager.getDataCache(), resourceManager.getSummaryCache());
