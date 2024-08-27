@@ -321,4 +321,8 @@ class ScanDataSource implements DataSource {
         .append("expectedDeletionCount", expectedDeletionCount).append("scanParams", scanParams)
         .toString();
   }
+
+  public ScanParameters getScanParameters() {
+    return scanParams;
+  }
 }

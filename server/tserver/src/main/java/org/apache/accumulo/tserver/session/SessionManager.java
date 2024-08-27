@@ -120,9 +120,9 @@ public class SessionManager {
       synchronized (session) {
         if (session.getState() == State.RESERVED) {
           throw new IllegalStateException(
-              "Attempted to reserved session that is already reserved " + sessionId);
+              "Attempted to reserve session that is already reserved " + sessionId);
         }
-        if (session.getState() == State.REMOVED) {
+        if (session.getState() == State.REMOVED || !session.allowReservation) {
           return null;
         }
         session.setState(State.RESERVED);
@@ -138,7 +138,7 @@ public class SessionManager {
     if (session != null) {
       synchronized (session) {
 
-        if (session.getState() == State.REMOVED) {
+        if (session.getState() == State.REMOVED || !session.allowReservation) {
           return null;
         }
 
@@ -154,7 +154,7 @@ public class SessionManager {
           throw new IllegalStateException(
               "Attempted to reserved session that is already reserved " + sessionId);
         }
-        if (session.getState() == State.REMOVED) {
+        if (session.getState() == State.REMOVED || !session.allowReservation) {
           return null;
         }
         session.setState(State.RESERVED);
@@ -173,6 +173,7 @@ public class SessionManager {
       if (session.getState() != State.RESERVED) {
         throw new IllegalStateException("Cannon unreserve, state: " + session.getState());
       }
+
       session.notifyAll();
       session.setState(State.UNRESERVED);
       session.lastAccessTime = System.currentTimeMillis();
@@ -251,6 +252,33 @@ public class SessionManager {
     }
 
     return removed;
+  }
+
+  /**
+   * Prevents a session from ever being reserved in the future. This method can be called
+   * concurrently when another thread has the session reserved w/o impacting the other thread. When
+   * the session is currently reserved by another thread that thread can unreserve as normal and
+   * after that this session can never be reserved again. Since the session can never be reserved
+   * after this call it will eventually age off and be cleaned up.
+   *
+   * @return true if the sessions is currently not reserved, false otherwise
+   */
+  public boolean disallowNewReservations(long sessionId) {
+    var session = getSession(sessionId);
+    if (session == null) {
+      return true;
+    }
+    synchronized (session) {
+      if (session.allowReservation) {
+        // Prevent future reservations of this session.
+        session.allowReservation = false;
+        log.debug("disabled session {}", sessionId);
+      }
+
+      // If nothing can reserve the session and it is not currently reserved then the session is
+      // disabled and will eventually be cleaned up.
+      return session.getState() != State.RESERVED;
+    }
   }
 
   static void cleanup(BlockingQueue<Session> deferredCleanupQueue, Session session) {

@@ -34,6 +34,7 @@ public class Session {
   public long lastAccessTime;
   public long startTime;
   private State state = State.NEW;
+  boolean allowReservation = true;
   private final Timer stateChangeTimer = Timer.startNew();
   private final TCredentials credentials;
 
