@@ -26,12 +26,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -46,17 +45,10 @@ import org.junit.jupiter.api.Test;
 import com.beust.jcommander.JCommander;
 
 public class AdminCheckIT extends ConfigurableMacBase {
-
-  private static final Map<Admin.CheckCommand.Check,Supplier<CheckRunner>> DUMMY_CHECK_RUNNERS =
-      new EnumMap<>(Admin.CheckCommand.Check.class);
-  private static final Map<Admin.CheckCommand.Check,Supplier<CheckRunner>> ORIGINAL_CHECK_RUNNERS =
-      new EnumMap<>(getRealCheckRunners());
   private static final PrintStream ORIGINAL_OUT = System.out;
 
   @AfterEach
   public void assertCorrectPostTestState() {
-    // ensure that changes to the real check runners are not kept after the test completes
-    assertEquals(ORIGINAL_CHECK_RUNNERS, getRealCheckRunners());
     // ensure that the output after the test is System.out
     assertEquals(ORIGINAL_OUT, System.out);
   }
@@ -162,14 +154,6 @@ public class AdminCheckIT extends ConfigurableMacBase {
     }
     String out2 = executeCheckCommand(allChecksArgs, checksPass);
 
-    // these two checks specified: should run all
-    String out3 = executeCheckCommand(new String[] {"check", "run",
-        Admin.CheckCommand.Check.SYSTEM_FILES.name(), Admin.CheckCommand.Check.USER_FILES.name()},
-        checksPass);
-
-    // the two checks ending in 'files': should run all
-    String out4 = executeCheckCommand(new String[] {"check", "run", "-p", ".*files"}, checksPass);
-
     String expRunOrder =
         "Running dummy check SYSTEM_CONFIG\nDummy check SYSTEM_CONFIG completed with status OK\n"
             + "Running dummy check ROOT_METADATA\nDummy check ROOT_METADATA completed with status OK\n"
@@ -184,18 +168,12 @@ public class AdminCheckIT extends ConfigurableMacBase {
 
     assertTrue(out1.contains(expRunOrder));
     assertTrue(out2.contains(expRunOrder));
-    assertTrue(out3.contains(expRunOrder));
-    assertTrue(out4.contains(expRunOrder));
 
     out1 = out1.replaceAll("\\s+", "");
     out2 = out2.replaceAll("\\s+", "");
-    out3 = out3.replaceAll("\\s+", "");
-    out4 = out4.replaceAll("\\s+", "");
 
     assertTrue(out1.contains(expStatusInfo));
     assertTrue(out2.contains(expStatusInfo));
-    assertTrue(out3.contains(expStatusInfo));
-    assertTrue(out4.contains(expStatusInfo));
   }
 
   @Test
@@ -211,26 +189,18 @@ public class AdminCheckIT extends ConfigurableMacBase {
     // run all checks with SYSTEM_CONFIG failing: only SYSTEM_CONFIG should run and fail
     String out2 = executeCheckCommand(new String[] {"check", "run"}, systemConfigFails);
 
-    // run SYSTEM_FILES with ROOT_TABLE failing: only SYSTEM_CONFIG and ROOT_METADATA should pass
-    String out3 = executeCheckCommand(
-        new String[] {"check", "run", Admin.CheckCommand.Check.SYSTEM_FILES.name()},
-        rootTableFails);
-
     String expRunOrder1 =
         "Running dummy check SYSTEM_CONFIG\nDummy check SYSTEM_CONFIG completed with status OK\n"
             + "Running dummy check ROOT_METADATA\nDummy check ROOT_METADATA completed with status OK\n"
             + "Running dummy check ROOT_TABLE\nDummy check ROOT_TABLE completed with status FAILED";
     String expRunOrder2 =
         "Running dummy check SYSTEM_CONFIG\nDummy check SYSTEM_CONFIG completed with status FAILED\n";
-    String expRunOrder3 = expRunOrder1;
 
     assertTrue(out1.contains(expRunOrder1));
     assertTrue(out2.contains(expRunOrder2));
-    assertTrue(out3.contains(expRunOrder3));
 
     out1 = out1.replaceAll("\\s+", "");
     out2 = out2.replaceAll("\\s+", "");
-    out3 = out3.replaceAll("\\s+", "");
 
     String expStatusInfo1 = "-SYSTEM_CONFIG|OKROOT_METADATA|OKROOT_TABLE|FAILED"
         + "METADATA_TABLE|SKIPPED_DEPENDENCY_FAILEDSYSTEM_FILES|SKIPPED_DEPENDENCY_FAILED"
@@ -238,104 +208,46 @@ public class AdminCheckIT extends ConfigurableMacBase {
     String expStatusInfo2 = "-SYSTEM_CONFIG|FAILEDROOT_METADATA|SKIPPED_DEPENDENCY_FAILED"
         + "ROOT_TABLE|SKIPPED_DEPENDENCY_FAILEDMETADATA_TABLE|SKIPPED_DEPENDENCY_FAILED"
         + "SYSTEM_FILES|SKIPPED_DEPENDENCY_FAILEDUSER_FILES|SKIPPED_DEPENDENCY_FAILED-";
-    String expStatusInfo3 = "-SYSTEM_CONFIG|OKROOT_METADATA|OKROOT_TABLE|FAILED"
-        + "SYSTEM_FILES|SKIPPED_DEPENDENCY_FAILED-";
 
     assertTrue(out1.contains(expStatusInfo1));
     assertTrue(out2.contains(expStatusInfo2));
-    assertTrue(out3.contains(expStatusInfo3));
   }
 
   private String executeCheckCommand(String[] checkCmdArgs, boolean[] checksPass) {
     String output;
+    Admin admin = createMockAdmin(checksPass);
 
     try (ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         PrintStream printStream = new PrintStream(outStream)) {
-      Admin admin = createMockAdmin();
-      setCheckRunnersAsDummies(checksPass);
       System.setOut(printStream);
       admin.execute(checkCmdArgs);
       output = outStream.toString();
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     } finally {
-      resetCheckRunners();
+      EasyMock.verify(admin);
       System.setOut(ORIGINAL_OUT);
     }
 
     return output;
   }
 
-  private Admin createMockAdmin() {
-    // mocking admin.execute() to just execute the check command; avoids issues with some
-    // unneeded calls done in the real execute()
+  private Admin createMockAdmin(boolean[] checksPass) {
+    // mocking admin.execute() to just execute "check" with our dummy check command
     Admin admin = EasyMock.createMock(Admin.class);
     admin.execute(EasyMock.anyObject(String[].class));
     EasyMock.expectLastCall().andAnswer((IAnswer<Void>) () -> {
       String[] args = EasyMock.getCurrentArgument(0);
       ServerUtilOpts opts = new ServerUtilOpts();
       JCommander cl = new JCommander(opts);
-      Admin.CheckCommand checkCommand = new Admin.CheckCommand();
-      cl.addCommand("check", checkCommand);
+      Admin.CheckCommand dummyCheckCommand = new DummyCheckCommand(checksPass);
+      cl.addCommand("check", dummyCheckCommand);
       cl.parse(args);
-      Admin.executeCheckCommand(getServerContext(), checkCommand);
+      Admin.executeCheckCommand(getServerContext(), dummyCheckCommand);
       return null;
     });
     EasyMock.replay(admin);
     return admin;
-  }
-
-  /**
-   *
-   * @return the real check runner map used in Admin
-   */
-  @SuppressWarnings("unchecked")
-  private static Map<Admin.CheckCommand.Check,Supplier<CheckRunner>> getRealCheckRunners() {
-    Class<?> clazz = Admin.CheckCommand.Check.class;
-    Field checkRunners;
-    Map<Admin.CheckCommand.Check,Supplier<CheckRunner>> realCheckRunners;
-    try {
-      checkRunners = clazz.getDeclaredField("CHECK_RUNNERS");
-      checkRunners.setAccessible(true);
-      realCheckRunners =
-          (Map<Admin.CheckCommand.Check,Supplier<CheckRunner>>) checkRunners.get(null);
-    } catch (IllegalAccessException | NoSuchFieldException e) {
-      throw new RuntimeException(e);
-    }
-    return realCheckRunners;
-  }
-
-  /**
-   * Sets the admin check runners to the dummy check runners for testing. Must always later call
-   * {@link AdminCheckIT#resetCheckRunners()}
-   */
-  private void setCheckRunnersAsDummies(boolean[] checksPass) {
-    assertEquals(Admin.CheckCommand.Check.values().length, checksPass.length);
-
-    DUMMY_CHECK_RUNNERS.put(Admin.CheckCommand.Check.SYSTEM_CONFIG,
-        () -> new DummySystemConfigCheckRunner(checksPass[0]));
-    DUMMY_CHECK_RUNNERS.put(Admin.CheckCommand.Check.ROOT_METADATA,
-        () -> new DummyRootMetadataCheckRunner(checksPass[1]));
-    DUMMY_CHECK_RUNNERS.put(Admin.CheckCommand.Check.ROOT_TABLE,
-        () -> new DummyRootTableCheckRunner(checksPass[2]));
-    DUMMY_CHECK_RUNNERS.put(Admin.CheckCommand.Check.METADATA_TABLE,
-        () -> new DummyMetadataTableCheckRunner(checksPass[3]));
-    DUMMY_CHECK_RUNNERS.put(Admin.CheckCommand.Check.SYSTEM_FILES,
-        () -> new DummySystemFilesCheckRunner(checksPass[4]));
-    DUMMY_CHECK_RUNNERS.put(Admin.CheckCommand.Check.USER_FILES,
-        () -> new DummyUserFilesCheckRunner(checksPass[5]));
-
-    getRealCheckRunners().clear();
-    getRealCheckRunners().putAll(DUMMY_CHECK_RUNNERS);
-  }
-
-  /**
-   * Resets the admin check runners to their original value. Must always call this after
-   * {@link AdminCheckIT#setCheckRunnersAsDummies(boolean[])}
-   */
-  private void resetCheckRunners() {
-    getRealCheckRunners().clear();
-    getRealCheckRunners().putAll(ORIGINAL_CHECK_RUNNERS);
   }
 
   static abstract class DummyCheckRunner implements CheckRunner {
@@ -420,6 +332,29 @@ public class AdminCheckIT extends ConfigurableMacBase {
     @Override
     public Admin.CheckCommand.Check getCheck() {
       return Admin.CheckCommand.Check.USER_FILES;
+    }
+  }
+
+  static class DummyCheckCommand extends Admin.CheckCommand {
+    final Map<Check,Supplier<CheckRunner>> checkRunners;
+
+    public DummyCheckCommand(boolean[] checksPass) {
+      this.checkRunners = new TreeMap<>();
+      this.checkRunners.put(Check.SYSTEM_CONFIG,
+          () -> new DummySystemConfigCheckRunner(checksPass[0]));
+      this.checkRunners.put(Check.ROOT_METADATA,
+          () -> new DummyRootMetadataCheckRunner(checksPass[1]));
+      this.checkRunners.put(Check.ROOT_TABLE, () -> new DummyRootTableCheckRunner(checksPass[2]));
+      this.checkRunners.put(Check.METADATA_TABLE,
+          () -> new DummyMetadataTableCheckRunner(checksPass[3]));
+      this.checkRunners.put(Check.SYSTEM_FILES,
+          () -> new DummySystemFilesCheckRunner(checksPass[4]));
+      this.checkRunners.put(Check.USER_FILES, () -> new DummyUserFilesCheckRunner(checksPass[5]));
+    }
+
+    @Override
+    public CheckRunner getCheckRunner(Check check) {
+      return checkRunners.get(check).get();
     }
   }
 }

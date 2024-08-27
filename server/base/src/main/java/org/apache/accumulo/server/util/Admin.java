@@ -28,16 +28,15 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Formatter;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -147,61 +146,72 @@ public class Admin implements KeywordExecutable {
     @Parameter(description = "[<Check>...]")
     List<String> checks;
 
+    /**
+     * This should be used to get the check runner instead of {@link Check#getCheckRunner()}. This
+     * exists so that its functionality can be changed for testing.
+     *
+     * @return the interface for running a check
+     */
+    public CheckRunner getCheckRunner(Check check) {
+      return check.getCheckRunner();
+    }
+
     public enum Check {
       // Caution should be taken when changing or adding any new checks: order is important
-      SYSTEM_CONFIG, ROOT_METADATA, ROOT_TABLE, METADATA_TABLE, SYSTEM_FILES, USER_FILES;
+      SYSTEM_CONFIG(SystemConfigCheckRunner::new, "Validate the system config stored in ZooKeeper",
+          Collections.emptyList()),
+      ROOT_METADATA(RootMetadataCheckRunner::new,
+          "Checks integrity of the root tablet metadata stored in ZooKeeper",
+          Collections.singletonList(SYSTEM_CONFIG)),
+      ROOT_TABLE(RootTableCheckRunner::new,
+          "Scans all the tablet metadata stored in the root table and checks integrity",
+          Collections.singletonList(ROOT_METADATA)),
+      METADATA_TABLE(MetadataTableCheckRunner::new,
+          "Scans all the tablet metadata stored in the metadata table and checks integrity",
+          Collections.singletonList(ROOT_TABLE)),
+      SYSTEM_FILES(SystemFilesCheckRunner::new,
+          "Checks that files in system tablet metadata exist in DFS",
+          Collections.singletonList(ROOT_TABLE)),
+      USER_FILES(UserFilesCheckRunner::new,
+          "Checks that files in user tablet metadata exist in DFS",
+          Collections.singletonList(METADATA_TABLE));
 
-      private static final Map<Check,String> CHECK_DESCRIPTION = new EnumMap<>(Check.class);
-      private static final Map<Check,List<Check>> CHECK_DEPENDENCIES = new EnumMap<>(Check.class);
-      private static final Map<Check,Supplier<CheckRunner>> CHECK_RUNNERS =
-          new EnumMap<>(Check.class);
+      private final Supplier<CheckRunner> checkRunner;
+      private final String description;
+      private final List<Check> dependencies;
 
-      static {
-        CHECK_DESCRIPTION.put(SYSTEM_CONFIG, "Validate the system config stored in ZooKeeper");
-        CHECK_DESCRIPTION.put(ROOT_METADATA,
-            "Checks integrity of the root tablet metadata stored in ZooKeeper");
-        CHECK_DESCRIPTION.put(ROOT_TABLE,
-            "Scans all the tablet metadata stored in the root table and checks integrity");
-        CHECK_DESCRIPTION.put(METADATA_TABLE,
-            "Scans all the tablet metadata stored in the metadata table and checks integrity");
-        CHECK_DESCRIPTION.put(SYSTEM_FILES,
-            "Checks that files in system tablet metadata exist in DFS");
-        CHECK_DESCRIPTION.put(USER_FILES, "Checks that files in user tablet metadata exist in DFS");
+      Check(Supplier<CheckRunner> checkRunner, String description, List<Check> dependencies) {
+        this.checkRunner = Objects.requireNonNull(checkRunner);
+        this.description = Objects.requireNonNull(description);
+        this.dependencies = Objects.requireNonNull(dependencies);
+      }
 
-        CHECK_DEPENDENCIES.put(SYSTEM_CONFIG, Collections.emptyList());
-        CHECK_DEPENDENCIES.put(ROOT_METADATA, Collections.singletonList(SYSTEM_CONFIG));
-        CHECK_DEPENDENCIES.put(ROOT_TABLE, Collections.singletonList(ROOT_METADATA));
-        CHECK_DEPENDENCIES.put(METADATA_TABLE, Collections.singletonList(ROOT_TABLE));
-        CHECK_DEPENDENCIES.put(SYSTEM_FILES, Collections.singletonList(ROOT_TABLE));
-        CHECK_DEPENDENCIES.put(USER_FILES, Collections.singletonList(METADATA_TABLE));
+      /**
+       * This should not be called directly; use {@link CheckCommand#getCheckRunner(Check)} instead
+       *
+       * @return the interface for running a check
+       */
+      public CheckRunner getCheckRunner() {
+        return checkRunner.get();
+      }
 
-        CHECK_RUNNERS.put(SYSTEM_CONFIG, SystemConfigCheckRunner::new);
-        CHECK_RUNNERS.put(ROOT_METADATA, RootMetadataCheckRunner::new);
-        CHECK_RUNNERS.put(ROOT_TABLE, RootTableCheckRunner::new);
-        CHECK_RUNNERS.put(METADATA_TABLE, MetadataTableCheckRunner::new);
-        CHECK_RUNNERS.put(SYSTEM_FILES, SystemFilesCheckRunner::new);
-        CHECK_RUNNERS.put(USER_FILES, UserFilesCheckRunner::new);
+      /**
+       * @return the description of the check
+       */
+      public String getDescription() {
+        return description;
       }
 
       /**
        * @return the list of other checks the check depends on
        */
-      private List<Check> getDependencies() {
-        return Optional.ofNullable(CHECK_DEPENDENCIES.get(this))
-            .orElseThrow(() -> new IllegalStateException("Invalid check " + this));
-      }
-
-      /**
-       * @return the interface for running a check
-       */
-      private CheckRunner getCheckRunner() {
-        return Optional.ofNullable(CHECK_RUNNERS.get(this).get())
-            .orElseThrow(() -> new IllegalStateException("Invalid check " + this));
+      public List<Check> getDependencies() {
+        return dependencies;
       }
     }
 
     public enum CheckStatus {
-      OK, FAILED, SKIPPED_DEPENDENCY_FAILED;
+      OK, FAILED, SKIPPED_DEPENDENCY_FAILED, FILTERED_OUT;
     }
   }
 
@@ -1006,15 +1016,14 @@ public class Admin implements KeywordExecutable {
 
   @VisibleForTesting
   public static void executeCheckCommand(ServerContext context, CheckCommand cmd) {
-    List<CheckCommand.Check> checks;
-
     validateAndTransformCheckCommand(cmd);
 
     if (cmd.list) {
       listChecks();
     } else if (cmd.run) {
-      checks = cmd.checks.stream().map(CheckCommand.Check::valueOf).collect(Collectors.toList());
-      executeRunCheckCommand(checks);
+      var givenChecks =
+          cmd.checks.stream().map(CheckCommand.Check::valueOf).collect(Collectors.toList());
+      executeRunCheckCommand(cmd, givenChecks);
     }
   }
 
@@ -1024,7 +1033,6 @@ public class Admin implements KeywordExecutable {
       Preconditions.checkArgument(cmd.checks == null,
           "'list' does not expect any further arguments");
     } else if (cmd.useRegex) {
-      // run with regex provided
       Preconditions.checkArgument(cmd.checks != null, "Expected a regex pattern to be provided");
       Preconditions.checkArgument(cmd.checks.size() == 1,
           "Expected one argument (the regex pattern)");
@@ -1040,7 +1048,6 @@ public class Admin implements KeywordExecutable {
           "No checks matched the given pattern: " + regex);
       cmd.checks = matchingChecks;
     } else {
-      // run without regex provided
       if (cmd.checks == null) {
         cmd.checks = EnumSet.allOf(CheckCommand.Check.class).stream().map(Enum::name)
             .collect(Collectors.toList());
@@ -1053,68 +1060,40 @@ public class Admin implements KeywordExecutable {
     System.out.printf("%-20s | %-80s | %-20s%n", "Check Name", "Description", "Depends on");
     System.out.println("-".repeat(120));
     for (CheckCommand.Check check : CheckCommand.Check.values()) {
-      System.out.printf("%-20s | %-80s | %-20s%n", check.name(),
-          CheckCommand.Check.CHECK_DESCRIPTION.get(check), check.getDependencies().stream()
-              .map(CheckCommand.Check::name).collect(Collectors.joining(", ")));
+      System.out.printf("%-20s | %-80s | %-20s%n", check.name(), check.getDescription(),
+          check.getDependencies().stream().map(CheckCommand.Check::name)
+              .collect(Collectors.joining(", ")));
     }
     System.out.println("-".repeat(120));
     System.out.println();
   }
 
-  private static void executeRunCheckCommand(List<CheckCommand.Check> checks) {
-    final List<CheckCommand.Check> allChecksToRun = new ArrayList<>();
+  private static void executeRunCheckCommand(CheckCommand cmd,
+      List<CheckCommand.Check> givenChecks) {
+    // Get all the checks in the order they are declared in the enum
+    final var allChecks = CheckCommand.Check.values();
     final TreeMap<CheckCommand.Check,CheckCommand.CheckStatus> checkStatus = new TreeMap<>();
 
-    // From the given list of checks to run, we need to compute all the checks that need to be
-    // run (the given checks and all the checks the given checks depend on)
-    computeAllChecksToRun(checks, allChecksToRun);
-    Preconditions.checkState(!allChecksToRun.isEmpty());
-
-    // Sort the checks in the order they are declared in the enum
-    Collections.sort(allChecksToRun);
-    CheckCommand.Check firstCheck = allChecksToRun.remove(0);
-    Preconditions.checkState(firstCheck.ordinal() == 0,
-        "Expected first check to be " + CheckCommand.Check.values()[0] + " but was " + firstCheck);
-    checkStatus.put(firstCheck, firstCheck.getCheckRunner().runCheck());
-    // Run each of the checks only if the dependencies of that check were successful
-    // Otherwise, skip the check
-    for (CheckCommand.Check check : allChecksToRun) {
-      boolean runCheck = true;
-      for (CheckCommand.Check dep : check.getDependencies()) {
-        Preconditions.checkState(checkStatus.get(dep) != null,
-            "Expected dependency " + dep + " to have a status set before attempting to run " + check
-                + ", but this was not the case.");
-        if (checkStatus.get(dep) == CheckCommand.CheckStatus.SKIPPED_DEPENDENCY_FAILED
-            || checkStatus.get(dep) == CheckCommand.CheckStatus.FAILED) {
-          runCheck = false;
-          break;
-        }
-      }
-      if (runCheck) {
-        checkStatus.put(check, check.getCheckRunner().runCheck());
-      } else {
+    for (CheckCommand.Check check : allChecks) {
+      if (depsFailed(check, checkStatus)) {
         checkStatus.put(check, CheckCommand.CheckStatus.SKIPPED_DEPENDENCY_FAILED);
+      } else {
+        if (givenChecks.contains(check)) {
+          checkStatus.put(check, cmd.getCheckRunner(check).runCheck());
+        } else {
+          checkStatus.put(check, CheckCommand.CheckStatus.FILTERED_OUT);
+        }
       }
     }
 
     printChecksResults(checkStatus);
   }
 
-  private static void computeAllChecksToRun(final List<CheckCommand.Check> givenChecks,
-      final List<CheckCommand.Check> allChecksToRun) {
-    // Avoids unnecessary computation
-    if ((new HashSet<>(givenChecks)).equals(Set.of(CheckCommand.Check.values()))) {
-      allChecksToRun.clear();
-      allChecksToRun.addAll(givenChecks);
-      return;
-    }
-
-    for (CheckCommand.Check check : givenChecks) {
-      if (!allChecksToRun.contains(check)) {
-        allChecksToRun.add(check);
-        computeAllChecksToRun(check.getDependencies(), allChecksToRun);
-      }
-    }
+  private static boolean depsFailed(CheckCommand.Check check,
+      TreeMap<CheckCommand.Check,CheckCommand.CheckStatus> checkStatus) {
+    return check.getDependencies().stream()
+        .anyMatch(dep -> checkStatus.get(dep) == CheckCommand.CheckStatus.FAILED
+            || checkStatus.get(dep) == CheckCommand.CheckStatus.SKIPPED_DEPENDENCY_FAILED);
   }
 
   private static void
