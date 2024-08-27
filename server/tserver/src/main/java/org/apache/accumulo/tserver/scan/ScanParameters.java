@@ -43,6 +43,7 @@ public final class ScanParameters {
   private final SamplerConfiguration samplerConfig;
   private final long batchTimeOut;
   private final String classLoaderContext;
+  private volatile Long scanSessionId = null;
   private volatile ScanDispatch dispatch;
 
   public ScanParameters(int maxEntries, Authorizations authorizations, Set<Column> columnSet,
@@ -106,6 +107,14 @@ public final class ScanParameters {
     return dispatch;
   }
 
+  public void setScanSessionId(long scanSessionId) {
+    this.scanSessionId = scanSessionId;
+  }
+
+  public Long getScanSessionId() {
+    return scanSessionId;
+  }
+
   @Override
   public String toString() {
     StringBuilder buf = new StringBuilder();
@@ -118,6 +127,7 @@ public final class ScanParameters {
     buf.append(", maxEntries=").append(this.maxEntries);
     buf.append(", num=").append(this.maxEntries);
     buf.append(", samplerConfig=").append(this.samplerConfig);
+    buf.append(", scanSessionId=").append(this.scanSessionId);
     buf.append("]");
     return buf.toString();
   }

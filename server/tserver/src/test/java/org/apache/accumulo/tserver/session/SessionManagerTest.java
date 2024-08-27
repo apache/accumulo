@@ -18,12 +18,20 @@
  */
 package org.apache.accumulo.tserver.session;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.server.ServerContext;
 import org.junit.jupiter.api.Test;
 
 public class SessionManagerTest {
@@ -105,5 +113,39 @@ public class SessionManagerTest {
     assertEquals(2, deferredCleanupQeue.size());
     assertEquals(2,
         deferredCleanupQeue.stream().filter(s -> ((TestSession) s).cleanupCount == 2).count());
+  }
+
+  @Test
+  public void testDisallowNewReservation() {
+    var sessionManager = createSessionManager();
+
+    var sid = sessionManager.createSession(new TestSession(2), true);
+
+    // this should prevent future reservation and return false because its currently reserved
+    assertFalse(sessionManager.disallowNewReservations(sid));
+
+    // should not have a problem un-reserving
+    sessionManager.unreserveSession(sid);
+
+    // should not be able to reserve the session because reservations were disabled
+    assertNull(sessionManager.reserveSession(sid));
+    assertNull(sessionManager.reserveSession(sid, false));
+
+    // should return true now that its not reserved
+    assertTrue(sessionManager.disallowNewReservations(sid));
+
+    sessionManager.removeSession(sid);
+
+    // should return true for nonexistent session
+    assertTrue(sessionManager.disallowNewReservations(sid));
+  }
+
+  private SessionManager createSessionManager() {
+    ServerContext ctx = createMock(ServerContext.class);
+    expect(ctx.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    var executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
+    expect(ctx.getScheduledExecutor()).andReturn(executor).anyTimes();
+    replay(ctx);
+    return new SessionManager(ctx);
   }
 }
