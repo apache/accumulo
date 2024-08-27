@@ -68,7 +68,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
    * is reporting lots of problems, but problem reports can not be processed
    */
   private final ExecutorService reportExecutor = ThreadPools.getServerThreadPools()
-      .getPoolBuilder("acu-problem-reporter").numCoreThreads(0).numMaxThreads(1)
+      .getPoolBuilder("problem.reporter").numCoreThreads(0).numMaxThreads(1)
       .withTimeOut(60L, SECONDS).withQueue(new LinkedBlockingQueue<>(500)).build();
 
   private final ServerContext context;
@@ -189,7 +189,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
 
       return new Iterator<>() {
 
-        ZooReaderWriter zoo = context.getZooReaderWriter();
+        final ZooReaderWriter zoo = context.getZooReaderWriter();
         private int iter1Count = 0;
         private Iterator<String> iter1;
 

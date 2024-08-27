@@ -155,7 +155,7 @@ public class ConfigurationTypeHelper {
   }
 
   // This is not a cache for loaded classes, just a way to avoid spamming the debug log
-  private static Map<String,Class<?>> loaded = Collections.synchronizedMap(new HashMap<>());
+  private static final Map<String,Class<?>> loaded = Collections.synchronizedMap(new HashMap<>());
 
   /**
    * Loads a class in the given classloader context, suppressing any exceptions, and optionally
@@ -177,8 +177,9 @@ public class ConfigurationTypeHelper {
       log.error("Failed to load class {} in classloader context {}", clazzName, context, e);
     }
 
-    if (instance == null && defaultInstance != null) {
-      log.info("Using default class {}", defaultInstance.getClass().getName());
+    if (instance == null) {
+      log.info("Using default class ({})",
+          defaultInstance == null ? null : defaultInstance.getClass().getName());
       instance = defaultInstance;
     }
     return instance;

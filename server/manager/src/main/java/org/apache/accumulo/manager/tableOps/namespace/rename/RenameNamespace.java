@@ -35,9 +35,9 @@ import org.slf4j.LoggerFactory;
 public class RenameNamespace extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private NamespaceId namespaceId;
-  private String oldName;
-  private String newName;
+  private final NamespaceId namespaceId;
+  private final String oldName;
+  private final String newName;
 
   @Override
   public long isReady(long id, Manager environment) throws Exception {

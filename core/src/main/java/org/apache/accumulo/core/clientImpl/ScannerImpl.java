@@ -51,8 +51,8 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   // and just query for the next highest row from the tablet server
 
   private final ClientContext context;
-  private Authorizations authorizations;
-  private TableId tableId;
+  private final Authorizations authorizations;
+  private final TableId tableId;
 
   private int size;
 
@@ -71,7 +71,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   // and does not read all of the data. For this case do not want iterator tracking to consume too
   // much memory. Also it would be best to avoid an RPC storm of close methods for thousands
   // sessions that may have timed out.
-  private Map<ScannerIterator,Long> iters = new LinkedHashMap<>(MAX_ENTRIES + 1, .75F, true) {
+  private final Map<ScannerIterator,Long> iters = new LinkedHashMap<>(MAX_ENTRIES + 1, .75F, true) {
     private static final long serialVersionUID = 1L;
 
     // This method is called just after a new entry has been added

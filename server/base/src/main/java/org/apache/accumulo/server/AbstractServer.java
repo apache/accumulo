@@ -19,22 +19,31 @@
 package org.apache.accumulo.server;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractServer implements AutoCloseable, Runnable {
+import io.micrometer.core.instrument.MeterRegistry;
+
+public abstract class AbstractServer implements AutoCloseable, MetricsProducer, Runnable {
 
   private final ServerContext context;
   protected final String applicationName;
   private final String hostname;
   private final Logger log;
+  private final ProcessMetrics processMetrics;
+  protected final long idleReportingPeriodNanos;
+  private volatile long idlePeriodStartNanos = 0L;
 
   protected AbstractServer(String appName, ServerOpts opts, String[] args) {
     this.log = LoggerFactory.getLogger(getClass().getName());
@@ -52,6 +61,36 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
     if (context.getSaslParams() != null) {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       context.enforceKerberosLogin();
+    }
+    processMetrics = new ProcessMetrics();
+    idleReportingPeriodNanos = TimeUnit.MILLISECONDS.toNanos(
+        context.getConfiguration().getTimeInMillis(Property.GENERAL_IDLE_PROCESS_INTERVAL));
+  }
+
+  /**
+   * Updates the idle status of the server to set the idle process metric. The server must be idle
+   * for multiple calls over a specified period for the metric to reflect the idle state. If the
+   * server is busy or the idle period hasn't started, it resets the idle tracking.
+   *
+   * @param isIdle whether the server is idle
+   */
+  protected void updateIdleStatus(boolean isIdle) {
+    boolean shouldResetIdlePeriod = !isIdle || idleReportingPeriodNanos == 0;
+    boolean isIdlePeriodNotStarted = idlePeriodStartNanos == 0;
+    boolean hasExceededIdlePeriod =
+        (System.nanoTime() - idlePeriodStartNanos) > idleReportingPeriodNanos;
+
+    if (shouldResetIdlePeriod) {
+      // Reset idle period and set idle metric to false
+      idlePeriodStartNanos = 0;
+      processMetrics.setIdleValue(false);
+    } else if (isIdlePeriodNotStarted) {
+      // Start tracking idle period
+      idlePeriodStartNanos = System.nanoTime();
+    } else if (hasExceededIdlePeriod) {
+      // Set idle metric to true and reset the start of the idle period
+      processMetrics.setIdleValue(true);
+      idlePeriodStartNanos = 0;
     }
   }
 
@@ -73,6 +112,14 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
         throw (Exception) thrown;
       }
       throw new RuntimeException("Weird throwable type thrown", thrown);
+    }
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    // makes mocking subclasses easier
+    if (processMetrics != null) {
+      processMetrics.registerMetrics(registry);
     }
   }
 

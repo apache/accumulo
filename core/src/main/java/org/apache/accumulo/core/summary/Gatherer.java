@@ -107,20 +107,20 @@ public class Gatherer {
 
   private static final Logger log = LoggerFactory.getLogger(Gatherer.class);
 
-  private ClientContext ctx;
-  private TableId tableId;
-  private SummarizerFactory factory;
+  private final ClientContext ctx;
+  private final TableId tableId;
+  private final SummarizerFactory factory;
   private Text startRow = null;
   private Text endRow = null;
-  private Range clipRange;
+  private final Range clipRange;
   private Predicate<SummarizerConfiguration> summarySelector;
-  private CryptoService cryptoService;
+  private final CryptoService cryptoService;
 
-  private TSummaryRequest request;
+  private final TSummaryRequest request;
 
-  private String summarizerPattern;
+  private final String summarizerPattern;
 
-  private Set<SummarizerConfiguration> summaries;
+  private final Set<SummarizerConfiguration> summaries;
 
   public Gatherer(ClientContext context, TSummaryRequest request, AccumuloConfiguration tableConfig,
       CryptoService cryptoService) {
@@ -287,8 +287,8 @@ public class Gatherer {
 
     HostAndPort location;
     Map<TabletFile,List<TRowRange>> allFiles;
-    private TInfo tinfo;
-    private AtomicBoolean cancelFlag;
+    private final TInfo tinfo;
+    private final AtomicBoolean cancelFlag;
 
     public FilesProcessor(TInfo tinfo, HostAndPort location,
         Map<TabletFile,List<TRowRange>> allFiles, AtomicBoolean cancelFlag) {
@@ -454,10 +454,10 @@ public class Gatherer {
 
   private class GatherRequest implements Supplier<SummaryCollection> {
 
-    private int remainder;
-    private int modulus;
-    private TInfo tinfo;
-    private AtomicBoolean cancelFlag;
+    private final int remainder;
+    private final int modulus;
+    private final TInfo tinfo;
+    private final AtomicBoolean cancelFlag;
 
     GatherRequest(TInfo tinfo, int remainder, int modulus, AtomicBoolean cancelFlag) {
       this.remainder = remainder;
@@ -541,8 +541,8 @@ public class Gatherer {
   }
 
   public static class RowRange {
-    private Text startRow;
-    private Text endRow;
+    private final Text startRow;
+    private final Text endRow;
 
     public RowRange(KeyExtent ke) {
       this.startRow = ke.prevEndRow();

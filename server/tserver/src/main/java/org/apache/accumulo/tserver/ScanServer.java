@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCAN_SERVER_TABLET_METADATA_CACHE_POOL;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -208,7 +209,7 @@ public class ScanServer extends AbstractServer
   private ScanServerMetrics scanServerMetrics;
   private BlockCacheMetrics blockCacheMetrics;
 
-  private ZooCache managerLockCache;
+  private final ZooCache managerLockCache;
 
   private final String groupName;
 
@@ -237,7 +238,7 @@ public class ScanServer extends AbstractServer
         getConfiguration().getTimeInMillis(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION);
 
     long scanServerReservationExpiration =
-        getConfiguration().getTimeInMillis(Property.SSERVER_SCAN_REFERENCE_EXPIRATION_TIME);
+        getConfiguration().getTimeInMillis(Property.SSERV_SCAN_REFERENCE_EXPIRATION_TIME);
 
     tabletMetadataLoader = new TabletMetadataLoader(getContext().getAmple());
 
@@ -259,8 +260,8 @@ public class ScanServer extends AbstractServer
           "Tablet metadata cache refresh percentage is '%s' but must be less than 1",
           cacheRefreshPercentage);
 
-      tmCacheExecutor = context.threadPools().getPoolBuilder("scanServerTmCache").numCoreThreads(8)
-          .enableThreadPoolMetrics().build();
+      tmCacheExecutor = context.threadPools().getPoolBuilder(SCAN_SERVER_TABLET_METADATA_CACHE_POOL)
+          .numCoreThreads(8).enableThreadPoolMetrics().build();
       var builder = Caffeine.newBuilder().expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
           .scheduler(Scheduler.systemScheduler()).executor(tmCacheExecutor).recordStats();
       if (cacheRefreshPercentage > 0) {
@@ -306,9 +307,9 @@ public class ScanServer extends AbstractServer
     // to set up the ThriftProcessor using this class, not the delegate.
     TProcessor processor = ThriftProcessorTypes.getScanServerTProcessor(this, getContext());
 
-    Property maxMessageSizeProperty =
-        (getConfiguration().get(Property.SSERV_MAX_MESSAGE_SIZE) != null
-            ? Property.SSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
+    @SuppressWarnings("deprecation")
+    var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
+        Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS,
@@ -411,7 +412,7 @@ public class ScanServer extends AbstractServer
     blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),
         resourceManager.getDataCache(), resourceManager.getSummaryCache());
 
-    metricsInfo.addMetricsProducers(scanMetrics, scanServerMetrics, blockCacheMetrics);
+    metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics);
     metricsInfo.init();
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 
@@ -420,6 +421,8 @@ public class ScanServer extends AbstractServer
     try {
       while (!serverStopRequested) {
         UtilWaitThread.sleep(1000);
+        updateIdleStatus(
+            sessionManager.getActiveScans().isEmpty() && tabletMetadataCache.estimatedSize() == 0);
       }
     } finally {
       LOG.info("Stopping Thrift Servers");
@@ -790,7 +793,7 @@ public class ScanServer extends AbstractServer
     return new ScanReservation(scanSessionFiles, myReservationId);
   }
 
-  private static Set<StoredTabletFile> getScanSessionFiles(ScanSession session) {
+  private static Set<StoredTabletFile> getScanSessionFiles(ScanSession<?> session) {
     if (session instanceof SingleScanSession) {
       var sss = (SingleScanSession) session;
       return Set.copyOf(session.getTabletResolver().getTablet(sss.extent).getDatafiles().keySet());

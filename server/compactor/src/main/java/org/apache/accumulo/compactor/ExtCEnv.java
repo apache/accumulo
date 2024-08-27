@@ -39,12 +39,12 @@ import com.google.common.annotations.VisibleForTesting;
 public class ExtCEnv implements CompactionEnv {
 
   private final CompactionJobHolder jobHolder;
-  private TExternalCompactionJob job;
-  private String queueName;
+  private final TExternalCompactionJob job;
+  private final String queueName;
 
   public static class CompactorIterEnv extends TabletIteratorEnvironment {
 
-    private String queueName;
+    private final String queueName;
 
     public CompactorIterEnv(ServerContext context, IteratorScope scope, boolean fullMajC,
         AccumuloConfiguration tableConfig, TableId tableId, CompactionKind kind, String queueName) {

@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.compactions;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,10 +59,10 @@ public class InternalCompactionExecutor implements CompactionExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(InternalCompactionExecutor.class);
 
-  private PriorityBlockingQueue<Runnable> queue;
+  private final PriorityBlockingQueue<Runnable> queue;
   private final CompactionExecutorId ceid;
-  private AtomicLong cancelCount = new AtomicLong();
-  private ThreadPoolExecutor threadPool;
+  private final AtomicLong cancelCount = new AtomicLong();
+  private final ThreadPoolExecutor threadPool;
 
   // This set provides an accurate count of queued compactions for metrics. The PriorityQueue is
   // not used because its size may be off due to it containing cancelled compactions. The collection
@@ -173,7 +174,9 @@ public class InternalCompactionExecutor implements CompactionExecutor {
 
     queue = new PriorityBlockingQueue<>(100, comparator);
 
-    threadPool = ThreadPools.getServerThreadPools().getPoolBuilder("compaction." + ceid)
+    threadPool = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(
+            ACCUMULO_POOL_PREFIX.poolName + ".compaction.service.internal.compaction." + ceid)
         .numCoreThreads(threads).numMaxThreads(threads).withTimeOut(60L, SECONDS).withQueue(queue)
         .build();
     metricCloser =
@@ -204,7 +207,8 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   }
 
   public void setThreads(int numThreads) {
-    ThreadPools.resizePool(threadPool, () -> numThreads, "compaction." + ceid);
+    ThreadPools.resizePool(threadPool, () -> numThreads,
+        ACCUMULO_POOL_PREFIX.poolName + "accumulo.pool.compaction." + ceid);
   }
 
   @Override

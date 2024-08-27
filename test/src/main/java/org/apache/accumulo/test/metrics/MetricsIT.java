@@ -102,18 +102,19 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     // @formatter:off
     Set<String> unexpectedMetrics =
             Set.of(METRICS_COMPACTOR_MAJC_STUCK,
-                    METRICS_COMPACTOR_BUSY,
                     METRICS_REPLICATION_QUEUE,
                     METRICS_SCAN_YIELDS,
                     METRICS_UPDATE_ERRORS);
 
     // add sserver as flaky until scan server included in mini tests.
     Set<String> flakyMetrics = Set.of(METRICS_FATE_TYPE_IN_PROGRESS,
+            METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED,
             METRICS_SCAN_BUSY_TIMEOUT_COUNTER,
             METRICS_SCAN_RESERVATION_CONFLICT_COUNTER,
             METRICS_SCAN_RESERVATION_TOTAL_TIMER,
             METRICS_SCAN_RESERVATION_WRITEOUT_TIMER,
-            METRICS_SCAN_TABLET_METADATA_CACHE);
+            METRICS_SCAN_TABLET_METADATA_CACHE,
+            METRICS_SERVER_IDLE);
     // @formatter:on
 
     Map<String,String> expectedMetricNames = this.getMetricFields();

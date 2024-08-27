@@ -27,7 +27,7 @@ package org.apache.accumulo.core.client;
 public class TableDeletedException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
-  private String tableId;
+  private final String tableId;
 
   public TableDeletedException(String tableId) {
     super("Table ID " + tableId + " was deleted");

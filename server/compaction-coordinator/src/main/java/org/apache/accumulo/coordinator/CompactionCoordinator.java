@@ -20,6 +20,7 @@ package org.apache.accumulo.coordinator;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTION_COORDINATOR_SUMMARY_POOL;
 
 import java.net.UnknownHostException;
 import java.util.HashSet;
@@ -135,7 +136,7 @@ public class CompactionCoordinator extends AbstractServer
   // Exposed for tests
   protected volatile Boolean shutdown = false;
 
-  private ScheduledThreadPoolExecutor schedExecutor;
+  private final ScheduledThreadPoolExecutor schedExecutor;
 
   private final LoadingCache<String,Integer> compactorCounts;
 
@@ -215,11 +216,11 @@ public class CompactionCoordinator extends AbstractServer
     final String lockPath = getContext().getZooKeeperRoot() + Constants.ZCOORDINATOR_LOCK;
     final UUID zooLockUUID = UUID.randomUUID();
 
+    coordinatorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
+        ServiceLock.path(lockPath), zooLockUUID);
     while (true) {
 
       CoordinatorLockWatcher coordinatorLockWatcher = new CoordinatorLockWatcher();
-      coordinatorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
-          ServiceLock.path(lockPath), zooLockUUID);
       coordinatorLock.lock(coordinatorLockWatcher, coordinatorClientAddress.getBytes(UTF_8));
 
       coordinatorLockWatcher.waitForChange();
@@ -243,9 +244,9 @@ public class CompactionCoordinator extends AbstractServer
    */
   protected ServerAddress startCoordinatorClientService() throws UnknownHostException {
     var processor = ThriftProcessorTypes.getCoordinatorTProcessor(this, getContext());
-    Property maxMessageSizeProperty =
-        (getConfiguration().get(Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE) != null
-            ? Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
+    @SuppressWarnings("deprecation")
+    var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
+        Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.COMPACTION_COORDINATOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH,
@@ -352,7 +353,7 @@ public class CompactionCoordinator extends AbstractServer
 
   private void updateSummaries() {
     ExecutorService executor = ThreadPools.getServerThreadPools()
-        .getPoolBuilder("Compaction Summary Gatherer").numCoreThreads(10).build();
+        .getPoolBuilder(COMPACTION_COORDINATOR_SUMMARY_POOL).numCoreThreads(10).build();
     try {
       Set<String> queuesSeen = new ConcurrentSkipListSet<>();
 

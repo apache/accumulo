@@ -112,13 +112,14 @@ public class CompressionAlgorithm extends Configured {
   /**
    * Guava cache to have a limited factory pattern defined in the Algorithm enum.
    */
-  private static LoadingCache<Entry<CompressionAlgorithm,Integer>,CompressionCodec> codecCache =
-      CacheBuilder.newBuilder().maximumSize(25).build(new CacheLoader<>() {
-        @Override
-        public CompressionCodec load(Entry<CompressionAlgorithm,Integer> key) {
-          return key.getKey().createNewCodec(key.getValue());
-        }
-      });
+  private static final LoadingCache<Entry<CompressionAlgorithm,Integer>,
+      CompressionCodec> codecCache =
+          CacheBuilder.newBuilder().maximumSize(25).build(new CacheLoader<>() {
+            @Override
+            public CompressionCodec load(Entry<CompressionAlgorithm,Integer> key) {
+              return key.getKey().createNewCodec(key.getValue());
+            }
+          });
 
   // Data input buffer size to absorb small reads from application.
   protected static final int DATA_IBUF_SIZE = 1024;

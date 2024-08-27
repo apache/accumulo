@@ -270,9 +270,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     if (numBusyTabletsToLog > 0) {
       ScheduledFuture<?> future = context.getScheduledExecutor()
           .scheduleWithFixedDelay(Threads.createNamedRunnable("BusyTabletLogger", new Runnable() {
-            private BusiestTracker ingestTracker =
+            private final BusiestTracker ingestTracker =
                 BusiestTracker.newBusiestIngestTracker(numBusyTabletsToLog);
-            private BusiestTracker queryTracker =
+            private final BusiestTracker queryTracker =
                 BusiestTracker.newBusiestQueryTracker(numBusyTabletsToLog);
 
             @Override
@@ -544,10 +544,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  private HostAndPort startServer(AccumuloConfiguration conf, String address, TProcessor processor)
+  private HostAndPort startServer(String address, TProcessor processor)
       throws UnknownHostException {
-    Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
-        ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
+    @SuppressWarnings("deprecation")
+    var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
+        Property.TSERV_MAX_MESSAGE_SIZE, Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), address, Property.TSERV_CLIENTPORT,
         processor, this.getClass().getSimpleName(), "Thrift Client Server",
         Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
@@ -612,7 +613,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     TProcessor processor = ThriftProcessorTypes.getTabletServerTProcessor(clientHandler,
         thriftClientHandler, scanClientHandler, getContext());
-    HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), processor);
+    HostAndPort address = startServer(clientAddress.getHost(), processor);
     log.info("address = {}", address);
     return address;
   }
@@ -622,9 +623,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     final var handler =
         new org.apache.accumulo.tserver.replication.ReplicationServicerHandler(this);
     var processor = ThriftProcessorTypes.getReplicationClientTProcessor(handler, getContext());
-    Property maxMessageSizeProperty =
-        getConfiguration().get(Property.TSERV_MAX_MESSAGE_SIZE) != null
-            ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE;
+    var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
+        Property.TSERV_MAX_MESSAGE_SIZE, Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), clientAddress.getHost(),
         Property.REPLICATION_RECEIPT_SERVICE_PORT, processor, "ReplicationServicerHandler",
         "Replication Servicer", Property.TSERV_PORTSEARCH, Property.REPLICATION_MIN_THREADS, null,
@@ -771,8 +771,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     blockCacheMetrics = new BlockCacheMetrics(this.resourceManager.getIndexCache(),
         this.resourceManager.getDataCache(), this.resourceManager.getSummaryCache());
 
-    metricsInfo.addMetricsProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics,
-        blockCacheMetrics);
+    metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
+        ceMetrics, blockCacheMetrics);
     metricsInfo.init();
 
     this.compactionManager = new CompactionManager(() -> Iterators
@@ -871,16 +871,20 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     HostAndPort managerHost;
     while (!serverStopRequested) {
+
+      updateIdleStatus(getOnlineTablets().isEmpty());
+
       // send all of the pending messages
       try {
         ManagerMessage mm = null;
         ManagerClientService.Client iface = null;
 
         try {
-          // wait until a message is ready to send, or a sever stop
+          // wait until a message is ready to send, or a server stop
           // was requested
           while (mm == null && !serverStopRequested) {
             mm = managerMessages.poll(1, TimeUnit.SECONDS);
+            updateIdleStatus(getOnlineTablets().isEmpty());
           }
 
           // have a message to send to the manager, so grab a
@@ -908,6 +912,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             // if any messages are immediately available grab em and
             // send them
             mm = managerMessages.poll();
+            updateIdleStatus(getOnlineTablets().isEmpty());
           }
 
         } finally {

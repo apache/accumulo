@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.monitor.it;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.monitor.it.TagNameConstants.MONITOR;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -158,7 +159,7 @@ public class WebViewsIT extends JerseyTest {
         Annotation[] annotations, MediaType mediaType, MultivaluedMap<String,Object> httpHeaders,
         OutputStream entityStream) throws IOException, WebApplicationException {
       String s = hashMap.toString();
-      entityStream.write(s.getBytes());
+      entityStream.write(s.getBytes(UTF_8));
     }
   }
 }

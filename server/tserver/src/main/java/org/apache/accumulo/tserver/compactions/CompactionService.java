@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.compactions;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTION_SERVICE_COMPACTION_PLANNER_POOL;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -76,18 +77,18 @@ public class CompactionService {
   private CompactionPlanner planner;
   private Map<CompactionExecutorId,CompactionExecutor> executors;
   private final CompactionServiceId myId;
-  private Map<KeyExtent,Collection<SubmittedJob>> submittedJobs = new ConcurrentHashMap<>();
-  private ServerContext context;
+  private final Map<KeyExtent,Collection<SubmittedJob>> submittedJobs = new ConcurrentHashMap<>();
+  private final ServerContext context;
   private String plannerClassName;
   private Map<String,String> plannerOpts;
-  private CompactionExecutorsMetrics ceMetrics;
-  private ExecutorService planningExecutor;
-  private Map<CompactionKind,ConcurrentMap<KeyExtent,Compactable>> queuedForPlanning;
+  private final CompactionExecutorsMetrics ceMetrics;
+  private final ExecutorService planningExecutor;
+  private final Map<CompactionKind,ConcurrentMap<KeyExtent,Compactable>> queuedForPlanning;
 
-  private RateLimiter readLimiter;
-  private RateLimiter writeLimiter;
-  private AtomicLong rateLimit = new AtomicLong(0);
-  private Function<CompactionExecutorId,ExternalCompactionExecutor> externExecutorSupplier;
+  private final RateLimiter readLimiter;
+  private final RateLimiter writeLimiter;
+  private final AtomicLong rateLimit = new AtomicLong(0);
+  private final Function<CompactionExecutorId,ExternalCompactionExecutor> externExecutorSupplier;
 
   // use to limit logging of max scan files exceeded
   private final Cache<TableId,Long> maxScanFilesExceededErrorCache;
@@ -132,8 +133,9 @@ public class CompactionService {
 
     this.executors = Map.copyOf(tmpExecutors);
 
-    this.planningExecutor = ThreadPools.getServerThreadPools().getPoolBuilder("CompactionPlanner")
-        .numCoreThreads(1).numMaxThreads(1).withTimeOut(0L, MILLISECONDS).build();
+    this.planningExecutor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(COMPACTION_SERVICE_COMPACTION_PLANNER_POOL).numCoreThreads(1)
+        .numMaxThreads(1).withTimeOut(0L, MILLISECONDS).build();
 
     this.queuedForPlanning = new EnumMap<>(CompactionKind.class);
     for (CompactionKind kind : CompactionKind.values()) {

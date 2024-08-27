@@ -37,7 +37,7 @@ import java.util.List;
  */
 public class ListLexicoder<LT> extends AbstractLexicoder<List<LT>> {
 
-  private Lexicoder<LT> lexicoder;
+  private final Lexicoder<LT> lexicoder;
 
   public ListLexicoder(Lexicoder<LT> lexicoder) {
     this.lexicoder = lexicoder;

@@ -61,7 +61,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.OldScanServerFileReferenceSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -75,9 +74,9 @@ import com.google.common.base.Preconditions;
 
 public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
-  private static Logger log = LoggerFactory.getLogger(ServerAmpleImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(ServerAmpleImpl.class);
 
-  private ServerContext context;
+  private final ServerContext context;
 
   public ServerAmpleImpl(ServerContext context) {
     super(context);
@@ -363,7 +362,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       BatchScanner scanner =
           context.createBatchScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY);
       scanner.setRanges(Set.of(ScanServerFileReferenceSection.getRange(),
-          OldScanServerFileReferenceSection.getRange()));
+          org.apache.accumulo.core.metadata.schema.MetadataSchema.OldScanServerFileReferenceSection
+              .getRange()));
       return StreamSupport.stream(scanner.spliterator(), false)
           .map(e -> new ScanServerRefTabletFile(e.getKey()));
     } catch (TableNotFoundException e) {

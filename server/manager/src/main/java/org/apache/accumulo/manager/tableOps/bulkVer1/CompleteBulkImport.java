@@ -29,10 +29,10 @@ public class CompleteBulkImport extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableId tableId;
-  private String source;
-  private String bulk;
-  private String error;
+  private final TableId tableId;
+  private final String source;
+  private final String bulk;
+  private final String error;
 
   public CompleteBulkImport(TableId tableId, String source, String bulk, String error) {
     this.tableId = tableId;
