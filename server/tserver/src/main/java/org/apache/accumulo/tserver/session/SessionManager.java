@@ -31,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -38,7 +39,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongConsumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -73,6 +76,7 @@ public class SessionManager {
   private final Long expiredSessionMarker = (long) -1;
   private final AccumuloConfiguration aconf;
   private final ServerContext ctx;
+  private volatile LongConsumer zombieCountConsumer = null;
 
   public SessionManager(ServerContext context) {
     this.ctx = context;
@@ -308,6 +312,33 @@ public class SessionManager {
     sessionsToCleanup.removeIf(Session::cleanup);
 
     sessionsToCleanup.forEach(this::cleanup);
+
+    if (zombieCountConsumer != null) {
+      zombieCountConsumer.accept(countZombieScans(maxIdle));
+    }
+  }
+
+  private long countZombieScans(long reportTimeMillis) {
+    return Stream.concat(deferredCleanupQueue.stream(), sessions.values().stream())
+        .filter(session -> {
+          if (session instanceof ScanSession) {
+            var scanSession = (ScanSession) session;
+            synchronized (scanSession) {
+              var scanTask = scanSession.getScanTask();
+              if (scanTask != null && scanSession.getState() == State.REMOVED
+                  && scanTask.getScanThread() != null
+                  && scanSession.elaspedSinceStateChange(MILLISECONDS) > reportTimeMillis) {
+                scanSession.logZombieStackTrace();
+                return true;
+              }
+            }
+          }
+          return false;
+        }).count();
+  }
+
+  public void setZombieCountConsumer(LongConsumer zombieCountConsumer) {
+    this.zombieCountConsumer = Objects.requireNonNull(zombieCountConsumer);
   }
 
   public void removeIfNotAccessed(final long sessionId, final long delay) {
