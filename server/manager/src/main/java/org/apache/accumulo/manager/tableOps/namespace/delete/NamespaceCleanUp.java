@@ -33,7 +33,7 @@ class NamespaceCleanUp extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private NamespaceId namespaceId;
+  private final NamespaceId namespaceId;
 
   public NamespaceCleanUp(NamespaceId namespaceId) {
     this.namespaceId = namespaceId;

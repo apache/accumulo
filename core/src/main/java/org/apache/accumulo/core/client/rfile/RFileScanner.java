@@ -83,11 +83,11 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private BlockCacheManager blockCacheManager = null;
   private BlockCache dataCache = null;
   private BlockCache indexCache = null;
-  private Opts opts;
+  private final Opts opts;
   private int batchSize = 1000;
   private long readaheadThreshold = 3;
-  private AccumuloConfiguration tableConf;
-  private CryptoService cryptoService;
+  private final AccumuloConfiguration tableConf;
+  private final CryptoService cryptoService;
 
   static class Opts {
     InputArgs in;

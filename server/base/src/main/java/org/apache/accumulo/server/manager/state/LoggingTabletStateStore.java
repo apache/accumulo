@@ -35,7 +35,7 @@ import org.apache.hadoop.fs.Path;
  */
 class LoggingTabletStateStore implements TabletStateStore {
 
-  private TabletStateStore wrapped;
+  private final TabletStateStore wrapped;
 
   LoggingTabletStateStore(TabletStateStore tss) {
     this.wrapped = tss;

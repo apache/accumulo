@@ -64,7 +64,7 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
   private static class AuthsConverter implements Converter<ByteSequence> {
 
     final int MAX_ENTRIES = 1000;
-    private Map<ByteSequence,Set<ByteSequence>> cache =
+    private final Map<ByteSequence,Set<ByteSequence>> cache =
         new LinkedHashMap<>(MAX_ENTRIES + 1, .75F, true) {
           private static final long serialVersionUID = 1L;
 

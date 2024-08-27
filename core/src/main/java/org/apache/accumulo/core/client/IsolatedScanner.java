@@ -45,17 +45,17 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   private static class RowBufferingIterator implements Iterator<Entry<Key,Value>> {
 
     private Iterator<Entry<Key,Value>> source;
-    private RowBuffer buffer;
+    private final RowBuffer buffer;
     private Entry<Key,Value> nextRowStart;
     private Iterator<Entry<Key,Value>> rowIter;
     private ByteSequence lastRow = null;
-    private long timeout;
+    private final long timeout;
 
     private final Scanner scanner;
-    private ScannerOptions opts;
-    private Range range;
-    private int batchSize;
-    private long readaheadThreshold;
+    private final ScannerOptions opts;
+    private final Range range;
+    private final int batchSize;
+    private final long readaheadThreshold;
 
     private void readRow() {
 
@@ -195,7 +195,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
   public static class MemoryRowBuffer implements RowBuffer {
 
-    private ArrayList<Entry<Key,Value>> buffer = new ArrayList<>();
+    private final ArrayList<Entry<Key,Value>> buffer = new ArrayList<>();
 
     @Override
     public void add(Entry<Key,Value> entry) {
@@ -214,11 +214,11 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
   }
 
-  private Scanner scanner;
+  private final Scanner scanner;
   private Range range;
   private int batchSize;
   private long readaheadThreshold;
-  private RowBufferFactory bufferFactory;
+  private final RowBufferFactory bufferFactory;
 
   public IsolatedScanner(Scanner scanner) {
     this(scanner, new MemoryRowBufferFactory());

@@ -51,7 +51,7 @@ public interface VolumeManager extends AutoCloseable {
   enum FileType {
     TABLE(Constants.TABLE_DIR), WAL(Constants.WAL_DIR), RECOVERY(Constants.RECOVERY_DIR);
 
-    private String dir;
+    private final String dir;
 
     FileType(String dir) {
       this.dir = dir;

@@ -39,7 +39,7 @@ class TabletMemory implements Closeable {
   private InMemoryMap deletingMemTable;
   private long nextSeq = 1L;
   private CommitSession commitSession;
-  private ServerContext context;
+  private final ServerContext context;
 
   TabletMemory(Tablet tablet) {
     this.tablet = tablet;

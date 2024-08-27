@@ -39,7 +39,7 @@ public class BulkFailedCopyProcessor implements Processor {
 
   private static final Logger log = LoggerFactory.getLogger(BulkFailedCopyProcessor.class);
 
-  private ServerContext context;
+  private final ServerContext context;
 
   BulkFailedCopyProcessor(ServerContext context) {
     this.context = context;

@@ -32,7 +32,7 @@ class CloneZookeeper extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private CloneInfo cloneInfo;
+  private final CloneInfo cloneInfo;
 
   public CloneZookeeper(CloneInfo cloneInfo, ClientContext context)
       throws NamespaceNotFoundException {

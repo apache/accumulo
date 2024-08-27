@@ -189,7 +189,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
 
       return new Iterator<>() {
 
-        ZooReaderWriter zoo = context.getZooReaderWriter();
+        final ZooReaderWriter zoo = context.getZooReaderWriter();
         private int iter1Count = 0;
         private Iterator<String> iter1;
 
