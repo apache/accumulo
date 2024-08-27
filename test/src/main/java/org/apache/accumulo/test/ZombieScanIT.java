@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.test.functional.ScannerIT.countActiveScans;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -275,7 +276,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
       }
 
       // should eventually see the eight stuck scans running
-      Wait.waitFor(() -> countScansForTable(table, c) == 8);
+      Wait.waitFor(() -> countActiveScans(c, table) == 8);
 
       // Cancel the scan threads. This will cause the sessions on the server side to timeout and
       // become inactive. The stuck threads on the server side related to the timed out sessions
@@ -286,11 +287,11 @@ public class ZombieScanIT extends ConfigurableMacBase {
       });
 
       // Four of the eight running scans should respond to thread interrupts and exit
-      Wait.waitFor(() -> countScansForTable(table, c) == 4);
+      Wait.waitFor(() -> countActiveScans(c, table) == 4);
 
       Wait.waitFor(() -> getZombieScansMetric() == 4);
 
-      assertEquals(4, countScansForTable(table, c));
+      assertEquals(4, countActiveScans(c, table));
 
       // start four more stuck scans with two that will ignore interrupts
       futures.clear();
@@ -299,7 +300,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
       futures.add(startStuckBatchScan(c, table, executor, "99", false));
       futures.add(startStuckBatchScan(c, table, executor, "0", true));
 
-      Wait.waitFor(() -> countScansForTable(table, c) == 8);
+      Wait.waitFor(() -> countActiveScans(c, table) == 8);
 
       // Cancel the client side scan threads. Should cause the server side threads to be
       // interrupted.
@@ -309,11 +310,11 @@ public class ZombieScanIT extends ConfigurableMacBase {
       });
 
       // Two of the stuck threads should respond to interrupts on the server side and exit.
-      Wait.waitFor(() -> countScansForTable(table, c) == 6);
+      Wait.waitFor(() -> countActiveScans(c, table) == 6);
 
       Wait.waitFor(() -> getZombieScansMetric() == 6);
 
-      assertEquals(6, countScansForTable(table, c));
+      assertEquals(6, countActiveScans(c, table));
 
       executor.shutdownNow();
     }
@@ -382,15 +383,5 @@ public class ZombieScanIT extends ConfigurableMacBase {
     return sink.getLines().stream().map(TestStatsDSink::parseStatsDMetric)
         .filter(metric -> metric.getName().equals(MetricsProducer.METRICS_SCAN_ZOMBIE_THREADS))
         .mapToInt(metric -> Integer.parseInt(metric.getValue())).max().orElse(-1);
-  }
-
-  private static long countScansForTable(String table, AccumuloClient client) throws Exception {
-    var tservers = client.instanceOperations().getTabletServers();
-    long count = 0;
-    for (String tserver : tservers) {
-      count += client.instanceOperations().getActiveScans(tserver).stream()
-          .filter(activeScan -> activeScan.getTable().equals(table)).count();
-    }
-    return count;
   }
 }
