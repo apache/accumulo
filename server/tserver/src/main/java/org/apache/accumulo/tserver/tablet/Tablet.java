@@ -458,7 +458,6 @@ public class Tablet extends TabletBase {
     ScanParameters scanParams = new ScanParameters(-1, authorizations, Collections.emptySet(), null,
         null, false, null, -1, null);
     scanParams.setScanDispatch(ScanDispatch.builder().build());
-    scanParams.setSessionDisabler(() -> false);
 
     ScanDataSource dataSource = createDataSource(scanParams, false, iFlag);
 
@@ -1043,11 +1042,11 @@ public class Tablet extends TabletBase {
     List<ScanDataSource> runningScans = new ArrayList<>(this.activeScans);
 
     runningScans.removeIf(scanDataSource -> {
-      boolean disabled = scanDataSource.disableClientSession();
-      if (disabled) {
+      boolean currentlyUnreserved = disallowNewReservations(scanDataSource.getScanParameters());
+      if (currentlyUnreserved) {
         log.debug("Disabled scan session in tablet close {} {}", extent, scanDataSource);
       }
-      return disabled;
+      return currentlyUnreserved;
     });
 
     long lastLogTime = System.nanoTime();
@@ -1055,11 +1054,11 @@ public class Tablet extends TabletBase {
     // wait for reads and writes to complete
     while (writesInProgress > 0 || !runningScans.isEmpty()) {
       runningScans.removeIf(scanDataSource -> {
-        boolean disabled = scanDataSource.disableClientSession();
-        if (disabled) {
+        boolean currentlyUnreserved = disallowNewReservations(scanDataSource.getScanParameters());
+        if (currentlyUnreserved) {
           log.debug("Disabled scan session in tablet close {} {}", extent, scanDataSource);
         }
-        return disabled;
+        return currentlyUnreserved;
       });
 
       if (log.isDebugEnabled() && System.nanoTime() - lastLogTime > TimeUnit.SECONDS.toNanos(60)) {
@@ -1082,8 +1081,8 @@ public class Tablet extends TabletBase {
     // It is assumed that nothing new would have been added to activeScans since it was copied, so
     // check that assumption. At this point activeScans should be empty or everything in it should
     // be disabled.
-    Preconditions.checkState(
-        activeScans.stream().allMatch(scanDataSource -> scanDataSource.disableClientSession()));
+    Preconditions.checkState(activeScans.stream()
+        .allMatch(scanDataSource -> disallowNewReservations(scanDataSource.getScanParameters())));
 
     getTabletMemory().waitForMinC();
 
@@ -1129,6 +1128,15 @@ public class Tablet extends TabletBase {
 
     if (completeClose) {
       closeState = CloseState.COMPLETE;
+    }
+  }
+
+  private boolean disallowNewReservations(ScanParameters scanParameters) {
+    var scanSessId = scanParameters.getScanSessionId();
+    if (scanSessId != null) {
+      return getTabletServer().getSessionManager().disallowNewReservations(scanSessId);
+    } else {
+      return true;
     }
   }
 

@@ -116,13 +116,13 @@ public class SessionManagerTest {
   }
 
   @Test
-  public void testDisableReservations() {
+  public void testDisallowNewReservation() {
     var sessionManager = createSessionManager();
 
     var sid = sessionManager.createSession(new TestSession(2), true);
 
     // this should prevent future reservation and return false because its currently reserved
-    assertFalse(sessionManager.disableReservations(sid));
+    assertFalse(sessionManager.disallowNewReservations(sid));
 
     // should not have a problem un-reserving
     sessionManager.unreserveSession(sid);
@@ -132,12 +132,12 @@ public class SessionManagerTest {
     assertNull(sessionManager.reserveSession(sid, false));
 
     // should return true now that its not reserved
-    assertTrue(sessionManager.disableReservations(sid));
+    assertTrue(sessionManager.disallowNewReservations(sid));
 
     sessionManager.removeSession(sid);
 
     // should return true for nonexistent session
-    assertTrue(sessionManager.disableReservations(sid));
+    assertTrue(sessionManager.disallowNewReservations(sid));
   }
 
   private SessionManager createSessionManager() {

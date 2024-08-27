@@ -259,7 +259,7 @@ public class SessionManager {
    *
    * @return true if the sessions is currently not reserved, false otherwise
    */
-  public boolean disableReservations(long sessionId) {
+  public boolean disallowNewReservations(long sessionId) {
     var session = getSession(sessionId);
     if (session == null) {
       return true;

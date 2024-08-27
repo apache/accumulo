@@ -21,7 +21,6 @@ package org.apache.accumulo.tserver.scan;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BooleanSupplier;
 
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Column;
@@ -44,7 +43,7 @@ public final class ScanParameters {
   private final SamplerConfiguration samplerConfig;
   private final long batchTimeOut;
   private final String classLoaderContext;
-  private volatile BooleanSupplier sessionDisabler = () -> false;
+  private volatile Long scanSessionId = null;
   private volatile ScanDispatch dispatch;
 
   public ScanParameters(int maxEntries, Authorizations authorizations, Set<Column> columnSet,
@@ -108,12 +107,12 @@ public final class ScanParameters {
     return dispatch;
   }
 
-  public void setSessionDisabler(BooleanSupplier sessionDisabler) {
-    this.sessionDisabler = sessionDisabler;
+  public void setScanSessionId(long scanSessionId) {
+    this.scanSessionId = scanSessionId;
   }
 
-  public BooleanSupplier getSessionDisabler() {
-    return sessionDisabler;
+  public Long getScanSessionId() {
+    return scanSessionId;
   }
 
   @Override
@@ -128,6 +127,7 @@ public final class ScanParameters {
     buf.append(", maxEntries=").append(this.maxEntries);
     buf.append(", num=").append(this.maxEntries);
     buf.append(", samplerConfig=").append(this.samplerConfig);
+    buf.append(", scanSessionId=").append(this.scanSessionId);
     buf.append("]");
     return buf.toString();
   }

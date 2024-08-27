@@ -322,7 +322,7 @@ class ScanDataSource implements DataSource {
         .toString();
   }
 
-  public boolean disableClientSession() {
-    return scanParams.getSessionDisabler().getAsBoolean();
+  public ScanParameters getScanParameters() {
+    return scanParams;
   }
 }
