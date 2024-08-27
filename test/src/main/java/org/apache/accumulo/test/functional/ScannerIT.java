@@ -120,8 +120,7 @@ public class ScannerIT extends AccumuloClusterHarness {
 
   @Test
   public void testSessionCleanup() throws Exception {
-    String tableName = getUniqueNames(1)[0];
-    final String table = getUniqueNames(1)[0];
+    final String tableName = getUniqueNames(1)[0];
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
 
       accumuloClient.tableOperations().create(tableName);
