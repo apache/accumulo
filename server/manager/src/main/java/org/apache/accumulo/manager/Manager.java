@@ -1538,10 +1538,12 @@ public class Manager extends AbstractServer
         managerClientAddress, this.getResourceGroup()));
 
     ServiceLockData sld = new ServiceLockData(descriptors);
+
+    managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
+
     while (true) {
 
       ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
-      managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
       managerLock.lock(managerLockWatcher, sld);
 
       managerLockWatcher.waitForChange();
