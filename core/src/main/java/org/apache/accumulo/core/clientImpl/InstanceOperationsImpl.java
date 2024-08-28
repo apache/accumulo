@@ -287,7 +287,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     final List<ActiveCompaction> as = new ArrayList<>();
     try {
-      if (getTabletServers().contains(tserver)) {
+      if (context.getZKLockChecker().doesTabletServerLockExist(tserver)) {
         Client client = null;
         try {
           client = getClient(ThriftClientTypes.TABLET_SERVER, serverHostAndPort, context);
