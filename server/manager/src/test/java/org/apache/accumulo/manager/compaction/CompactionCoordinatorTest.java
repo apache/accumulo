@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.compaction;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
@@ -282,7 +283,7 @@ public class CompactionCoordinatorTest {
     TExternalCompactionJob job = EasyMock.createNiceMock(TExternalCompactionJob.class);
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     TKeyExtent extent = new TKeyExtent();
-    extent.setTable("1".getBytes());
+    extent.setTable("1".getBytes(UTF_8));
     runningCompactions.add(new RunningCompaction(job, tserverAddr.toString(), GROUP_ID.toString()));
 
     AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
