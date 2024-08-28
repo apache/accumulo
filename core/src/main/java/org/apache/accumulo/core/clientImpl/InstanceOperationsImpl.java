@@ -33,6 +33,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.INSTANCE_OPS
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -212,6 +213,15 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  public Set<String> getCompactors() {
+    Set<String> compactors = new HashSet<>();
+    ExternalCompactionUtil.getCompactorAddrs(context).values().forEach(addrs -> {
+      addrs.forEach(hp -> compactors.add(hp.toString()));
+    });
+    return compactors;
+  }
+
+  @Override
   public Set<String> getScanServers() {
     return Set.copyOf(context.getScanServers().keySet());
   }
@@ -273,24 +283,35 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<ActiveCompaction> getActiveCompactions(String tserver)
       throws AccumuloException, AccumuloSecurityException {
-    final var parsedTserver = HostAndPort.fromString(tserver);
-    Client client = null;
-    try {
-      client = getClient(ThriftClientTypes.TABLET_SERVER, parsedTserver, context);
+    final var serverHostAndPort = HostAndPort.fromString(tserver);
 
-      List<ActiveCompaction> as = new ArrayList<>();
-      for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
-        as.add(new ActiveCompactionImpl(context, tac, parsedTserver, CompactionHost.Type.TSERVER));
+    final List<ActiveCompaction> as = new ArrayList<>();
+    try {
+      if (getTabletServers().contains(tserver)) {
+        Client client = null;
+        try {
+          client = getClient(ThriftClientTypes.TABLET_SERVER, serverHostAndPort, context);
+          for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
+            as.add(new ActiveCompactionImpl(context, tac, serverHostAndPort,
+                CompactionHost.Type.TSERVER));
+          }
+        } finally {
+          if (client != null) {
+            returnClient(client, context);
+          }
+        }
+      } else {
+        // if not a TabletServer address, maybe it's a Compactor
+        for (var tac : ExternalCompactionUtil.getActiveCompaction(serverHostAndPort, context)) {
+          as.add(new ActiveCompactionImpl(context, tac, serverHostAndPort,
+              CompactionHost.Type.COMPACTOR));
+        }
       }
       return as;
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (TException e) {
       throw new AccumuloException(e);
-    } finally {
-      if (client != null) {
-        returnClient(client, context);
-      }
     }
   }
 
@@ -392,4 +413,5 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public InstanceId getInstanceId() {
     return context.getInstanceID();
   }
+
 }
