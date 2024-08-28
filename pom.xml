@@ -135,7 +135,7 @@
     <maven.version.ignore>.+-SNAPSHOT,(?i).*(alpha|beta)[0-9.-]*,(?i).*[.-](m|rc)[0-9]+</maven.version.ignore>
     <minimalJavaBuildVersion>17</minimalJavaBuildVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2023-08-14T08:11:10Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2024-07-29T06:03:16Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
@@ -150,7 +150,7 @@
     <version.bouncycastle>1.78.1</version.bouncycastle>
     <version.curator>5.5.0</version.curator>
     <version.errorprone>2.24.1</version.errorprone>
-    <version.hadoop>3.3.6</version.hadoop>
+    <version.hadoop>3.4.0</version.hadoop>
     <version.opentelemetry>1.34.1</version.opentelemetry>
     <version.powermock>2.0.9</version.powermock>
     <version.slf4j>2.0.12</version.slf4j>

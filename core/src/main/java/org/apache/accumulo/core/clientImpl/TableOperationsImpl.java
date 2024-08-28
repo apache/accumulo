@@ -440,8 +440,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private class SplitTask implements Runnable {
 
-    private List<Text> splits;
-    private SplitEnv env;
+    private final List<Text> splits;
+    private final SplitEnv env;
 
     SplitTask(SplitEnv env, List<Text> splits) {
       this.env = env;
@@ -1811,7 +1811,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     private Map<Range,List<TabletId>> groupedByRanges;
     private Map<TabletId,List<Range>> groupedByTablets;
-    private Map<TabletId,String> tabletLocations;
+    private final Map<TabletId,String> tabletLocations;
 
     public LocationsImpl(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
       groupedByTablets = new HashMap<>();

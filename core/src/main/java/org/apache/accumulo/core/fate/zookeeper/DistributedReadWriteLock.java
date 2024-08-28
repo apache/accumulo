@@ -89,8 +89,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       return result;
     }
 
-    private LockType type;
-    private byte[] userData;
+    private final LockType type;
+    private final byte[] userData;
   }
 
   // This kind of lock can be easily implemented by ZooKeeper
@@ -241,8 +241,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     }
   }
 
-  private QueueLock qlock;
-  private byte[] data;
+  private final QueueLock qlock;
+  private final byte[] data;
 
   public DistributedReadWriteLock(QueueLock qlock, byte[] data) {
     this.qlock = qlock;

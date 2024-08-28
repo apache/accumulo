@@ -18,7 +18,10 @@
  */
 package org.apache.accumulo.tserver.session;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.server.rpc.TServerUtils;
 
 public class Session {
@@ -30,7 +33,9 @@ public class Session {
   public final String client;
   public long lastAccessTime;
   public long startTime;
-  State state = State.NEW;
+  private State state = State.NEW;
+  boolean allowReservation = true;
+  private final Timer stateChangeTimer = Timer.startNew();
   private final TCredentials credentials;
 
   Session(TCredentials credentials) {
@@ -48,6 +53,21 @@ public class Session {
 
   public boolean cleanup() {
     return true;
+  }
+
+  public void setState(State state) {
+    if (this.state != state) {
+      this.state = state;
+      stateChangeTimer.restart();
+    }
+  }
+
+  public State getState() {
+    return state;
+  }
+
+  public long elaspedSinceStateChange(TimeUnit unit) {
+    return stateChangeTimer.elapsed(unit);
   }
 
   @Override

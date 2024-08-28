@@ -369,25 +369,25 @@ import io.micrometer.core.instrument.MeterRegistry;
  * </tr>
  * <!-- scan server -->
  * <tr>
- * <th>N/A</th>
- * <th>N/A</th>
- * <th>{@value #METRICS_SCAN_RESERVATION_TOTAL_TIMER}</th>
- * <th>Timer</th>
- * <th>Time to reserve a tablets files for scan</th>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_SCAN_RESERVATION_TOTAL_TIMER}</td>
+ * <td>Timer</td>
+ * <td>Time to reserve a tablets files for scan</td>
  * </tr>
  * <tr>
- * <th>N/A</th>
- * <th>N/A</th>
- * <th>{@value #METRICS_SCAN_BUSY_TIMEOUT_COUNTER}</th>
- * <th>Counter</th>
- * <th>Count of the scans where a busy timeout happened</th>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_SCAN_BUSY_TIMEOUT_COUNTER}</td>
+ * <td>Counter</td>
+ * <td>Count of the scans where a busy timeout happened</td>
  * </tr>
  * <tr>
- * <th>N/A</th>
- * <th>N/A</th>
- * <th>{@value #METRICS_SCAN_TABLET_METADATA_CACHE}</th>
- * <th>Cache</th>
- * <th>scan server tablet cache metrics</th>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_SCAN_TABLET_METADATA_CACHE}</td>
+ * <td>Cache</td>
+ * <td>scan server tablet cache metrics</td>
  * </tr>
  * <!-- scans -->
  * <tr>
@@ -469,6 +469,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Gauge</td>
  * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
  * derived</td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_SCAN_ZOMBIE_THREADS}</td>
+ * <td>Gauge</td>
+ * <td></td>
  * </tr>
  * <!-- major compactions -->
  * <tr>
@@ -659,6 +666,7 @@ public interface MetricsProducer {
   String METRICS_SCAN_PAUSED_FOR_MEM = METRICS_SCAN_PREFIX + "paused.for.memory";
   String METRICS_SCAN_RETURN_FOR_MEM = METRICS_SCAN_PREFIX + "return.early.for.memory";
 
+  String METRICS_SCAN_ZOMBIE_THREADS = METRICS_SCAN_PREFIX + "zombie.threads";
   String METRICS_SCAN_TABLET_METADATA_CACHE = METRICS_SCAN_PREFIX + "tablet.metadata.cache";
 
   String METRICS_TSERVER_PREFIX = "accumulo.tserver.";

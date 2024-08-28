@@ -45,7 +45,7 @@ public class TabletServerScanMetrics implements MetricsProducer {
   private final AtomicLong busyTimeoutCount = new AtomicLong(0);
   private final AtomicLong pausedForMemory = new AtomicLong(0);
   private final AtomicLong earlyReturnForMemory = new AtomicLong(0);
-
+  private final AtomicLong zombieScanThreads = new AtomicLong(0);
   private final LongAdder lookupCount = new LongAdder();
   private final LongAdder queryResultCount = new LongAdder();
   private final LongAdder queryResultBytes = new LongAdder();
@@ -111,6 +111,14 @@ public class TabletServerScanMetrics implements MetricsProducer {
     earlyReturnForMemory.incrementAndGet();
   }
 
+  public void setZombieScanThreads(long count) {
+    zombieScanThreads.set(count);
+  }
+
+  public long getZombieThreadsCount() {
+    return zombieScanThreads.get();
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
     Gauge.builder(METRICS_SCAN_OPEN_FILES, openFiles::get)
@@ -142,6 +150,9 @@ public class TabletServerScanMetrics implements MetricsProducer {
         .description("Query rate (entries/sec)").register(registry);
     Gauge.builder(METRICS_SCAN_QUERY_SCAN_RESULTS_BYTES, this.queryResultBytes, LongAdder::sum)
         .description("Query rate (bytes/sec)").register(registry);
+    Gauge.builder(METRICS_SCAN_ZOMBIE_THREADS, this, TabletServerScanMetrics::getZombieThreadsCount)
+        .description("Number of scan threads that have no associated client session")
+        .register(registry);
   }
 
 }

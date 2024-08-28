@@ -58,8 +58,8 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
   private SortedKeyValueIterator<Key,Value> source;
 
   // a cache of keys
-  private ArrayList<Key> keys = new ArrayList<>();
-  private ArrayList<Value> values = new ArrayList<>();
+  private final ArrayList<Key> keys = new ArrayList<>();
+  private final ArrayList<Value> values = new ArrayList<>();
 
   private int currentPosition;
 

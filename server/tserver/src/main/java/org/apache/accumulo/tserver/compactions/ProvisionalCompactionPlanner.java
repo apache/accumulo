@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 public class ProvisionalCompactionPlanner implements CompactionPlanner {
 
   private final CompactionServiceId serviceId;
-  private AtomicLong lastWarnNanoTime = new AtomicLong(System.nanoTime());
+  private final AtomicLong lastWarnNanoTime = new AtomicLong(System.nanoTime());
 
   public ProvisionalCompactionPlanner(CompactionServiceId serviceId) {
     this.serviceId = serviceId;

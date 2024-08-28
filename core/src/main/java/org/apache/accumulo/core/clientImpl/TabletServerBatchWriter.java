@@ -154,13 +154,13 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private long initialCompileTimes;
   private double initialSystemLoad;
 
-  private AtomicInteger tabletServersBatchSum = new AtomicInteger(0);
-  private AtomicInteger tabletBatchSum = new AtomicInteger(0);
-  private AtomicInteger numBatches = new AtomicInteger(0);
-  private AtomicInteger maxTabletBatch = new AtomicInteger(Integer.MIN_VALUE);
-  private AtomicInteger minTabletBatch = new AtomicInteger(Integer.MAX_VALUE);
-  private AtomicInteger minTabletServersBatch = new AtomicInteger(Integer.MAX_VALUE);
-  private AtomicInteger maxTabletServersBatch = new AtomicInteger(Integer.MIN_VALUE);
+  private final AtomicInteger tabletServersBatchSum = new AtomicInteger(0);
+  private final AtomicInteger tabletBatchSum = new AtomicInteger(0);
+  private final AtomicInteger numBatches = new AtomicInteger(0);
+  private final AtomicInteger maxTabletBatch = new AtomicInteger(Integer.MIN_VALUE);
+  private final AtomicInteger minTabletBatch = new AtomicInteger(Integer.MAX_VALUE);
+  private final AtomicInteger minTabletServersBatch = new AtomicInteger(Integer.MAX_VALUE);
+  private final AtomicInteger maxTabletServersBatch = new AtomicInteger(Integer.MIN_VALUE);
 
   // error handling
   private final Violations violations = new Violations();

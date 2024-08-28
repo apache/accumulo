@@ -45,10 +45,10 @@ public class AgeOffStore<T> implements TStore<T> {
   private static final Logger log = LoggerFactory.getLogger(AgeOffStore.class);
 
   private final ZooStore<T> store;
-  private Map<Long,Long> candidates;
-  private long ageOffTime;
+  private final Map<Long,Long> candidates;
+  private final long ageOffTime;
   private long minTime;
-  private TimeSource timeSource;
+  private final TimeSource timeSource;
 
   private synchronized void updateMinTime() {
     minTime = Long.MAX_VALUE;
