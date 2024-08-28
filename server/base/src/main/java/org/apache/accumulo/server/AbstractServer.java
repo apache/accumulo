@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.server;
 
-import java.time.Duration;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
@@ -30,8 +30,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -46,8 +46,8 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   protected final String applicationName;
   private final String hostname;
   private final ProcessMetrics processMetrics;
-  protected final Duration idleReportingPeriod;
-  private volatile NanoTime idlePeriodStart = null;
+  protected final long idleReportingPeriodMillis;
+  private volatile Timer idlePeriodTimer = null;
 
   protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
     this.applicationName = appName;
@@ -69,11 +69,11 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     final LowMemoryDetector lmd = context.getLowMemoryDetector();
     ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(
         () -> lmd.logGCInfo(context.getConfiguration()), 0,
-        lmd.getIntervalMillis(context.getConfiguration()), TimeUnit.MILLISECONDS);
+        lmd.getIntervalMillis(context.getConfiguration()), MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
     processMetrics = new ProcessMetrics(context);
-    idleReportingPeriod = Duration.ofMillis(
-        context.getConfiguration().getTimeInMillis(Property.GENERAL_IDLE_PROCESS_INTERVAL));
+    idleReportingPeriodMillis =
+        context.getConfiguration().getTimeInMillis(Property.GENERAL_IDLE_PROCESS_INTERVAL);
   }
 
   /**
@@ -84,22 +84,22 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
    * @param isIdle whether the server is idle
    */
   protected void updateIdleStatus(boolean isIdle) {
-    boolean shouldResetIdlePeriod = !isIdle || idleReportingPeriod.isZero();
-    boolean hasIdlePeriodStarted = idlePeriodStart != null;
+    boolean shouldResetIdlePeriod = !isIdle || idleReportingPeriodMillis == 0;
+    boolean hasIdlePeriodStarted = idlePeriodTimer != null;
     boolean hasExceededIdlePeriod =
-        hasIdlePeriodStarted && idlePeriodStart.elapsed().compareTo(idleReportingPeriod) > 0;
+        hasIdlePeriodStarted && idlePeriodTimer.hasElapsed(idleReportingPeriodMillis, MILLISECONDS);
 
     if (shouldResetIdlePeriod) {
       // Reset idle period and set idle metric to false
-      idlePeriodStart = null;
+      idlePeriodTimer = null;
       processMetrics.setIdleValue(false);
     } else if (!hasIdlePeriodStarted) {
       // Start tracking idle period
-      idlePeriodStart = NanoTime.now();
+      idlePeriodTimer = Timer.startNew();
     } else if (hasExceededIdlePeriod) {
       // Set idle metric to true and reset the start of the idle period
       processMetrics.setIdleValue(true);
-      idlePeriodStart = null;
+      idlePeriodTimer = null;
     }
   }
 
