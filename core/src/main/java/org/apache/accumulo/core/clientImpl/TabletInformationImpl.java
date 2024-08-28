@@ -18,10 +18,13 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
+import org.apache.accumulo.core.client.admin.compaction.TableCompactionId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -91,6 +94,18 @@ public class TabletInformationImpl implements TabletInformation {
   @Override
   public TabletAvailability getTabletAvailability() {
     return tabletMetadata.getTabletAvailability();
+  }
+
+  @Override
+  public Collection<RunningCompactionInformation> getRunningCompactions() {
+    // TODO
+    return List.of();
+  }
+
+  @Override
+  public Collection<TableCompactionId> getCompletedTableCompactions() {
+    // TODO
+    return List.of();
   }
 
   @Override

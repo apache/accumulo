@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.admin.compaction.TableCompaction;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
@@ -328,9 +329,12 @@ public interface TableOperations {
    *
    * @param tableName the table to compact
    * @param config the configuration to use
+   * @see InstanceOperations#getTableCompactions()
+   * @see InstanceOperations#getTableCompactions(Set)
    *
    * @since 1.7.0
    */
+  // TODO could the return of this change to TableCompaction? Need to see if that is ABI compat.
   void compact(String tableName, CompactionConfig config)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException;
 
@@ -345,6 +349,7 @@ public interface TableOperations {
    * @throws TableNotFoundException if the table does not exist
    * @throws AccumuloSecurityException if the user does not have permission
    * @since 1.5.0
+   * @see TableCompaction#cancel() for a more targeted way to cancel table compactions.
    */
   void cancelCompaction(String tableName)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException;

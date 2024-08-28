@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.compaction.ActiveCompactionId;
 import org.apache.accumulo.core.data.TabletId;
 
 /**
@@ -153,4 +154,11 @@ public abstract class ActiveCompaction {
    * @since 2.1.0
    */
   public abstract CompactionHost getHost();
+
+  /**
+   * The id of this compaction
+   *
+   * @since 4.0.0
+   */
+  public abstract ActiveCompactionId getId();
 }
