@@ -1226,6 +1226,7 @@ public class Manager extends AbstractServer
             return false;
           }
         });
+
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
     }
