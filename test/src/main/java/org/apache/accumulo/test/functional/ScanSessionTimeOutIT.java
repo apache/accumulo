@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.apache.accumulo.test.functional.ScannerIT.countActiveScans;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -121,24 +122,24 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
 
         verify(iter, 0, 200);
         // There should be a scan session open since not all data was read from the iterator
-        assertEquals(1L, countActiveScans(c, tableName));
+        assertEquals(1L, countActiveScans(c, TABLET_SERVER, tableName));
 
         // sleep three times the session timeout
         sleepUninterruptibly(9, TimeUnit.SECONDS);
         // The scan session should have timed out and the next read should create a new one
-        assertEquals(0L, countActiveScans(c, tableName));
+        assertEquals(0L, countActiveScans(c, TABLET_SERVER, tableName));
 
         verify(iter, 200, 50000);
         // Reading part of the data in the range should cause a new scan session to be created
-        assertEquals(1L, countActiveScans(c, tableName));
+        assertEquals(1L, countActiveScans(c, TABLET_SERVER, tableName));
         verify(iter, 50000, 100000);
         // Once all of the data in the range was read the scanner should automatically close the
         // scan session
-        assertEquals(0L, countActiveScans(c, tableName));
+        assertEquals(0L, countActiveScans(c, TABLET_SERVER, tableName));
       }
 
       // Nothing should have created any ew scan sessions for the table
-      assertEquals(0L, countActiveScans(c, tableName));
+      assertEquals(0L, countActiveScans(c, TABLET_SERVER, tableName));
     }
   }
 
