@@ -51,14 +51,14 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>{@value #METRICS_SERVER_IDLE}</td>
  * <td>Gauge</td>
  * <td>Indicates if the server is idle or not. The value will be 1 when idle and 0 when not idle.
- * <!-- compactor -->
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
  * <td>{@value #METRICS_LOW_MEMORY}</td>
- * <td>Guage</td>
+ * <td>Gauge</td>
  * <td>reports 1 when process memory usage is above threshold, 0 when memory is okay</td>
  * </tr>
+ * <!-- compactor -->
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
@@ -497,7 +497,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td></td>
  * <td></td>
- * <td>{@link #METRICS_MAJC_PAUSED}</td>
+ * <td>{@value #METRICS_MAJC_PAUSED}</td>
  * <td>Counter</td>
  * <td></td>
  * </tr>
