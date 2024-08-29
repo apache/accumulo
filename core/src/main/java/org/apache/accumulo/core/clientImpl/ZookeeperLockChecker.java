@@ -33,6 +33,11 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
     this.root = context.getZooKeeperRoot() + Constants.ZTSERVERS;
   }
 
+  public boolean doesTabletServerLockExist(String server) {
+    var zLockPath = ServiceLock.path(root + "/" + server);
+    return ServiceLock.getSessionId(zc, zLockPath) != 0;
+  }
+
   @Override
   public boolean isLockHeld(String tserver, String session) {
     var zLockPath = ServiceLock.path(root + "/" + tserver);
