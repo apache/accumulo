@@ -109,14 +109,17 @@ public class AdminCheckIT extends ConfigurableMacBase {
         Admin.CheckCommand.Check.SYSTEM_CONFIG.name());
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("'list' does not expect any further arguments"));
-    // invalid arg to run
+    p = getCluster().exec(Admin.class, "check", "list", "-p", "abc");
+    assertNotEquals(0, p.getProcess().waitFor());
+    assertTrue(p.readStdOut().contains("'list' does not expect any further arguments"));
+    // invalid check to run
     p = getCluster().exec(Admin.class, "check", "run", "123");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("IllegalArgumentException"));
     // no provided pattern
     p = getCluster().exec(Admin.class, "check", "run", "-p");
     assertNotEquals(0, p.getProcess().waitFor());
-    assertTrue(p.readStdOut().contains("Expected a regex pattern to be provided"));
+    assertTrue(p.readStdOut().contains("ParameterException"));
     // no checks match pattern
     p = getCluster().exec(Admin.class, "check", "run", "-p", "abc");
     assertNotEquals(0, p.getProcess().waitFor());
@@ -136,15 +139,14 @@ public class AdminCheckIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void testAdminCheckRunAll() {
-    // tests running all the checks
+  public void testAdminCheckRunNoCheckFailures() {
+    // tests running the checks with none failing on run
 
-    boolean[] checksPass = new boolean[Admin.CheckCommand.Check.values().length];
-    Arrays.fill(checksPass, true);
+    boolean[] allChecksPass = new boolean[Admin.CheckCommand.Check.values().length];
+    Arrays.fill(allChecksPass, true);
 
     // no checks specified: should run all
-    String out1 = executeCheckCommand(new String[] {"check", "run"}, checksPass);
-
+    String out1 = executeCheckCommand(new String[] {"check", "run"}, allChecksPass);
     // all checks specified: should run all
     String[] allChecksArgs = new String[Admin.CheckCommand.Check.values().length + 2];
     allChecksArgs[0] = "check";
@@ -152,42 +154,79 @@ public class AdminCheckIT extends ConfigurableMacBase {
     for (int i = 2; i < allChecksArgs.length; i++) {
       allChecksArgs[i] = Admin.CheckCommand.Check.values()[i - 2].name();
     }
-    String out2 = executeCheckCommand(allChecksArgs, checksPass);
+    String out2 = executeCheckCommand(allChecksArgs, allChecksPass);
+    // this pattern: should run all
+    String out3 =
+        executeCheckCommand(new String[] {"check", "run", "-p", "[A-Z]+_[A-Z]+"}, allChecksPass);
+    // run subset of checks
+    String out4 = executeCheckCommand(
+        new String[] {"check", "run", "ROOT_TABLE", "SYSTEM_FILES", "USER_FILES"}, allChecksPass);
+    // run same subset of checks but using a pattern to specify the checks (case shouldn't matter)
+    String out5 = executeCheckCommand(new String[] {"check", "run", "-p", "ROOT_TABLE|.*files"},
+        allChecksPass);
 
-    String expRunOrder =
+    String expRunAllRunOrder =
         "Running dummy check SYSTEM_CONFIG\nDummy check SYSTEM_CONFIG completed with status OK\n"
             + "Running dummy check ROOT_METADATA\nDummy check ROOT_METADATA completed with status OK\n"
             + "Running dummy check ROOT_TABLE\nDummy check ROOT_TABLE completed with status OK\n"
             + "Running dummy check METADATA_TABLE\nDummy check METADATA_TABLE completed with status OK\n"
             + "Running dummy check SYSTEM_FILES\nDummy check SYSTEM_FILES completed with status OK\n"
             + "Running dummy check USER_FILES\nDummy check USER_FILES completed with status OK";
+    String expRunSubRunOrder =
+        "Running dummy check ROOT_TABLE\nDummy check ROOT_TABLE completed with status OK\n"
+            + "Running dummy check SYSTEM_FILES\nDummy check SYSTEM_FILES completed with status OK\n"
+            + "Running dummy check USER_FILES\nDummy check USER_FILES completed with status OK\n";
     // The dashes at the beginning and end of the string marks the begging and end of the
     // printed table allowing us to ensure the table only includes what is expected
-    String expStatusInfo = "-SYSTEM_CONFIG|OKROOT_METADATA|OKROOT_TABLE|OK"
+    String expRunAllStatusInfo = "-SYSTEM_CONFIG|OKROOT_METADATA|OKROOT_TABLE|OK"
         + "METADATA_TABLE|OKSYSTEM_FILES|OKUSER_FILES|OK-";
+    String expRunSubStatusInfo = "-SYSTEM_CONFIG|FILTERED_OUTROOT_METADATA|FILTERED_OUT"
+        + "ROOT_TABLE|OKMETADATA_TABLE|FILTERED_OUTSYSTEM_FILES|OKUSER_FILES|OK-";
 
-    assertTrue(out1.contains(expRunOrder));
-    assertTrue(out2.contains(expRunOrder));
+    assertTrue(out1.contains(expRunAllRunOrder));
+    assertTrue(out2.contains(expRunAllRunOrder));
+    assertTrue(out3.contains(expRunAllRunOrder));
+    assertTrue(out4.contains(expRunSubRunOrder));
+    assertTrue(out5.contains(expRunSubRunOrder));
 
     out1 = out1.replaceAll("\\s+", "");
     out2 = out2.replaceAll("\\s+", "");
+    out3 = out3.replaceAll("\\s+", "");
+    out4 = out4.replaceAll("\\s+", "");
+    out5 = out5.replaceAll("\\s+", "");
 
-    assertTrue(out1.contains(expStatusInfo));
-    assertTrue(out2.contains(expStatusInfo));
+    assertTrue(out1.contains(expRunAllStatusInfo));
+    assertTrue(out2.contains(expRunAllStatusInfo));
+    assertTrue(out3.contains(expRunAllStatusInfo));
+    assertTrue(out4.contains(expRunSubStatusInfo));
+    assertTrue(out5.contains(expRunSubStatusInfo));
   }
 
   @Test
-  public void testAdminCheckRunWithFailingChecks() {
+  public void testAdminCheckRunWithCheckFailures() {
     // tests running checks with some failing
 
     boolean[] rootTableFails = new boolean[] {true, true, false, true, true, true};
     boolean[] systemConfigFails = new boolean[] {false, true, true, true, true, true};
+    boolean[] userFilesAndMetadataTableFails = new boolean[] {true, true, true, false, true, false};
 
     // run all checks with ROOT_TABLE failing: only SYSTEM_CONFIG and ROOT_METADATA should pass
+    // the rest should be filtered out as skipped due to dependency failure
     String out1 = executeCheckCommand(new String[] {"check", "run"}, rootTableFails);
-
     // run all checks with SYSTEM_CONFIG failing: only SYSTEM_CONFIG should run and fail
+    // the rest should be filtered out as skipped due to dependency failure
     String out2 = executeCheckCommand(new String[] {"check", "run"}, systemConfigFails);
+    // run subset of checks: SYSTEM_CONFIG, ROOT_TABLE, USER_FILES with USER_FILES and
+    // METADATA_TABLE failing
+    // should successfully run SYSTEM_CONFIG, ROOT_TABLE, fail to run USER_FILES and
+    // filter out the rest
+    String out3 = executeCheckCommand(
+        new String[] {"check", "run", "SYSTEM_CONFIG", "ROOT_TABLE", "USER_FILES"},
+        userFilesAndMetadataTableFails);
+    // run same subset but specified using pattern
+    String out4 = executeCheckCommand(
+        new String[] {"check", "run", "-p", "SYSTEM_CONFIG|ROOT_TABLE|USER_FILES"},
+        userFilesAndMetadataTableFails);
 
     String expRunOrder1 =
         "Running dummy check SYSTEM_CONFIG\nDummy check SYSTEM_CONFIG completed with status OK\n"
@@ -195,12 +234,20 @@ public class AdminCheckIT extends ConfigurableMacBase {
             + "Running dummy check ROOT_TABLE\nDummy check ROOT_TABLE completed with status FAILED";
     String expRunOrder2 =
         "Running dummy check SYSTEM_CONFIG\nDummy check SYSTEM_CONFIG completed with status FAILED\n";
+    String expRunOrder3And4 =
+        "Running dummy check SYSTEM_CONFIG\nDummy check SYSTEM_CONFIG completed with status OK\n"
+            + "Running dummy check ROOT_TABLE\nDummy check ROOT_TABLE completed with status OK\n"
+            + "Running dummy check USER_FILES\nDummy check USER_FILES completed with status FAILED";
 
     assertTrue(out1.contains(expRunOrder1));
     assertTrue(out2.contains(expRunOrder2));
+    assertTrue(out3.contains(expRunOrder3And4));
+    assertTrue(out4.contains(expRunOrder3And4));
 
     out1 = out1.replaceAll("\\s+", "");
     out2 = out2.replaceAll("\\s+", "");
+    out3 = out3.replaceAll("\\s+", "");
+    out4 = out4.replaceAll("\\s+", "");
 
     String expStatusInfo1 = "-SYSTEM_CONFIG|OKROOT_METADATA|OKROOT_TABLE|FAILED"
         + "METADATA_TABLE|SKIPPED_DEPENDENCY_FAILEDSYSTEM_FILES|SKIPPED_DEPENDENCY_FAILED"
@@ -208,9 +255,13 @@ public class AdminCheckIT extends ConfigurableMacBase {
     String expStatusInfo2 = "-SYSTEM_CONFIG|FAILEDROOT_METADATA|SKIPPED_DEPENDENCY_FAILED"
         + "ROOT_TABLE|SKIPPED_DEPENDENCY_FAILEDMETADATA_TABLE|SKIPPED_DEPENDENCY_FAILED"
         + "SYSTEM_FILES|SKIPPED_DEPENDENCY_FAILEDUSER_FILES|SKIPPED_DEPENDENCY_FAILED-";
+    String expStatusInfo3And4 = "-SYSTEM_CONFIG|OKROOT_METADATA|FILTERED_OUTROOT_TABLE|OK"
+        + "METADATA_TABLE|FILTERED_OUTSYSTEM_FILES|FILTERED_OUTUSER_FILES|FAILED";
 
     assertTrue(out1.contains(expStatusInfo1));
     assertTrue(out2.contains(expStatusInfo2));
+    assertTrue(out3.contains(expStatusInfo3And4));
+    assertTrue(out4.contains(expStatusInfo3And4));
   }
 
   private String executeCheckCommand(String[] checkCmdArgs, boolean[] checksPass) {

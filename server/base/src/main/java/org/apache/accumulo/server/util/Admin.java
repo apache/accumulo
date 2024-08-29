@@ -140,7 +140,7 @@ public class Admin implements KeywordExecutable {
 
     @Parameter(names = {"--name_pattern", "-p"},
         description = "Runs all checks that match the provided regex pattern.")
-    boolean useRegex;
+    String pattern;
 
     @Parameter(description = "[<Check>...]")
     List<String> checks;
@@ -1029,22 +1029,19 @@ public class Admin implements KeywordExecutable {
   private static void validateAndTransformCheckCommand(CheckCommand cmd) {
     Preconditions.checkArgument(cmd.list != cmd.run, "Must use either 'list' or 'run'");
     if (cmd.list) {
-      Preconditions.checkArgument(cmd.checks == null,
+      Preconditions.checkArgument(cmd.checks == null && cmd.pattern == null,
           "'list' does not expect any further arguments");
-    } else if (cmd.useRegex) {
-      Preconditions.checkArgument(cmd.checks != null, "Expected a regex pattern to be provided");
-      Preconditions.checkArgument(cmd.checks.size() == 1,
-          "Expected one argument (the regex pattern)");
-      String regex = cmd.checks.get(0).toUpperCase();
+    } else if (cmd.pattern != null) {
+      Preconditions.checkArgument(cmd.checks == null, "Expected one argument (the regex pattern)");
       List<String> matchingChecks = new ArrayList<>();
-      var pattern = Pattern.compile(regex);
+      var pattern = Pattern.compile(cmd.pattern.toUpperCase());
       for (CheckCommand.Check check : CheckCommand.Check.values()) {
         if (pattern.matcher(check.name()).matches()) {
           matchingChecks.add(check.name());
         }
       }
       Preconditions.checkArgument(!matchingChecks.isEmpty(),
-          "No checks matched the given pattern: " + regex);
+          "No checks matched the given pattern: " + pattern.pattern());
       cmd.checks = matchingChecks;
     } else {
       if (cmd.checks == null) {
