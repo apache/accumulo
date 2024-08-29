@@ -142,6 +142,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
+  private ZookeeperLockChecker zkLockChecker;
 
   private volatile boolean closed = false;
 
@@ -1091,6 +1092,14 @@ public class ClientContext implements AccumuloClient {
       }
     }
     return caches;
+  }
+
+  public synchronized ZookeeperLockChecker getTServerLockChecker() {
+    ensureOpen();
+    if (this.zkLockChecker == null) {
+      this.zkLockChecker = new ZookeeperLockChecker(this);
+    }
+    return this.zkLockChecker;
   }
 
 }
