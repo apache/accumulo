@@ -281,13 +281,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public List<ActiveCompaction> getActiveCompactions(String tserver)
+  public List<ActiveCompaction> getActiveCompactions(String server)
       throws AccumuloException, AccumuloSecurityException {
-    final var serverHostAndPort = HostAndPort.fromString(tserver);
+    final var serverHostAndPort = HostAndPort.fromString(server);
 
     final List<ActiveCompaction> as = new ArrayList<>();
     try {
-      if (context.getZKLockChecker().doesTabletServerLockExist(tserver)) {
+      if (context.getTServerLockChecker().doesTabletServerLockExist(server)) {
         Client client = null;
         try {
           client = getClient(ThriftClientTypes.TABLET_SERVER, serverHostAndPort, context);

@@ -141,13 +141,13 @@ public abstract class TabletLocator {
       MetadataLocationObtainer mlo = new MetadataLocationObtainer();
 
       if (RootTable.ID.equals(tableId)) {
-        tl = new RootTabletLocator(context.getZKLockChecker());
+        tl = new RootTabletLocator(context.getTServerLockChecker());
       } else if (MetadataTable.ID.equals(tableId)) {
         tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
-            context.getZKLockChecker());
+            context.getTServerLockChecker());
       } else {
         tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
-            context.getZKLockChecker());
+            context.getTServerLockChecker());
       }
       locators.put(key, tl);
     }

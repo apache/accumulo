@@ -48,7 +48,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -57,9 +59,14 @@ import org.apache.accumulo.compactor.ExtCEnv.CompactorIterEnv;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.ActiveCompaction;
+import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
@@ -84,12 +91,14 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -529,6 +538,88 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       client.tableOperations().cancelCompaction(tableName);
     }
 
+  }
+
+  @Test
+  public void testGetActiveCompactions() throws Exception {
+    final String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE8);
+      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
+
+      createTable(client, table1, "cs8");
+
+      try (BatchWriter bw = client.createBatchWriter(table1)) {
+        for (int i = 1; i <= MAX_DATA; i++) {
+          Mutation m = new Mutation(Integer.toString(i));
+          m.put("cf", "cq", new Value());
+          bw.addMutation(m);
+          bw.flush();
+          // flush often to create multiple files to compact
+          client.tableOperations().flush(table1, null, null, true);
+        }
+      }
+
+      final AtomicReference<Exception> error = new AtomicReference<>();
+      final CountDownLatch started = new CountDownLatch(1);
+      Thread t = new Thread(() -> {
+        try {
+          IteratorSetting setting = new IteratorSetting(50, "sleepy", SlowIterator.class);
+          setting.addOption("sleepTime", "3000");
+          setting.addOption("seekSleepTime", "3000");
+          client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
+          started.countDown();
+          client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
+        } catch (AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
+          error.set(e);
+        }
+      });
+      t.start();
+
+      started.await();
+
+      List<ActiveCompaction> compactions = new ArrayList<>();
+      do {
+        client.instanceOperations().getActiveCompactions().forEach((ac) -> {
+          try {
+            if (ac.getTable().equals(table1)) {
+              compactions.add(ac);
+            }
+          } catch (TableNotFoundException e1) {
+            fail("Table was deleted during test, should not happen");
+          }
+        });
+        Thread.sleep(1000);
+      } while (compactions.isEmpty());
+
+      ActiveCompaction running1 = compactions.get(0);
+      CompactionHost host = running1.getHost();
+      assertTrue(host.getType() == CompactionHost.Type.COMPACTOR);
+
+      compactions.clear();
+      do {
+        HostAndPort hp = HostAndPort.fromParts(host.getAddress(), host.getPort());
+        client.instanceOperations().getActiveCompactions(hp.toString()).forEach((ac) -> {
+          try {
+            if (ac.getTable().equals(table1)) {
+              compactions.add(ac);
+            }
+          } catch (TableNotFoundException e1) {
+            fail("Table was deleted during test, should not happen");
+          }
+        });
+        Thread.sleep(1000);
+      } while (compactions.isEmpty());
+
+      ActiveCompaction running2 = compactions.get(0);
+      assertEquals(running1.getInputFiles(), running2.getInputFiles());
+      assertEquals(running1.getOutputFile(), running2.getOutputFile());
+      assertEquals(running1.getTablet(), running2.getTablet());
+
+      client.tableOperations().cancelCompaction(table1);
+      t.join();
+    }
   }
 
 }

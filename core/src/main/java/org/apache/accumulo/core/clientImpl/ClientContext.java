@@ -1125,7 +1125,7 @@ public class ClientContext implements AccumuloClient {
     return thriftTransportPool;
   }
 
-  public synchronized ZookeeperLockChecker getZKLockChecker() {
+  public synchronized ZookeeperLockChecker getTServerLockChecker() {
     ensureOpen();
     if (this.zkLockChecker == null) {
       this.zkLockChecker = new ZookeeperLockChecker(this);

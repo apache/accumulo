@@ -1086,7 +1086,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
        * Checks if there is a lock held by a tserver at a specific host and port.
        */
       private boolean isALockHeld(String tserver) {
-        return context.getZKLockChecker().doesTabletServerLockExist(tserver);
+        return context.getTServerLockChecker().doesTabletServerLockExist(tserver);
       }
 
       private void cancelSession() throws InterruptedException, ThriftSecurityException {
