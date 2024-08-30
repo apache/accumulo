@@ -322,19 +322,15 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated
   public List<ActiveCompaction> getActiveCompactions(String server)
       throws AccumuloException, AccumuloSecurityException {
-    Set<ServerId> servers =
-        getServers(ServerTypeName.COMPACTOR, (s) -> s.toHostPortString().equals(server));
-    if (servers.isEmpty()) {
-      servers =
-          getServers(ServerTypeName.TABLET_SERVER, (s) -> s.toHostPortString().equals(server));
+
+    ServerId si = context.getServerIdResolver().resolveCompactor(server);
+    if (si == null) {
+      si = context.getServerIdResolver().resolveTabletServer(server);
     }
-    if (servers.isEmpty()) {
+    if (si == null) {
       return new ArrayList<>();
-    } else if (servers.size() == 1) {
-      return getActiveCompactions(servers.iterator().next());
-    } else {
-      throw new IllegalStateException("Multiple servers matching provided address: " + servers);
     }
+    return getActiveCompactions(si);
   }
 
   @Override
