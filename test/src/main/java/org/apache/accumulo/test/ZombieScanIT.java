@@ -334,6 +334,11 @@ public class ZombieScanIT extends ConfigurableMacBase {
       assertEquals(6, countActiveScans(c, serverType, table));
 
       executor.shutdownNow();
+    } finally {
+      if (serverType == SCAN_SERVER) {
+        getCluster().getConfig().setNumScanServers(0);
+        getCluster().getClusterControl().stopAllServers(SCAN_SERVER);
+      }
     }
   }
 

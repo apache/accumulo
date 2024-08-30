@@ -209,6 +209,11 @@ public class ScannerIT extends ConfigurableMacBase {
           assertEquals(0, countActiveScans(accumuloClient, serverType, tableName));
         }
       }
+    } finally {
+      if (serverType == SCAN_SERVER) {
+        getCluster().getConfig().setNumScanServers(0);
+        getCluster().getClusterControl().stopAllServers(SCAN_SERVER);
+      }
     }
   }
 
