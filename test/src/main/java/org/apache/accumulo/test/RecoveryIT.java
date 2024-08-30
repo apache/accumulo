@@ -146,7 +146,7 @@ public class RecoveryIT extends AccumuloClusterHarness {
           60_000);
 
       control.stopAllServers(ServerType.SCAN_SERVER);
-      Wait.waitFor(() -> ((ClientContext) c).getServerIdResolver().getScanServers().size() == 0,
+      Wait.waitFor(() -> getServerContext().getServerIdResolver().getScanServers().size() == 0,
           60_000);
 
       // Kill the TabletServer in resource group that is hosting the table
