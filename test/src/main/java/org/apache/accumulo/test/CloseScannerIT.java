@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
@@ -56,7 +57,8 @@ public class CloseScannerIT extends AccumuloClusterHarness {
   }
 
   /**
-   * {@link org.apache.accumulo.test.functional.ScannerIT#testSessionCleanup()} is a similar test.
+   * {@link org.apache.accumulo.test.functional.ScannerIT#testSessionCleanup(ScannerBase.ConsistencyLevel)}
+   * is a similar test.
    */
   @Test
   public void testManyScans() throws Exception {
