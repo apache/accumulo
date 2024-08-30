@@ -27,7 +27,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
-import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
@@ -152,10 +152,9 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
         // Start a ScanServer. No group specified, should be in the default group.
         getCluster().getClusterControl().start(ServerType.SCAN_SERVER, "localhost");
         Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 1, 30_000);
-        Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
-            (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
-            == true);
-
+        Wait.waitFor(() -> client.instanceOperations().getServers(ServerTypeName.SCAN_SERVER,
+            (s) -> s.getResourceGroup().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
+            .size() > 0);
         assertEquals(ingestedEntryCount, Iterables.size(scanner),
             "The scan server scanner should have seen all ingested and flushed entries");
 
@@ -169,11 +168,12 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
             .addScanServerResourceGroup("GROUP1", 1);
         getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
         Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 2);
-        Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
-            (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
-            == true);
-        Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream()
-            .anyMatch((p) -> p.getSecond().equals("GROUP1")) == true);
+        Wait.waitFor(() -> client.instanceOperations().getServers(ServerTypeName.SCAN_SERVER,
+            (s) -> s.getResourceGroup().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
+            .size() > 0);
+        Wait.waitFor(() -> client.instanceOperations()
+            .getServers(ServerTypeName.SCAN_SERVER, (s) -> s.getResourceGroup().equals("GROUP1"))
+            .size() > 0);
 
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
         assertEquals(ingestedEntryCount + additionalIngest1, Iterables.size(scanner),

@@ -55,6 +55,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.conf.Property;
@@ -476,7 +477,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1,
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size() == 1,
           SECONDS.toMillis(60), SECONDS.toMillis(2));
 
       client.tableOperations().create(tableName);
@@ -552,14 +554,17 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       });
 
-      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 0);
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size() == 0);
 
       // restart the tablet server for the other tests. Need to call stopAllServers
       // to clear out the process list because we shutdown the TabletServer outside
       // of MAC control.
       getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
-      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1, 60_000);
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size() == 1,
+          60_000);
     }
   }
 
@@ -568,7 +573,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1,
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size() == 1,
           SECONDS.toMillis(60), SECONDS.toMillis(2));
 
       client.instanceOperations().waitForBalance();
@@ -601,14 +607,17 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
         }
 
       });
-      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 0);
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size() == 0);
 
       // restart the tablet server for the other tests. Need to call stopAllServers
       // to clear out the process list because we shutdown the TabletServer outside
       // of MAC control.
       getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
-      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1, 60_000);
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size() == 1,
+          60_000);
     }
   }
 

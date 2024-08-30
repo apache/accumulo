@@ -47,7 +47,11 @@ import jakarta.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.client.admin.servers.CompactorServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
+import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
@@ -653,8 +657,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
     if (System.nanoTime() - ecInfoFetchedNanos > fetchTimeNanos) {
       log.info("User initiated fetch of External Compaction info");
-      Map<String,Set<HostAndPort>> compactors =
-          ExternalCompactionUtil.getCompactorAddrs(getContext());
+      Set<CompactorServerId> compactors = getContext().getServerIdResolver().getCompactors();
       log.debug("Found compactors: " + compactors);
       ecInfo.setFetchedTimeMillis(System.currentTimeMillis());
       ecInfo.setCompactors(compactors);
@@ -710,11 +713,15 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   }
 
   private void fetchScans() {
-    ServerContext context = getContext();
-    for (String server : context.instanceOperations().getTabletServers()) {
-      final HostAndPort parsedServer = HostAndPort.fromString(server);
+    final ServerContext context = getContext();
+    final Set<ServerId> servers = new HashSet<>();
+    servers.addAll(context.instanceOperations().getServers(ServerTypeName.SCAN_SERVER));
+    servers.addAll(context.instanceOperations().getServers(ServerTypeName.TABLET_SERVER));
+
+    for (ServerId server : servers) {
       TabletScanClientService.Client tserver = null;
       try {
+        HostAndPort parsedServer = HostAndPort.fromParts(server.getHost(), server.getPort());
         tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
         List<ActiveScan> scans = tserver.getActiveScans(null, context.rpcCreds());
         tserverScans.put(parsedServer, new ScanStats(scans));
@@ -735,38 +742,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         tserverIter.remove();
       }
     }
-    // Scan Servers
-    for (String server : context.instanceOperations().getScanServers()) {
-      final HostAndPort parsedServer = HostAndPort.fromString(server);
-      TabletScanClientService.Client sserver = null;
-      try {
-        sserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
-        List<ActiveScan> scans = sserver.getActiveScans(null, context.rpcCreds());
-        sserverScans.put(parsedServer, new ScanStats(scans));
-        scansFetchedNanos = System.nanoTime();
-      } catch (Exception ex) {
-        log.error("Failed to get active scans from {}", server, ex);
-      } finally {
-        ThriftUtil.returnClient(sserver, context);
-      }
-    }
-    // Age off old scan information
-    Iterator<Entry<HostAndPort,ScanStats>> sserverIter = sserverScans.entrySet().iterator();
-    // clock time used for fetched for date friendly display
-    now = System.currentTimeMillis();
-    while (sserverIter.hasNext()) {
-      Entry<HostAndPort,ScanStats> entry = sserverIter.next();
-      if (now - entry.getValue().fetched > ageOffEntriesMillis) {
-        sserverIter.remove();
-      }
-    }
   }
 
   private void fetchCompactions() {
-    ServerContext context = getContext();
+    final ServerContext context = getContext();
 
-    for (String server : context.instanceOperations().getTabletServers()) {
-      final HostAndPort parsedServer = HostAndPort.fromString(server);
+    for (ServerId server : context.instanceOperations().getServers(ServerTypeName.TABLET_SERVER)) {
+      final HostAndPort parsedServer = HostAndPort.fromParts(server.getHost(), server.getPort());
       Client tserver = null;
       try {
         tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
@@ -779,6 +761,21 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         ThriftUtil.returnClient(tserver, context);
       }
     }
+    for (ServerId server : context.instanceOperations().getServers(ServerTypeName.COMPACTOR)) {
+      final HostAndPort parsedServer = HostAndPort.fromParts(server.getHost(), server.getPort());
+      CompactorService.Client compactor = null;
+      try {
+        compactor = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, parsedServer, context);
+        var compacts = compactor.getActiveCompactions(null, context.rpcCreds());
+        allCompactions.put(parsedServer, new CompactionStats(compacts));
+        compactsFetchedNanos = System.nanoTime();
+      } catch (Exception ex) {
+        log.debug("Failed to get active compactions from {}", server, ex);
+      } finally {
+        ThriftUtil.returnClient(compactor, context);
+      }
+    }
+
     // Age off old compaction information
     var entryIter = allCompactions.entrySet().iterator();
     // clock time used for fetched for date friendly display

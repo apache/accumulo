@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.getCompactorAddrs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -115,7 +114,10 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   @BeforeEach
   public void setupMetricsTest() throws Exception {
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty());
+    Wait.waitFor(
+        () -> getCluster().getServerContext().getServerIdResolver().getCompactors().size() == 0,
+        60_000);
+
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = getUniqueNames(1)[0];
 

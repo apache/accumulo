@@ -26,6 +26,8 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost.Type;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -42,14 +44,15 @@ public class ActiveCompactionImpl extends ActiveCompaction {
   private final ClientContext context;
   private final HostAndPort hostport;
   private final Type type;
+  private final String resourceGroup;
 
   ActiveCompactionImpl(ClientContext context,
-      org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac, HostAndPort hostport,
-      CompactionHost.Type type) {
+      org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac, ServerId server) {
     this.tac = tac;
     this.context = context;
-    this.hostport = hostport;
-    this.type = type;
+    this.hostport = HostAndPort.fromParts(server.getHost(), server.getPort());
+    this.type = server.getType() == ServerTypeName.COMPACTOR ? Type.COMPACTOR : Type.TSERVER;
+    this.resourceGroup = server.getResourceGroup();
   }
 
   @Override
@@ -139,6 +142,11 @@ public class ActiveCompactionImpl extends ActiveCompaction {
       @Override
       public int getPort() {
         return hostport.getPort();
+      }
+
+      @Override
+      public String getResourceGroup() {
+        return resourceGroup;
       }
     };
   }

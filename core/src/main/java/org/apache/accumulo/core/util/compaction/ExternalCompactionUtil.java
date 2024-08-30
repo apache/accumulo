@@ -24,12 +24,9 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RU
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -39,7 +36,6 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -51,8 +47,6 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.thrift.TException;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,43 +102,6 @@ public class ExternalCompactionUtil {
     final String lockPath = context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK;
     return ServiceLock.getLockData(context.getZooCache(), ServiceLock.path(lockPath), new ZcStat())
         .map(sld -> sld.getAddress(ThriftService.COORDINATOR));
-  }
-
-  /**
-   * @return map of group names to compactor addresses
-   */
-  public static Map<String,Set<HostAndPort>> getCompactorAddrs(ClientContext context) {
-    try {
-      final Map<String,Set<HostAndPort>> groupsAndAddresses = new HashMap<>();
-      final String compactorGroupsPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
-      ZooReader zooReader = context.getZooReader();
-      List<String> groups = zooReader.getChildren(compactorGroupsPath);
-      for (String group : groups) {
-        try {
-          List<String> compactors = zooReader.getChildren(compactorGroupsPath + "/" + group);
-          for (String compactor : compactors) {
-            // compactor is the address, we are checking to see if there is a child node which
-            // represents the compactor's lock as a check that it's alive.
-            List<String> children =
-                zooReader.getChildren(compactorGroupsPath + "/" + group + "/" + compactor);
-            if (!children.isEmpty()) {
-              LOG.trace("Found live compactor {} ", compactor);
-              groupsAndAddresses.putIfAbsent(group, new HashSet<>());
-              groupsAndAddresses.get(group).add(HostAndPort.fromString(compactor));
-            }
-          }
-        } catch (NoNodeException e) {
-          LOG.trace("Ignoring node that went missing", e);
-        }
-      }
-
-      return groupsAndAddresses;
-    } catch (KeeperException e) {
-      throw new IllegalStateException(e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException(e);
-    }
   }
 
   /**
@@ -227,11 +184,10 @@ public class ExternalCompactionUtil {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
 
-    getCompactorAddrs(context).forEach((group, hp) -> {
-      hp.forEach(hostAndPort -> {
-        rcFutures.add(new RunningCompactionFuture(group, hostAndPort,
-            executor.submit(() -> getRunningCompaction(hostAndPort, context))));
-      });
+    context.getServerIdResolver().getCompactors().forEach(csi -> {
+      final HostAndPort hp = HostAndPort.fromParts(csi.getHost(), csi.getPort());
+      rcFutures.add(new RunningCompactionFuture(csi.getResourceGroup(), hp,
+          executor.submit(() -> getRunningCompaction(hp, context))));
     });
     executor.shutdown();
 
@@ -256,10 +212,9 @@ public class ExternalCompactionUtil {
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTION_IDS_POOL).numCoreThreads(16).build();
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
-    getCompactorAddrs(context).forEach((q, hp) -> {
-      hp.forEach(hostAndPort -> {
-        futures.add(executor.submit(() -> getRunningCompactionId(hostAndPort, context)));
-      });
+    context.getServerIdResolver().getCompactors().forEach(csi -> {
+      final HostAndPort hp = HostAndPort.fromParts(csi.getHost(), csi.getPort());
+      futures.add(executor.submit(() -> getRunningCompactionId(hp, context)));
     });
     executor.shutdown();
 

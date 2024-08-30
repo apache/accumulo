@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -26,6 +26,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -69,9 +71,9 @@ public class CloseScannerIT extends AccumuloClusterHarness {
 
   private static int getActiveScansCount(AccumuloClient client)
       throws AccumuloException, AccumuloSecurityException {
-    List<String> tservers = client.instanceOperations().getTabletServers();
+    Set<ServerId> tservers = client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER);
     int scanCount = 0;
-    for (String tserver : tservers) {
+    for (ServerId tserver : tservers) {
       scanCount += client.instanceOperations().getActiveScans(tserver).size();
     }
     return scanCount;

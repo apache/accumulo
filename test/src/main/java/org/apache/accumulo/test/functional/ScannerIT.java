@@ -31,6 +31,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -187,7 +189,7 @@ public class ScannerIT extends AccumuloClusterHarness {
 
   public static long countActiveScans(AccumuloClient c, String tableName) throws Exception {
     long count = 0;
-    for (String tserver : c.instanceOperations().getTabletServers()) {
+    for (ServerId tserver : c.instanceOperations().getServers(ServerTypeName.TABLET_SERVER)) {
       count += c.instanceOperations().getActiveScans(tserver).stream()
           .filter(activeScan -> activeScan.getTable().equals(tableName)).count();
     }

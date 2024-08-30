@@ -21,6 +21,8 @@ package org.apache.accumulo.monitor.rest.compactions.external;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.admin.servers.CompactorServerId;
+
 import com.google.common.net.HostAndPort;
 
 public class CoordinatorInfo {
@@ -28,14 +30,14 @@ public class CoordinatorInfo {
   // Variable names become JSON keys
   public long lastContact;
   public String server;
-  public int numQueues;
+  public long numQueues;
   public int numCompactors;
 
   public CoordinatorInfo(Optional<HostAndPort> serverOpt, ExternalCompactionInfo ecInfo) {
     server = serverOpt.map(HostAndPort::toString).orElse("none");
-    var groupToCompactors = ecInfo.getCompactors();
-    numQueues = groupToCompactors.size();
-    numCompactors = groupToCompactors.values().stream().mapToInt(Set::size).sum();
+    Set<CompactorServerId> compactors = ecInfo.getCompactors();
+    numQueues = compactors.stream().map(csi -> csi.getResourceGroup()).distinct().count();
+    numCompactors = compactors.size();
     lastContact = System.currentTimeMillis() - ecInfo.getFetchedTimeMillis();
   }
 }

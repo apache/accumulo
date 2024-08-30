@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.fate;
 
-import static org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.getCompactorAddrs;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -97,7 +96,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
+    Wait.waitFor(() -> getServerContext().getServerIdResolver().getCompactors().isEmpty(), 60_000);
   }
 
   @Test

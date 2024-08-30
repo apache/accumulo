@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
@@ -93,9 +94,12 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
 
     // Need at least two tservers -- wait for them to start before failing
-    Wait.waitFor(() -> accumuloClient.instanceOperations().getTabletServers().size() >= 2);
+    Wait.waitFor(
+        () -> accumuloClient.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size()
+            >= 2);
 
-    assumeTrue(accumuloClient.instanceOperations().getTabletServers().size() >= 2,
+    assumeTrue(
+        accumuloClient.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size() >= 2,
         "Not enough tservers to run test");
 
     // set up splits

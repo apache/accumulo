@@ -25,10 +25,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
@@ -53,10 +55,8 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      while (client.instanceOperations().getTabletServers().isEmpty()) {
-        // Wait until at least one tablet server is up
-        Thread.sleep(100);
-      }
+      Wait.waitFor(
+          () -> !client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).isEmpty());
       final String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
@@ -90,7 +90,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
       });
       backgroundWriter.start();
       // wait for the tserver to give up on writing to the WAL
-      while (client.instanceOperations().getTabletServers().size() == 1) {
+      while (client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size() == 1) {
         Thread.sleep(SECONDS.toMillis(1));
       }
     }

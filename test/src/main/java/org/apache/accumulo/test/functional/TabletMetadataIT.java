@@ -27,6 +27,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -56,7 +57,8 @@ public class TabletMetadataIT extends ConfigurableMacBase {
   @Test
   public void getLiveTServersTest() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      while (c.instanceOperations().getTabletServers().size() != NUM_TSERVERS) {
+      while (c.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size()
+          != NUM_TSERVERS) {
         log.info("Waiting for tservers to start up...");
         Thread.sleep(SECONDS.toMillis(5));
       }
@@ -67,7 +69,8 @@ public class TabletMetadataIT extends ConfigurableMacBase {
       getCluster().killProcess(TABLET_SERVER,
           getCluster().getProcesses().get(TABLET_SERVER).iterator().next());
 
-      while (c.instanceOperations().getTabletServers().size() == NUM_TSERVERS) {
+      while (c.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size()
+          == NUM_TSERVERS) {
         log.info("Waiting for a tserver to die...");
         Thread.sleep(SECONDS.toMillis(5));
       }

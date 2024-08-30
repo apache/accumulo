@@ -18,10 +18,11 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -42,21 +43,24 @@ public class ListScansCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
 
-    List<String> tservers;
+    Set<ServerId> servers;
 
     final InstanceOperations instanceOps = shellState.getAccumuloClient().instanceOperations();
 
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
 
     if (cl.hasOption(tserverOption.getOpt())) {
-      tservers = new ArrayList<>();
-      tservers.add(cl.getOptionValue(tserverOption.getOpt()));
+      String serverAddress = cl.getOptionValue(tserverOption.getOpt());
+      servers = instanceOps.getServers(ServerTypeName.SCAN_SERVER,
+          (s) -> s.toHostPortString().equals(serverAddress));
+      servers.addAll(instanceOps.getServers(ServerTypeName.TABLET_SERVER,
+          (s) -> s.toHostPortString().equals(serverAddress)));
     } else {
-      tservers = instanceOps.getTabletServers();
-      tservers.addAll(instanceOps.getScanServers());
+      servers = instanceOps.getServers(ServerTypeName.SCAN_SERVER);
+      servers.addAll(instanceOps.getServers(ServerTypeName.TABLET_SERVER));
     }
 
-    shellState.printLines(new ActiveScanIterator(tservers, instanceOps), paginate);
+    shellState.printLines(new ActiveScanIterator(servers, instanceOps), paginate);
 
     return 0;
   }

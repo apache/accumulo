@@ -49,6 +49,8 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -185,7 +187,7 @@ public class Gatherer {
 
     Map<String,Map<StoredTabletFile,List<TRowRange>>> locations = new HashMap<>();
 
-    List<String> tservers = null;
+    List<ServerId> tservers = null;
 
     for (Entry<StoredTabletFile,List<TabletMetadata>> entry : files.entrySet()) {
 
@@ -203,7 +205,8 @@ public class Gatherer {
 
       if (location == null) {
         if (tservers == null) {
-          tservers = ctx.instanceOperations().getTabletServers();
+          tservers =
+              new ArrayList<>(ctx.instanceOperations().getServers(ServerTypeName.TABLET_SERVER));
           Collections.sort(tservers);
         }
 
@@ -211,7 +214,7 @@ public class Gatherer {
         // same file (as long as the set of tservers is stable).
         int idx = Math.abs(Hashing.murmur3_32_fixed()
             .hashString(entry.getKey().getNormalizedPathStr(), UTF_8).asInt()) % tservers.size();
-        location = tservers.get(idx);
+        location = tservers.get(idx).toHostPortString();
       }
 
       // merge contiguous ranges

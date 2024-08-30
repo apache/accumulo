@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.util.Set;
+
+import org.apache.accumulo.core.client.admin.servers.CompactorServerId;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -145,11 +148,11 @@ public class ECAdmin implements KeywordExecutable {
   }
 
   private void listCompactorsByQueue(ServerContext context) {
-    var groupToCompactorsMap = ExternalCompactionUtil.getCompactorAddrs(context);
-    if (groupToCompactorsMap.isEmpty()) {
+    Set<CompactorServerId> compactors = context.getServerIdResolver().getCompactors();
+    if (compactors.isEmpty()) {
       System.out.println("No Compactors found.");
     } else {
-      groupToCompactorsMap.forEach((q, compactors) -> System.out.println(q + ": " + compactors));
+      compactors.forEach((csi) -> System.out.println(csi));
     }
   }
 

@@ -23,10 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.DoubleAdder;
 
@@ -35,6 +33,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.servers.CompactorServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -139,15 +138,13 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
 
       ClientContext ctx = (ClientContext) client;
 
-      Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx).size() == 1, 60_000);
-      Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx)
-          .get(Constants.DEFAULT_RESOURCE_GROUP_NAME).size() == 1, 60_000);
+      Wait.waitFor(() -> ctx.getServerIdResolver().getCompactors().size() == 1
+          && ctx.getServerIdResolver().getCompactors().iterator().next().getResourceGroup()
+              .equals(Constants.DEFAULT_RESOURCE_GROUP_NAME),
+          60_000);
 
-      Map<String,Set<HostAndPort>> groupedCompactors =
-          ExternalCompactionUtil.getCompactorAddrs(ctx);
-      List<HostAndPort> compactorAddresses =
-          new ArrayList<>(groupedCompactors.get(Constants.DEFAULT_RESOURCE_GROUP_NAME));
-      HostAndPort compactorAddr = compactorAddresses.get(0);
+      CompactorServerId csi = ctx.getServerIdResolver().getCompactors().iterator().next();
+      HostAndPort compactorAddr = HostAndPort.fromParts(csi.getHost(), csi.getPort());
 
       TableOperations to = client.tableOperations();
       to.create(table);

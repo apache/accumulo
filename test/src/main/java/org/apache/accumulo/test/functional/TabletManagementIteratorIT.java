@@ -57,6 +57,8 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -575,12 +577,12 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         tableId -> context.getTableState(tableId) == TableState.ONLINE);
 
     HashSet<TServerInstance> tservers = new HashSet<>();
-    for (String tserver : context.instanceOperations().getTabletServers()) {
+    for (ServerId tserver : context.instanceOperations().getServers(ServerTypeName.TABLET_SERVER)) {
       try {
         var zPath = ServiceLock.path(ZooUtil.getRoot(context.instanceOperations().getInstanceId())
-            + Constants.ZTSERVERS + "/" + tserver);
+            + Constants.ZTSERVERS + "/" + tserver.toHostPortString());
         long sessionId = ServiceLock.getSessionId(context.getZooCache(), zPath);
-        tservers.add(new TServerInstance(tserver, sessionId));
+        tservers.add(new TServerInstance(tserver.toHostPortString(), sessionId));
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

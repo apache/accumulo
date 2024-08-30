@@ -22,9 +22,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -181,7 +184,9 @@ public interface InstanceOperations {
    *
    * @return a list of locations in <code>hostname:port</code> form.
    * @since 2.1.0
+   * @deprecated see {@link #getServers(ServerTypeName)}
    */
+  @Deprecated(since = "4.0.0")
   List<String> getManagerLocations();
 
   /**
@@ -189,22 +194,55 @@ public interface InstanceOperations {
    *
    * @return A set of currently active compactors.
    * @since 2.1.4
+   * @deprecated see {@link #getServers(ServerTypeName)}
    */
+  @Deprecated(since = "4.0.0")
   Set<String> getCompactors();
 
   /**
    * Returns the locations of the active scan servers
    *
    * @return A set of currently active scan servers.
+   * @deprecated see {@link #getServers(ServerTypeName)}
    */
+  @Deprecated(since = "4.0.0")
   Set<String> getScanServers();
 
   /**
    * List the currently active tablet servers participating in the accumulo instance
    *
    * @return A list of currently active tablet servers.
+   * @deprecated see {@link #getServers(ServerTypeName)}
    */
+  @Deprecated(since = "4.0.0")
   List<String> getTabletServers();
+
+  /**
+   * Resolve the server of the given type and address to a ServerId
+   *
+   * @param type type of server
+   * @param host host name
+   * @param port host port
+   * @return ServerId if found, else null
+   * @since 4.0.0
+   */
+  ServerId getServer(ServerTypeName type, String host, int port);
+
+  /**
+   * Returns all servers of the given types
+   *
+   * @return set of servers of the supplied types matching the supplied test
+   * @since 4.0.0
+   */
+  Set<ServerId> getServers(ServerTypeName type);
+
+  /**
+   * Returns the servers of a given type that match the given criteria
+   *
+   * @return set of servers of the supplied types matching the supplied test
+   * @since 4.0.0
+   */
+  Set<ServerId> getServers(ServerTypeName type, Predicate<ServerId> test);
 
   /**
    * List the active scans on a tablet server.
@@ -212,8 +250,22 @@ public interface InstanceOperations {
    * @param tserver The tablet server address. This should be of the form
    *        {@code <ip address>:<port>}
    * @return A list of active scans on tablet server.
+   * @deprecated see {@link #getActiveScans(ServerId)}
    */
+  @Deprecated(since = "4.0.0")
   List<ActiveScan> getActiveScans(String tserver)
+      throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * List the active scans on a server.
+   *
+   * @param server server type and address
+   * @return A stream of active scans on server.
+   * @since 4.0.0
+   * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or
+   *         SCAN_SERVER
+   */
+  List<ActiveScan> getActiveScans(ServerId server)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -225,8 +277,23 @@ public interface InstanceOperations {
    * @param tserver The server address. This should be of the form {@code <ip address>:<port>}
    * @return the list of active compactions
    * @since 1.5.0
+   * @deprecated see {@link #getActiveCompactions(ServerId server)}
    */
+  @Deprecated(since = "4.0.0")
   List<ActiveCompaction> getActiveCompactions(String tserver)
+      throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * List the active compaction running on a TabletServer or Compactor. The server address can be
+   * retrieved using {@link #getCompactors()} or {@link #getTabletServers()}. Use
+   * {@link #getActiveCompactions()} to get a list of all compactions running on tservers and
+   * compactors.
+   *
+   * @param server The ServerId object
+   * @return the list of active compactions
+   * @since 4.0.0
+   */
+  List<ActiveCompaction> getActiveCompactions(ServerId server)
       throws AccumuloException, AccumuloSecurityException;
 
   /**

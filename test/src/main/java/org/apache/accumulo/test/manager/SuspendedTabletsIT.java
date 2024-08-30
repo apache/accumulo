@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -317,7 +318,8 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
 
       try (AccumuloClient client =
           Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
-        Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
+        Wait.waitFor(
+            () -> client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size() == 1);
       }
 
     }

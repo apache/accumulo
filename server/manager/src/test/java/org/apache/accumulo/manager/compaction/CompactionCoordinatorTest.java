@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.servers.CompactorServerId;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -195,8 +196,8 @@ public class CompactionCoordinatorTest {
     }
 
     @Override
-    protected Map<String,Set<HostAndPort>> getRunningCompactors() {
-      return Map.of();
+    protected Set<CompactorServerId> getRunningCompactors() {
+      return Set.of();
     }
 
     @Override

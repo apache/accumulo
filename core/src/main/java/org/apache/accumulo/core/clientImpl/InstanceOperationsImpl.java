@@ -20,7 +20,6 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createTransport;
 import static org.apache.accumulo.core.rpc.ThriftUtil.getClient;
@@ -29,26 +28,28 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.INSTANCE_OPS
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
-import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.servers.ManagerServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -68,6 +69,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -214,47 +216,77 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  @Deprecated(since = "4.0.0")
   public List<String> getManagerLocations() {
     return context.getManagerLocations();
   }
 
   @Override
+  @Deprecated(since = "4.0.0")
   public Set<String> getCompactors() {
-    Set<String> compactors = new HashSet<>();
-    ExternalCompactionUtil.getCompactorAddrs(context).values().forEach(addrs -> {
-      addrs.forEach(hp -> compactors.add(hp.toString()));
-    });
-    return compactors;
-  }
-
-  @Override
-  public Set<String> getScanServers() {
-    return Set.copyOf(context.getScanServers().keySet());
-  }
-
-  @Override
-  public List<String> getTabletServers() {
-    ZooCache cache = context.getZooCache();
-    String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-    List<String> results = new ArrayList<>();
-    for (String candidate : cache.getChildren(path)) {
-      var children = cache.getChildren(path + "/" + candidate);
-      if (children != null && !children.isEmpty()) {
-        var copy = new ArrayList<>(children);
-        Collections.sort(copy);
-        var data = cache.get(path + "/" + candidate + "/" + copy.get(0));
-        if (data != null && !"manager".equals(new String(data, UTF_8))) {
-          results.add(candidate);
-        }
-      }
-    }
+    Set<String> results = new HashSet<>();
+    context.getServerIdResolver().getCompactors()
+        .forEach(csi -> results.add(csi.toHostPortString()));
     return results;
   }
 
   @Override
+  @Deprecated(since = "4.0.0")
+  public Set<String> getScanServers() {
+    Set<String> results = new HashSet<>();
+    context.getServerIdResolver().getScanServers().keySet()
+        .forEach(ssi -> results.add(ssi.toHostPortString()));
+    return results;
+  }
+
+  @Override
+  @Deprecated(since = "4.0.0")
+  public List<String> getTabletServers() {
+    List<String> results = new ArrayList<>();
+    context.getServerIdResolver().getTabletServers()
+        .forEach(tsi -> results.add(tsi.toHostPortString()));
+    return results;
+  }
+
+  @Override
+  @Deprecated(since = "4.0.0")
   public List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException {
     final var parsedTserver = HostAndPort.fromString(tserver);
+    TabletScanClientService.Client client = null;
+    try {
+      client = getClient(ThriftClientTypes.TABLET_SCAN, parsedTserver, context);
+
+      List<ActiveScan> as = new ArrayList<>();
+      for (var activeScan : client.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
+        try {
+          as.add(new ActiveScanImpl(context, activeScan));
+        } catch (TableNotFoundException e) {
+          throw new AccumuloException(e);
+        }
+      }
+      return as;
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloSecurityException(e.user, e.code, e);
+    } catch (TException e) {
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null) {
+        returnClient(client, context);
+      }
+    }
+  }
+
+  @Override
+  public List<ActiveScan> getActiveScans(ServerId server)
+      throws AccumuloException, AccumuloSecurityException {
+
+    @SuppressWarnings("unused")
+    var unused = Objects.nonNull(server);
+    Preconditions.checkArgument(server.getType() == ServerTypeName.SCAN_SERVER
+        || server.getType() == ServerTypeName.TABLET_SERVER);
+
+    final var parsedTserver = HostAndPort.fromParts(server.getHost(), server.getPort());
     TabletScanClientService.Client client = null;
     try {
       client = getClient(ThriftClientTypes.TABLET_SCAN, parsedTserver, context);
@@ -287,19 +319,37 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  @Deprecated
   public List<ActiveCompaction> getActiveCompactions(String server)
       throws AccumuloException, AccumuloSecurityException {
-    final var serverHostAndPort = HostAndPort.fromString(server);
+    Set<ServerId> servers =
+        getServers(ServerTypeName.COMPACTOR, (s) -> s.toHostPortString().equals(server));
+    if (servers.isEmpty()) {
+      servers =
+          getServers(ServerTypeName.TABLET_SERVER, (s) -> s.toHostPortString().equals(server));
+    }
+    if (servers.isEmpty()) {
+      return new ArrayList<>();
+    } else if (servers.size() == 1) {
+      return getActiveCompactions(servers.iterator().next());
+    } else {
+      throw new IllegalStateException("Multiple servers matching provided address: " + servers);
+    }
+  }
 
+  @Override
+  public List<ActiveCompaction> getActiveCompactions(ServerId server)
+      throws AccumuloException, AccumuloSecurityException {
+
+    final HostAndPort serverHostAndPort = HostAndPort.fromParts(server.getHost(), server.getPort());
     final List<ActiveCompaction> as = new ArrayList<>();
     try {
-      if (context.getTServerLockChecker().doesTabletServerLockExist(server)) {
+      if (server.getType() == ServerTypeName.TABLET_SERVER) {
         Client client = null;
         try {
           client = getClient(ThriftClientTypes.TABLET_SERVER, serverHostAndPort, context);
           for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
-            as.add(new ActiveCompactionImpl(context, tac, serverHostAndPort,
-                CompactionHost.Type.TSERVER));
+            as.add(new ActiveCompactionImpl(context, tac, server));
           }
         } finally {
           if (client != null) {
@@ -309,8 +359,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       } else {
         // if not a TabletServer address, maybe it's a Compactor
         for (var tac : ExternalCompactionUtil.getActiveCompaction(serverHostAndPort, context)) {
-          as.add(new ActiveCompactionImpl(context, tac, serverHostAndPort,
-              CompactionHost.Type.COMPACTOR));
+          as.add(new ActiveCompactionImpl(context, tac, server));
         }
       }
       return as;
@@ -325,8 +374,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveCompaction> getActiveCompactions()
       throws AccumuloException, AccumuloSecurityException {
 
-    Map<String,Set<HostAndPort>> compactors = ExternalCompactionUtil.getCompactorAddrs(context);
-    List<String> tservers = getTabletServers();
+    Set<ServerId> compactors = getServers(ServerTypeName.COMPACTOR);
+    Set<ServerId> tservers = getServers(ServerTypeName.TABLET_SERVER);
 
     int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
     var executorService = context.threadPools().getPoolBuilder(INSTANCE_OPS_COMPACTIONS_FINDER_POOL)
@@ -334,21 +383,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     try {
       List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
 
-      for (String tserver : tservers) {
-        futures.add(executorService.submit(() -> getActiveCompactions(tserver)));
+      for (ServerId tserver : tservers) {
+        futures.add(executorService.submit(() -> getActiveCompactions(tserver.toHostPortString())));
       }
-
-      compactors.values().forEach(compactorList -> {
-        for (HostAndPort compactorAddr : compactorList) {
-          Callable<List<ActiveCompaction>> task =
-              () -> ExternalCompactionUtil.getActiveCompaction(compactorAddr, context).stream()
-                  .map(tac -> new ActiveCompactionImpl(context, tac, compactorAddr,
-                      CompactionHost.Type.COMPACTOR))
-                  .collect(toList());
-
-          futures.add(executorService.submit(task));
-        }
-      });
 
       List<ActiveCompaction> ret = new ArrayList<>();
       for (Future<List<ActiveCompaction>> future : futures) {
@@ -411,6 +448,58 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public InstanceId getInstanceId() {
     return context.getInstanceID();
+  }
+
+  @Override
+  public ServerId getServer(ServerTypeName type, String host, int port) {
+    final HostAndPort hp = HostAndPort.fromParts(host, port);
+    switch (type) {
+      case COMPACTOR:
+        return context.getServerIdResolver().resolveCompactor(hp.toString());
+      case MANAGER:
+        final ManagerServerId msi = context.getServerIdResolver().getManager();
+        if (msi.getHost().equals(host) && msi.getPort() == port) {
+          return msi;
+        } else {
+          return null;
+        }
+      case SCAN_SERVER:
+        return context.getServerIdResolver().resolveScanServer(hp.toString());
+      case TABLET_SERVER:
+        return context.getServerIdResolver().resolveTabletServer(hp.toString());
+      default:
+        throw new IllegalArgumentException("Unhandled server type: " + type);
+    }
+  }
+
+  @Override
+  public Set<ServerId> getServers(ServerTypeName type) {
+    return getServers(type, null);
+  }
+
+  @Override
+  public Set<ServerId> getServers(ServerTypeName type, Predicate<ServerId> test) {
+    final Set<ServerId> results = new HashSet<>();
+    switch (type) {
+      case COMPACTOR:
+        results.addAll(context.getServerIdResolver().getCompactors());
+        break;
+      case MANAGER:
+        results.add(context.getServerIdResolver().getManager());
+        break;
+      case SCAN_SERVER:
+        results.addAll(context.getServerIdResolver().getScanServers().keySet());
+        break;
+      case TABLET_SERVER:
+        results.addAll(context.getServerIdResolver().getTabletServers());
+        break;
+      default:
+        break;
+    }
+    if (test == null) {
+      return results;
+    }
+    return results.stream().filter(test).collect(Collectors.toCollection(HashSet::new));
   }
 
 }

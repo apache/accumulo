@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -156,7 +157,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
   public String test(int seconds, boolean expectTserverDied) throws Exception {
     assumeTrue(sharedLibBuilt.get(), "Shared library did not build");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      while (client.instanceOperations().getTabletServers().isEmpty()) {
+      while (client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).isEmpty()) {
         // wait until the tserver that we need to kill is running
         Thread.sleep(50);
       }
@@ -191,7 +192,8 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
             cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
         Thread.sleep(SECONDS.toMillis(1));
         client.tableOperations().create("test_ingest");
-        assertEquals(1, client.instanceOperations().getTabletServers().size());
+        assertEquals(1,
+            client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size());
         int rows = 100_000;
         ingest =
             cluster.exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--rows", rows + "")

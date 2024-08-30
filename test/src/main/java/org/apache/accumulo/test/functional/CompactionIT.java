@@ -71,6 +71,7 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
+import org.apache.accumulo.core.client.admin.servers.CompactorServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -1176,16 +1177,18 @@ public class CompactionIT extends CompactionBaseIT {
 
       compactions.clear();
       do {
-        HostAndPort hp = HostAndPort.fromParts(host.getAddress(), host.getPort());
-        client.instanceOperations().getActiveCompactions(hp.toString()).forEach((ac) -> {
-          try {
-            if (ac.getTable().equals(table1)) {
-              compactions.add(ac);
-            }
-          } catch (TableNotFoundException e1) {
-            fail("Table was deleted during test, should not happen");
-          }
-        });
+        client.instanceOperations()
+            .getActiveCompactions(
+                new CompactorServerId(host.getResourceGroup(), host.getAddress(), host.getPort()))
+            .forEach((ac) -> {
+              try {
+                if (ac.getTable().equals(table1)) {
+                  compactions.add(ac);
+                }
+              } catch (TableNotFoundException e1) {
+                fail("Table was deleted during test, should not happen");
+              }
+            });
         Thread.sleep(1000);
       } while (compactions.isEmpty());
 

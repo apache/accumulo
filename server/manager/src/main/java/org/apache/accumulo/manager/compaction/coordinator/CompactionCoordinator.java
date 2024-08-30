@@ -58,6 +58,7 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.client.admin.servers.CompactorServerId;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -309,12 +310,12 @@ public class CompactionCoordinator
     LOG.info("Shutting down");
   }
 
-  private Map<String,Set<HostAndPort>>
-      getIdleCompactors(Map<String,Set<HostAndPort>> runningCompactors) {
+  private Map<String,Set<HostAndPort>> getIdleCompactors(Set<CompactorServerId> runningCompactors) {
 
     final Map<String,Set<HostAndPort>> allCompactors = new HashMap<>();
     runningCompactors
-        .forEach((group, compactorList) -> allCompactors.put(group, new HashSet<>(compactorList)));
+        .forEach((csi) -> allCompactors.putIfAbsent(csi.getResourceGroup(), new HashSet<>())
+            .add(HostAndPort.fromParts(csi.getHost(), csi.getPort())));
 
     final Set<String> emptyQueues = new HashSet<>();
 
@@ -1012,8 +1013,8 @@ public class CompactionCoordinator
   }
 
   /* Method exists to be overridden in test to hide static method */
-  protected Map<String,Set<HostAndPort>> getRunningCompactors() {
-    return ExternalCompactionUtil.getCompactorAddrs(this.ctx);
+  protected Set<CompactorServerId> getRunningCompactors() {
+    return this.ctx.getServerIdResolver().getCompactors();
   }
 
   /* Method exists to be overridden in test to hide static method */
@@ -1174,11 +1175,11 @@ public class CompactionCoordinator
           Sets.difference(trackedGroups, TIME_COMPACTOR_LAST_CHECKED.keySet()));
     }
 
-    final Map<String,Set<HostAndPort>> runningCompactors = getRunningCompactors();
+    final Set<CompactorServerId> runningCompactors = getRunningCompactors();
 
     final Set<CompactorGroupId> runningCompactorGroups = new HashSet<>();
-    runningCompactors.keySet()
-        .forEach(group -> runningCompactorGroups.add(CompactorGroupId.of(group)));
+    runningCompactors
+        .forEach(c -> runningCompactorGroups.add(CompactorGroupId.of(c.getResourceGroup())));
 
     final Set<CompactorGroupId> groupsWithNoCompactors =
         Sets.difference(groupsInConfiguration, runningCompactorGroups);
