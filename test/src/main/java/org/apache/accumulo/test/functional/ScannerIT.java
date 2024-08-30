@@ -45,6 +45,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.test.CloseScannerIT;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -126,6 +127,9 @@ public class ScannerIT extends ConfigurableMacBase {
     }
   }
 
+  /**
+   * {@link CloseScannerIT#testManyScans()} is a similar test.
+   */
   @ParameterizedTest
   @EnumSource
   public void testSessionCleanup(ConsistencyLevel consistency) throws Exception {
