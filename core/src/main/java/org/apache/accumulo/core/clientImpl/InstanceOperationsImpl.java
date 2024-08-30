@@ -370,17 +370,18 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveCompaction> getActiveCompactions()
       throws AccumuloException, AccumuloSecurityException {
 
-    Set<ServerId> compactors = getServers(ServerTypeName.COMPACTOR);
-    Set<ServerId> tservers = getServers(ServerTypeName.TABLET_SERVER);
+    Set<ServerId> compactionServers = new HashSet<>();
+    compactionServers.addAll(getServers(ServerTypeName.COMPACTOR));
+    compactionServers.addAll(getServers(ServerTypeName.TABLET_SERVER));
 
-    int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
+    int numThreads = Math.max(4, Math.min((compactionServers.size()) / 10, 256));
     var executorService = context.threadPools().getPoolBuilder(INSTANCE_OPS_COMPACTIONS_FINDER_POOL)
         .numCoreThreads(numThreads).build();
     try {
       List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
 
-      for (ServerId tserver : tservers) {
-        futures.add(executorService.submit(() -> getActiveCompactions(tserver.toHostPortString())));
+      for (ServerId server : compactionServers) {
+        futures.add(executorService.submit(() -> getActiveCompactions(server)));
       }
 
       List<ActiveCompaction> ret = new ArrayList<>();
