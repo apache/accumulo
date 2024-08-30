@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.CloseScannerIT;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 
@@ -117,6 +118,9 @@ public class ScannerIT extends AccumuloClusterHarness {
     }
   }
 
+  /**
+   * {@link CloseScannerIT#testManyScans()} is a similar test.
+   */
   @Test
   public void testSessionCleanup() throws Exception {
     final String tableName = getUniqueNames(1)[0];
