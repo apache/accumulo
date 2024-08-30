@@ -23,7 +23,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -37,6 +36,8 @@ import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.util.DurationFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 class ActiveCompactionHelper {
 
@@ -119,23 +120,21 @@ class ActiveCompactionHelper {
 
   public static Stream<String> activeCompactionsForServer(String tserver,
       InstanceOperations instanceOps) {
-    Set<ServerId> servers = instanceOps.getServers(ServerTypeName.COMPACTOR,
-        (s) -> s.toHostPortString().equals(tserver));
-    if (servers.isEmpty()) {
-      servers = instanceOps.getServers(ServerTypeName.TABLET_SERVER,
-          (s) -> s.toHostPortString().equals(tserver));
+    final HostAndPort hp = HostAndPort.fromString(tserver);
+    ServerId server = instanceOps.getServer(ServerTypeName.COMPACTOR, hp.getHost(), hp.getPort());
+    if (server == null) {
+      server = instanceOps.getServer(ServerTypeName.TABLET_SERVER, hp.getHost(), hp.getPort());
     }
-    if (servers.size() == 1) {
+    if (server == null) {
+      return Stream.of();
+    } else {
       try {
-        return instanceOps.getActiveCompactions(servers.iterator().next()).stream()
-            .sorted(COMPACTION_AGE_DESCENDING)
+        return instanceOps.getActiveCompactions(server).stream().sorted(COMPACTION_AGE_DESCENDING)
             .map(ActiveCompactionHelper::formatActiveCompactionLine);
       } catch (Exception e) {
         log.debug("Failed to list active compactions for server {}", tserver, e);
         return Stream.of(tserver + " ERROR " + e.getMessage());
       }
-    } else {
-      throw new IllegalStateException("Multiple servers matching provided address: " + servers);
     }
   }
 

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -28,6 +29,8 @@ import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+
+import com.google.common.net.HostAndPort;
 
 public class ListScansCommand extends Command {
 
@@ -51,10 +54,10 @@ public class ListScansCommand extends Command {
 
     if (cl.hasOption(tserverOption.getOpt())) {
       String serverAddress = cl.getOptionValue(tserverOption.getOpt());
-      servers = instanceOps.getServers(ServerTypeName.SCAN_SERVER,
-          (s) -> s.toHostPortString().equals(serverAddress));
-      servers.addAll(instanceOps.getServers(ServerTypeName.TABLET_SERVER,
-          (s) -> s.toHostPortString().equals(serverAddress)));
+      final HostAndPort hp = HostAndPort.fromString(serverAddress);
+      servers = new HashSet<>();
+      servers.add(instanceOps.getServer(ServerTypeName.SCAN_SERVER, hp.getHost(), hp.getPort()));
+      servers.add(instanceOps.getServer(ServerTypeName.TABLET_SERVER, hp.getHost(), hp.getPort()));
     } else {
       servers = instanceOps.getServers(ServerTypeName.SCAN_SERVER);
       servers.addAll(instanceOps.getServers(ServerTypeName.TABLET_SERVER));
