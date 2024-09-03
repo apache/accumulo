@@ -33,11 +33,7 @@ import java.util.TreeSet;
 public class MetricsDocGen {
   private final PrintStream doc;
   private final TreeSet<Metric> sortedMetrics =
-      new TreeSet<>(Comparator.comparing(Metric::getName)) {
-        {
-          addAll(Arrays.asList(Metric.values()));
-        }
-      };
+      new TreeSet<>(Comparator.comparing(Metric::getName));
 
   void generate() {
     pageHeader();
@@ -84,6 +80,7 @@ public class MetricsDocGen {
 
   private MetricsDocGen(PrintStream doc) {
     this.doc = doc;
+    this.sortedMetrics.addAll(Arrays.asList(Metric.values()));
   }
 
   /**
