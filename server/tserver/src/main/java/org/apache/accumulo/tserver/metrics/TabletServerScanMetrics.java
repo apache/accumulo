@@ -28,6 +28,7 @@ import static org.apache.accumulo.core.metrics.Metric.SCAN_QUERY_SCAN_RESULTS;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_QUERY_SCAN_RESULTS_BYTES;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RESULTS;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RETURN_FOR_MEM;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_SCANNED_ENTRIES;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_START;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_TIMES;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_YIELDS;
@@ -154,7 +155,7 @@ public class TabletServerScanMetrics implements MetricsProducer {
         .description("The number of scans where a busy timeout happened").register(registry);
     FunctionCounter.builder(SCAN_QUERIES.getName(), this.lookupCount, LongAdder::sum)
         .description("Number of queries").register(registry);
-    FunctionCounter.builder(SCAN_QUERIES.getName(), this.scannedCount, LongAdder::sum)
+    FunctionCounter.builder(SCAN_SCANNED_ENTRIES.getName(), this.scannedCount, LongAdder::sum)
         .description("Scanned rate").register(registry);
     FunctionCounter.builder(SCAN_PAUSED_FOR_MEM.getName(), this.pausedForMemory, AtomicLong::get)
         .description("scan paused due to server being low on memory").register(registry);

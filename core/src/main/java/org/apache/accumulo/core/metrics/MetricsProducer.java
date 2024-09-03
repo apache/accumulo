@@ -18,11 +18,6 @@
  */
 package org.apache.accumulo.core.metrics;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,25 +42,4 @@ public interface MetricsProducer {
    */
   void registerMetrics(MeterRegistry registry);
 
-  /**
-   * Returns a new mutable mapping of metric field value to metric field name.
-   *
-   * @return map of field names to variable names.
-   */
-  default Map<String,String> getMetricFields() {
-    Map<String,String> fields = new HashMap<>();
-    for (Field f : MetricsProducer.class.getDeclaredFields()) {
-      if (Modifier.isStatic(f.getModifiers()) && f.getType().equals(String.class)
-          && !f.getName().contains("PREFIX")) {
-        try {
-
-          fields.put((String) f.get(MetricsProducer.class), f.getName());
-        } catch (IllegalArgumentException | IllegalAccessException e) {
-          // this shouldn't happen, but let's log it anyway
-          LOG.error("Error getting metric value for field: {}", f.getName());
-        }
-      }
-    }
-    return fields;
-  }
 }

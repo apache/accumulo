@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.core.metrics;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public enum Metric {
   // General Server Metrics
   SERVER_IDLE("accumulo.server.idle", MetricType.GAUGE,
@@ -107,6 +110,8 @@ public enum Metric {
       "Time to reserve a tablet's files for scan.", MetricCategory.SCAN_SERVER),
   SCAN_RESERVATION_WRITEOUT_TIMER("accumulo.scan.reservation.writeout.timer", MetricType.TIMER,
       "Time to write out a tablets file reservations for scan", MetricCategory.SCAN_SERVER),
+  SCAN_RESERVATION_CONFLICT_TIMER("accumulo.scan.reservation.conflict.timer", MetricType.TIMER, "",
+      MetricCategory.SCAN_SERVER),
   SCAN_BUSY_TIMEOUT_COUNT("accumulo.scan.busy.timeout.count", MetricType.COUNTER,
       "Count of the scans where a busy timeout happened.", MetricCategory.SCAN_SERVER),
   SCAN_TABLET_METADATA_CACHE("accumulo.scan.tablet.metadata.cache", MetricType.CACHE,
@@ -203,6 +208,14 @@ public enum Metric {
   private final String description;
   private final MetricCategory category;
 
+  private static final Map<String,Metric> NAME_TO_ENUM_MAP = new HashMap<>();
+
+  static {
+    for (Metric metric : values()) {
+      NAME_TO_ENUM_MAP.put(metric.name, metric);
+    }
+  }
+
   Metric(String name, MetricType type, String description, MetricCategory category) {
     this.name = name;
     this.type = type;
@@ -240,6 +253,14 @@ public enum Metric {
     THRIFT,
     BLOCK_CACHE,
     MANAGER
+  }
+
+  public static Metric fromName(String name) {
+    Metric metric = NAME_TO_ENUM_MAP.get(name);
+    if (metric == null) {
+      throw new IllegalArgumentException("No enum constant for metric name: " + name);
+    }
+    return metric;
   }
 
 }
