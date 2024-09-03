@@ -589,9 +589,9 @@ public class TabletServerResourceManager {
     }
 
     public void updateMemoryUsageStats(Tablet tablet, long size, long lastCommitTime, long mincSize,
-        Timer elapsedSinceFirstWrite) {
-      memUsageReports.add(
-          new TabletMemoryReport(tablet, lastCommitTime, size, mincSize, elapsedSinceFirstWrite));
+        Timer firstWriteTimer) {
+      memUsageReports
+          .add(new TabletMemoryReport(tablet, lastCommitTime, size, mincSize, firstWriteTimer));
     }
 
     public void tabletClosed(KeyExtent extent) {
@@ -729,6 +729,7 @@ public class TabletServerResourceManager {
         // when a new in memory map is created this method is called with a size of zero so use that
         // to reset the first write timer
         firstReportedCommitTimer.set(null);
+        report = true;
       } else if (firstReportedCommitTimer.get() == null) {
         // this is the first time a non zero size was seen for this in memory map so consider this
         // the time of the first write

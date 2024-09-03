@@ -30,15 +30,15 @@ public class TabletMemoryReport implements Cloneable {
   private final long lastCommitTime;
   private final long memTableSize;
   private final long minorCompactingMemTableSize;
-  private final Timer elapsedSinceFirstWrite;
+  private final Timer firstWriteTimer;
 
   public TabletMemoryReport(Tablet tablet, long lastCommitTime, long memTableSize,
-      long minorCompactingMemTableSize, Timer elapsedSinceFirstWrite) {
+      long minorCompactingMemTableSize, Timer firstWriteTimer) {
     this.tablet = tablet;
     this.lastCommitTime = lastCommitTime;
     this.memTableSize = memTableSize;
     this.minorCompactingMemTableSize = minorCompactingMemTableSize;
-    this.elapsedSinceFirstWrite = elapsedSinceFirstWrite;
+    this.firstWriteTimer = firstWriteTimer;
   }
 
   public KeyExtent getExtent() {
@@ -54,7 +54,7 @@ public class TabletMemoryReport implements Cloneable {
   }
 
   public long getElapsedSinceFirstWrite(TimeUnit unit) {
-    return elapsedSinceFirstWrite == null ? 0 : elapsedSinceFirstWrite.elapsed(unit);
+    return firstWriteTimer == null ? 0 : firstWriteTimer.elapsed(unit);
   }
 
   public long getMemTableSize() {
