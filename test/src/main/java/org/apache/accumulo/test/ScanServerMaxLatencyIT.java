@@ -52,6 +52,7 @@ import org.junit.jupiter.api.Test;
 
 public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
 
+  @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION, "2s");
   }
