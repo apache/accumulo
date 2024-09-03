@@ -20,6 +20,8 @@ package org.apache.accumulo.test.compaction;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
@@ -54,7 +56,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -282,18 +283,14 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
             break out;
           }
           TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(s);
-          if (!metric.getName().startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX)) {
-            continue;
-          }
+          final String metricName = metric.getName();
           int value = Integer.parseInt(metric.getValue());
-          log.debug("Found metric: {} with value: {}", metric.getName(), value);
-          switch (metric.getName()) {
-            case MetricsProducer.METRICS_COMPACTOR_ENTRIES_READ:
-              totalEntriesRead.addAndGet(value);
-              break;
-            case MetricsProducer.METRICS_COMPACTOR_ENTRIES_WRITTEN:
-              totalEntriesWritten.addAndGet(value);
-              break;
+          if (metricName.equals(COMPACTOR_ENTRIES_READ.getName())) {
+            totalEntriesRead.set(value);
+            log.debug("Found metric: {} with value: {}", metricName, value);
+          } else if (metricName.equals(COMPACTOR_ENTRIES_WRITTEN.getName())) {
+            totalEntriesWritten.set(value);
+            log.debug("Found metric: {} with value: {}", metricName, value);
           }
         }
         sleepUninterruptibly(CHECKER_THREAD_SLEEP_MS, TimeUnit.MILLISECONDS);

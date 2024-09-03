@@ -18,6 +18,15 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
+import static org.apache.accumulo.core.metrics.Metric.FATE_TYPE_IN_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_BALANCER_MIGRATIONS_NEEDED;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_BUSY_TIMEOUT_COUNT;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_TOTAL_TIMER;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_WRITEOUT_TIMER;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_TABLET_METADATA_CACHE;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_YIELDS;
+import static org.apache.accumulo.core.metrics.Metric.SERVER_IDLE;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -101,18 +110,18 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     // meter names sorted and formatting disabled to make it easier to diff changes
     // @formatter:off
     Set<String> unexpectedMetrics =
-            Set.of(METRICS_COMPACTOR_MAJC_STUCK,
-                    METRICS_SCAN_YIELDS);
+            Set.of(COMPACTOR_MAJC_STUCK.getName(),
+                    SCAN_YIELDS.getName());
 
     // add sserver as flaky until scan server included in mini tests.
-    Set<String> flakyMetrics = Set.of(METRICS_FATE_TYPE_IN_PROGRESS,
-            METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED,
-            METRICS_SCAN_BUSY_TIMEOUT_COUNTER,
-            METRICS_SCAN_RESERVATION_CONFLICT_COUNTER,
-            METRICS_SCAN_RESERVATION_TOTAL_TIMER,
-            METRICS_SCAN_RESERVATION_WRITEOUT_TIMER,
-            METRICS_SCAN_TABLET_METADATA_CACHE,
-            METRICS_SERVER_IDLE);
+    Set<String> flakyMetrics = Set.of(FATE_TYPE_IN_PROGRESS.getName(),
+            MANAGER_BALANCER_MIGRATIONS_NEEDED.getName(),
+            SCAN_BUSY_TIMEOUT_COUNT.getName(),
+            SCAN_RESERVATION_WRITEOUT_TIMER.getName(),
+            SCAN_RESERVATION_TOTAL_TIMER.getName(),
+            SCAN_RESERVATION_WRITEOUT_TIMER.getName(),
+            SCAN_TABLET_METADATA_CACHE.getName(),
+            SERVER_IDLE.getName());
     // @formatter:on
 
     Map<String,String> expectedMetricNames = this.getMetricFields();
