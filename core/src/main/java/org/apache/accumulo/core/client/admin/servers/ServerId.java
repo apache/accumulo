@@ -20,6 +20,8 @@ package org.apache.accumulo.core.client.admin.servers;
 
 import java.util.Objects;
 
+import org.apache.accumulo.core.conf.PropertyType.PortRange;
+
 import com.google.common.base.Preconditions;
 
 public abstract class ServerId implements Comparable<ServerId> {
@@ -31,7 +33,8 @@ public abstract class ServerId implements Comparable<ServerId> {
 
   protected ServerId(ServerTypeName type, String resourceGroup, String host, int port) {
     super();
-    Preconditions.checkArgument(port > 0);
+    Preconditions.checkArgument(port == 0 || PortRange.VALID_RANGE.contains(port),
+        "invalid server port value: " + port);
     this.type = Objects.requireNonNull(type);
     this.resourceGroup = Objects.requireNonNull(resourceGroup);
     this.host = Objects.requireNonNull(host);
