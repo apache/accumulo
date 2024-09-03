@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.tserver.memory;
 
+import java.time.Duration;
+
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.tserver.tablet.Tablet;
 
@@ -27,13 +29,15 @@ public class TabletMemoryReport implements Cloneable {
   private final long lastCommitTime;
   private final long memTableSize;
   private final long minorCompactingMemTableSize;
+  private final Duration elapsedSinceFirstWrite;
 
   public TabletMemoryReport(Tablet tablet, long lastCommitTime, long memTableSize,
-      long minorCompactingMemTableSize) {
+      long minorCompactingMemTableSize, Duration elapsedSinceFirstWrite) {
     this.tablet = tablet;
     this.lastCommitTime = lastCommitTime;
     this.memTableSize = memTableSize;
     this.minorCompactingMemTableSize = minorCompactingMemTableSize;
+    this.elapsedSinceFirstWrite = elapsedSinceFirstWrite;
   }
 
   public KeyExtent getExtent() {
@@ -46,6 +50,10 @@ public class TabletMemoryReport implements Cloneable {
 
   public long getLastCommitTime() {
     return lastCommitTime;
+  }
+
+  public Duration getElapsedSinceFirstWrite() {
+    return elapsedSinceFirstWrite;
   }
 
   public long getMemTableSize() {

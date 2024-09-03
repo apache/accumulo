@@ -56,6 +56,7 @@ public class LargestFirstMemoryManager {
   private double compactionThreshold;
   private long maxObserved;
   private final HashMap<TableId,Long> mincIdleThresholds = new HashMap<>();
+  private final HashMap<TableId,Long> mincAgeThresholds = new HashMap<>();
   private ServerContext context = null;
 
   private static class TabletInfo {
@@ -145,6 +146,12 @@ public class LargestFirstMemoryManager {
     return mincIdleThresholds.get(tableId);
   }
 
+  protected long getMaxAge(KeyExtent extent) {
+    TableId tableId = extent.tableId();
+    return mincAgeThresholds.computeIfAbsent(tableId, tid -> context.getTableConfiguration(tid)
+        .getTimeInMillis(Property.TABLE_MINC_COMPACT_MAXAGE));
+  }
+
   protected boolean tableExists(TableId tableId) {
     // make sure that the table still exists by checking if it has a configuration
     return context.getTableConfiguration(tableId) != null;
@@ -191,7 +198,8 @@ public class LargestFirstMemoryManager {
         TabletInfo tabletInfo = new TabletInfo(tablet, memTabletSize, idleTime, timeMemoryLoad);
         try {
           // If the table was deleted, getMinCIdleThreshold will throw an exception
-          if (idleTime > getMinCIdleThreshold(tablet)) {
+          if (idleTime > getMinCIdleThreshold(tablet)
+              || ts.getElapsedSinceFirstWrite().toMillis() > getMaxAge(tablet)) {
             largestIdleMemTablets.put(timeMemoryLoad, tabletInfo);
           }
         } catch (IllegalArgumentException e) {

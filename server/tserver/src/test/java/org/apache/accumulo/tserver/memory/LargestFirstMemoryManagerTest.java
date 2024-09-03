@@ -24,6 +24,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
@@ -194,6 +195,25 @@ public class LargestFirstMemoryManagerTest {
     assertEquals(extent, tabletsToMinorCompact.get(0));
   }
 
+  @Test
+  public void testMaxAge() {
+    LargestFirstMemoryManagerUnderTest mgr = new LargestFirstMemoryManagerUnderTest();
+    mgr.init(context);
+    List<KeyExtent> tabletsToMinorCompact;
+
+    // nothing to do
+    tabletsToMinorCompact =
+        mgr.tabletsToMinorCompact(tablets(t(k("x"), ZERO, 1000, 0), t(k("y"), ZERO, 2000, 0)));
+    assertEquals(0, tabletsToMinorCompact.size());
+
+    // a tablet that exceeds the configured max age should need to compact
+    tabletsToMinorCompact =
+        mgr.tabletsToMinorCompact(tablets(t(k("x"), ZERO, 1000, 0, Duration.ofMinutes(14)),
+            t(k("y"), ZERO, 2000, 0, Duration.ofMinutes(16))));
+    assertEquals(1, tabletsToMinorCompact.size());
+    assertEquals(k("y"), tabletsToMinorCompact.get(0));
+  }
+
   private static class LargestFirstMemoryManagerUnderTest extends LargestFirstMemoryManager {
 
     public long currentTime = ZERO;
@@ -205,6 +225,11 @@ public class LargestFirstMemoryManagerTest {
 
     @Override
     protected long getMinCIdleThreshold(KeyExtent extent) {
+      return MINUTES.toMillis(15);
+    }
+
+    @Override
+    protected long getMaxAge(KeyExtent extent) {
       return MINUTES.toMillis(15);
     }
 
@@ -247,7 +272,18 @@ public class LargestFirstMemoryManagerTest {
   }
 
   private TabletMemoryReport t(KeyExtent ke, long lastCommit, long memSize, long compactingSize) {
-    return new TabletMemoryReport(null, lastCommit, memSize, compactingSize) {
+    return new TabletMemoryReport(null, lastCommit, memSize, compactingSize, Duration.ZERO) {
+      @Override
+      public KeyExtent getExtent() {
+        return ke;
+      }
+    };
+  }
+
+  private TabletMemoryReport t(KeyExtent ke, long lastCommit, long memSize, long compactingSize,
+      Duration elapsedSinceFirstWrite) {
+    return new TabletMemoryReport(null, lastCommit, memSize, compactingSize,
+        elapsedSinceFirstWrite) {
       @Override
       public KeyExtent getExtent() {
         return ke;
