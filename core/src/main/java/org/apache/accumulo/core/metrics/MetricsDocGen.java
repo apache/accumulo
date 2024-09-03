@@ -22,7 +22,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.TreeMap;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.TreeSet;
 
 /**
  * This class generates documentation to inform users of the available metrics in a presentable
@@ -30,7 +32,12 @@ import java.util.TreeMap;
  */
 public class MetricsDocGen {
   private final PrintStream doc;
-  private final TreeMap<String,Metric> sortedMetrics = new TreeMap<>();
+  private final TreeSet<Metric> sortedMetrics =
+      new TreeSet<>(Comparator.comparing(Metric::getName)) {
+        {
+          addAll(Arrays.asList(Metric.values()));
+        }
+      };
 
   void generate() {
     pageHeader();
@@ -58,7 +65,7 @@ public class MetricsDocGen {
   void generateCategorySection(Metric.MetricCategory category, String sectionTitle) {
     beginSection(sectionTitle);
 
-    for (Metric metric : sortedMetrics.values()) {
+    for (Metric metric : sortedMetrics) {
       if (metric.getCategory() == category) {
         generateMetricSubsection(metric);
       }
@@ -77,9 +84,6 @@ public class MetricsDocGen {
 
   private MetricsDocGen(PrintStream doc) {
     this.doc = doc;
-    for (Metric metric : Metric.values()) {
-      this.sortedMetrics.put(metric.getName(), metric);
-    }
   }
 
   /**
