@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
@@ -199,7 +200,7 @@ public class LargestFirstMemoryManager {
         try {
           // If the table was deleted, getMinCIdleThreshold will throw an exception
           if (idleTime > getMinCIdleThreshold(tablet)
-              || ts.getElapsedSinceFirstWrite().toMillis() > getMaxAge(tablet)) {
+              || ts.getElapsedSinceFirstWrite(TimeUnit.MILLISECONDS) > getMaxAge(tablet)) {
             largestIdleMemTablets.put(timeMemoryLoad, tabletInfo);
           }
         } catch (IllegalArgumentException e) {

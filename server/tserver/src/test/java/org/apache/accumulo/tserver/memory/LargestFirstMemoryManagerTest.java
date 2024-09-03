@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -272,7 +273,7 @@ public class LargestFirstMemoryManagerTest {
   }
 
   private TabletMemoryReport t(KeyExtent ke, long lastCommit, long memSize, long compactingSize) {
-    return new TabletMemoryReport(null, lastCommit, memSize, compactingSize, Duration.ZERO) {
+    return new TabletMemoryReport(null, lastCommit, memSize, compactingSize, null) {
       @Override
       public KeyExtent getExtent() {
         return ke;
@@ -282,11 +283,15 @@ public class LargestFirstMemoryManagerTest {
 
   private TabletMemoryReport t(KeyExtent ke, long lastCommit, long memSize, long compactingSize,
       Duration elapsedSinceFirstWrite) {
-    return new TabletMemoryReport(null, lastCommit, memSize, compactingSize,
-        elapsedSinceFirstWrite) {
+    return new TabletMemoryReport(null, lastCommit, memSize, compactingSize, null) {
       @Override
       public KeyExtent getExtent() {
         return ke;
+      }
+
+      @Override
+      public long getElapsedSinceFirstWrite(TimeUnit unit) {
+        return unit.convert(elapsedSinceFirstWrite);
       }
     };
   }

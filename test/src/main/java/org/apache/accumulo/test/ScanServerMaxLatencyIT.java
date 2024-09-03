@@ -30,10 +30,13 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -55,10 +58,11 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
 
   @Test
   public void testMaxLatency() throws Exception {
-    final String[] tables = this.getUniqueNames(3);
+    final String[] tables = this.getUniqueNames(4);
     final String table1 = tables[0];
     final String table2 = tables[1];
     final String table3 = tables[2];
+    final String table4 = tables[3];
 
     getCluster().getConfig().setNumScanServers(1);
     getCluster().getClusterControl().startAllServers(ServerType.SCAN_SERVER);
@@ -75,12 +79,21 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
       ntc = new NewTableConfiguration();
       ntc.setProperties(Map.of(Property.TABLE_MINC_COMPACT_IDLETIME.getKey(), "2s"));
       client.tableOperations().create(table3, ntc);
+      ntc = new NewTableConfiguration();
+      ntc.setProperties(Map.of(Property.TABLE_MINC_COMPACT_MAXAGE.getKey(), "3s"));
+      client.tableOperations().create(table4, ntc);
 
       Timer timer = Timer.startNew();
 
-      executor.submit(createWriterTask(client, table1, timer));
-      executor.submit(createWriterTask(client, table2, timer));
-      executor.submit(createWriterTask(client, table3, timer));
+      // Write to table4 once, this is different than the other tables that are continually being
+      // written to. table4 should minor compact 3 seconds after this write.
+      writeElapsed(new SecureRandom(), client, table4, timer);
+      boolean sawDataInTable4 = false;
+
+      List<Future<Void>> futures = new ArrayList<>();
+      futures.add(executor.submit(createWriterTask(client, table1, timer)));
+      futures.add(executor.submit(createWriterTask(client, table2, timer)));
+      futures.add(executor.submit(createWriterTask(client, table3, timer)));
 
       // wait for some data to be written
       Wait.waitFor(() -> readMaxElapsed(client, IMMEDIATE, table1) > 0
@@ -115,7 +128,15 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
         // The background thread is writing to this table every 100ms so it should not be considered
         // idle and therefor should not minor compact.
         assertEquals(-1, readMaxElapsed(client, EVENTUAL, table3));
+
+        if (!sawDataInTable4 && readMaxElapsed(client, EVENTUAL, table4) != -1) {
+          assertTrue(timer.elapsed(TimeUnit.MILLISECONDS) > 3000
+              && timer.elapsed(TimeUnit.MILLISECONDS) < 6000);
+          sawDataInTable4 = true;
+        }
       }
+
+      assertTrue(sawDataInTable4);
 
       var stats = deltas.stream().mapToLong(l -> l).summaryStatistics();
       log.info("Delta stats : {}", stats);
@@ -127,6 +148,9 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
       assertTrue(stats.getMax() < 8000);
       assertTrue(stats.getCount() > 9);
 
+      // The write task should still be running unless they experienced an exception.
+      assertTrue(futures.stream().noneMatch(Future::isDone));
+
       executor.shutdownNow();
       executor.awaitTermination(600, TimeUnit.SECONDS);
 
@@ -136,7 +160,6 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
       assertTrue(
           readMaxElapsed(client, IMMEDIATE, table1) >= readMaxElapsed(client, EVENTUAL, table1));
     }
-
   }
 
   private long readMaxElapsed(AccumuloClient client, ScannerBase.ConsistencyLevel consistency,
@@ -149,20 +172,31 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
     }
   }
 
+  private static void writeElapsed(SecureRandom random, AccumuloClient client, String table,
+      Timer timer) throws Exception {
+    try (var writer = client.createBatchWriter(table)) {
+      writeElapsed(random, timer, writer);
+    }
+  }
+
   private static Callable<Void> createWriterTask(AccumuloClient client, String table, Timer timer) {
     SecureRandom random = new SecureRandom();
-    Callable<Void> writerTask = () -> {
+    return () -> {
       try (var writer = client.createBatchWriter(table)) {
         while (true) {
-          var elapsed = timer.elapsed(TimeUnit.MILLISECONDS);
-          Mutation m = new Mutation(Long.toHexString(random.nextLong()));
-          m.put("elapsed", "nanos", "" + elapsed);
-          writer.addMutation(m);
+          writeElapsed(random, timer, writer);
           writer.flush();
           Thread.sleep(100);
         }
       }
     };
-    return writerTask;
+  }
+
+  private static void writeElapsed(SecureRandom random, Timer timer, BatchWriter writer)
+      throws MutationsRejectedException {
+    var elapsed = timer.elapsed(TimeUnit.MILLISECONDS);
+    Mutation m = new Mutation(Long.toHexString(random.nextLong()));
+    m.put("elapsed", "nanos", "" + elapsed);
+    writer.addMutation(m);
   }
 }

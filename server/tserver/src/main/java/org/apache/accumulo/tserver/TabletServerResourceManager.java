@@ -36,7 +36,6 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMM
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_TABLET_MIGRATION_POOL;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -590,7 +589,7 @@ public class TabletServerResourceManager {
     }
 
     public void updateMemoryUsageStats(Tablet tablet, long size, long lastCommitTime, long mincSize,
-        Duration elapsedSinceFirstWrite) {
+        Timer elapsedSinceFirstWrite) {
       memUsageReports.add(
           new TabletMemoryReport(tablet, lastCommitTime, size, mincSize, elapsedSinceFirstWrite));
     }
@@ -726,8 +725,6 @@ public class TabletServerResourceManager {
         report = true;
       }
 
-      long currentTime = System.currentTimeMillis();
-
       if (size == 0) {
         // when a new in memory map is created this method is called with a size of zero so use that
         // to reset the first write timer
@@ -736,7 +733,10 @@ public class TabletServerResourceManager {
         // this is the first time a non zero size was seen for this in memory map so consider this
         // the time of the first write
         firstReportedCommitTimer.compareAndSet(null, Timer.startNew());
+        report = true;
       }
+
+      long currentTime = System.currentTimeMillis();
 
       if ((delta > 32000 || delta < 0 || (currentTime - lastReportedCommitTime > 1000))
           && lastReportedSize.compareAndSet(lrs, totalSize)) {
@@ -747,11 +747,8 @@ public class TabletServerResourceManager {
       }
 
       if (report) {
-        // read volatile once into local variable since its read twice when computing the duration.
-        Timer localTimer = firstReportedCommitTimer.get();
-        Duration elapsedSinceFirstWrite = localTimer == null ? Duration.ZERO : localTimer.elapsed();
         memMgmt.updateMemoryUsageStats(tablet, size, lastReportedCommitTime, mincSize,
-            elapsedSinceFirstWrite);
+            firstReportedCommitTimer.get());
       }
     }
 
