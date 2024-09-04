@@ -908,7 +908,7 @@ public enum Property {
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
       "Maximum size of end row.", "1.7.0"),
   TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,
-      "When the time since the last write to a tablets in memory map exceeds this threshold. "
+      "When the time since the last write to a tablets in memory map exceeds this threshold, then"
           + " a minor compaction may be initiated. There is no guarantee an idle tablet will be compacted.",
       "1.3.5"),
   TABLE_MINC_COMPACT_MAXAGE("table.compaction.minor.age", "365000d", PropertyType.TIMEDURATION,
