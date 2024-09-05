@@ -31,8 +31,8 @@ import static org.apache.accumulo.core.metrics.Metric.TSERVER_MEM_ENTRIES;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_MINC_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_MINC_RUNNING;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_MINC_TOTAL;
-import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_ASSIGNMENTS_WARNING;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_FILES;
+import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_LONG_ASSIGNMENTS;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_ONLINE;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_OPENING;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_UNOPENED;
@@ -78,7 +78,7 @@ public class TabletServerMetrics implements MetricsProducer {
         .description("Number and duration of stuck major compactions").register(registry);
     CompactionWatcher.setTimer(timer);
     Gauge
-        .builder(TSERVER_TABLETS_ASSIGNMENTS_WARNING.getName(), util,
+        .builder(TSERVER_TABLETS_LONG_ASSIGNMENTS.getName(), util,
             TabletServerMetricsUtil::getLongTabletAssignments)
         .description("Number of tablet assignments that are taking a long time").register(registry);
 

@@ -22,7 +22,7 @@ import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
 import static org.apache.accumulo.core.metrics.Metric.FATE_TYPE_IN_PROGRESS;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_BALANCER_MIGRATIONS_NEEDED;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_BUSY_TIMEOUT_COUNT;
-import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_CONFLICT_TIMER;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_CONFLICT_COUNTER;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_TOTAL_TIMER;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_WRITEOUT_TIMER;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_TABLET_METADATA_CACHE;
@@ -120,7 +120,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             FATE_TYPE_IN_PROGRESS,
             MANAGER_BALANCER_MIGRATIONS_NEEDED,
             SCAN_BUSY_TIMEOUT_COUNT,
-            SCAN_RESERVATION_CONFLICT_TIMER,
+            SCAN_RESERVATION_CONFLICT_COUNTER,
             SCAN_RESERVATION_TOTAL_TIMER,
             SCAN_RESERVATION_WRITEOUT_TIMER,
             SCAN_TABLET_METADATA_CACHE,

@@ -19,7 +19,7 @@
 package org.apache.accumulo.tserver;
 
 import static org.apache.accumulo.core.metrics.Metric.SCAN_BUSY_TIMEOUT_COUNT;
-import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_CONFLICT_TIMER;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_CONFLICT_COUNTER;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_TOTAL_TIMER;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_WRITEOUT_TIMER;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_TABLET_METADATA_CACHE;
@@ -62,7 +62,7 @@ public class ScanServerMetrics implements MetricsProducer {
     FunctionCounter.builder(SCAN_BUSY_TIMEOUT_COUNT.getName(), busyTimeoutCount, AtomicLong::get)
         .description("The number of scans where a busy timeout happened").register(registry);
     FunctionCounter
-        .builder(SCAN_RESERVATION_CONFLICT_TIMER.getName(), reservationConflictCount,
+        .builder(SCAN_RESERVATION_CONFLICT_COUNTER.getName(), reservationConflictCount,
             AtomicLong::get)
         .description(
             "Counts instances where file reservation attempts for scans encountered conflicts")

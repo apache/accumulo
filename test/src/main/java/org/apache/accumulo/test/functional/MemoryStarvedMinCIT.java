@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.metrics.Metric.MINC_PAUSED;
+import static org.apache.accumulo.core.metrics.Metric.MAJC_PAUSED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -87,7 +87,7 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
           }
           if (line.startsWith("accumulo")) {
             Metric metric = TestStatsDSink.parseStatsDMetric(line);
-            if (MINC_PAUSED.getName().equals(metric.getName())) {
+            if (MAJC_PAUSED.getName().equals(metric.getName())) {
               double val = Double.parseDouble(metric.getValue());
               MINC_PAUSED_COUNT.add(val);
             }

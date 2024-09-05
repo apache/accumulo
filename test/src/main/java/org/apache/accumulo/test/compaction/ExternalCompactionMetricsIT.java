@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.apache.accumulo.core.metrics.Metric.TSERVER_MAJC_QUEUED;
+import static org.apache.accumulo.core.metrics.Metric.MAJC_QUEUED;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
@@ -127,7 +127,7 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
             if (shutdownTailer.get()) {
               break;
             }
-            if (s.startsWith(TSERVER_MAJC_QUEUED.getName())) {
+            if (s.startsWith(MAJC_QUEUED.getName())) {
               queueMetrics.add(TestStatsDSink.parseStatsDMetric(s));
             }
           }

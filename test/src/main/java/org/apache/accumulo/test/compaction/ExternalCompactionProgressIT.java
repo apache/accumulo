@@ -284,13 +284,15 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           }
           TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(s);
           final String metricName = metric.getName();
+          if (!metricName.startsWith("accumulo.compactor.entries")) {
+            continue;
+          }
           int value = Integer.parseInt(metric.getValue());
+          log.debug("Found metric: {} with value: {}", metricName, value);
           if (metricName.equals(COMPACTOR_ENTRIES_READ.getName())) {
-            totalEntriesRead.set(value);
-            log.debug("Found metric: {} with value: {}", metricName, value);
+            totalEntriesRead.addAndGet(value);
           } else if (metricName.equals(COMPACTOR_ENTRIES_WRITTEN.getName())) {
-            totalEntriesWritten.set(value);
-            log.debug("Found metric: {} with value: {}", metricName, value);
+            totalEntriesWritten.addAndGet(value);
           }
         }
         sleepUninterruptibly(CHECKER_THREAD_SLEEP_MS, TimeUnit.MILLISECONDS);
