@@ -21,9 +21,11 @@ package org.apache.accumulo.server.constraints;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
@@ -61,6 +63,7 @@ import org.slf4j.LoggerFactory;
 public class MetadataConstraints implements Constraint {
 
   private static final Logger log = LoggerFactory.getLogger(MetadataConstraints.class);
+  private static final byte[] BULK_COL_BYTES = BulkFileColumnFamily.STR_NAME.getBytes(UTF_8);
 
   private ZooCache zooCache = null;
   private String zooRoot = null;
@@ -126,15 +129,9 @@ public class MetadataConstraints implements Constraint {
    * Validates the data file metadata is valid for a StoredTabletFile.
    */
   private static void validateDataFileMetadata(ArrayList<Short> violations, String metadata,
-      BulkFileColData bfcValidationData, boolean addToDataFiles, boolean addToLoadedFiles) {
+      Consumer<StoredTabletFile> stfConsumer) {
     try {
-      StoredTabletFile stf = StoredTabletFile.of(metadata);
-      if (addToDataFiles) {
-        bfcValidationData.addDataFile(stf);
-      }
-      if (addToLoadedFiles) {
-        bfcValidationData.addLoadedFile(stf);
-      }
+      stfConsumer.accept(StoredTabletFile.of(metadata));
     } catch (RuntimeException e) {
       addViolation(violations, 9);
     }
@@ -154,8 +151,17 @@ public class MetadataConstraints implements Constraint {
     final ArrayList<Short> violations = new ArrayList<>();
     final Collection<ColumnUpdate> colUpdates = mutation.getUpdates();
     final byte[] row = mutation.getRow();
-    final List<ColumnUpdate> bulkFileColUpdates = new ArrayList<>();
-    final BulkFileColData bfcValidationData = new BulkFileColData();
+    final List<ColumnUpdate> bulkFileColUpdates;
+    final BulkFileColData bfcValidationData;
+
+    // avoids creating unnecessary objects
+    if (hasBulkCol(colUpdates)) {
+      bulkFileColUpdates = new ArrayList<>();
+      bfcValidationData = new BulkFileColData();
+    } else {
+      bulkFileColUpdates = null;
+      bfcValidationData = null;
+    }
 
     // always allow rows that fall within reserved areas
     if (row.length > 0 && row[0] == '~') {
@@ -191,7 +197,9 @@ public class MetadataConstraints implements Constraint {
           // the location information, but it writes everything. We allow it to re-write the bulk
           // information if it is setting the location.
           // See ACCUMULO-1230.
-          bfcValidationData.setIsLocationMutation(true);
+          if (bfcValidationData != null) {
+            bfcValidationData.setIsLocationMutation(true);
+          }
           break;
         case SuspendLocationColumn.STR_NAME:
           validateSuspendLocationFamily(violations, columnUpdate);
@@ -199,7 +207,9 @@ public class MetadataConstraints implements Constraint {
         case BulkFileColumnFamily.STR_NAME:
           // defer validating the bulk file column updates until the end (relies on checks done
           // on other column updates)
-          bulkFileColUpdates.add(columnUpdate);
+          if (bulkFileColUpdates != null) {
+            bulkFileColUpdates.add(columnUpdate);
+          }
           break;
         case DataFileColumnFamily.STR_NAME:
           validateDataFileFamily(violations, columnUpdate, bfcValidationData);
@@ -356,7 +366,9 @@ public class MetadataConstraints implements Constraint {
         // splits, which also write the time reference, are allowed to write this reference
         // even when the transaction is not running because the other half of the tablet is
         // holding a reference to the file.
-        bfcValidationData.setIsSplitMutation(true);
+        if (bfcValidationData != null) {
+          bfcValidationData.setIsSplitMutation(true);
+        }
         break;
     }
   }
@@ -378,8 +390,10 @@ public class MetadataConstraints implements Constraint {
 
   private void validateDataFileFamily(ArrayList<Short> violations, ColumnUpdate columnUpdate,
       BulkFileColData bfcValidationData) {
+    Consumer<StoredTabletFile> stfConsumer =
+        bfcValidationData == null ? stf -> {} : bfcValidationData::addDataFile;
     validateDataFileMetadata(violations, new String(columnUpdate.getColumnQualifier(), UTF_8),
-        bfcValidationData, true, false);
+        stfConsumer);
 
     try {
       DataFileValue dfv = new DataFileValue(columnUpdate.getValue());
@@ -393,17 +407,17 @@ public class MetadataConstraints implements Constraint {
   }
 
   private void validateScanFileFamily(ArrayList<Short> violations, ColumnUpdate columnUpdate) {
-    validateDataFileMetadata(violations, new String(columnUpdate.getColumnQualifier(), UTF_8), null,
-        false, false);
+    validateDataFileMetadata(violations, new String(columnUpdate.getColumnQualifier(), UTF_8),
+        stf -> {});
   }
 
   private void validateBulkFileFamily(ArrayList<Short> violations,
       Collection<ColumnUpdate> bulkFileColUpdates, BulkFileColData bfcValidationData) {
-    if (!bulkFileColUpdates.isEmpty()) {
+    if (bulkFileColUpdates != null && !bulkFileColUpdates.isEmpty()) {
       for (ColumnUpdate bulkFileColUpdate : bulkFileColUpdates) {
         validateDataFileMetadata(violations,
-            new String(bulkFileColUpdate.getColumnQualifier(), UTF_8), bfcValidationData, false,
-            true);
+            new String(bulkFileColUpdate.getColumnQualifier(), UTF_8),
+            bfcValidationData::addLoadedFile);
 
         bfcValidationData.addTidSeen(new String(bulkFileColUpdate.getValue(), UTF_8));
       }
@@ -415,6 +429,15 @@ public class MetadataConstraints implements Constraint {
         }
       }
     }
+  }
+
+  private boolean hasBulkCol(Collection<ColumnUpdate> colUpdates) {
+    for (ColumnUpdate colUpdate : colUpdates) {
+      if (Arrays.equals(colUpdate.getColumnFamily(), BULK_COL_BYTES)) {
+        return true;
+      }
+    }
+    return false;
   }
 
 }
