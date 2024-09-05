@@ -34,6 +34,9 @@ import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 /**
  * The LargestFirstMemoryManager attempts to keep memory between 80% and 90% full. It adapts over
  * time the point at which it should start a compaction based on how full memory gets between
@@ -57,7 +60,8 @@ public class LargestFirstMemoryManager {
   private double compactionThreshold;
   private long maxObserved;
   private final HashMap<TableId,Long> mincIdleThresholds = new HashMap<>();
-  private final HashMap<TableId,Long> mincAgeThresholds = new HashMap<>();
+  private final Cache<TableId,Long> mincAgeThresholds =
+      Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).build();
   private ServerContext context = null;
 
   private static class TabletInfo {
@@ -149,8 +153,8 @@ public class LargestFirstMemoryManager {
 
   protected long getMaxAge(KeyExtent extent) {
     TableId tableId = extent.tableId();
-    return mincAgeThresholds.computeIfAbsent(tableId, tid -> context.getTableConfiguration(tid)
-        .getTimeInMillis(Property.TABLE_MINC_COMPACT_MAXAGE));
+    return mincAgeThresholds.asMap().computeIfAbsent(tableId, tid -> context
+        .getTableConfiguration(tid).getTimeInMillis(Property.TABLE_MINC_COMPACT_MAXAGE));
   }
 
   protected boolean tableExists(TableId tableId) {
