@@ -244,15 +244,25 @@ public enum Metric {
   }
 
   public enum MetricCategory {
-    GENERAL_SERVER,
-    COMPACTOR,
-    FATE,
-    GARBAGE_COLLECTION,
-    TABLET_SERVER,
-    SCAN_SERVER,
-    THRIFT,
-    BLOCK_CACHE,
-    MANAGER
+    GENERAL_SERVER("General Server Metrics"),
+    COMPACTOR("Compactor Metrics"),
+    FATE("Fate Metrics"),
+    GARBAGE_COLLECTION("Garbage Collection Metrics"),
+    TABLET_SERVER("Tablet Server Metrics"),
+    SCAN_SERVER("Scan Server Metrics"),
+    THRIFT("Thrift Metrics"),
+    BLOCK_CACHE("Block Cache Metrics"),
+    MANAGER("Manager Metrics");
+
+    private final String sectionTitle;
+
+    MetricCategory(String sectionTitle) {
+      this.sectionTitle = sectionTitle;
+    }
+
+    public String getSectionTitle() {
+      return sectionTitle;
+    }
   }
 
   public static Metric fromName(String name) {

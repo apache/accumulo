@@ -38,11 +38,9 @@ public class MetricsDocGen {
   void generate() {
     pageHeader();
 
-    // Generate sections for each category of metrics
-    generateCategorySection(Metric.MetricCategory.GENERAL_SERVER, "General Server Metrics");
-    generateCategorySection(Metric.MetricCategory.COMPACTOR, "Compactor Metrics");
-    generateCategorySection(Metric.MetricCategory.SCAN_SERVER, "Scan Server Metrics");
-    generateCategorySection(Metric.MetricCategory.FATE, "Fate Metrics");
+    for (var category : Metric.MetricCategory.values()) {
+      generateCategorySection(category, category.getSectionTitle());
+    }
   }
 
   void pageHeader() {
