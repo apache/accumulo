@@ -90,6 +90,7 @@ public class Constants {
   public static final String ZDELEGATION_TOKEN_KEYS = "/delegation_token_keys";
 
   public static final String ZTABLE_LOCKS = "/table_locks";
+  public static final String ZMINI_LOCK = "/mini";
 
   public static final String BULK_PREFIX = "b-";
   public static final String BULK_RENAME_FILE = "renames.json";

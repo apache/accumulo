@@ -18,35 +18,56 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import java.util.Optional;
+import java.util.Set;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+
+import com.google.common.net.HostAndPort;
 
 public class ZookeeperLockChecker implements TabletServerLockChecker {
 
-  private final ZooCache zc;
+  private final ClientContext ctx;
   private final String root;
 
   ZookeeperLockChecker(ClientContext context) {
-    zc = context.getZooCache();
+    this.ctx = context;
     this.root = context.getZooKeeperRoot() + Constants.ZTSERVERS;
   }
 
   public boolean doesTabletServerLockExist(String server) {
-    var zLockPath = ServiceLock.path(root + "/" + server);
-    return ServiceLock.getSessionId(zc, zLockPath) != 0;
+    // ServiceLockPaths only returns items that have a lock
+    Set<ServiceLockPath> tservers = ServiceLockPaths.getTabletServer(ctx, Optional.empty(),
+        Optional.of(HostAndPort.fromString(server)));
+    if (tservers.isEmpty()) {
+      return false;
+    }
+    return true;
   }
 
   @Override
-  public boolean isLockHeld(String tserver, String session) {
-    var zLockPath = ServiceLock.path(root + "/" + tserver);
-    return ServiceLock.getSessionId(zc, zLockPath) == Long.parseLong(session, 16);
+  public boolean isLockHeld(String server, String session) {
+    // ServiceLockPaths only returns items that have a lock
+    Set<ServiceLockPath> tservers = ServiceLockPaths.getTabletServer(ctx, Optional.empty(),
+        Optional.of(HostAndPort.fromString(server)));
+    if (tservers.isEmpty()) {
+      return false;
+    }
+    for (ServiceLockPath slp : tservers) {
+      if (ServiceLock.getSessionId(ctx.getZooCache(), slp) == Long.parseLong(session, 16)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
   public void invalidateCache(String tserver) {
-    zc.clear(root + "/" + tserver);
+    ctx.getZooCache().clear(root + "/" + tserver);
   }
 
 }

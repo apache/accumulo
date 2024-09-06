@@ -65,6 +65,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -532,8 +533,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       binnedRanges.keySet().forEach((location) -> {
         HostAndPort address = HostAndPort.fromString(location);
         String addressWithSession = address.toString();
-        var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
-            + Constants.ZTSERVERS + "/" + address);
+        var zLockPath = ServiceLockPaths.createTabletServerPath(getCluster().getServerContext(),
+            Constants.DEFAULT_RESOURCE_GROUP_NAME, address);
         long sessionId =
             ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
         if (sessionId != 0) {
@@ -582,8 +583,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       locs.groupByTablet().keySet().stream().map(locs::getTabletLocation).forEach(location -> {
         HostAndPort address = HostAndPort.fromString(location);
         String addressWithSession = address.toString();
-        var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
-            + Constants.ZTSERVERS + "/" + address);
+        var zLockPath = ServiceLockPaths.createTabletServerPath(getCluster().getServerContext(),
+            Constants.DEFAULT_RESOURCE_GROUP_NAME, address);
         long sessionId =
             ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
         if (sessionId != 0) {

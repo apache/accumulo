@@ -75,6 +75,8 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -119,7 +121,6 @@ import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
-import org.apache.zookeeper.KeeperException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -331,21 +332,15 @@ public class ScanServer extends AbstractServer
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
     try {
 
-      var zLockPath = ServiceLock.path(
-          getContext().getZooKeeperRoot() + Constants.ZSSERVERS + "/" + getClientAddressString());
-
-      try {
-        // Old zk nodes can be cleaned up by ZooZap
-        zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
-      } catch (KeeperException e) {
-        if (e.code() == KeeperException.Code.NOAUTH) {
-          LOG.error("Failed to write to ZooKeeper. Ensure that"
-              + " accumulo.properties, specifically instance.secret, is consistent.");
-        }
-        throw e;
-      }
-
+      final ServiceLockPath zLockPath =
+          ServiceLockPaths.createScanServerPath(context, getResourceGroup(), clientAddress);
       serverLockUUID = UUID.randomUUID();
+      // The ServiceLockPath contains a resource group in the path which is not created
+      // at initialization time. If it does not exist, then create it.
+      String sserverGroupPath = zLockPath.toString().substring(0,
+          zLockPath.toString().lastIndexOf("/" + zLockPath.getServer()));
+      LOG.debug("Creating tserver resource group path in zookeeper: {}", sserverGroupPath);
+      zoo.mkdirs(sserverGroupPath);
       scanServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, serverLockUUID);
 
       LockWatcher lw = new LockWatcher() {

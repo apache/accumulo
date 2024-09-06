@@ -31,10 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.DoubleAdder;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -50,9 +50,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -196,12 +197,12 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     // we only want to communicate with the TabletServer for this test
     final ClientContext context = (ClientContext) client;
     final long rpcTimeout = context.getClientTimeoutInMillis();
-    final String serverPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
     final ZooCache zc = context.getZooCache();
 
-    for (String server : zc.getChildren(serverPath)) {
-      var zLocPath = ServiceLock.path(serverPath + "/" + server);
-      Optional<ServiceLockData> data = zc.getLockData(zLocPath);
+    Set<ServiceLockPath> servers =
+        ServiceLockPaths.getTabletServer(context, Optional.empty(), Optional.empty());
+    for (ServiceLockPath server : servers) {
+      Optional<ServiceLockData> data = zc.getLockData(server);
       if (data != null && data.isPresent()) {
         HostAndPort tserverClientAddress = data.orElseThrow().getAddress(ThriftService.CLIENT);
         if (tserverClientAddress != null) {

@@ -33,6 +33,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UuidUtil;
 import org.apache.zookeeper.CreateMode;
@@ -50,7 +51,7 @@ import org.slf4j.LoggerFactory;
 public class ServiceLock implements Watcher {
   private static final Logger LOG = LoggerFactory.getLogger(ServiceLock.class);
 
-  private static final String ZLOCK_PREFIX = "zlock#";
+  public static final String ZLOCK_PREFIX = "zlock#";
 
   private static class Prefix {
     private final String prefix;
@@ -64,23 +65,6 @@ public class ServiceLock implements Watcher {
       return this.prefix;
     }
 
-  }
-
-  public static class ServiceLockPath {
-    private final String path;
-
-    private ServiceLockPath(String path) {
-      this.path = requireNonNull(path);
-    }
-
-    @Override
-    public String toString() {
-      return this.path;
-    }
-  }
-
-  public static ServiceLockPath path(String path) {
-    return new ServiceLockPath(path);
   }
 
   public enum LockLossReason {
@@ -653,7 +637,7 @@ public class ServiceLock implements Watcher {
 
   public static boolean isLockHeld(ZooCache zc, LockID lid) {
 
-    var zLockPath = path(lid.path);
+    var zLockPath = ServiceLockPaths.parse(lid.path);
     List<String> children = validateAndSort(zLockPath, zc.getChildren(zLockPath.toString()));
 
     if (children.isEmpty()) {

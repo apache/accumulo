@@ -21,12 +21,12 @@ package org.apache.accumulo.test.functional;
 import java.time.Duration;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
@@ -49,7 +49,7 @@ public class BackupManagerIT extends ConfigurableMacBase {
       String root = "/accumulo/" + client.instanceOperations().getInstanceId();
 
       // wait for 2 lock entries
-      var path = ServiceLock.path(root + Constants.ZMANAGER_LOCK);
+      var path = ServiceLockPaths.createManagerPath(getServerContext());
       Wait.waitFor(
           () -> ServiceLock.validateAndSort(path, writer.getChildren(path.toString())).size() == 2);
 
@@ -58,7 +58,7 @@ public class BackupManagerIT extends ConfigurableMacBase {
       // generate a false zookeeper event
       List<String> children =
           ServiceLock.validateAndSort(path, writer.getChildren(path.toString()));
-      String lockPath = root + Constants.ZMANAGER_LOCK + "/" + children.get(0);
+      String lockPath = path.toString() + "/" + children.get(0);
       byte[] data = writer.getData(lockPath);
       writer.getZooKeeper().setData(lockPath, data, -1);
       // let it propagate

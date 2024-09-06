@@ -83,6 +83,8 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.Compacting;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
@@ -488,19 +490,15 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private void announceExistence() {
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
     try {
-      var zLockPath = ServiceLock.path(
-          getContext().getZooKeeperRoot() + Constants.ZTSERVERS + "/" + getClientAddressString());
 
-      try {
-        zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
-      } catch (KeeperException e) {
-        if (e.code() == KeeperException.Code.NOAUTH) {
-          log.error("Failed to write to ZooKeeper. Ensure that"
-              + " accumulo.properties, specifically instance.secret, is consistent.");
-        }
-        throw e;
-      }
-
+      final ServiceLockPath zLockPath =
+          ServiceLockPaths.createTabletServerPath(context, getResourceGroup(), clientAddress);
+      // The ServiceLockPath contains a resource group in the path which is not created
+      // at initialization time. If it does not exist, then create it.
+      String tserverGroupPath = zLockPath.toString().substring(0,
+          zLockPath.toString().lastIndexOf("/" + zLockPath.getServer()));
+      log.debug("Creating tserver resource group path in zookeeper: {}", tserverGroupPath);
+      zoo.mkdirs(tserverGroupPath);
       UUID tabletServerUUID = UUID.randomUUID();
       tabletServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, tabletServerUUID);
 

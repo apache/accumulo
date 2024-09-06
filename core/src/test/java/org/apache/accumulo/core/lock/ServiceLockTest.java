@@ -26,9 +26,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.junit.jupiter.api.Test;
 
 public class ServiceLockTest {
+
+  private final ServiceLockPath path =
+      ServiceLockPaths.parse("/fake/root" + Constants.ZMANAGER_LOCK);
 
   @Test
   public void testSortAndFindLowestPrevPrefix() {
@@ -44,7 +49,7 @@ public class ServiceLockTest {
     children.add("zlock#987654321");
     children.add("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001");
 
-    final List<String> validChildren = ServiceLock.validateAndSort(ServiceLock.path(""), children);
+    final List<String> validChildren = ServiceLock.validateAndSort(path, children);
 
     assertEquals(8, validChildren.size());
     assertEquals("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001", validChildren.get(0));
@@ -86,7 +91,7 @@ public class ServiceLockTest {
 
     // pass as UUID, but fail on string compare.
     assertEquals("00000001-0001-0001-0001-000000000001", UUID.fromString(uuid).toString());
-    final List<String> validChildren = ServiceLock.validateAndSort(ServiceLock.path(""), children);
+    final List<String> validChildren = ServiceLock.validateAndSort(path, children);
     assertEquals(0, validChildren.size());
   }
 
@@ -97,7 +102,7 @@ public class ServiceLockTest {
     String seq = "1234567891";
     children.add("zlock#" + uuid + "#" + seq);
 
-    final List<String> validChildren = ServiceLock.validateAndSort(ServiceLock.path(""), children);
+    final List<String> validChildren = ServiceLock.validateAndSort(path, children);
     assertEquals(1, validChildren.size());
     String candidate = validChildren.get(0);
     assertTrue(candidate.contains(uuid));

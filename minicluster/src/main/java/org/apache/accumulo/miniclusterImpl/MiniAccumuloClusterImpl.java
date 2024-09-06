@@ -44,6 +44,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -85,9 +86,10 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -525,8 +527,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
       ZooReaderWriter zrw = getServerContext().getZooReaderWriter();
 
-      String rootPath = ZooUtil.getRoot(instanceIdFromFile);
-
       String instanceName = null;
       try {
         for (String name : zrw.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
@@ -545,7 +545,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
 
       config.setInstanceName(instanceName);
-      if (!AccumuloStatus.isAccumuloOffline(zrw, rootPath)) {
+      if (!AccumuloStatus.isAccumuloOffline(getServerContext())) {
         throw new IllegalStateException(
             "The Accumulo instance being used is already running. Aborting.");
       }
@@ -716,7 +716,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (miniLock == null) {
       String zooKeeperRoot = ZooUtil.getRoot(iid);
       UUID miniUUID = UUID.randomUUID();
-      String miniZDirPath = zooKeeperRoot + "/mini";
+      String miniZDirPath = zooKeeperRoot + Constants.ZMINI_LOCK;
       String miniZInstancePath = miniZDirPath + "/" + miniUUID.toString();
       try {
         if (zk.exists(miniZDirPath, null) == null) {
@@ -730,7 +730,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
-      ServiceLockPath path = ServiceLock.path(miniZInstancePath);
+      ServiceLockPath path = ServiceLockPaths.createMiniPath(getServerContext());
       ServiceLockData sld = new ServiceLockData(miniUUID, "localhost", ThriftService.NONE,
           Constants.DEFAULT_RESOURCE_GROUP_NAME);
       miniLock = new ServiceLock(zk, path, miniUUID);
@@ -857,58 +857,41 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
     }
 
-    final String rootPath = ZooUtil.getRoot(instanceId);
     int tsActualCount = 0;
-    try {
-      while (tsActualCount < ssExpectedCount) {
-        tsActualCount = 0;
-        for (String child : zk.getChildren(rootPath + Constants.ZTSERVERS, null)) {
-          if (zk.getChildren(rootPath + Constants.ZTSERVERS + "/" + child, null).isEmpty()) {
-            log.info("TServer " + tsActualCount + " not yet present in ZooKeeper");
-          } else {
-            tsActualCount++;
-            log.info("TServer " + tsActualCount + " present in ZooKeeper");
-          }
-        }
-        Thread.sleep(500);
-      }
-    } catch (KeeperException e) {
-      throw new IllegalStateException("Unable to read TServer information from zookeeper.", e);
+    while (tsActualCount < tsExpectedCount) {
+      Set<ServiceLockPath> tservers =
+          ServiceLockPaths.getTabletServer(getServerContext(), Optional.empty(), Optional.empty());
+      tsActualCount = tservers.size();
+      log.info(tsActualCount + " of " + tsExpectedCount + " tablet servers present in ZooKeeper");
+      Thread.sleep(500);
+    }
+
+    int ssActualCount = 0;
+    while (ssActualCount < ssExpectedCount) {
+      Set<ServiceLockPath> tservers =
+          ServiceLockPaths.getScanServer(getServerContext(), Optional.empty(), Optional.empty());
+      ssActualCount = tservers.size();
+      log.info(ssActualCount + " of " + ssExpectedCount + " scan servers present in ZooKeeper");
+      Thread.sleep(500);
     }
 
     int ecActualCount = 0;
-    try {
-      while (ecActualCount < ecExpectedCount) {
-        ecActualCount = 0;
-        for (String queue : zk.getChildren(rootPath + Constants.ZCOMPACTORS, null)) {
-          var qc = zk.getChildren(rootPath + Constants.ZCOMPACTORS + "/" + queue, null);
-          if (qc != null) {
-            ecActualCount += qc.size();
-          }
-        }
-        log.info("Compactor " + ecActualCount + " of " + ecExpectedCount + " present in ZooKeeper");
-        Thread.sleep(500);
-      }
-    } catch (KeeperException e) {
-      throw new IllegalStateException("Unable to read Compactor information from zookeeper.", e);
+    while (ecActualCount < ecExpectedCount) {
+      Set<ServiceLockPath> compactors =
+          ServiceLockPaths.getCompactor(getServerContext(), Optional.empty(), Optional.empty());
+      ecActualCount = compactors.size();
+      log.info(ecActualCount + " of " + ecExpectedCount + " compactors present in ZooKeeper");
+      Thread.sleep(500);
     }
 
-    try {
-      while (zk.getChildren(rootPath + Constants.ZMANAGER_LOCK, null).isEmpty()) {
-        log.info("Manager not yet present in ZooKeeper");
-        Thread.sleep(500);
-      }
-    } catch (KeeperException e) {
-      throw new IllegalStateException("Unable to read Manager information from zookeeper.", e);
+    while (ServiceLockPaths.getManager(getServerContext()) == null) {
+      log.info("Manager not yet present in ZooKeeper");
+      Thread.sleep(500);
     }
 
-    try {
-      while (zk.getChildren(rootPath + Constants.ZGC_LOCK, null).isEmpty()) {
-        log.info("GC not yet present in ZooKeeper");
-        Thread.sleep(500);
-      }
-    } catch (KeeperException e) {
-      throw new IllegalStateException("Unable to read GC information from zookeeper.", e);
+    while (ServiceLockPaths.getGarbageCollector(getServerContext()) == null) {
+      log.info("GC not yet present in ZooKeeper");
+      Thread.sleep(500);
     }
 
   }

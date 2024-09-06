@@ -36,7 +36,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -51,6 +50,8 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -105,13 +106,10 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
     Map<String,String> tservers = new HashMap<>();
     ZooCache zk = cluster.getServerContext().getZooCache();
-    String zpath = cluster.getServerContext().getZooKeeperRoot() + Constants.ZTSERVERS;
-
-    List<String> children = zk.getChildren(zpath);
-    for (String child : children) {
-      final var zLockPath = ServiceLock.path(zpath + "/" + child);
+    for (ServiceLockPath tserver : ServiceLockPaths.getTabletServer(getCluster().getServerContext(),
+        Optional.empty(), Optional.empty())) {
       ZcStat stat = new ZcStat();
-      Optional<ServiceLockData> sld = ServiceLock.getLockData(zk, zLockPath, stat);
+      Optional<ServiceLockData> sld = ServiceLock.getLockData(zk, tserver, stat);
       try {
         HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
         String resourceGroup = sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);

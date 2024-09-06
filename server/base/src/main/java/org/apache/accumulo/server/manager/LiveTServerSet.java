@@ -39,6 +39,8 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -202,7 +204,7 @@ public class LiveTServerSet implements Watcher {
   private LiveTServersSnapshot tServersSnapshot = null;
 
   // The set of entries in zookeeper without locks, and the first time each was noticed
-  private final Map<String,Long> locklessServers = new HashMap<>();
+  private final Map<ServiceLockPath,Long> locklessServers = new HashMap<>();
 
   public LiveTServerSet(ServerContext context, Listener cback) {
     this.cback = cback;
@@ -228,15 +230,13 @@ public class LiveTServerSet implements Watcher {
       final Set<TServerInstance> updates = new HashSet<>();
       final Set<TServerInstance> doomed = new HashSet<>();
 
-      final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+      Set<ServiceLockPath> tservers =
+          ServiceLockPaths.getTabletServer(context, Optional.empty(), Optional.empty());
 
-      HashSet<String> all = new HashSet<>(current.keySet());
-      all.addAll(getZooCache().getChildren(path));
+      locklessServers.keySet().retainAll(tservers);
 
-      locklessServers.keySet().retainAll(all);
-
-      for (String zPath : all) {
-        checkServer(updates, doomed, path, zPath);
+      for (ServiceLockPath tserverPath : tservers) {
+        checkServer(updates, doomed, tserverPath);
       }
 
       // log.debug("Current: " + current.keySet());
@@ -257,33 +257,32 @@ public class LiveTServerSet implements Watcher {
   }
 
   private synchronized void checkServer(final Set<TServerInstance> updates,
-      final Set<TServerInstance> doomed, final String path, final String zPath)
+      final Set<TServerInstance> doomed, final ServiceLockPath tserverPath)
       throws InterruptedException, KeeperException {
 
     // invalidate the snapshot forcing it to be recomputed the next time its requested
     tServersSnapshot = null;
 
-    TServerInfo info = current.get(zPath);
+    final TServerInfo info = current.get(tserverPath.getServer());
 
-    final var zLockPath = ServiceLock.path(path + "/" + zPath);
     ZcStat stat = new ZcStat();
-    Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
+    Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), tserverPath, stat);
 
     if (sld.isEmpty()) {
       if (info != null) {
         doomed.add(info.instance);
-        current.remove(zPath);
+        current.remove(tserverPath.getServer());
       }
 
-      Long firstSeen = locklessServers.get(zPath);
+      Long firstSeen = locklessServers.get(tserverPath);
       if (firstSeen == null) {
-        locklessServers.put(zPath, System.currentTimeMillis());
+        locklessServers.put(tserverPath, System.currentTimeMillis());
       } else if (System.currentTimeMillis() - firstSeen > MINUTES.toMillis(10)) {
-        deleteServerNode(path + "/" + zPath);
-        locklessServers.remove(zPath);
+        deleteServerNode(tserverPath.toString());
+        locklessServers.remove(tserverPath);
       }
     } else {
-      locklessServers.remove(zPath);
+      locklessServers.remove(tserverPath);
       HostAndPort address = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
       String resourceGroup = sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
       TServerInstance instance = new TServerInstance(address, stat.getEphemeralOwner());
@@ -292,13 +291,13 @@ public class LiveTServerSet implements Watcher {
         updates.add(instance);
         TServerInfo tServerInfo =
             new TServerInfo(instance, new TServerConnection(address), resourceGroup);
-        current.put(zPath, tServerInfo);
+        current.put(tserverPath.getServer(), tServerInfo);
       } else if (!info.instance.equals(instance)) {
         doomed.add(info.instance);
         updates.add(instance);
         TServerInfo tServerInfo =
             new TServerInfo(instance, new TServerConnection(address), resourceGroup);
-        current.put(zPath, tServerInfo);
+        current.put(tserverPath.getServer(), tServerInfo);
       }
     }
   }
@@ -314,24 +313,16 @@ public class LiveTServerSet implements Watcher {
       if (event.getPath().endsWith(Constants.ZTSERVERS)) {
         scanServers();
       } else if (event.getPath().contains(Constants.ZTSERVERS)) {
-        int pos = event.getPath().lastIndexOf('/');
-
-        // do only if ZTSERVER is parent
-        if (pos >= 0 && event.getPath().substring(0, pos).endsWith(Constants.ZTSERVERS)) {
-
-          String server = event.getPath().substring(pos + 1);
-
-          final Set<TServerInstance> updates = new HashSet<>();
-          final Set<TServerInstance> doomed = new HashSet<>();
-
-          final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-
-          try {
-            checkServer(updates, doomed, path, server);
+        try {
+          final ServiceLockPath slp = ServiceLockPaths.parse(event.getPath());
+          if (slp.getServer().equals(Constants.ZTSERVERS)) {
+            final Set<TServerInstance> updates = new HashSet<>();
+            final Set<TServerInstance> doomed = new HashSet<>();
+            checkServer(updates, doomed, slp);
             this.cback.update(this, doomed, updates);
-          } catch (Exception ex) {
-            log.error("Exception", ex);
           }
+        } catch (Exception ex) {
+          log.error("Exception", ex);
         }
       }
     }
@@ -346,6 +337,17 @@ public class LiveTServerSet implements Watcher {
       return null;
     }
     return tServerInfo.connection;
+  }
+
+  public synchronized String getResourceGroup(TServerInstance server) {
+    if (server == null) {
+      return null;
+    }
+    TServerInfo tServerInfo = getSnapshot().tserversInfo.get(server);
+    if (tServerInfo == null) {
+      return null;
+    }
+    return tServerInfo.resourceGroup;
   }
 
   public static class LiveTServersSnapshot {

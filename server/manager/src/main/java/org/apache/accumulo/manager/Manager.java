@@ -83,11 +83,12 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
@@ -640,26 +641,25 @@ public class Manager extends AbstractServer
     public void run() {
 
       final ZooReaderWriter zrw = getContext().getZooReaderWriter();
-      final String sserverZNodePath = getContext().getZooKeeperRoot() + Constants.ZSSERVERS;
 
       while (stillManager()) {
         try {
-          for (String sserverClientAddress : zrw.getChildren(sserverZNodePath)) {
+          Set<ServiceLockPath> scanServerPaths =
+              ServiceLockPaths.getScanServer(getContext(), Optional.empty(), Optional.empty());
+          for (ServiceLockPath path : scanServerPaths) {
 
-            final String sServerZPath = sserverZNodePath + "/" + sserverClientAddress;
-            final var zLockPath = ServiceLock.path(sServerZPath);
             ZcStat stat = new ZcStat();
             Optional<ServiceLockData> lockData =
-                ServiceLock.getLockData(getContext().getZooCache(), zLockPath, stat);
+                ServiceLock.getLockData(getContext().getZooCache(), path, stat);
 
             if (lockData.isEmpty()) {
               try {
-                log.debug("Deleting empty ScanServer ZK node {}", sServerZPath);
-                zrw.delete(sServerZPath);
+                log.debug("Deleting empty ScanServer ZK node {}", path);
+                zrw.delete(path.toString());
               } catch (KeeperException.NotEmptyException e) {
                 log.debug(
                     "Failed to delete ScanServer ZK node {} its not empty, likely an expected race condition.",
-                    sServerZPath);
+                    path);
               }
             }
           }
@@ -1132,7 +1132,7 @@ public class Manager extends AbstractServer
     // block until we can obtain the ZK lock for the manager
     ServiceLockData sld;
     try {
-      sld = getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
+      sld = getManagerLock(ServiceLockPaths.createManagerPath(context));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }

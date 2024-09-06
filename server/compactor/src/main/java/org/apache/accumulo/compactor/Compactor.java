@@ -76,6 +76,8 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -258,16 +260,15 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected void announceExistence(HostAndPort clientAddress)
       throws KeeperException, InterruptedException {
 
-    String hostPort = ExternalCompactionUtil.getHostPortString(clientAddress);
-
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
-    String compactorQueuePath =
+    String compactorGroupPath =
         getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + this.getResourceGroup();
-    String zPath = compactorQueuePath + "/" + hostPort;
+    final ServiceLockPath path =
+        ServiceLockPaths.createCompactorPath(getContext(), getResourceGroup(), clientAddress);
 
     try {
-      zoo.mkdirs(compactorQueuePath);
-      zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
+      zoo.mkdirs(compactorGroupPath);
+      zoo.putPersistentData(path.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
     } catch (KeeperException e) {
       if (e.code() == KeeperException.Code.NOAUTH) {
         LOG.error("Failed to write to ZooKeeper. Ensure that"
@@ -276,8 +277,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       throw e;
     }
 
-    compactorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
-        ServiceLock.path(zPath), compactorId);
+    compactorLock =
+        new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, compactorId);
     LockWatcher lw = new LockWatcher() {
       @Override
       public void lostLock(final LockLossReason reason) {
@@ -295,13 +296,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     try {
       for (int i = 0; i < 25; i++) {
-        zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(path.toString(), new byte[0], NodeExistsPolicy.SKIP);
 
         ServiceDescriptors descriptors = new ServiceDescriptors();
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.COMPACTOR}) {
-          descriptors.addService(
-              new ServiceDescriptor(compactorId, svc, hostPort, this.getResourceGroup()));
+          descriptors.addService(new ServiceDescriptor(compactorId, svc,
+              ExternalCompactionUtil.getHostPortString(clientAddress), this.getResourceGroup()));
         }
 
         if (compactorLock.tryLock(lw, new ServiceLockData(descriptors))) {

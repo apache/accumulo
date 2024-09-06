@@ -29,16 +29,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
@@ -73,26 +73,12 @@ public interface TServerClient<C extends TServiceClient> {
     }
 
     final long rpcTimeout = context.getClientTimeoutInMillis();
-    final String tserverZooPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-    final String sserverZooPath = context.getZooKeeperRoot() + Constants.ZSSERVERS;
-    final String compactorZooPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
     final ZooCache zc = context.getZooCache();
-
-    final List<String> serverPaths = new ArrayList<>();
-    zc.getChildren(tserverZooPath).forEach(tserverAddress -> {
-      serverPaths.add(tserverZooPath + "/" + tserverAddress);
-    });
-    if (type == ThriftClientTypes.CLIENT) {
-      zc.getChildren(sserverZooPath).forEach(sserverAddress -> {
-        serverPaths.add(sserverZooPath + "/" + sserverAddress);
-      });
-      zc.getChildren(compactorZooPath).forEach(compactorGroup -> {
-        zc.getChildren(compactorZooPath + "/" + compactorGroup).forEach(compactorAddress -> {
-          serverPaths.add(compactorZooPath + "/" + compactorGroup + "/" + compactorAddress);
-        });
-      });
-    }
-
+    final List<ServiceLockPath> serverPaths = new ArrayList<>();
+    serverPaths.addAll(ServiceLockPaths.getCompactor(context, Optional.empty(), Optional.empty()));
+    serverPaths.addAll(ServiceLockPaths.getScanServer(context, Optional.empty(), Optional.empty()));
+    serverPaths
+        .addAll(ServiceLockPaths.getTabletServer(context, Optional.empty(), Optional.empty()));
     if (serverPaths.isEmpty()) {
       if (warned.compareAndSet(false, true)) {
         LOG.warn(
@@ -103,9 +89,8 @@ public interface TServerClient<C extends TServiceClient> {
     }
     Collections.shuffle(serverPaths, RANDOM.get());
 
-    for (String serverPath : serverPaths) {
-      var zLocPath = ServiceLock.path(serverPath);
-      Optional<ServiceLockData> data = zc.getLockData(zLocPath);
+    for (ServiceLockPath path : serverPaths) {
+      Optional<ServiceLockData> data = zc.getLockData(path);
       if (data != null && data.isPresent()) {
         HostAndPort tserverClientAddress = data.orElseThrow().getAddress(service);
         if (tserverClientAddress != null) {
