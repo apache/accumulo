@@ -61,7 +61,7 @@ public class ByteArrayToBase64TypeAdapter
    * @return Gson instance
    */
   public static Gson createBase64Gson() {
-    return registerBase64TypeAdapter(new GsonBuilder()).create();
+    return registerBase64TypeAdapter(new GsonBuilder().disableJdkUnsafe()).create();
   }
 
   /**
