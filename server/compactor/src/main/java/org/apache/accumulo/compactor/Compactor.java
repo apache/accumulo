@@ -38,7 +38,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -261,11 +260,14 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       throws KeeperException, InterruptedException {
 
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
-    String compactorGroupPath =
-        getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + this.getResourceGroup();
+
     final ServiceLockPath path =
         ServiceLockPaths.createCompactorPath(getContext(), getResourceGroup(), clientAddress);
-
+    // The ServiceLockPath contains a resource group in the path which is not created
+    // at initialization time. If it does not exist, then create it.
+    final String compactorGroupPath =
+        path.toString().substring(0, path.toString().lastIndexOf("/" + path.getServer()));
+    LOG.debug("Creating compactor resource group path in zookeeper: {}", compactorGroupPath);
     try {
       zoo.mkdirs(compactorGroupPath);
       zoo.putPersistentData(path.toString(), new byte[] {}, NodeExistsPolicy.SKIP);

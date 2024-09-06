@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Optional;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -36,7 +36,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -86,12 +86,9 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
   public void testRefRemovalOnShutdown() throws Exception {
 
     ServerContext ctx = getCluster().getServerContext();
-    String zooRoot = ctx.getZooKeeperRoot();
-    ZooReaderWriter zrw = ctx.getZooReaderWriter();
-    String scanServerRoot = zooRoot + Constants.ZSSERVERS;
 
-    // Wait for the ScanServer to register in ZK
-    Wait.waitFor(() -> zrw.getChildren(scanServerRoot).size() == 1);
+    Wait.waitFor(
+        () -> !ServiceLockPaths.getScanServer(ctx, Optional.empty(), Optional.empty()).isEmpty());
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];

@@ -40,7 +40,6 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
@@ -54,6 +53,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
@@ -634,14 +634,12 @@ public class TabletMetadata {
   public static synchronized Set<TServerInstance> getLiveTServers(ClientContext context) {
     final Set<TServerInstance> liveServers = new HashSet<>();
 
-    final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+    for (ServiceLockPath slp : ServiceLockPaths.getTabletServer(context, Optional.empty(),
+        Optional.empty())) {
 
-    for (String group : context.getZooCache().getChildren(path)) {
-      for (String server : context.getZooCache().getChildren(path + "/" + group)) {
-        checkTabletServer(context, group, server).ifPresent(liveServers::add);
-      }
+      checkTabletServer(context, slp).ifPresent(liveServers::add);
     }
-    log.trace("Found {} live tservers at ZK path: {}", liveServers.size(), path);
+    log.trace("Found {} live tservers at ZK path: {}", liveServers.size());
 
     return liveServers;
   }
@@ -650,13 +648,11 @@ public class TabletMetadata {
    * Check for tserver ZooLock at the ZK location. Return Optional containing TServerInstance if a
    * valid Zoolock exists.
    */
-  private static Optional<TServerInstance> checkTabletServer(ClientContext context, String group,
-      String server) {
-    final var lockPath =
-        ServiceLockPaths.createTabletServerPath(context, group, HostAndPort.fromString(server));
+  private static Optional<TServerInstance> checkTabletServer(ClientContext context,
+      ServiceLockPath slp) {
     ZooCache.ZcStat stat = new ZooCache.ZcStat();
-    log.trace("Checking server at ZK path = " + lockPath);
-    return ServiceLock.getLockData(context.getZooCache(), lockPath, stat)
+    log.trace("Checking server at ZK path = " + slp.toString());
+    return ServiceLock.getLockData(context.getZooCache(), slp, stat)
         .map(sld -> sld.getAddress(ServiceLockData.ThriftService.TSERV))
         .map(address -> new TServerInstance(address, stat.getEphemeralOwner()));
   }

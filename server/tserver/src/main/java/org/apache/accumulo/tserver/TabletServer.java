@@ -498,7 +498,16 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       String tserverGroupPath = zLockPath.toString().substring(0,
           zLockPath.toString().lastIndexOf("/" + zLockPath.getServer()));
       log.debug("Creating tserver resource group path in zookeeper: {}", tserverGroupPath);
-      zoo.mkdirs(tserverGroupPath);
+      try {
+        zoo.mkdirs(tserverGroupPath);
+        zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
+      } catch (KeeperException e) {
+        if (e.code() == KeeperException.Code.NOAUTH) {
+          log.error("Failed to write to ZooKeeper. Ensure that"
+              + " accumulo.properties, specifically instance.secret, is consistent.");
+        }
+        throw e;
+      }
       UUID tabletServerUUID = UUID.randomUUID();
       tabletServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, tabletServerUUID);
 

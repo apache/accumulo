@@ -28,9 +28,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Properties;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
@@ -40,7 +40,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -85,10 +85,6 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
   private void startScanServer(String cacheExpiration, String cacheRefresh)
       throws IOException, KeeperException, InterruptedException {
 
-    String zooRoot = getCluster().getServerContext().getZooKeeperRoot();
-    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
-    String scanServerRoot = zooRoot + Constants.ZSSERVERS;
-
     SharedMiniClusterBase.getCluster().getClusterControl().stop(ServerType.SCAN_SERVER);
 
     Map<String,String> overrides = new HashMap<>();
@@ -96,9 +92,10 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
     overrides.put(Property.SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT.getKey(), cacheRefresh);
     SharedMiniClusterBase.getCluster().getClusterControl().start(ServerType.SCAN_SERVER, overrides,
         1, null);
-    while (zrw.getChildren(scanServerRoot).size() == 0) {
-      Thread.sleep(500);
-    }
+
+    Wait.waitFor(() -> !ServiceLockPaths
+        .getScanServer(getCluster().getServerContext(), Optional.empty(), Optional.empty())
+        .isEmpty());
 
   }
 

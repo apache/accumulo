@@ -43,6 +43,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -106,8 +107,11 @@ public class ExternalCompactionUtil {
    * @return Optional HostAndPort of Coordinator node if found
    */
   public static Optional<HostAndPort> findCompactionCoordinator(ClientContext context) {
-    return ServiceLock.getLockData(context.getZooCache(),
-        ServiceLockPaths.createManagerPath(context), new ZcStat())
+    final ServiceLockPath slp = ServiceLockPaths.createManagerPath(context);
+    if (slp == null) {
+      return Optional.empty();
+    }
+    return ServiceLock.getLockData(context.getZooCache(), slp, new ZcStat())
         .map(sld -> sld.getAddress(ThriftService.COORDINATOR));
   }
 

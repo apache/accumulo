@@ -121,6 +121,7 @@ import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
+import org.apache.zookeeper.KeeperException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -339,8 +340,18 @@ public class ScanServer extends AbstractServer
       // at initialization time. If it does not exist, then create it.
       String sserverGroupPath = zLockPath.toString().substring(0,
           zLockPath.toString().lastIndexOf("/" + zLockPath.getServer()));
-      LOG.debug("Creating tserver resource group path in zookeeper: {}", sserverGroupPath);
-      zoo.mkdirs(sserverGroupPath);
+      LOG.debug("Creating sserver resource group path in zookeeper: {}", sserverGroupPath);
+      try {
+        zoo.mkdirs(sserverGroupPath);
+        // Old zk nodes can be cleaned up by ZooZap
+        zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
+      } catch (KeeperException e) {
+        if (e.code() == KeeperException.Code.NOAUTH) {
+          LOG.error("Failed to write to ZooKeeper. Ensure that"
+              + " accumulo.properties, specifically instance.secret, is consistent.");
+        }
+        throw e;
+      }
       scanServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, serverLockUUID);
 
       LockWatcher lw = new LockWatcher() {

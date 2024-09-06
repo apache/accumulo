@@ -89,7 +89,7 @@ public class LiveTServerSet implements Watcher {
     }
 
     private String lockString(ServiceLock mlock) {
-      return mlock.getLockID().serialize(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
+      return mlock.getLockID().serialize(ServiceLockPaths.createManagerPath(context).toString());
     }
 
     private void loadTablet(TabletManagementClientService.Client client, ServiceLock lock,
@@ -315,7 +315,7 @@ public class LiveTServerSet implements Watcher {
       } else if (event.getPath().contains(Constants.ZTSERVERS)) {
         try {
           final ServiceLockPath slp = ServiceLockPaths.parse(event.getPath());
-          if (slp.getServer().equals(Constants.ZTSERVERS)) {
+          if (slp.getType().equals(Constants.ZTSERVERS)) {
             final Set<TServerInstance> updates = new HashSet<>();
             final Set<TServerInstance> doomed = new HashSet<>();
             checkServer(updates, doomed, slp);
