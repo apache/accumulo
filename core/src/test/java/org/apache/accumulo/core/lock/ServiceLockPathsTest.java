@@ -82,12 +82,13 @@ public class ServiceLockPathsTest {
     assertEquals(ZMANAGER_LOCK, slp.getType());
     assertEquals(ROOT + ZMANAGER_LOCK, slp.toString());
 
-    assertThrows(NullPointerException.class, () -> ServiceLockPaths.createMiniPath(null));
-    slp = ServiceLockPaths.createMiniPath(ctx);
-    assertNull(slp.getServer());
+    assertThrows(NullPointerException.class, () -> ServiceLockPaths.createMiniPath(null, null));
+    String miniUUID = UUID.randomUUID().toString();
+    slp = ServiceLockPaths.createMiniPath(ctx, miniUUID);
+    assertEquals(miniUUID, slp.getServer());
     assertNull(slp.getResourceGroup());
     assertEquals(ZMINI_LOCK, slp.getType());
-    assertEquals(ROOT + ZMINI_LOCK, slp.toString());
+    assertEquals(ROOT + ZMINI_LOCK + "/" + miniUUID, slp.toString());
 
     assertThrows(NullPointerException.class, () -> ServiceLockPaths.createMonitorPath(null));
     slp = ServiceLockPaths.createMonitorPath(ctx);
@@ -871,20 +872,26 @@ public class ServiceLockPathsTest {
 
     EasyMock.replay(ctx);
 
-    assertThrows(NullPointerException.class, () -> ServiceLockPaths.createMiniPath(null));
+    assertThrows(NullPointerException.class, () -> ServiceLockPaths.createMiniPath(null, null));
 
     // Only mini lock creation is supported because the existing code
     // uses a ServiceLockPath with it.
-    ServiceLockPath slp = ServiceLockPaths.createMiniPath(ctx);
-    assertNull(slp.getServer());
+    String miniUUID = UUID.randomUUID().toString();
+    ServiceLockPath slp = ServiceLockPaths.createMiniPath(ctx, miniUUID);
+    assertEquals(miniUUID, slp.getServer());
     assertNull(slp.getResourceGroup());
     assertEquals(ZMINI_LOCK, slp.getType());
-    assertEquals(ROOT + ZMINI_LOCK, slp.toString());
+    assertEquals(ROOT + ZMINI_LOCK + "/" + miniUUID, slp.toString());
 
     // There is no get method
 
     // Parsing is not supported
     assertThrows(IllegalArgumentException.class, () -> ServiceLockPaths.parse(ROOT + ZMINI_LOCK));
+    slp = ServiceLockPaths.parse(ROOT + ZMINI_LOCK + "/" + miniUUID);
+    assertEquals(miniUUID, slp.getServer());
+    assertNull(slp.getResourceGroup());
+    assertEquals(ZMINI_LOCK, slp.getType());
+    assertEquals(ROOT + ZMINI_LOCK + "/" + miniUUID, slp.toString());
 
     EasyMock.verify(ctx);
 

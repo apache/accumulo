@@ -714,10 +714,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     // It's possible start was called twice...
     if (miniLock == null) {
-      String zooKeeperRoot = ZooUtil.getRoot(iid);
       UUID miniUUID = UUID.randomUUID();
-      String miniZDirPath = zooKeeperRoot + Constants.ZMINI_LOCK;
-      String miniZInstancePath = miniZDirPath + "/" + miniUUID.toString();
+      ServiceLockPath slp =
+          ServiceLockPaths.createMiniPath(getServerContext(), miniUUID.toString());
+      String miniZInstancePath = slp.toString();
+      String miniZDirPath =
+          miniZInstancePath.substring(0, miniZInstancePath.indexOf("/" + miniUUID.toString()));
       try {
         if (zk.exists(miniZDirPath, null) == null) {
           zk.create(miniZDirPath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
@@ -730,10 +732,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
-      ServiceLockPath path = ServiceLockPaths.createMiniPath(getServerContext());
       ServiceLockData sld = new ServiceLockData(miniUUID, "localhost", ThriftService.NONE,
           Constants.DEFAULT_RESOURCE_GROUP_NAME);
-      miniLock = new ServiceLock(zk, path, miniUUID);
+      miniLock = new ServiceLock(zk, slp, miniUUID);
       miniLock.lock(miniLockWatcher, sld);
 
       lockWatcherInvoked.await();

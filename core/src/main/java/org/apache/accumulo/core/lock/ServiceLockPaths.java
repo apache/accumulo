@@ -59,11 +59,9 @@ public class ServiceLockPaths {
     private ServiceLockPath(String root, String type) {
       Objects.requireNonNull(root);
       this.type = Objects.requireNonNull(type);
-      Preconditions.checkArgument(
-          this.type.equals(Constants.ZGC_LOCK) || this.type.equals(Constants.ZMANAGER_LOCK)
-              || this.type.equals(Constants.ZMONITOR_LOCK)
-              || this.type.equals(Constants.ZTABLE_LOCKS) || this.type.equals(Constants.ZMINI_LOCK),
-          "Unsupported type: " + type);
+      Preconditions.checkArgument(this.type.equals(Constants.ZGC_LOCK)
+          || this.type.equals(Constants.ZMANAGER_LOCK) || this.type.equals(Constants.ZMONITOR_LOCK)
+          || this.type.equals(Constants.ZTABLE_LOCKS), "Unsupported type: " + type);
       // These server types support only one active instance, so they use a lock at
       // a known path, not the server's address.
       this.resourceGroup = null;
@@ -77,7 +75,8 @@ public class ServiceLockPaths {
     private ServiceLockPath(String root, String type, String content) {
       Objects.requireNonNull(root);
       this.type = Objects.requireNonNull(type);
-      Preconditions.checkArgument(this.type.equals(Constants.ZTABLE_LOCKS),
+      Preconditions.checkArgument(
+          this.type.equals(Constants.ZTABLE_LOCKS) || this.type.equals(Constants.ZMINI_LOCK),
           "Unsupported type: " + type);
       this.resourceGroup = null;
       this.server = Objects.requireNonNull(content);
@@ -187,12 +186,15 @@ public class ServiceLockPaths {
       return new ServiceLockPath(path.substring(0, path.indexOf(Constants.ZMONITOR_LOCK)),
           Constants.ZMONITOR_LOCK);
     } else {
-      String[] pathParts = path.split("/");
+      String[] pathParts = path.replaceFirst("/", "").split("/");
       Preconditions.checkArgument(pathParts.length >= 4,
           "Unhandled zookeeper service path : " + path);
       String server = pathParts[pathParts.length - 1];
       String resourceGroup = pathParts[pathParts.length - 2];
-      if (path.contains(Constants.ZCOMPACTORS)) {
+      if (path.contains(Constants.ZMINI_LOCK)) {
+        return new ServiceLockPath(path.substring(0, path.indexOf(Constants.ZMINI_LOCK)),
+            Constants.ZMINI_LOCK, server);
+      } else if (path.contains(Constants.ZCOMPACTORS)) {
         return new ServiceLockPath(path.substring(0, path.indexOf(Constants.ZCOMPACTORS)),
             Constants.ZCOMPACTORS, resourceGroup, server);
       } else if (path.contains(Constants.ZSSERVERS)) {
@@ -221,9 +223,9 @@ public class ServiceLockPaths {
         Constants.ZMANAGER_LOCK);
   }
 
-  public static ServiceLockPath createMiniPath(ClientContext context) {
+  public static ServiceLockPath createMiniPath(ClientContext context, String miniUUID) {
     return new ServiceLockPath(Objects.requireNonNull(context).getZooKeeperRoot(),
-        Constants.ZMINI_LOCK);
+        Constants.ZMINI_LOCK, miniUUID);
   }
 
   public static ServiceLockPath createMonitorPath(ClientContext context) {

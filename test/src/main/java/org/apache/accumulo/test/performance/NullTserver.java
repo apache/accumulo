@@ -54,7 +54,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
@@ -350,20 +349,15 @@ public class NullTserver {
     try {
       ZooKeeper zk = context.getZooReaderWriter().getZooKeeper();
       UUID nullTServerUUID = UUID.randomUUID();
-      String miniZDirPath = context.getZooKeeperRoot() + Constants.ZMINI_LOCK;
-      String miniZInstancePath = miniZDirPath + "/" + nullTServerUUID.toString();
+      ServiceLockPath slp = ServiceLockPaths.createMiniPath(context, nullTServerUUID.toString());
       try {
-        context.getZooReaderWriter().putPersistentData(miniZDirPath, new byte[0],
-            ZooUtil.NodeExistsPolicy.SKIP);
-        context.getZooReaderWriter().putPersistentData(miniZInstancePath, new byte[0],
-            ZooUtil.NodeExistsPolicy.SKIP);
+        context.getZooReaderWriter().mkdirs(slp.toString());
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
-      ServiceLockPath path = ServiceLockPaths.createMiniPath(context);
       ServiceLockData sld = new ServiceLockData(nullTServerUUID, "localhost", ThriftService.TSERV,
           Constants.DEFAULT_RESOURCE_GROUP_NAME);
-      miniLock = new ServiceLock(zk, path, UUID.randomUUID());
+      miniLock = new ServiceLock(zk, slp, UUID.randomUUID());
       miniLock.lock(miniLockWatcher, sld);
       context.setServiceLock(miniLock);
       HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
