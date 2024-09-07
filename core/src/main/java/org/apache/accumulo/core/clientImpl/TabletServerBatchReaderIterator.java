@@ -504,7 +504,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private void doLookups(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
       final ResultReceiver receiver, List<Column> columns) {
-    long startTime = System.currentTimeMillis();
+    Timer startTime = Timer.startNew();
     int maxTabletsPerRequest = Integer.MAX_VALUE;
 
     long busyTimeout = 0;
@@ -606,7 +606,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private ScanServerData rebinToScanServers(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
-      long startTime) {
+      Timer startTime) {
     ScanServerSelector ecsm = context.getScanServerSelector();
 
     List<TabletIdImpl> tabletIds =
@@ -616,8 +616,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     // get a snapshot of this once,not each time the plugin request it
     var scanAttemptsSnapshot = scanAttempts.snapshot();
 
-    Duration timeoutLeft = Duration.ofMillis(retryTimeout)
-        .minus(Duration.ofMillis(System.currentTimeMillis() - startTime));
+    Duration timeoutLeft = Duration.ofMillis(retryTimeout - startTime.elapsed(MILLISECONDS));
 
     ScanServerSelector.SelectorParameters params = new ScanServerSelector.SelectorParameters() {
       @Override
