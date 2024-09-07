@@ -275,12 +275,12 @@ public class ThriftScanner {
         .incrementBy(100, MILLISECONDS).maxWait(1, SECONDS).backOffFactor(1.5)
         .logInterval(3, TimeUnit.MINUTES).createRetry();
 
-    long startTime = System.nanoTime();
+    Timer startTime = Timer.startNew();
     Optional<T> optional = condition.get();
     while (optional.isEmpty()) {
       log.trace("For tableId {} scan server selector is waiting for '{}'", tableId, description);
 
-      var elapsedTime = Duration.ofNanos(System.nanoTime() - startTime);
+      var elapsedTime = startTime.elapsed();
 
       if (elapsedTime.compareTo(timeoutLeft) > 0) {
         throw new TimedOutException("While waiting for '" + description
@@ -323,11 +323,11 @@ public class ThriftScanner {
     return (long) (Math.min(millis * 2, maxSleep) * (.9 + random.nextDouble() / 5));
   }
 
-  public static List<KeyValue> scan(ClientContext context, ScanState scanState, long timeOut)
+  public static List<KeyValue> scan(ClientContext context, ScanState scanState, Duration timeOut)
       throws ScanTimedOutException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     TabletLocation loc = null;
-    long startTime = System.currentTimeMillis();
+    Timer startTime = Timer.startNew();
     String lastError = null;
     String error = null;
     int tooManyFilesCount = 0;
@@ -343,14 +343,12 @@ public class ThriftScanner {
         if (Thread.currentThread().isInterrupted()) {
           throw new AccumuloException("Thread interrupted");
         }
-
-        if ((System.currentTimeMillis() - startTime) / 1000.0 > timeOut) {
+        if (startTime.elapsed(MILLISECONDS) > timeOut.toMillis()) {
           throw new ScanTimedOutException();
         }
 
         while (loc == null) {
-          long currentTime = System.currentTimeMillis();
-          if ((currentTime - startTime) / 1000.0 > timeOut) {
+          if (startTime.elapsed(MILLISECONDS) > timeOut.toMillis()) {
             throw new ScanTimedOutException();
           }
 
@@ -555,8 +553,9 @@ public class ThriftScanner {
   }
 
   private static List<KeyValue> scan(TabletLocation loc, ScanState scanState, ClientContext context,
-      long timeOut, long startTime) throws AccumuloSecurityException, NotServingTabletException,
-      TException, NoSuchScanIDException, TooManyFilesException, TSampleNotPresentException {
+      Duration timeOut, Timer startTime)
+      throws AccumuloSecurityException, NotServingTabletException, TException,
+      NoSuchScanIDException, TooManyFilesException, TSampleNotPresentException {
     if (scanState.finished) {
       return null;
     }
@@ -580,8 +579,7 @@ public class ThriftScanner {
         // obtain a snapshot once and only expose this snapshot to the plugin for consistency
         var attempts = scanState.scanAttempts.snapshot();
 
-        Duration timeoutLeft = Duration.ofSeconds(timeOut)
-            .minus(Duration.ofMillis(System.currentTimeMillis() - startTime));
+        Duration timeoutLeft = timeOut.minus(startTime.elapsed());
 
         var params = new ScanServerSelector.SelectorParameters() {
 
