@@ -638,7 +638,7 @@ public class TabletMetadata {
 
       checkTabletServer(context, slp).ifPresent(liveServers::add);
     }
-    log.trace("Found {} live tservers at ZK path: {}", liveServers.size());
+    log.trace("Found {} live tservers in ZooKeeper", liveServers.size());
 
     return liveServers;
   }
@@ -650,7 +650,7 @@ public class TabletMetadata {
   private static Optional<TServerInstance> checkTabletServer(ClientContext context,
       ServiceLockPath slp) {
     ZooCache.ZcStat stat = new ZooCache.ZcStat();
-    log.trace("Checking server at ZK path = " + slp.toString());
+    log.trace("Checking server at ZK path: {}", slp);
     return ServiceLock.getLockData(context.getZooCache(), slp, stat)
         .map(sld -> sld.getAddress(ServiceLockData.ThriftService.TSERV))
         .map(address -> new TServerInstance(address, stat.getEphemeralOwner()));

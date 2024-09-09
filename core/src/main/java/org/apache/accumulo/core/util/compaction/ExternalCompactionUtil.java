@@ -34,12 +34,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -52,8 +50,6 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.thrift.TException;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,37 +114,12 @@ public class ExternalCompactionUtil {
    * @return map of group names to compactor addresses
    */
   public static Map<String,Set<HostAndPort>> getCompactorAddrs(ClientContext context) {
-    try {
-      final Map<String,Set<HostAndPort>> groupsAndAddresses = new HashMap<>();
-      final String compactorGroupsPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
-      ZooReader zooReader = context.getZooReader();
-      List<String> groups = zooReader.getChildren(compactorGroupsPath);
-      for (String group : groups) {
-        try {
-          List<String> compactors = zooReader.getChildren(compactorGroupsPath + "/" + group);
-          for (String compactor : compactors) {
-            // compactor is the address, we are checking to see if there is a child node which
-            // represents the compactor's lock as a check that it's alive.
-            List<String> children =
-                zooReader.getChildren(compactorGroupsPath + "/" + group + "/" + compactor);
-            if (!children.isEmpty()) {
-              LOG.trace("Found live compactor {} ", compactor);
-              groupsAndAddresses.putIfAbsent(group, new HashSet<>());
-              groupsAndAddresses.get(group).add(HostAndPort.fromString(compactor));
-            }
-          }
-        } catch (NoNodeException e) {
-          LOG.trace("Ignoring node that went missing", e);
-        }
-      }
-
-      return groupsAndAddresses;
-    } catch (KeeperException e) {
-      throw new IllegalStateException(e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException(e);
-    }
+    final Map<String,Set<HostAndPort>> groupsAndAddresses = new HashMap<>();
+    context.getServerPaths().getCompactor(Optional.empty(), Optional.empty()).forEach(slp -> {
+      groupsAndAddresses.computeIfAbsent(slp.getResourceGroup(), (k) -> new HashSet<>())
+          .add(HostAndPort.fromString(slp.getServer()));
+    });
+    return groupsAndAddresses;
   }
 
   /**
@@ -285,28 +256,14 @@ public class ExternalCompactionUtil {
 
   public static int countCompactors(String groupName, ClientContext context) {
     var start = Timer.startNew();
-    String groupRoot = context.getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + groupName;
-    List<String> children = context.getZooCache().getChildren(groupRoot);
-    if (children == null) {
-      return 0;
-    }
-
-    int count = 0;
-
-    for (String child : children) {
-      List<String> children2 = context.getZooCache().getChildren(groupRoot + "/" + child);
-      if (children2 != null && !children2.isEmpty()) {
-        count++;
-      }
-    }
-
+    int count =
+        context.getServerPaths().getCompactor(Optional.of(groupName), Optional.empty()).size();
     long elapsed = start.elapsed(MILLISECONDS);
     if (elapsed > 100) {
       LOG.debug("Took {} ms to count {} compactors for {}", elapsed, count, groupName);
     } else {
       LOG.trace("Took {} ms to count {} compactors for {}", elapsed, count, groupName);
     }
-
     return count;
   }
 

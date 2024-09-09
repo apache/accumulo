@@ -441,28 +441,35 @@ public class LiveTServerSet implements Watcher {
     // invalidate the snapshot forcing it to be recomputed the next time its requested
     tServersSnapshot = null;
 
-    String zPath = null;
+    Optional<String> resourceGroup = Optional.empty();
+    Optional<HostAndPort> address = Optional.empty();
     for (Entry<String,TServerInfo> entry : current.entrySet()) {
       if (entry.getValue().instance.equals(server)) {
-        zPath = entry.getKey();
+        address = Optional.of(HostAndPort.fromString(entry.getKey()));
+        resourceGroup = Optional.of(entry.getValue().resourceGroup);
         break;
       }
     }
-    if (zPath == null) {
+    if (resourceGroup.isEmpty() || address.isEmpty()) {
       return;
     }
-    current.remove(zPath);
+    current.remove(address.orElseThrow().toString());
 
-    log.info("Removing zookeeper lock for {}", server);
-    String fullpath = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + zPath;
-    try {
-      context.getZooReaderWriter().recursiveDelete(fullpath, SKIP);
-    } catch (Exception e) {
-      String msg = "error removing tablet server lock";
-      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-      log.error("FATAL: {}", msg, e);
-      Halt.halt(msg, -1);
+    Set<ServiceLockPath> paths = context.getServerPaths().getTabletServer(resourceGroup, address);
+    if (paths.isEmpty() || paths.size() > 1) {
+      log.error("Zero or many zookeeper entries match input arguments.");
+    } else {
+      ServiceLockPath slp = paths.iterator().next();
+      log.info("Removing zookeeper lock for {}", slp);
+      try {
+        context.getZooReaderWriter().recursiveDelete(slp.toString(), SKIP);
+      } catch (Exception e) {
+        String msg = "error removing tablet server lock";
+        // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
+        log.error("FATAL: {}", msg, e);
+        Halt.halt(msg, -1);
+      }
+      getZooCache().clear(slp.toString());
     }
-    getZooCache().clear(fullpath);
   }
 }
