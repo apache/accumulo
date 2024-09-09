@@ -142,6 +142,7 @@ public class LargestFirstMemoryManager {
     maxObserved = 0;
   }
 
+  @SuppressWarnings("deprecation")
   protected long getMinCIdleThreshold(KeyExtent extent) {
     TableId tableId = extent.tableId();
     if (!mincIdleThresholds.containsKey(tableId)) {
