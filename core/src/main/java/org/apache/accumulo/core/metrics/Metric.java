@@ -110,7 +110,7 @@ public enum Metric {
       "Time to reserve a tablet's files for scan.", MetricCategory.SCAN_SERVER),
   SCAN_RESERVATION_WRITEOUT_TIMER("accumulo.scan.reservation.writeout.timer", MetricType.TIMER,
       "Time to write out a tablets file reservations for scan", MetricCategory.SCAN_SERVER),
-  SCAN_RESERVATION_CONFLICT_COUNTER("accumulo.scan.reservation.conflict.timer", MetricType.COUNTER,
+  SCAN_RESERVATION_CONFLICT_COUNTER("accumulo.scan.reservation.conflict.count", MetricType.COUNTER,
       "", MetricCategory.SCAN_SERVER),
   SCAN_BUSY_TIMEOUT_COUNT("accumulo.scan.busy.timeout.count", MetricType.COUNTER,
       "Count of the scans where a busy timeout happened.", MetricCategory.SCAN_SERVER),
