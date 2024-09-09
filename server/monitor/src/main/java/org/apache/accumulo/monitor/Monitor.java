@@ -618,6 +618,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final RecentLogs recentLogs = new RecentLogs();
   private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
 
+  private long scansFetchedNanos = 0L;
+  private long compactsFetchedNanos = 0L;
+  private long ecInfoFetchedNanos = 0L;
+  private final long fetchTimeNanos = TimeUnit.MINUTES.toNanos(1);
+  private final long ageOffEntriesMillis = TimeUnit.MINUTES.toMillis(15);
   // When there are a large amount of external compactions running the list of external compactions
   // could consume a lot of memory. The purpose of this memoizing supplier is to try to avoid
   // creating the list of running external compactions in memory per web request. If multiple
@@ -626,13 +631,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   // after the timeout and the supplier recomputes the list. The longer the timeout on the supplier
   // is the less likely we are to have multiple list of external compactions in memory, however
   // increasing the timeout will make the monitor less responsive.
-  private final Supplier<ExternalCompactionsSnapshot> extCompactionSnapshot = Suppliers
-      .memoizeWithExpiration(() -> computeExternalCompactionsSnapshot(), 30, TimeUnit.SECONDS);
-  private long scansFetchedNanos = 0L;
-  private long compactsFetchedNanos = 0L;
-  private long ecInfoFetchedNanos = 0L;
-  private final long fetchTimeNanos = TimeUnit.MINUTES.toNanos(1);
-  private final long ageOffEntriesMillis = TimeUnit.MINUTES.toMillis(15);
+  private final Supplier<ExternalCompactionsSnapshot> extCompactionSnapshot =
+      Suppliers.memoizeWithExpiration(() -> computeExternalCompactionsSnapshot(), fetchTimeNanos,
+          TimeUnit.NANOSECONDS);
 
   /**
    * Fetch the active scans but only if fetchTimeNanos has elapsed.
