@@ -41,7 +41,7 @@ public class RootGcCandidates {
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
   private static class Data {
-    private final int version;
+    private int version;
 
     /*
      * The root tablet will only have a single dir on each volume. Therefore, root file paths will
@@ -50,7 +50,10 @@ public class RootGcCandidates {
      *
      * SortedMap<dir path, SortedSet<file name>>
      */
-    private final SortedMap<String,SortedSet<String>> candidates;
+    private SortedMap<String,SortedSet<String>> candidates;
+
+    // Gson requires a default constructor when JDK Unsafe usage is disabled
+    private Data() {}
 
     public Data(int version, SortedMap<String,SortedSet<String>> candidates) {
       this.version = version;

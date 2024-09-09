@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.minicluster;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -79,7 +80,7 @@ public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
             CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(), new RetryOneTime(1))) {
           curatorClient.start();
           assertNotNull(curatorClient.checkExists().forPath(zkTablePath));
-          assertEquals(tableName, new String(curatorClient.getData().forPath(zkTablePath)));
+          assertEquals(tableName, new String(curatorClient.getData().forPath(zkTablePath), UTF_8));
         }
       }
     }
