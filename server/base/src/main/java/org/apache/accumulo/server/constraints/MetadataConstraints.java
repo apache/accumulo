@@ -321,7 +321,7 @@ public class MetadataConstraints implements Constraint {
         KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
         Text per = TabletColumnFamily.decodePrevEndRow(new Value(columnUpdate.getValue()));
         boolean prevEndRowLessThanEndRow =
-                per == null || ke.endRow() == null || per.compareTo(ke.endRow()) < 0;
+            per == null || ke.endRow() == null || per.compareTo(ke.endRow()) < 0;
 
         if (!prevEndRowLessThanEndRow) {
           addViolation(violations, 3);
