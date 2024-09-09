@@ -38,10 +38,10 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import jakarta.inject.Singleton;
 
@@ -62,6 +62,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -78,6 +79,8 @@ import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
+import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactions;
+import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactorDetails;
 import org.apache.accumulo.monitor.util.logging.RecentLogs;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
@@ -100,6 +103,8 @@ import org.glassfish.jersey.server.mvc.freemarker.FreemarkerMvcFeature;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Suppliers;
 
 /**
  * Serve manager statistics with an embedded web server.
@@ -612,7 +617,17 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
   private final RecentLogs recentLogs = new RecentLogs();
   private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
-  private final Map<String,TExternalCompaction> ecRunningMap = new ConcurrentHashMap<>();
+
+  // When there are a large amount of external compactions running the list of external compactions
+  // could consume a lot of memory. The purpose of this memoizing supplier is to try to avoid
+  // creating the list of running external compactions in memory per web request. If multiple
+  // request come in around the same time they should use the same list. It is still possible to
+  // have multiple list in memory if one request obtains a copy and then another request comes in
+  // after the timeout and the supplier recomputes the list. The longer the timeout on the supplier
+  // is the less likely we are to have multiple list of external compactions in memory, however
+  // increasing the timeout will make the monitor less responsive.
+  private final Supplier<ExternalCompactionsSnapshot> extCompactionSnapshot = Suppliers
+      .memoizeWithExpiration(() -> computeExternalCompactionsSnapshot(), 30, TimeUnit.SECONDS);
   private long scansFetchedNanos = 0L;
   private long compactsFetchedNanos = 0L;
   private long ecInfoFetchedNanos = 0L;
@@ -667,12 +682,17 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return ecInfo;
   }
 
-  /**
-   * Fetch running compactions from Compaction Coordinator. Chose not to restrict the frequency of
-   * user fetches since RPC calls are going to the coordinator. This allows for fine grain updates
-   * of external compaction progress.
-   */
-  public synchronized Map<String,TExternalCompaction> fetchRunningInfo() {
+  private static class ExternalCompactionsSnapshot {
+    public final RunningCompactions runningCompactions;
+    public final Map<String,TExternalCompaction> ecRunningMap;
+
+    private ExternalCompactionsSnapshot(Map<String,TExternalCompaction> ecRunningMap) {
+      this.ecRunningMap = Collections.unmodifiableMap(ecRunningMap);
+      this.runningCompactions = new RunningCompactions(ecRunningMap);
+    }
+  }
+
+  private ExternalCompactionsSnapshot computeExternalCompactionsSnapshot() {
     if (coordinatorHost.isEmpty()) {
       throw new IllegalStateException(coordinatorMissingMsg);
     }
@@ -686,16 +706,20 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
     }
 
-    ecRunningMap.clear();
-    if (running.getCompactions() != null) {
-      ecRunningMap.putAll(running.getCompactions());
-    }
-
-    return ecRunningMap;
+    return new ExternalCompactionsSnapshot(running.getCompactions());
   }
 
-  public Map<String,TExternalCompaction> getEcRunningMap() {
-    return ecRunningMap;
+  public RunningCompactions getRunnningCompactions() {
+    return extCompactionSnapshot.get().runningCompactions;
+  }
+
+  public RunningCompactorDetails getRunningCompactorDetails(ExternalCompactionId ecid) {
+    TExternalCompaction extCompaction =
+        extCompactionSnapshot.get().ecRunningMap.get(ecid.canonical());
+    if (extCompaction == null) {
+      return null;
+    }
+    return new RunningCompactorDetails(extCompaction);
   }
 
   private CompactionCoordinatorService.Client getCoordinator(HostAndPort address) {
