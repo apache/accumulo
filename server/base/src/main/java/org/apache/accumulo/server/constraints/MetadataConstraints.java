@@ -179,9 +179,6 @@ public class MetadataConstraints implements Constraint {
     if (row.length > 0 && row[0] == '~') {
       return null;
     }
-    if (row.length > 2 && row[0] == '!' && row[1] == '!' && row[2] == '~') {
-      return null;
-    }
 
     for (byte b : row) {
       if (b == ';') {
