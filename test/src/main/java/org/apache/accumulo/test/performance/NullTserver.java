@@ -59,7 +59,6 @@ import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -349,7 +348,7 @@ public class NullTserver {
     try {
       ZooKeeper zk = context.getZooReaderWriter().getZooKeeper();
       UUID nullTServerUUID = UUID.randomUUID();
-      ServiceLockPath slp = ServiceLockPaths.createMiniPath(context, nullTServerUUID.toString());
+      ServiceLockPath slp = context.getServerPaths().createMiniPath(nullTServerUUID.toString());
       try {
         context.getZooReaderWriter().mkdirs(slp.toString());
       } catch (KeeperException | InterruptedException e) {

@@ -143,6 +143,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<SaslConnectionParams> saslSupplier;
   private final Supplier<SslConnectionParams> sslSupplier;
   private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
+  private final Supplier<ServiceLockPaths> serverPaths;
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
   private ZookeeperLockChecker zkLockChecker;
@@ -240,6 +241,8 @@ public class ClientContext implements AccumuloClient {
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
+    this.serverPaths =
+        Suppliers.memoize(() -> new ServiceLockPaths(this.zooCache, this.getZooKeeperRoot()));
     if (ueh == Threads.UEH) {
       clientThreadPools = ThreadPools.getServerThreadPools();
     } else {
@@ -404,7 +407,7 @@ public class ClientContext implements AccumuloClient {
   public Map<String,Pair<UUID,String>> getScanServers() {
     Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
     Set<ServiceLockPath> scanServerPaths =
-        ServiceLockPaths.getScanServer(this, Optional.empty(), Optional.empty());
+        getServerPaths().getScanServer(Optional.empty(), Optional.empty());
     for (ServiceLockPath path : scanServerPaths) {
       try {
         ZcStat stat = new ZcStat();
@@ -481,7 +484,7 @@ public class ClientContext implements AccumuloClient {
    */
   public List<String> getManagerLocations() {
     ensureOpen();
-    var zLockManagerPath = ServiceLockPaths.getManager(this);
+    var zLockManagerPath = getServerPaths().getManager();
 
     Timer timer = null;
 
@@ -516,7 +519,6 @@ public class ClientContext implements AccumuloClient {
    * @return a UUID
    */
   public InstanceId getInstanceID() {
-    ensureOpen();
     if (instanceId == null) {
       // lookup by name
       final String instanceName = info.getInstanceName();
@@ -540,7 +542,6 @@ public class ClientContext implements AccumuloClient {
   }
 
   public String getZooKeeperRoot() {
-    ensureOpen();
     return ZooUtil.getRoot(getInstanceID());
   }
 
@@ -575,7 +576,6 @@ public class ClientContext implements AccumuloClient {
   }
 
   public ZooCache getZooCache() {
-    ensureOpen();
     return zooCache;
   }
 
@@ -1103,6 +1103,10 @@ public class ClientContext implements AccumuloClient {
       this.zkLockChecker = new ZookeeperLockChecker(this);
     }
     return this.zkLockChecker;
+  }
+
+  public ServiceLockPaths getServerPaths() {
+    return this.serverPaths.get();
   }
 
 }

@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
@@ -90,7 +89,7 @@ public class ServiceStatusCmd {
    */
   @VisibleForTesting
   StatusSummary getManagerStatus(ZooReader zooReader, ServerContext context) {
-    String lockPath = ServiceLockPaths.createManagerPath(context).toString();
+    String lockPath = context.getServerPaths().createManagerPath().toString();
     return getStatusSummary(ServiceStatusReport.ReportKey.MANAGER, zooReader, lockPath);
   }
 
@@ -100,7 +99,7 @@ public class ServiceStatusCmd {
    */
   @VisibleForTesting
   StatusSummary getMonitorStatus(final ZooReader zooReader, ServerContext context) {
-    String lockPath = ServiceLockPaths.createMonitorPath(context).toString();
+    String lockPath = context.getServerPaths().createMonitorPath().toString();
     return getStatusSummary(ServiceStatusReport.ReportKey.MONITOR, zooReader, lockPath);
   }
 
@@ -114,7 +113,7 @@ public class ServiceStatusCmd {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> compactors =
-        ServiceLockPaths.getTabletServer(context, Optional.empty(), Optional.empty());
+        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
     compactors.forEach(c -> hostsByGroups
         .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, hostsByGroups.keySet(),
@@ -131,7 +130,7 @@ public class ServiceStatusCmd {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> scanServers =
-        ServiceLockPaths.getScanServer(context, Optional.empty(), Optional.empty());
+        context.getServerPaths().getScanServer(Optional.empty(), Optional.empty());
     scanServers.forEach(c -> hostsByGroups
         .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.S_SERVER, hostsByGroups.keySet(),
@@ -144,7 +143,7 @@ public class ServiceStatusCmd {
    */
   @VisibleForTesting
   StatusSummary getGcStatus(final ZooReader zooReader, ServerContext context) {
-    String lockPath = ServiceLockPaths.createGarbageCollectorPath(context).toString();
+    String lockPath = context.getServerPaths().createGarbageCollectorPath().toString();
     return getStatusSummary(ServiceStatusReport.ReportKey.GC, zooReader, lockPath);
   }
 
@@ -158,7 +157,7 @@ public class ServiceStatusCmd {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> compactors =
-        ServiceLockPaths.getCompactor(context, Optional.empty(), Optional.empty());
+        context.getServerPaths().getCompactor(Optional.empty(), Optional.empty());
     compactors.forEach(c -> hostsByGroups
         .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.COMPACTOR, hostsByGroups.keySet(),

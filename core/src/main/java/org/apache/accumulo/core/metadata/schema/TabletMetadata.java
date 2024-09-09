@@ -52,7 +52,6 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -634,7 +633,7 @@ public class TabletMetadata {
   public static synchronized Set<TServerInstance> getLiveTServers(ClientContext context) {
     final Set<TServerInstance> liveServers = new HashSet<>();
 
-    for (ServiceLockPath slp : ServiceLockPaths.getTabletServer(context, Optional.empty(),
+    for (ServiceLockPath slp : context.getServerPaths().getTabletServer(Optional.empty(),
         Optional.empty())) {
 
       checkTabletServer(context, slp).ifPresent(liveServers::add);

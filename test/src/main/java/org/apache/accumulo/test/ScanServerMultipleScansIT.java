@@ -47,7 +47,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -90,9 +89,8 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.getCluster().getClusterControl().start(ServerType.SCAN_SERVER,
         "localhost");
 
-    Wait.waitFor(() -> !ServiceLockPaths
-        .getScanServer(getCluster().getServerContext(), Optional.empty(), Optional.empty())
-        .isEmpty());
+    Wait.waitFor(() -> !getCluster().getServerContext().getServerPaths()
+        .getScanServer(Optional.empty(), Optional.empty()).isEmpty());
   }
 
   @AfterAll

@@ -70,7 +70,6 @@ import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -881,14 +880,14 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     if (lock != null) {
       ZooUtil.LockID lid =
-          new ZooUtil.LockID(ServiceLockPaths.createManagerPath(context).toString(), lock);
+          new ZooUtil.LockID(context.getServerPaths().createManagerPath().toString(), lock);
 
       try {
-        if (!ServiceLock.isLockHeld(server.getManagerLockCache(), lid)) {
+        if (!ServiceLock.isLockHeld(context, lid)) {
           // maybe the cache is out of date and a new manager holds the
           // lock?
           server.getManagerLockCache().clear();
-          if (!ServiceLock.isLockHeld(server.getManagerLockCache(), lid)) {
+          if (!ServiceLock.isLockHeld(context, lid)) {
             log.warn("Got {} message from a manager that does not hold the current lock {}",
                 request, lock);
             throw new RuntimeException("bad manager lock");

@@ -24,7 +24,6 @@ import java.util.Set;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 
 import com.google.common.net.HostAndPort;
@@ -41,7 +40,7 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   public boolean doesTabletServerLockExist(String server) {
     // ServiceLockPaths only returns items that have a lock
-    Set<ServiceLockPath> tservers = ServiceLockPaths.getTabletServer(ctx, Optional.empty(),
+    Set<ServiceLockPath> tservers = ctx.getServerPaths().getTabletServer(Optional.empty(),
         Optional.of(HostAndPort.fromString(server)));
     if (tservers.isEmpty()) {
       return false;
@@ -52,7 +51,7 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
   @Override
   public boolean isLockHeld(String server, String session) {
     // ServiceLockPaths only returns items that have a lock
-    Set<ServiceLockPath> tservers = ServiceLockPaths.getTabletServer(ctx, Optional.empty(),
+    Set<ServiceLockPath> tservers = ctx.getServerPaths().getTabletServer(Optional.empty(),
         Optional.of(HostAndPort.fromString(server)));
     if (tservers.isEmpty()) {
       return false;

@@ -30,7 +30,6 @@ import java.util.Map;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -138,7 +137,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       // Wait for the Manager to grab its lock
       while (true) {
         try {
-          ServiceLockPath managerLockPath = ServiceLockPaths.getManager(getServerContext());
+          ServiceLockPath managerLockPath = getServerContext().getServerPaths().getManager();
           if (managerLockPath == null) {
             break;
           }
@@ -195,7 +194,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       // Wait for the Manager to grab its lock
       while (true) {
         try {
-          ServiceLockPath slp = ServiceLockPaths.getGarbageCollector(getServerContext());
+          ServiceLockPath slp = getServerContext().getServerPaths().getGarbageCollector();
           if (slp == null) {
             break;
           }

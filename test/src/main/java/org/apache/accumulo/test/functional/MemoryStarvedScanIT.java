@@ -52,7 +52,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -200,7 +199,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     final ZooCache zc = context.getZooCache();
 
     Set<ServiceLockPath> servers =
-        ServiceLockPaths.getTabletServer(context, Optional.empty(), Optional.empty());
+        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
     for (ServiceLockPath server : servers) {
       Optional<ServiceLockData> data = zc.getLockData(server);
       if (data != null && data.isPresent()) {

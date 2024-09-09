@@ -61,7 +61,6 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
@@ -423,7 +422,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     try {
       // Read the gc location from its lock
       ZooReaderWriter zk = context.getZooReaderWriter();
-      var path = ServiceLockPaths.createGarbageCollectorPath(context);
+      var path = context.getServerPaths().createGarbageCollectorPath();
       List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
         address = ServiceLockData.parse(zk.getData(path + "/" + locks.get(0)))
@@ -800,7 +799,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     ServerContext context = getContext();
     final String zRoot = context.getZooKeeperRoot();
     final String monitorPath = zRoot + Constants.ZMONITOR;
-    final var monitorLockPath = ServiceLockPaths.createMonitorPath(context);
+    final var monitorLockPath = context.getServerPaths().createMonitorPath();
 
     // Ensure that everything is kosher with ZK as this has changed.
     ZooReaderWriter zoo = context.getZooReaderWriter();

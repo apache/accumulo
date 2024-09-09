@@ -37,7 +37,6 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
@@ -75,10 +74,10 @@ public interface TServerClient<C extends TServiceClient> {
     final long rpcTimeout = context.getClientTimeoutInMillis();
     final ZooCache zc = context.getZooCache();
     final List<ServiceLockPath> serverPaths = new ArrayList<>();
-    serverPaths.addAll(ServiceLockPaths.getCompactor(context, Optional.empty(), Optional.empty()));
-    serverPaths.addAll(ServiceLockPaths.getScanServer(context, Optional.empty(), Optional.empty()));
+    serverPaths.addAll(context.getServerPaths().getCompactor(Optional.empty(), Optional.empty()));
+    serverPaths.addAll(context.getServerPaths().getScanServer(Optional.empty(), Optional.empty()));
     serverPaths
-        .addAll(ServiceLockPaths.getTabletServer(context, Optional.empty(), Optional.empty()));
+        .addAll(context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty()));
     if (serverPaths.isEmpty()) {
       if (warned.compareAndSet(false, true)) {
         LOG.warn(

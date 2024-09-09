@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
@@ -46,10 +45,9 @@ public class BackupManagerIT extends ConfigurableMacBase {
     Process backup = exec(Manager.class);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       ZooReaderWriter writer = getCluster().getServerContext().getZooReaderWriter();
-      String root = "/accumulo/" + client.instanceOperations().getInstanceId();
 
       // wait for 2 lock entries
-      var path = ServiceLockPaths.createManagerPath(getServerContext());
+      var path = getServerContext().getServerPaths().createManagerPath();
       Wait.waitFor(
           () -> ServiceLock.validateAndSort(path, writer.getChildren(path.toString())).size() == 2);
 

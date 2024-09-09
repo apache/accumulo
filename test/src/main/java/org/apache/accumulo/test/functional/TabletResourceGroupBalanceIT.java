@@ -50,7 +50,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -106,8 +105,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
     Map<String,String> tservers = new HashMap<>();
     ZooCache zk = cluster.getServerContext().getZooCache();
-    for (ServiceLockPath tserver : ServiceLockPaths.getTabletServer(getCluster().getServerContext(),
-        Optional.empty(), Optional.empty())) {
+    for (ServiceLockPath tserver : getCluster().getServerContext().getServerPaths()
+        .getTabletServer(Optional.empty(), Optional.empty())) {
       ZcStat stat = new ZcStat();
       Optional<ServiceLockData> sld = ServiceLock.getLockData(zk, tserver, stat);
       try {

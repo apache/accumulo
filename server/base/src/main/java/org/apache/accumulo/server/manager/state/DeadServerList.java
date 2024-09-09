@@ -29,7 +29,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.DeadServer;
 import org.apache.accumulo.server.ServerContext;
@@ -64,7 +63,7 @@ public class DeadServerList {
     List<DeadServer> result = new ArrayList<>();
     try {
       Set<ServiceLockPath> deadServers =
-          ServiceLockPaths.getDeadTabletServer(ctx, Optional.empty(), Optional.empty());
+          ctx.getServerPaths().getDeadTabletServer(Optional.empty(), Optional.empty());
       for (ServiceLockPath path : deadServers) {
         Stat stat = new Stat();
         byte[] data;
@@ -91,12 +90,12 @@ public class DeadServerList {
     try {
       final HostAndPort hp = HostAndPort.fromString(server);
       final Set<ServiceLockPath> paths =
-          ServiceLockPaths.getTabletServer(ctx, Optional.empty(), Optional.of(hp));
+          ctx.getServerPaths().getTabletServer(Optional.empty(), Optional.of(hp));
       Preconditions.checkArgument(paths.size() == 1,
           "Did not find a unique ZooKeeper path for server address: " + server);
-      zoo.recursiveDelete(ServiceLockPaths
-          .createDeadTabletServerPath(ctx, paths.iterator().next().getResourceGroup(), hp)
-          .toString(), NodeMissingPolicy.SKIP);
+      zoo.recursiveDelete(ctx.getServerPaths()
+          .createDeadTabletServerPath(paths.iterator().next().getResourceGroup(), hp).toString(),
+          NodeMissingPolicy.SKIP);
     } catch (Exception ex) {
       log.error("delete failed with exception", ex);
     }
@@ -106,11 +105,14 @@ public class DeadServerList {
     try {
       final HostAndPort hp = HostAndPort.fromString(server);
       final Set<ServiceLockPath> paths =
-          ServiceLockPaths.getTabletServer(ctx, Optional.empty(), Optional.of(hp));
+          ctx.getServerPaths().getTabletServer(Optional.empty(), Optional.of(hp));
       Preconditions.checkArgument(paths.size() == 1,
           "Did not find a unique ZooKeeper path for server address: " + server);
-      zoo.putPersistentData(ServiceLockPaths.createDeadTabletServerPath(ctx,
-          paths.iterator().next().getResourceGroup(), HostAndPort.fromString(server)).toString(),
+      zoo.putPersistentData(
+          ctx.getServerPaths()
+              .createDeadTabletServerPath(paths.iterator().next().getResourceGroup(),
+                  HostAndPort.fromString(server))
+              .toString(),
           cause.getBytes(UTF_8), NodeExistsPolicy.SKIP);
     } catch (Exception ex) {
       log.error("post failed with exception", ex);

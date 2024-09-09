@@ -25,7 +25,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 
@@ -171,6 +170,15 @@ public class ServiceLockPaths {
 
   }
 
+  private final ZooCache cache;
+  private final String root;
+
+  public ServiceLockPaths(ZooCache cache, String root) {
+    super();
+    this.cache = cache;
+    this.root = root;
+  }
+
   /**
    * Parse a ZooKeeper path string and return a ServiceLockPath
    */
@@ -213,68 +221,56 @@ public class ServiceLockPaths {
     }
   }
 
-  public static ServiceLockPath createGarbageCollectorPath(ClientContext context) {
-    return new ServiceLockPath(Objects.requireNonNull(context).getZooKeeperRoot(),
-        Constants.ZGC_LOCK);
+  public ServiceLockPath createGarbageCollectorPath() {
+    return new ServiceLockPath(root, Constants.ZGC_LOCK);
   }
 
-  public static ServiceLockPath createManagerPath(ClientContext context) {
-    return new ServiceLockPath(Objects.requireNonNull(context).getZooKeeperRoot(),
-        Constants.ZMANAGER_LOCK);
+  public ServiceLockPath createManagerPath() {
+    return new ServiceLockPath(root, Constants.ZMANAGER_LOCK);
   }
 
-  public static ServiceLockPath createMiniPath(ClientContext context, String miniUUID) {
-    return new ServiceLockPath(Objects.requireNonNull(context).getZooKeeperRoot(),
-        Constants.ZMINI_LOCK, miniUUID);
+  public ServiceLockPath createMiniPath(String miniUUID) {
+    return new ServiceLockPath(root, Constants.ZMINI_LOCK, miniUUID);
   }
 
-  public static ServiceLockPath createMonitorPath(ClientContext context) {
-    return new ServiceLockPath(Objects.requireNonNull(context).getZooKeeperRoot(),
-        Constants.ZMONITOR_LOCK);
+  public ServiceLockPath createMonitorPath() {
+    return new ServiceLockPath(root, Constants.ZMONITOR_LOCK);
   }
 
-  public static ServiceLockPath createCompactorPath(ClientContext context, String resourceGroup,
+  public ServiceLockPath createCompactorPath(String resourceGroup, HostAndPort serverAddress) {
+    return new ServiceLockPath(root, Constants.ZCOMPACTORS, resourceGroup,
+        serverAddress.toString());
+  }
+
+  public ServiceLockPath createScanServerPath(String resourceGroup, HostAndPort serverAddress) {
+    return new ServiceLockPath(root, Constants.ZSSERVERS, resourceGroup, serverAddress.toString());
+  }
+
+  public ServiceLockPath createTableLocksPath() {
+    return new ServiceLockPath(root, Constants.ZTABLE_LOCKS);
+  }
+
+  public ServiceLockPath createTableLocksPath(String tableId) {
+    return new ServiceLockPath(root, Constants.ZTABLE_LOCKS, tableId);
+  }
+
+  public ServiceLockPath createTabletServerPath(String resourceGroup, HostAndPort serverAddress) {
+    return new ServiceLockPath(root, Constants.ZTSERVERS, resourceGroup, serverAddress.toString());
+  }
+
+  public ServiceLockPath createDeadTabletServerPath(String resourceGroup,
       HostAndPort serverAddress) {
-    return new ServiceLockPath(Objects.requireNonNull(context).getZooKeeperRoot(),
-        Constants.ZCOMPACTORS, resourceGroup, serverAddress.toString());
+    return new ServiceLockPath(root, Constants.ZDEADTSERVERS, resourceGroup,
+        serverAddress.toString());
   }
 
-  public static ServiceLockPath createScanServerPath(ClientContext context, String resourceGroup,
-      HostAndPort serverAddress) {
-    return new ServiceLockPath(Objects.requireNonNull(context).getZooKeeperRoot(),
-        Constants.ZSSERVERS, resourceGroup, serverAddress.toString());
+  public Set<ServiceLockPath> getCompactor(Optional<String> resourceGroup,
+      Optional<HostAndPort> address) {
+    return get(Constants.ZCOMPACTORS, resourceGroup, address);
   }
 
-  public static ServiceLockPath createTableLocksPath(ClientContext context) {
-    return new ServiceLockPath(Objects.requireNonNull(context).getZooKeeperRoot(),
-        Constants.ZTABLE_LOCKS);
-  }
-
-  public static ServiceLockPath createTableLocksPath(ClientContext context, String tableId) {
-    return new ServiceLockPath(Objects.requireNonNull(context).getZooKeeperRoot(),
-        Constants.ZTABLE_LOCKS, tableId);
-  }
-
-  public static ServiceLockPath createTabletServerPath(ClientContext context, String resourceGroup,
-      HostAndPort serverAddress) {
-    return new ServiceLockPath(Objects.requireNonNull(context).getZooKeeperRoot(),
-        Constants.ZTSERVERS, resourceGroup, serverAddress.toString());
-  }
-
-  public static ServiceLockPath createDeadTabletServerPath(ClientContext context,
-      String resourceGroup, HostAndPort serverAddress) {
-    return new ServiceLockPath(Objects.requireNonNull(context).getZooKeeperRoot(),
-        Constants.ZDEADTSERVERS, resourceGroup, serverAddress.toString());
-  }
-
-  public static Set<ServiceLockPath> getCompactor(ClientContext context,
-      Optional<String> resourceGroup, Optional<HostAndPort> address) {
-    return get(context, Constants.ZCOMPACTORS, resourceGroup, address);
-  }
-
-  public static ServiceLockPath getGarbageCollector(ClientContext context) {
-    Set<ServiceLockPath> results =
-        get(context, Constants.ZGC_LOCK, Optional.empty(), Optional.empty());
+  public ServiceLockPath getGarbageCollector() {
+    Set<ServiceLockPath> results = get(Constants.ZGC_LOCK, Optional.empty(), Optional.empty());
     if (results.isEmpty()) {
       return null;
     } else {
@@ -282,9 +278,8 @@ public class ServiceLockPaths {
     }
   }
 
-  public static ServiceLockPath getManager(ClientContext context) {
-    Set<ServiceLockPath> results =
-        get(context, Constants.ZMANAGER_LOCK, Optional.empty(), Optional.empty());
+  public ServiceLockPath getManager() {
+    Set<ServiceLockPath> results = get(Constants.ZMANAGER_LOCK, Optional.empty(), Optional.empty());
     if (results.isEmpty()) {
       return null;
     } else {
@@ -292,9 +287,8 @@ public class ServiceLockPaths {
     }
   }
 
-  public static ServiceLockPath getMonitor(ClientContext context) {
-    Set<ServiceLockPath> results =
-        get(context, Constants.ZMONITOR_LOCK, Optional.empty(), Optional.empty());
+  public ServiceLockPath getMonitor() {
+    Set<ServiceLockPath> results = get(Constants.ZMONITOR_LOCK, Optional.empty(), Optional.empty());
     if (results.isEmpty()) {
       return null;
     } else {
@@ -302,36 +296,34 @@ public class ServiceLockPaths {
     }
   }
 
-  public static Set<ServiceLockPath> getScanServer(ClientContext context,
-      Optional<String> resourceGroup, Optional<HostAndPort> address) {
-    return get(context, Constants.ZSSERVERS, resourceGroup, address);
+  public Set<ServiceLockPath> getScanServer(Optional<String> resourceGroup,
+      Optional<HostAndPort> address) {
+    return get(Constants.ZSSERVERS, resourceGroup, address);
   }
 
-  public static Set<ServiceLockPath> getTabletServer(ClientContext context,
-      Optional<String> resourceGroup, Optional<HostAndPort> address) {
-    return get(context, Constants.ZTSERVERS, resourceGroup, address);
+  public Set<ServiceLockPath> getTabletServer(Optional<String> resourceGroup,
+      Optional<HostAndPort> address) {
+    return get(Constants.ZTSERVERS, resourceGroup, address);
   }
 
-  public static Set<ServiceLockPath> getDeadTabletServer(ClientContext context,
-      Optional<String> resourceGroup, Optional<HostAndPort> address) {
-    return get(context, Constants.ZDEADTSERVERS, resourceGroup, address);
+  public Set<ServiceLockPath> getDeadTabletServer(Optional<String> resourceGroup,
+      Optional<HostAndPort> address) {
+    return get(Constants.ZDEADTSERVERS, resourceGroup, address);
   }
 
   /**
    * Find paths in ZooKeeper based on the input arguments and return a set of ServiceLockPath
    * objects at those paths that have valid locks.
    */
-  private static Set<ServiceLockPath> get(final ClientContext context, final String serverType,
-      Optional<String> resourceGroup, Optional<HostAndPort> address) {
+  private Set<ServiceLockPath> get(final String serverType, Optional<String> resourceGroup,
+      Optional<HostAndPort> address) {
 
-    Objects.requireNonNull(context);
     Objects.requireNonNull(serverType);
     Objects.requireNonNull(resourceGroup);
     Objects.requireNonNull(address);
 
     final Set<ServiceLockPath> results = new HashSet<>();
-    final ZooCache cache = context.getZooCache();
-    final String typePath = context.getZooKeeperRoot() + serverType;
+    final String typePath = root + serverType;
 
     if (serverType.equals(Constants.ZGC_LOCK) || serverType.equals(Constants.ZMANAGER_LOCK)
         || serverType.equals(Constants.ZMONITOR_LOCK)) {

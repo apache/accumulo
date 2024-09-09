@@ -60,7 +60,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
@@ -116,9 +115,8 @@ public class ScanServerIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.getCluster().getClusterControl().start(ServerType.SCAN_SERVER,
         "localhost");
 
-    Wait.waitFor(() -> !ServiceLockPaths
-        .getScanServer(getCluster().getServerContext(), Optional.empty(), Optional.empty())
-        .isEmpty());
+    Wait.waitFor(() -> !getCluster().getServerContext().getServerPaths()
+        .getScanServer(Optional.empty(), Optional.empty()).isEmpty());
   }
 
   @AfterAll

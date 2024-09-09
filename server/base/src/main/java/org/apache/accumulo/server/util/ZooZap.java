@@ -29,7 +29,6 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
@@ -101,7 +100,7 @@ public class ZooZap implements KeywordExecutable {
       try (var context = new ServerContext(siteConf)) {
         final ZooReaderWriter zoo = context.getZooReaderWriter();
         if (opts.zapManager) {
-          ServiceLockPath managerLockPath = ServiceLockPaths.createManagerPath(context);
+          ServiceLockPath managerLockPath = context.getServerPaths().createManagerPath();
           try {
             zapDirectory(zoo, managerLockPath, opts);
           } catch (KeeperException | InterruptedException e) {
@@ -112,7 +111,7 @@ public class ZooZap implements KeywordExecutable {
         if (opts.zapTservers) {
           try {
             Set<ServiceLockPath> tserverLockPaths =
-                ServiceLockPaths.getTabletServer(context, Optional.empty(), Optional.empty());
+                context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
             for (ServiceLockPath tserverPath : tserverLockPaths) {
 
               message("Deleting " + tserverPath + " from zookeeper", opts);
@@ -134,7 +133,7 @@ public class ZooZap implements KeywordExecutable {
 
         if (opts.zapCompactors) {
           Set<ServiceLockPath> compactorLockPaths =
-              ServiceLockPaths.getCompactor(context, Optional.empty(), Optional.empty());
+              context.getServerPaths().getCompactor(Optional.empty(), Optional.empty());
           Set<String> compactorResourceGroupPaths = new HashSet<>();
           compactorLockPaths.forEach(p -> compactorResourceGroupPaths
               .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
@@ -152,7 +151,7 @@ public class ZooZap implements KeywordExecutable {
         if (opts.zapScanServers) {
           try {
             Set<ServiceLockPath> sserverLockPaths =
-                ServiceLockPaths.getScanServer(context, Optional.empty(), Optional.empty());
+                context.getServerPaths().getScanServer(Optional.empty(), Optional.empty());
             for (ServiceLockPath sserverPath : sserverLockPaths) {
               message("Deleting " + sserverPath + " from zookeeper", opts);
               if (!zoo.getChildren(sserverPath.toString()).isEmpty()) {

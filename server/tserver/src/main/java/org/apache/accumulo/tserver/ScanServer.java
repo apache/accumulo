@@ -75,7 +75,6 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -334,7 +333,7 @@ public class ScanServer extends AbstractServer
     try {
 
       final ServiceLockPath zLockPath =
-          ServiceLockPaths.createScanServerPath(context, getResourceGroup(), clientAddress);
+          context.getServerPaths().createScanServerPath(getResourceGroup(), clientAddress);
       serverLockUUID = UUID.randomUUID();
       // The ServiceLockPath contains a resource group in the path which is not created
       // at initialization time. If it does not exist, then create it.

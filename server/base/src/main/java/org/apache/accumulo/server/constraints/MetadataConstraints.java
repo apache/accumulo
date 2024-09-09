@@ -33,7 +33,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -62,7 +61,6 @@ import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -72,7 +70,6 @@ public class MetadataConstraints implements Constraint {
 
   private static final Logger log = LoggerFactory.getLogger(MetadataConstraints.class);
 
-  private ZooCache zooCache = null;
   private String zooRoot = null;
 
   private static final boolean[] validTableNameChars = new boolean[256];
@@ -383,11 +380,6 @@ public class MetadataConstraints implements Constraint {
               violations = addViolation(violations, 3);
             }
           } else if (column.equals(ServerColumnFamily.LOCK_COLUMN)) {
-            if (zooCache == null) {
-              zooCache = new ZooCache(context.getZooReader(), null);
-              CleanerUtil.zooCacheClearer(this, zooCache);
-            }
-
             if (zooRoot == null) {
               zooRoot = context.getZooKeeperRoot();
             }
@@ -396,7 +388,7 @@ public class MetadataConstraints implements Constraint {
             String lockId = new String(columnUpdate.getValue(), UTF_8);
 
             try {
-              lockHeld = ServiceLock.isLockHeld(zooCache, new ZooUtil.LockID(zooRoot, lockId));
+              lockHeld = ServiceLock.isLockHeld(context, new ZooUtil.LockID(zooRoot, lockId));
             } catch (Exception e) {
               log.debug("Failed to verify lock was held {} {}", lockId, e.getMessage());
             }

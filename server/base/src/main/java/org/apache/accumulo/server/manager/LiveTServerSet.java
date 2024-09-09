@@ -89,7 +89,7 @@ public class LiveTServerSet implements Watcher {
     }
 
     private String lockString(ServiceLock mlock) {
-      return mlock.getLockID().serialize(ServiceLockPaths.createManagerPath(context).toString());
+      return mlock.getLockID().serialize(context.getServerPaths().createManagerPath().toString());
     }
 
     private void loadTablet(TabletManagementClientService.Client client, ServiceLock lock,
@@ -231,7 +231,7 @@ public class LiveTServerSet implements Watcher {
       final Set<TServerInstance> doomed = new HashSet<>();
 
       Set<ServiceLockPath> tservers =
-          ServiceLockPaths.getTabletServer(context, Optional.empty(), Optional.empty());
+          context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
 
       locklessServers.keySet().retainAll(tservers);
 

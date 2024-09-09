@@ -40,6 +40,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.serviceStatus.ServiceStatusReport;
 import org.apache.accumulo.server.util.serviceStatus.StatusSummary;
@@ -73,6 +74,7 @@ public class ServiceStatusCmdTest {
 
     expect(context.getZooReader()).andReturn(zooReader).anyTimes();
     expect(context.getZooCache()).andReturn(zooCache).anyTimes();
+    expect(context.getServerPaths()).andReturn(new ServiceLockPaths(zooCache, zRoot)).anyTimes();
 
     replay(context);
   }

@@ -47,6 +47,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
@@ -81,8 +82,9 @@ public class AdminTest {
     ClientContext ctx = EasyMock.createMock(ClientContext.class);
     ZooCache zc = EasyMock.createMock(ZooCache.class);
 
-    String root = "/accumulo/id" + Constants.ZTSERVERS;
-    String group = root + "/" + Constants.DEFAULT_RESOURCE_GROUP_NAME;
+    String root = "/accumulo/id";
+    String type = root + Constants.ZTSERVERS;
+    String group = type + "/" + Constants.DEFAULT_RESOURCE_GROUP_NAME;
     String server = "localhost:12345";
     final long session = 123456789L;
     ServiceLockData sld1 = new ServiceLockData(UUID.randomUUID(), server, ThriftService.TABLET_SCAN,
@@ -92,7 +94,7 @@ public class AdminTest {
     String validZLockEphemeralNode = "zlock#" + UUID.randomUUID() + "#0000000000";
     EasyMock.expect(ctx.getZooKeeperRoot()).andReturn("/accumulo/id").anyTimes();
     EasyMock.expect(ctx.getZooCache()).andReturn(zc).anyTimes();
-    EasyMock.expect(zc.getChildren(root)).andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME))
+    EasyMock.expect(zc.getChildren(type)).andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME))
         .anyTimes();
     EasyMock.expect(zc.getChildren(group)).andReturn(List.of(server)).anyTimes();
     EasyMock.expect(zc.getChildren(serverPath))
@@ -106,7 +108,7 @@ public class AdminTest {
           stat.setEphemeralOwner(session);
           return new byte[0];
         });
-
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, root)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     assertEquals(server + "[" + Long.toHexString(session) + "]",
@@ -120,17 +122,18 @@ public class AdminTest {
     ClientContext ctx = EasyMock.createMock(ClientContext.class);
     ZooCache zc = EasyMock.createMock(ZooCache.class);
 
-    String root = "/accumulo/id/tservers";
-    String group = root + "/" + Constants.DEFAULT_RESOURCE_GROUP_NAME;
+    String root = "/accumulo/id";
+    String type = root + Constants.ZTSERVERS;
+    String group = type + "/" + Constants.DEFAULT_RESOURCE_GROUP_NAME;
     String server = "localhost:12345";
 
     String serverPath = group + "/" + server;
     EasyMock.expect(ctx.getZooKeeperRoot()).andReturn("/accumulo/id").anyTimes();
     EasyMock.expect(ctx.getZooCache()).andReturn(zc).anyTimes();
-    EasyMock.expect(zc.getChildren(root)).andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME));
+    EasyMock.expect(zc.getChildren(type)).andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME));
     EasyMock.expect(zc.getChildren(group)).andReturn(List.of(server));
     EasyMock.expect(zc.getChildren(serverPath)).andReturn(Collections.emptyList());
-
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, root)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     // A server that isn't in ZooKeeper. Can't qualify it, should return the original

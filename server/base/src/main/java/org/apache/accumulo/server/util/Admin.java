@@ -73,7 +73,6 @@ import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
@@ -576,7 +575,7 @@ public class Admin implements KeywordExecutable {
    */
   static String qualifyWithZooKeeperSessionId(ClientContext context, ZooCache zooCache,
       String hostAndPort) {
-    Set<ServiceLockPath> paths = ServiceLockPaths.getTabletServer(context, Optional.empty(),
+    Set<ServiceLockPath> paths = context.getServerPaths().getTabletServer(Optional.empty(),
         Optional.of(HostAndPort.fromString(hostAndPort)));
     if (paths.size() != 1) {
       return hostAndPort;
@@ -805,8 +804,8 @@ public class Admin implements KeywordExecutable {
 
     AdminUtil<Admin> admin = new AdminUtil<>(true);
     final String zkRoot = context.getZooKeeperRoot();
-    var zLockManagerPath = ServiceLockPaths.createManagerPath(context);
-    var zTableLocksPath = ServiceLockPaths.createTableLocksPath(context);
+    var zLockManagerPath = context.getServerPaths().createManagerPath();
+    var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     String fateZkPath = zkRoot + Constants.ZFATE;
     ZooReaderWriter zk = context.getZooReaderWriter();
     MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk);

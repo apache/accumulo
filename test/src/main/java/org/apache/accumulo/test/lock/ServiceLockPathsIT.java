@@ -49,56 +49,47 @@ public class ServiceLockPathsIT extends AccumuloClusterHarness {
 
   @Test
   public void testPaths() throws Exception {
-    assertNotNull(ServiceLockPaths.getGarbageCollector(getServerContext()));
-    assertNotNull(ServiceLockPaths.getManager(getServerContext()));
-    assertNull(ServiceLockPaths.getMonitor(getServerContext())); // monitor not started
-    assertEquals(2, ServiceLockPaths
-        .getTabletServer(getServerContext(), Optional.empty(), Optional.empty()).size());
-    assertEquals(1, ServiceLockPaths.getTabletServer(getServerContext(),
-        Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty()).size());
-    assertEquals(1, ServiceLockPaths
-        .getTabletServer(getServerContext(), Optional.of("TEST"), Optional.empty()).size());
-    assertEquals(0, ServiceLockPaths
-        .getTabletServer(getServerContext(), Optional.of("FAKE"), Optional.empty()).size());
-    assertEquals(2, ServiceLockPaths
-        .getCompactor(getServerContext(), Optional.empty(), Optional.empty()).size());
-    assertEquals(1, ServiceLockPaths.getCompactor(getServerContext(),
-        Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty()).size());
-    assertEquals(1, ServiceLockPaths
-        .getCompactor(getServerContext(), Optional.of("TEST"), Optional.empty()).size());
-    assertEquals(0, ServiceLockPaths
-        .getCompactor(getServerContext(), Optional.of("FAKE"), Optional.empty()).size());
-    assertEquals(2, ServiceLockPaths
-        .getScanServer(getServerContext(), Optional.empty(), Optional.empty()).size());
-    assertEquals(1, ServiceLockPaths.getScanServer(getServerContext(),
-        Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty()).size());
-    assertEquals(1, ServiceLockPaths
-        .getScanServer(getServerContext(), Optional.of("TEST"), Optional.empty()).size());
-    assertEquals(0, ServiceLockPaths
-        .getScanServer(getServerContext(), Optional.of("FAKE"), Optional.empty()).size());
+    ServiceLockPaths paths = getServerContext().getServerPaths();
+    assertNotNull(paths.getGarbageCollector());
+    assertNotNull(paths.getManager());
+    assertNull(paths.getMonitor()); // monitor not started
+    assertEquals(2, paths.getTabletServer(Optional.empty(), Optional.empty()).size());
+    assertEquals(1,
+        paths.getTabletServer(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty())
+            .size());
+    assertEquals(1, paths.getTabletServer(Optional.of("TEST"), Optional.empty()).size());
+    assertEquals(0, paths.getTabletServer(Optional.of("FAKE"), Optional.empty()).size());
+    assertEquals(2, paths.getCompactor(Optional.empty(), Optional.empty()).size());
+    assertEquals(1, paths
+        .getCompactor(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty()).size());
+    assertEquals(1, paths.getCompactor(Optional.of("TEST"), Optional.empty()).size());
+    assertEquals(0, paths.getCompactor(Optional.of("FAKE"), Optional.empty()).size());
+    assertEquals(2, paths.getScanServer(Optional.empty(), Optional.empty()).size());
+    assertEquals(1,
+        paths.getScanServer(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty())
+            .size());
+    assertEquals(1, paths.getScanServer(Optional.of("TEST"), Optional.empty()).size());
+    assertEquals(0, paths.getScanServer(Optional.of("FAKE"), Optional.empty()).size());
 
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
 
-    Wait.waitFor(() -> ServiceLockPaths
-        .getCompactor(getServerContext(), Optional.empty(), Optional.empty()).size() == 0);
+    Wait.waitFor(() -> paths.getCompactor(Optional.empty(), Optional.empty()).size() == 0);
 
     getCluster().getClusterControl().stopAllServers(ServerType.SCAN_SERVER);
 
-    Wait.waitFor(() -> ServiceLockPaths
-        .getScanServer(getServerContext(), Optional.empty(), Optional.empty()).size() == 0);
+    Wait.waitFor(() -> paths.getScanServer(Optional.empty(), Optional.empty()).size() == 0);
 
     getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
 
-    Wait.waitFor(() -> ServiceLockPaths.getGarbageCollector(getServerContext()) == null);
+    Wait.waitFor(() -> paths.getGarbageCollector() == null);
 
     getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
 
-    Wait.waitFor(() -> ServiceLockPaths.getManager(getServerContext()) == null);
+    Wait.waitFor(() -> paths.getManager() == null);
 
     getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
 
-    Wait.waitFor(() -> ServiceLockPaths
-        .getTabletServer(getServerContext(), Optional.empty(), Optional.empty()).size() == 0);
+    Wait.waitFor(() -> paths.getTabletServer(Optional.empty(), Optional.empty()).size() == 0);
 
   }
 

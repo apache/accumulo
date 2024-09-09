@@ -49,7 +49,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -129,7 +128,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       ClusterControl control = cluster.getClusterControl();
       control.adminStopAll();
       ZooCache zcache = cluster.getServerContext().getZooCache();
-      var zLockPath = ServiceLockPaths.createManagerPath(getServerContext());
+      var zLockPath = getServerContext().getServerPaths().createManagerPath();
       Optional<ServiceLockData> managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);

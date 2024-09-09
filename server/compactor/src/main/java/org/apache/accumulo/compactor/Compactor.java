@@ -75,7 +75,6 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
@@ -262,7 +261,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
 
     final ServiceLockPath path =
-        ServiceLockPaths.createCompactorPath(getContext(), getResourceGroup(), clientAddress);
+        getContext().getServerPaths().createCompactorPath(getResourceGroup(), clientAddress);
     // The ServiceLockPath contains a resource group in the path which is not created
     // at initialization time. If it does not exist, then create it.
     final String compactorGroupPath =

@@ -87,7 +87,6 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
@@ -645,7 +644,7 @@ public class Manager extends AbstractServer
       while (stillManager()) {
         try {
           Set<ServiceLockPath> scanServerPaths =
-              ServiceLockPaths.getScanServer(getContext(), Optional.empty(), Optional.empty());
+              getContext().getServerPaths().getScanServer(Optional.empty(), Optional.empty());
           for (ServiceLockPath path : scanServerPaths) {
 
             ZcStat stat = new ZcStat();
@@ -1132,7 +1131,7 @@ public class Manager extends AbstractServer
     // block until we can obtain the ZK lock for the manager
     ServiceLockData sld;
     try {
-      sld = getManagerLock(ServiceLockPaths.createManagerPath(context));
+      sld = getManagerLock(context.getServerPaths().createManagerPath());
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }

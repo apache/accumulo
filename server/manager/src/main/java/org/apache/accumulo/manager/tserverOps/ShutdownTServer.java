@@ -25,7 +25,6 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.manager.Manager;
@@ -100,9 +99,9 @@ public class ShutdownTServer extends ManagerRepo {
     if (force) {
       ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
       var path =
-          ServiceLockPaths.createTabletServerPath(manager.getContext(), resourceGroup, hostAndPort);
+          manager.getContext().getServerPaths().createTabletServerPath(resourceGroup, hostAndPort);
       ServiceLock.deleteLock(zoo, path);
-      path = ServiceLockPaths.createDeadTabletServerPath(manager.getContext(), resourceGroup,
+      path = manager.getContext().getServerPaths().createDeadTabletServerPath(resourceGroup,
           hostAndPort);
       zoo.putPersistentData(path.toString(), "forced down".getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);

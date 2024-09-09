@@ -83,7 +83,6 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.Compacting;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
@@ -492,7 +491,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     try {
 
       final ServiceLockPath zLockPath =
-          ServiceLockPaths.createTabletServerPath(context, getResourceGroup(), clientAddress);
+          context.getServerPaths().createTabletServerPath(getResourceGroup(), clientAddress);
       // The ServiceLockPath contains a resource group in the path which is not created
       // at initialization time. If it does not exist, then create it.
       String tserverGroupPath = zLockPath.toString().substring(0,
