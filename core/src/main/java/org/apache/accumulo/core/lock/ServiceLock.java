@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -636,10 +635,9 @@ public class ServiceLock implements Watcher {
 
   }
 
-  public static boolean isLockHeld(ClientContext ctx, LockID lid) {
+  public static boolean isLockHeld(ZooCache zc, LockID lid) {
 
     var zLockPath = ServiceLockPaths.parse(lid.path);
-    ZooCache zc = ctx.getZooCache();
     List<String> children = validateAndSort(zLockPath, zc.getChildren(zLockPath.toString()));
 
     if (children.isEmpty()) {

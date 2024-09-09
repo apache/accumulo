@@ -519,6 +519,7 @@ public class ClientContext implements AccumuloClient {
    * @return a UUID
    */
   public InstanceId getInstanceID() {
+    ensureOpen();
     if (instanceId == null) {
       // lookup by name
       final String instanceName = info.getInstanceName();
@@ -542,6 +543,7 @@ public class ClientContext implements AccumuloClient {
   }
 
   public String getZooKeeperRoot() {
+    ensureOpen();
     return ZooUtil.getRoot(getInstanceID());
   }
 

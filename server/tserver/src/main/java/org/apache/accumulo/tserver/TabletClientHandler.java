@@ -883,11 +883,11 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           new ZooUtil.LockID(context.getServerPaths().createManagerPath().toString(), lock);
 
       try {
-        if (!ServiceLock.isLockHeld(context, lid)) {
+        if (!ServiceLock.isLockHeld(server.getManagerLockCache(), lid)) {
           // maybe the cache is out of date and a new manager holds the
           // lock?
           server.getManagerLockCache().clear();
-          if (!ServiceLock.isLockHeld(context, lid)) {
+          if (!ServiceLock.isLockHeld(server.getManagerLockCache(), lid)) {
             log.warn("Got {} message from a manager that does not hold the current lock {}",
                 request, lock);
             throw new RuntimeException("bad manager lock");

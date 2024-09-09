@@ -686,7 +686,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     LockID lid = new LockID(context.getZooKeeperRoot() + Constants.ZTSERVERS, sessionId.lockId);
 
     while (true) {
-      if (!ServiceLock.isLockHeld(context, lid)) {
+      if (!ServiceLock.isLockHeld(context.getZooCache(), lid)) {
         // ACCUMULO-1152 added a tserver lock check to the tablet location cache, so this
         // invalidation prevents future attempts to contact the
         // tserver even its gone zombie and is still running w/o a lock
