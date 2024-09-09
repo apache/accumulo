@@ -19,7 +19,6 @@
 package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.Map;
 import java.util.Optional;
@@ -175,8 +174,7 @@ public class ServiceStatusCmd {
     var result = readAllNodesData(zooReader, lockPath);
     Map<String,Set<String>> byGroup = new TreeMap<>();
     result.getData().forEach(data -> {
-      ServiceLockData.ServiceDescriptors sld =
-          GSON.get().fromJson(data, ServiceLockData.ServiceDescriptors.class);
+      ServiceLockData.ServiceDescriptors sld = ServiceLockData.parseServiceDescriptors(data);
       var services = sld.getServices();
       services.forEach(sd -> {
         byGroup.computeIfAbsent(sd.getGroup(), set -> new TreeSet<>()).add(sd.getAddress());

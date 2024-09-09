@@ -29,6 +29,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.util.AddressUtil;
 
@@ -109,7 +110,11 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
     @Override
     public String toString() {
-      return GSON.get().toJson(this);
+      return serialize();
+    }
+
+    private String serialize() {
+      return GSON.get().toJson(new ServiceDescriptorGson(uuid, service, address, group));
     }
 
   }
@@ -124,7 +129,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
       descriptors = new HashSet<>();
     }
 
-    public ServiceDescriptors(HashSet<ServiceDescriptor> descriptors) {
+    public ServiceDescriptors(Set<ServiceDescriptor> descriptors) {
       this.descriptors = descriptors;
     }
 
@@ -170,9 +175,11 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
   }
 
   public byte[] serialize() {
-    ServiceDescriptors sd = new ServiceDescriptors();
-    services.values().forEach(s -> sd.addService(s));
-    return GSON.get().toJson(sd).getBytes(UTF_8);
+    ServiceDescriptorsGson json = new ServiceDescriptorsGson();
+    json.descriptors = services.values().stream()
+        .map(s -> new ServiceDescriptorGson(s.uuid, s.service, s.address, s.group))
+        .collect(Collectors.toSet());
+    return GSON.get().toJson(json).getBytes(UTF_8);
   }
 
   @Override
@@ -201,7 +208,37 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     }
     String data = new String(lockData, UTF_8);
     return data.isBlank() ? Optional.empty()
-        : Optional.of(new ServiceLockData(GSON.get().fromJson(data, ServiceDescriptors.class)));
+        : Optional.of(new ServiceLockData(parseServiceDescriptors(data)));
   }
 
+  public static ServiceDescriptors parseServiceDescriptors(String data) {
+    return deserialize(GSON.get().fromJson(data, ServiceDescriptorsGson.class));
+  }
+
+  private static ServiceDescriptors deserialize(ServiceDescriptorsGson json) {
+    return new ServiceDescriptors(json.descriptors.stream()
+        .map(s -> new ServiceDescriptor(s.uuid, s.service, s.address, s.group))
+        .collect(Collectors.toSet()));
+  }
+
+  private static class ServiceDescriptorGson {
+    private UUID uuid;
+    private ThriftService service;
+    private String address;
+    private String group;
+
+    // default constructor required for Gson
+    public ServiceDescriptorGson() {}
+
+    public ServiceDescriptorGson(UUID uuid, ThriftService service, String address, String group) {
+      this.uuid = uuid;
+      this.service = service;
+      this.address = address;
+      this.group = group;
+    }
+  }
+
+  private static class ServiceDescriptorsGson {
+    private Set<ServiceDescriptorGson> descriptors;
+  }
 }

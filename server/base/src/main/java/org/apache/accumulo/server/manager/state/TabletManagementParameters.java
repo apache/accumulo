@@ -26,6 +26,7 @@ import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
@@ -61,8 +62,8 @@ import com.google.gson.GsonBuilder;
  */
 public class TabletManagementParameters {
 
-  private static final Gson GSON =
-      new GsonBuilder().enableComplexMapKeySerialization().disableHtmlEscaping().create();
+  private static final Gson GSON = new GsonBuilder().enableComplexMapKeySerialization()
+      .disableHtmlEscaping().disableJdkUnsafe().create();
 
   private final ManagerState managerState;
   private final Map<Ample.DataLevel,Boolean> parentUpgradeMap;
@@ -134,7 +135,8 @@ public class TabletManagementParameters {
       return Map.copyOf(resourceGroups);
     });
     this.canSuspendTablets = jdata.canSuspendTablets;
-    this.volumeReplacements = Collections.unmodifiableMap(jdata.volumeReplacements);
+    this.volumeReplacements = jdata.volumeReplacements.entrySet().stream().collect(Collectors
+        .toUnmodifiableMap(entry -> new Path(entry.getKey()), entry -> new Path(entry.getValue())));
     this.steadyTime = SteadyTime.from(jdata.steadyTime, TimeUnit.NANOSECONDS);
   }
 
@@ -207,22 +209,22 @@ public class TabletManagementParameters {
 
   private static class JsonData {
 
-    final ManagerState managerState;
-    final Map<Ample.DataLevel,Boolean> parentUpgradeMap;
-    final Collection<String> onlineTables;
-    final Collection<String> onlineTservers;
-    final Collection<String> serversToShutdown;
-    final Map<String,String> migrations;
+    ManagerState managerState;
+    Map<Ample.DataLevel,Boolean> parentUpgradeMap;
+    Collection<String> onlineTables;
+    Collection<String> onlineTservers;
+    Collection<String> serversToShutdown;
+    Map<String,String> migrations;
 
-    final Ample.DataLevel level;
+    Ample.DataLevel level;
 
-    final Map<String,Set<String>> tserverGroups;
+    Map<String,Set<String>> tserverGroups;
 
-    final Map<String,Map<String,String>> compactionHints;
+    Map<String,Map<String,String>> compactionHints;
 
-    final boolean canSuspendTablets;
-    final Map<Path,Path> volumeReplacements;
-    final long steadyTime;
+    boolean canSuspendTablets;
+    Map<URI,URI> volumeReplacements;
+    long steadyTime;
 
     private static String toString(KeyExtent extent) {
       DataOutputBuffer buffer = new DataOutputBuffer();
@@ -248,6 +250,9 @@ public class TabletManagementParameters {
       }
     }
 
+    // Gson requires private constructor
+    private JsonData() {}
+
     JsonData(TabletManagementParameters params) {
       managerState = params.managerState;
       parentUpgradeMap = params.parentUpgradeMap;
@@ -265,7 +270,8 @@ public class TabletManagementParameters {
       compactionHints = params.compactionHints.entrySet().stream()
           .collect(Collectors.toMap(entry -> entry.getKey().canonical(), Map.Entry::getValue));
       canSuspendTablets = params.canSuspendTablets;
-      volumeReplacements = params.volumeReplacements;
+      volumeReplacements = params.volumeReplacements.entrySet().stream().collect(
+          Collectors.toMap(entry -> entry.getKey().toUri(), entry -> entry.getValue().toUri()));
       steadyTime = params.steadyTime.getNanos();
     }
 

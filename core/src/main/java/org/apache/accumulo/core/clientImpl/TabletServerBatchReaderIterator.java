@@ -262,7 +262,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     ScanServerData ssd;
 
-    long startTime = System.currentTimeMillis();
+    Timer startTime = Timer.startNew();
 
     while (true) {
 
@@ -299,7 +299,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               failures.size(), tableId);
         }
 
-        if (System.currentTimeMillis() - startTime > retryTimeout) {
+        if (startTime.elapsed(MILLISECONDS) > retryTimeout) {
           // TODO exception used for timeout is inconsistent
           throw new TimedOutException(
               "Failed to find servers to process scans before timeout was exceeded.");
@@ -650,7 +650,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private ScanServerData binRangesForScanServers(ClientTabletCache clientTabletCache,
-      List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, long startTime)
+      List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, Timer startTime)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
       InvalidTabletHostingRequestException {
 
@@ -678,8 +678,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     // get a snapshot of this once,not each time the plugin request it
     var scanAttemptsSnapshot = scanAttempts.snapshot();
 
-    Duration timeoutLeft = Duration.ofMillis(retryTimeout)
-        .minus(Duration.ofMillis(System.currentTimeMillis() - startTime));
+    Duration timeoutLeft = Duration.ofMillis(retryTimeout - startTime.elapsed(MILLISECONDS));
 
     ScanServerSelector.SelectorParameters params = new ScanServerSelector.SelectorParameters() {
       @Override
