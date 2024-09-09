@@ -307,7 +307,7 @@ public class MetadataConstraints implements Constraint {
     }
 
     // ensure row is not less than AccumuloTable.METADATA.tableId()
-    if (new Text(row).compareTo(new Text(AccumuloTable.METADATA.tableId().canonical())) < 0) {
+    if (Arrays.compare(row, AccumuloTable.METADATA.tableId().canonical().getBytes(UTF_8)) < 0) {
       addViolation(violations, 5);
     }
   }
@@ -316,21 +316,17 @@ public class MetadataConstraints implements Constraint {
       Mutation mutation) {
     String qualStr = new String(columnUpdate.getColumnQualifier(), UTF_8);
 
-    switch (qualStr) {
-      case (TabletColumnFamily.PREV_ROW_QUAL):
-        if (columnUpdate.getValue().length > 0 && !violations.contains((short) 4)) {
-          KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
+    if (qualStr.equals(TabletColumnFamily.PREV_ROW_QUAL)) {
+      if (columnUpdate.getValue().length > 0 && !violations.contains((short) 4)) {
+        KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
+        Text per = TabletColumnFamily.decodePrevEndRow(new Value(columnUpdate.getValue()));
+        boolean prevEndRowLessThanEndRow =
+                per == null || ke.endRow() == null || per.compareTo(ke.endRow()) < 0;
 
-          Text per = TabletColumnFamily.decodePrevEndRow(new Value(columnUpdate.getValue()));
-
-          boolean prevEndRowLessThanEndRow =
-              per == null || ke.endRow() == null || per.compareTo(ke.endRow()) < 0;
-
-          if (!prevEndRowLessThanEndRow) {
-            addViolation(violations, 3);
-          }
+        if (!prevEndRowLessThanEndRow) {
+          addViolation(violations, 3);
         }
-        break;
+      }
     }
   }
 
