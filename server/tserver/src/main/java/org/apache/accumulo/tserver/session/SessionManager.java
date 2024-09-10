@@ -47,7 +47,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ScanState;
 import org.apache.accumulo.core.tabletserver.thrift.ScanType;
@@ -55,10 +55,10 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.scan.ScanTask;
 import org.apache.accumulo.tserver.session.Session.State;
-import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -453,7 +453,7 @@ public class SessionManager {
     final Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
     /**
-     * Add sessions so that get the list returned in the active scans call
+     * Add sessions that get the list returned in the active scans call
      */
     for (Session session : deferredCleanupQueue) {
       copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
@@ -461,75 +461,65 @@ public class SessionManager {
 
     List.of(sessions.entrySet(), copiedIdleSessions).forEach(s -> s.forEach(entry -> {
       Session session = entry.getValue();
+
       if (session instanceof SingleScanSession) {
-        SingleScanSession ss = (SingleScanSession) session;
+        final SingleScanSession ss = (SingleScanSession) session;
+        final KeyExtent extent = ss.extent;
+        final ScanType scanType = ScanType.SINGLE;
+        final ScanParameters params = ss.scanParams;
+        final ScanState state = computeScanState(ss.getScanTask());
+        final long scanId = entry.getKey();
 
-        ScanState state = ScanState.RUNNING;
-
-        ScanTask<ScanBatch> nbt = ss.getScanTask();
-        if (nbt == null) {
-          state = ScanState.IDLE;
-        } else {
-          switch (nbt.getScanRunState()) {
-            case QUEUED:
-              state = ScanState.QUEUED;
-              break;
-            case FINISHED:
-              state = ScanState.IDLE;
-              break;
-            case RUNNING:
-            default:
-              /* do nothing */
-              break;
-          }
-        }
-
-        var params = ss.scanParams;
-        ActiveScan activeScan = new ActiveScan(ss.client, ss.getUser(),
-            ss.extent.tableId().canonical(), ct - ss.startTime, ct - ss.lastAccessTime,
-            ScanType.SINGLE, state, ss.extent.toThrift(),
-            params.getColumnSet().stream().map(Column::toThrift).collect(Collectors.toList()),
-            params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
-            params.getClassLoaderContext());
-
-        // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in
-        // ActiveScan constructor
-        activeScan.setScanId(entry.getKey());
-        activeScans.add(activeScan);
-
+        addActiveScan(activeScans, ss, extent, ct, scanType, state, params, scanId);
       } else if (session instanceof MultiScanSession) {
-        MultiScanSession mss = (MultiScanSession) session;
+        final MultiScanSession mss = (MultiScanSession) session;
+        final KeyExtent extent = mss.threadPoolExtent;
+        final ScanType scanType = ScanType.BATCH;
+        final ScanParameters params = mss.scanParams;
+        final ScanState state = computeScanState(mss.getScanTask());
+        final long scanId = entry.getKey();
 
-        ScanState state = ScanState.RUNNING;
-
-        ScanTask<MultiScanResult> nbt = mss.getScanTask();
-        if (nbt == null) {
-          state = ScanState.IDLE;
-        } else {
-          switch (nbt.getScanRunState()) {
-            case QUEUED:
-              state = ScanState.QUEUED;
-              break;
-            case FINISHED:
-              state = ScanState.IDLE;
-              break;
-            case RUNNING:
-            default:
-              /* do nothing */
-              break;
-          }
-        }
-
-        var params = mss.scanParams;
-        activeScans.add(new ActiveScan(mss.client, mss.getUser(),
-            mss.threadPoolExtent.tableId().canonical(), ct - mss.startTime, ct - mss.lastAccessTime,
-            ScanType.BATCH, state, mss.threadPoolExtent.toThrift(),
-            params.getColumnSet().stream().map(Column::toThrift).collect(Collectors.toList()),
-            params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
-            params.getClassLoaderContext()));
+        addActiveScan(activeScans, mss, extent, ct, scanType, state, params, scanId);
       }
     }));
 
     return activeScans;
+  }
+
+  private ScanState computeScanState(ScanTask<?> scanTask) {
+    ScanState state = ScanState.RUNNING;
+
+    if (scanTask == null) {
+      state = ScanState.IDLE;
+    } else {
+      switch (scanTask.getScanRunState()) {
+        case QUEUED:
+          state = ScanState.QUEUED;
+          break;
+        case FINISHED:
+          state = ScanState.IDLE;
+          break;
+        case RUNNING:
+        default:
+          /* do nothing */
+          break;
+      }
+    }
+
+    return state;
+  }
+
+  private void addActiveScan(List<ActiveScan> activeScans, Session session, KeyExtent extent,
+      long ct, ScanType scanType, ScanState state, ScanParameters params, long scanId) {
+    ActiveScan activeScan =
+        new ActiveScan(session.client, session.getUser(), extent.tableId().canonical(),
+            ct - session.startTime, ct - session.lastAccessTime, scanType, state, extent.toThrift(),
+            params.getColumnSet().stream().map(Column::toThrift).collect(Collectors.toList()),
+            params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
+            params.getClassLoaderContext());
+    // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in
+    // ActiveScan constructor
+    activeScan.setScanId(scanId);
+    activeScans.add(activeScan);
   }
 }
