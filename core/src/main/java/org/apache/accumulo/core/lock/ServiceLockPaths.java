@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 
@@ -170,13 +171,10 @@ public class ServiceLockPaths {
 
   }
 
-  private final ZooCache cache;
-  private final String root;
+  private final ClientContext ctx;
 
-  public ServiceLockPaths(ZooCache cache, String root) {
-    super();
-    this.cache = cache;
-    this.root = root;
+  public ServiceLockPaths(ClientContext context) {
+    this.ctx = context;
   }
 
   /**
@@ -222,45 +220,47 @@ public class ServiceLockPaths {
   }
 
   public ServiceLockPath createGarbageCollectorPath() {
-    return new ServiceLockPath(root, Constants.ZGC_LOCK);
+    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZGC_LOCK);
   }
 
   public ServiceLockPath createManagerPath() {
-    return new ServiceLockPath(root, Constants.ZMANAGER_LOCK);
+    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZMANAGER_LOCK);
   }
 
   public ServiceLockPath createMiniPath(String miniUUID) {
-    return new ServiceLockPath(root, Constants.ZMINI_LOCK, miniUUID);
+    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZMINI_LOCK, miniUUID);
   }
 
   public ServiceLockPath createMonitorPath() {
-    return new ServiceLockPath(root, Constants.ZMONITOR_LOCK);
+    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZMONITOR_LOCK);
   }
 
   public ServiceLockPath createCompactorPath(String resourceGroup, HostAndPort serverAddress) {
-    return new ServiceLockPath(root, Constants.ZCOMPACTORS, resourceGroup,
+    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZCOMPACTORS, resourceGroup,
         serverAddress.toString());
   }
 
   public ServiceLockPath createScanServerPath(String resourceGroup, HostAndPort serverAddress) {
-    return new ServiceLockPath(root, Constants.ZSSERVERS, resourceGroup, serverAddress.toString());
+    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZSSERVERS, resourceGroup,
+        serverAddress.toString());
   }
 
   public ServiceLockPath createTableLocksPath() {
-    return new ServiceLockPath(root, Constants.ZTABLE_LOCKS);
+    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZTABLE_LOCKS);
   }
 
   public ServiceLockPath createTableLocksPath(String tableId) {
-    return new ServiceLockPath(root, Constants.ZTABLE_LOCKS, tableId);
+    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZTABLE_LOCKS, tableId);
   }
 
   public ServiceLockPath createTabletServerPath(String resourceGroup, HostAndPort serverAddress) {
-    return new ServiceLockPath(root, Constants.ZTSERVERS, resourceGroup, serverAddress.toString());
+    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZTSERVERS, resourceGroup,
+        serverAddress.toString());
   }
 
   public ServiceLockPath createDeadTabletServerPath(String resourceGroup,
       HostAndPort serverAddress) {
-    return new ServiceLockPath(root, Constants.ZDEADTSERVERS, resourceGroup,
+    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZDEADTSERVERS, resourceGroup,
         serverAddress.toString());
   }
 
@@ -323,7 +323,8 @@ public class ServiceLockPaths {
     Objects.requireNonNull(address);
 
     final Set<ServiceLockPath> results = new HashSet<>();
-    final String typePath = root + serverType;
+    final String typePath = ctx.getZooKeeperRoot() + serverType;
+    final ZooCache cache = ctx.getZooCache();
 
     if (serverType.equals(Constants.ZGC_LOCK) || serverType.equals(Constants.ZMANAGER_LOCK)
         || serverType.equals(Constants.ZMONITOR_LOCK)) {
@@ -342,10 +343,16 @@ public class ServiceLockPaths {
           for (final String server : servers) {
             final ZcStat stat = new ZcStat();
             final ServiceLockPath slp = parse(typePath + "/" + group + "/" + server);
-            Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
-            if (!sld.isEmpty()
+            if (slp.getType().equals(Constants.ZDEADTSERVERS)
                 && (address.isEmpty() || address.orElseThrow().toString().equals(server))) {
+              // Dead TServers don't have lock data
               results.add(slp);
+            } else {
+              Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
+              if (!sld.isEmpty()
+                  && (address.isEmpty() || address.orElseThrow().toString().equals(server))) {
+                results.add(slp);
+              }
             }
           }
         }

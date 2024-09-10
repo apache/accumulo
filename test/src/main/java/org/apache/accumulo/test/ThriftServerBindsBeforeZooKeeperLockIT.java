@@ -138,7 +138,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       while (true) {
         try {
           ServiceLockPath managerLockPath = getServerContext().getServerPaths().getManager();
-          if (managerLockPath == null) {
+          if (managerLockPath != null) {
             break;
           }
         } catch (Exception e) {
@@ -195,7 +195,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       while (true) {
         try {
           ServiceLockPath slp = getServerContext().getServerPaths().getGarbageCollector();
-          if (slp == null) {
+          if (slp != null) {
             break;
           }
         } catch (Exception e) {

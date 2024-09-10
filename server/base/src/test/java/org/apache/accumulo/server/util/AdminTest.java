@@ -108,7 +108,7 @@ public class AdminTest {
           stat.setEphemeralOwner(session);
           return new byte[0];
         });
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, root)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     assertEquals(server + "[" + Long.toHexString(session) + "]",
@@ -133,7 +133,7 @@ public class AdminTest {
     EasyMock.expect(zc.getChildren(type)).andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME));
     EasyMock.expect(zc.getChildren(group)).andReturn(List.of(server));
     EasyMock.expect(zc.getChildren(serverPath)).andReturn(Collections.emptyList());
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, root)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     // A server that isn't in ZooKeeper. Can't qualify it, should return the original

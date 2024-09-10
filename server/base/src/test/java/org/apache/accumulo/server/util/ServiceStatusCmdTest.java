@@ -74,7 +74,7 @@ public class ServiceStatusCmdTest {
 
     expect(context.getZooReader()).andReturn(zooReader).anyTimes();
     expect(context.getZooCache()).andReturn(zooCache).anyTimes();
-    expect(context.getServerPaths()).andReturn(new ServiceLockPaths(zooCache, zRoot)).anyTimes();
+    expect(context.getServerPaths()).andReturn(new ServiceLockPaths(context)).anyTimes();
 
     replay(context);
   }

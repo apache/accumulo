@@ -61,13 +61,12 @@ public class ServiceLockPathsTest {
   @Test
   public void testPathGeneration() {
 
-    ServiceLockPaths paths = new ServiceLockPaths(null, ROOT);
-
     ClientContext ctx = EasyMock.createMock(ClientContext.class);
     EasyMock.expect(ctx.getZooKeeperRoot()).andReturn(ROOT).anyTimes();
 
     EasyMock.replay(ctx);
 
+    ServiceLockPaths paths = new ServiceLockPaths(ctx);
     // Test management process path creation
     ServiceLockPath slp = paths.createGarbageCollectorPath();
     assertNull(slp.getServer());
@@ -144,7 +143,7 @@ public class ServiceLockPathsTest {
     EasyMock.expect(ctx.getZooKeeperRoot()).andReturn(ROOT).anyTimes();
     EasyMock.expect(ctx.getZooCache()).andReturn(zc).anyTimes();
     EasyMock.expect(zc.getChildren(ROOT + ZGC_LOCK)).andReturn(List.of()).anyTimes();
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     ServiceLockPath slp = ctx.getServerPaths().getGarbageCollector();
@@ -173,7 +172,7 @@ public class ServiceLockPathsTest {
     EasyMock
         .expect(zc.get(EasyMock.eq(ROOT + ZGC_LOCK + "/" + svcLock1), EasyMock.isA(ZcStat.class)))
         .andReturn(sld.serialize());
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     ServiceLockPath slp = ctx.getServerPaths().getGarbageCollector();
@@ -196,7 +195,7 @@ public class ServiceLockPathsTest {
     EasyMock.expect(ctx.getZooKeeperRoot()).andReturn(ROOT).anyTimes();
     EasyMock.expect(ctx.getZooCache()).andReturn(zc).anyTimes();
     EasyMock.expect(zc.getChildren(ROOT + ZMANAGER_LOCK)).andReturn(List.of()).anyTimes();
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     ServiceLockPath slp = ctx.getServerPaths().getManager();
@@ -226,7 +225,7 @@ public class ServiceLockPathsTest {
         .expect(
             zc.get(EasyMock.eq(ROOT + ZMANAGER_LOCK + "/" + svcLock1), EasyMock.isA(ZcStat.class)))
         .andReturn(sld.serialize());
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     ServiceLockPath slp = ctx.getServerPaths().getManager();
@@ -249,7 +248,7 @@ public class ServiceLockPathsTest {
     EasyMock.expect(ctx.getZooKeeperRoot()).andReturn(ROOT).anyTimes();
     EasyMock.expect(ctx.getZooCache()).andReturn(zc).anyTimes();
     EasyMock.expect(zc.getChildren(ROOT + ZMONITOR_LOCK)).andReturn(List.of()).anyTimes();
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     ServiceLockPath slp = ctx.getServerPaths().getMonitor();
@@ -279,7 +278,7 @@ public class ServiceLockPathsTest {
         .expect(
             zc.get(EasyMock.eq(ROOT + ZMONITOR_LOCK + "/" + svcLock1), EasyMock.isA(ZcStat.class)))
         .andReturn(sld.serialize());
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     ServiceLockPath slp = ctx.getServerPaths().getMonitor();
@@ -302,7 +301,7 @@ public class ServiceLockPathsTest {
     EasyMock.expect(ctx.getZooKeeperRoot()).andReturn(ROOT).anyTimes();
     EasyMock.expect(ctx.getZooCache()).andReturn(zc).anyTimes();
     EasyMock.expect(zc.getChildren(ROOT + ZCOMPACTORS)).andReturn(List.of()).anyTimes();
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     assertThrows(NullPointerException.class, () -> ctx.getServerPaths().getCompactor(null, null));
@@ -354,7 +353,7 @@ public class ServiceLockPathsTest {
         .expect(zc.get(EasyMock.eq(ROOT + ZCOMPACTORS + "/" + DEFAULT_RESOURCE_GROUP_NAME + "/"
             + HOSTNAME + "/" + svcLock1), EasyMock.isA(ZcStat.class)))
         .andReturn(sld2.serialize()).anyTimes();
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     // query for all
@@ -430,7 +429,7 @@ public class ServiceLockPathsTest {
     EasyMock.expect(ctx.getZooKeeperRoot()).andReturn(ROOT).anyTimes();
     EasyMock.expect(ctx.getZooCache()).andReturn(zc).anyTimes();
     EasyMock.expect(zc.getChildren(ROOT + ZSSERVERS)).andReturn(List.of()).anyTimes();
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     assertThrows(NullPointerException.class, () -> ctx.getServerPaths().getScanServer(null, null));
@@ -481,7 +480,7 @@ public class ServiceLockPathsTest {
         EasyMock.eq(
             ROOT + ZSSERVERS + "/" + DEFAULT_RESOURCE_GROUP_NAME + "/" + HOSTNAME + "/" + svcLock1),
         EasyMock.isA(ZcStat.class))).andReturn(sld2.serialize()).anyTimes();
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     // query for all
@@ -556,7 +555,7 @@ public class ServiceLockPathsTest {
     EasyMock.expect(ctx.getZooKeeperRoot()).andReturn(ROOT).anyTimes();
     EasyMock.expect(ctx.getZooCache()).andReturn(zc).anyTimes();
     EasyMock.expect(zc.getChildren(ROOT + ZTSERVERS)).andReturn(List.of()).anyTimes();
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     assertThrows(NullPointerException.class,
@@ -608,7 +607,7 @@ public class ServiceLockPathsTest {
         EasyMock.eq(
             ROOT + ZTSERVERS + "/" + DEFAULT_RESOURCE_GROUP_NAME + "/" + HOSTNAME + "/" + svcLock1),
         EasyMock.isA(ZcStat.class))).andReturn(sld2.serialize()).anyTimes();
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     // query for all
@@ -684,7 +683,7 @@ public class ServiceLockPathsTest {
     EasyMock.expect(ctx.getZooKeeperRoot()).andReturn(ROOT).anyTimes();
     EasyMock.expect(ctx.getZooCache()).andReturn(zc).anyTimes();
     EasyMock.expect(zc.getChildren(ROOT + ZDEADTSERVERS)).andReturn(List.of()).anyTimes();
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     assertThrows(NullPointerException.class,
@@ -739,7 +738,7 @@ public class ServiceLockPathsTest {
         .expect(zc.get(EasyMock.eq(ROOT + ZDEADTSERVERS + "/" + DEFAULT_RESOURCE_GROUP_NAME + "/"
             + HOSTNAME + "/" + svcLock1), EasyMock.isA(ZcStat.class)))
         .andReturn(sld2.serialize()).anyTimes();
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);
 
     // query for all
@@ -815,7 +814,7 @@ public class ServiceLockPathsTest {
 
     ClientContext ctx = EasyMock.createMock(ClientContext.class);
     EasyMock.expect(ctx.getZooKeeperRoot()).andReturn(ROOT).anyTimes();
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(null, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx);
 
     // Only table lock creation is supported because the existing code
@@ -848,7 +847,7 @@ public class ServiceLockPathsTest {
 
     ClientContext ctx = EasyMock.createMock(ClientContext.class);
     EasyMock.expect(ctx.getZooKeeperRoot()).andReturn(ROOT).anyTimes();
-    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(null, ROOT)).anyTimes();
+    EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx);
 
     assertThrows(NullPointerException.class, () -> ctx.getServerPaths().createMiniPath(null));

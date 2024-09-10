@@ -714,7 +714,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // It's possible start was called twice...
     if (miniLock == null) {
       UUID miniUUID = UUID.randomUUID();
-      ServiceLockPath slp = getServerContext().getServerPaths().createMiniPath(miniUUID.toString());
+      // Don't call getServerContext here as it will set the SingletonManager.mode to SERVER
+      // We don't want that.
+      ServiceLockPath slp =
+          ((ClientContext) client).getServerPaths().createMiniPath(miniUUID.toString());
       String miniZInstancePath = slp.toString();
       String miniZDirPath =
           miniZInstancePath.substring(0, miniZInstancePath.indexOf("/" + miniUUID.toString()));
@@ -742,7 +745,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
     }
 
-    verifyUp(iid);
+    verifyUp((ClientContext) client, iid);
 
     printProcessSummary();
 
@@ -821,7 +824,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
   }
 
-  private void verifyUp(InstanceId instanceId) throws InterruptedException, IOException {
+  private void verifyUp(ClientContext context, InstanceId instanceId)
+      throws InterruptedException, IOException {
 
     requireNonNull(getClusterControl().managerProcess, "Error starting Manager - no process");
     waitForProcessStart(getClusterControl().managerProcess, "Manager");
@@ -859,7 +863,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int tsActualCount = 0;
     while (tsActualCount < tsExpectedCount) {
       Set<ServiceLockPath> tservers =
-          getServerContext().getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
+          context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
       tsActualCount = tservers.size();
       log.info(tsActualCount + " of " + tsExpectedCount + " tablet servers present in ZooKeeper");
       Thread.sleep(500);
@@ -868,7 +872,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int ssActualCount = 0;
     while (ssActualCount < ssExpectedCount) {
       Set<ServiceLockPath> tservers =
-          getServerContext().getServerPaths().getScanServer(Optional.empty(), Optional.empty());
+          context.getServerPaths().getScanServer(Optional.empty(), Optional.empty());
       ssActualCount = tservers.size();
       log.info(ssActualCount + " of " + ssExpectedCount + " scan servers present in ZooKeeper");
       Thread.sleep(500);
@@ -877,18 +881,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int ecActualCount = 0;
     while (ecActualCount < ecExpectedCount) {
       Set<ServiceLockPath> compactors =
-          getServerContext().getServerPaths().getCompactor(Optional.empty(), Optional.empty());
+          context.getServerPaths().getCompactor(Optional.empty(), Optional.empty());
       ecActualCount = compactors.size();
       log.info(ecActualCount + " of " + ecExpectedCount + " compactors present in ZooKeeper");
       Thread.sleep(500);
     }
 
-    while (getServerContext().getServerPaths().getManager() == null) {
+    while (context.getServerPaths().getManager() == null) {
       log.info("Manager not yet present in ZooKeeper");
       Thread.sleep(500);
     }
 
-    while (getServerContext().getServerPaths().getGarbageCollector() == null) {
+    while (context.getServerPaths().getGarbageCollector() == null) {
       log.info("GC not yet present in ZooKeeper");
       Thread.sleep(500);
     }

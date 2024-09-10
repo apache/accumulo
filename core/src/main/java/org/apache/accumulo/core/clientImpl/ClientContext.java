@@ -241,8 +241,7 @@ public class ClientContext implements AccumuloClient {
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
-    this.serverPaths =
-        Suppliers.memoize(() -> new ServiceLockPaths(this.zooCache, this.getZooKeeperRoot()));
+    this.serverPaths = Suppliers.memoize(() -> new ServiceLockPaths(this));
     if (ueh == Threads.UEH) {
       clientThreadPools = ThreadPools.getServerThreadPools();
     } else {
@@ -519,7 +518,6 @@ public class ClientContext implements AccumuloClient {
    * @return a UUID
    */
   public InstanceId getInstanceID() {
-    ensureOpen();
     if (instanceId == null) {
       // lookup by name
       final String instanceName = info.getInstanceName();
@@ -543,7 +541,6 @@ public class ClientContext implements AccumuloClient {
   }
 
   public String getZooKeeperRoot() {
-    ensureOpen();
     return ZooUtil.getRoot(getInstanceID());
   }
 

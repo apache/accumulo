@@ -37,26 +37,32 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 public class DeadServerList {
 
   private static final Logger log = LoggerFactory.getLogger(DeadServerList.class);
 
+  // ELASTICITY_TODO See if we can get the ResourceGroup from the Monitor
+  // and replace the "UNKNOWN" value with the ResourceGroup
+  private static final String RESOURCE_GROUP = "UNKNOWN";
   private final ServerContext ctx;
-  private final String path;
+  private final String root;
   private final ZooReaderWriter zoo;
+  private final String path;
 
   public DeadServerList(ServerContext context) {
     this.ctx = context;
-    this.path = context.getZooKeeperRoot() + Constants.ZDEADTSERVERS;
-    zoo = context.getZooReaderWriter();
+    zoo = this.ctx.getZooReaderWriter();
+    root = this.ctx.getZooKeeperRoot();
+
+    this.path = root + Constants.ZDEADTSERVERS + "/" + RESOURCE_GROUP;
     try {
-      context.getZooReaderWriter().mkdirs(path);
+      ctx.getZooReaderWriter().mkdirs(path);
     } catch (Exception ex) {
       log.error("Unable to make parent directories of " + path, ex);
     }
+
   }
 
   public List<DeadServer> getList() {
@@ -78,7 +84,6 @@ public class DeadServerList {
         DeadServer server = new DeadServer(path.getServer(), stat.getMtime(),
             new String(data, UTF_8), path.getResourceGroup());
         result.add(server);
-
       }
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
@@ -88,13 +93,8 @@ public class DeadServerList {
 
   public void delete(String server) {
     try {
-      final HostAndPort hp = HostAndPort.fromString(server);
-      final Set<ServiceLockPath> paths =
-          ctx.getServerPaths().getTabletServer(Optional.empty(), Optional.of(hp));
-      Preconditions.checkArgument(paths.size() == 1,
-          "Did not find a unique ZooKeeper path for server address: " + server);
       zoo.recursiveDelete(ctx.getServerPaths()
-          .createDeadTabletServerPath(paths.iterator().next().getResourceGroup(), hp).toString(),
+          .createDeadTabletServerPath(RESOURCE_GROUP, HostAndPort.fromString(server)).toString(),
           NodeMissingPolicy.SKIP);
     } catch (Exception ex) {
       log.error("delete failed with exception", ex);
@@ -103,16 +103,8 @@ public class DeadServerList {
 
   public void post(String server, String cause) {
     try {
-      final HostAndPort hp = HostAndPort.fromString(server);
-      final Set<ServiceLockPath> paths =
-          ctx.getServerPaths().getTabletServer(Optional.empty(), Optional.of(hp));
-      Preconditions.checkArgument(paths.size() == 1,
-          "Did not find a unique ZooKeeper path for server address: " + server);
-      zoo.putPersistentData(
-          ctx.getServerPaths()
-              .createDeadTabletServerPath(paths.iterator().next().getResourceGroup(),
-                  HostAndPort.fromString(server))
-              .toString(),
+      zoo.putPersistentData(ctx.getServerPaths()
+          .createDeadTabletServerPath(RESOURCE_GROUP, HostAndPort.fromString(server)).toString(),
           cause.getBytes(UTF_8), NodeExistsPolicy.SKIP);
     } catch (Exception ex) {
       log.error("post failed with exception", ex);
