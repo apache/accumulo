@@ -637,7 +637,7 @@ public class ServiceLock implements Watcher {
 
   public static boolean isLockHeld(ZooCache zc, LockID lid) {
 
-    var zLockPath = ServiceLockPaths.parse(lid.path);
+    var zLockPath = ServiceLockPaths.parse(Optional.empty(), lid.path);
     List<String> children = validateAndSort(zLockPath, zc.getChildren(zLockPath.toString()));
 
     if (children.isEmpty()) {

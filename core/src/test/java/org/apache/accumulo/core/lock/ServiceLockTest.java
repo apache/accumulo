@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -32,8 +33,8 @@ import org.junit.jupiter.api.Test;
 
 public class ServiceLockTest {
 
-  private final ServiceLockPath path =
-      ServiceLockPaths.parse("/fake/root" + Constants.ZMANAGER_LOCK);
+  private final ServiceLockPath path = ServiceLockPaths.parse(Optional.of(Constants.ZMANAGER_LOCK),
+      "/fake/root" + Constants.ZMANAGER_LOCK);
 
   @Test
   public void testSortAndFindLowestPrevPrefix() {

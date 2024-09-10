@@ -177,46 +177,64 @@ public class ServiceLockPaths {
     this.ctx = context;
   }
 
+  private static String determineServerType(final String path) {
+    if (path.contains(Constants.ZGC_LOCK)) {
+      return Constants.ZGC_LOCK;
+    } else if (path.contains(Constants.ZMANAGER_LOCK)) {
+      return Constants.ZMANAGER_LOCK;
+    } else if (path.contains(Constants.ZMONITOR_LOCK)) {
+      return Constants.ZMONITOR_LOCK;
+    } else if (path.contains(Constants.ZMINI_LOCK)) {
+      return Constants.ZMINI_LOCK;
+    } else if (path.contains(Constants.ZCOMPACTORS)) {
+      return Constants.ZCOMPACTORS;
+    } else if (path.contains(Constants.ZSSERVERS)) {
+      return Constants.ZSSERVERS;
+    } else if (path.contains(Constants.ZDEADTSERVERS)) {
+      // This has to be before TSERVERS
+      return Constants.ZDEADTSERVERS;
+    } else if (path.contains(Constants.ZTSERVERS)) {
+      return Constants.ZTSERVERS;
+    } else {
+      throw new IllegalArgumentException("Unhandled to determine server type from path: " + path);
+    }
+  }
+
   /**
    * Parse a ZooKeeper path string and return a ServiceLockPath
    */
-  public static ServiceLockPath parse(String path) {
+  public static ServiceLockPath parse(Optional<String> serverType, String path) {
+    Objects.requireNonNull(serverType);
     Objects.requireNonNull(path);
-    if (path.contains(Constants.ZGC_LOCK)) {
-      return new ServiceLockPath(path.substring(0, path.indexOf(Constants.ZGC_LOCK)),
-          Constants.ZGC_LOCK);
-    } else if (path.contains(Constants.ZMANAGER_LOCK)) {
-      return new ServiceLockPath(path.substring(0, path.indexOf(Constants.ZMANAGER_LOCK)),
-          Constants.ZMANAGER_LOCK);
-    } else if (path.contains(Constants.ZMONITOR_LOCK)) {
-      return new ServiceLockPath(path.substring(0, path.indexOf(Constants.ZMONITOR_LOCK)),
-          Constants.ZMONITOR_LOCK);
-    } else {
-      String[] pathParts = path.replaceFirst("/", "").split("/");
-      Preconditions.checkArgument(pathParts.length >= 4,
-          "Unhandled zookeeper service path : " + path);
-      String server = pathParts[pathParts.length - 1];
-      String resourceGroup = pathParts[pathParts.length - 2];
-      if (path.contains(Constants.ZMINI_LOCK)) {
-        return new ServiceLockPath(path.substring(0, path.indexOf(Constants.ZMINI_LOCK)),
-            Constants.ZMINI_LOCK, server);
-      } else if (path.contains(Constants.ZCOMPACTORS)) {
-        return new ServiceLockPath(path.substring(0, path.indexOf(Constants.ZCOMPACTORS)),
-            Constants.ZCOMPACTORS, resourceGroup, server);
-      } else if (path.contains(Constants.ZSSERVERS)) {
-        return new ServiceLockPath(path.substring(0, path.indexOf(Constants.ZSSERVERS)),
-            Constants.ZSSERVERS, resourceGroup, server);
-      } else if (path.contains(Constants.ZDEADTSERVERS)) {
-        // This has to be before TSERVERS
-        return new ServiceLockPath(path.substring(0, path.indexOf(Constants.ZDEADTSERVERS)),
-            Constants.ZDEADTSERVERS, resourceGroup, server);
-      } else if (path.contains(Constants.ZTSERVERS)) {
-        return new ServiceLockPath(path.substring(0, path.indexOf(Constants.ZTSERVERS)),
-            Constants.ZTSERVERS, resourceGroup, server);
-      } else {
-        throw new IllegalArgumentException("Unhandled zookeeper service path : " + path);
+
+    final String type = serverType.isEmpty() ? determineServerType(path) : serverType.orElseThrow();
+
+    switch (type) {
+      case Constants.ZGC_LOCK:
+      case Constants.ZMANAGER_LOCK:
+      case Constants.ZMONITOR_LOCK:
+        return new ServiceLockPath(path.substring(0, path.indexOf(type)), type);
+      default: {
+        final String[] pathParts = path.replaceFirst("/", "").split("/");
+        Preconditions.checkArgument(pathParts.length >= 4,
+            "Unhandled zookeeper service path : " + path);
+        final String server = pathParts[pathParts.length - 1];
+        final String resourceGroup = pathParts[pathParts.length - 2];
+        switch (type) {
+          case Constants.ZMINI_LOCK:
+            return new ServiceLockPath(path.substring(0, path.indexOf(type)), type, server);
+          case Constants.ZCOMPACTORS:
+          case Constants.ZSSERVERS:
+          case Constants.ZTSERVERS:
+          case Constants.ZDEADTSERVERS:
+            return new ServiceLockPath(path.substring(0, path.indexOf(type)), type, resourceGroup,
+                server);
+          default:
+            throw new IllegalArgumentException("Unhandled zookeeper service path : " + path);
+        }
       }
     }
+
   }
 
   public ServiceLockPath createGarbageCollectorPath() {
@@ -329,7 +347,7 @@ public class ServiceLockPaths {
     if (serverType.equals(Constants.ZGC_LOCK) || serverType.equals(Constants.ZMANAGER_LOCK)
         || serverType.equals(Constants.ZMONITOR_LOCK)) {
       final ZcStat stat = new ZcStat();
-      final ServiceLockPath slp = parse(typePath);
+      final ServiceLockPath slp = parse(Optional.of(serverType), typePath);
       Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
       if (!sld.isEmpty()) {
         results.add(slp);
@@ -342,7 +360,8 @@ public class ServiceLockPaths {
           final List<String> servers = cache.getChildren(typePath + "/" + group);
           for (final String server : servers) {
             final ZcStat stat = new ZcStat();
-            final ServiceLockPath slp = parse(typePath + "/" + group + "/" + server);
+            final ServiceLockPath slp =
+                parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
             if (slp.getType().equals(Constants.ZDEADTSERVERS)
                 && (address.isEmpty() || address.orElseThrow().toString().equals(server))) {
               // Dead TServers don't have lock data

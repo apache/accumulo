@@ -314,7 +314,8 @@ public class LiveTServerSet implements Watcher {
         scanServers();
       } else if (event.getPath().contains(Constants.ZTSERVERS)) {
         try {
-          final ServiceLockPath slp = ServiceLockPaths.parse(event.getPath());
+          final ServiceLockPath slp =
+              ServiceLockPaths.parse(Optional.of(Constants.ZTSERVERS), event.getPath());
           if (slp.getType().equals(Constants.ZTSERVERS)) {
             final Set<TServerInstance> updates = new HashSet<>();
             final Set<TServerInstance> doomed = new HashSet<>();

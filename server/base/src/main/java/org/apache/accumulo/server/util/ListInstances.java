@@ -166,8 +166,8 @@ public class ListInstances {
     }
 
     try {
-      var zLockManagerPath =
-          ServiceLockPaths.parse(Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK);
+      var zLockManagerPath = ServiceLockPaths.parse(Optional.of(Constants.ZMANAGER_LOCK),
+          Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK);
       Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, zLockManagerPath, null);
       if (sld.isEmpty()) {
         return null;

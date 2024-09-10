@@ -834,9 +834,10 @@ public class ServiceLockPathsTest {
     // There is no get method
 
     // Parsing is not supported
-    assertThrows(IllegalArgumentException.class, () -> ServiceLockPaths.parse(ROOT + ZTABLE_LOCKS));
     assertThrows(IllegalArgumentException.class,
-        () -> ServiceLockPaths.parse(ROOT + ZTABLE_LOCKS + "/1"));
+        () -> ServiceLockPaths.parse(Optional.of(ZTABLE_LOCKS), ROOT + ZTABLE_LOCKS));
+    assertThrows(IllegalArgumentException.class,
+        () -> ServiceLockPaths.parse(Optional.of(ZTABLE_LOCKS), ROOT + ZTABLE_LOCKS + "/1"));
 
     EasyMock.verify(ctx);
 
@@ -864,8 +865,9 @@ public class ServiceLockPathsTest {
     // There is no get method
 
     // Parsing is not supported
-    assertThrows(IllegalArgumentException.class, () -> ServiceLockPaths.parse(ROOT + ZMINI_LOCK));
-    slp = ServiceLockPaths.parse(ROOT + ZMINI_LOCK + "/" + miniUUID);
+    assertThrows(IllegalArgumentException.class,
+        () -> ServiceLockPaths.parse(Optional.of(ZMINI_LOCK), ROOT + ZMINI_LOCK));
+    slp = ServiceLockPaths.parse(Optional.of(ZMINI_LOCK), ROOT + ZMINI_LOCK + "/" + miniUUID);
     assertEquals(miniUUID, slp.getServer());
     assertNull(slp.getResourceGroup());
     assertEquals(ZMINI_LOCK, slp.getType());

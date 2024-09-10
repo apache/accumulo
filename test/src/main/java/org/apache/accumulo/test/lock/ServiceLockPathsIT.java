@@ -42,9 +42,9 @@ public class ServiceLockPathsIT extends AccumuloClusterHarness {
     cfg.getClusterServerConfiguration().setNumDefaultCompactors(1);
     cfg.getClusterServerConfiguration().setNumDefaultScanServers(1);
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
-    cfg.getClusterServerConfiguration().addCompactorResourceGroup("TEST", 1);
-    cfg.getClusterServerConfiguration().addScanServerResourceGroup("TEST", 1);
-    cfg.getClusterServerConfiguration().addTabletServerResourceGroup("TEST", 1);
+    cfg.getClusterServerConfiguration().addCompactorResourceGroup("CTEST", 3);
+    cfg.getClusterServerConfiguration().addScanServerResourceGroup("STEST", 2);
+    cfg.getClusterServerConfiguration().addTabletServerResourceGroup("TTEST", 1);
   }
 
   @Test
@@ -57,18 +57,20 @@ public class ServiceLockPathsIT extends AccumuloClusterHarness {
     assertEquals(1,
         paths.getTabletServer(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty())
             .size());
-    assertEquals(1, paths.getTabletServer(Optional.of("TEST"), Optional.empty()).size());
+    assertEquals(1, paths.getTabletServer(Optional.of("TTEST"), Optional.empty()).size());
     assertEquals(0, paths.getTabletServer(Optional.of("FAKE"), Optional.empty()).size());
-    assertEquals(2, paths.getCompactor(Optional.empty(), Optional.empty()).size());
+
+    assertEquals(4, paths.getCompactor(Optional.empty(), Optional.empty()).size());
     assertEquals(1, paths
         .getCompactor(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty()).size());
-    assertEquals(1, paths.getCompactor(Optional.of("TEST"), Optional.empty()).size());
+    assertEquals(3, paths.getCompactor(Optional.of("CTEST"), Optional.empty()).size());
     assertEquals(0, paths.getCompactor(Optional.of("FAKE"), Optional.empty()).size());
-    assertEquals(2, paths.getScanServer(Optional.empty(), Optional.empty()).size());
+
+    assertEquals(3, paths.getScanServer(Optional.empty(), Optional.empty()).size());
     assertEquals(1,
         paths.getScanServer(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty())
             .size());
-    assertEquals(1, paths.getScanServer(Optional.of("TEST"), Optional.empty()).size());
+    assertEquals(2, paths.getScanServer(Optional.of("STEST"), Optional.empty()).size());
     assertEquals(0, paths.getScanServer(Optional.of("FAKE"), Optional.empty()).size());
 
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
