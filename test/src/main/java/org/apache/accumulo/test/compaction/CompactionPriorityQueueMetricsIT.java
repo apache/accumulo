@@ -103,9 +103,13 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   private String rootPath;
 
   public static final String QUEUE1 = "METRICSQ1";
+  public static final String QUEUE2 = "METRICSQ2";
   public static final String QUEUE1_METRIC_LABEL = MetricsUtil.formatString(QUEUE1);
+  public static final String QUEUE2_METRIC_LABEL = MetricsUtil.formatString(QUEUE2);
   public static final String QUEUE1_SERVICE = "Q1";
+  public static final String QUEUE2_SERVICE = "Q2";
   public static final int QUEUE1_SIZE = 6;
+  public static final int QUEUE2_SIZE = 8;
 
   // Metrics collector Thread
   final LinkedBlockingQueue<TestStatsDSink.Metric> queueMetrics = new LinkedBlockingQueue<>();
@@ -119,9 +123,9 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = getUniqueNames(1)[0];
 
-      Map<String,String> props =
-          Map.of("table.compaction.dispatcher", SimpleCompactionDispatcher.class.getName(),
-              "table.compaction.dispatcher.opts.service", QUEUE1_SERVICE);
+      Map<String,String> props = Map.of("table.compaction.dispatcher",
+          SimpleCompactionDispatcher.class.getName(), "table.compaction.dispatcher.opts.service",
+          QUEUE1_SERVICE, "table.compaction.dispatcher.opts.service.queue2", QUEUE2_SERVICE);
       NewTableConfiguration ntc = new NewTableConfiguration().setProperties(props)
           .withInitialTabletAvailability(TabletAvailability.HOSTED);
       c.tableOperations().create(tableName, ntc);
@@ -140,7 +144,8 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
           if (shutdownTailer.get()) {
             break;
           }
-          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "queue")) {
+          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "queue")
+              || s.startsWith(MetricsProducer.METRICS_COMPACTOR_QUEUE_PREFIX + "queue2")) {
             queueMetrics.add(TestStatsDSink.parseStatsDMetric(s));
           }
         }
@@ -198,6 +203,16 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
 
       cfg.setProperty(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE, "6");
       cfg.getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 0);
+
+      // Queue 2 with zero compactors
+      cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + QUEUE2_SERVICE + ".planner",
+          RatioBasedCompactionPlanner.class.getName());
+      cfg.setProperty(
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + QUEUE2_SERVICE + ".planner.opts.groups",
+          "[{'group':'" + QUEUE2 + "'}]");
+
+      cfg.setProperty(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE, "6");
+      cfg.getClusterServerConfiguration().addCompactorResourceGroup(QUEUE2, 0);
 
       // This test waits for dead compactors to be absent in zookeeper. The following setting will
       // make entries in ZK related to dead compactor processes expire sooner.
@@ -421,6 +436,214 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       }
       UtilWaitThread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis());
     }
+  }
+
+  @Test
+  public void testMultipleQueueMetricsIndependence() throws Exception {
+
+    long highestFileCountQueue1 = 0L;
+    long highestFileCountQueue2 = 0L;
+    ServerContext context = getCluster().getServerContext();
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String dir1 = getDir("/testBulkFile-Queue1");
+      String dir2 = getDir("/testBulkFile-Queue2-");
+      FileSystem fs = getCluster().getFileSystem();
+      fs.mkdirs(new Path(dir1));
+      fs.mkdirs(new Path(dir2));
+
+      // Create splits so there are two groupings of tablets with similar file counts for both
+      // queues.
+      String splitString = "500 1000 1500 2000 3750 5500 7250 9000";
+      addSplits(c, tableName, splitString);
+
+      // Add files to both directories (simulating two different queues)
+      for (int i = 0; i < 100; i++) {
+        writeData(dir1 + "/f" + i + ".", aconf, i * 100, (i + 1) * 100 - 1);
+        writeData(dir2 + "/f" + i + ".", aconf, i * 100, (i + 1) * 100 - 1);
+      }
+      c.tableOperations().importDirectory(dir1).to(tableName).load();
+      c.tableOperations().importDirectory(dir2).to(tableName).load();
+
+      // Set up compaction configurations for two different queues
+      IteratorSetting iterSettingQueue1 = new IteratorSetting(100, CompactionIT.TestFilter.class);
+      iterSettingQueue1.addOption("expectedQ", QUEUE1);
+      iterSettingQueue1.addOption("modulus", 3 + "");
+
+      IteratorSetting iterSettingQueue2 = new IteratorSetting(100, CompactionIT.TestFilter.class);
+      iterSettingQueue2.addOption("expectedQ", QUEUE2);
+      iterSettingQueue2.addOption("modulus", 5 + "");
+
+      CompactionConfig configQ1 =
+          new CompactionConfig().setIterators(List.of(iterSettingQueue1)).setWait(false);
+      CompactionConfig configQ2 =
+          new CompactionConfig().setIterators(List.of(iterSettingQueue2)).setWait(false);
+
+      c.tableOperations().compact(tableName, configQ1);
+      c.tableOperations().compact(tableName, configQ2);
+
+      // Get file sizes for each queue's tablets
+      try (TabletsMetadata tm = context.getAmple().readTablets().forTable(tableId).build()) {
+        for (TabletMetadata tablet : tm) {
+          long fileSize = tablet.getFiles().size();
+          log.info("Number of files in tablet {}: {}", tablet.getExtent().toString(), fileSize);
+          highestFileCountQueue1 = Math.max(highestFileCountQueue1, fileSize);
+          highestFileCountQueue2 = Math.max(highestFileCountQueue2, fileSize);
+        }
+      }
+
+      verifyData(c, tableName, 0, 100 * 100 - 1, false);
+    }
+
+    // Fetch and verify metrics for both queues
+    boolean sawMetricsQ1 = false;
+    boolean sawMetricsQ2 = false;
+
+    while (!sawMetricsQ1 && !sawMetricsQ2) {
+      while (!queueMetrics.isEmpty()) {
+        var qm = queueMetrics.take();
+        if (qm.getName().contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED)
+            && qm.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
+          if (Integer.parseInt(qm.getValue()) > 0) {
+            sawMetricsQ1 = true;
+          }
+        }
+        if (qm.getName().contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED)
+            && qm.getTags().containsValue(QUEUE2_METRIC_LABEL)) {
+          if (Integer.parseInt(qm.getValue()) > 0) {
+            sawMetricsQ2 = true;
+          }
+        }
+      }
+      // If metrics are not found in the queue, sleep until the next poll.
+      UtilWaitThread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis());
+    }
+
+    // Verify metrics independence by comparing their lowest priorities
+    long lowestPriorityQ1 = Short.MIN_VALUE;
+    long lowestPriorityQ2 = Short.MIN_VALUE;
+    long rejectedCountQ1 = 0L;
+    long rejectedCountQ2 = 0L;
+    int queue1Size = 0;
+    int queue2Size = 0;
+    boolean sawQ1 = false;
+    boolean sawQ2 = false;
+
+    while (!queueMetrics.isEmpty()) {
+      var metric = queueMetrics.take();
+
+      // Handle QUEUE1 metrics
+      if (metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
+        if (metric.getName()
+            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED)) {
+          rejectedCountQ1 = Long.parseLong(metric.getValue());
+        } else if (metric.getName()
+            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY)) {
+          lowestPriorityQ1 = Math.max(lowestPriorityQ1, Long.parseLong(metric.getValue()));
+        } else if (metric.getName()
+            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH)) {
+          queue1Size = Integer.parseInt(metric.getValue());
+        } else if (metric.getName()
+            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUES)) {
+          sawQ1 = true;
+        }
+      }
+
+      // Handle QUEUE2 metrics
+      else if (metric.getTags().containsValue(QUEUE2_METRIC_LABEL)) {
+        if (metric.getName()
+            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED)) {
+          rejectedCountQ2 = Long.parseLong(metric.getValue());
+        } else if (metric.getName()
+            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY)) {
+          lowestPriorityQ2 = Math.max(lowestPriorityQ2, Long.parseLong(metric.getValue()));
+        } else if (metric.getName()
+            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH)) {
+          queue2Size = Integer.parseInt(metric.getValue());
+        } else if (metric.getName()
+            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUES)) {
+          sawQ2 = true;
+        }
+      }
+
+      // Log other metrics
+      else {
+        log.debug("{}", metric);
+      }
+    }
+
+    // Confirm metrics were generated and in some cases, validate contents.
+    assertTrue(rejectedCountQ1 > 0L);
+    assertTrue(rejectedCountQ2 > 0L);
+
+    // Priority is the file counts + number of compactions for that tablet.
+    // The lowestPriority job in the queue should have been
+    // at least 1 count higher than the highest file count.
+    short highestFileCountPrioQ1 = CompactionJobPrioritizer.createPriority(
+        getCluster().getServerContext().getTableId(tableName), CompactionKind.USER,
+        (int) highestFileCountQueue1, 0);
+    assertTrue(lowestPriorityQ1 > highestFileCountPrioQ1,
+        lowestPriorityQ1 + " " + highestFileCountQueue1 + " " + highestFileCountPrioQ1);
+
+    short highestFileCountPrioQ2 = CompactionJobPrioritizer.createPriority(
+        getCluster().getServerContext().getTableId(tableName), CompactionKind.USER,
+        (int) highestFileCountQueue2, 0);
+    assertTrue(lowestPriorityQ2 > highestFileCountPrioQ2,
+        lowestPriorityQ2 + " " + highestFileCountQueue2 + " " + highestFileCountPrioQ2);
+
+    // Multiple Queues have been created
+    assertTrue(sawQ1);
+    assertTrue(sawQ2);
+
+    // Queue size matches the intended queue size
+    assertEquals(QUEUE1_SIZE, queue1Size);
+    assertEquals(QUEUE2_SIZE, queue2Size);
+
+    // Start Compactors for both QUEUE1 and QUEUE2
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE2, 1);
+    getCluster().getClusterControl().start(ServerType.COMPACTOR);
+
+    boolean emptyQueue1 = false;
+    boolean emptyQueue2 = false;
+
+    UtilWaitThread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis());
+
+    // Continue checking until both queues are empty
+    while (!emptyQueue1 || !emptyQueue2) {
+      while (!queueMetrics.isEmpty()) {
+        var metric = queueMetrics.take();
+
+        // Check metrics for QUEUE1
+        if (metric.getName()
+            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED)
+            && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
+          if (Integer.parseInt(metric.getValue()) == 0) {
+            emptyQueue1 = true;
+          }
+        }
+
+        // Check metrics for QUEUE2
+        if (metric.getName()
+            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED)
+            && metric.getTags().containsValue(QUEUE2_METRIC_LABEL)) {
+          if (Integer.parseInt(metric.getValue()) == 0) {
+            emptyQueue2 = true;
+          }
+        }
+
+        // Check if the total number of queues is zero, and ensure no metrics for the queues remain
+        if (metric.getName().equals(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUES)) {
+          if (Integer.parseInt(metric.getValue()) == 0) {
+            emptyQueue1 = true;
+            emptyQueue2 = true;
+          }
+        }
+      }
+
+      // Sleep before the next check
+      UtilWaitThread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis());
+    }
+
   }
 
   /**
