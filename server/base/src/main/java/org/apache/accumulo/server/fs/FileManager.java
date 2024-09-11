@@ -65,7 +65,7 @@ public class FileManager {
 
   private static final Logger log = LoggerFactory.getLogger(FileManager.class);
 
-  private int maxOpen;
+  private final int maxOpen;
 
   private static class OpenReader implements Comparable<OpenReader> {
     long releaseTime;
@@ -97,15 +97,15 @@ public class FileManager {
     }
   }
 
-  private Map<StoredTabletFile,List<OpenReader>> openFiles;
-  private HashMap<FileSKVIterator,StoredTabletFile> reservedReaders;
+  private final Map<StoredTabletFile,List<OpenReader>> openFiles;
+  private final HashMap<FileSKVIterator,StoredTabletFile> reservedReaders;
 
-  private Semaphore filePermits;
+  private final Semaphore filePermits;
 
-  private Cache<String,Long> fileLenCache;
+  private final Cache<String,Long> fileLenCache;
 
-  private long maxIdleTime;
-  private long slowFilePermitMillis;
+  private final long maxIdleTime;
+  private final long slowFilePermitMillis;
 
   private final ServerContext context;
 
@@ -383,7 +383,7 @@ public class FileManager {
   static class FileDataSource implements DataSource {
 
     private SortedKeyValueIterator<Key,Value> iter;
-    private ArrayList<FileDataSource> deepCopies;
+    private final ArrayList<FileDataSource> deepCopies;
     private boolean current = true;
     private IteratorEnvironment env;
     private StoredTabletFile file;
@@ -456,11 +456,11 @@ public class FileManager {
 
   public class ScanFileManager {
 
-    private ArrayList<FileDataSource> dataSources;
-    private ArrayList<FileSKVIterator> tabletReservedReaders;
-    private KeyExtent tablet;
+    private final ArrayList<FileDataSource> dataSources;
+    private final ArrayList<FileSKVIterator> tabletReservedReaders;
+    private final KeyExtent tablet;
     private boolean continueOnFailure;
-    private CacheProvider cacheProvider;
+    private final CacheProvider cacheProvider;
 
     ScanFileManager(KeyExtent tablet, CacheProvider cacheProvider) {
       tabletReservedReaders = new ArrayList<>();

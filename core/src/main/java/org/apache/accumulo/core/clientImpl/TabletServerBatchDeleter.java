@@ -37,8 +37,8 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 public class TabletServerBatchDeleter extends TabletServerBatchReader implements BatchDeleter {
 
   private final ClientContext context;
-  private TableId tableId;
-  private BatchWriterConfig bwConfig;
+  private final TableId tableId;
+  private final BatchWriterConfig bwConfig;
 
   public TabletServerBatchDeleter(ClientContext context, TableId tableId, String tableName,
       Authorizations authorizations, int numQueryThreads, BatchWriterConfig bwConfig) {

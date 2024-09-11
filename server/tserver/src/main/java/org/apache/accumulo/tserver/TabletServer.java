@@ -265,9 +265,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     if (numBusyTabletsToLog > 0) {
       ScheduledFuture<?> future = context.getScheduledExecutor()
           .scheduleWithFixedDelay(Threads.createNamedRunnable("BusyTabletLogger", new Runnable() {
-            private BusiestTracker ingestTracker =
+            private final BusiestTracker ingestTracker =
                 BusiestTracker.newBusiestIngestTracker(numBusyTabletsToLog);
-            private BusiestTracker queryTracker =
+            private final BusiestTracker queryTracker =
                 BusiestTracker.newBusiestQueryTracker(numBusyTabletsToLog);
 
             @Override
@@ -709,6 +709,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     metrics = new TabletServerMetrics(this);
     updateMetrics = new TabletServerUpdateMetrics();
     scanMetrics = new TabletServerScanMetrics();
+    sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);
     mincMetrics = new TabletServerMinCMetrics();
     ceMetrics = new CompactionExecutorsMetrics();
     pausedMetrics = new PausedCompactionMetrics();

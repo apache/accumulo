@@ -68,7 +68,7 @@ public class AccumuloSecurityException extends Exception {
 
   private String user;
   private String tableInfo;
-  private SecurityErrorCode errorCode;
+  private final SecurityErrorCode errorCode;
 
   /**
    * @return this exception as a thrift exception

@@ -24,11 +24,14 @@ import java.util.Set;
 
 public class StatusSummary {
 
-  private final ServiceStatusReport.ReportKey serviceType;
-  private final Set<String> resourceGroups;
-  private final Map<String,Set<String>> serviceByGroups;
-  private final int serviceCount;
-  private final int errorCount;
+  private ServiceStatusReport.ReportKey serviceType;
+  private Set<String> resourceGroups;
+  private Map<String,Set<String>> serviceByGroups;
+  private int serviceCount;
+  private int errorCount;
+
+  // Default constructor required for Gson
+  private StatusSummary() {}
 
   public StatusSummary(ServiceStatusReport.ReportKey serviceType, final Set<String> resourceGroups,
       final Map<String,Set<String>> serviceByGroups, final int errorCount) {

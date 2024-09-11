@@ -21,8 +21,8 @@ package org.apache.accumulo.core.schema;
 import org.apache.accumulo.core.data.Range;
 
 public class Section {
-  private String rowPrefix;
-  private Range range;
+  private final String rowPrefix;
+  private final Range range;
 
   public Section(String startRow, boolean startInclusive, String endRow, boolean endInclusive) {
     rowPrefix = startRow;

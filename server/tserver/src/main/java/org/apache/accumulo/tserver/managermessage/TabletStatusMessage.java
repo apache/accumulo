@@ -28,8 +28,8 @@ import org.apache.thrift.TException;
 
 public class TabletStatusMessage implements ManagerMessage {
 
-  private KeyExtent extent;
-  private TabletLoadState status;
+  private final KeyExtent extent;
+  private final TabletLoadState status;
 
   public TabletStatusMessage(TabletLoadState status, KeyExtent extent) {
     this.extent = extent;

@@ -21,7 +21,6 @@ package org.apache.accumulo.server.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.lock.ServiceLockData.ThriftService.TABLET_SCAN;
 import static org.apache.accumulo.core.lock.ServiceLockData.ThriftService.TSERV;
-import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.Collection;
 import java.util.Map;
@@ -152,7 +151,7 @@ public class ServiceStatusCmd {
         } else {
 
           ServiceLockData.ServiceDescriptors sld =
-              GSON.get().fromJson(nodeData.getData(), ServiceLockData.ServiceDescriptors.class);
+              ServiceLockData.parseServiceDescriptors(nodeData.getData());
 
           sld.getServices().forEach(sd -> {
             if (serviceType == sd.getService()) {
@@ -210,8 +209,7 @@ public class ServiceStatusCmd {
     var result = readAllNodesData(zooReader, lockPath);
     Map<String,Set<String>> byGroup = new TreeMap<>();
     result.getData().forEach(data -> {
-      ServiceLockData.ServiceDescriptors sld =
-          GSON.get().fromJson(data, ServiceLockData.ServiceDescriptors.class);
+      ServiceLockData.ServiceDescriptors sld = ServiceLockData.parseServiceDescriptors(data);
       var services = sld.getServices();
       services.forEach(sd -> {
         byGroup.computeIfAbsent(sd.getGroup(), set -> new TreeSet<>()).add(sd.getAddress());

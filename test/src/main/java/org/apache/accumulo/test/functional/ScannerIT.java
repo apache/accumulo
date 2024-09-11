@@ -18,10 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -29,12 +31,15 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.CloseScannerIT;
+import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 
 public class ScannerIT extends AccumuloClusterHarness {
@@ -111,5 +116,85 @@ public class ScannerIT extends AccumuloClusterHarness {
                 + ") than without immediate readahead (" + nanosWithWait + ")");
       }
     }
+  }
+
+  /**
+   * {@link CloseScannerIT#testManyScans()} is a similar test.
+   */
+  @Test
+  public void testSessionCleanup() throws Exception {
+    final String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
+
+      accumuloClient.tableOperations().create(tableName);
+
+      try (var writer = accumuloClient.createBatchWriter(tableName)) {
+        for (int i = 0; i < 100000; i++) {
+          var m = new Mutation(String.format("%09d", i));
+          m.put("1", "1", "" + i);
+          writer.addMutation(m);
+        }
+      }
+
+      // The test assumes the session timeout is configured to 1 minute, validate this. Later in the
+      // test 10s is given for session to disappear and we want this 10s to be much smaller than the
+      // configured session timeout.
+      assertEquals("1m", accumuloClient.instanceOperations().getSystemConfiguration()
+          .get(Property.TSERV_SESSION_MAXIDLE.getKey()));
+
+      // The following test that when not all data is read from scanner that when the scanner is
+      // closed that any open sessions will be closed.
+      for (int i = 0; i < 3; i++) {
+        try (var scanner = accumuloClient.createScanner(tableName)) {
+          assertEquals(10, scanner.stream().limit(10).count());
+          assertEquals(10000, scanner.stream().limit(10000).count());
+          // since not all data in the range was read from the scanner it should leave an active
+          // scan session per scanner iterator created
+          assertEquals(2, countActiveScans(accumuloClient, tableName));
+        }
+        // When close is called on on the scanner it should close the scan session. The session
+        // cleanup is async on the server because task may still be running server side, but it
+        // should happen in less than the session timeout. Also the server should start working on
+        // it immediately.
+        Wait.waitFor(() -> countActiveScans(accumuloClient, tableName) == 0, 10000);
+
+        try (var scanner = accumuloClient.createBatchScanner(tableName)) {
+          scanner.setRanges(List.of(new Range()));
+          assertEquals(10, scanner.stream().limit(10).count());
+          assertEquals(10000, scanner.stream().limit(10000).count());
+          assertEquals(2, countActiveScans(accumuloClient, tableName));
+        }
+        Wait.waitFor(() -> countActiveScans(accumuloClient, tableName) == 0, 10000);
+      }
+
+      // Test the case where all data is read from a scanner. In this case the scanner should close
+      // the scan session at the end of the range even before the scanner itself is closed.
+      for (int i = 0; i < 3; i++) {
+        try (var scanner = accumuloClient.createScanner(tableName)) {
+          assertEquals(100000, scanner.stream().count());
+          assertEquals(100000, scanner.stream().count());
+          // The server side cleanup of the session should be able to happen immediately in this
+          // case because nothing should be running on the server side to fetch data because all
+          // data in the range was fetched.
+          assertEquals(0, countActiveScans(accumuloClient, tableName));
+        }
+
+        try (var scanner = accumuloClient.createBatchScanner(tableName)) {
+          scanner.setRanges(List.of(new Range()));
+          assertEquals(100000, scanner.stream().count());
+          assertEquals(100000, scanner.stream().count());
+          assertEquals(0, countActiveScans(accumuloClient, tableName));
+        }
+      }
+    }
+  }
+
+  public static long countActiveScans(AccumuloClient c, String tableName) throws Exception {
+    long count = 0;
+    for (String tserver : c.instanceOperations().getTabletServers()) {
+      count += c.instanceOperations().getActiveScans(tserver).stream()
+          .filter(activeScan -> activeScan.getTable().equals(tableName)).count();
+    }
+    return count;
   }
 }

@@ -42,19 +42,19 @@ import org.apache.accumulo.core.security.Authorizations;
  */
 public class ActiveScanImpl extends ActiveScan {
 
-  private long scanId;
-  private String client;
-  private String tableName;
-  private long age;
-  private long idle;
-  private ScanType type;
-  private ScanState state;
-  private KeyExtent extent;
-  private List<Column> columns;
-  private List<String> ssiList;
-  private Map<String,Map<String,String>> ssio;
-  private String user;
-  private Authorizations authorizations;
+  private final long scanId;
+  private final String client;
+  private final String tableName;
+  private final long age;
+  private final long idle;
+  private final ScanType type;
+  private final ScanState state;
+  private final KeyExtent extent;
+  private final List<Column> columns;
+  private final List<String> ssiList;
+  private final Map<String,Map<String,String>> ssio;
+  private final String user;
+  private final Authorizations authorizations;
 
   ActiveScanImpl(ClientContext context,
       org.apache.accumulo.core.tabletscan.thrift.ActiveScan activeScan)

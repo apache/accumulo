@@ -41,6 +41,9 @@ public class Bulk {
     private Tablet tablet;
     private Collection<FileInfo> files;
 
+    // Gson requires a default constructor when JDK Unsafe usage is disabled
+    private Mapping() {}
+
     public Mapping(KeyExtent tablet, Files files) {
       this.tablet = toTablet(tablet);
       this.files = files.files.values();
@@ -66,6 +69,9 @@ public class Bulk {
 
     private byte[] endRow;
     private byte[] prevEndRow;
+
+    // Gson requires a default constructor when JDK Unsafe usage is disabled
+    private Tablet() {}
 
     public Tablet(Text endRow, Text prevEndRow) {
       this.endRow = endRow == null ? null : TextUtil.getBytes(endRow);
@@ -100,9 +106,12 @@ public class Bulk {
    * WARNING : do not change this class, its used for serialization to Json
    */
   public static class FileInfo {
-    final String name;
-    final long estSize;
-    final long estEntries;
+    String name;
+    long estSize;
+    long estEntries;
+
+    // Gson requires a default constructor when JDK Unsafe usage is disabled
+    private FileInfo() {}
 
     public FileInfo(String fileName, long estFileSize, long estNumEntries) {
       this.name = fileName;

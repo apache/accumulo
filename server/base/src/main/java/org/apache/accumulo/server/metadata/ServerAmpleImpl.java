@@ -68,9 +68,9 @@ import com.google.common.base.Preconditions;
 
 public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
-  private static Logger log = LoggerFactory.getLogger(ServerAmpleImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(ServerAmpleImpl.class);
 
-  private ServerContext context;
+  private final ServerContext context;
   private final ScanServerRefStore scanServerRefStore;
 
   public ServerAmpleImpl(ServerContext context) {

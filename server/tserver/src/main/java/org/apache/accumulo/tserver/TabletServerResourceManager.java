@@ -55,6 +55,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
@@ -78,6 +79,7 @@ import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
@@ -134,7 +136,7 @@ public class TabletServerResourceManager {
   private final BlockCache _sCache;
   private final ServerContext context;
 
-  private Cache<String,Long> fileLenCache;
+  private final Cache<String,Long> fileLenCache;
 
   /**
    * This method creates a task that changes the number of core and maximum threads on the thread
@@ -467,7 +469,7 @@ public class TabletServerResourceManager {
     private final Map<KeyExtent,TabletMemoryReport> tabletReports;
     private final LinkedBlockingQueue<TabletMemoryReport> memUsageReports;
     private long lastMemCheckTime = System.currentTimeMillis();
-    private long maxMem;
+    private final long maxMem;
     private long lastMemTotal = 0;
     private final Thread memoryGuardThread;
     private final Thread minorCompactionInitiatorThread;
@@ -586,9 +588,10 @@ public class TabletServerResourceManager {
       }
     }
 
-    public void updateMemoryUsageStats(Tablet tablet, long size, long lastCommitTime,
-        long mincSize) {
-      memUsageReports.add(new TabletMemoryReport(tablet, lastCommitTime, size, mincSize));
+    public void updateMemoryUsageStats(Tablet tablet, long size, long lastCommitTime, long mincSize,
+        Timer firstWriteTimer) {
+      memUsageReports
+          .add(new TabletMemoryReport(tablet, lastCommitTime, size, mincSize, firstWriteTimer));
     }
 
     public void tabletClosed(KeyExtent extent) {
@@ -652,7 +655,7 @@ public class TabletServerResourceManager {
 
   public class TabletResourceManager {
 
-    private volatile boolean openFilesReserved = false;
+    private final boolean openFilesReserved = false;
 
     private volatile boolean closed = false;
 
@@ -698,6 +701,7 @@ public class TabletServerResourceManager {
 
     private final AtomicLong lastReportedSize = new AtomicLong();
     private final AtomicLong lastReportedMincSize = new AtomicLong();
+    private final AtomicReference<Timer> firstReportedCommitTimer = new AtomicReference<>(null);
     private volatile long lastReportedCommitTime = 0;
 
     public void updateMemoryUsageStats(Tablet tablet, long size, long mincSize) {
@@ -721,7 +725,20 @@ public class TabletServerResourceManager {
         report = true;
       }
 
+      if (size == 0) {
+        // when a new in memory map is created this method is called with a size of zero so use that
+        // to reset the first write timer
+        firstReportedCommitTimer.set(null);
+        report = true;
+      } else if (firstReportedCommitTimer.get() == null) {
+        // this is the first time a non zero size was seen for this in memory map so consider this
+        // the time of the first write
+        firstReportedCommitTimer.compareAndSet(null, Timer.startNew());
+        report = true;
+      }
+
       long currentTime = System.currentTimeMillis();
+
       if ((delta > 32000 || delta < 0 || (currentTime - lastReportedCommitTime > 1000))
           && lastReportedSize.compareAndSet(lrs, totalSize)) {
         if (delta > 0) {
@@ -731,7 +748,8 @@ public class TabletServerResourceManager {
       }
 
       if (report) {
-        memMgmt.updateMemoryUsageStats(tablet, size, lastReportedCommitTime, mincSize);
+        memMgmt.updateMemoryUsageStats(tablet, size, lastReportedCommitTime, mincSize,
+            firstReportedCommitTimer.get());
       }
     }
 
@@ -779,7 +797,7 @@ public class TabletServerResourceManager {
     }
   }
 
-  public void executeReadAhead(KeyExtent tablet, ScanDispatcher dispatcher, ScanSession scanInfo,
+  public void executeReadAhead(KeyExtent tablet, ScanDispatcher dispatcher, ScanSession<?> scanInfo,
       Runnable task) {
 
     task = ScanSession.wrap(scanInfo, task);

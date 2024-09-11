@@ -167,9 +167,6 @@ public class MetadataConstraints implements Constraint {
     if (row.length > 0 && row[0] == '~') {
       return violations;
     }
-    if (row.length > 2 && row[0] == '!' && row[1] == '!' && row[2] == '~') {
-      return violations;
-    }
 
     validateTabletRow(violations, row);
 

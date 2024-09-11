@@ -103,7 +103,7 @@ public class ThreadPools {
   private static final ConcurrentLinkedQueue<ScheduledFuture<?>> NON_CRITICAL_RUNNING_TASKS =
       new ConcurrentLinkedQueue<>();
 
-  private static Runnable TASK_CHECKER = () -> {
+  private static final Runnable TASK_CHECKER = () -> {
     final List<ConcurrentLinkedQueue<ScheduledFuture<?>>> queues =
         List.of(CRITICAL_RUNNING_TASKS, NON_CRITICAL_RUNNING_TASKS);
     while (true) {

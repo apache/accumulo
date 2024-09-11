@@ -38,10 +38,10 @@ import com.google.common.net.HostAndPort;
  */
 public class ActiveCompactionImpl extends ActiveCompaction {
 
-  private org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac;
-  private ClientContext context;
-  private HostAndPort hostport;
-  private Type type;
+  private final org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac;
+  private final ClientContext context;
+  private final HostAndPort hostport;
+  private final Type type;
 
   ActiveCompactionImpl(ClientContext context,
       org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac, HostAndPort hostport,

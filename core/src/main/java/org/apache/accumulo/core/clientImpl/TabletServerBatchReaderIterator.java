@@ -100,7 +100,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private final ExecutorService queryThreadPool;
   private final ScannerOptions options;
 
-  private ArrayBlockingQueue<List<Entry<Key,Value>>> resultsQueue;
+  private final ArrayBlockingQueue<List<Entry<Key,Value>>> resultsQueue;
   private Iterator<Entry<Key,Value>> batchIterator;
   private List<Entry<Key,Value>> batch;
   private static final List<Entry<Key,Value>> LAST_BATCH = new ArrayList<>();
@@ -110,13 +110,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private volatile Throwable fatalException = null;
 
-  private Map<String,TimeoutTracker> timeoutTrackers;
-  private Set<String> timedoutServers;
+  private final Map<String,TimeoutTracker> timeoutTrackers;
+  private final Set<String> timedoutServers;
   private final long retryTimeout;
 
-  private TabletLocator locator;
+  private final TabletLocator locator;
 
-  private ScanServerAttemptsImpl scanAttempts = new ScanServerAttemptsImpl();
+  private final ScanServerAttemptsImpl scanAttempts = new ScanServerAttemptsImpl();
 
   public interface ResultReceiver {
     void receive(List<Entry<Key,Value>> entries);
@@ -356,12 +356,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private class QueryTask implements Runnable {
 
-    private String tsLocation;
-    private Map<KeyExtent,List<Range>> tabletsRanges;
-    private ResultReceiver receiver;
+    private final String tsLocation;
+    private final Map<KeyExtent,List<Range>> tabletsRanges;
+    private final ResultReceiver receiver;
     private Semaphore semaphore = null;
     private final Map<KeyExtent,List<Range>> failures;
-    private List<Column> columns;
+    private final List<Column> columns;
     private int semaphoreSize;
     private final long busyTimeout;
     private final ScanServerAttemptReporter reporter;
@@ -503,7 +503,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private void doLookups(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
       final ResultReceiver receiver, List<Column> columns) {
-    long startTime = System.currentTimeMillis();
+    Timer startTime = Timer.startNew();
     int maxTabletsPerRequest = Integer.MAX_VALUE;
 
     long busyTimeout = 0;
@@ -605,7 +605,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private ScanServerData rebinToScanServers(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
-      long startTime) {
+      Timer startTime) {
     ScanServerSelector ecsm = context.getScanServerSelector();
 
     List<TabletIdImpl> tabletIds =
@@ -615,8 +615,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     // get a snapshot of this once,not each time the plugin request it
     var scanAttemptsSnapshot = scanAttempts.snapshot();
 
-    Duration timeoutLeft = Duration.ofMillis(retryTimeout)
-        .minus(Duration.ofMillis(System.currentTimeMillis() - startTime));
+    Duration timeoutLeft = Duration.ofMillis(retryTimeout - startTime.elapsed(MILLISECONDS));
 
     ScanServerSelector.SelectorParameters params = new ScanServerSelector.SelectorParameters() {
       @Override
@@ -816,6 +815,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
       }
 
+      // Tracks unclosed scan session id for the case when the following try block exits with an
+      // exception.
+      Long scanIdToClose = null;
       try {
 
         Timer timer = null;
@@ -849,6 +851,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
             SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
             options.batchTimeout, options.classLoaderContext, execHints, busyTimeout);
+        scanIdToClose = imsr.scanID;
         if (waitForWrites) {
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
         }
@@ -915,9 +918,23 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
 
         client.closeMultiScan(TraceUtil.traceInfo(), imsr.scanID);
+        scanIdToClose = null;
 
       } finally {
-        ThriftUtil.returnClient(client, context);
+        try {
+          if (scanIdToClose != null) {
+            // If this code is running it is likely that an exception happened and the scan session
+            // was never closed. Make a best effort attempt to close the scan session which will
+            // clean up server side resources. When the batch scanner is closed it will interrupt
+            // the threads in its thread pool which could cause an interrupted exception in this
+            // code.
+            client.closeMultiScan(TraceUtil.traceInfo(), scanIdToClose);
+          }
+        } catch (Exception e) {
+          log.trace("Failed to close scan session in finally {} {}", server, scanIdToClose, e);
+        } finally {
+          ThriftUtil.returnClient(client, context);
+        }
       }
     } catch (TTransportException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage());

@@ -25,16 +25,15 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.tserver.scan.ScanParameters;
-import org.apache.accumulo.tserver.scan.ScanTask;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Scanner;
 
-public class SingleScanSession extends ScanSession {
+public class SingleScanSession extends ScanSession<ScanBatch> {
   public final KeyExtent extent;
   public final AtomicBoolean interruptFlag = new AtomicBoolean();
   public long entriesReturned = 0;
   public long batchCount = 0;
-  public volatile ScanTask<ScanBatch> nextBatchTask;
+
   public Scanner scanner;
   public final long readaheadThreshold;
 
@@ -59,8 +58,10 @@ public class SingleScanSession extends ScanSession {
   public boolean cleanup() {
     final boolean ret;
     try {
-      if (nextBatchTask != null) {
-        nextBatchTask.cancel(true);
+      // read volatile once to avoid race conditions
+      var localScanTask = getScanTask();
+      if (localScanTask != null) {
+        localScanTask.cancel(true);
       }
     } finally {
       if (scanner != null) {
@@ -69,6 +70,6 @@ public class SingleScanSession extends ScanSession {
         ret = true;
       }
     }
-    return ret;
+    return ret && super.cleanup();
   }
 }
