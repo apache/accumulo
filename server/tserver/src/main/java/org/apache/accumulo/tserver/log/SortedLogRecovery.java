@@ -42,6 +42,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.logger.LogEvents;
@@ -51,6 +52,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
@@ -65,8 +67,15 @@ public class SortedLogRecovery {
 
   private final ServerContext context;
 
-  public SortedLogRecovery(ServerContext context) {
+  private final CacheProvider cacheProvider;
+
+  private final Cache<String,Long> fileLenCache;
+
+  public SortedLogRecovery(ServerContext context, Cache<String,Long> fileLenCache,
+      CacheProvider cacheProvider) {
     this.context = context;
+    this.cacheProvider = cacheProvider;
+    this.fileLenCache = fileLenCache;
   }
 
   static LogFileKey maxKey(LogEvents event) {
@@ -104,7 +113,7 @@ public class SortedLogRecovery {
     int tabletId = -1;
 
     try (var rli = new RecoveryLogsIterator(context, recoveryLogDirs, minKey(DEFINE_TABLET),
-        maxKey(DEFINE_TABLET), true)) {
+        maxKey(DEFINE_TABLET), true, fileLenCache, cacheProvider)) {
 
       KeyExtent alternative = extent;
       if (extent.isRootTablet()) {
@@ -206,8 +215,9 @@ public class SortedLogRecovery {
     long lastFinish = 0;
     long recoverySeq = 0;
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, recoveryLogs,
-        minKey(COMPACTION_START, tabletId), maxKey(COMPACTION_START, tabletId), false)) {
+    try (RecoveryLogsIterator rli =
+        new RecoveryLogsIterator(context, recoveryLogs, minKey(COMPACTION_START, tabletId),
+            maxKey(COMPACTION_START, tabletId), false, fileLenCache, cacheProvider)) {
 
       DeduplicatingIterator ddi = new DeduplicatingIterator(rli);
 
@@ -262,7 +272,8 @@ public class SortedLogRecovery {
 
     LogFileKey end = maxKey(MUTATION, tabletId);
 
-    try (var rli = new RecoveryLogsIterator(context, recoveryLogs, start, end, false)) {
+    try (var rli = new RecoveryLogsIterator(context, recoveryLogs, start, end, false, fileLenCache,
+        cacheProvider)) {
       while (rli.hasNext()) {
         Entry<LogFileKey,LogFileValue> entry = rli.next();
         LogFileKey logFileKey = entry.getKey();
@@ -285,6 +296,12 @@ public class SortedLogRecovery {
 
   Collection<String> asNames(List<Path> recoveryLogs) {
     return Collections2.transform(recoveryLogs, Path::getName);
+  }
+
+  public boolean needsRecovery(KeyExtent extent, List<Path> recoveryDirs) throws IOException {
+    Entry<Integer,List<Path>> maxEntry = findLogsThatDefineTablet(extent, recoveryDirs);
+    int tabletId = maxEntry.getKey();
+    return tabletId != -1;
   }
 
   public void recover(KeyExtent extent, List<Path> recoveryDirs, Set<String> tabletFiles,

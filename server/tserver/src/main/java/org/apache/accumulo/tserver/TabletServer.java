@@ -29,6 +29,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalSch
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchNonCriticalScheduledTask;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
 import java.time.Duration;
@@ -520,7 +521,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private static final AutoCloseable NOOP_CLOSEABLE = () -> {};
 
   AutoCloseable acquireRecoveryMemory(TabletMetadata tabletMetadata) {
-    if (tabletMetadata.getExtent().isMeta() || tabletMetadata.getLogs().isEmpty()) {
+    if (tabletMetadata.getExtent().isMeta() || !needsRecovery(tabletMetadata)) {
       return NOOP_CLOSEABLE;
     } else {
       recoveryLock.lock();
@@ -1080,15 +1081,15 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     logger.minorCompactionStarted(tablet, lastUpdateSequence, newDataFileLocation, durability);
   }
 
-  public void recover(VolumeManager fs, KeyExtent extent, List<LogEntry> logEntries,
-      Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
-    List<Path> recoveryDirs = new ArrayList<>();
+  private List<Path> toRecoveryPaths(Collection<LogEntry> logEntries, KeyExtent extent)
+      throws IOException {
+    List<Path> recoveryDirs = new ArrayList<>(logEntries.size());
     for (LogEntry entry : logEntries) {
       Path recovery = null;
       Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getPath()));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
-      if (fs.exists(finished)) {
+      if (getVolumeManager().exists(finished)) {
         recovery = finished.getParent();
       }
       if (recovery == null) {
@@ -1097,6 +1098,29 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
       recoveryDirs.add(recovery);
     }
+
+    return recoveryDirs;
+  }
+
+  public boolean needsRecovery(TabletMetadata tabletMetadata) {
+
+    var logEntries = tabletMetadata.getLogs();
+
+    if (logEntries.isEmpty()) {
+      return false;
+    }
+
+    try {
+      List<Path> recoveryDirs = toRecoveryPaths(logEntries, tabletMetadata.getExtent());
+      return logger.needsRecovery(getContext(), tabletMetadata.getExtent(), recoveryDirs);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  public void recover(VolumeManager fs, KeyExtent extent, List<LogEntry> logEntries,
+      Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
+    List<Path> recoveryDirs = toRecoveryPaths(logEntries, extent);
     logger.recover(getContext(), extent, recoveryDirs, tabletFiles, mutationReceiver);
   }
 

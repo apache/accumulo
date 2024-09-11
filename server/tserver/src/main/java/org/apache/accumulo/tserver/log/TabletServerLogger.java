@@ -39,6 +39,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
@@ -510,10 +511,28 @@ public class TabletServerLogger {
     return seq;
   }
 
+  public boolean needsRecovery(ServerContext context, KeyExtent extent, List<Path> recoveryDirs)
+      throws IOException {
+    try {
+      var resourceMgr = tserver.getResourceManager();
+      var cacheProvider =
+          new BasicCacheProvider(resourceMgr.getIndexCache(), resourceMgr.getDataCache());
+      SortedLogRecovery recovery =
+          new SortedLogRecovery(context, resourceMgr.getFileLenCache(), cacheProvider);
+      return recovery.needsRecovery(extent, recoveryDirs);
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+  }
+
   public void recover(ServerContext context, KeyExtent extent, List<Path> recoveryDirs,
       Set<String> tabletFiles, MutationReceiver mr) throws IOException {
     try {
-      SortedLogRecovery recovery = new SortedLogRecovery(context);
+      var resourceMgr = tserver.getResourceManager();
+      var cacheProvider =
+          new BasicCacheProvider(resourceMgr.getIndexCache(), resourceMgr.getDataCache());
+      SortedLogRecovery recovery =
+          new SortedLogRecovery(context, resourceMgr.getFileLenCache(), cacheProvider);
       recovery.recover(extent, recoveryDirs, tabletFiles, mr);
     } catch (Exception e) {
       throw new IOException(e);
