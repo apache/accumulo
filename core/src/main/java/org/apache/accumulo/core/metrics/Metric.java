@@ -142,10 +142,10 @@ public enum Metric {
 
   // Major Compaction Metrics
   MAJC_QUEUED("accumulo.tserver.compactions.majc.queued", MetricType.GAUGE,
-      "The compaction service information is in a tag: id={i|e}_{compactionServiceName}_{executor_name}.",
+      "The compaction service information is in a tag: `id={i|e}_{compactionServiceName}_{executor_name}`.",
       MetricCategory.TABLET_SERVER),
   MAJC_RUNNING("accumulo.tserver.compactions.majc.running", MetricType.GAUGE,
-      "The compaction service information is in a tag: id={i|e}_{compactionServiceName}_{executor_name}.",
+      "The compaction service information is in a tag: `id={i|e}_{compactionServiceName}_{executor_name}`.",
       MetricCategory.TABLET_SERVER),
   MAJC_PAUSED("accumulo.tserver.compactions.majc.paused", MetricType.COUNTER, "",
       MetricCategory.TABLET_SERVER),
