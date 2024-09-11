@@ -22,12 +22,10 @@ import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
-import java.util.TreeSet;
 
 import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.data.Key;
@@ -40,14 +38,10 @@ import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,8 +62,8 @@ public class RecoveryLogsIterator
   /**
    * Scans the files in each recoveryLogDir over the range [start,end].
    */
-  public RecoveryLogsIterator(ServerContext context, List<Path> recoveryLogDirs, LogFileKey start,
-      LogFileKey end, boolean checkFirstKey) throws IOException {
+  public RecoveryLogsIterator(ServerContext context, List<ResolvedSortedLog> recoveryLogDirs,
+      LogFileKey start, LogFileKey end, boolean checkFirstKey) throws IOException {
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
     fileIters = new ArrayList<>();
@@ -79,14 +73,14 @@ public class RecoveryLogsIterator
     final CryptoService cryptoService = context.getCryptoFactory().getService(env,
         context.getConfiguration().getAllCryptoProperties());
 
-    for (Path logDir : recoveryLogDirs) {
-      LOG.debug("Opening recovery log dir {}", logDir.getName());
-      SortedSet<UnreferencedTabletFile> logFiles = getFiles(vm, logDir);
-      var fs = vm.getFileSystemByPath(logDir);
+    for (ResolvedSortedLog logDir : recoveryLogDirs) {
+      LOG.debug("Opening recovery log dir {}", logDir);
+      SortedSet<UnreferencedTabletFile> logFiles = logDir.getChildren();
+      var fs = vm.getFileSystemByPath(logDir.getDir());
 
       // only check the first key once to prevent extra iterator creation and seeking
       if (checkFirstKey && !logFiles.isEmpty()) {
-        validateFirstKey(context, cryptoService, fs, logFiles, logDir);
+        validateFirstKey(context, cryptoService, fs, logDir);
       }
 
       for (UnreferencedTabletFile log : logFiles) {
@@ -138,46 +132,12 @@ public class RecoveryLogsIterator
   }
 
   /**
-   * Check for sorting signal files (finished/failed) and get the logs in the provided directory.
-   */
-  private SortedSet<UnreferencedTabletFile> getFiles(VolumeManager fs, Path directory)
-      throws IOException {
-    boolean foundFinish = false;
-    // Path::getName compares the last component of each Path value. In this case, the last
-    // component should
-    // always have the format 'part-r-XXXXX.rf', where XXXXX are one-up values.
-    SortedSet<UnreferencedTabletFile> logFiles =
-        new TreeSet<>(Comparator.comparing(tf -> tf.getPath().getName()));
-    for (FileStatus child : fs.listStatus(directory)) {
-      if (child.getPath().getName().startsWith("_")) {
-        continue;
-      }
-      if (SortedLogState.isFinished(child.getPath().getName())) {
-        foundFinish = true;
-        continue;
-      }
-      if (SortedLogState.FAILED.getMarker().equals(child.getPath().getName())) {
-        continue;
-      }
-      FileSystem ns = fs.getFileSystemByPath(child.getPath());
-      UnreferencedTabletFile fullLogPath =
-          UnreferencedTabletFile.of(ns, ns.makeQualified(child.getPath()));
-      logFiles.add(fullLogPath);
-    }
-    if (!foundFinish) {
-      throw new IOException(
-          "Sort '" + SortedLogState.FINISHED.getMarker() + "' flag not found in " + directory);
-    }
-    return logFiles;
-  }
-
-  /**
    * Check that the first entry in the WAL is OPEN. Only need to do this once.
    */
   private void validateFirstKey(ServerContext context, CryptoService cs, FileSystem fs,
-      SortedSet<UnreferencedTabletFile> logFiles, Path fullLogPath) throws IOException {
+      ResolvedSortedLog sortedLogs) throws IOException {
     try (FileSKVIterator fileIter = FileOperations.getInstance().newReaderBuilder()
-        .forFile(logFiles.first(), fs, fs.getConf(), cs)
+        .forFile(sortedLogs.getChildren().first(), fs, fs.getConf(), cs)
         .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {
       Iterator<Entry<Key,Value>> iterator = new IteratorAdapter(fileIter);
 
@@ -185,7 +145,7 @@ public class RecoveryLogsIterator
         Key firstKey = iterator.next().getKey();
         LogFileKey key = LogFileKey.fromKey(firstKey);
         if (key.event != LogEvents.OPEN) {
-          throw new IllegalStateException("First log entry is not OPEN " + fullLogPath);
+          throw new IllegalStateException("First log entry is not OPEN " + sortedLogs);
         }
       }
     }

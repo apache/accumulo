@@ -22,7 +22,9 @@ import static java.util.Collections.singletonList;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_WAL_CREATOR_POOL;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.channels.ClosedChannelException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +56,9 @@ import org.apache.hadoop.fs.Path;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * Central logging facility for the TServerInfo.
@@ -100,6 +105,8 @@ public class TabletServerLogger {
   private Retry createRetry = null;
 
   private final RetryFactory writeRetryFactory;
+
+  private final Cache<LogEntry,ResolvedSortedLog> sortedLogCache;
 
   private abstract static class TestCallWithWriteLock {
     abstract boolean test();
@@ -154,6 +161,7 @@ public class TabletServerLogger {
     this.createRetry = null;
     this.writeRetryFactory = writeRetryFactory;
     this.maxAge = maxAge;
+    this.sortedLogCache = Caffeine.newBuilder().expireAfterWrite(3, TimeUnit.SECONDS).build();
   }
 
   private DfsLogger initializeLoggers(final AtomicInteger logIdOut) throws IOException {
@@ -510,11 +518,23 @@ public class TabletServerLogger {
     return seq;
   }
 
-  public void recover(ServerContext context, KeyExtent extent, List<Path> recoveryDirs,
+  public void recover(ServerContext context, KeyExtent extent, List<LogEntry> walogs,
       Set<String> tabletFiles, MutationReceiver mr) throws IOException {
     try {
       SortedLogRecovery recovery = new SortedLogRecovery(context);
-      recovery.recover(extent, recoveryDirs, tabletFiles, mr);
+      List<ResolvedSortedLog> sortedLogs = new ArrayList<>(walogs.size());
+      for (var logEntry : walogs) {
+        var sortedLog = sortedLogCache.get(logEntry, le1 -> {
+          try {
+            return ResolvedSortedLog.resolve(le1, tserver.getVolumeManager());
+          } catch (IOException e) {
+            throw new UncheckedIOException(e);
+          }
+        });
+
+        sortedLogs.add(sortedLog);
+      }
+      recovery.recover(extent, sortedLogs, tabletFiles, mr);
     } catch (Exception e) {
       throw new IOException(e);
     }
