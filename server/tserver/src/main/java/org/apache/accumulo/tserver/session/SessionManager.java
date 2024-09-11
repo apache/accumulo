@@ -462,24 +462,15 @@ public class SessionManager {
     List.of(sessions.entrySet(), copiedIdleSessions).forEach(s -> s.forEach(entry -> {
       Session session = entry.getValue();
 
-      if (session instanceof SingleScanSession) {
-        final SingleScanSession ss = (SingleScanSession) session;
-        final KeyExtent extent = ss.extent;
-        final ScanType scanType = ScanType.SINGLE;
-        final ScanParameters params = ss.scanParams;
-        final ScanState state = computeScanState(ss.getScanTask());
-        final long scanId = entry.getKey();
+      if (session instanceof ScanSession) {
+        ScanSession<?> scanSession = (ScanSession<?>) session;
+        boolean isSingle = session instanceof SingleScanSession;
 
-        addActiveScan(activeScans, ss, extent, ct, scanType, state, params, scanId);
-      } else if (session instanceof MultiScanSession) {
-        final MultiScanSession mss = (MultiScanSession) session;
-        final KeyExtent extent = mss.threadPoolExtent;
-        final ScanType scanType = ScanType.BATCH;
-        final ScanParameters params = mss.scanParams;
-        final ScanState state = computeScanState(mss.getScanTask());
-        final long scanId = entry.getKey();
-
-        addActiveScan(activeScans, mss, extent, ct, scanType, state, params, scanId);
+        addActiveScan(activeScans, scanSession,
+            isSingle ? ((SingleScanSession) scanSession).extent
+                : ((MultiScanSession) scanSession).threadPoolExtent,
+            ct, isSingle ? ScanType.SINGLE : ScanType.BATCH,
+            computeScanState(scanSession.getScanTask()), scanSession.scanParams, entry.getKey());
       }
     }));
 
