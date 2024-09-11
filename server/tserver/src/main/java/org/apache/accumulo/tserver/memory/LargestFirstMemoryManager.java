@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
@@ -32,6 +33,9 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * The LargestFirstMemoryManager attempts to keep memory between 80% and 90% full. It adapts over
@@ -56,6 +60,8 @@ public class LargestFirstMemoryManager {
   private double compactionThreshold;
   private long maxObserved;
   private final HashMap<TableId,Long> mincIdleThresholds = new HashMap<>();
+  private final Cache<TableId,Long> mincAgeThresholds =
+      Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).build();
   private ServerContext context = null;
 
   private static class TabletInfo {
@@ -136,6 +142,7 @@ public class LargestFirstMemoryManager {
     maxObserved = 0;
   }
 
+  @SuppressWarnings("deprecation")
   protected long getMinCIdleThreshold(KeyExtent extent) {
     TableId tableId = extent.tableId();
     if (!mincIdleThresholds.containsKey(tableId)) {
@@ -143,6 +150,12 @@ public class LargestFirstMemoryManager {
           .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
     }
     return mincIdleThresholds.get(tableId);
+  }
+
+  protected long getMaxAge(KeyExtent extent) {
+    TableId tableId = extent.tableId();
+    return mincAgeThresholds.asMap().computeIfAbsent(tableId, tid -> context
+        .getTableConfiguration(tid).getTimeInMillis(Property.TABLE_MINC_COMPACT_MAXAGE));
   }
 
   protected boolean tableExists(TableId tableId) {
@@ -191,7 +204,8 @@ public class LargestFirstMemoryManager {
         TabletInfo tabletInfo = new TabletInfo(tablet, memTabletSize, idleTime, timeMemoryLoad);
         try {
           // If the table was deleted, getMinCIdleThreshold will throw an exception
-          if (idleTime > getMinCIdleThreshold(tablet)) {
+          if (idleTime > getMinCIdleThreshold(tablet)
+              || ts.getElapsedSinceFirstWrite(TimeUnit.MILLISECONDS) > getMaxAge(tablet)) {
             largestIdleMemTablets.put(timeMemoryLoad, tabletInfo);
           }
         } catch (IllegalArgumentException e) {

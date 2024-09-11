@@ -50,7 +50,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -73,7 +72,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
@@ -1087,9 +1085,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
        * Checks if there is a lock held by a tserver at a specific host and port.
        */
       private boolean isALockHeld(String tserver) {
-        var root = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-        var zLockPath = ServiceLock.path(root + "/" + tserver);
-        return ServiceLock.getSessionId(context.getZooCache(), zLockPath) != 0;
+        return context.getTServerLockChecker().doesTabletServerLockExist(tserver);
       }
 
       private void cancelSession() throws InterruptedException, ThriftSecurityException {

@@ -45,6 +45,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -58,6 +59,8 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.ActiveCompaction;
+import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
@@ -111,6 +114,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.net.HostAndPort;
 
 public class CompactionIT extends AccumuloClusterHarness {
 
@@ -952,6 +956,83 @@ public class CompactionIT extends AccumuloClusterHarness {
 
         Thread.sleep(100);
       }
+    }
+  }
+
+  @Test
+  public void testGetActiveCompactions() throws Exception {
+    final String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table1);
+      try (BatchWriter bw = client.createBatchWriter(table1)) {
+        for (int i = 1; i <= MAX_DATA; i++) {
+          Mutation m = new Mutation(Integer.toString(i));
+          m.put("cf", "cq", new Value());
+          bw.addMutation(m);
+          bw.flush();
+          // flush often to create multiple files to compact
+          client.tableOperations().flush(table1, null, null, true);
+        }
+      }
+
+      final AtomicReference<Exception> error = new AtomicReference<>();
+      final CountDownLatch started = new CountDownLatch(1);
+      Thread t = new Thread(() -> {
+        try {
+          IteratorSetting setting = new IteratorSetting(50, "sleepy", SlowIterator.class);
+          setting.addOption("sleepTime", "3000");
+          setting.addOption("seekSleepTime", "3000");
+          client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
+          started.countDown();
+          client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
+        } catch (AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
+          error.set(e);
+        }
+      });
+      t.start();
+
+      started.await();
+
+      List<ActiveCompaction> compactions = new ArrayList<>();
+      do {
+        client.instanceOperations().getActiveCompactions().forEach((ac) -> {
+          try {
+            if (ac.getTable().equals(table1)) {
+              compactions.add(ac);
+            }
+          } catch (TableNotFoundException e1) {
+            fail("Table was deleted during test, should not happen");
+          }
+        });
+        Thread.sleep(1000);
+      } while (compactions.isEmpty());
+
+      ActiveCompaction running1 = compactions.get(0);
+      CompactionHost host = running1.getHost();
+      assertTrue(host.getType() == CompactionHost.Type.TSERVER);
+
+      compactions.clear();
+      do {
+        HostAndPort hp = HostAndPort.fromParts(host.getAddress(), host.getPort());
+        client.instanceOperations().getActiveCompactions(hp.toString()).forEach((ac) -> {
+          try {
+            if (ac.getTable().equals(table1)) {
+              compactions.add(ac);
+            }
+          } catch (TableNotFoundException e1) {
+            fail("Table was deleted during test, should not happen");
+          }
+        });
+        Thread.sleep(1000);
+      } while (compactions.isEmpty());
+
+      ActiveCompaction running2 = compactions.get(0);
+      assertEquals(running1.getInputFiles(), running2.getInputFiles());
+      assertEquals(running1.getOutputFile(), running2.getOutputFile());
+      assertEquals(running1.getTablet(), running2.getTablet());
+
+      client.tableOperations().cancelCompaction(table1);
+      t.join();
     }
   }
 
