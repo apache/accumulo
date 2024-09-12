@@ -77,7 +77,8 @@ public class RecentLogs {
 
   public List<SanitizedLogEvent> getSanitizedEvents() {
     return events.asMap().values().stream()
-        .map(ev -> new SanitizedLogEvent(ev.event, ev.count.get())).collect(Collectors.toList());
+        .map(ev -> new SanitizedLogEvent(ev.event, ev.count.get())).limit(MAX_LOGS)
+        .collect(Collectors.toList());
   }
 
 }
