@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
@@ -163,7 +164,8 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   public synchronized Iterator<Entry<Key,Value>> iterator() {
     ensureOpen();
     ScannerIterator iter = new ScannerIterator(context, tableId, authorizations, range, size,
-        Duration.ofMillis(retryTimeout), this, isolated, readaheadThreshold, new Reporter());
+        Duration.ofMillis(getTimeout(TimeUnit.MILLISECONDS)), this, isolated, readaheadThreshold,
+        new Reporter());
 
     iters.put(iter, iterCount++);
 
