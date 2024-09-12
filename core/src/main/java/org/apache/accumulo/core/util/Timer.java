@@ -59,7 +59,7 @@ public final class Timer {
    * @return true if the specified duration has elapsed, false otherwise.
    */
   public boolean hasElapsed(Duration duration) {
-    return getElapsedNanos() >= duration.toNanos();
+    return getElapsedNanos() >= toNanos(duration);
   }
 
   /**
@@ -88,4 +88,13 @@ public final class Timer {
     return unit.convert(getElapsedNanos(), TimeUnit.NANOSECONDS);
   }
 
+  private static long toNanos(Duration duration) {
+    try {
+      // This can overflow when very large, such as when the
+      // duration is created using Long.MAX_VALUE millis
+      return duration.toNanos();
+    } catch (ArithmeticException e) {
+      return Long.MAX_VALUE;
+    }
+  }
 }
