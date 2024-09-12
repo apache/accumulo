@@ -185,7 +185,8 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
    */
   private static void testEnv(IteratorScope scope, Map<String,String> opts,
       IteratorEnvironment env) {
-    TableId expectedTableId = TableId.of(opts.get("expected.table.id"));
+    String expTableIdStr = opts.get("expected.table.id");
+    TableId expTableId = expTableIdStr == null ? null : TableId.of(expTableIdStr);
 
     // verify getServiceEnv() and getPluginEnv() are the same objects,
     // so further checks only need to use getPluginEnv()
@@ -227,7 +228,7 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     if (env.isSamplingEnabled()) {
       throw new RuntimeException("Test failed - isSamplingEnabled returned true, expected false");
     }
-    if (!expectedTableId.equals(env.getTableId())) {
+    if (expTableId != null && !expTableId.equals(env.getTableId())) {
       throw new RuntimeException("Test failed - Error getting Table ID");
     }
   }
@@ -248,7 +249,8 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     String[] tables = getUniqueNames(5);
     testScan(tables[0], ScanIter.class);
-    testRFileScan("RFileScannerFakeTableId", ScanIter.class);
+    // No table id when scanning at file level
+    testRFileScan(ScanIter.class);
     testOfflineScan(tables[1], ScanIter.class);
     testClientSideScan(tables[2], ScanIter.class);
     testCompact(tables[3], MajcIter.class);
@@ -269,14 +271,13 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     }
   }
 
-  private void testRFileScan(String tableName,
-      Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) throws Exception {
+  private void testRFileScan(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass)
+      throws Exception {
     TreeMap<Key,Value> data = createTestData();
     LocalFileSystem fs = FileSystem.getLocal(new Configuration());
     String rFilePath = createRFile(fs, data);
 
     IteratorSetting cfg = new IteratorSetting(1, iteratorClass);
-    cfg.addOption("expected.table.id", tableName);
     cfg.addOption("bad.col.fam", "badcf");
 
     try (Scanner scan = RFile.newScanner().from(rFilePath).withFileSystem(fs)

@@ -176,8 +176,10 @@ public class RFile {
      * properties could be passed here.
      *
      * <p>
-     * Starting with {@code 2.1.4}, {@link PluginEnvironment#getConfiguration(TableId)} (obtained by
-     * {@link IteratorEnvironment#getPluginEnv()}) will return the properties passed in here.
+     * Configured iterators will have access to these properties via the
+     * {@link PluginEnvironment#getConfiguration(TableId)} (obtained by
+     * {@link IteratorEnvironment#getPluginEnv()}). The tableId used to get the configuration should
+     * be the one returned programmatically from {@link IteratorEnvironment#getTableId()}.
      *
      * @param props iterable over Accumulo table key value properties.
      * @return this
@@ -188,10 +190,6 @@ public class RFile {
      * Any property that impacts file behavior regardless of whether it has the
      * {@link Property#TABLE_PREFIX} may be accepted and used. For example, cache and crypto
      * properties could be passed here.
-     *
-     * <p>
-     * Starting with {@code 2.1.4}, {@link PluginEnvironment#getConfiguration(TableId)} (obtained by
-     * {@link IteratorEnvironment#getPluginEnv()}) will return the properties passed in here.
      *
      * @param props a map instead of an Iterable
      * @return this

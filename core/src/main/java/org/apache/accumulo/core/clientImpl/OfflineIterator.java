@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -166,6 +167,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     @Deprecated(since = "2.1.0")
     @Override
     public ServiceEnvironment getServiceEnv() {
+      return serviceEnvironment.get();
+    }
+
+    @Override
+    public PluginEnvironment getPluginEnv() {
       return serviceEnvironment.get();
     }
 

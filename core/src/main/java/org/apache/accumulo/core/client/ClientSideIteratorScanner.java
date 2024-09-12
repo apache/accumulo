@@ -145,18 +145,17 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     @Override
     @Deprecated(since = "2.0.0")
     public AccumuloConfiguration getConfig() {
-      var ctx = context.get();
-      try {
-        return new ConfigurationCopy(
-            ctx.tableOperations().getConfiguration(ctx.getTableName(tableId.get())));
-      } catch (AccumuloException | TableNotFoundException e) {
-        throw new RuntimeException("Error getting table configuration", e);
-      }
+      return new ConfigurationCopy(getPluginEnv().getConfiguration(getTableId()));
     }
 
     @Deprecated(since = "2.1.0")
     @Override
     public ServiceEnvironment getServiceEnv() {
+      return serviceEnvironment.get();
+    }
+
+    @Override
+    public PluginEnvironment getPluginEnv() {
       return serviceEnvironment.get();
     }
 
