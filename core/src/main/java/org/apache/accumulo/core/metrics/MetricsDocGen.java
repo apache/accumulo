@@ -57,11 +57,17 @@ public class MetricsDocGen {
   void generateCategorySection(Metric.MetricCategory category, String sectionTitle) {
     beginSection(sectionTitle);
 
+    // Enable block-level HTML parsing
+    doc.println("{::options parse_block_html=\"true\" /}");
+
     for (Metric metric : sortedMetrics) {
       if (metric.getCategory() == category) {
         generateMetricSubsection(metric);
       }
     }
+
+    // Disable block-level HTML parsing after the section
+    doc.println("{::options parse_block_html=\"false\" /}\n");
   }
 
   void beginSection(String sectionTitle) {
@@ -69,9 +75,15 @@ public class MetricsDocGen {
   }
 
   void generateMetricSubsection(Metric metric) {
-    doc.println("### " + metric.getName() + "\n");
-    doc.println("**Type:** " + metric.getType().name() + "\n");
-    doc.println("**Description:** " + metric.getDescription() + "\n");
+    // Open the div block with markdown enabled
+    doc.println("<div markdown=\"1\" class=\"metric-section\">");
+
+    // Metric details
+    doc.println("### " + metric.getName());
+    doc.println("**Type:** " + metric.getType().name() + "  "); // Ensuring a line break in Markdown
+    doc.println("**Description:** " + metric.getDescription());
+
+    doc.println("</div>");
   }
 
   private MetricsDocGen(PrintStream doc) {
