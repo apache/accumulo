@@ -54,6 +54,8 @@ import com.google.common.net.HostAndPort;
 
 public interface TServerClient<C extends TServiceClient> {
 
+  static final String PREFERRED_HOST = "org.apache.accumulo.client.rpc.preferred.host";
+
   Pair<String,C> getThriftServerConnection(ClientContext context, boolean preferCachedConnections)
       throws TTransportException;
 
@@ -62,7 +64,9 @@ public interface TServerClient<C extends TServiceClient> {
       ThriftService service) throws TTransportException {
     checkArgument(context != null, "context is null");
 
-    if (preferCachedConnections) {
+    final String preferredClientHost = System.getProperty(PREFERRED_HOST, null);
+
+    if (preferCachedConnections && preferredClientHost != null) {
       Pair<String,TTransport> cachedTransport =
           context.getTransportPool().getAnyCachedTransport(type);
       if (cachedTransport != null) {
@@ -79,18 +83,30 @@ public interface TServerClient<C extends TServiceClient> {
     final ZooCache zc = context.getZooCache();
 
     final List<String> serverPaths = new ArrayList<>();
-    zc.getChildren(tserverZooPath).forEach(tserverAddress -> {
-      serverPaths.add(tserverZooPath + "/" + tserverAddress);
-    });
-    if (type == ThriftClientTypes.CLIENT) {
-      zc.getChildren(sserverZooPath).forEach(sserverAddress -> {
-        serverPaths.add(sserverZooPath + "/" + sserverAddress);
-      });
+    if (type == ThriftClientTypes.CLIENT && preferredClientHost != null) {
+      // add all three paths to the set even though they may not be correct.
+      // The entire set will be checked in the code below to validate
+      // that the path is correct and the lock is held and will return the
+      // correct one.
+      serverPaths.add(tserverZooPath + "/" + preferredClientHost);
+      serverPaths.add(sserverZooPath + "/" + preferredClientHost);
       zc.getChildren(compactorZooPath).forEach(compactorGroup -> {
-        zc.getChildren(compactorZooPath + "/" + compactorGroup).forEach(compactorAddress -> {
-          serverPaths.add(compactorZooPath + "/" + compactorGroup + "/" + compactorAddress);
-        });
+        serverPaths.add(compactorZooPath + "/" + compactorGroup + "/" + preferredClientHost);
       });
+    } else {
+      zc.getChildren(tserverZooPath).forEach(tserverAddress -> {
+        serverPaths.add(tserverZooPath + "/" + tserverAddress);
+      });
+      if (type == ThriftClientTypes.CLIENT) {
+        zc.getChildren(sserverZooPath).forEach(sserverAddress -> {
+          serverPaths.add(sserverZooPath + "/" + sserverAddress);
+        });
+        zc.getChildren(compactorZooPath).forEach(compactorGroup -> {
+          zc.getChildren(compactorZooPath + "/" + compactorGroup).forEach(compactorAddress -> {
+            serverPaths.add(compactorZooPath + "/" + compactorGroup + "/" + compactorAddress);
+          });
+        });
+      }
     }
 
     if (serverPaths.isEmpty()) {
@@ -113,6 +129,9 @@ public interface TServerClient<C extends TServiceClient> {
             TTransport transport = context.getTransportPool().getTransport(type,
                 tserverClientAddress, rpcTimeout, context, preferCachedConnections);
             C client = ThriftUtil.createClient(type, transport);
+            if (type == ThriftClientTypes.CLIENT && preferredClientHost != null) {
+              LOG.info("Connecting to preferred client host: {}", preferredClientHost);
+            }
             warned.set(false);
             return new Pair<String,C>(tserverClientAddress.toString(), client);
           } catch (TTransportException e) {
