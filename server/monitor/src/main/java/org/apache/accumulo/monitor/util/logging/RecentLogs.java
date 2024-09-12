@@ -19,7 +19,6 @@
 package org.apache.accumulo.monitor.util.logging;
 
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -41,9 +40,8 @@ public class RecentLogs {
 
   private static final int MAX_LOGS = 50;
 
-  private final Cache<String,DedupedEvent> eventsCache =
+  private final Cache<String,DedupedEvent> events =
       Caffeine.newBuilder().maximumSize(MAX_LOGS).build();
-  private final ConcurrentMap<String,DedupedEvent> events = eventsCache.asMap();
 
   /**
    * Internal class for keeping the current count and most recent event that matches a given cache
@@ -61,25 +59,25 @@ public class RecentLogs {
 
   public void addEvent(SingleLogEvent event) {
     String key = event.application + ":" + event.logger + ":" + event.level + ":" + event.message;
-    events.computeIfAbsent(key, k -> new DedupedEvent(event)).count.incrementAndGet();
+    events.asMap().computeIfAbsent(key, k -> new DedupedEvent(event)).count.incrementAndGet();
   }
 
   public void clearEvents() {
-    events.clear();
+    events.invalidateAll();
   }
 
   public int numEvents() {
-    return events.size();
+    return events.asMap().size();
   }
 
   public boolean eventsIncludeErrors() {
-    return events.values().stream().anyMatch(
+    return events.asMap().values().stream().anyMatch(
         x -> x.event.level.equalsIgnoreCase("ERROR") || x.event.level.equalsIgnoreCase("FATAL"));
   }
 
   public List<SanitizedLogEvent> getSanitizedEvents() {
-    return events.values().stream().map(ev -> new SanitizedLogEvent(ev.event, ev.count.get()))
-        .collect(Collectors.toList());
+    return events.asMap().values().stream()
+        .map(ev -> new SanitizedLogEvent(ev.event, ev.count.get())).collect(Collectors.toList());
   }
 
 }
