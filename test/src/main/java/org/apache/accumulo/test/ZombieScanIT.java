@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.metrics.Metric.SCAN_ZOMBIE_THREADS;
 import static org.apache.accumulo.test.functional.ScannerIT.countActiveScans;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,7 +46,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -381,7 +381,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
 
   private int getZombieScansMetric() {
     return sink.getLines().stream().map(TestStatsDSink::parseStatsDMetric)
-        .filter(metric -> metric.getName().equals(MetricsProducer.METRICS_SCAN_ZOMBIE_THREADS))
+        .filter(metric -> metric.getName().equals(SCAN_ZOMBIE_THREADS.getName()))
         .mapToInt(metric -> Integer.parseInt(metric.getValue())).max().orElse(-1);
   }
 }

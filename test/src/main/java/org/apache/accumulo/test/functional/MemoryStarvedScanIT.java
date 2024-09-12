@@ -20,7 +20,9 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.metrics.MetricsProducer.METRICS_LOW_MEMORY;
+import static org.apache.accumulo.core.metrics.Metric.LOW_MEMORY;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_PAUSED_FOR_MEM;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_RETURN_FOR_MEM;
 import static org.apache.accumulo.test.util.Wait.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -44,7 +46,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -109,13 +110,13 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
           }
           if (line.startsWith("accumulo")) {
             Metric metric = TestStatsDSink.parseStatsDMetric(line);
-            if (MetricsProducer.METRICS_SCAN_PAUSED_FOR_MEM.equals(metric.getName())) {
+            if (SCAN_PAUSED_FOR_MEM.getName().equals(metric.getName())) {
               double val = Double.parseDouble(metric.getValue());
               SCAN_START_DELAYED.add(val);
-            } else if (MetricsProducer.METRICS_SCAN_RETURN_FOR_MEM.equals(metric.getName())) {
+            } else if (SCAN_RETURN_FOR_MEM.getName().equals(metric.getName())) {
               double val = Double.parseDouble(metric.getValue());
               SCAN_RETURNED_EARLY.add(val);
-            } else if (metric.getName().equals(METRICS_LOW_MEMORY)) {
+            } else if (metric.getName().equals(LOW_MEMORY.getName())) {
               String process = metric.getTags().get("process.name");
               if (process != null && process.contains("tserver")) {
                 int val = Integer.parseInt(metric.getValue());

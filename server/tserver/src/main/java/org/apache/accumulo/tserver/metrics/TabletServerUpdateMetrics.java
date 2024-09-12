@@ -18,6 +18,12 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.UPDATE_COMMIT;
+import static org.apache.accumulo.core.metrics.Metric.UPDATE_COMMIT_PREP;
+import static org.apache.accumulo.core.metrics.Metric.UPDATE_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.UPDATE_MUTATION_ARRAY_SIZE;
+import static org.apache.accumulo.core.metrics.Metric.UPDATE_WALOG_WRITE;
+
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -69,21 +75,21 @@ public class TabletServerUpdateMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    FunctionCounter.builder(METRICS_UPDATE_ERRORS, permissionErrorsCount, AtomicLong::get)
+    FunctionCounter.builder(UPDATE_ERRORS.getName(), permissionErrorsCount, AtomicLong::get)
         .tags("type", "permission").description("Counts permission errors").register(registry);
-    FunctionCounter.builder(METRICS_UPDATE_ERRORS, unknownTabletErrorsCount, AtomicLong::get)
+    FunctionCounter.builder(UPDATE_ERRORS.getName(), unknownTabletErrorsCount, AtomicLong::get)
         .tags("type", "unknown.tablet").description("Counts unknown tablet errors")
         .register(registry);
-    FunctionCounter.builder(METRICS_UPDATE_ERRORS, constraintViolationsCount, AtomicLong::get)
+    FunctionCounter.builder(UPDATE_ERRORS.getName(), constraintViolationsCount, AtomicLong::get)
         .tags("type", "constraint.violation").description("Counts constraint violations")
         .register(registry);
-    commitPrepStat = Timer.builder(METRICS_UPDATE_COMMIT_PREP)
+    commitPrepStat = Timer.builder(UPDATE_COMMIT_PREP.getName())
         .description("preparing to commit mutations").register(registry);
-    walogWriteTimeStat = Timer.builder(METRICS_UPDATE_WALOG_WRITE)
+    walogWriteTimeStat = Timer.builder(UPDATE_WALOG_WRITE.getName())
         .description("writing mutations to WAL").register(registry);
-    commitTimeStat =
-        Timer.builder(METRICS_UPDATE_COMMIT).description("committing mutations").register(registry);
-    mutationArraySizeStat = DistributionSummary.builder(METRICS_UPDATE_MUTATION_ARRAY_SIZE)
+    commitTimeStat = Timer.builder(UPDATE_COMMIT.getName()).description("committing mutations")
+        .register(registry);
+    mutationArraySizeStat = DistributionSummary.builder(UPDATE_MUTATION_ARRAY_SIZE.getName())
         .description("mutation array").register(registry);
   }
 

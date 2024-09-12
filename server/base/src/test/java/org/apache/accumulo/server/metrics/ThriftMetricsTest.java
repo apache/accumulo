@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.server.metrics;
 
-import static org.apache.accumulo.core.metrics.MetricsProducer.METRICS_THRIFT_EXECUTE;
-import static org.apache.accumulo.core.metrics.MetricsProducer.METRICS_THRIFT_IDLE;
+import static org.apache.accumulo.core.metrics.Metric.THRIFT_EXECUTE;
+import static org.apache.accumulo.core.metrics.Metric.THRIFT_IDLE;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -57,7 +57,7 @@ class ThriftMetricsTest {
       assertInstanceOf(DistributionSummary.class, m);
       assertFalse(m instanceof NoopDistributionSummary);
     });
-    assertTrue(registry.get(METRICS_THRIFT_IDLE).summary().count() > 0);
-    assertTrue(registry.get(METRICS_THRIFT_EXECUTE).summary().count() > 0);
+    assertTrue(registry.get(THRIFT_IDLE.getName()).summary().count() > 0);
+    assertTrue(registry.get(THRIFT_EXECUTE.getName()).summary().count() > 0);
   }
 }
