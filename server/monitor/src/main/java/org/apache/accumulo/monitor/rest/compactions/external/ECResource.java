@@ -60,7 +60,7 @@ public class ECResource {
   @Path("running")
   @GET
   public RunningCompactions getRunning() {
-    return new RunningCompactions(monitor.fetchRunningInfo());
+    return monitor.getRunnningCompactions();
   }
 
   @Path("details")
@@ -68,16 +68,11 @@ public class ECResource {
   public RunningCompactorDetails getDetails(@QueryParam("ecid") @NotNull String ecid) {
     // make parameter more user-friendly by ensuring the ecid prefix is present
     ecid = ExternalCompactionId.from(ecid).canonical();
-    var ecMap = monitor.getEcRunningMap();
-    var externalCompaction = ecMap.get(ecid);
-    if (externalCompaction == null) {
-      // map could be old so fetch all running compactions and try again
-      ecMap = monitor.fetchRunningInfo();
-      externalCompaction = ecMap.get(ecid);
-      if (externalCompaction == null) {
-        throw new IllegalStateException("Failed to find details for ECID: " + ecid);
-      }
+    var runningCompactorDetails =
+        monitor.getRunningCompactorDetails(ExternalCompactionId.from(ecid));
+    if (runningCompactorDetails == null) {
+      throw new IllegalStateException("Failed to find details for ECID: " + ecid);
     }
-    return new RunningCompactorDetails(externalCompaction);
+    return runningCompactorDetails;
   }
 }

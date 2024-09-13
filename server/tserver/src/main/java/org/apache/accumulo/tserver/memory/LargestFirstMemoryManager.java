@@ -30,12 +30,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.github.benmanes.caffeine.cache.Cache;
 
 /**
  * The LargestFirstMemoryManager attempts to keep memory between 80% and 90% full. It adapts over
@@ -60,9 +57,7 @@ public class LargestFirstMemoryManager {
   private double compactionThreshold;
   private long maxObserved;
   private final HashMap<TableId,Long> mincIdleThresholds = new HashMap<>();
-  private final Cache<TableId,Long> mincAgeThresholds =
-      Caches.getInstance().createNewBuilder(Caches.CacheName.MINC_AGE, false)
-          .expireAfterWrite(5, TimeUnit.MINUTES).build();
+  private final HashMap<TableId,Long> mincAgeThresholds = new HashMap<>();
   private ServerContext context = null;
 
   private static class TabletInfo {
@@ -146,17 +141,14 @@ public class LargestFirstMemoryManager {
   @SuppressWarnings("deprecation")
   protected long getMinCIdleThreshold(KeyExtent extent) {
     TableId tableId = extent.tableId();
-    if (!mincIdleThresholds.containsKey(tableId)) {
-      mincIdleThresholds.put(tableId, context.getTableConfiguration(tableId)
-          .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
-    }
-    return mincIdleThresholds.get(tableId);
+    return mincIdleThresholds.computeIfAbsent(tableId, tid -> context.getTableConfiguration(tid)
+        .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
   }
 
   protected long getMaxAge(KeyExtent extent) {
     TableId tableId = extent.tableId();
-    return mincAgeThresholds.asMap().computeIfAbsent(tableId, tid -> context
-        .getTableConfiguration(tid).getTimeInMillis(Property.TABLE_MINC_COMPACT_MAXAGE));
+    return mincAgeThresholds.computeIfAbsent(tableId, tid -> context.getTableConfiguration(tid)
+        .getTimeInMillis(Property.TABLE_MINC_COMPACT_MAXAGE));
   }
 
   protected boolean tableExists(TableId tableId) {
@@ -177,6 +169,8 @@ public class LargestFirstMemoryManager {
     final int maxMinCs = maxConcurrentMincs * numWaitingMultiplier;
 
     mincIdleThresholds.clear();
+    mincAgeThresholds.clear();
+
     final List<KeyExtent> tabletsToMinorCompact = new ArrayList<>();
 
     LargestMap largestMemTablets = new LargestMap(maxMinCs);
