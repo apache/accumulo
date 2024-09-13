@@ -44,7 +44,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -139,7 +138,7 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
             if (shutdownTailer.get()) {
               break;
             }
-            if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX)) {
+            if (s.startsWith("accumulo.tserver.compactions.")) {
               queueMetrics.add(TestStatsDSink.parseStatsDMetric(s));
             }
           }

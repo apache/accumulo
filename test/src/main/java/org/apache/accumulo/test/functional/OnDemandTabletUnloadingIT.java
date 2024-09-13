@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_ONLINE_ONDEMAND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -47,7 +48,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -82,7 +82,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
           }
           if (line.startsWith("accumulo")) {
             TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(line);
-            if (MetricsProducer.METRICS_TSERVER_TABLETS_ONLINE_ONDEMAND.equals(metric.getName())) {
+            if (TSERVER_TABLETS_ONLINE_ONDEMAND.getName().equals(metric.getName())) {
               Long val = Long.parseLong(metric.getValue());
               System.out.println(val);
               ONDEMAND_ONLINE_COUNT = val;

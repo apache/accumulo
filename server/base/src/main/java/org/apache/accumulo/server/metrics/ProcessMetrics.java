@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.LOW_MEMORY;
+import static org.apache.accumulo.core.metrics.Metric.SERVER_IDLE;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -37,8 +40,8 @@ public class ProcessMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    registry.gauge(METRICS_LOW_MEMORY, this, this::lowMemDetected);
-    registry.gauge(METRICS_SERVER_IDLE, isIdle, AtomicInteger::get);
+    registry.gauge(LOW_MEMORY.getName(), this, this::lowMemDetected);
+    registry.gauge(SERVER_IDLE.getName(), isIdle, AtomicInteger::get);
   }
 
   private int lowMemDetected(ProcessMetrics processMetrics) {
