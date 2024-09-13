@@ -21,12 +21,12 @@ package org.apache.accumulo.server.metrics;
 import static org.apache.accumulo.core.metrics.Metric.LOW_MEMORY;
 import static org.apache.accumulo.core.metrics.Metric.SERVER_IDLE;
 
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.server.ServerContext;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class ProcessMetrics implements MetricsProducer {
@@ -41,8 +41,10 @@ public class ProcessMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    registry.gauge(LOW_MEMORY.getName(), List.of(), this, this::lowMemDetected);
-    registry.gauge(SERVER_IDLE.getName(), isIdle, AtomicInteger::get);
+    Gauge.builder(LOW_MEMORY.getName(), this, this::lowMemDetected)
+        .description(LOW_MEMORY.getDescription()).register(registry);
+    Gauge.builder(SERVER_IDLE.getName(), isIdle, AtomicInteger::get)
+        .description(SERVER_IDLE.getDescription()).register(registry);
   }
 
   private int lowMemDetected(ProcessMetrics processMetrics) {
