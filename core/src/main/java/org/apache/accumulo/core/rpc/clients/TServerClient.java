@@ -23,6 +23,8 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -110,7 +112,11 @@ public interface TServerClient<C extends TServiceClient> {
     }
 
     if (serverPaths.isEmpty()) {
-      if (warned.compareAndSet(false, true)) {
+      if (type == ThriftClientTypes.CLIENT && preferredClientHost != null) {
+        LOG.error(
+            "No entry in ZooKeeper for  preferred client host: {}. If this server is down, then you will need to remove or change the preferred client property value.",
+            preferredClientHost);
+      } else if (warned.compareAndSet(false, true)) {
         LOG.warn(
             "There are no servers serving the {} api: check that zookeeper and accumulo are running.",
             type);
@@ -135,7 +141,13 @@ public interface TServerClient<C extends TServiceClient> {
             warned.set(false);
             return new Pair<String,C>(tserverClientAddress.toString(), client);
           } catch (TTransportException e) {
-            LOG.trace("Error creating transport to {}", tserverClientAddress);
+            if (type == ThriftClientTypes.CLIENT && preferredClientHost != null) {
+              LOG.error(
+                  "Error creating transport to preferred client host: {}. If this server is down, then you will need to remove or change the preferred client property value.",
+                  preferredClientHost);
+            } else {
+              LOG.trace("Error creating transport to {}", tserverClientAddress);
+            }
             continue;
           }
         }
@@ -146,7 +158,16 @@ public interface TServerClient<C extends TServiceClient> {
       LOG.warn("Failed to find an available server in the list of servers: {} for API type: {}",
           serverPaths, type);
     }
-    throw new TTransportException("Failed to connect to any server for API type " + type);
+    // Need to throw a different exception, when a TTransportException is
+    // thrown below, then the operation will be retried endlessly.
+    if (type == ThriftClientTypes.CLIENT && preferredClientHost != null) {
+      throw new UncheckedIOException("Error creating transport to preferred client host: "
+          + preferredClientHost
+          + ". If this server is down, then you will need to remove or change the preferred client property value.",
+          new IOException(""));
+    } else {
+      throw new TTransportException("Failed to connect to any server for API type " + type);
+    }
   }
 
   default <R> R execute(Logger LOG, ClientContext context, Exec<R,C> exec)
