@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.MAJC_QUEUED;
+import static org.apache.accumulo.core.metrics.Metric.MAJC_RUNNING;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -88,9 +91,9 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
       CeMetrics cem = ceMetricsMap.computeIfAbsent(ceid, id -> {
         CeMetrics m = new CeMetrics();
         if (registry != null) {
-          m.queued = registry.gauge(METRICS_MAJC_QUEUED, Tags.of("id", ceid.canonical()),
+          m.queued = registry.gauge(MAJC_QUEUED.getName(), Tags.of("id", ceid.canonical()),
               new AtomicInteger(0));
-          m.running = registry.gauge(METRICS_MAJC_RUNNING, Tags.of("id", ceid.canonical()),
+          m.running = registry.gauge(MAJC_RUNNING.getName(), Tags.of("id", ceid.canonical()),
               new AtomicInteger(0));
         }
         return m;
@@ -119,10 +122,10 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
           ExMetrics exm = exCeMetricsMap.computeIfAbsent(ecm.ceid, id -> {
             ExMetrics m = new ExMetrics();
             if (registry != null) {
-              m.queued = registry.gauge(METRICS_MAJC_QUEUED, Tags.of("id", ecm.ceid.canonical()),
+              m.queued = registry.gauge(MAJC_QUEUED.getName(), Tags.of("id", ecm.ceid.canonical()),
                   new AtomicInteger(0));
-              m.running = registry.gauge(METRICS_MAJC_RUNNING, Tags.of("id", ecm.ceid.canonical()),
-                  new AtomicInteger(0));
+              m.running = registry.gauge(MAJC_RUNNING.getName(),
+                  Tags.of("id", ecm.ceid.canonical()), new AtomicInteger(0));
             }
             return m;
           });

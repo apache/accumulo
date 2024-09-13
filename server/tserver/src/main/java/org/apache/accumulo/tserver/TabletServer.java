@@ -116,10 +116,8 @@ import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
-import org.apache.accumulo.server.manager.recovery.RecoveryPath;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -1081,27 +1079,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     logger.minorCompactionStarted(tablet, lastUpdateSequence, newDataFileLocation, durability);
   }
 
-  private List<Path> toRecoveryPaths(Collection<LogEntry> logEntries, KeyExtent extent)
-      throws IOException {
-    List<Path> recoveryDirs = new ArrayList<>(logEntries.size());
-    for (LogEntry entry : logEntries) {
-      Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getPath()));
-      finished = SortedLogState.getFinishedMarkerPath(finished);
-      TabletServer.log.debug("Looking for " + finished);
-      if (getVolumeManager().exists(finished)) {
-        recovery = finished.getParent();
-      }
-      if (recovery == null) {
-        throw new IOException(
-            "Unable to find recovery files for extent " + extent + " logEntry: " + entry);
-      }
-      recoveryDirs.add(recovery);
-    }
-
-    return recoveryDirs;
-  }
-
   public boolean needsRecovery(TabletMetadata tabletMetadata) {
 
     var logEntries = tabletMetadata.getLogs();
@@ -1111,8 +1088,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
-      List<Path> recoveryDirs = toRecoveryPaths(logEntries, tabletMetadata.getExtent());
-      return logger.needsRecovery(getContext(), tabletMetadata.getExtent(), recoveryDirs);
+      return logger.needsRecovery(getContext(), tabletMetadata.getExtent(), logEntries);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
@@ -1120,8 +1096,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   public void recover(VolumeManager fs, KeyExtent extent, List<LogEntry> logEntries,
       Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
-    List<Path> recoveryDirs = toRecoveryPaths(logEntries, extent);
-    logger.recover(getContext(), extent, recoveryDirs, tabletFiles, mutationReceiver);
+    logger.recover(getContext(), extent, logEntries, tabletFiles, mutationReceiver);
   }
 
   public int createLogId() {

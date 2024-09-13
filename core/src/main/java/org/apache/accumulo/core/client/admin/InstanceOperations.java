@@ -196,6 +196,7 @@ public interface InstanceOperations {
    * Returns the locations of the active scan servers
    *
    * @return A set of currently active scan servers.
+   * @since 2.1.0
    */
   Set<String> getScanServers();
 

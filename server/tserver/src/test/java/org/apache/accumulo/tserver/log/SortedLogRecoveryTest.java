@@ -43,6 +43,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -62,9 +63,11 @@ import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.data.ServerMutation;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.WithTestNames;
@@ -193,9 +196,13 @@ public class SortedLogRecoveryTest extends WithTestNames {
       final Path workdirPath = new Path("file://" + workdir);
       fs.deleteRecursively(workdirPath);
 
-      ArrayList<Path> dirs = new ArrayList<>();
+      ArrayList<ResolvedSortedLog> dirs = new ArrayList<>();
       for (Entry<String,KeyValue[]> entry : logs.entrySet()) {
-        String destPath = workdir + "/" + entry.getKey();
+        var uuid = UUID.randomUUID();
+        String origPath = "file://" + workdir + "/" + entry.getKey() + "/"
+            + VolumeManager.FileType.WAL.getDirectory() + "/localhost+9997/" + uuid;
+        String destPath = "file://" + workdir + "/" + entry.getKey() + "/"
+            + VolumeManager.FileType.RECOVERY.getDirectory() + "/" + uuid;
         FileSystem ns = fs.getFileSystemByPath(new Path(destPath));
         // convert test object to Pairs for LogSorter, flushing based on bufferSize
         List<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
@@ -210,7 +217,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
         logSorter.writeBuffer(destPath, buffer, parts);
 
         ns.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
-        dirs.add(new Path(destPath));
+        dirs.add(ResolvedSortedLog.resolve(LogEntry.fromPath(origPath), fs));
       }
       // Recover
       SortedLogRecovery recovery = new SortedLogRecovery(context, fileLenCache, cacheProvider);

@@ -76,9 +76,12 @@ public class ExternalCompactionFinalState {
   // class must consider persisted data.
   private static class Extent {
 
-    final String tableId;
-    final String er;
-    final String per;
+    String tableId;
+    String er;
+    String per;
+
+    // Gson requires a default constructor
+    private Extent() {}
 
     Extent(KeyExtent extent) {
       this.tableId = extent.tableId().canonical();

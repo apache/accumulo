@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel.IMMEDIATE;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_ZOMBIE_THREADS;
+import static org.apache.accumulo.minicluster.ServerType.SCAN_SERVER;
+import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.apache.accumulo.test.functional.ScannerIT.countActiveScans;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,6 +42,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
@@ -45,7 +50,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -58,6 +62,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 public class ZombieScanIT extends ConfigurableMacBase {
 
@@ -242,8 +248,9 @@ public class ZombieScanIT extends ConfigurableMacBase {
   /**
    * Create some zombie scans and ensure metrics for them show up.
    */
-  @Test
-  public void testMetrics() throws Exception {
+  @ParameterizedTest
+  @EnumSource
+  public void testMetrics(ConsistencyLevel consistency) throws Exception {
 
     Wait.waitFor(() -> {
       var zsmc = getZombieScansMetric();
@@ -252,7 +259,17 @@ public class ZombieScanIT extends ConfigurableMacBase {
 
     String table = getUniqueNames(1)[0];
 
+    final ServerType serverType = consistency == IMMEDIATE ? TABLET_SERVER : SCAN_SERVER;
+
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+
+      if (serverType == SCAN_SERVER) {
+        getCluster().getConfig().setNumScanServers(1);
+        getCluster().getClusterControl().startAllServers(SCAN_SERVER);
+        // Scans will fall back to tablet servers when no scan servers are present. So wait for scan
+        // servers to show up in zookeeper. Can remove this in 3.1.
+        Wait.waitFor(() -> !c.instanceOperations().getScanServers().isEmpty());
+      }
 
       c.tableOperations().create(table);
 
@@ -262,21 +279,21 @@ public class ZombieScanIT extends ConfigurableMacBase {
       List<Future<String>> futures = new ArrayList<>();
       for (var row : List.of("2", "4")) {
         // start a scan with an iterator that gets stuck and can not be interrupted
-        futures.add(startStuckScan(c, table, executor, row, false));
+        futures.add(startStuckScan(c, table, executor, row, false, consistency));
         // start a scan with an iterator that gets stuck and can be interrupted
-        futures.add(startStuckScan(c, table, executor, row, true));
+        futures.add(startStuckScan(c, table, executor, row, true, consistency));
       }
 
       // start four stuck scans, using a batch scanner, that should never return data
       for (var row : List.of("6", "8")) {
         // start a scan with an iterator that gets stuck and can not be interrupted
-        futures.add(startStuckBatchScan(c, table, executor, row, false));
+        futures.add(startStuckBatchScan(c, table, executor, row, false, consistency));
         // start a scan with an iterator that gets stuck and can be interrupted
-        futures.add(startStuckBatchScan(c, table, executor, row, true));
+        futures.add(startStuckBatchScan(c, table, executor, row, true, consistency));
       }
 
       // should eventually see the eight stuck scans running
-      Wait.waitFor(() -> countActiveScans(c, table) == 8);
+      Wait.waitFor(() -> countActiveScans(c, serverType, table) == 8);
 
       // Cancel the scan threads. This will cause the sessions on the server side to timeout and
       // become inactive. The stuck threads on the server side related to the timed out sessions
@@ -287,20 +304,20 @@ public class ZombieScanIT extends ConfigurableMacBase {
       });
 
       // Four of the eight running scans should respond to thread interrupts and exit
-      Wait.waitFor(() -> countActiveScans(c, table) == 4);
+      Wait.waitFor(() -> countActiveScans(c, serverType, table) == 4);
 
       Wait.waitFor(() -> getZombieScansMetric() == 4);
 
-      assertEquals(4, countActiveScans(c, table));
+      assertEquals(4, countActiveScans(c, serverType, table));
 
       // start four more stuck scans with two that will ignore interrupts
       futures.clear();
-      futures.add(startStuckScan(c, table, executor, "0", false));
-      futures.add(startStuckScan(c, table, executor, "0", true));
-      futures.add(startStuckBatchScan(c, table, executor, "99", false));
-      futures.add(startStuckBatchScan(c, table, executor, "0", true));
+      futures.add(startStuckScan(c, table, executor, "0", false, consistency));
+      futures.add(startStuckScan(c, table, executor, "0", true, consistency));
+      futures.add(startStuckBatchScan(c, table, executor, "99", false, consistency));
+      futures.add(startStuckBatchScan(c, table, executor, "0", true, consistency));
 
-      Wait.waitFor(() -> countActiveScans(c, table) == 8);
+      Wait.waitFor(() -> countActiveScans(c, serverType, table) == 8);
 
       // Cancel the client side scan threads. Should cause the server side threads to be
       // interrupted.
@@ -310,15 +327,19 @@ public class ZombieScanIT extends ConfigurableMacBase {
       });
 
       // Two of the stuck threads should respond to interrupts on the server side and exit.
-      Wait.waitFor(() -> countActiveScans(c, table) == 6);
+      Wait.waitFor(() -> countActiveScans(c, serverType, table) == 6);
 
       Wait.waitFor(() -> getZombieScansMetric() == 6);
 
-      assertEquals(6, countActiveScans(c, table));
+      assertEquals(6, countActiveScans(c, serverType, table));
 
       executor.shutdownNow();
+    } finally {
+      if (serverType == SCAN_SERVER) {
+        getCluster().getConfig().setNumScanServers(0);
+        getCluster().getClusterControl().stopAllServers(SCAN_SERVER);
+      }
     }
-
   }
 
   private static long countLocations(String table, AccumuloClient client) throws Exception {
@@ -341,7 +362,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
   }
 
   private Future<String> startStuckScan(AccumuloClient c, String table, ExecutorService executor,
-      String row, boolean canInterrupt) {
+      String row, boolean canInterrupt, ConsistencyLevel consistency) {
     return executor.submit(() -> {
       try (var scanner = c.createScanner(table)) {
         String className;
@@ -351,6 +372,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
           className = ZombieIterator.class.getName();
         }
         IteratorSetting iter = new IteratorSetting(100, "Z", className);
+        scanner.setConsistencyLevel(consistency);
         scanner.addScanIterator(iter);
         scanner.setRange(new Range(row));
         return scanner.stream().findFirst().map(e -> e.getKey().getRowData().toString())
@@ -360,7 +382,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
   }
 
   private Future<String> startStuckBatchScan(AccumuloClient c, String table,
-      ExecutorService executor, String row, boolean canInterrupt) {
+      ExecutorService executor, String row, boolean canInterrupt, ConsistencyLevel consistency) {
     return executor.submit(() -> {
       try (var scanner = c.createBatchScanner(table)) {
         String className;
@@ -373,6 +395,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
         IteratorSetting iter = new IteratorSetting(100, "Z", className);
         scanner.addScanIterator(iter);
         scanner.setRanges(List.of(new Range(row)));
+        scanner.setConsistencyLevel(consistency);
         return scanner.stream().findFirst().map(e -> e.getKey().getRowData().toString())
             .orElse("none");
       }
@@ -381,7 +404,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
 
   private int getZombieScansMetric() {
     return sink.getLines().stream().map(TestStatsDSink::parseStatsDMetric)
-        .filter(metric -> metric.getName().equals(MetricsProducer.METRICS_SCAN_ZOMBIE_THREADS))
+        .filter(metric -> metric.getName().equals(SCAN_ZOMBIE_THREADS.getName()))
         .mapToInt(metric -> Integer.parseInt(metric.getValue())).max().orElse(-1);
   }
 }

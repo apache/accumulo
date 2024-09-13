@@ -109,7 +109,8 @@ public class SortedLogRecovery {
     return key;
   }
 
-  private int findMaxTabletId(KeyExtent extent, List<Path> recoveryLogDirs) throws IOException {
+  private int findMaxTabletId(KeyExtent extent, List<ResolvedSortedLog> recoveryLogDirs)
+      throws IOException {
     int tabletId = -1;
 
     try (var rli = new RecoveryLogsIterator(context, recoveryLogDirs, minKey(DEFINE_TABLET),
@@ -148,18 +149,17 @@ public class SortedLogRecovery {
    * @return The maximum tablet ID observed AND the list of logs that contained the maximum tablet
    *         ID.
    */
-  private Entry<Integer,List<Path>> findLogsThatDefineTablet(KeyExtent extent,
-      List<Path> recoveryDirs) throws IOException {
-    Map<Integer,List<Path>> logsThatDefineTablet = new HashMap<>();
+  private Entry<Integer,List<ResolvedSortedLog>> findLogsThatDefineTablet(KeyExtent extent,
+      List<ResolvedSortedLog> recoveryDirs) throws IOException {
+    Map<Integer,List<ResolvedSortedLog>> logsThatDefineTablet = new HashMap<>();
 
-    for (Path walDir : recoveryDirs) {
+    for (ResolvedSortedLog walDir : recoveryDirs) {
       int tabletId = findMaxTabletId(extent, Collections.singletonList(walDir));
       if (tabletId == -1) {
-        log.debug("Did not find tablet {} in recovery log {}", extent, walDir.getName());
+        log.debug("Did not find tablet {} in recovery log {}", extent, walDir);
       } else {
         logsThatDefineTablet.computeIfAbsent(tabletId, k -> new ArrayList<>()).add(walDir);
-        log.debug("Found tablet {} with id {} in recovery log {}", extent, tabletId,
-            walDir.getName());
+        log.debug("Found tablet {} with id {} in recovery log {}", extent, tabletId, walDir);
       }
     }
 
@@ -204,8 +204,8 @@ public class SortedLogRecovery {
 
   }
 
-  private long findRecoverySeq(List<Path> recoveryLogs, Set<String> tabletFiles, int tabletId)
-      throws IOException {
+  private long findRecoverySeq(List<ResolvedSortedLog> recoveryLogs, Set<String> tabletFiles,
+      int tabletId) throws IOException {
     HashSet<String> suffixes = new HashSet<>();
     for (String path : tabletFiles) {
       suffixes.add(getPathSuffix(path));
@@ -265,8 +265,8 @@ public class SortedLogRecovery {
     return recoverySeq;
   }
 
-  private void playbackMutations(List<Path> recoveryLogs, MutationReceiver mr, int tabletId,
-      long recoverySeq) throws IOException {
+  private void playbackMutations(List<ResolvedSortedLog> recoveryLogs, MutationReceiver mr,
+      int tabletId, long recoverySeq) throws IOException {
     LogFileKey start = minKey(MUTATION, tabletId);
     start.seq = recoverySeq;
 
@@ -294,26 +294,29 @@ public class SortedLogRecovery {
     }
   }
 
-  Collection<String> asNames(List<Path> recoveryLogs) {
-    return Collections2.transform(recoveryLogs, Path::getName);
+  Collection<String> asNames(List<ResolvedSortedLog> recoveryLogs) {
+    return Collections2.transform(recoveryLogs, rsl -> rsl.getDir().getName());
   }
 
-  public boolean needsRecovery(KeyExtent extent, List<Path> recoveryDirs) throws IOException {
-    Entry<Integer,List<Path>> maxEntry = findLogsThatDefineTablet(extent, recoveryDirs);
+  public boolean needsRecovery(KeyExtent extent, List<ResolvedSortedLog> recoveryDirs)
+      throws IOException {
+    Entry<Integer,List<ResolvedSortedLog>> maxEntry =
+        findLogsThatDefineTablet(extent, recoveryDirs);
     int tabletId = maxEntry.getKey();
     return tabletId != -1;
   }
 
-  public void recover(KeyExtent extent, List<Path> recoveryDirs, Set<String> tabletFiles,
-      MutationReceiver mr) throws IOException {
+  public void recover(KeyExtent extent, List<ResolvedSortedLog> recoveryDirs,
+      Set<String> tabletFiles, MutationReceiver mr) throws IOException {
 
-    Entry<Integer,List<Path>> maxEntry = findLogsThatDefineTablet(extent, recoveryDirs);
+    Entry<Integer,List<ResolvedSortedLog>> maxEntry =
+        findLogsThatDefineTablet(extent, recoveryDirs);
 
     // A tablet may leave a tserver and then come back, in which case it would have a different and
     // higher tablet id. Only want to consider events in the log related to the last time the tablet
     // was loaded.
     int tabletId = maxEntry.getKey();
-    List<Path> logsThatDefineTablet = maxEntry.getValue();
+    List<ResolvedSortedLog> logsThatDefineTablet = maxEntry.getValue();
 
     if (tabletId == -1) {
       log.info("Tablet {} is not defined in recovery logs {} ", extent, asNames(recoveryDirs));
