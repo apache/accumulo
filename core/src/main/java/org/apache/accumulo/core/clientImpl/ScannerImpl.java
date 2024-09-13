@@ -19,8 +19,9 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -163,7 +164,8 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   public synchronized Iterator<Entry<Key,Value>> iterator() {
     ensureOpen();
     ScannerIterator iter = new ScannerIterator(context, tableId, authorizations, range, size,
-        getTimeout(SECONDS), this, isolated, readaheadThreshold, new Reporter());
+        Duration.ofMillis(getTimeout(MILLISECONDS)), this, isolated, readaheadThreshold,
+        new Reporter());
 
     iters.put(iter, iterCount++);
 
