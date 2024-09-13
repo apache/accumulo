@@ -37,8 +37,10 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
+import org.apache.accumulo.core.logging.LoggingBlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
+import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.summary.Gatherer.RowRange;
 import org.apache.hadoop.conf.Configuration;
@@ -191,7 +193,9 @@ public class SummaryReader {
     try {
       // the reason BCFile is used instead of RFile is to avoid reading in the RFile meta block when
       // only summary data is wanted.
-      CompositeCache compositeCache = new CompositeCache(summaryCache, indexCache);
+      CompositeCache compositeCache =
+          new CompositeCache(LoggingBlockCache.wrap(CacheType.SUMMARY, summaryCache),
+              LoggingBlockCache.wrap(CacheType.INDEX, indexCache));
       CachableBuilder cb = new CachableBuilder().fsPath(fs, file).conf(conf).fileLen(fileLenCache)
           .cacheProvider(new BasicCacheProvider(compositeCache, null)).cryptoService(cryptoService);
       bcReader = new CachableBlockFile.Reader(cb);
