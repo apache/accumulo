@@ -618,9 +618,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final RecentLogs recentLogs = new RecentLogs();
   private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
 
-  private long scansFetchedNanos = 0L;
-  private long compactsFetchedNanos = 0L;
-  private long ecInfoFetchedNanos = 0L;
+  private long scansFetchedNanos = System.nanoTime();
+  private long compactsFetchedNanos = System.nanoTime();
+  private long ecInfoFetchedNanos = System.nanoTime();
   private final long fetchTimeNanos = TimeUnit.MINUTES.toNanos(1);
   private final long ageOffEntriesMillis = TimeUnit.MINUTES.toMillis(15);
   // When there are a large amount of external compactions running the list of external compactions
