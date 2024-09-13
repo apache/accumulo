@@ -229,9 +229,17 @@ public class LiveTServerSet implements Watcher {
     try {
       final Set<TServerInstance> updates = new HashSet<>();
       final Set<TServerInstance> doomed = new HashSet<>();
+      final ZooCache zc = getZooCache();
+      final String tserverRoot = context.getZooKeeperRoot() + Constants.ZTSERVERS;
 
-      Set<ServiceLockPath> tservers =
-          context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
+      Set<ServiceLockPath> tservers = new HashSet<>();
+
+      for (String resourceGroup : zc.getChildren(tserverRoot)) {
+        for (String host : zc.getChildren(tserverRoot + "/" + resourceGroup)) {
+          tservers.add(ServiceLockPaths.parse(Optional.of(Constants.ZTSERVERS),
+              tserverRoot + "/" + resourceGroup + "/" + host));
+        }
+      }
 
       locklessServers.keySet().retainAll(tservers);
 

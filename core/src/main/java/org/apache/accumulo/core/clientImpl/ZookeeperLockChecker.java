@@ -42,10 +42,7 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
     // ServiceLockPaths only returns items that have a lock
     Set<ServiceLockPath> tservers = ctx.getServerPaths().getTabletServer(Optional.empty(),
         Optional.of(HostAndPort.fromString(server)));
-    if (tservers.isEmpty()) {
-      return false;
-    }
-    return true;
+    return !tservers.isEmpty();
   }
 
   @Override
@@ -53,9 +50,6 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
     // ServiceLockPaths only returns items that have a lock
     Set<ServiceLockPath> tservers = ctx.getServerPaths().getTabletServer(Optional.empty(),
         Optional.of(HostAndPort.fromString(server)));
-    if (tservers.isEmpty()) {
-      return false;
-    }
     for (ServiceLockPath slp : tservers) {
       if (ServiceLock.getSessionId(ctx.getZooCache(), slp) == Long.parseLong(session, 16)) {
         return true;

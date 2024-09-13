@@ -207,7 +207,7 @@ public class ServiceLockPaths {
     Objects.requireNonNull(serverType);
     Objects.requireNonNull(path);
 
-    final String type = serverType.isEmpty() ? determineServerType(path) : serverType.orElseThrow();
+    final String type = serverType.orElseGet(() -> determineServerType(path));
 
     switch (type) {
       case Constants.ZGC_LOCK:

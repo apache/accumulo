@@ -59,12 +59,16 @@ public class ServiceLockPathsIT extends AccumuloClusterHarness {
             .size());
     assertEquals(1, paths.getTabletServer(Optional.of("TTEST"), Optional.empty()).size());
     assertEquals(0, paths.getTabletServer(Optional.of("FAKE"), Optional.empty()).size());
+    assertEquals(0, paths.getTabletServer(Optional.of("CTEST"), Optional.empty()).size());
+    assertEquals(0, paths.getTabletServer(Optional.of("STEST"), Optional.empty()).size());
 
     assertEquals(4, paths.getCompactor(Optional.empty(), Optional.empty()).size());
     assertEquals(1, paths
         .getCompactor(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty()).size());
     assertEquals(3, paths.getCompactor(Optional.of("CTEST"), Optional.empty()).size());
     assertEquals(0, paths.getCompactor(Optional.of("FAKE"), Optional.empty()).size());
+    assertEquals(0, paths.getCompactor(Optional.of("TTEST"), Optional.empty()).size());
+    assertEquals(0, paths.getCompactor(Optional.of("STEST"), Optional.empty()).size());
 
     assertEquals(3, paths.getScanServer(Optional.empty(), Optional.empty()).size());
     assertEquals(1,
@@ -72,6 +76,8 @@ public class ServiceLockPathsIT extends AccumuloClusterHarness {
             .size());
     assertEquals(2, paths.getScanServer(Optional.of("STEST"), Optional.empty()).size());
     assertEquals(0, paths.getScanServer(Optional.of("FAKE"), Optional.empty()).size());
+    assertEquals(0, paths.getScanServer(Optional.of("CTEST"), Optional.empty()).size());
+    assertEquals(0, paths.getScanServer(Optional.of("TTEST"), Optional.empty()).size());
 
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
 
