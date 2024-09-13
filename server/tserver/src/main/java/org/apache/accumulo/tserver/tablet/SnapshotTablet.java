@@ -127,16 +127,11 @@ public class SnapshotTablet extends TabletBase {
 
     for (ScanDataSource activeScan : activeScans) {
       activeScan.interrupt();
-    }
-
-    // wait for reads and writes to complete
-    while (!activeScans.isEmpty()) {
-      try {
-        log.debug("Closing tablet {} waiting for {} scans", extent, activeScans.size());
-        this.wait(50);
-      } catch (InterruptedException e) {
-        log.error(e.toString());
-      }
+      // The tablet server will wait for this to return true because it wants to be sure no scans
+      // will run after the tablet is unloaded to ensure immediate consistency. Scans running in the
+      // scan server are eventually consistent, so there is no need to wait here. Disallow future
+      // activity on the scan session so it can be cleaned up eventually, but do not need to wait.
+      disallowNewReservations(activeScan.getScanParameters());
     }
   }
 }
