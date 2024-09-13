@@ -29,6 +29,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalSch
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchNonCriticalScheduledTask;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
 import java.time.Duration;
@@ -518,7 +519,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private static final AutoCloseable NOOP_CLOSEABLE = () -> {};
 
   AutoCloseable acquireRecoveryMemory(TabletMetadata tabletMetadata) {
-    if (tabletMetadata.getExtent().isMeta() || tabletMetadata.getLogs().isEmpty()) {
+    if (tabletMetadata.getExtent().isMeta() || !needsRecovery(tabletMetadata)) {
       return NOOP_CLOSEABLE;
     } else {
       recoveryLock.lock();
@@ -1076,6 +1077,21 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       String newDataFileLocation) throws IOException {
     Durability durability = getMincEventDurability(tablet.getExtent());
     logger.minorCompactionStarted(tablet, lastUpdateSequence, newDataFileLocation, durability);
+  }
+
+  public boolean needsRecovery(TabletMetadata tabletMetadata) {
+
+    var logEntries = tabletMetadata.getLogs();
+
+    if (logEntries.isEmpty()) {
+      return false;
+    }
+
+    try {
+      return logger.needsRecovery(getContext(), tabletMetadata.getExtent(), logEntries);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   public void recover(VolumeManager fs, KeyExtent extent, List<LogEntry> logEntries,

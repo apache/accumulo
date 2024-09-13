@@ -41,6 +41,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
+import org.apache.accumulo.core.logging.LoggingBlockCache;
+import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
@@ -50,6 +54,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.TabletServerResourceManager;
 import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
 import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.hadoop.fs.Path;
@@ -518,23 +523,49 @@ public class TabletServerLogger {
     return seq;
   }
 
+  private List<ResolvedSortedLog> resolve(Collection<LogEntry> walogs) {
+    List<ResolvedSortedLog> sortedLogs = new ArrayList<>(walogs.size());
+    for (var logEntry : walogs) {
+      var sortedLog = sortedLogCache.get(logEntry, le1 -> {
+        try {
+          return ResolvedSortedLog.resolve(le1, tserver.getVolumeManager());
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
+        }
+      });
+
+      sortedLogs.add(sortedLog);
+    }
+    return sortedLogs;
+  }
+
+  private CacheProvider createCacheProvider(TabletServerResourceManager resourceMgr) {
+    return new BasicCacheProvider(
+        LoggingBlockCache.wrap(CacheType.INDEX, resourceMgr.getIndexCache()),
+        LoggingBlockCache.wrap(CacheType.DATA, resourceMgr.getDataCache()));
+  }
+
+  public boolean needsRecovery(ServerContext context, KeyExtent extent, Collection<LogEntry> walogs)
+      throws IOException {
+    try {
+      var resourceMgr = tserver.getResourceManager();
+      var cacheProvider = createCacheProvider(resourceMgr);
+      SortedLogRecovery recovery =
+          new SortedLogRecovery(context, resourceMgr.getFileLenCache(), cacheProvider);
+      return recovery.needsRecovery(extent, resolve(walogs));
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+  }
+
   public void recover(ServerContext context, KeyExtent extent, List<LogEntry> walogs,
       Set<String> tabletFiles, MutationReceiver mr) throws IOException {
     try {
-      SortedLogRecovery recovery = new SortedLogRecovery(context);
-      List<ResolvedSortedLog> sortedLogs = new ArrayList<>(walogs.size());
-      for (var logEntry : walogs) {
-        var sortedLog = sortedLogCache.get(logEntry, le1 -> {
-          try {
-            return ResolvedSortedLog.resolve(le1, tserver.getVolumeManager());
-          } catch (IOException e) {
-            throw new UncheckedIOException(e);
-          }
-        });
-
-        sortedLogs.add(sortedLog);
-      }
-      recovery.recover(extent, sortedLogs, tabletFiles, mr);
+      var resourceMgr = tserver.getResourceManager();
+      var cacheProvider = createCacheProvider(resourceMgr);
+      SortedLogRecovery recovery =
+          new SortedLogRecovery(context, resourceMgr.getFileLenCache(), cacheProvider);
+      recovery.recover(extent, resolve(walogs), tabletFiles, mr);
     } catch (Exception e) {
       throw new IOException(e);
     }

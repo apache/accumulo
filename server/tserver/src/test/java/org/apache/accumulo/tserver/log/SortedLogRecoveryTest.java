@@ -52,10 +52,15 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCache;
+import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
 import org.apache.accumulo.core.file.rfile.bcfile.CompressionAlgorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
+import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -77,6 +82,9 @@ import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -165,6 +173,13 @@ public class SortedLogRecoveryTest extends WithTestNames {
     return recover(logs, new HashSet<>(), extent, bufferSize);
   }
 
+  private CacheProvider cacheProvider = new BasicCacheProvider(new TinyLfuBlockCache(
+      BlockCacheConfiguration.forTabletServer(DefaultConfiguration.getInstance()), CacheType.INDEX),
+      new TinyLfuBlockCache(
+          BlockCacheConfiguration.forTabletServer(DefaultConfiguration.getInstance()),
+          CacheType.DATA));
+  private Cache<String,Long> fileLenCache = Caffeine.newBuilder().build();
+
   private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent,
       int bufferSize) throws IOException {
 
@@ -205,7 +220,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
         dirs.add(ResolvedSortedLog.resolve(LogEntry.fromPath(origPath), fs));
       }
       // Recover
-      SortedLogRecovery recovery = new SortedLogRecovery(context);
+      SortedLogRecovery recovery = new SortedLogRecovery(context, fileLenCache, cacheProvider);
       CaptureMutations capture = new CaptureMutations();
       recovery.recover(extent, dirs, files, capture);
       verify(context);
