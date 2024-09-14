@@ -82,8 +82,12 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     for (Property prop : DURATION_PROPS) {
       var value = conf.get(prop);
       if (value != null) {
-        var durationMillis = ConfigurationTypeHelper.getTimeInMillis(value);
-        durations.put(prop, Duration.ofMillis(durationMillis));
+        try {
+          var durationMillis = ConfigurationTypeHelper.getTimeInMillis(value);
+          durations.put(prop, Duration.ofMillis(durationMillis));
+        } catch (RuntimeException e) {
+          log.error("Failed to parse duration for {}={}", prop, value, e);
+        }
       }
     }
     log.trace("recomputed durations {}", durations);
@@ -282,7 +286,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    */
   public Duration getDuration(Property property) {
     checkType(property, PropertyType.TIMEDURATION);
-    return Objects.requireNonNull(durationDeriver.derive().get(property));
+    return Objects.requireNonNull(durationDeriver.derive().get(property), () -> "Property "
+        + property.getKey() + " is not set or its value did not parse correctly.");
   }
 
   /**

@@ -501,15 +501,26 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testMalformedDuration() {
+    assertEquals(PropertyType.TIMEDURATION, Property.TSERV_WAL_MAX_AGE.getType());
+    assertEquals(PropertyType.TIMEDURATION, Property.GENERAL_RPC_TIMEOUT.getType());
+
     var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     conf.getDuration(Property.TSERV_WAL_MAX_AGE);
     var expectedDuration = Duration.ofMillis(
         ConfigurationTypeHelper.getTimeInMillis(Property.TSERV_WAL_MAX_AGE.getDefaultValue()));
+    var rpcTimeout = Duration.ofMillis(
+        ConfigurationTypeHelper.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue()));
     assertEquals(expectedDuration, conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertEquals(rpcTimeout, conf.getDuration(Property.GENERAL_RPC_TIMEOUT));
     conf.set(Property.TSERV_WAL_MAX_AGE.getKey(), "abc");
-    assertThrows(NumberFormatException.class, () -> conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    conf.set(Property.GENERAL_RPC_TIMEOUT, "2h");
+    var npe = assertThrows(NullPointerException.class,
+        () -> conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertTrue(npe.getMessage().contains(Property.TSERV_WAL_MAX_AGE.getKey()));
+    assertEquals(Duration.ofHours(2), conf.getDuration(Property.GENERAL_RPC_TIMEOUT));
     conf.set(Property.TSERV_WAL_MAX_AGE.getKey(), "1h");
     assertEquals(Duration.ofHours(1), conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertEquals(Duration.ofHours(2), conf.getDuration(Property.GENERAL_RPC_TIMEOUT));
   }
 
   @Test
@@ -519,9 +530,12 @@ public class AccumuloConfigurationTest {
     assertEquals(PropertyType.TIMEDURATION, Property.GENERAL_RPC_TIMEOUT.getType());
 
     var conf = new ConfigurationCopy();
-    assertThrows(NullPointerException.class, () -> conf.getDuration(Property.TSERV_WAL_MAX_AGE));
-    assertThrows(NullPointerException.class,
+    var npe = assertThrows(NullPointerException.class,
+        () -> conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertTrue(npe.getMessage().contains(Property.TSERV_WAL_MAX_AGE.getKey()));
+    npe = assertThrows(NullPointerException.class,
         () -> conf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE));
+    assertTrue(npe.getMessage().contains(Property.TSERV_WAL_MAX_AGE.getKey()));
 
     conf.set(Property.TSERV_WAL_MAX_AGE.getKey(), "1h");
     assertEquals(Duration.ofHours(1), conf.getDuration(Property.TSERV_WAL_MAX_AGE));
