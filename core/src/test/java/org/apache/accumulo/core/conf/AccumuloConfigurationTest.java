@@ -27,6 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -445,4 +447,55 @@ public class AccumuloConfigurationTest {
     }
   }
 
+  @Test
+  public void testDefaultDurations() {
+    var conf = DefaultConfiguration.getInstance();
+    for (Property prop : Property.values()) {
+      if (prop.getType() == PropertyType.TIMEDURATION) {
+        var expectedDuration =
+            Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(prop.getDefaultValue()));
+        assertEquals(expectedDuration, conf.getDuration(prop));
+        assertEquals(expectedDuration.toMillis(), conf.getTimeInMillis(prop));
+      }
+    }
+  }
+
+  /*
+   * AccumuloConfiguration will cache the results of computing durations, this test ensures it
+   * recomputes them on change.
+   */
+  @Test
+  public void testDurationUpdate() {
+    var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+
+    for (Property prop : Property.values()) {
+      if (prop.getType() == PropertyType.TIMEDURATION) {
+        var expectedDuration =
+            Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(prop.getDefaultValue()));
+        assertEquals(expectedDuration, conf.getDuration(prop));
+        assertEquals(expectedDuration.toMillis(), conf.getTimeInMillis(prop));
+      }
+    }
+
+    for (int toAdd = 1; toAdd <= 4; toAdd++) {
+      for (Property prop : Property.values()) {
+        if (prop.getType() == PropertyType.TIMEDURATION) {
+          var defaultDuration =
+              Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(prop.getDefaultValue()));
+          var expectedDuration = defaultDuration.plusMinutes(toAdd);
+          conf.set(prop.getKey(), expectedDuration.toMillis() + "ms");
+        }
+      }
+
+      for (Property prop : Property.values()) {
+        if (prop.getType() == PropertyType.TIMEDURATION) {
+          var defaultDuration =
+              Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(prop.getDefaultValue()));
+          var expectedDuration = defaultDuration.plus(toAdd, ChronoUnit.MINUTES);
+          assertEquals(expectedDuration, conf.getDuration(prop));
+          assertEquals(expectedDuration.toMillis(), conf.getTimeInMillis(prop));
+        }
+      }
+    }
+  }
 }
