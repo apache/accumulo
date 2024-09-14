@@ -80,8 +80,11 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   private final Deriver<EnumMap<Property,Duration>> durationDeriver = newDeriver(conf -> {
     EnumMap<Property,Duration> durations = new EnumMap<>(Property.class);
     for (Property prop : DURATION_PROPS) {
-      var durationMillis = ConfigurationTypeHelper.getTimeInMillis(conf.get(prop));
-      durations.put(prop, Duration.ofMillis(durationMillis));
+      var value = conf.get(prop);
+      if (value != null) {
+        var durationMillis = ConfigurationTypeHelper.getTimeInMillis(value);
+        durations.put(prop, Duration.ofMillis(durationMillis));
+      }
     }
     log.trace("recomputed durations {}", durations);
     return durations;
@@ -279,7 +282,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    */
   public Duration getDuration(Property property) {
     checkType(property, PropertyType.TIMEDURATION);
-    return durationDeriver.derive().get(property);
+    return Objects.requireNonNull(durationDeriver.derive().get(property));
   }
 
   /**

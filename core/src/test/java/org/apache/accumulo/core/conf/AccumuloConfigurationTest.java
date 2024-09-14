@@ -498,4 +498,40 @@ public class AccumuloConfigurationTest {
       }
     }
   }
+
+  @Test
+  public void testMalformedDuration() {
+    var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    conf.getDuration(Property.TSERV_WAL_MAX_AGE);
+    var expectedDuration = Duration.ofMillis(
+        ConfigurationTypeHelper.getTimeInMillis(Property.TSERV_WAL_MAX_AGE.getDefaultValue()));
+    assertEquals(expectedDuration, conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    conf.set(Property.TSERV_WAL_MAX_AGE.getKey(), "abc");
+    assertThrows(NumberFormatException.class, () -> conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    conf.set(Property.TSERV_WAL_MAX_AGE.getKey(), "1h");
+    assertEquals(Duration.ofHours(1), conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+  }
+
+  @Test
+  public void testDurationSubset() {
+    // test only having some of the duration properties actually set in the configuration
+    assertEquals(PropertyType.TIMEDURATION, Property.TSERV_WAL_MAX_AGE.getType());
+    assertEquals(PropertyType.TIMEDURATION, Property.GENERAL_RPC_TIMEOUT.getType());
+
+    var conf = new ConfigurationCopy();
+    assertThrows(NullPointerException.class, () -> conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertThrows(NullPointerException.class,
+        () -> conf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE));
+
+    conf.set(Property.TSERV_WAL_MAX_AGE.getKey(), "1h");
+    assertEquals(Duration.ofHours(1), conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertEquals(Duration.ofHours(1).toMillis(), conf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE));
+
+    assertThrows(NullPointerException.class, () -> conf.getDuration(Property.GENERAL_RPC_TIMEOUT));
+    assertThrows(NullPointerException.class,
+        () -> conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+
+    assertEquals(Duration.ofHours(1), conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertEquals(Duration.ofHours(1).toMillis(), conf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE));
+  }
 }
