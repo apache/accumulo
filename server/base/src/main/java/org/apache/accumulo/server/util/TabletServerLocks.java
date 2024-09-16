@@ -58,11 +58,12 @@ public class TabletServerLocks {
     } else {
       if (lock == null) {
         printUsage();
+      } else {
+        ServiceLock.ServiceLockPath path = ServiceLock.path(tserverPath + "/" + lock);
+        ServiceLock.deleteLock(zoo, path);
+        System.out.printf("Deleted %s", path);
       }
 
-      ServiceLock.ServiceLockPath path = ServiceLock.path(tserverPath + "/" + lock);
-      ServiceLock.deleteLock(zoo, path);
-      System.out.printf("Deleted %s", path);
     }
   }
 
