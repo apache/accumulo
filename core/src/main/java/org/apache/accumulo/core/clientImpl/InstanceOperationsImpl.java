@@ -29,12 +29,12 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.INSTANCE_OPS
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -55,6 +55,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
@@ -234,20 +235,14 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public List<String> getTabletServers() {
-    ZooCache cache = context.getZooCache();
-    String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+    Set<ServiceLockPath> paths =
+        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
     List<String> results = new ArrayList<>();
-    for (String candidate : cache.getChildren(path)) {
-      var children = cache.getChildren(path + "/" + candidate);
-      if (children != null && !children.isEmpty()) {
-        var copy = new ArrayList<>(children);
-        Collections.sort(copy);
-        var data = cache.get(path + "/" + candidate + "/" + copy.get(0));
-        if (data != null && !"manager".equals(new String(data, UTF_8))) {
-          results.add(candidate);
-        }
+    paths.forEach(p -> {
+      if (!p.getServer().equals("manager")) {
+        results.add(p.getServer());
       }
-    }
+    });
     return results;
   }
 

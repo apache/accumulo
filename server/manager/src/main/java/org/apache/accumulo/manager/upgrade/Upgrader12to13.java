@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -71,6 +72,8 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
+    LOG.info("Ensuring all worker server processes are down.");
+    validateEmptyZKWorkerServerPaths(context);
     LOG.info("setting root table stored hosting availability");
     addHostingGoals(context, TabletAvailability.HOSTED, DataLevel.ROOT);
     LOG.info("Removing nodes no longer used from ZooKeeper");
@@ -345,6 +348,29 @@ public class Upgrader12to13 implements Upgrader {
       }
     } catch (Exception e) {
       throw new IllegalStateException(e);
+    }
+  }
+
+  private void validateEmptyZKWorkerServerPaths(ServerContext context) {
+    // #4861 added the resource group to the compactor, sserver, tserver
+    // and dead tserver zookeeper paths. Make sure that the these paths
+    // are empty. This means that for the Accumulo 4.0 upgrade, the Manager
+    // should be started first before any other process.
+    final String zkRoot = ZooUtil.getRoot(context.getInstanceID());
+    final ZooReader zr = context.getZooReader();
+    for (String serverPath : new String[] {Constants.ZCOMPACTORS, Constants.ZSSERVERS,
+        Constants.ZTSERVERS, Constants.ZDEADTSERVERS}) {
+      try {
+        List<String> children = zr.getChildren(zkRoot + serverPath);
+        for (String child : children) {
+          if (child.contains(":")) {
+            throw new IllegalStateException("Found server address at " + serverPath + "/" + child
+                + ". Was expecting either a resource group name or nothing. Stop any referenced servers.");
+          }
+        }
+      } catch (InterruptedException | KeeperException e) {
+        throw new IllegalStateException(e);
+      }
     }
   }
 }

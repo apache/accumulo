@@ -25,14 +25,12 @@ import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.URL;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -135,14 +133,12 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   public void testManagerService() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      final InstanceId instanceID = client.instanceOperations().getInstanceId();
 
       // Wait for the Manager to grab its lock
       while (true) {
         try {
-          List<String> locks = cluster.getServerContext().getZooReader()
-              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMANAGER_LOCK);
-          if (!locks.isEmpty()) {
+          ServiceLockPath managerLockPath = getServerContext().getServerPaths().getManager();
+          if (managerLockPath != null) {
             break;
           }
         } catch (Exception e) {
@@ -194,14 +190,12 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   public void testGarbageCollectorPorts() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      InstanceId instanceID = client.instanceOperations().getInstanceId();
 
       // Wait for the Manager to grab its lock
       while (true) {
         try {
-          List<String> locks = cluster.getServerContext().getZooReader()
-              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
-          if (!locks.isEmpty()) {
+          ServiceLockPath slp = getServerContext().getServerPaths().getGarbageCollector();
+          if (slp != null) {
             break;
           }
         } catch (Exception e) {

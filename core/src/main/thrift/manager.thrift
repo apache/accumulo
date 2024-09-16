@@ -27,6 +27,7 @@ struct DeadServer {
   1:string server
   2:i64 lastStatus
   3:string status
+  4:string resourceGroup
 }
 
 struct TabletSplit {

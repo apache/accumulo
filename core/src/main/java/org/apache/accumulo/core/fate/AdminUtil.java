@@ -45,7 +45,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -234,8 +234,8 @@ public class AdminUtil<T> {
    * @throws KeeperException if zookeeper exception occurs
    * @throws InterruptedException if process is interrupted.
    */
-  public FateStatus getStatus(ReadOnlyFateStore<T> mfs, ZooReader zk,
-      ServiceLock.ServiceLockPath lockPath, Set<FateId> fateIdFilter, EnumSet<TStatus> statusFilter,
+  public FateStatus getStatus(ReadOnlyFateStore<T> mfs, ZooReader zk, ServiceLockPath lockPath,
+      Set<FateId> fateIdFilter, EnumSet<TStatus> statusFilter,
       EnumSet<FateInstanceType> typesFilter) throws KeeperException, InterruptedException {
     Map<FateId,List<String>> heldLocks = new HashMap<>();
     Map<FateId,List<String>> waitingLocks = new HashMap<>();
@@ -255,7 +255,7 @@ public class AdminUtil<T> {
   }
 
   public FateStatus getStatus(Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, ZooReader zk,
-      ServiceLock.ServiceLockPath lockPath, Set<FateId> fateIdFilter, EnumSet<TStatus> statusFilter,
+      ServiceLockPath lockPath, Set<FateId> fateIdFilter, EnumSet<TStatus> statusFilter,
       EnumSet<FateInstanceType> typesFilter) throws KeeperException, InterruptedException {
     Map<FateId,List<String>> heldLocks = new HashMap<>();
     Map<FateId,List<String>> waitingLocks = new HashMap<>();
@@ -276,7 +276,7 @@ public class AdminUtil<T> {
    * @throws KeeperException if initial lock list cannot be read.
    * @throws InterruptedException if thread interrupt detected while processing.
    */
-  private void findLocks(ZooReader zk, final ServiceLock.ServiceLockPath lockPath,
+  private void findLocks(ZooReader zk, final ServiceLockPath lockPath,
       final Map<FateId,List<String>> heldLocks, final Map<FateId,List<String>> waitingLocks)
       throws KeeperException, InterruptedException {
 
@@ -411,12 +411,12 @@ public class AdminUtil<T> {
   }
 
   public void printAll(Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, ZooReader zk,
-      ServiceLock.ServiceLockPath tableLocksPath) throws KeeperException, InterruptedException {
+      ServiceLockPath tableLocksPath) throws KeeperException, InterruptedException {
     print(fateStores, zk, tableLocksPath, new Formatter(System.out), null, null, null);
   }
 
   public void print(Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, ZooReader zk,
-      ServiceLock.ServiceLockPath tableLocksPath, Formatter fmt, Set<FateId> fateIdFilter,
+      ServiceLockPath tableLocksPath, Formatter fmt, Set<FateId> fateIdFilter,
       EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter)
       throws KeeperException, InterruptedException {
     FateStatus fateStatus =
@@ -537,7 +537,7 @@ public class AdminUtil<T> {
     return state;
   }
 
-  public void deleteLocks(ZooReaderWriter zk, ServiceLock.ServiceLockPath path, String fateIdStr)
+  public void deleteLocks(ZooReaderWriter zk, ServiceLockPath path, String fateIdStr)
       throws KeeperException, InterruptedException {
     // delete any locks assoc w/ fate operation
     List<String> lockedIds = zk.getChildren(path.toString());

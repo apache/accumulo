@@ -426,7 +426,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     try {
       // Read the gc location from its lock
       ZooReaderWriter zk = context.getZooReaderWriter();
-      var path = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZGC_LOCK);
+      var path = context.getServerPaths().createGarbageCollectorPath();
       List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
         address = ServiceLockData.parse(zk.getData(path + "/" + locks.get(0)))
@@ -823,7 +823,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     ServerContext context = getContext();
     final String zRoot = context.getZooKeeperRoot();
     final String monitorPath = zRoot + Constants.ZMONITOR;
-    final var monitorLockPath = ServiceLock.path(zRoot + Constants.ZMONITOR_LOCK);
+    final var monitorLockPath = context.getServerPaths().createMonitorPath();
 
     // Ensure that everything is kosher with ZK as this has changed.
     ZooReaderWriter zoo = context.getZooReaderWriter();

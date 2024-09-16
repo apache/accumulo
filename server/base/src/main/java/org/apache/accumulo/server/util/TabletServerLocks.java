@@ -18,35 +18,37 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.server.ServerContext;
+
+import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
 public class TabletServerLocks {
 
   public static void execute(final ServerContext context, final String lock, final String delete)
       throws Exception {
-    String tserverPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
 
     ZooCache cache = context.getZooCache();
     ZooReaderWriter zoo = context.getZooReaderWriter();
 
     if (delete == null) {
-      List<String> tabletServers = zoo.getChildren(tserverPath);
+      Set<ServiceLockPath> tabletServers =
+          context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
       if (tabletServers.isEmpty()) {
-        System.err.println("No tservers found in ZK at " + tserverPath);
+        System.err.println("No tservers found in ZK");
       }
 
-      for (String tabletServer : tabletServers) {
-        var zLockPath = ServiceLock.path(tserverPath + "/" + tabletServer);
-        Optional<ServiceLockData> lockData = ServiceLock.getLockData(cache, zLockPath, null);
+      for (ServiceLockPath tabletServer : tabletServers) {
+        Optional<ServiceLockData> lockData = ServiceLock.getLockData(cache, tabletServer, null);
         final String holder;
         if (lockData.isPresent()) {
           holder = lockData.orElseThrow().getAddressString(ThriftService.TSERV);
@@ -54,15 +56,19 @@ public class TabletServerLocks {
           holder = "<none>";
         }
 
-        System.out.printf("%32s %16s%n", tabletServer, holder);
+        System.out.printf("%32s %16s%n", tabletServer.getServer(), holder);
       }
     } else {
       if (lock == null) {
         printUsage();
       } else {
-        ServiceLock.ServiceLockPath path = ServiceLock.path(tserverPath + "/" + lock);
+        Set<ServiceLockPath> paths = context.getServerPaths().getTabletServer(Optional.empty(),
+            Optional.of(HostAndPort.fromString(lock)));
+        Preconditions.checkArgument(paths.size() == 1,
+            lock + " does not match a single ZooKeeper TabletServer lock. matches=" + paths);
+        ServiceLockPath path = paths.iterator().next();
         ServiceLock.deleteLock(zoo, path);
-        System.out.printf("Deleted %s", path);
+        System.out.printf("Deleted %s", path.toString());
       }
 
     }
