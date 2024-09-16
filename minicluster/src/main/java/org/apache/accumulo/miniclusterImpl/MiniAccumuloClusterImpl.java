@@ -863,7 +863,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int tsActualCount = 0;
     while (tsActualCount < tsExpectedCount) {
       Set<ServiceLockPath> tservers =
-          context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
+          context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true);
       tsActualCount = tservers.size();
       log.info(tsActualCount + " of " + tsExpectedCount + " tablet servers present in ZooKeeper");
       Thread.sleep(500);
@@ -872,7 +872,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int ssActualCount = 0;
     while (ssActualCount < ssExpectedCount) {
       Set<ServiceLockPath> tservers =
-          context.getServerPaths().getScanServer(Optional.empty(), Optional.empty());
+          context.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true);
       ssActualCount = tservers.size();
       log.info(ssActualCount + " of " + ssExpectedCount + " scan servers present in ZooKeeper");
       Thread.sleep(500);
@@ -881,18 +881,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int ecActualCount = 0;
     while (ecActualCount < ecExpectedCount) {
       Set<ServiceLockPath> compactors =
-          context.getServerPaths().getCompactor(Optional.empty(), Optional.empty());
+          context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true);
       ecActualCount = compactors.size();
       log.info(ecActualCount + " of " + ecExpectedCount + " compactors present in ZooKeeper");
       Thread.sleep(500);
     }
 
-    while (context.getServerPaths().getManager() == null) {
+    while (context.getServerPaths().getManager(true) == null) {
       log.info("Manager not yet present in ZooKeeper");
       Thread.sleep(500);
     }
 
-    while (context.getServerPaths().getGarbageCollector() == null) {
+    while (context.getServerPaths().getGarbageCollector(true) == null) {
       log.info("GC not yet present in ZooKeeper");
       Thread.sleep(500);
     }

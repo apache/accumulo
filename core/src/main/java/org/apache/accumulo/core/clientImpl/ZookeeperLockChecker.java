@@ -21,7 +21,6 @@ package org.apache.accumulo.core.clientImpl;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -31,17 +30,15 @@ import com.google.common.net.HostAndPort;
 public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   private final ClientContext ctx;
-  private final String root;
 
   ZookeeperLockChecker(ClientContext context) {
     this.ctx = context;
-    this.root = context.getZooKeeperRoot() + Constants.ZTSERVERS;
   }
 
   public boolean doesTabletServerLockExist(String server) {
     // ServiceLockPaths only returns items that have a lock
     Set<ServiceLockPath> tservers = ctx.getServerPaths().getTabletServer(Optional.empty(),
-        Optional.of(HostAndPort.fromString(server)));
+        Optional.of(HostAndPort.fromString(server)), true);
     return !tservers.isEmpty();
   }
 
@@ -49,7 +46,7 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
   public boolean isLockHeld(String server, String session) {
     // ServiceLockPaths only returns items that have a lock
     Set<ServiceLockPath> tservers = ctx.getServerPaths().getTabletServer(Optional.empty(),
-        Optional.of(HostAndPort.fromString(server)));
+        Optional.of(HostAndPort.fromString(server)), true);
     for (ServiceLockPath slp : tservers) {
       if (ServiceLock.getSessionId(ctx.getZooCache(), slp) == Long.parseLong(session, 16)) {
         return true;
@@ -60,7 +57,11 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   @Override
   public void invalidateCache(String tserver) {
-    ctx.getZooCache().clear(root + "/" + tserver);
+    ctx.getServerPaths()
+        .getTabletServer(Optional.empty(), Optional.of(HostAndPort.fromString(tserver)), false)
+        .forEach(slp -> {
+          ctx.getZooCache().clear(slp.toString());
+        });
   }
 
 }

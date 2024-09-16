@@ -576,7 +576,7 @@ public class Admin implements KeywordExecutable {
   static String qualifyWithZooKeeperSessionId(ClientContext context, ZooCache zooCache,
       String hostAndPort) {
     Set<ServiceLockPath> paths = context.getServerPaths().getTabletServer(Optional.empty(),
-        Optional.of(HostAndPort.fromString(hostAndPort)));
+        Optional.of(HostAndPort.fromString(hostAndPort)), true);
     if (paths.size() != 1) {
       return hostAndPort;
     }

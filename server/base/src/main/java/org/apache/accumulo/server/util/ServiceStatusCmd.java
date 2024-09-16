@@ -112,7 +112,7 @@ public class ServiceStatusCmd {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> compactors =
-        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
+        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true);
     compactors.forEach(c -> hostsByGroups
         .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, hostsByGroups.keySet(),
@@ -129,7 +129,7 @@ public class ServiceStatusCmd {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> scanServers =
-        context.getServerPaths().getScanServer(Optional.empty(), Optional.empty());
+        context.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true);
     scanServers.forEach(c -> hostsByGroups
         .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.S_SERVER, hostsByGroups.keySet(),
@@ -156,7 +156,7 @@ public class ServiceStatusCmd {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> compactors =
-        context.getServerPaths().getCompactor(Optional.empty(), Optional.empty());
+        context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true);
     compactors.forEach(c -> hostsByGroups
         .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.COMPACTOR, hostsByGroups.keySet(),

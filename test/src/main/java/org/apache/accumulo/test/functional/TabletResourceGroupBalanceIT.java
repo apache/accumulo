@@ -98,7 +98,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
     Map<String,String> tservers = new HashMap<>();
     for (ServiceLockPath tserver : cluster.getServerContext().getServerPaths()
-        .getTabletServer(Optional.empty(), Optional.empty())) {
+        .getTabletServer(Optional.empty(), Optional.empty(), true)) {
       tservers.put(tserver.getServer(), tserver.getResourceGroup());
     }
     return tservers;

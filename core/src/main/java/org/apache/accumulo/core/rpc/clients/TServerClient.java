@@ -74,10 +74,12 @@ public interface TServerClient<C extends TServiceClient> {
     final long rpcTimeout = context.getClientTimeoutInMillis();
     final ZooCache zc = context.getZooCache();
     final List<ServiceLockPath> serverPaths = new ArrayList<>();
-    serverPaths.addAll(context.getServerPaths().getCompactor(Optional.empty(), Optional.empty()));
-    serverPaths.addAll(context.getServerPaths().getScanServer(Optional.empty(), Optional.empty()));
     serverPaths
-        .addAll(context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty()));
+        .addAll(context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true));
+    serverPaths
+        .addAll(context.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true));
+    serverPaths
+        .addAll(context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true));
     if (serverPaths.isEmpty()) {
       if (warned.compareAndSet(false, true)) {
         LOG.warn(

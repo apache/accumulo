@@ -634,7 +634,7 @@ public class TabletMetadata {
     final Set<TServerInstance> liveServers = new HashSet<>();
 
     for (ServiceLockPath slp : context.getServerPaths().getTabletServer(Optional.empty(),
-        Optional.empty())) {
+        Optional.empty(), true)) {
 
       checkTabletServer(context, slp).ifPresent(liveServers::add);
     }

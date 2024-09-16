@@ -50,54 +50,55 @@ public class ServiceLockPathsIT extends AccumuloClusterHarness {
   @Test
   public void testPaths() throws Exception {
     ServiceLockPaths paths = getServerContext().getServerPaths();
-    assertNotNull(paths.getGarbageCollector());
-    assertNotNull(paths.getManager());
-    assertNull(paths.getMonitor()); // monitor not started
-    assertEquals(2, paths.getTabletServer(Optional.empty(), Optional.empty()).size());
-    assertEquals(1,
-        paths.getTabletServer(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty())
-            .size());
-    assertEquals(1, paths.getTabletServer(Optional.of("TTEST"), Optional.empty()).size());
-    assertEquals(0, paths.getTabletServer(Optional.of("FAKE"), Optional.empty()).size());
-    assertEquals(0, paths.getTabletServer(Optional.of("CTEST"), Optional.empty()).size());
-    assertEquals(0, paths.getTabletServer(Optional.of("STEST"), Optional.empty()).size());
-
-    assertEquals(4, paths.getCompactor(Optional.empty(), Optional.empty()).size());
+    assertNotNull(paths.getGarbageCollector(true));
+    assertNotNull(paths.getManager(true));
+    assertNull(paths.getMonitor(true)); // monitor not started
+    assertEquals(2, paths.getTabletServer(Optional.empty(), Optional.empty(), true).size());
     assertEquals(1, paths
-        .getCompactor(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty()).size());
-    assertEquals(3, paths.getCompactor(Optional.of("CTEST"), Optional.empty()).size());
-    assertEquals(0, paths.getCompactor(Optional.of("FAKE"), Optional.empty()).size());
-    assertEquals(0, paths.getCompactor(Optional.of("TTEST"), Optional.empty()).size());
-    assertEquals(0, paths.getCompactor(Optional.of("STEST"), Optional.empty()).size());
+        .getTabletServer(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty(), true)
+        .size());
+    assertEquals(1, paths.getTabletServer(Optional.of("TTEST"), Optional.empty(), true).size());
+    assertEquals(0, paths.getTabletServer(Optional.of("FAKE"), Optional.empty(), true).size());
+    assertEquals(0, paths.getTabletServer(Optional.of("CTEST"), Optional.empty(), true).size());
+    assertEquals(0, paths.getTabletServer(Optional.of("STEST"), Optional.empty(), true).size());
 
-    assertEquals(3, paths.getScanServer(Optional.empty(), Optional.empty()).size());
-    assertEquals(1,
-        paths.getScanServer(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty())
-            .size());
-    assertEquals(2, paths.getScanServer(Optional.of("STEST"), Optional.empty()).size());
-    assertEquals(0, paths.getScanServer(Optional.of("FAKE"), Optional.empty()).size());
-    assertEquals(0, paths.getScanServer(Optional.of("CTEST"), Optional.empty()).size());
-    assertEquals(0, paths.getScanServer(Optional.of("TTEST"), Optional.empty()).size());
+    assertEquals(4, paths.getCompactor(Optional.empty(), Optional.empty(), true).size());
+    assertEquals(1, paths
+        .getCompactor(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty(), true)
+        .size());
+    assertEquals(3, paths.getCompactor(Optional.of("CTEST"), Optional.empty(), true).size());
+    assertEquals(0, paths.getCompactor(Optional.of("FAKE"), Optional.empty(), true).size());
+    assertEquals(0, paths.getCompactor(Optional.of("TTEST"), Optional.empty(), true).size());
+    assertEquals(0, paths.getCompactor(Optional.of("STEST"), Optional.empty(), true).size());
+
+    assertEquals(3, paths.getScanServer(Optional.empty(), Optional.empty(), true).size());
+    assertEquals(1, paths
+        .getScanServer(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty(), true)
+        .size());
+    assertEquals(2, paths.getScanServer(Optional.of("STEST"), Optional.empty(), true).size());
+    assertEquals(0, paths.getScanServer(Optional.of("FAKE"), Optional.empty(), true).size());
+    assertEquals(0, paths.getScanServer(Optional.of("CTEST"), Optional.empty(), true).size());
+    assertEquals(0, paths.getScanServer(Optional.of("TTEST"), Optional.empty(), true).size());
 
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
 
-    Wait.waitFor(() -> paths.getCompactor(Optional.empty(), Optional.empty()).size() == 0);
+    Wait.waitFor(() -> paths.getCompactor(Optional.empty(), Optional.empty(), true).size() == 0);
 
     getCluster().getClusterControl().stopAllServers(ServerType.SCAN_SERVER);
 
-    Wait.waitFor(() -> paths.getScanServer(Optional.empty(), Optional.empty()).size() == 0);
+    Wait.waitFor(() -> paths.getScanServer(Optional.empty(), Optional.empty(), true).size() == 0);
 
     getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
 
-    Wait.waitFor(() -> paths.getGarbageCollector() == null);
+    Wait.waitFor(() -> paths.getGarbageCollector(true) == null);
 
     getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
 
-    Wait.waitFor(() -> paths.getManager() == null);
+    Wait.waitFor(() -> paths.getManager(true) == null);
 
     getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
 
-    Wait.waitFor(() -> paths.getTabletServer(Optional.empty(), Optional.empty()).size() == 0);
+    Wait.waitFor(() -> paths.getTabletServer(Optional.empty(), Optional.empty(), true).size() == 0);
 
   }
 

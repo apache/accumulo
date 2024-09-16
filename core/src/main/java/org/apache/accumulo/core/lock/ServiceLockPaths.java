@@ -283,12 +283,13 @@ public class ServiceLockPaths {
   }
 
   public Set<ServiceLockPath> getCompactor(Optional<String> resourceGroup,
-      Optional<HostAndPort> address) {
-    return get(Constants.ZCOMPACTORS, resourceGroup, address);
+      Optional<HostAndPort> address, boolean withLock) {
+    return get(Constants.ZCOMPACTORS, resourceGroup, address, withLock);
   }
 
-  public ServiceLockPath getGarbageCollector() {
-    Set<ServiceLockPath> results = get(Constants.ZGC_LOCK, Optional.empty(), Optional.empty());
+  public ServiceLockPath getGarbageCollector(boolean withLock) {
+    Set<ServiceLockPath> results =
+        get(Constants.ZGC_LOCK, Optional.empty(), Optional.empty(), withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -296,8 +297,9 @@ public class ServiceLockPaths {
     }
   }
 
-  public ServiceLockPath getManager() {
-    Set<ServiceLockPath> results = get(Constants.ZMANAGER_LOCK, Optional.empty(), Optional.empty());
+  public ServiceLockPath getManager(boolean withLock) {
+    Set<ServiceLockPath> results =
+        get(Constants.ZMANAGER_LOCK, Optional.empty(), Optional.empty(), withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -305,8 +307,9 @@ public class ServiceLockPaths {
     }
   }
 
-  public ServiceLockPath getMonitor() {
-    Set<ServiceLockPath> results = get(Constants.ZMONITOR_LOCK, Optional.empty(), Optional.empty());
+  public ServiceLockPath getMonitor(boolean withLock) {
+    Set<ServiceLockPath> results =
+        get(Constants.ZMONITOR_LOCK, Optional.empty(), Optional.empty(), withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -315,26 +318,34 @@ public class ServiceLockPaths {
   }
 
   public Set<ServiceLockPath> getScanServer(Optional<String> resourceGroup,
-      Optional<HostAndPort> address) {
-    return get(Constants.ZSSERVERS, resourceGroup, address);
+      Optional<HostAndPort> address, boolean withLock) {
+    return get(Constants.ZSSERVERS, resourceGroup, address, withLock);
   }
 
   public Set<ServiceLockPath> getTabletServer(Optional<String> resourceGroup,
-      Optional<HostAndPort> address) {
-    return get(Constants.ZTSERVERS, resourceGroup, address);
+      Optional<HostAndPort> address, boolean withLock) {
+    return get(Constants.ZTSERVERS, resourceGroup, address, withLock);
   }
 
   public Set<ServiceLockPath> getDeadTabletServer(Optional<String> resourceGroup,
-      Optional<HostAndPort> address) {
-    return get(Constants.ZDEADTSERVERS, resourceGroup, address);
+      Optional<HostAndPort> address, boolean withLock) {
+    return get(Constants.ZDEADTSERVERS, resourceGroup, address, withLock);
   }
 
   /**
    * Find paths in ZooKeeper based on the input arguments and return a set of ServiceLockPath
-   * objects at those paths that have valid locks.
+   * objects.
+   *
+   * @param serverType type of lock, should be something like Constants.ZTSERVERS or
+   *        Constants.ZMANAGER_LOCK
+   * @param resourceGroup name of resource group, if empty will return all resource groups
+   * @param address address of server (host:port), if empty will return all addresses
+   * @param withLock supply true if you only want to return servers that have an active lock. Not
+   *        applicable for types that don't use a lock (e.g. dead tservers)
+   * @return set of ServiceLockPath objects for the paths found based on the search criteria
    */
   private Set<ServiceLockPath> get(final String serverType, Optional<String> resourceGroup,
-      Optional<HostAndPort> address) {
+      Optional<HostAndPort> address, boolean withLock) {
 
     Objects.requireNonNull(serverType);
     Objects.requireNonNull(resourceGroup);
@@ -348,9 +359,13 @@ public class ServiceLockPaths {
         || serverType.equals(Constants.ZMONITOR_LOCK)) {
       final ZcStat stat = new ZcStat();
       final ServiceLockPath slp = parse(Optional.of(serverType), typePath);
-      Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
-      if (!sld.isEmpty()) {
+      if (!withLock) {
         results.add(slp);
+      } else {
+        Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
+        if (!sld.isEmpty()) {
+          results.add(slp);
+        }
       }
     } else if (serverType.equals(Constants.ZCOMPACTORS) || serverType.equals(Constants.ZSSERVERS)
         || serverType.equals(Constants.ZTSERVERS) || serverType.equals(Constants.ZDEADTSERVERS)) {
@@ -362,15 +377,16 @@ public class ServiceLockPaths {
             final ZcStat stat = new ZcStat();
             final ServiceLockPath slp =
                 parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
-            if (slp.getType().equals(Constants.ZDEADTSERVERS)
-                && (address.isEmpty() || address.orElseThrow().toString().equals(server))) {
-              // Dead TServers don't have lock data
-              results.add(slp);
-            } else {
-              Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
-              if (!sld.isEmpty()
-                  && (address.isEmpty() || address.orElseThrow().toString().equals(server))) {
+            if (address.isEmpty() || address.orElseThrow().toString().equals(server)) {
+              if (!withLock || slp.getType().equals(Constants.ZDEADTSERVERS)) {
+                // Dead TServers don't have lock data
                 results.add(slp);
+              } else {
+                Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
+                if (!sld.isEmpty()
+                    && (address.isEmpty() || address.orElseThrow().toString().equals(server))) {
+                  results.add(slp);
+                }
               }
             }
           }
