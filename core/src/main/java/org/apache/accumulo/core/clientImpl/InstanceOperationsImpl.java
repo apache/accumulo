@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -47,7 +48,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.client.admin.servers.ManagerServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
@@ -56,6 +56,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
@@ -218,15 +219,20 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   @Deprecated(since = "4.0.0")
   public List<String> getManagerLocations() {
-    return context.getManagerLocations();
+    ServiceLockPath slp = context.getServerPaths().getManager();
+    if (slp == null) {
+      return null;
+    } else {
+      return List.of(slp.getServer());
+    }
   }
 
   @Override
   @Deprecated(since = "4.0.0")
   public Set<String> getCompactors() {
     Set<String> results = new HashSet<>();
-    context.getServerIdResolver().getCompactors()
-        .forEach(csi -> results.add(csi.toHostPortString()));
+    context.getServerPaths().getCompactor(Optional.empty(), Optional.empty())
+        .forEach(t -> results.add(t.getServer()));
     return results;
   }
 
@@ -234,8 +240,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public Set<String> getScanServers() {
     Set<String> results = new HashSet<>();
-    context.getServerIdResolver().getScanServers().keySet()
-        .forEach(ssi -> results.add(ssi.toHostPortString()));
+    context.getServerPaths().getScanServer(Optional.empty(), Optional.empty())
+        .forEach(t -> results.add(t.getServer()));
     return results;
   }
 
@@ -243,8 +249,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public List<String> getTabletServers() {
     List<String> results = new ArrayList<>();
-    context.getServerIdResolver().getTabletServers()
-        .forEach(tsi -> results.add(tsi.toHostPortString()));
+    context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty())
+        .forEach(t -> results.add(t.getServer()));
     return results;
   }
 
@@ -323,9 +329,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveCompaction> getActiveCompactions(String server)
       throws AccumuloException, AccumuloSecurityException {
 
-    ServerId si = context.getServerIdResolver().resolveCompactor(server);
+    HostAndPort hp = HostAndPort.fromString(server);
+
+    ServerId si = getServer(ServerTypeName.COMPACTOR, null, hp.getHost(), hp.getPort());
     if (si == null) {
-      si = context.getServerIdResolver().resolveTabletServer(server);
+      si = getServer(ServerTypeName.TABLET_SERVER, null, hp.getHost(), hp.getPort());
     }
     if (si == null) {
       return new ArrayList<>();
@@ -448,22 +456,48 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public ServerId getServer(ServerTypeName type, String host, int port) {
-    final HostAndPort hp = HostAndPort.fromParts(host, port);
+  public ServerId getServer(ServerTypeName type, String resourceGroup, String host, int port) {
+    Objects.requireNonNull(type, "type parameter cannot be null");
+    Objects.requireNonNull(host, "host parameter cannot be null");
+
+    final Optional<String> rg = Optional.ofNullable(resourceGroup);
+    final Optional<HostAndPort> hp = Optional.of(HostAndPort.fromParts(host, port));
+
     switch (type) {
       case COMPACTOR:
-        return context.getServerIdResolver().resolveCompactor(hp.toString());
-      case MANAGER:
-        final ManagerServerId msi = context.getServerIdResolver().getManager();
-        if (msi.getHost().equals(host) && msi.getPort() == port) {
-          return msi;
-        } else {
+        Set<ServiceLockPath> compactors = context.getServerPaths().getCompactor(rg, hp);
+        if (compactors.isEmpty()) {
           return null;
+        } else if (compactors.size() == 1) {
+          return createServerId(type, compactors.iterator().next());
+        } else {
+          throw new IllegalStateException("Multiple servers matching provided address");
+        }
+      case MANAGER:
+        Set<ServerId> managers = getServers(type, null);
+        if (managers.isEmpty()) {
+          return null;
+        } else {
+          return managers.iterator().next();
         }
       case SCAN_SERVER:
-        return context.getServerIdResolver().resolveScanServer(hp.toString());
+        Set<ServiceLockPath> sservers = context.getServerPaths().getScanServer(rg, hp);
+        if (sservers.isEmpty()) {
+          return null;
+        } else if (sservers.size() == 1) {
+          return createServerId(type, sservers.iterator().next());
+        } else {
+          throw new IllegalStateException("Multiple servers matching provided address");
+        }
       case TABLET_SERVER:
-        return context.getServerIdResolver().resolveTabletServer(hp.toString());
+        Set<ServiceLockPath> tservers = context.getServerPaths().getScanServer(rg, hp);
+        if (tservers.isEmpty()) {
+          return null;
+        } else if (tservers.size() == 1) {
+          return createServerId(type, tservers.iterator().next());
+        } else {
+          throw new IllegalStateException("Multiple servers matching provided address");
+        }
       default:
         throw new IllegalArgumentException("Unhandled server type: " + type);
     }
@@ -479,16 +513,20 @@ public class InstanceOperationsImpl implements InstanceOperations {
     final Set<ServerId> results = new HashSet<>();
     switch (type) {
       case COMPACTOR:
-        results.addAll(context.getServerIdResolver().getCompactors());
+        context.getServerPaths().getCompactor(Optional.empty(), Optional.empty())
+            .forEach(c -> results.add(createServerId(type, c)));
         break;
       case MANAGER:
-        results.add(context.getServerIdResolver().getManager());
+        ServiceLockPath m = context.getServerPaths().getManager();
+        results.add(createServerId(type, m));
         break;
       case SCAN_SERVER:
-        results.addAll(context.getServerIdResolver().getScanServers().keySet());
+        context.getServerPaths().getScanServer(Optional.empty(), Optional.empty())
+            .forEach(s -> results.add(createServerId(type, s)));
         break;
       case TABLET_SERVER:
-        results.addAll(context.getServerIdResolver().getTabletServers());
+        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty())
+            .forEach(t -> results.add(createServerId(type, t)));
         break;
       default:
         break;
@@ -497,6 +535,16 @@ public class InstanceOperationsImpl implements InstanceOperations {
       return results;
     }
     return results.stream().filter(test).collect(Collectors.toCollection(HashSet::new));
+  }
+
+  private ServerId createServerId(ServerTypeName type, ServiceLockPath slp) {
+    Objects.requireNonNull(type);
+    Objects.requireNonNull(slp);
+    String resourceGroup = Objects.requireNonNull(slp.getResourceGroup());
+    HostAndPort hp = HostAndPort.fromString(Objects.requireNonNull(slp.getServer()));
+    String host = hp.getHost();
+    int port = hp.getPort();
+    return new ServerId(type, resourceGroup, host, port);
   }
 
 }

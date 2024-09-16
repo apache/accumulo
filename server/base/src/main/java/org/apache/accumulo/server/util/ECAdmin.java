@@ -24,7 +24,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.admin.servers.CompactorServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -152,11 +153,11 @@ public class ECAdmin implements KeywordExecutable {
   }
 
   private void listCompactorsByQueue(ServerContext context) {
-    Set<CompactorServerId> compactors = context.getServerIdResolver().getCompactors();
+    Set<ServerId> compactors = context.instanceOperations().getServers(ServerTypeName.COMPACTOR);
     if (compactors.isEmpty()) {
       System.out.println("No Compactors found.");
     } else {
-      Map<String,List<CompactorServerId>> m = new TreeMap<>();
+      Map<String,List<ServerId>> m = new TreeMap<>();
       compactors.forEach(csi -> {
         m.putIfAbsent(csi.getResourceGroup(), new ArrayList<>()).add(csi);
       });

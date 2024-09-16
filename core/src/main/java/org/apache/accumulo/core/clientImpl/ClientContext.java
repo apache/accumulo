@@ -36,7 +36,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -66,7 +69,6 @@ import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.admin.servers.ManagerServerId;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -76,9 +78,15 @@ import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
@@ -91,6 +99,7 @@ import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -126,7 +135,6 @@ public class ClientContext implements AccumuloClient {
   private ConditionalWriterConfig conditionalWriterConfig;
   private final AccumuloConfiguration serverConf;
   private final Configuration hadoopConf;
-  private final ServerIds serverIds;
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
   // compute, so cache them.
@@ -134,6 +142,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<SaslConnectionParams> saslSupplier;
   private final Supplier<SslConnectionParams> sslSupplier;
   private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
+  private final Supplier<ServiceLockPaths> serverPaths;
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
   private ZookeeperLockChecker zkLockChecker;
@@ -187,16 +196,16 @@ public class ClientContext implements AccumuloClient {
 
         @Override
         public Supplier<Collection<ScanServerInfo>> getScanServers() {
-          return () -> ClientContext.this.getServerIdResolver().getScanServers().entrySet().stream()
+          return () -> getServerPaths().getScanServer(Optional.empty(), Optional.empty()).stream()
               .map(entry -> new ScanServerInfo() {
                 @Override
                 public String getAddress() {
-                  return entry.getKey().toHostPortString();
+                  return entry.getServer();
                 }
 
                 @Override
                 public String getGroup() {
-                  return entry.getKey().getResourceGroup();
+                  return entry.getResourceGroup();
                 }
               }).collect(Collectors.toSet());
         }
@@ -231,7 +240,7 @@ public class ClientContext implements AccumuloClient {
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
-    this.serverIds = new ServerIds(this);
+    this.serverPaths = Suppliers.memoize(() -> new ServiceLockPaths(this));
     if (ueh == Threads.UEH) {
       clientThreadPools = ThreadPools.getServerThreadPools();
     } else {
@@ -399,6 +408,31 @@ public class ClientContext implements AccumuloClient {
     return scanServerSelectorSupplier.get();
   }
 
+  /**
+   * @return map of live scan server addresses to lock uuids.
+   */
+  public Map<String,Pair<UUID,String>> getScanServers() {
+    Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
+    Set<ServiceLockPath> scanServerPaths =
+        getServerPaths().getScanServer(Optional.empty(), Optional.empty());
+    for (ServiceLockPath path : scanServerPaths) {
+      try {
+        ZcStat stat = new ZcStat();
+        Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), path, stat);
+        if (sld.isPresent()) {
+          final ServiceLockData data = sld.orElseThrow();
+          final String addr = data.getAddressString(ThriftService.TABLET_SCAN);
+          final UUID uuid = data.getServerUUID(ThriftService.TABLET_SCAN);
+          final String group = data.getGroup(ThriftService.TABLET_SCAN);
+          liveScanServers.put(addr, new Pair<>(uuid, group));
+        }
+      } catch (IllegalArgumentException e) {
+        log.error("Error validating zookeeper scan server node at path: " + path, e);
+      }
+    }
+    return liveScanServers;
+  }
+
   static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {
     ConditionalWriterConfig conditionalWriterConfig = new ConditionalWriterConfig();
 
@@ -442,29 +476,11 @@ public class ClientContext implements AccumuloClient {
   }
 
   /**
-   * Returns the location(s) of the accumulo manager and any redundant servers.
-   *
-   * @return a list of locations in "hostname:port" form
-   */
-  public List<String> getManagerLocations() {
-    ensureOpen();
-
-    final ManagerServerId msi = this.serverIds.getManager();
-
-    if (msi == null) {
-      return Collections.emptyList();
-    }
-
-    return Collections.singletonList(msi.toHostPortString());
-  }
-
-  /**
    * Returns a unique string that identifies this instance of accumulo.
    *
    * @return a UUID
    */
   public InstanceId getInstanceID() {
-    ensureOpen();
     if (instanceId == null) {
       // lookup by name
       final String instanceName = info.getInstanceName();
@@ -488,7 +504,6 @@ public class ClientContext implements AccumuloClient {
   }
 
   public String getZooKeeperRoot() {
-    ensureOpen();
     return ZooUtil.getRoot(getInstanceID());
   }
 
@@ -523,7 +538,6 @@ public class ClientContext implements AccumuloClient {
   }
 
   public ZooCache getZooCache() {
-    ensureOpen();
     return zooCache;
   }
 
@@ -1053,9 +1067,8 @@ public class ClientContext implements AccumuloClient {
     return this.zkLockChecker;
   }
 
-  public ServerIds getServerIdResolver() {
-    ensureOpen();
-    return serverIds;
+  public ServiceLockPaths getServerPaths() {
+    return this.serverPaths.get();
   }
 
 }

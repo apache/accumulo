@@ -204,6 +204,7 @@ public interface InstanceOperations {
    *
    * @return A set of currently active scan servers.
    * @deprecated see {@link #getServers(ServerTypeName)}
+   * @since 2.1.0
    */
   @Deprecated(since = "4.0.0")
   Set<String> getScanServers();
@@ -221,12 +222,13 @@ public interface InstanceOperations {
    * Resolve the server of the given type and address to a ServerId
    *
    * @param type type of server
-   * @param host host name
+   * @param resourceGroup group of server, can be null
+   * @param host host name, cannot be null
    * @param port host port
    * @return ServerId if found, else null
    * @since 4.0.0
    */
-  ServerId getServer(ServerTypeName type, String host, int port);
+  ServerId getServer(ServerTypeName type, String resourceGroup, String host, int port);
 
   /**
    * Returns all servers of the given types

@@ -27,6 +27,8 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.metrics.Metric.MAJC_QUEUED;
+import static org.apache.accumulo.core.metrics.Metric.MAJC_RUNNING;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -58,7 +60,8 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
-import org.apache.accumulo.core.client.admin.servers.CompactorServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -310,7 +313,7 @@ public class CompactionCoordinator
     LOG.info("Shutting down");
   }
 
-  private Map<String,Set<HostAndPort>> getIdleCompactors(Set<CompactorServerId> runningCompactors) {
+  private Map<String,Set<HostAndPort>> getIdleCompactors(Set<ServerId> runningCompactors) {
 
     final Map<String,Set<HostAndPort>> allCompactors = new HashMap<>();
     runningCompactors
@@ -649,10 +652,10 @@ public class CompactionCoordinator
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder(METRICS_MAJC_QUEUED, jobQueues, CompactionJobQueues::getQueuedJobCount)
+    Gauge.builder(MAJC_QUEUED.getName(), jobQueues, CompactionJobQueues::getQueuedJobCount)
         .tag("subprocess", "compaction.coordinator")
         .description("Number of queued major compactions").register(registry);
-    Gauge.builder(METRICS_MAJC_RUNNING, this, CompactionCoordinator::getNumRunningCompactions)
+    Gauge.builder(MAJC_RUNNING.getName(), this, CompactionCoordinator::getNumRunningCompactions)
         .tag("subprocess", "compaction.coordinator")
         .description("Number of running major compactions").register(registry);
 
@@ -1013,8 +1016,8 @@ public class CompactionCoordinator
   }
 
   /* Method exists to be overridden in test to hide static method */
-  protected Set<CompactorServerId> getRunningCompactors() {
-    return this.ctx.getServerIdResolver().getCompactors();
+  protected Set<ServerId> getRunningCompactors() {
+    return ctx.instanceOperations().getServers(ServerTypeName.COMPACTOR);
   }
 
   /* Method exists to be overridden in test to hide static method */
@@ -1175,7 +1178,7 @@ public class CompactionCoordinator
           Sets.difference(trackedGroups, TIME_COMPACTOR_LAST_CHECKED.keySet()));
     }
 
-    final Set<CompactorServerId> runningCompactors = getRunningCompactors();
+    final Set<ServerId> runningCompactors = getRunningCompactors();
 
     final Set<CompactorGroupId> runningCompactorGroups = new HashSet<>();
     runningCompactors

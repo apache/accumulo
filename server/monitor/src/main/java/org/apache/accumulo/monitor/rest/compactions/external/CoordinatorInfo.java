@@ -21,7 +21,7 @@ package org.apache.accumulo.monitor.rest.compactions.external;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.admin.servers.CompactorServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 
 import com.google.common.net.HostAndPort;
 
@@ -35,7 +35,7 @@ public class CoordinatorInfo {
 
   public CoordinatorInfo(Optional<HostAndPort> serverOpt, ExternalCompactionInfo ecInfo) {
     server = serverOpt.map(HostAndPort::toString).orElse("none");
-    Set<CompactorServerId> compactors = ecInfo.getCompactors();
+    Set<ServerId> compactors = ecInfo.getCompactors();
     numQueues = compactors.stream().map(csi -> csi.getResourceGroup()).distinct().count();
     numCompactors = compactors.size();
     lastContact = System.currentTimeMillis() - ecInfo.getFetchedTimeMillis();

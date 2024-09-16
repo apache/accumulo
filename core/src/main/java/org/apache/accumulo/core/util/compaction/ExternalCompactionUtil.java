@@ -24,20 +24,23 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RU
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -99,9 +102,24 @@ public class ExternalCompactionUtil {
    * @return Optional HostAndPort of Coordinator node if found
    */
   public static Optional<HostAndPort> findCompactionCoordinator(ClientContext context) {
-    final String lockPath = context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK;
-    return ServiceLock.getLockData(context.getZooCache(), ServiceLock.path(lockPath), new ZcStat())
+    final ServiceLockPath slp = context.getServerPaths().createManagerPath();
+    if (slp == null) {
+      return Optional.empty();
+    }
+    return ServiceLock.getLockData(context.getZooCache(), slp, new ZcStat())
         .map(sld -> sld.getAddress(ThriftService.COORDINATOR));
+  }
+
+  /**
+   * @return map of group names to compactor addresses
+   */
+  public static Map<String,Set<HostAndPort>> getCompactorAddrs(ClientContext context) {
+    final Map<String,Set<HostAndPort>> groupsAndAddresses = new HashMap<>();
+    context.getServerPaths().getCompactor(Optional.empty(), Optional.empty()).forEach(slp -> {
+      groupsAndAddresses.computeIfAbsent(slp.getResourceGroup(), (k) -> new HashSet<>())
+          .add(HostAndPort.fromString(slp.getServer()));
+    });
+    return groupsAndAddresses;
   }
 
   /**
@@ -184,9 +202,9 @@ public class ExternalCompactionUtil {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
 
-    context.getServerIdResolver().getCompactors().forEach(csi -> {
-      final HostAndPort hp = HostAndPort.fromParts(csi.getHost(), csi.getPort());
-      rcFutures.add(new RunningCompactionFuture(csi.getResourceGroup(), hp,
+    context.getServerPaths().getCompactor(Optional.empty(), Optional.empty()).forEach(slp -> {
+      final HostAndPort hp = HostAndPort.fromString(slp.getServer());
+      rcFutures.add(new RunningCompactionFuture(slp.getResourceGroup(), hp,
           executor.submit(() -> getRunningCompaction(hp, context))));
     });
     executor.shutdown();
@@ -212,8 +230,8 @@ public class ExternalCompactionUtil {
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTION_IDS_POOL).numCoreThreads(16).build();
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
-    context.getServerIdResolver().getCompactors().forEach(csi -> {
-      final HostAndPort hp = HostAndPort.fromParts(csi.getHost(), csi.getPort());
+    context.getServerPaths().getCompactor(Optional.empty(), Optional.empty()).forEach(slp -> {
+      final HostAndPort hp = HostAndPort.fromString(slp.getServer());
       futures.add(executor.submit(() -> getRunningCompactionId(hp, context)));
     });
     executor.shutdown();
@@ -236,28 +254,14 @@ public class ExternalCompactionUtil {
 
   public static int countCompactors(String groupName, ClientContext context) {
     var start = Timer.startNew();
-    String groupRoot = context.getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + groupName;
-    List<String> children = context.getZooCache().getChildren(groupRoot);
-    if (children == null) {
-      return 0;
-    }
-
-    int count = 0;
-
-    for (String child : children) {
-      List<String> children2 = context.getZooCache().getChildren(groupRoot + "/" + child);
-      if (children2 != null && !children2.isEmpty()) {
-        count++;
-      }
-    }
-
+    int count =
+        context.getServerPaths().getCompactor(Optional.of(groupName), Optional.empty()).size();
     long elapsed = start.elapsed(MILLISECONDS);
     if (elapsed > 100) {
       LOG.debug("Took {} ms to count {} compactors for {}", elapsed, count, groupName);
     } else {
       LOG.trace("Took {} ms to count {} compactors for {}", elapsed, count, groupName);
     }
-
     return count;
   }
 

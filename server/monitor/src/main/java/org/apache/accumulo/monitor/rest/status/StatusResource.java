@@ -18,14 +18,13 @@
  */
 package org.apache.accumulo.monitor.rest.status;
 
-import java.util.List;
-
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.monitor.Monitor;
 
@@ -67,8 +66,8 @@ public class StatusResource {
         gcStatus = Status.ERROR;
       }
 
-      List<String> managers = monitor.getContext().getManagerLocations();
-      managerStatus = managers.isEmpty() ? Status.ERROR : Status.OK;
+      ServiceLockPath slp = monitor.getContext().getServerPaths().getManager();
+      managerStatus = slp == null ? Status.ERROR : Status.OK;
 
       int tServerUp = mmi.getTServerInfoSize();
       int tServerDown = mmi.getDeadTabletServersSize();

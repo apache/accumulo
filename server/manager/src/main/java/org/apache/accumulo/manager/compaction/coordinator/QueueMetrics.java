@@ -18,6 +18,12 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator;
 
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUES;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH;
 import static org.apache.accumulo.core.metrics.MetricsUtil.formatString;
 
 import java.util.HashMap;
@@ -57,29 +63,30 @@ public class QueueMetrics implements MetricsProducer {
       var queueId = formatString(cgid.canonical());
 
       length =
-          Gauge.builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH, queue, q -> q.getMaxSize())
+          Gauge.builder(COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH.getName(), queue, q -> q.getMaxSize())
               .description("Length of priority queues").tags(List.of(Tag.of("queue.id", queueId)))
               .register(meterRegistry);
 
       jobsQueued = Gauge
-          .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED, queue, q -> q.getQueuedJobs())
+          .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName(), queue,
+              q -> q.getQueuedJobs())
           .description("Count of queued jobs").tags(List.of(Tag.of("queue.id", queueId)))
           .register(meterRegistry);
 
       jobsDequeued = Gauge
-          .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED, queue,
+          .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED.getName(), queue,
               q -> q.getDequeuedJobs())
           .description("Count of jobs dequeued").tags(List.of(Tag.of("queue.id", queueId)))
           .register(meterRegistry);
 
       jobsRejected = Gauge
-          .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED, queue,
+          .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED.getName(), queue,
               q -> q.getRejectedJobs())
           .description("Count of rejected jobs").tags(List.of(Tag.of("queue.id", queueId)))
           .register(meterRegistry);
 
       jobsLowestPriority = Gauge
-          .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY, queue,
+          .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getName(), queue,
               q -> q.getLowestPriority())
           .description("Lowest priority queued job").tags(List.of(Tag.of("queue.id", queueId)))
           .register(meterRegistry);
@@ -117,7 +124,7 @@ public class QueueMetrics implements MetricsProducer {
 
     if (queueCountMeter == null) {
       queueCountMeter = Gauge
-          .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUES, compactionJobQueues,
+          .builder(COMPACTOR_JOB_PRIORITY_QUEUES.getName(), compactionJobQueues,
               CompactionJobQueues::getQueueCount)
           .description("Number of current Queues").register(localRegistry);
     }

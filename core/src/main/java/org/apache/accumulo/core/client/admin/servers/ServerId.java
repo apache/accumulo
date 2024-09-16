@@ -24,14 +24,14 @@ import org.apache.accumulo.core.conf.PropertyType.PortRange;
 
 import com.google.common.base.Preconditions;
 
-public abstract class ServerId implements Comparable<ServerId> {
+public final class ServerId implements Comparable<ServerId> {
 
   private final ServerTypeName type;
   private final String resourceGroup;
   private final String host;
   private final int port;
 
-  protected ServerId(ServerTypeName type, String resourceGroup, String host, int port) {
+  public ServerId(ServerTypeName type, String resourceGroup, String host, int port) {
     super();
     Preconditions.checkArgument(port == 0 || PortRange.VALID_RANGE.contains(port),
         "invalid server port value: " + port);

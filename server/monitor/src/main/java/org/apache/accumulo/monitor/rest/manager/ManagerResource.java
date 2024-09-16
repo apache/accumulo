@@ -31,6 +31,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.DeadServer;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -99,10 +100,10 @@ public class ManagerResource {
       for (DeadServer down : mmi.deadTabletServers) {
         tservers.add(down.server);
       }
-      List<String> managers = monitor.getContext().getManagerLocations();
 
-      String manager =
-          managers.isEmpty() ? "Down" : AddressUtil.parseAddress(managers.get(0)).getHost();
+      ServiceLockPath slp = monitor.getContext().getServerPaths().getManager();
+
+      String manager = slp == null ? "Down" : AddressUtil.parseAddress(slp.getServer()).getHost();
       int onlineTabletServers = mmi.tServerInfo.size();
       int totalTabletServers = tservers.size();
       int tablets = monitor.getTotalTabletCount();

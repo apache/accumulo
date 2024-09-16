@@ -36,6 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -57,8 +58,6 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -69,8 +68,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -577,12 +576,11 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         tableId -> context.getTableState(tableId) == TableState.ONLINE);
 
     HashSet<TServerInstance> tservers = new HashSet<>();
-    for (ServerId tserver : context.instanceOperations().getServers(ServerTypeName.TABLET_SERVER)) {
+    for (ServiceLockPath tserver : context.getServerPaths().getTabletServer(Optional.empty(),
+        Optional.empty())) {
       try {
-        var zPath = ServiceLock.path(ZooUtil.getRoot(context.instanceOperations().getInstanceId())
-            + Constants.ZTSERVERS + "/" + tserver.toHostPortString());
-        long sessionId = ServiceLock.getSessionId(context.getZooCache(), zPath);
-        tservers.add(new TServerInstance(tserver.toHostPortString(), sessionId));
+        long sessionId = ServiceLock.getSessionId(context.getZooCache(), tserver);
+        tservers.add(new TServerInstance(tserver.getServer(), sessionId));
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

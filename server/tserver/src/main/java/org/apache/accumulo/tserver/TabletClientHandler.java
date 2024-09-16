@@ -40,7 +40,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -881,7 +880,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     if (lock != null) {
       ZooUtil.LockID lid =
-          new ZooUtil.LockID(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK, lock);
+          new ZooUtil.LockID(context.getServerPaths().createManagerPath().toString(), lock);
 
       try {
         if (!ServiceLock.isLockHeld(server.getManagerLockCache(), lid)) {

@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.manager.metrics.fate;
 
+import static org.apache.accumulo.core.metrics.Metric.FATE_OPS;
+import static org.apache.accumulo.core.metrics.Metric.FATE_TX;
+import static org.apache.accumulo.core.metrics.Metric.FATE_TYPE_IN_PROGRESS;
+
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -105,7 +109,7 @@ public abstract class FateMetrics<T extends FateMetricValues> implements Metrics
       }
     }
     metricValues.getOpTypeCounters().forEach((name, count) -> {
-      Metrics.gauge(METRICS_FATE_TYPE_IN_PROGRESS, Tags.of(OP_TYPE_TAG, name), count);
+      Metrics.gauge(FATE_TYPE_IN_PROGRESS.getName(), Tags.of(OP_TYPE_TAG, name), count);
     });
   }
 
@@ -114,32 +118,32 @@ public abstract class FateMetrics<T extends FateMetricValues> implements Metrics
     var type = fateStore.type().name().toLowerCase();
     var instanceTypeTag = Tag.of("instanceType", type);
 
-    registry.gauge(METRICS_FATE_OPS, totalCurrentOpsGauge);
+    registry.gauge(FATE_OPS.getName(), totalCurrentOpsGauge);
 
-    registry.gauge(METRICS_FATE_TX, List
+    registry.gauge(FATE_TX.getName(), List
         .of(Tag.of("state", ReadOnlyFateStore.TStatus.NEW.name().toLowerCase()), instanceTypeTag),
         newTxGauge);
-    registry.gauge(METRICS_FATE_TX,
+    registry.gauge(FATE_TX.getName(),
         List.of(Tag.of("state", ReadOnlyFateStore.TStatus.SUBMITTED.name().toLowerCase()),
             instanceTypeTag),
         submittedTxGauge);
-    registry.gauge(METRICS_FATE_TX,
+    registry.gauge(FATE_TX.getName(),
         List.of(Tag.of("state", ReadOnlyFateStore.TStatus.IN_PROGRESS.name().toLowerCase()),
             instanceTypeTag),
         inProgressTxGauge);
-    registry.gauge(METRICS_FATE_TX,
+    registry.gauge(FATE_TX.getName(),
         List.of(Tag.of("state", ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS.name().toLowerCase()),
             instanceTypeTag),
         failedInProgressTxGauge);
-    registry.gauge(METRICS_FATE_TX,
+    registry.gauge(FATE_TX.getName(),
         List.of(Tag.of("state", ReadOnlyFateStore.TStatus.FAILED.name().toLowerCase()),
             instanceTypeTag),
         failedTxGauge);
-    registry.gauge(METRICS_FATE_TX,
+    registry.gauge(FATE_TX.getName(),
         List.of(Tag.of("state", ReadOnlyFateStore.TStatus.SUCCESSFUL.name().toLowerCase()),
             instanceTypeTag),
         successfulTxGauge);
-    registry.gauge(METRICS_FATE_TX,
+    registry.gauge(FATE_TX.getName(),
         List.of(Tag.of("state", ReadOnlyFateStore.TStatus.UNKNOWN.name().toLowerCase()),
             instanceTypeTag),
         unknownTxGauge);

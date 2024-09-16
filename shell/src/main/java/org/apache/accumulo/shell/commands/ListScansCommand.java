@@ -56,8 +56,10 @@ public class ListScansCommand extends Command {
       String serverAddress = cl.getOptionValue(tserverOption.getOpt());
       final HostAndPort hp = HostAndPort.fromString(serverAddress);
       servers = new HashSet<>();
-      servers.add(instanceOps.getServer(ServerTypeName.SCAN_SERVER, hp.getHost(), hp.getPort()));
-      servers.add(instanceOps.getServer(ServerTypeName.TABLET_SERVER, hp.getHost(), hp.getPort()));
+      servers
+          .add(instanceOps.getServer(ServerTypeName.SCAN_SERVER, null, hp.getHost(), hp.getPort()));
+      servers.add(
+          instanceOps.getServer(ServerTypeName.TABLET_SERVER, null, hp.getHost(), hp.getPort()));
     } else {
       servers = instanceOps.getServers(ServerTypeName.SCAN_SERVER);
       servers.addAll(instanceOps.getServers(ServerTypeName.TABLET_SERVER));

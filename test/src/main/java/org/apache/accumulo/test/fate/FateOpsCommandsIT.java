@@ -36,6 +36,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -96,7 +97,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getServerContext().getServerIdResolver().getCompactors().isEmpty(), 60_000);
+    Wait.waitFor(() -> getServerContext().getServerPaths()
+        .getCompactor(Optional.empty(), Optional.empty()).isEmpty(), 60_000);
   }
 
   @Test

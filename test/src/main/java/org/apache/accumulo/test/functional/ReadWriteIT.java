@@ -40,7 +40,6 @@ import javax.net.ssl.X509TrustManager;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -48,7 +47,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.util.MonitorUtil;
@@ -130,9 +128,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       ClusterControl control = cluster.getClusterControl();
       control.adminStopAll();
       ZooCache zcache = cluster.getServerContext().getZooCache();
-      var zLockPath =
-          ServiceLock.path(ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceId())
-              + Constants.ZMANAGER_LOCK);
+      var zLockPath = getServerContext().getServerPaths().createManagerPath();
       Optional<ServiceLockData> managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);

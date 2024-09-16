@@ -121,9 +121,11 @@ class ActiveCompactionHelper {
   public static Stream<String> activeCompactionsForServer(String tserver,
       InstanceOperations instanceOps) {
     final HostAndPort hp = HostAndPort.fromString(tserver);
-    ServerId server = instanceOps.getServer(ServerTypeName.COMPACTOR, hp.getHost(), hp.getPort());
+    ServerId server =
+        instanceOps.getServer(ServerTypeName.COMPACTOR, null, hp.getHost(), hp.getPort());
     if (server == null) {
-      server = instanceOps.getServer(ServerTypeName.TABLET_SERVER, hp.getHost(), hp.getPort());
+      server =
+          instanceOps.getServer(ServerTypeName.TABLET_SERVER, null, hp.getHost(), hp.getPort());
     }
     if (server == null) {
       return Stream.of();

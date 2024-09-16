@@ -392,6 +392,21 @@
               </arguments>
             </configuration>
           </execution>
+          <execution>
+            <id>metrics-markdown</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <mainClass>org.apache.accumulo.core.metrics.MetricsDocGen</mainClass>
+              <classpathScope>test</classpathScope>
+              <arguments>
+                <argument>--generate-markdown</argument>
+                <argument>${project.build.directory}/generated-docs/metrics3.md</argument>
+              </arguments>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
     </plugins>
