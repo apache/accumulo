@@ -18,6 +18,11 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUES;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH;
 import static org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.getCompactorAddrs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -55,7 +60,6 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -140,7 +144,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
           if (shutdownTailer.get()) {
             break;
           }
-          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX + "queue")) {
+          if (s.startsWith("accumulo.compactor.queue")) {
             queueMetrics.add(TestStatsDSink.parseStatsDMetric(s));
           }
         }
@@ -334,7 +338,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     while (!sawMetricsQ1) {
       while (!queueMetrics.isEmpty()) {
         var qm = queueMetrics.take();
-        if (qm.getName().contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED)
+        if (qm.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())
             && qm.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
           if (Integer.parseInt(qm.getValue()) > 0) {
             sawMetricsQ1 = true;
@@ -354,19 +358,16 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     // An empty queue means that the last known value is the most recent.
     while (!queueMetrics.isEmpty()) {
       var metric = queueMetrics.take();
-      if (metric.getName()
-          .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED)
+      if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED.getName())
           && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
         rejectedCount = Long.parseLong(metric.getValue());
-      } else if (metric.getName()
-          .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY)
+      } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getName())
           && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
         lowestPriority = Math.max(lowestPriority, Long.parseLong(metric.getValue()));
-      } else if (metric.getName()
-          .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH)
+      } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH.getName())
           && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
         queueSize = Integer.parseInt(metric.getValue());
-      } else if (metric.getName().contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUES)) {
+      } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUES.getName())) {
         sawQueues = true;
       } else {
         log.debug("{}", metric);
@@ -403,8 +404,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     while (!emptyQueue) {
       while (!queueMetrics.isEmpty()) {
         var metric = queueMetrics.take();
-        if (metric.getName()
-            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED)
+        if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())
             && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
           if (Integer.parseInt(metric.getValue()) == 0) {
             emptyQueue = true;
@@ -413,7 +413,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
 
         // Check if the total number of queues is zero, if so then will not see metrics for the
         // above queue.
-        if (metric.getName().equals(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUES)) {
+        if (metric.getName().equals(COMPACTOR_JOB_PRIORITY_QUEUES.getName())) {
           if (Integer.parseInt(metric.getValue()) == 0) {
             emptyQueue = true;
           }
@@ -468,8 +468,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     Integer jobsQueued = null;
     while (!queueMetrics.isEmpty()) {
       var metric = queueMetrics.take();
-      if (metric.getName()
-          .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED)
+      if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())
           && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
         jobsQueued = Integer.parseInt(metric.getValue());
       }

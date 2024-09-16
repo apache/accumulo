@@ -57,6 +57,9 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
     cfg.setProperty(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION, "2s");
   }
 
+  @SuppressWarnings("deprecation")
+  private static Property IDLE_MINC_PROP = Property.TABLE_MINC_COMPACT_IDLETIME;
+
   @Test
   public void testMaxLatency() throws Exception {
     final String[] tables = this.getUniqueNames(4);
@@ -78,7 +81,7 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
       ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
       client.tableOperations().create(table2, ntc);
       ntc = new NewTableConfiguration();
-      ntc.setProperties(Map.of(Property.TABLE_MINC_COMPACT_IDLETIME.getKey(), "2s"));
+      ntc.setProperties(Map.of(IDLE_MINC_PROP.getKey(), "2s"));
       ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
       client.tableOperations().create(table3, ntc);
       ntc = new NewTableConfiguration();

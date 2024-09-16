@@ -1001,15 +1001,6 @@ public class Tablet extends TabletBase {
     closeState = CloseState.COMPLETE;
   }
 
-  private boolean disallowNewReservations(ScanParameters scanParameters) {
-    var scanSessId = scanParameters.getScanSessionId();
-    if (scanSessId != null) {
-      return getTabletServer().getSessionManager().disallowNewReservations(scanSessId);
-    } else {
-      return true;
-    }
-  }
-
   private void closeConsistencyCheck() {
 
     long num = tabletMemory.getMemTable().getNumEntries();

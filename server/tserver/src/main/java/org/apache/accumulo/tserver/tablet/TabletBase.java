@@ -113,6 +113,15 @@ public abstract class TabletBase {
     }
   }
 
+  protected boolean disallowNewReservations(ScanParameters scanParameters) {
+    var scanSessId = scanParameters.getScanSessionId();
+    if (scanSessId != null) {
+      return server.getSessionManager().disallowNewReservations(scanSessId);
+    } else {
+      return true;
+    }
+  }
+
   public abstract boolean isClosed();
 
   public abstract Map<StoredTabletFile,DataFileValue> getDatafiles();

@@ -43,6 +43,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -51,15 +52,22 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCache;
+import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
 import org.apache.accumulo.core.file.rfile.bcfile.CompressionAlgorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
+import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.data.ServerMutation;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.WithTestNames;
@@ -74,6 +82,9 @@ import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -162,6 +173,13 @@ public class SortedLogRecoveryTest extends WithTestNames {
     return recover(logs, new HashSet<>(), extent, bufferSize);
   }
 
+  private CacheProvider cacheProvider = new BasicCacheProvider(new TinyLfuBlockCache(
+      BlockCacheConfiguration.forTabletServer(DefaultConfiguration.getInstance()), CacheType.INDEX),
+      new TinyLfuBlockCache(
+          BlockCacheConfiguration.forTabletServer(DefaultConfiguration.getInstance()),
+          CacheType.DATA));
+  private Cache<String,Long> fileLenCache = Caffeine.newBuilder().build();
+
   private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent,
       int bufferSize) throws IOException {
 
@@ -178,9 +196,13 @@ public class SortedLogRecoveryTest extends WithTestNames {
       final Path workdirPath = new Path("file://" + workdir);
       fs.deleteRecursively(workdirPath);
 
-      ArrayList<Path> dirs = new ArrayList<>();
+      ArrayList<ResolvedSortedLog> dirs = new ArrayList<>();
       for (Entry<String,KeyValue[]> entry : logs.entrySet()) {
-        String destPath = workdir + "/" + entry.getKey();
+        var uuid = UUID.randomUUID();
+        String origPath = "file://" + workdir + "/" + entry.getKey() + "/"
+            + VolumeManager.FileType.WAL.getDirectory() + "/localhost+9997/" + uuid;
+        String destPath = "file://" + workdir + "/" + entry.getKey() + "/"
+            + VolumeManager.FileType.RECOVERY.getDirectory() + "/" + uuid;
         FileSystem ns = fs.getFileSystemByPath(new Path(destPath));
         // convert test object to Pairs for LogSorter, flushing based on bufferSize
         List<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
@@ -195,10 +217,10 @@ public class SortedLogRecoveryTest extends WithTestNames {
         logSorter.writeBuffer(destPath, buffer, parts);
 
         ns.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
-        dirs.add(new Path(destPath));
+        dirs.add(ResolvedSortedLog.resolve(LogEntry.fromPath(origPath), fs));
       }
       // Recover
-      SortedLogRecovery recovery = new SortedLogRecovery(context);
+      SortedLogRecovery recovery = new SortedLogRecovery(context, fileLenCache, cacheProvider);
       CaptureMutations capture = new CaptureMutations();
       recovery.recover(extent, dirs, files, capture);
       verify(context);

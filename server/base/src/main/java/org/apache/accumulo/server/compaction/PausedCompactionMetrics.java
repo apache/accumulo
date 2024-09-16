@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.server.compaction;
 
+import static org.apache.accumulo.core.metrics.Metric.MAJC_PAUSED;
+import static org.apache.accumulo.core.metrics.Metric.MINC_PAUSED;
+
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -40,9 +43,9 @@ public class PausedCompactionMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    FunctionCounter.builder(METRICS_MAJC_PAUSED, majcPauseCount, AtomicLong::get)
+    FunctionCounter.builder(MAJC_PAUSED.getName(), majcPauseCount, AtomicLong::get)
         .description("major compaction pause count").register(registry);
-    FunctionCounter.builder(METRICS_MINC_PAUSED, mincPauseCount, AtomicLong::get)
+    FunctionCounter.builder(MINC_PAUSED.getName(), mincPauseCount, AtomicLong::get)
         .description("minor compactor pause count").register(registry);
   }
 
