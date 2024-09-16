@@ -56,7 +56,7 @@ public class BackupManagerIT extends ConfigurableMacBase {
       // generate a false zookeeper event
       List<String> children =
           ServiceLock.validateAndSort(path, writer.getChildren(path.toString()));
-      String lockPath = path.toString() + "/" + children.get(0);
+      String lockPath = path + "/" + children.get(0);
       byte[] data = writer.getData(lockPath);
       writer.getZooKeeper().setData(lockPath, data, -1);
       // let it propagate

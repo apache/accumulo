@@ -320,18 +320,22 @@ public class LiveTServerSet implements Watcher {
     if (event.getPath() != null) {
       if (event.getPath().endsWith(Constants.ZTSERVERS)) {
         scanServers();
-      } else if (event.getPath().contains(Constants.ZTSERVERS)) {
+      } else {
         try {
           final ServiceLockPath slp =
               ServiceLockPaths.parse(Optional.of(Constants.ZTSERVERS), event.getPath());
           if (slp.getType().equals(Constants.ZTSERVERS)) {
-            final Set<TServerInstance> updates = new HashSet<>();
-            final Set<TServerInstance> doomed = new HashSet<>();
-            checkServer(updates, doomed, slp);
-            this.cback.update(this, doomed, updates);
+            try {
+              final Set<TServerInstance> updates = new HashSet<>();
+              final Set<TServerInstance> doomed = new HashSet<>();
+              checkServer(updates, doomed, slp);
+              this.cback.update(this, doomed, updates);
+            } catch (Exception ex) {
+              log.error("Error processing event for tserver: " + slp.toString(), ex);
+            }
           }
-        } catch (Exception ex) {
-          log.error("Exception", ex);
+        } catch (IllegalArgumentException e) {
+          log.debug("Received event for path that can't be parsed, path: " + event.getPath());
         }
       }
     }
