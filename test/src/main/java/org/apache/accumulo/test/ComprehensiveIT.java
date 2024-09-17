@@ -161,25 +161,18 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
         "[{'isDefault':true,'timeToWaitForScanServers' : '10d','maxBusyTimeout':'5m','busyTimeoutMultiplier':4,'attemptPlans':[{\"servers\":\"100%\", \"busyTimeout\":\"3ms\"}]}]");
 
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
-
       String table = getUniqueNames(1)[0];
       client.tableOperations().create(table);
 
-      // Start Scan Server
       getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
 
       // generate 100 rows of data
       write(client, table, generateMutations(0, 100, tr -> true));
-
-      // need flush table so that eventual scan can see it.
-      getCluster().getClusterControl().stop(ServerType.SCAN_SERVER);
       client.tableOperations().flush(table, null, null, true);
-      getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
 
       // should see all data that was flushed in eventual scan
       verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),
           scanner -> scanner.setConsistencyLevel(EVENTUAL));
-
       // should not see data with col vis set
       verifyData(client, table, Authorizations.EMPTY, generateKeys(0, 100, tr -> tr.vis.isEmpty()),
           scanner -> scanner.setConsistencyLevel(EVENTUAL));
@@ -190,10 +183,15 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),
           scanner -> scanner.setConsistencyLevel(EVENTUAL));
 
-      // need flush table so that eventual scan can see it.
-      getCluster().getClusterControl().stop(ServerType.SCAN_SERVER);
       client.tableOperations().flush(table, null, null, true);
-      getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
+      // wait for the eventual scan to see the new data
+      final int initialSize = generateKeys(0, 100).size();
+      Wait.waitFor(() -> {
+        try (var scanner = client.createScanner(table, AUTHORIZATIONS)) {
+          scanner.setConsistencyLevel(EVENTUAL);
+          return scan(scanner).size() > initialSize;
+        }
+      });
 
       verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 200),
           scanner -> scanner.setConsistencyLevel(EVENTUAL));
