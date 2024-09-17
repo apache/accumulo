@@ -1089,7 +1089,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     // This method is called prior to volumes being switched for a tablet during the load process,
-    // so switch volumes for the needs recovery check.
+    // so switch volumes before calling needsRecovery()
     var switchedLogEntries = new ArrayList<LogEntry>(logEntries.size());
     for (LogEntry logEntry : logEntries) {
       var switchedWalog = VolumeUtil.switchVolume(logEntry, context.getVolumeReplacements());
