@@ -507,13 +507,12 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     while (!sawMetricsQ1 && !sawMetricsQ2) {
       while (!queueMetrics.isEmpty()) {
         var qm = queueMetrics.take();
-        if (qm.getName().contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED)
+        if (qm.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())
             && qm.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
           if (Integer.parseInt(qm.getValue()) > 0) {
             sawMetricsQ1 = true;
           }
-        } else if (qm.getName()
-            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED)
+        } else if (qm.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())
             && qm.getTags().containsValue(QUEUE2_METRIC_LABEL)) {
           if (Integer.parseInt(qm.getValue()) > 0) {
             sawMetricsQ2 = true;
@@ -537,34 +536,26 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       var metric = queueMetrics.take();
       // Handle QUEUE1 metrics
       if (metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
-        if (metric.getName()
-            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED)) {
+        if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED.getName())) {
           rejectedCountQ1 = Long.parseLong(metric.getValue());
         } else if (metric.getName()
-            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY)) {
+            .contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getName())) {
           lowestPriorityQ1 = Math.max(lowestPriorityQ1, Long.parseLong(metric.getValue()));
-        } else if (metric.getName()
-            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH)) {
+        } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH.getName())) {
           queue1Size = Integer.parseInt(metric.getValue());
         }
-      }
-      // Handle QUEUE2 metrics
-      else if (metric.getTags().containsValue(QUEUE2_METRIC_LABEL)) {
-        if (metric.getName()
-            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED)) {
+      } else if (metric.getTags().containsValue(QUEUE2_METRIC_LABEL)) {
+        if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED.getName())) {
           rejectedCountQ2 = Long.parseLong(metric.getValue());
         } else if (metric.getName()
-            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY)) {
+            .contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getName())) {
           lowestPriorityQ2 = Math.max(lowestPriorityQ2, Long.parseLong(metric.getValue()));
-        } else if (metric.getName()
-            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH)) {
+        } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH.getName())) {
           queue2Size = Integer.parseInt(metric.getValue());
         }
-      } else if (metric.getName().contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUES)) {
+      } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUES.getName())) {
         sawQs = true;
-      }
-      // Log other metrics
-      else {
+      } else {
         log.debug("{}", metric);
       }
     }
@@ -609,17 +600,12 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       while (!queueMetrics.isEmpty()) {
         var metric = queueMetrics.take();
         // Check metrics for QUEUE1
-        if (metric.getName()
-            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED)
+        if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())
             && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
           if (Integer.parseInt(metric.getValue()) == 0) {
             emptyQueue1 = true;
           }
-        }
-
-        // Check metrics for QUEUE2
-        else if (metric.getName()
-            .contains(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED)
+        } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())
             && metric.getTags().containsValue(QUEUE2_METRIC_LABEL)) {
           if (Integer.parseInt(metric.getValue()) == 0) {
             emptyQueue2 = true;
@@ -627,7 +613,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
         }
 
         // Check if the total number of queues is zero, and ensure no metrics for the queues remain
-        if (metric.getName().equals(MetricsProducer.METRICS_COMPACTOR_JOB_PRIORITY_QUEUES)) {
+        if (metric.getName().equals(COMPACTOR_JOB_PRIORITY_QUEUES.getName())) {
           if (Integer.parseInt(metric.getValue()) == 0) {
             emptyQueue1 = true;
             emptyQueue2 = true;
