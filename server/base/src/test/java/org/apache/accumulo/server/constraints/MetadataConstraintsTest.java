@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -504,7 +503,7 @@ public class MetadataConstraintsTest {
     ServerColumnFamily.OPID_COLUMN.put(m,
         new Value("MERGING:FATE:META:12345678-9abc-def1-2345-6789abcdef12"));
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
   }
 
   @Test
@@ -517,7 +516,7 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0;foo"));
     ServerColumnFamily.SELECTED_COLUMN.put(m, new Value("bad id"));
     violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 11), violations.get(0));
 
@@ -528,7 +527,7 @@ public class MetadataConstraintsTest {
             .insert()), true, fateId, SteadyTime.from(100, TimeUnit.NANOSECONDS))
             .getMetadataValue()));
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
   }
 
   @Test
@@ -552,12 +551,12 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0;foo"));
     m.put(column, fateId.canonical(), "");
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
     m.put(column, "incorrect data", "");
     violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(violation, violations.get(0));
   }
@@ -575,13 +574,13 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0;foo"));
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value(unsplittableMeta.toBase64()));
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // Verify empty value not allowed
     m = new Mutation(new Text("0;foo"));
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value());
     violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(2, violations.size());
     assertIterableEquals(List.of((short) 6, (short) 15), violations);
 
@@ -604,7 +603,7 @@ public class MetadataConstraintsTest {
         unsplittableMeta.toBase64().substring(0, unsplittableMeta.toBase64().length() - 1);
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value(invalidHashCode));
     violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 15), violations.get(0));
   }
