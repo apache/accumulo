@@ -865,14 +865,6 @@ public enum Property {
           + "server to see a write to a tablet server. The default value of this property is set to such a "
           + "high value that is should never cause a minor compaction.",
       "3.1.0"),
-  @Deprecated(since = "3.1.0")
-  @ReplacedBy(property = TABLE_MINC_COMPACT_MAXAGE)
-  TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,
-      "When the age of the youngest key value in a tablets in memory map exceeds this configuration, then"
-          + " a minor compaction may be initiated. There is no guarantee an idle tablet will be compacted."
-          + "This property was deprecated because the new property table.compaction.minor.age can offer the "
-          + " same functionality although it may cause more minor compactions than this property would have.",
-      "1.3.5"),
   TABLE_COMPACTION_DISPATCHER("table.compaction.dispatcher",
       SimpleCompactionDispatcher.class.getName(), PropertyType.CLASSNAME,
       "A configurable dispatcher that decides what compaction service a table should use.",
