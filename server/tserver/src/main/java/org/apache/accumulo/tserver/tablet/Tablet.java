@@ -910,13 +910,31 @@ public class Tablet extends TabletBase {
       activeScan.interrupt();
     }
 
+    // create a copy so that it can be whittled down as client sessions are disabled
+    List<ScanDataSource> runningScans = new ArrayList<>(this.activeScans);
+
+    runningScans.removeIf(scanDataSource -> {
+      boolean currentlyUnreserved = disallowNewReservations(scanDataSource.getScanParameters());
+      if (currentlyUnreserved) {
+        log.debug("Disabled scan session in tablet close {} {}", extent, scanDataSource);
+      }
+      return currentlyUnreserved;
+    });
+
     long lastLogTime = System.nanoTime();
 
     // wait for reads and writes to complete
-    while (writesInProgress > 0 || !activeScans.isEmpty()) {
+    while (writesInProgress > 0 || !runningScans.isEmpty()) {
+      runningScans.removeIf(scanDataSource -> {
+        boolean currentlyUnreserved = disallowNewReservations(scanDataSource.getScanParameters());
+        if (currentlyUnreserved) {
+          log.debug("Disabled scan session in tablet close {} {}", extent, scanDataSource);
+        }
+        return currentlyUnreserved;
+      });
 
       if (log.isDebugEnabled() && System.nanoTime() - lastLogTime > TimeUnit.SECONDS.toNanos(60)) {
-        for (ScanDataSource activeScan : activeScans) {
+        for (ScanDataSource activeScan : runningScans) {
           log.debug("Waiting on scan in completeClose {} {}", extent, activeScan);
         }
 
@@ -925,12 +943,18 @@ public class Tablet extends TabletBase {
 
       try {
         log.debug("Waiting to completeClose for {}. {} writes {} scans", extent, writesInProgress,
-            activeScans.size());
+            runningScans.size());
         this.wait(50);
       } catch (InterruptedException e) {
         log.error("Interrupted waiting to completeClose for extent {}", extent, e);
       }
     }
+
+    // It is assumed that nothing new would have been added to activeScans since it was copied, so
+    // check that assumption. At this point activeScans should be empty or everything in it should
+    // be disabled.
+    Preconditions.checkState(activeScans.stream()
+        .allMatch(scanDataSource -> disallowNewReservations(scanDataSource.getScanParameters())));
 
     getTabletMemory().waitForMinC();
 

@@ -73,6 +73,7 @@ import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -535,7 +536,6 @@ public class Admin implements KeywordExecutable {
       return;
     }
 
-    final String zTServerRoot = getTServersZkPath(context);
     final ZooCache zc = context.getZooCache();
     List<String> runningServers;
 
@@ -547,8 +547,7 @@ public class Admin implements KeywordExecutable {
       }
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);
-        final String finalServer =
-            qualifyWithZooKeeperSessionId(zTServerRoot, zc, address.toString());
+        final String finalServer = qualifyWithZooKeeperSessionId(context, zc, address.toString());
         log.info("Stopping server {}", finalServer);
         ThriftClientTypes.MANAGER.executeVoid(context, client -> client
             .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
@@ -574,10 +573,14 @@ public class Admin implements KeywordExecutable {
    * @return The host and port with the session ID in square-brackets appended, or the original
    *         value.
    */
-  static String qualifyWithZooKeeperSessionId(String zTServerRoot, ZooCache zooCache,
+  static String qualifyWithZooKeeperSessionId(ClientContext context, ZooCache zooCache,
       String hostAndPort) {
-    var zLockPath = ServiceLock.path(zTServerRoot + "/" + hostAndPort);
-    long sessionId = ServiceLock.getSessionId(zooCache, zLockPath);
+    Set<ServiceLockPath> paths = context.getServerPaths().getTabletServer(Optional.empty(),
+        Optional.of(HostAndPort.fromString(hostAndPort)));
+    if (paths.size() != 1) {
+      return hostAndPort;
+    }
+    long sessionId = ServiceLock.getSessionId(zooCache, paths.iterator().next());
     if (sessionId == 0) {
       return hostAndPort;
     }
@@ -801,8 +804,8 @@ public class Admin implements KeywordExecutable {
 
     AdminUtil<Admin> admin = new AdminUtil<>(true);
     final String zkRoot = context.getZooKeeperRoot();
-    var zLockManagerPath = ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK);
-    var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
+    var zLockManagerPath = context.getServerPaths().createManagerPath();
+    var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     String fateZkPath = zkRoot + Constants.ZFATE;
     ZooReaderWriter zk = context.getZooReaderWriter();
     MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk);
@@ -889,8 +892,7 @@ public class Admin implements KeywordExecutable {
   }
 
   private void summarizeFateTx(ServerContext context, FateOpsCommand cmd, AdminUtil<Admin> admin,
-      Map<FateInstanceType,ReadOnlyFateStore<Admin>> fateStores,
-      ServiceLock.ServiceLockPath tableLocksPath)
+      Map<FateInstanceType,ReadOnlyFateStore<Admin>> fateStores, ServiceLockPath tableLocksPath)
       throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
 
     ZooReaderWriter zk = context.getZooReaderWriter();

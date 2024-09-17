@@ -253,15 +253,15 @@ public abstract class ClientTabletCache {
       MetadataCachedTabletObtainer mlo = new MetadataCachedTabletObtainer();
 
       if (AccumuloTable.ROOT.tableId().equals(tableId)) {
-        tl = new RootClientTabletCache(new ZookeeperLockChecker(context));
+        tl = new RootClientTabletCache(context.getTServerLockChecker());
       } else if (AccumuloTable.METADATA.tableId().equals(tableId)) {
         tl = new ClientTabletCacheImpl(AccumuloTable.METADATA.tableId(),
             getInstance(context, AccumuloTable.ROOT.tableId()), mlo,
-            new ZookeeperLockChecker(context));
+            context.getTServerLockChecker());
       } else {
         tl = new ClientTabletCacheImpl(tableId,
             getInstance(context, AccumuloTable.METADATA.tableId()), mlo,
-            new ZookeeperLockChecker(context));
+            context.getTServerLockChecker());
       }
       instances.put(key, tl);
     }

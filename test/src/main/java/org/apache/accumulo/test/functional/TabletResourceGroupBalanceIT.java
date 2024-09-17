@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -36,7 +35,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -47,10 +45,7 @@ import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
-import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -70,8 +65,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
@@ -104,21 +97,9 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
       throws Exception {
 
     Map<String,String> tservers = new HashMap<>();
-    ZooCache zk = cluster.getServerContext().getZooCache();
-    String zpath = cluster.getServerContext().getZooKeeperRoot() + Constants.ZTSERVERS;
-
-    List<String> children = zk.getChildren(zpath);
-    for (String child : children) {
-      final var zLockPath = ServiceLock.path(zpath + "/" + child);
-      ZcStat stat = new ZcStat();
-      Optional<ServiceLockData> sld = ServiceLock.getLockData(zk, zLockPath, stat);
-      try {
-        HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
-        String resourceGroup = sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
-        tservers.put(client.toString(), resourceGroup);
-      } catch (NoSuchElementException nsee) {
-        // We are starting and stopping servers, so it's possible for this to occur.
-      }
+    for (ServiceLockPath tserver : cluster.getServerContext().getServerPaths()
+        .getTabletServer(Optional.empty(), Optional.empty())) {
+      tservers.put(tserver.getServer(), tserver.getResourceGroup());
     }
     return tservers;
 

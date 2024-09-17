@@ -46,9 +46,9 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
@@ -72,6 +72,13 @@ import com.google.common.util.concurrent.Uninterruptibles;
 
 @Tag(ZOOKEEPER_TESTING_SERVER)
 public class ServiceLockIT {
+
+  private static class TestServiceLockPath extends ServiceLockPath {
+
+    protected TestServiceLockPath(String path) {
+      super(path);
+    }
+  }
 
   @TempDir
   private static File tempDir;
@@ -216,8 +223,8 @@ public class ServiceLockIT {
   @Test
   @Timeout(10)
   public void testDeleteParent() throws Exception {
-    var parent = ServiceLock
-        .path("/zltestDeleteParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = new TestServiceLockPath(
+        "/zltestDeleteParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
@@ -250,8 +257,8 @@ public class ServiceLockIT {
   @Test
   @Timeout(10)
   public void testNoParent() throws Exception {
-    var parent =
-        ServiceLock.path("/zltestNoParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = new TestServiceLockPath(
+        "/zltestNoParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
@@ -273,8 +280,8 @@ public class ServiceLockIT {
   @Test
   @Timeout(10)
   public void testDeleteLock() throws Exception {
-    var parent =
-        ServiceLock.path("/zltestDeleteLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = new TestServiceLockPath(
+        "/zltestDeleteLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooReaderWriter zk = szk.getZooReaderWriter();
     zk.mkdirs(parent.toString());
@@ -307,8 +314,8 @@ public class ServiceLockIT {
   @Test
   @Timeout(15)
   public void testDeleteWaiting() throws Exception {
-    var parent = ServiceLock
-        .path("/zltestDeleteWaiting-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = new TestServiceLockPath(
+        "/zltestDeleteWaiting-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooReaderWriter zk = szk.getZooReaderWriter();
     zk.mkdirs(parent.toString());
@@ -377,8 +384,8 @@ public class ServiceLockIT {
   @Test
   @Timeout(10)
   public void testUnexpectedEvent() throws Exception {
-    var parent = ServiceLock
-        .path("/zltestUnexpectedEvent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = new TestServiceLockPath(
+        "/zltestUnexpectedEvent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
@@ -423,7 +430,7 @@ public class ServiceLockIT {
   @Test
   @Timeout(60)
   public void testLockSerial() throws Exception {
-    var parent = ServiceLock.path("/zlretryLockSerial");
+    var parent = new TestServiceLockPath("/zlretryLockSerial");
 
     ConnectedWatcher watcher1 = new ConnectedWatcher();
     ConnectedWatcher watcher2 = new ConnectedWatcher();
@@ -584,7 +591,7 @@ public class ServiceLockIT {
   @Test
   @Timeout(60)
   public void testLockParallel() throws Exception {
-    var parent = ServiceLock.path("/zlParallel");
+    var parent = new TestServiceLockPath("/zlParallel");
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeperWrapper zk = new ZooKeeperWrapper(szk.getConn(), 30000, watcher)) {
@@ -652,8 +659,8 @@ public class ServiceLockIT {
   @Test
   @Timeout(10)
   public void testTryLock() throws Exception {
-    var parent =
-        ServiceLock.path("/zltestTryLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = new TestServiceLockPath(
+        "/zltestTryLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
@@ -692,8 +699,8 @@ public class ServiceLockIT {
   @Test
   @Timeout(10)
   public void testChangeData() throws Exception {
-    var parent =
-        ServiceLock.path("/zltestChangeData-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = new TestServiceLockPath(
+        "/zltestChangeData-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
       ZooUtil.digestAuth(zk, "secret");

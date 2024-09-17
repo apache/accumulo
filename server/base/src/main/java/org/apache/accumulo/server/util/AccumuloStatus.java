@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.io.IOException;
+import java.util.Optional;
+import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.zookeeper.KeeperException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 
 public class AccumuloStatus {
   /**
@@ -30,26 +30,21 @@ public class AccumuloStatus {
    *
    * @return true iff all servers show no indication of being registered in zookeeper, otherwise
    *         false
-   * @throws IOException if there are issues connecting to ZooKeeper to determine service status
    */
-  public static boolean isAccumuloOffline(ZooReader reader, String rootPath) throws IOException {
-    try {
-      for (String child : reader.getChildren(rootPath + Constants.ZTSERVERS)) {
-        if (!reader.getChildren(rootPath + Constants.ZTSERVERS + "/" + child).isEmpty()) {
-          return false;
-        }
-      }
-      if (!reader.getChildren(rootPath + Constants.ZMANAGER_LOCK).isEmpty()) {
-        return false;
-      }
-      if (!reader.getChildren(rootPath + Constants.ZMONITOR_LOCK).isEmpty()) {
-        return false;
-      }
-      if (!reader.getChildren(rootPath + Constants.ZGC_LOCK).isEmpty()) {
-        return false;
-      }
-    } catch (KeeperException | InterruptedException e) {
-      throw new IOException("Issues contacting ZooKeeper to get Accumulo status.", e);
+  public static boolean isAccumuloOffline(ClientContext context) {
+    Set<ServiceLockPath> tservers =
+        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
+    if (!tservers.isEmpty()) {
+      return false;
+    }
+    if (context.getServerPaths().getManager() != null) {
+      return false;
+    }
+    if (context.getServerPaths().getMonitor() != null) {
+      return false;
+    }
+    if (context.getServerPaths().getGarbageCollector() != null) {
+      return false;
     }
     return true;
   }

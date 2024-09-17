@@ -27,6 +27,8 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.metrics.Metric.MAJC_QUEUED;
+import static org.apache.accumulo.core.metrics.Metric.MAJC_RUNNING;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -648,10 +650,10 @@ public class CompactionCoordinator
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder(METRICS_MAJC_QUEUED, jobQueues, CompactionJobQueues::getQueuedJobCount)
+    Gauge.builder(MAJC_QUEUED.getName(), jobQueues, CompactionJobQueues::getQueuedJobCount)
         .tag("subprocess", "compaction.coordinator")
         .description("Number of queued major compactions").register(registry);
-    Gauge.builder(METRICS_MAJC_RUNNING, this, CompactionCoordinator::getNumRunningCompactions)
+    Gauge.builder(MAJC_RUNNING.getName(), this, CompactionCoordinator::getNumRunningCompactions)
         .tag("subprocess", "compaction.coordinator")
         .description("Number of running major compactions").register(registry);
 

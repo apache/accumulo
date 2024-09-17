@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
@@ -56,6 +57,7 @@ public class LargestFirstMemoryManager {
   private double compactionThreshold;
   private long maxObserved;
   private final HashMap<TableId,Long> mincIdleThresholds = new HashMap<>();
+  private final HashMap<TableId,Long> mincAgeThresholds = new HashMap<>();
   private ServerContext context = null;
 
   private static class TabletInfo {
@@ -136,13 +138,17 @@ public class LargestFirstMemoryManager {
     maxObserved = 0;
   }
 
+  @SuppressWarnings("deprecation")
   protected long getMinCIdleThreshold(KeyExtent extent) {
     TableId tableId = extent.tableId();
-    if (!mincIdleThresholds.containsKey(tableId)) {
-      mincIdleThresholds.put(tableId, context.getTableConfiguration(tableId)
-          .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
-    }
-    return mincIdleThresholds.get(tableId);
+    return mincIdleThresholds.computeIfAbsent(tableId, tid -> context.getTableConfiguration(tid)
+        .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
+  }
+
+  protected long getMaxAge(KeyExtent extent) {
+    TableId tableId = extent.tableId();
+    return mincAgeThresholds.computeIfAbsent(tableId, tid -> context.getTableConfiguration(tid)
+        .getTimeInMillis(Property.TABLE_MINC_COMPACT_MAXAGE));
   }
 
   protected boolean tableExists(TableId tableId) {
@@ -163,6 +169,8 @@ public class LargestFirstMemoryManager {
     final int maxMinCs = maxConcurrentMincs * numWaitingMultiplier;
 
     mincIdleThresholds.clear();
+    mincAgeThresholds.clear();
+
     final List<KeyExtent> tabletsToMinorCompact = new ArrayList<>();
 
     LargestMap largestMemTablets = new LargestMap(maxMinCs);
@@ -191,7 +199,8 @@ public class LargestFirstMemoryManager {
         TabletInfo tabletInfo = new TabletInfo(tablet, memTabletSize, idleTime, timeMemoryLoad);
         try {
           // If the table was deleted, getMinCIdleThreshold will throw an exception
-          if (idleTime > getMinCIdleThreshold(tablet)) {
+          if (idleTime > getMinCIdleThreshold(tablet)
+              || ts.getElapsedSinceFirstWrite(TimeUnit.MILLISECONDS) > getMaxAge(tablet)) {
             largestIdleMemTablets.put(timeMemoryLoad, tabletInfo);
           }
         } catch (IllegalArgumentException e) {

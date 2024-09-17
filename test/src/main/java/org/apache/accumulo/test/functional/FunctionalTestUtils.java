@@ -65,7 +65,6 @@ import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -239,7 +238,7 @@ public class FunctionalTestUtils {
       UserFateStore<String> ufs = new UserFateStore<>(context);
       Map<FateInstanceType,ReadOnlyFateStore<String>> fateStores =
           Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
-      var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
+      var lockPath = context.getServerPaths().createTableLocksPath();
       return admin.getStatus(fateStores, zk, lockPath, null, null, null);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);

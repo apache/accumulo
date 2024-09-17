@@ -19,6 +19,10 @@
 package org.apache.accumulo.manager.metrics;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_COMPACTION_SVC_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_META_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_ROOT_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_USER_TGW_ERRORS;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -82,10 +86,10 @@ public class ManagerMetrics implements MetricsProducer {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     fateMetrics.forEach(fm -> fm.registerMetrics(registry));
-    registry.gauge(METRICS_MANAGER_ROOT_TGW_ERRORS, rootTGWErrorsGauge);
-    registry.gauge(METRICS_MANAGER_META_TGW_ERRORS, metadataTGWErrorsGauge);
-    registry.gauge(METRICS_MANAGER_USER_TGW_ERRORS, userTGWErrorsGauge);
-    registry.gauge(METRICS_MANAGER_COMPACTION_SVC_ERRORS, compactionConfigurationError,
+    registry.gauge(MANAGER_ROOT_TGW_ERRORS.getName(), rootTGWErrorsGauge);
+    registry.gauge(MANAGER_META_TGW_ERRORS.getName(), metadataTGWErrorsGauge);
+    registry.gauge(MANAGER_USER_TGW_ERRORS.getName(), userTGWErrorsGauge);
+    registry.gauge(MANAGER_COMPACTION_SVC_ERRORS.getName(), compactionConfigurationError,
         AtomicInteger::get);
   }
 

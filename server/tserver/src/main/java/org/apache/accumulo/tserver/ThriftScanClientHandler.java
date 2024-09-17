@@ -214,6 +214,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     long sid = server.getSessionManager().createSession(scanSession, true);
 
+    scanParams.setScanSessionId(sid);
+
     ScanResult scanResult;
     try {
       scanResult = continueScan(tinfo, sid, scanSession, busyTimeout);
@@ -262,7 +264,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     try {
       bresult = scanSession.getScanTask().get(busyTimeout, MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS,
           TimeUnit.MILLISECONDS);
-      scanSession.setScanTask(null);
+      scanSession.clearScanTask();
     } catch (ExecutionException e) {
       server.getSessionManager().removeSession(scanID);
       if (e.getCause() instanceof NotServingTabletException) {
@@ -276,7 +278,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
         sleepUninterruptibly(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
         List<KVEntry> empty = Collections.emptyList();
         bresult = new ScanBatch(empty, true);
-        scanSession.setScanTask(null);
+        scanSession.clearScanTask();
       } else {
         throw new RuntimeException(e);
       }
@@ -440,6 +442,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     long sid = server.getSessionManager().createSession(mss, true);
 
+    scanParams.setScanSessionId(sid);
+
     MultiScanResult result;
     try {
       result = continueMultiScan(sid, mss, busyTimeout);
@@ -482,7 +486,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
       MultiScanResult scanResult = session.getScanTask().get(busyTimeout,
           MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
-      session.setScanTask(null);
+      session.clearScanTask();
       return scanResult;
     } catch (ExecutionException e) {
       server.getSessionManager().removeSession(scanID);

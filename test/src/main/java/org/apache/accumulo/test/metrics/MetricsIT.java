@@ -18,6 +18,16 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
+import static org.apache.accumulo.core.metrics.Metric.FATE_TYPE_IN_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_BALANCER_MIGRATIONS_NEEDED;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_BUSY_TIMEOUT_COUNT;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_CONFLICT_COUNTER;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_TOTAL_TIMER;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_WRITEOUT_TIMER;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_TABLET_METADATA_CACHE;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_YIELDS;
+import static org.apache.accumulo.core.metrics.Metric.SERVER_IDLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -27,15 +37,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.BitSet;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -49,12 +59,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.SlowIterator;
-import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -107,27 +117,30 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
     // meter names sorted and formatting disabled to make it easier to diff changes
     // @formatter:off
-    Set<String> unexpectedMetrics =
-            Set.of(METRICS_COMPACTOR_MAJC_STUCK,
-                    METRICS_SCAN_YIELDS);
+    Set<Metric> unexpectedMetrics = Set.of(
+            COMPACTOR_MAJC_STUCK,
+            SCAN_YIELDS
+    );
 
     // add sserver as flaky until scan server included in mini tests.
-    Set<String> flakyMetrics = Set.of(METRICS_FATE_TYPE_IN_PROGRESS,
-            METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED,
-            METRICS_SCAN_BUSY_TIMEOUT_COUNTER,
-            METRICS_SCAN_RESERVATION_CONFLICT_COUNTER,
-            METRICS_SCAN_RESERVATION_TOTAL_TIMER,
-            METRICS_SCAN_RESERVATION_WRITEOUT_TIMER,
-            METRICS_SCAN_TABLET_METADATA_CACHE,
-            METRICS_SERVER_IDLE);
+    Set<Metric> flakyMetrics = Set.of(
+            FATE_TYPE_IN_PROGRESS,
+            MANAGER_BALANCER_MIGRATIONS_NEEDED,
+            SCAN_BUSY_TIMEOUT_COUNT,
+            SCAN_RESERVATION_CONFLICT_COUNTER,
+            SCAN_RESERVATION_TOTAL_TIMER,
+            SCAN_RESERVATION_WRITEOUT_TIMER,
+            SCAN_TABLET_METADATA_CACHE,
+            SERVER_IDLE
+    );
     // @formatter:on
 
-    Map<String,String> expectedMetricNames = this.getMetricFields();
-    flakyMetrics.forEach(expectedMetricNames::remove); // might not see these
-    unexpectedMetrics.forEach(expectedMetricNames::remove); // definitely shouldn't see these
-    assertFalse(expectedMetricNames.isEmpty()); // make sure we didn't remove everything
+    Set<Metric> expectedMetrics = new HashSet<>(Arrays.asList(Metric.values()));
+    expectedMetrics.removeAll(flakyMetrics); // might not see these
+    expectedMetrics.removeAll(unexpectedMetrics); // definitely shouldn't see these
+    assertFalse(expectedMetrics.isEmpty()); // make sure we didn't remove everything
 
-    Map<String,String> seenMetricNames = new HashMap<>();
+    Set<Metric> seenMetrics = new HashSet<>();
 
     List<String> statsDMetrics;
 
@@ -153,56 +166,58 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     workerThread.start();
 
     // loop until we run out of lines or until we see all expected metrics
-    while (!(statsDMetrics = sink.getLines()).isEmpty() && !expectedMetricNames.isEmpty()
+    while (!(statsDMetrics = sink.getLines()).isEmpty() && !expectedMetrics.isEmpty()
         && !queueMetricsSeen.intersects(trueSet)) {
       // for each metric name not yet seen, check if it is expected, flaky, or unknown
       statsDMetrics.stream().filter(line -> line.startsWith("accumulo"))
-          .map(TestStatsDSink::parseStatsDMetric).map(Metric::getName)
-          .filter(Predicate.not(seenMetricNames::containsKey)).forEach(name -> {
-            if (expectedMetricNames.containsKey(name)) {
-              // record expected metric names as seen, along with the value seen
-              seenMetricNames.put(name, expectedMetricNames.remove(name));
-            } else if (flakyMetrics.contains(name)) {
+          .map(TestStatsDSink::parseStatsDMetric).map(metric -> Metric.fromName(metric.getName()))
+          .filter(metric -> !seenMetrics.contains(metric)).forEach(metric -> {
+            if (expectedMetrics.contains(metric)) {
+              // record expected Metric as seen
+              seenMetrics.add(metric);
+              expectedMetrics.remove(metric);
+            } else if (flakyMetrics.contains(metric)) {
               // ignore any flaky metric names seen
               // these aren't always expected, but we shouldn't be surprised if we see them
-            } else if (name.startsWith(METRICS_COMPACTOR_PREFIX)) {
+            } else if (metric.getName().startsWith("accumulo.compactor.")) {
               // Compactor queue metrics are not guaranteed to be emitted
               // during the call to doWorkToGenerateMetrics above. This will
               // flip a bit in the BitSet when each metric is seen. The top-level
               // loop will continue to iterate until all the metrics are seen.
-              seenMetricNames.put(name, expectedMetricNames.remove(name));
-              switch (name) {
-                case METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH:
+              seenMetrics.add(metric);
+              expectedMetrics.remove(metric);
+              switch (metric) {
+                case COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH:
                   queueMetricsSeen.set(compactionPriorityQueueLengthBit, true);
                   break;
-                case METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED:
+                case COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED:
                   queueMetricsSeen.set(compactionPriorityQueueQueuedBit, true);
                   break;
-                case METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED:
+                case COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED:
                   queueMetricsSeen.set(compactionPriorityQueueDequeuedBit, true);
                   break;
-                case METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED:
+                case COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED:
                   queueMetricsSeen.set(compactionPriorityQueueRejectedBit, true);
                   break;
-                case METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY:
+                case COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY:
                   queueMetricsSeen.set(compactionPriorityQueuePriorityBit, true);
                   break;
               }
             } else {
               // completely unexpected metric
-              fail("Found accumulo metric not in expectedMetricNames or flakyMetricNames: " + name);
+              fail("Found accumulo metric not in expectedMetricNames or flakyMetricNames: "
+                  + metric);
             }
           });
-      log.debug("METRICS: metrics expected, but not seen so far: {}", expectedMetricNames);
+      log.debug("METRICS: metrics expected, but not seen so far: {}", expectedMetrics);
       Thread.sleep(4_000);
     }
-    assertTrue(expectedMetricNames.isEmpty(),
-        "Did not see all expected metric names, missing: " + expectedMetricNames.values());
+    assertTrue(expectedMetrics.isEmpty(),
+        "Did not see all expected metric names, missing: " + expectedMetrics);
 
     workerThread.join();
     assertNull(error.get());
     cluster.stop();
-
   }
 
   private void doWorkToGenerateMetrics() throws Exception {

@@ -532,8 +532,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       binnedRanges.keySet().forEach((location) -> {
         HostAndPort address = HostAndPort.fromString(location);
         String addressWithSession = address.toString();
-        var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
-            + Constants.ZTSERVERS + "/" + address);
+        var zLockPath = getCluster().getServerContext().getServerPaths()
+            .createTabletServerPath(Constants.DEFAULT_RESOURCE_GROUP_NAME, address);
         long sessionId =
             ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
         if (sessionId != 0) {
@@ -582,8 +582,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       locs.groupByTablet().keySet().stream().map(locs::getTabletLocation).forEach(location -> {
         HostAndPort address = HostAndPort.fromString(location);
         String addressWithSession = address.toString();
-        var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
-            + Constants.ZTSERVERS + "/" + address);
+        var zLockPath = getCluster().getServerContext().getServerPaths()
+            .createTabletServerPath(Constants.DEFAULT_RESOURCE_GROUP_NAME, address);
         long sessionId =
             ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
         if (sessionId != 0) {

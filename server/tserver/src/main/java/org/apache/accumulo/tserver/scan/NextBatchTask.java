@@ -98,7 +98,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
           e);
       addResult(e);
     } finally {
-      runState.set(ScanRunState.FINISHED);
+      transitionFromRunning();
       Thread.currentThread().setName(oldThreadName);
     }
 

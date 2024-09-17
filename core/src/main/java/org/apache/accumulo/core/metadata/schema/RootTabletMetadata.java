@@ -85,14 +85,17 @@ public class RootTabletMetadata {
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
   private static class Data {
-    private final int version;
+    private int version;
 
     /*
      * The data is mapped using Strings as follows:
      *
      * TreeMap<column_family, TreeMap<column_qualifier, value>>
      */
-    private final TreeMap<String,TreeMap<String,String>> columnValues;
+    private TreeMap<String,TreeMap<String,String>> columnValues;
+
+    // Gson requires a default constructor when JDK Unsafe usage is disabled
+    private Data() {}
 
     private Data(int version, TreeMap<String,TreeMap<String,String>> columnValues) {
       this.version = version;

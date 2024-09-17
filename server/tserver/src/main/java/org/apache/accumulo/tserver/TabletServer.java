@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalSch
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchNonCriticalScheduledTask;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
@@ -83,6 +84,7 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.Compacting;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
@@ -117,10 +119,8 @@ import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
-import org.apache.accumulo.server.manager.recovery.RecoveryPath;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -397,7 +397,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private static final AutoCloseable NOOP_CLOSEABLE = () -> {};
 
   AutoCloseable acquireRecoveryMemory(TabletMetadata tabletMetadata) {
-    if (tabletMetadata.getExtent().isMeta() || tabletMetadata.getLogs().isEmpty()) {
+    if (tabletMetadata.getExtent().isMeta() || !needsRecovery(tabletMetadata)) {
       return NOOP_CLOSEABLE;
     } else {
       recoveryLock.lock();
@@ -488,10 +488,16 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private void announceExistence() {
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
     try {
-      var zLockPath = ServiceLock.path(
-          getContext().getZooKeeperRoot() + Constants.ZTSERVERS + "/" + getClientAddressString());
 
+      final ServiceLockPath zLockPath =
+          context.getServerPaths().createTabletServerPath(getResourceGroup(), clientAddress);
+      // The ServiceLockPath contains a resource group in the path which is not created
+      // at initialization time. If it does not exist, then create it.
+      String tserverGroupPath = zLockPath.toString().substring(0,
+          zLockPath.toString().lastIndexOf("/" + zLockPath.getServer()));
+      log.debug("Creating tserver resource group path in zookeeper: {}", tserverGroupPath);
       try {
+        zoo.mkdirs(tserverGroupPath);
         zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
       } catch (KeeperException e) {
         if (e.code() == KeeperException.Code.NOAUTH) {
@@ -500,7 +506,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }
         throw e;
       }
-
       UUID tabletServerUUID = UUID.randomUUID();
       tabletServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, tabletServerUUID);
 
@@ -583,6 +588,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     metrics = new TabletServerMetrics(this);
     updateMetrics = new TabletServerUpdateMetrics();
     scanMetrics = new TabletServerScanMetrics();
+    sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);
     mincMetrics = new TabletServerMinCMetrics();
     pausedMetrics = new PausedCompactionMetrics();
     blockCacheMetrics = new BlockCacheMetrics(this.resourceManager.getIndexCache(),
@@ -898,24 +904,24 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     logger.minorCompactionStarted(tablet, lastUpdateSequence, newDataFileLocation, durability);
   }
 
+  public boolean needsRecovery(TabletMetadata tabletMetadata) {
+
+    var logEntries = tabletMetadata.getLogs();
+
+    if (logEntries.isEmpty()) {
+      return false;
+    }
+
+    try {
+      return logger.needsRecovery(getContext(), tabletMetadata.getExtent(), logEntries);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
   public void recover(VolumeManager fs, KeyExtent extent, Collection<LogEntry> logEntries,
       Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
-    List<Path> recoveryDirs = new ArrayList<>();
-    for (LogEntry entry : logEntries) {
-      Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getPath()));
-      finished = SortedLogState.getFinishedMarkerPath(finished);
-      TabletServer.log.debug("Looking for " + finished);
-      if (fs.exists(finished)) {
-        recovery = finished.getParent();
-      }
-      if (recovery == null) {
-        throw new IOException(
-            "Unable to find recovery files for extent " + extent + " logEntry: " + entry);
-      }
-      recoveryDirs.add(recovery);
-    }
-    logger.recover(getContext(), extent, recoveryDirs, tabletFiles, mutationReceiver);
+    logger.recover(getContext(), extent, logEntries, tabletFiles, mutationReceiver);
   }
 
   public int createLogId() {
