@@ -1027,7 +1027,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
         m.put("", "", NoBulkConstratint.CANARY_VALUE);
         // This test assume the metadata constraint check will not flag this mutation, the following
         // validates this assumption.
-        assertNull(metaConstraints.check(env, m));
+        assertTrue(metaConstraints.check(env, m).isEmpty());
         bw.addMutation(m);
         return false;
       } catch (MutationsRejectedException e) {

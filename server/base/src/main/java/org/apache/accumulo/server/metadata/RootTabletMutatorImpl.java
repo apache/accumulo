@@ -94,7 +94,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
     MetadataConstraints metaConstraint = new MetadataConstraints();
     List<Short> violations = metaConstraint.check(new RootEnv(context), mutation);
 
-    if (violations != null && !violations.isEmpty()) {
+    if (!violations.isEmpty()) {
       throw new IllegalStateException(
           "Mutation for root tablet metadata violated constraints : " + violations);
     }
