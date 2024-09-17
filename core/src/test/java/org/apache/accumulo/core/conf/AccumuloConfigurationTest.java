@@ -27,6 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -445,4 +447,105 @@ public class AccumuloConfigurationTest {
     }
   }
 
+  @Test
+  public void testDefaultDurations() {
+    var conf = DefaultConfiguration.getInstance();
+    for (Property prop : Property.values()) {
+      if (prop.getType() == PropertyType.TIMEDURATION) {
+        var expectedDuration =
+            Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(prop.getDefaultValue()));
+        assertEquals(expectedDuration, conf.getDuration(prop));
+        assertEquals(expectedDuration.toMillis(), conf.getTimeInMillis(prop));
+      }
+    }
+  }
+
+  /*
+   * AccumuloConfiguration will cache the results of computing durations, this test ensures it
+   * recomputes them on change.
+   */
+  @Test
+  public void testDurationUpdate() {
+    var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+
+    for (Property prop : Property.values()) {
+      if (prop.getType() == PropertyType.TIMEDURATION) {
+        var expectedDuration =
+            Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(prop.getDefaultValue()));
+        assertEquals(expectedDuration, conf.getDuration(prop));
+        assertEquals(expectedDuration.toMillis(), conf.getTimeInMillis(prop));
+      }
+    }
+
+    for (int toAdd = 1; toAdd <= 4; toAdd++) {
+      for (Property prop : Property.values()) {
+        if (prop.getType() == PropertyType.TIMEDURATION) {
+          var defaultDuration =
+              Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(prop.getDefaultValue()));
+          var expectedDuration = defaultDuration.plusMinutes(toAdd);
+          conf.set(prop.getKey(), expectedDuration.toMillis() + "ms");
+        }
+      }
+
+      for (Property prop : Property.values()) {
+        if (prop.getType() == PropertyType.TIMEDURATION) {
+          var defaultDuration =
+              Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(prop.getDefaultValue()));
+          var expectedDuration = defaultDuration.plus(toAdd, ChronoUnit.MINUTES);
+          assertEquals(expectedDuration, conf.getDuration(prop));
+          assertEquals(expectedDuration.toMillis(), conf.getTimeInMillis(prop));
+        }
+      }
+    }
+  }
+
+  @Test
+  public void testMalformedDuration() {
+    assertEquals(PropertyType.TIMEDURATION, Property.TSERV_WAL_MAX_AGE.getType());
+    assertEquals(PropertyType.TIMEDURATION, Property.GENERAL_RPC_TIMEOUT.getType());
+
+    var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    conf.getDuration(Property.TSERV_WAL_MAX_AGE);
+    var expectedDuration = Duration.ofMillis(
+        ConfigurationTypeHelper.getTimeInMillis(Property.TSERV_WAL_MAX_AGE.getDefaultValue()));
+    var rpcTimeout = Duration.ofMillis(
+        ConfigurationTypeHelper.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue()));
+    assertEquals(expectedDuration, conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertEquals(rpcTimeout, conf.getDuration(Property.GENERAL_RPC_TIMEOUT));
+    conf.set(Property.TSERV_WAL_MAX_AGE.getKey(), "abc");
+    conf.set(Property.GENERAL_RPC_TIMEOUT, "2h");
+    var npe = assertThrows(NullPointerException.class,
+        () -> conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertTrue(npe.getMessage().contains(Property.TSERV_WAL_MAX_AGE.getKey()));
+    assertEquals(Duration.ofHours(2), conf.getDuration(Property.GENERAL_RPC_TIMEOUT));
+    conf.set(Property.TSERV_WAL_MAX_AGE.getKey(), "1h");
+    assertEquals(Duration.ofHours(1), conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertEquals(Duration.ofHours(2), conf.getDuration(Property.GENERAL_RPC_TIMEOUT));
+  }
+
+  @Test
+  public void testDurationSubset() {
+    // test only having some of the duration properties actually set in the configuration
+    assertEquals(PropertyType.TIMEDURATION, Property.TSERV_WAL_MAX_AGE.getType());
+    assertEquals(PropertyType.TIMEDURATION, Property.GENERAL_RPC_TIMEOUT.getType());
+
+    var conf = new ConfigurationCopy();
+    var npe = assertThrows(NullPointerException.class,
+        () -> conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertTrue(npe.getMessage().contains(Property.TSERV_WAL_MAX_AGE.getKey()));
+    npe = assertThrows(NullPointerException.class,
+        () -> conf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE));
+    assertTrue(npe.getMessage().contains(Property.TSERV_WAL_MAX_AGE.getKey()));
+
+    conf.set(Property.TSERV_WAL_MAX_AGE.getKey(), "1h");
+    assertEquals(Duration.ofHours(1), conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertEquals(Duration.ofHours(1).toMillis(), conf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE));
+
+    assertThrows(NullPointerException.class, () -> conf.getDuration(Property.GENERAL_RPC_TIMEOUT));
+    assertThrows(NullPointerException.class,
+        () -> conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+
+    assertEquals(Duration.ofHours(1), conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertEquals(Duration.ofHours(1).toMillis(), conf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE));
+  }
 }
