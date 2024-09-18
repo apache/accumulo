@@ -369,7 +369,7 @@ public class MetadataConstraints implements Constraint {
   private void validateSuspendLocationFamily(ArrayList<Short> violations,
       ColumnUpdate columnUpdate) {
     String qualStr = new String(columnUpdate.getColumnQualifier(), UTF_8);
-    String suspendColQualStr = SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier().toString();
+    String suspendColQualStr = SuspendLocationColumn.SUSPEND_QUAL;
 
     if (qualStr.equals(suspendColQualStr)) {
       try {
