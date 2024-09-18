@@ -97,6 +97,7 @@ case "$cmd" in
   compaction-coordinator) JAVA_OPTS=('-Xmx512m' '-Xms512m' "${JAVA_OPTS[@]}") ;;
   compactor) JAVA_OPTS=('-Xmx256m' '-Xms256m' "${JAVA_OPTS[@]}") ;;
   sserver) JAVA_OPTS=('-Xmx512m' '-Xms512m' "${JAVA_OPTS[@]}") ;;
+  shell) JAVA_OPTS=('-Xmx256m' '-Xms64m' "-Djava.io.tmpdir=${basedir}/run" "${JAVA_OPTS[@]}") ;;
   *) JAVA_OPTS=('-Xmx256m' '-Xms64m' "${JAVA_OPTS[@]}") ;;
 esac
 
