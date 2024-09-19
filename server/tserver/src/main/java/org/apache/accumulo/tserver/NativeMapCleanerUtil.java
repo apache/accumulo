@@ -44,10 +44,12 @@ public class NativeMapCleanerUtil {
     });
   }
 
-  // Chose 8 cleaners because each cleaner creates a thread, so do not want too many threads. This
-  // should reduce lock contention for scans by an 8th vs a single cleaner, so that is good
-  // reduction and 8 does not seem like too many threads to add.
-  private static final Cleaner[] NMI_CLEANERS = new Cleaner[8];
+  // Chose 7 cleaners because each cleaner creates a thread, so do not want too many threads. This
+  // should reduce lock contention for scans by a 7th vs a single cleaner, so that is good
+  // reduction and 7 does not seem like too many threads to add. This array is indexed using
+  // pointers addresses from native code, so there is a good chance those are memory aligned on
+  // a multiple of 4, 8, 16, etc. So if changing the array size avoid multiples of 2.
+  private static final Cleaner[] NMI_CLEANERS = new Cleaner[7];
 
   static {
     for (int i = 0; i < NMI_CLEANERS.length; i++) {
