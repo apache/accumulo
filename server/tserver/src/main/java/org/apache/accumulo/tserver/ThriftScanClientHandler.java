@@ -336,8 +336,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       long t2 = System.currentTimeMillis();
 
       if (log.isTraceEnabled()) {
-        log.trace(String.format("ScanSess tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ",
-            TServerUtils.clientAddress.get(), ss.extent.tableId(), ss.entriesReturned,
+        log.trace(String.format("ScanSess %d tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ",
+            scanID, TServerUtils.clientAddress.get(), ss.extent.tableId(), ss.entriesReturned,
             (t2 - ss.startTime) / 1000.0, ss.runStats.toString()));
       }
 
@@ -533,10 +533,11 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     if (log.isTraceEnabled()) {
       log.trace(String.format(
-          "MultiScanSess %s %,d entries in %.2f secs"
+          "MultiScanSess %d %s %,d entries in %.2f secs"
               + " (lookup_time:%.2f secs tablets:%,d ranges:%,d) ",
-          TServerUtils.clientAddress.get(), session.numEntries, (t2 - session.startTime) / 1000.0,
-          session.totalLookupTime / 1000.0, session.numTablets, session.numRanges));
+          scanID, TServerUtils.clientAddress.get(), session.numEntries,
+          (t2 - session.startTime) / 1000.0, session.totalLookupTime / 1000.0, session.numTablets,
+          session.numRanges));
     }
   }
 

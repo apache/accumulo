@@ -37,6 +37,7 @@ public class Session {
   boolean allowReservation = true;
   private final Timer stateChangeTimer = Timer.startNew();
   private final TCredentials credentials;
+  private long sessionId;
 
   Session(TCredentials credentials) {
     this.credentials = credentials;
@@ -66,13 +67,21 @@ public class Session {
     return state;
   }
 
+  public void setSessionId(long sessionId) {
+    this.sessionId = sessionId;
+  }
+
+  public long getSessionId() {
+    return sessionId;
+  }
+
   public long elaspedSinceStateChange(TimeUnit unit) {
     return stateChangeTimer.elapsed(unit);
   }
 
   @Override
   public String toString() {
-    return getClass().getSimpleName() + " " + state + " startTime:" + startTime + " lastAccessTime:"
-        + lastAccessTime + " client:" + client;
+    return getClass().getSimpleName() + " " + state + " sessionId:" + sessionId + " startTime:"
+        + startTime + " lastAccessTime:" + lastAccessTime + " client:" + client;
   }
 }

@@ -24,6 +24,7 @@ import static org.apache.accumulo.minicluster.ServerType.SCAN_SERVER;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.apache.accumulo.test.functional.ScannerIT.countActiveScans;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -41,9 +42,12 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.ScanType;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -240,6 +244,10 @@ public class ZombieScanIT extends ConfigurableMacBase {
       }
       assertEquals(4, tabletSeversWithZombieScans.size());
 
+      // This check may be outside the scope of this test but works nicely for this check and is
+      // simple enough to include
+      assertValidScanIds(c);
+
       executor.shutdownNow();
     }
 
@@ -399,5 +407,26 @@ public class ZombieScanIT extends ConfigurableMacBase {
     return sink.getLines().stream().map(TestStatsDSink::parseStatsDMetric)
         .filter(metric -> metric.getName().equals(SCAN_ZOMBIE_THREADS.getName()))
         .mapToInt(metric -> Integer.parseInt(metric.getValue())).max().orElse(-1);
+  }
+
+  /**
+   * Ensure that the scan session ids are valid (should not expect 0 or -1). 0 would mean the id was
+   * never set (previously existing bug). -1 previously indicated that the scan session was no
+   * longer tracking the id (occurred for scans when cleanup was attempted but deferred for later)
+   */
+  private void assertValidScanIds(AccumuloClient c)
+      throws AccumuloException, AccumuloSecurityException {
+    Set<Long> scanIds = new HashSet<>();
+    Set<ScanType> scanTypes = new HashSet<>();
+    for (String tserver : c.instanceOperations().getTabletServers()) {
+      c.instanceOperations().getActiveScans(tserver).forEach(activeScan -> {
+        scanIds.add(activeScan.getScanid());
+        scanTypes.add(activeScan.getType());
+      });
+    }
+    assertNotEquals(0, scanIds.size());
+    scanIds.forEach(id -> assertTrue(id != 0L && id != -1L));
+    // ensure coverage of both batch and single scans
+    assertEquals(scanTypes, Set.of(ScanType.SINGLE, ScanType.BATCH));
   }
 }
