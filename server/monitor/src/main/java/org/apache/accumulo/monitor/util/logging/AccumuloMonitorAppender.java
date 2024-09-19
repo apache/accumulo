@@ -123,8 +123,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
         var req = HttpRequest.newBuilder(uri).POST(BodyPublishers.ofString(jsonEvent, UTF_8))
             .setHeader("Content-Type", "application/json").build();
 
-        var future = httpClient.sendAsync(req, BodyHandlers.discarding());
-        future.get();
+        httpClient.send(req, BodyHandlers.discarding());
       } catch (final Exception e) {
         error("Unable to send HTTP in appender [" + getName() + "]", event, e);
       }
