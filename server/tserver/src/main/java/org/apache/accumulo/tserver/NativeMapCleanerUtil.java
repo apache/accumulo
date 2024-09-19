@@ -60,11 +60,10 @@ public class NativeMapCleanerUtil {
   public static Cleanable deleteNMIterator(Object obj, AtomicLong nmiPtr) {
     requireNonNull(nmiPtr);
 
-    long ptr = Math.abs(nmiPtr.get());
-    if (ptr == Long.MIN_VALUE) {
-      ptr = 0;
+    int cleanerIndex = (int) (nmiPtr.get() % NMI_CLEANERS.length);
+    if (cleanerIndex < 0) {
+      cleanerIndex += NMI_CLEANERS.length;
     }
-    int cleanerIndex = (int) (ptr % NMI_CLEANERS.length);
 
     // This method can be called very frequently by many scan threads. The register call on cleaner
     // acquires a lock which can cause lock contention between threads. Having multiple cleaners for
