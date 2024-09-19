@@ -107,7 +107,6 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
 
   @BeforeEach
   public void setUp() throws Exception {
-
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();
     ProcessReference defaultTabletServer =
         mac.getProcesses().get(ServerType.TABLET_SERVER).iterator().next();

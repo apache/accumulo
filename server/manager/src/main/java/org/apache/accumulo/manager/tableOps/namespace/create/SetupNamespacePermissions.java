@@ -31,7 +31,7 @@ class SetupNamespacePermissions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private NamespaceInfo namespaceInfo;
+  private final NamespaceInfo namespaceInfo;
 
   public SetupNamespacePermissions(NamespaceInfo ti) {
     this.namespaceInfo = ti;

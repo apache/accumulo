@@ -84,11 +84,11 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
@@ -116,9 +116,9 @@ import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.metrics.BalancerMetrics;
@@ -641,26 +641,25 @@ public class Manager extends AbstractServer
     public void run() {
 
       final ZooReaderWriter zrw = getContext().getZooReaderWriter();
-      final String sserverZNodePath = getContext().getZooKeeperRoot() + Constants.ZSSERVERS;
 
       while (stillManager()) {
         try {
-          for (String sserverClientAddress : zrw.getChildren(sserverZNodePath)) {
+          Set<ServiceLockPath> scanServerPaths =
+              getContext().getServerPaths().getScanServer(Optional.empty(), Optional.empty());
+          for (ServiceLockPath path : scanServerPaths) {
 
-            final String sServerZPath = sserverZNodePath + "/" + sserverClientAddress;
-            final var zLockPath = ServiceLock.path(sServerZPath);
             ZcStat stat = new ZcStat();
             Optional<ServiceLockData> lockData =
-                ServiceLock.getLockData(getContext().getZooCache(), zLockPath, stat);
+                ServiceLock.getLockData(getContext().getZooCache(), path, stat);
 
             if (lockData.isEmpty()) {
               try {
-                log.debug("Deleting empty ScanServer ZK node {}", sServerZPath);
-                zrw.delete(sServerZPath);
+                log.debug("Deleting empty ScanServer ZK node {}", path);
+                zrw.delete(path.toString());
               } catch (KeeperException.NotEmptyException e) {
                 log.debug(
                     "Failed to delete ScanServer ZK node {} its not empty, likely an expected race condition.",
-                    sServerZPath);
+                    path);
               }
             }
           }
@@ -1067,10 +1066,10 @@ public class Manager extends AbstractServer
     // wait at least 10 seconds
     final Duration timeToWait =
         Comparators.max(Duration.ofSeconds(10), Duration.ofMillis(rpcTimeout / 3));
-    final NanoTime startTime = NanoTime.now();
+    final Timer startTime = Timer.startNew();
     // Wait for all tasks to complete
     while (!tasks.isEmpty()) {
-      boolean cancel = (startTime.elapsed().compareTo(timeToWait) > 0);
+      boolean cancel = startTime.hasElapsed(timeToWait);
       Iterator<Future<?>> iter = tasks.iterator();
       while (iter.hasNext()) {
         Future<?> f = iter.next();
@@ -1133,7 +1132,7 @@ public class Manager extends AbstractServer
     // block until we can obtain the ZK lock for the manager
     ServiceLockData sld;
     try {
-      sld = getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
+      sld = getManagerLock(context.getServerPaths().createManagerPath());
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
@@ -1542,10 +1541,12 @@ public class Manager extends AbstractServer
         managerClientAddress, this.getResourceGroup()));
 
     ServiceLockData sld = new ServiceLockData(descriptors);
+
+    managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
+
     while (true) {
 
       ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
-      managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
       managerLock.lock(managerLockWatcher, sld);
 
       managerLockWatcher.waitForChange();

@@ -48,12 +48,12 @@ public class VisMetricsGatherer
     implements MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> {
   private static final String KEY_HASH_ALGORITHM = "SHA-256";
 
-  protected Map<String,AtomicLongMap<String>> metric;
-  protected Map<String,AtomicLongMap<String>> blocks;
-  protected ArrayList<Long> numEntries;
-  protected ArrayList<Integer> numBlocks;
-  private ArrayList<String> inBlock;
-  protected ArrayList<String> localityGroups;
+  protected final Map<String,AtomicLongMap<String>> metric;
+  protected final Map<String,AtomicLongMap<String>> blocks;
+  protected final ArrayList<Long> numEntries;
+  protected final ArrayList<Integer> numBlocks;
+  private final ArrayList<String> inBlock;
+  protected final ArrayList<String> localityGroups;
   private int numLG;
   private Map<String,ArrayList<ByteSequence>> localityGroupCF;
 

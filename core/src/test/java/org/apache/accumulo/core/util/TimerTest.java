@@ -93,41 +93,27 @@ public class TimerTest {
       assertEquals(0, elapsedSeconds,
           "Elapsed time in seconds should be 0 for 50 milliseconds of sleep.");
     }
-
   }
 
   @Test
-  public void testStartNewWithOffsetDuration() throws InterruptedException {
-    Timer timer = Timer.startNewWithOffset(Duration.ofMillis(100));
+  public void testStartedAfter() throws Exception {
+    var timer1 = Timer.startNew();
+    Thread.sleep(3);
+    var timer2 = Timer.startNew();
 
-    assertFalse(timer.hasElapsed(Duration.ZERO));
+    assertTrue(timer2.startedAfter(timer1));
+    assertFalse(timer1.startedAfter(timer2));
 
-    Thread.sleep(50);
+    Thread.sleep(3);
+    timer1.restart();
 
-    assertFalse(timer.hasElapsed(Duration.ZERO),
-        "The timer should not indicate time has elapsed before the offset has passed.");
+    assertTrue(timer1.startedAfter(timer2));
+    assertFalse(timer2.startedAfter(timer1));
 
-    Thread.sleep(60);
+    Thread.sleep(3);
+    timer2.restart();
 
-    assertTrue(timer.hasElapsed(Duration.ZERO),
-        "The timer should indicate time has elapsed after the offset has passed.");
+    assertTrue(timer2.startedAfter(timer1));
+    assertFalse(timer1.startedAfter(timer2));
   }
-
-  @Test
-  public void testStartNewWithOffsetTimeUnit() throws InterruptedException {
-    Timer timer = Timer.startNewWithOffset(100, MILLISECONDS);
-
-    assertFalse(timer.hasElapsed(0, MILLISECONDS));
-
-    Thread.sleep(50);
-
-    assertFalse(timer.hasElapsed(0, MILLISECONDS),
-        "The timer should not indicate time has elapsed before the offset has passed.");
-
-    Thread.sleep(60);
-
-    assertTrue(timer.hasElapsed(0, MILLISECONDS),
-        "The timer should indicate time has elapsed after the offset has passed.");
-  }
-
 }

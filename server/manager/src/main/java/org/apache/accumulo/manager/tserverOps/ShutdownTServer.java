@@ -20,7 +20,6 @@ package org.apache.accumulo.manager.tserverOps;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -41,12 +40,14 @@ public class ShutdownTServer extends ManagerRepo {
 
   private static final long serialVersionUID = 2L;
   private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);
+  private final String resourceGroup;
   private final HostAndPort hostAndPort;
   private final String serverSession;
   private final boolean force;
 
-  public ShutdownTServer(TServerInstance server, boolean force) {
+  public ShutdownTServer(TServerInstance server, String resourceGroup, boolean force) {
     this.hostAndPort = server.getHostAndPort();
+    this.resourceGroup = resourceGroup;
     this.serverSession = server.getSession();
     this.force = force;
   }
@@ -98,10 +99,10 @@ public class ShutdownTServer extends ManagerRepo {
     if (force) {
       ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
       var path =
-          ServiceLock.path(manager.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + hostAndPort);
+          manager.getContext().getServerPaths().createTabletServerPath(resourceGroup, hostAndPort);
       ServiceLock.deleteLock(zoo, path);
-      path = ServiceLock
-          .path(manager.getZooKeeperRoot() + Constants.ZDEADTSERVERS + "/" + hostAndPort);
+      path = manager.getContext().getServerPaths().createDeadTabletServerPath(resourceGroup,
+          hostAndPort);
       zoo.putPersistentData(path.toString(), "forced down".getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
     }

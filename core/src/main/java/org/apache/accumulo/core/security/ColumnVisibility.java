@@ -117,8 +117,8 @@ public class ColumnVisibility {
      * An empty list of nodes.
      */
     public static final List<Node> EMPTY = Collections.emptyList();
-    NodeType type;
-    int start;
+    final NodeType type;
+    final int start;
     int end;
     List<Node> children = EMPTY;
 
@@ -182,7 +182,7 @@ public class ColumnVisibility {
   public static class NodeComparator implements Comparator<Node>, Serializable {
 
     private static final long serialVersionUID = 1L;
-    byte[] text;
+    final byte[] text;
 
     /**
      * Creates a new comparator.

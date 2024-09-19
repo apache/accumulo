@@ -31,6 +31,7 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
   private static final org.apache.thrift.protocol.TField SERVER_FIELD_DESC = new org.apache.thrift.protocol.TField("server", org.apache.thrift.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift.protocol.TField LAST_STATUS_FIELD_DESC = new org.apache.thrift.protocol.TField("lastStatus", org.apache.thrift.protocol.TType.I64, (short)2);
   private static final org.apache.thrift.protocol.TField STATUS_FIELD_DESC = new org.apache.thrift.protocol.TField("status", org.apache.thrift.protocol.TType.STRING, (short)3);
+  private static final org.apache.thrift.protocol.TField RESOURCE_GROUP_FIELD_DESC = new org.apache.thrift.protocol.TField("resourceGroup", org.apache.thrift.protocol.TType.STRING, (short)4);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new DeadServerStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new DeadServerTupleSchemeFactory();
@@ -38,12 +39,14 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
   public @org.apache.thrift.annotation.Nullable java.lang.String server; // required
   public long lastStatus; // required
   public @org.apache.thrift.annotation.Nullable java.lang.String status; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String resourceGroup; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     SERVER((short)1, "server"),
     LAST_STATUS((short)2, "lastStatus"),
-    STATUS((short)3, "status");
+    STATUS((short)3, "status"),
+    RESOURCE_GROUP((short)4, "resourceGroup");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -65,6 +68,8 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
           return LAST_STATUS;
         case 3: // STATUS
           return STATUS;
+        case 4: // RESOURCE_GROUP
+          return RESOURCE_GROUP;
         default:
           return null;
       }
@@ -119,6 +124,8 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.STATUS, new org.apache.thrift.meta_data.FieldMetaData("status", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.RESOURCE_GROUP, new org.apache.thrift.meta_data.FieldMetaData("resourceGroup", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(DeadServer.class, metaDataMap);
   }
@@ -129,13 +136,15 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
   public DeadServer(
     java.lang.String server,
     long lastStatus,
-    java.lang.String status)
+    java.lang.String status,
+    java.lang.String resourceGroup)
   {
     this();
     this.server = server;
     this.lastStatus = lastStatus;
     setLastStatusIsSet(true);
     this.status = status;
+    this.resourceGroup = resourceGroup;
   }
 
   /**
@@ -150,6 +159,9 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
     if (other.isSetStatus()) {
       this.status = other.status;
     }
+    if (other.isSetResourceGroup()) {
+      this.resourceGroup = other.resourceGroup;
+    }
   }
 
   @Override
@@ -163,6 +175,7 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
     setLastStatusIsSet(false);
     this.lastStatus = 0;
     this.status = null;
+    this.resourceGroup = null;
   }
 
   @org.apache.thrift.annotation.Nullable
@@ -238,6 +251,31 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
     }
   }
 
+  @org.apache.thrift.annotation.Nullable
+  public java.lang.String getResourceGroup() {
+    return this.resourceGroup;
+  }
+
+  public DeadServer setResourceGroup(@org.apache.thrift.annotation.Nullable java.lang.String resourceGroup) {
+    this.resourceGroup = resourceGroup;
+    return this;
+  }
+
+  public void unsetResourceGroup() {
+    this.resourceGroup = null;
+  }
+
+  /** Returns true if field resourceGroup is set (has been assigned a value) and false otherwise */
+  public boolean isSetResourceGroup() {
+    return this.resourceGroup != null;
+  }
+
+  public void setResourceGroupIsSet(boolean value) {
+    if (!value) {
+      this.resourceGroup = null;
+    }
+  }
+
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
@@ -265,6 +303,14 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
       }
       break;
 
+    case RESOURCE_GROUP:
+      if (value == null) {
+        unsetResourceGroup();
+      } else {
+        setResourceGroup((java.lang.String)value);
+      }
+      break;
+
     }
   }
 
@@ -280,6 +326,9 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
 
     case STATUS:
       return getStatus();
+
+    case RESOURCE_GROUP:
+      return getResourceGroup();
 
     }
     throw new java.lang.IllegalStateException();
@@ -299,6 +348,8 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
       return isSetLastStatus();
     case STATUS:
       return isSetStatus();
+    case RESOURCE_GROUP:
+      return isSetResourceGroup();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -343,6 +394,15 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
         return false;
     }
 
+    boolean this_present_resourceGroup = true && this.isSetResourceGroup();
+    boolean that_present_resourceGroup = true && that.isSetResourceGroup();
+    if (this_present_resourceGroup || that_present_resourceGroup) {
+      if (!(this_present_resourceGroup && that_present_resourceGroup))
+        return false;
+      if (!this.resourceGroup.equals(that.resourceGroup))
+        return false;
+    }
+
     return true;
   }
 
@@ -359,6 +419,10 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
     hashCode = hashCode * 8191 + ((isSetStatus()) ? 131071 : 524287);
     if (isSetStatus())
       hashCode = hashCode * 8191 + status.hashCode();
+
+    hashCode = hashCode * 8191 + ((isSetResourceGroup()) ? 131071 : 524287);
+    if (isSetResourceGroup())
+      hashCode = hashCode * 8191 + resourceGroup.hashCode();
 
     return hashCode;
   }
@@ -397,6 +461,16 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
     }
     if (isSetStatus()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.status, other.status);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = java.lang.Boolean.compare(isSetResourceGroup(), other.isSetResourceGroup());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetResourceGroup()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.resourceGroup, other.resourceGroup);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -442,6 +516,14 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
       sb.append("null");
     } else {
       sb.append(this.status);
+    }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("resourceGroup:");
+    if (this.resourceGroup == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.resourceGroup);
     }
     first = false;
     sb.append(")");
@@ -515,6 +597,14 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 4: // RESOURCE_GROUP
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.resourceGroup = iprot.readString();
+              struct.setResourceGroupIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -542,6 +632,11 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
       if (struct.status != null) {
         oprot.writeFieldBegin(STATUS_FIELD_DESC);
         oprot.writeString(struct.status);
+        oprot.writeFieldEnd();
+      }
+      if (struct.resourceGroup != null) {
+        oprot.writeFieldBegin(RESOURCE_GROUP_FIELD_DESC);
+        oprot.writeString(struct.resourceGroup);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -572,7 +667,10 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
       if (struct.isSetStatus()) {
         optionals.set(2);
       }
-      oprot.writeBitSet(optionals, 3);
+      if (struct.isSetResourceGroup()) {
+        optionals.set(3);
+      }
+      oprot.writeBitSet(optionals, 4);
       if (struct.isSetServer()) {
         oprot.writeString(struct.server);
       }
@@ -582,12 +680,15 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
       if (struct.isSetStatus()) {
         oprot.writeString(struct.status);
       }
+      if (struct.isSetResourceGroup()) {
+        oprot.writeString(struct.resourceGroup);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, DeadServer struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(3);
+      java.util.BitSet incoming = iprot.readBitSet(4);
       if (incoming.get(0)) {
         struct.server = iprot.readString();
         struct.setServerIsSet(true);
@@ -599,6 +700,10 @@ public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServe
       if (incoming.get(2)) {
         struct.status = iprot.readString();
         struct.setStatusIsSet(true);
+      }
+      if (incoming.get(3)) {
+        struct.resourceGroup = iprot.readString();
+        struct.setResourceGroupIsSet(true);
       }
     }
   }

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_BALANCER_MIGRATIONS_NEEDED;
+
 import java.util.function.LongSupplier;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -44,7 +46,7 @@ public class BalancerMetrics implements MetricsProducer {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     Gauge
-        .builder(METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED, this,
+        .builder(MANAGER_BALANCER_MIGRATIONS_NEEDED.getName(), this,
             BalancerMetrics::getMigratingCount)
         .description("Overall total migrations that need to complete").register(registry);
   }

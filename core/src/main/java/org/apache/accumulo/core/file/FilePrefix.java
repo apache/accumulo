@@ -24,7 +24,7 @@ public enum FilePrefix {
 
   BULK_IMPORT("I"), MINOR_COMPACTION("F"), MAJOR_COMPACTION("C"), MAJOR_COMPACTION_ALL_FILES("A");
 
-  String prefix;
+  final String prefix;
 
   FilePrefix(String prefix) {
     this.prefix = prefix;

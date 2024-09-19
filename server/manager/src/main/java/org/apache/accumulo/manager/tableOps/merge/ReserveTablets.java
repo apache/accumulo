@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
@@ -32,7 +33,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
-import org.apache.accumulo.core.util.time.NanoTime;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.slf4j.Logger;
@@ -71,7 +72,7 @@ public class ReserveTablets extends ManagerRepo {
     int locations = 0;
     int wals = 0;
 
-    var startTime = NanoTime.now();
+    var startTime = Timer.startNew();
     try (
         var tablets = env.getContext().getAmple().readTablets().forTable(data.tableId)
             .overlapping(range.prevEndRow(), range.endRow()).fetch(PREV_ROW, LOCATION, LOGS, OPID)
@@ -97,7 +98,7 @@ public class ReserveTablets extends ManagerRepo {
         count++;
       }
     }
-    var maxSleepTime = Math.min(60000, startTime.elapsed().toMillis());
+    var maxSleepTime = Math.min(60000, startTime.elapsed(MILLISECONDS));
 
     log.debug(
         "{} reserve tablets op:{} count:{} other opids:{} opids set:{} locations:{} accepted:{} wals:{}",

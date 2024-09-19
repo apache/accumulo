@@ -376,8 +376,8 @@ public class RFile {
   }
 
   private static class SampleEntry {
-    Key key;
-    Value val;
+    final Key key;
+    final Value val;
 
     SampleEntry(Key key, Value val) {
       this.key = new Key(key);
@@ -387,12 +387,12 @@ public class RFile {
 
   private static class SampleLocalityGroupWriter {
 
-    private Sampler sampler;
+    private final Sampler sampler;
 
-    private List<SampleEntry> entries = new ArrayList<>();
+    private final List<SampleEntry> entries = new ArrayList<>();
     private long dataSize = 0;
 
-    private LocalityGroupWriter lgw;
+    private final LocalityGroupWriter lgw;
 
     public SampleLocalityGroupWriter(LocalityGroupWriter lgw, Sampler sampler) {
       this.lgw = lgw;
@@ -436,7 +436,7 @@ public class RFile {
 
   private static class LocalityGroupWriter {
 
-    private BCFile.Writer fileWriter;
+    private final BCFile.Writer fileWriter;
     private BlockAppender blockWriter;
 
     private final long blockSize;
@@ -449,10 +449,10 @@ public class RFile {
 
     private Key prevKey = new Key();
 
-    private SampleLocalityGroupWriter sample;
+    private final SampleLocalityGroupWriter sample;
 
     // Use windowed stats to fix ACCUMULO-4669
-    private RollingStats keyLenStats = new RollingStats(2017);
+    private final RollingStats keyLenStats = new RollingStats(2017);
     private double averageKeySize = 0;
 
     LocalityGroupWriter(BCFile.Writer fileWriter, long blockSize, long maxBlockSize,
@@ -568,14 +568,14 @@ public class RFile {
     public static final int MAX_CF_IN_DLG = 1000;
     private static final double MAX_BLOCK_MULTIPLIER = 1.1;
 
-    private BCFile.Writer fileWriter;
+    private final BCFile.Writer fileWriter;
 
     private final long blockSize;
     private final long maxBlockSize;
     private final int indexBlockSize;
 
-    private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
-    private ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
+    private final ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
+    private final ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
     private LocalityGroupMetadata currentLocalityGroup = null;
     private LocalityGroupMetadata sampleLocalityGroup = null;
 
@@ -583,13 +583,13 @@ public class RFile {
     private boolean closed = false;
     private boolean startedDefaultLocalityGroup = false;
 
-    private HashSet<ByteSequence> previousColumnFamilies;
+    private final HashSet<ByteSequence> previousColumnFamilies;
     private long length = -1;
 
     private LocalityGroupWriter lgWriter;
 
-    private SamplerConfigurationImpl samplerConfig;
-    private Sampler sampler;
+    private final SamplerConfigurationImpl samplerConfig;
+    private final Sampler sampler;
 
     public Writer(BCFile.Writer bfw, int blockSize) throws IOException {
       this(bfw, blockSize, (int) DefaultConfiguration.getInstance()
@@ -762,13 +762,13 @@ public class RFile {
 
   private static class LocalityGroupReader extends LocalityGroup implements FileSKVIterator {
 
-    private CachableBlockFile.Reader reader;
-    private MultiLevelIndex.Reader index;
-    private int blockCount;
-    private Key firstKey;
-    private int startBlock;
+    private final CachableBlockFile.Reader reader;
+    private final MultiLevelIndex.Reader index;
+    private final int blockCount;
+    private final Key firstKey;
+    private final int startBlock;
     private boolean closed = false;
-    private int version;
+    private final int version;
     private boolean checkRange = true;
 
     private LocalityGroupReader(CachableBlockFile.Reader reader, LocalityGroupMetadata lgm,

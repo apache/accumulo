@@ -327,19 +327,17 @@ public class ThriftScanner {
         .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(1)).backOffFactor(1.5)
         .logInterval(Duration.ofMinutes(3)).createRetry();
 
-    long startTime = System.nanoTime();
+    Timer waitTimer = Timer.startNew();
     Optional<T> optional = condition.get();
     while (optional.isEmpty()) {
       log.trace("For tableId {} scan server selector is waiting for '{}'", tableId, description);
 
-      var elapsedTime = Duration.ofNanos(System.nanoTime() - startTime);
-
-      if (elapsedTime.compareTo(timeoutLeft) > 0) {
+      if (waitTimer.hasElapsed(timeoutLeft)) {
         throw new TimedOutException("While waiting for '" + description
             + "' in order to select a scan server, the scan timed out. ");
       }
 
-      if (elapsedTime.compareTo(maxWaitTime) > 0) {
+      if (waitTimer.hasElapsed(maxWaitTime)) {
         return Optional.empty();
       }
 
@@ -379,7 +377,7 @@ public class ThriftScanner {
   }
 
   private static Optional<ScanAddress> getScanServerAddress(ClientContext context,
-      ScanState scanState, CachedTablet loc, long timeOut, long startTime) {
+      ScanState scanState, CachedTablet loc, Duration timeOut, Timer scanTimer) {
     Preconditions.checkArgument(scanState.runOnScanServer);
 
     ScanAddress addr = null;
@@ -398,8 +396,7 @@ public class ThriftScanner {
       // obtain a snapshot once and only expose this snapshot to the plugin for consistency
       var attempts = scanState.scanAttempts.snapshot();
 
-      Duration timeoutLeft = Duration.ofSeconds(timeOut)
-          .minus(Duration.ofMillis(System.currentTimeMillis() - startTime));
+      Duration timeoutLeft = timeOut.minus(scanTimer.elapsed());
 
       var params = new ScanServerSelector.SelectorParameters() {
 
@@ -527,8 +524,8 @@ public class ThriftScanner {
     return minimumHostAhead;
   }
 
-  static ScanAddress getNextScanAddress(ClientContext context, ScanState scanState, long timeOut,
-      long startTime, long maxSleepTime)
+  static ScanAddress getNextScanAddress(ClientContext context, ScanState scanState,
+      Duration timeOut, Timer scanTimer, long maxSleepTime)
       throws TableNotFoundException, AccumuloSecurityException, AccumuloServerException,
       InterruptedException, ScanTimedOutException, InvalidTabletHostingRequestException {
 
@@ -544,8 +541,7 @@ public class ThriftScanner {
     int minimumHostAhead = computeMinimumHostAhead(scanState, hostingNeed);
 
     while (addr == null) {
-      long currentTime = System.currentTimeMillis();
-      if ((currentTime - startTime) / 1000.0 > timeOut) {
+      if (scanTimer.hasElapsed(timeOut)) {
         throw new ScanTimedOutException("Failed to locate next server to scan before timeout");
       }
 
@@ -614,7 +610,7 @@ public class ThriftScanner {
 
       if (loc != null) {
         if (scanState.runOnScanServer) {
-          addr = getScanServerAddress(context, scanState, loc, timeOut, startTime).orElse(null);
+          addr = getScanServerAddress(context, scanState, loc, timeOut, scanTimer).orElse(null);
           if (addr == null && loc.getTserverLocation().isEmpty()) {
             // wanted to fall back to tserver but tablet was not hosted so make another loop
             hostingNeed = ClientTabletCache.LocationNeed.REQUIRED;
@@ -628,11 +624,11 @@ public class ThriftScanner {
     return addr;
   }
 
-  public static List<KeyValue> scan(ClientContext context, ScanState scanState, long timeOut)
+  public static List<KeyValue> scan(ClientContext context, ScanState scanState, Duration timeOut)
       throws ScanTimedOutException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
 
-    long startTime = System.currentTimeMillis();
+    Timer scanTimer = Timer.startNew();
     String lastError = null;
     String error = null;
     int tooManyFilesCount = 0;
@@ -649,7 +645,7 @@ public class ThriftScanner {
           throw new AccumuloException("Thread interrupted");
         }
 
-        if ((System.currentTimeMillis() - startTime) / 1000.0 > timeOut) {
+        if (scanTimer.hasElapsed(timeOut)) {
           throw new ScanTimedOutException(
               "Failed to retrieve next batch of key values before timeout");
         }
@@ -657,7 +653,7 @@ public class ThriftScanner {
         ScanAddress addr;
         long beginTime = System.nanoTime();
         try {
-          addr = getNextScanAddress(context, scanState, timeOut, startTime, maxSleepTime);
+          addr = getNextScanAddress(context, scanState, timeOut, scanTimer, maxSleepTime);
         } finally {
           // track the initial time that we started tracking the time for getting the next scan
           // address

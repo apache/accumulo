@@ -855,11 +855,16 @@ public enum Property {
       "A tablet is split when the combined size of RFiles exceeds this amount.", "1.3.5"),
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
       "Maximum size of end row.", "1.7.0"),
-  TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,
-      "After a tablet has been idle (no mutations) for this time period it may have its "
-          + "in-memory map flushed to disk in a minor compaction. There is no guarantee an idle "
-          + "tablet will be compacted.",
-      "1.3.5"),
+  TABLE_MINC_COMPACT_MAXAGE("table.compaction.minor.age", "10m", PropertyType.TIMEDURATION,
+      "Key values written to a tablet are temporarily stored in a per tablet in memory map.  When "
+          + "the age of the oldest key value in a tablets in memory map exceeds this configuration, then  "
+          + "a minor compaction may be initiated. This determines the maximum amount of time new data can "
+          + "be buffered in memory before being flushed to a file.  This is useful when using scan servers "
+          + "in conjunction with the property " + SSERV_CACHED_TABLET_METADATA_EXPIRATION.getKey()
+          + ". These two properties together can be used to control that amount of time it takes for a scan "
+          + "server to see a write to a tablet server. The default value of this property is set to such a "
+          + "high value that is should never cause a minor compaction.",
+      "3.1.0"),
   TABLE_COMPACTION_DISPATCHER("table.compaction.dispatcher",
       SimpleCompactionDispatcher.class.getName(), PropertyType.CLASSNAME,
       "A configurable dispatcher that decides what compaction service a table should use.",

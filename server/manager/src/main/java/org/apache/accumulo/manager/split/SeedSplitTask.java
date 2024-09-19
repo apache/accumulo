@@ -33,7 +33,7 @@ public class SeedSplitTask implements Runnable {
 
   private static final Logger log = LoggerFactory.getLogger(SeedSplitTask.class);
   private final Manager manager;
-  private KeyExtent extent;
+  private final KeyExtent extent;
 
   public SeedSplitTask(Manager manager, KeyExtent extent) {
     this.manager = manager;

@@ -42,21 +42,25 @@ import com.google.gson.GsonBuilder;
 
 public class FateSummaryReport {
 
-  private final Map<String,Integer> statusCounts = new TreeMap<>();
-  private final Map<String,Integer> cmdCounts = new TreeMap<>();
-  private final Map<String,Integer> stepCounts = new TreeMap<>();
-  private final Set<FateTxnDetails> fateDetails = new TreeSet<>();
+  private Map<String,Integer> statusCounts = new TreeMap<>();
+  private Map<String,Integer> cmdCounts = new TreeMap<>();
+  private Map<String,Integer> stepCounts = new TreeMap<>();
+  private Set<FateTxnDetails> fateDetails = new TreeSet<>();
   // epoch millis to avoid needing gson type adapter.
-  private final long reportTime = Instant.now().toEpochMilli();
+  private long reportTime = Instant.now().toEpochMilli();
 
-  private final Set<String> fateIdFilter = new TreeSet<>();
-  private final Set<String> statusFilterNames = new TreeSet<>();
-  private final Set<String> instanceTypesFilterNames = new TreeSet<>();
+  private Set<String> fateIdFilter = new TreeSet<>();
+  private Set<String> statusFilterNames = new TreeSet<>();
+  private Set<String> instanceTypesFilterNames = new TreeSet<>();
 
-  private final static Gson gson = new GsonBuilder().setPrettyPrinting().create();
+  private final static Gson gson =
+      new GsonBuilder().setPrettyPrinting().disableJdkUnsafe().create();
 
   // exclude from json output
-  private final transient Map<String,String> idsToNameMap;
+  private transient Map<String,String> idsToNameMap;
+
+  // Gson requires a default constructor when JDK Unsafe usage is disabled
+  private FateSummaryReport() {}
 
   public FateSummaryReport(Map<String,String> idsToNameMap, Set<FateId> fateIdFilter,
       EnumSet<ReadOnlyFateStore.TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter) {

@@ -44,8 +44,8 @@ import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Interner;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -190,8 +190,8 @@ public abstract class ClientTabletCache {
   public abstract void invalidateCache(ClientContext context, String server);
 
   private static class InstanceKey {
-    InstanceId instanceId;
-    TableId tableId;
+    final InstanceId instanceId;
+    final TableId tableId;
 
     InstanceKey(InstanceId instanceId, TableId table) {
       this.instanceId = instanceId;
@@ -253,15 +253,15 @@ public abstract class ClientTabletCache {
       MetadataCachedTabletObtainer mlo = new MetadataCachedTabletObtainer();
 
       if (AccumuloTable.ROOT.tableId().equals(tableId)) {
-        tl = new RootClientTabletCache(new ZookeeperLockChecker(context));
+        tl = new RootClientTabletCache(context.getTServerLockChecker());
       } else if (AccumuloTable.METADATA.tableId().equals(tableId)) {
         tl = new ClientTabletCacheImpl(AccumuloTable.METADATA.tableId(),
             getInstance(context, AccumuloTable.ROOT.tableId()), mlo,
-            new ZookeeperLockChecker(context));
+            context.getTServerLockChecker());
       } else {
         tl = new ClientTabletCacheImpl(tableId,
             getInstance(context, AccumuloTable.METADATA.tableId()), mlo,
-            new ZookeeperLockChecker(context));
+            context.getTServerLockChecker());
       }
       instances.put(key, tl);
     }
@@ -311,7 +311,7 @@ public abstract class ClientTabletCache {
     private final TabletAvailability availability;
     private final boolean hostingRequested;
 
-    private final NanoTime creationTime = NanoTime.now();
+    private final Timer creationTimer = Timer.startNew();
 
     public CachedTablet(KeyExtent tablet_extent, String tablet_location, String session,
         TabletAvailability availability, boolean hostingRequested) {
@@ -392,8 +392,11 @@ public abstract class ClientTabletCache {
       return this.availability;
     }
 
-    public NanoTime getCreationTime() {
-      return creationTime;
+    /**
+     * @return a timer that was started when this object was created
+     */
+    public Timer getCreationTimer() {
+      return creationTimer;
     }
 
     public boolean wasHostingRequested() {
@@ -402,8 +405,8 @@ public abstract class ClientTabletCache {
   }
 
   public static class TabletServerMutations<T extends Mutation> {
-    private Map<KeyExtent,List<T>> mutations;
-    private String tserverSession;
+    private final Map<KeyExtent,List<T>> mutations;
+    private final String tserverSession;
 
     public TabletServerMutations(String tserverSession) {
       this.tserverSession = tserverSession;

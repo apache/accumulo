@@ -53,10 +53,10 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
   private static final Logger log = LoggerFactory.getLogger(AccumuloRecordWriter.class);
   private MultiTableBatchWriter mtbw = null;
   private final HashMap<Text,BatchWriter> bws;
-  private Text defaultTableName;
+  private final Text defaultTableName;
 
-  private boolean simulate;
-  private boolean createTables;
+  private final boolean simulate;
+  private final boolean createTables;
 
   private long mutCount = 0;
   private long valCount = 0;

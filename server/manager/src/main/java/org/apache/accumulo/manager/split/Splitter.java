@@ -147,7 +147,7 @@ public class Splitter {
 
   }
 
-  LoadingCache<CacheKey,FileInfo> splitFileCache;
+  final LoadingCache<CacheKey,FileInfo> splitFileCache;
 
   public Splitter(ServerContext context) {
     int numThreads = context.getConfiguration().getCount(Property.MANAGER_SPLIT_WORKER_THREADS);

@@ -43,9 +43,9 @@ class RowLocks {
   private final Map<ByteSequence,RowLock> rowLocks = new ConcurrentHashMap<>();
 
   static class RowLock {
-    ReentrantLock rlock;
+    final ReentrantLock rlock;
     int count;
-    ByteSequence rowSeq;
+    final ByteSequence rowSeq;
 
     RowLock(ReentrantLock rlock, ByteSequence rowSeq) {
       this.rlock = rlock;

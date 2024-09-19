@@ -120,7 +120,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private SortedSet<TServerInstance> lastScanServers = Collections.emptySortedSet();
   private final EventHandler eventHandler;
   private final ManagerMetrics metrics;
-  private WalStateManager walStateManager;
+  private final WalStateManager walStateManager;
   private volatile Set<TServerInstance> filteredServersToShutdown = Set.of();
 
   TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher,
@@ -411,7 +411,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   private static class TableMgmtStats {
-    int[] counts = new int[TabletState.values().length];
+    final int[] counts = new int[TabletState.values().length];
     private int totalUnloaded;
     private long totalVolumeReplacements;
     private int tabletsWithErrors;

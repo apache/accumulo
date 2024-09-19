@@ -19,10 +19,11 @@
 package org.apache.accumulo.server.constraints;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
 import java.util.Base64;
@@ -84,7 +85,7 @@ public class MetadataConstraintsTest {
 
     List<Short> violations = mc.check(createEnv(), m);
 
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 3), violations.get(0));
 
@@ -93,7 +94,7 @@ public class MetadataConstraintsTest {
 
     violations = mc.check(createEnv(), m);
 
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 4), violations.get(0));
 
@@ -102,7 +103,7 @@ public class MetadataConstraintsTest {
 
     violations = mc.check(createEnv(), m);
 
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 2), violations.get(0));
 
@@ -111,7 +112,7 @@ public class MetadataConstraintsTest {
 
     violations = mc.check(createEnv(), m);
 
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(2, violations.size());
     assertEquals(Short.valueOf((short) 4), violations.get(0));
     assertEquals(Short.valueOf((short) 5), violations.get(1));
@@ -121,7 +122,7 @@ public class MetadataConstraintsTest {
 
     violations = mc.check(createEnv(), m);
 
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 6), violations.get(0));
 
@@ -130,21 +131,21 @@ public class MetadataConstraintsTest {
 
     violations = mc.check(createEnv(), m);
 
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text(AccumuloTable.METADATA.tableId().canonical() + "<"));
     TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("bar"));
 
     violations = mc.check(createEnv(), m);
 
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("!1<"));
     TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("bar"));
 
     violations = mc.check(createEnv(), m);
 
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 4), violations.get(0));
 
@@ -159,19 +160,19 @@ public class MetadataConstraintsTest {
     SuspendLocationColumn.SUSPEND_COLUMN.put(m, SuspendingTServer.toValue(ser1,
         SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS)));
     List<Short> violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
     SuspendLocationColumn.SUSPEND_COLUMN.put(m,
         SuspendingTServer.toValue(ser1, SteadyTime.from(0, TimeUnit.MILLISECONDS)));
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
     // We must encode manually since SteadyTime won't allow a negative
     SuspendLocationColumn.SUSPEND_COLUMN.put(m, new Value(ser1.getHostPort() + "|" + -1L));
     violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 10), violations.get(0));
   }
@@ -195,7 +196,7 @@ public class MetadataConstraintsTest {
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // loaded marker w/o file
     m = new Mutation(new Text("0;foo"));
@@ -224,7 +225,7 @@ public class MetadataConstraintsTest {
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile2")).getMetadataText(),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // two files w/ different txid
     m = new Mutation(new Text("0;foo"));
@@ -270,7 +271,7 @@ public class MetadataConstraintsTest {
         new Value(fateId1.canonical()));
     ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t1"));
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // mutation that looks like a load
     m = new Mutation(new Text("0;foo"));
@@ -280,14 +281,14 @@ public class MetadataConstraintsTest {
         new Value(fateId1.canonical()));
     m.put(CurrentLocationColumnFamily.NAME, new Text("789"), new Value("127.0.0.1:9997"));
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // deleting a load flag
     m = new Mutation(new Text("0;foo"));
     m.putDelete(BulkFileColumnFamily.NAME, StoredTabletFile
         .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText());
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // Missing beginning of path
     m = new Mutation(new Text("0;foo"));
@@ -474,7 +475,7 @@ public class MetadataConstraintsTest {
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // Should pass validation with range set
     m = new Mutation(new Text("0;foo"));
@@ -483,7 +484,7 @@ public class MetadataConstraintsTest {
             new Range("a", false, "b", true)).getMetadataText(),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     assertNotNull(mc.getViolationDescription((short) 12));
   }
@@ -502,7 +503,7 @@ public class MetadataConstraintsTest {
     ServerColumnFamily.OPID_COLUMN.put(m,
         new Value("MERGING:FATE:META:12345678-9abc-def1-2345-6789abcdef12"));
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
   }
 
   @Test
@@ -515,7 +516,7 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0;foo"));
     ServerColumnFamily.SELECTED_COLUMN.put(m, new Value("bad id"));
     violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 11), violations.get(0));
 
@@ -526,7 +527,7 @@ public class MetadataConstraintsTest {
             .insert()), true, fateId, SteadyTime.from(100, TimeUnit.NANOSECONDS))
             .getMetadataValue()));
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
   }
 
   @Test
@@ -550,12 +551,12 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0;foo"));
     m.put(column, fateId.canonical(), "");
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
     m.put(column, "incorrect data", "");
     violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(violation, violations.get(0));
   }
@@ -573,13 +574,13 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0;foo"));
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value(unsplittableMeta.toBase64()));
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // Verify empty value not allowed
     m = new Mutation(new Text("0;foo"));
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value());
     violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(2, violations.size());
     assertIterableEquals(List.of((short) 6, (short) 15), violations);
 
@@ -602,7 +603,7 @@ public class MetadataConstraintsTest {
         unsplittableMeta.toBase64().substring(0, unsplittableMeta.toBase64().length() - 1);
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(m, new Value(invalidHashCode));
     violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 15), violations.get(0));
   }
@@ -621,7 +622,7 @@ public class MetadataConstraintsTest {
 
   private void assertViolation(MetadataConstraints mc, Mutation m, Short violation) {
     List<Short> violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(violation, violations.get(0));
     assertNotNull(mc.getViolationDescription(violations.get(0)));

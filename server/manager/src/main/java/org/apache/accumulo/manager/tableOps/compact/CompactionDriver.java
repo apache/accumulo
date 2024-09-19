@@ -77,8 +77,8 @@ public class CompactionDriver extends ManagerRepo {
 
   private final TableId tableId;
   private final NamespaceId namespaceId;
-  private byte[] startRow;
-  private byte[] endRow;
+  private final byte[] startRow;
+  private final byte[] endRow;
 
   public CompactionDriver(NamespaceId namespaceId, TableId tableId, byte[] startRow,
       byte[] endRow) {

@@ -76,9 +76,9 @@ public abstract class TabletBase {
   protected final ServerContext context;
   private final TabletHostingServer server;
 
-  protected AtomicLong lookupCount = new AtomicLong(0);
-  protected AtomicLong queryResultCount = new AtomicLong(0);
-  protected AtomicLong queryResultBytes = new AtomicLong(0);
+  protected final AtomicLong lookupCount = new AtomicLong(0);
+  protected final AtomicLong queryResultCount = new AtomicLong(0);
+  protected final AtomicLong queryResultBytes = new AtomicLong(0);
   protected final AtomicLong scannedCount = new AtomicLong(0);
 
   protected final Set<ScanDataSource> activeScans = new HashSet<>();
@@ -110,6 +110,15 @@ public abstract class TabletBase {
       defaultSecurityLabel = tableConfiguration.newDeriver(
           conf -> new ColumnVisibility(conf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY))
               .getExpression());
+    }
+  }
+
+  protected boolean disallowNewReservations(ScanParameters scanParameters) {
+    var scanSessId = scanParameters.getScanSessionId();
+    if (scanSessId != null) {
+      return server.getSessionManager().disallowNewReservations(scanSessId);
+    } else {
+      return true;
     }
   }
 

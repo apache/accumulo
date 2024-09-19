@@ -32,7 +32,7 @@ class SetupPermissions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   SetupPermissions(TableInfo ti) {
     this.tableInfo = ti;

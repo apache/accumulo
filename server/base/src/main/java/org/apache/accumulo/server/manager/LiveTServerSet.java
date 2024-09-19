@@ -39,6 +39,8 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -87,7 +89,7 @@ public class LiveTServerSet implements Watcher {
     }
 
     private String lockString(ServiceLock mlock) {
-      return mlock.getLockID().serialize(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
+      return mlock.getLockID().serialize(context.getServerPaths().createManagerPath().toString());
     }
 
     private void loadTablet(TabletManagementClientService.Client client, ServiceLock lock,
@@ -184,9 +186,9 @@ public class LiveTServerSet implements Watcher {
   }
 
   static class TServerInfo {
-    TServerConnection connection;
-    TServerInstance instance;
-    String resourceGroup;
+    final TServerConnection connection;
+    final TServerInstance instance;
+    final String resourceGroup;
 
     TServerInfo(TServerInstance instance, TServerConnection connection, String resourceGroup) {
       this.connection = connection;
@@ -202,7 +204,7 @@ public class LiveTServerSet implements Watcher {
   private LiveTServersSnapshot tServersSnapshot = null;
 
   // The set of entries in zookeeper without locks, and the first time each was noticed
-  private final Map<String,Long> locklessServers = new HashMap<>();
+  private final Map<ServiceLockPath,Long> locklessServers = new HashMap<>();
 
   public LiveTServerSet(ServerContext context, Listener cback) {
     this.cback = cback;
@@ -227,16 +229,22 @@ public class LiveTServerSet implements Watcher {
     try {
       final Set<TServerInstance> updates = new HashSet<>();
       final Set<TServerInstance> doomed = new HashSet<>();
+      final ZooCache zc = getZooCache();
+      final String tserverRoot = context.getZooKeeperRoot() + Constants.ZTSERVERS;
 
-      final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+      Set<ServiceLockPath> tservers = new HashSet<>();
 
-      HashSet<String> all = new HashSet<>(current.keySet());
-      all.addAll(getZooCache().getChildren(path));
+      for (String resourceGroup : zc.getChildren(tserverRoot)) {
+        for (String host : zc.getChildren(tserverRoot + "/" + resourceGroup)) {
+          tservers.add(ServiceLockPaths.parse(Optional.of(Constants.ZTSERVERS),
+              tserverRoot + "/" + resourceGroup + "/" + host));
+        }
+      }
 
-      locklessServers.keySet().retainAll(all);
+      locklessServers.keySet().retainAll(tservers);
 
-      for (String zPath : all) {
-        checkServer(updates, doomed, path, zPath);
+      for (ServiceLockPath tserverPath : tservers) {
+        checkServer(updates, doomed, tserverPath);
       }
 
       // log.debug("Current: " + current.keySet());
@@ -257,33 +265,32 @@ public class LiveTServerSet implements Watcher {
   }
 
   private synchronized void checkServer(final Set<TServerInstance> updates,
-      final Set<TServerInstance> doomed, final String path, final String zPath)
+      final Set<TServerInstance> doomed, final ServiceLockPath tserverPath)
       throws InterruptedException, KeeperException {
 
     // invalidate the snapshot forcing it to be recomputed the next time its requested
     tServersSnapshot = null;
 
-    TServerInfo info = current.get(zPath);
+    final TServerInfo info = current.get(tserverPath.getServer());
 
-    final var zLockPath = ServiceLock.path(path + "/" + zPath);
     ZcStat stat = new ZcStat();
-    Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
+    Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), tserverPath, stat);
 
     if (sld.isEmpty()) {
       if (info != null) {
         doomed.add(info.instance);
-        current.remove(zPath);
+        current.remove(tserverPath.getServer());
       }
 
-      Long firstSeen = locklessServers.get(zPath);
+      Long firstSeen = locklessServers.get(tserverPath);
       if (firstSeen == null) {
-        locklessServers.put(zPath, System.currentTimeMillis());
+        locklessServers.put(tserverPath, System.currentTimeMillis());
       } else if (System.currentTimeMillis() - firstSeen > MINUTES.toMillis(10)) {
-        deleteServerNode(path + "/" + zPath);
-        locklessServers.remove(zPath);
+        deleteServerNode(tserverPath.toString());
+        locklessServers.remove(tserverPath);
       }
     } else {
-      locklessServers.remove(zPath);
+      locklessServers.remove(tserverPath);
       HostAndPort address = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
       String resourceGroup = sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
       TServerInstance instance = new TServerInstance(address, stat.getEphemeralOwner());
@@ -292,13 +299,13 @@ public class LiveTServerSet implements Watcher {
         updates.add(instance);
         TServerInfo tServerInfo =
             new TServerInfo(instance, new TServerConnection(address), resourceGroup);
-        current.put(zPath, tServerInfo);
+        current.put(tserverPath.getServer(), tServerInfo);
       } else if (!info.instance.equals(instance)) {
         doomed.add(info.instance);
         updates.add(instance);
         TServerInfo tServerInfo =
             new TServerInfo(instance, new TServerConnection(address), resourceGroup);
-        current.put(zPath, tServerInfo);
+        current.put(tserverPath.getServer(), tServerInfo);
       }
     }
   }
@@ -313,25 +320,22 @@ public class LiveTServerSet implements Watcher {
     if (event.getPath() != null) {
       if (event.getPath().endsWith(Constants.ZTSERVERS)) {
         scanServers();
-      } else if (event.getPath().contains(Constants.ZTSERVERS)) {
-        int pos = event.getPath().lastIndexOf('/');
-
-        // do only if ZTSERVER is parent
-        if (pos >= 0 && event.getPath().substring(0, pos).endsWith(Constants.ZTSERVERS)) {
-
-          String server = event.getPath().substring(pos + 1);
-
-          final Set<TServerInstance> updates = new HashSet<>();
-          final Set<TServerInstance> doomed = new HashSet<>();
-
-          final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-
-          try {
-            checkServer(updates, doomed, path, server);
-            this.cback.update(this, doomed, updates);
-          } catch (Exception ex) {
-            log.error("Exception", ex);
+      } else {
+        try {
+          final ServiceLockPath slp =
+              ServiceLockPaths.parse(Optional.of(Constants.ZTSERVERS), event.getPath());
+          if (slp.getType().equals(Constants.ZTSERVERS)) {
+            try {
+              final Set<TServerInstance> updates = new HashSet<>();
+              final Set<TServerInstance> doomed = new HashSet<>();
+              checkServer(updates, doomed, slp);
+              this.cback.update(this, doomed, updates);
+            } catch (Exception ex) {
+              log.error("Error processing event for tserver: " + slp.toString(), ex);
+            }
           }
+        } catch (IllegalArgumentException e) {
+          log.debug("Received event for path that can't be parsed, path: " + event.getPath());
         }
       }
     }
@@ -346,6 +350,17 @@ public class LiveTServerSet implements Watcher {
       return null;
     }
     return tServerInfo.connection;
+  }
+
+  public synchronized String getResourceGroup(TServerInstance server) {
+    if (server == null) {
+      return null;
+    }
+    TServerInfo tServerInfo = getSnapshot().tserversInfo.get(server);
+    if (tServerInfo == null) {
+      return null;
+    }
+    return tServerInfo.resourceGroup;
   }
 
   public static class LiveTServersSnapshot {
@@ -439,28 +454,35 @@ public class LiveTServerSet implements Watcher {
     // invalidate the snapshot forcing it to be recomputed the next time its requested
     tServersSnapshot = null;
 
-    String zPath = null;
+    Optional<String> resourceGroup = Optional.empty();
+    Optional<HostAndPort> address = Optional.empty();
     for (Entry<String,TServerInfo> entry : current.entrySet()) {
       if (entry.getValue().instance.equals(server)) {
-        zPath = entry.getKey();
+        address = Optional.of(HostAndPort.fromString(entry.getKey()));
+        resourceGroup = Optional.of(entry.getValue().resourceGroup);
         break;
       }
     }
-    if (zPath == null) {
+    if (resourceGroup.isEmpty() || address.isEmpty()) {
       return;
     }
-    current.remove(zPath);
+    current.remove(address.orElseThrow().toString());
 
-    log.info("Removing zookeeper lock for {}", server);
-    String fullpath = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + zPath;
-    try {
-      context.getZooReaderWriter().recursiveDelete(fullpath, SKIP);
-    } catch (Exception e) {
-      String msg = "error removing tablet server lock";
-      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-      log.error("FATAL: {}", msg, e);
-      Halt.halt(msg, -1);
+    Set<ServiceLockPath> paths = context.getServerPaths().getTabletServer(resourceGroup, address);
+    if (paths.isEmpty() || paths.size() > 1) {
+      log.error("Zero or many zookeeper entries match input arguments.");
+    } else {
+      ServiceLockPath slp = paths.iterator().next();
+      log.info("Removing zookeeper lock for {}", slp);
+      try {
+        context.getZooReaderWriter().recursiveDelete(slp.toString(), SKIP);
+      } catch (Exception e) {
+        String msg = "error removing tablet server lock";
+        // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
+        log.error("FATAL: {}", msg, e);
+        Halt.halt(msg, -1);
+      }
+      getZooCache().clear(slp.toString());
     }
-    getZooCache().clear(fullpath);
   }
 }

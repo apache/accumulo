@@ -110,18 +110,18 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   private final ConditionalWriterConfig config;
 
   private static class ServerQueue {
-    BlockingQueue<TabletServerMutations<QCMutation>> queue = new LinkedBlockingQueue<>();
+    final BlockingQueue<TabletServerMutations<QCMutation>> queue = new LinkedBlockingQueue<>();
     boolean taskQueued = false;
   }
 
-  private Map<String,ServerQueue> serverQueues;
-  private DelayQueue<QCMutation> failedMutations = new DelayQueue<>();
-  private ScheduledThreadPoolExecutor threadPool;
+  private final Map<String,ServerQueue> serverQueues;
+  private final DelayQueue<QCMutation> failedMutations = new DelayQueue<>();
+  private final ScheduledThreadPoolExecutor threadPool;
   private final ScheduledFuture<?> failureTaskFuture;
 
   private class RQIterator implements Iterator<Result> {
 
-    private BlockingQueue<Result> rq;
+    private final BlockingQueue<Result> rq;
     private int count;
 
     public RQIterator(BlockingQueue<Result> resultQueue, int count) {
@@ -165,10 +165,10 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   private static class QCMutation extends ConditionalMutation implements Delayed {
-    private BlockingQueue<Result> resultQueue;
+    private final BlockingQueue<Result> resultQueue;
     private long resetTime;
     private long delay = 50;
-    private long entryTime;
+    private final long entryTime;
 
     QCMutation(ConditionalMutation cm, BlockingQueue<Result> resultQueue, long entryTime) {
       super(cm);
@@ -224,7 +224,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   private class CleanupTask implements Runnable {
-    private List<SessionID> sessions;
+    private final List<SessionID> sessions;
 
     CleanupTask(List<SessionID> activeSessions) {
       this.sessions = activeSessions;
@@ -439,7 +439,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
   private class SendTask implements Runnable {
 
-    String location;
+    final String location;
 
     public SendTask(String location) {
       this.location = location;
@@ -461,8 +461,8 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
   private static class CMK {
 
-    QCMutation cm;
-    KeyExtent ke;
+    final QCMutation cm;
+    final KeyExtent ke;
 
     public CMK(KeyExtent ke, QCMutation cm) {
       this.ke = ke;
@@ -483,7 +483,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     }
   }
 
-  private HashMap<HostAndPort,SessionID> cachedSessionIDs = new HashMap<>();
+  private final HashMap<HostAndPort,SessionID> cachedSessionIDs = new HashMap<>();
 
   private SessionID reserveSessionID(HostAndPort location, TabletIngestClientService.Iface client,
       TInfo tinfo) throws ThriftSecurityException, TException {

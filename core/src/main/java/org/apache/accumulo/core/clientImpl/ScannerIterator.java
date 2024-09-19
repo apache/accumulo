@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -49,29 +50,29 @@ import com.google.common.base.Preconditions;
 public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   // scanner options
-  private long timeOut;
+  private final Duration timeOut;
 
   // scanner state
   private Iterator<KeyValue> iter;
   private final ScanState scanState;
 
-  private ScannerOptions options;
+  private final ScannerOptions options;
 
   private Future<List<KeyValue>> readAheadOperation;
 
   private boolean finished = false;
 
   private long batchCount = 0;
-  private long readaheadThreshold;
+  private final long readaheadThreshold;
 
-  private ScannerImpl.Reporter reporter;
+  private final ScannerImpl.Reporter reporter;
 
   private final ClientContext context;
 
-  private AtomicBoolean closed = new AtomicBoolean(false);
+  private final AtomicBoolean closed = new AtomicBoolean(false);
 
   ScannerIterator(ClientContext context, TableId tableId, Authorizations authorizations,
-      Range range, int size, long timeOut, ScannerOptions options, boolean isolated,
+      Range range, int size, Duration timeOut, ScannerOptions options, boolean isolated,
       long readaheadThreshold, ScannerImpl.Reporter reporter) {
     this.context = context;
     this.timeOut = timeOut;

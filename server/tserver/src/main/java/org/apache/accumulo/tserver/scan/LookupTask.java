@@ -183,8 +183,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       log.warn("exception while doing multi-scan ", e);
       addResult(e);
     } finally {
+      transitionFromRunning();
       Thread.currentThread().setName(oldThreadName);
-      runState.set(ScanRunState.FINISHED);
     }
   }
 

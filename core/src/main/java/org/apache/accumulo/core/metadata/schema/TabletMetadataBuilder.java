@@ -74,7 +74,7 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   private final InternalBuilder internalBuilder;
-  EnumSet<TabletMetadata.ColumnType> fetched;
+  final EnumSet<TabletMetadata.ColumnType> fetched;
 
   protected TabletMetadataBuilder(KeyExtent extent) {
     internalBuilder = new InternalBuilder(extent);

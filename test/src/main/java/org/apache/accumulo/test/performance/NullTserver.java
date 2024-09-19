@@ -54,13 +54,12 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -349,20 +348,15 @@ public class NullTserver {
     try {
       ZooKeeper zk = context.getZooReaderWriter().getZooKeeper();
       UUID nullTServerUUID = UUID.randomUUID();
-      String miniZDirPath = context.getZooKeeperRoot() + "/mini";
-      String miniZInstancePath = miniZDirPath + "/" + nullTServerUUID.toString();
+      ServiceLockPath slp = context.getServerPaths().createMiniPath(nullTServerUUID.toString());
       try {
-        context.getZooReaderWriter().putPersistentData(miniZDirPath, new byte[0],
-            ZooUtil.NodeExistsPolicy.SKIP);
-        context.getZooReaderWriter().putPersistentData(miniZInstancePath, new byte[0],
-            ZooUtil.NodeExistsPolicy.SKIP);
+        context.getZooReaderWriter().mkdirs(slp.toString());
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
-      ServiceLockPath path = ServiceLock.path(miniZInstancePath);
       ServiceLockData sld = new ServiceLockData(nullTServerUUID, "localhost", ThriftService.TSERV,
           Constants.DEFAULT_RESOURCE_GROUP_NAME);
-      miniLock = new ServiceLock(zk, path, UUID.randomUUID());
+      miniLock = new ServiceLock(zk, slp, UUID.randomUUID());
       miniLock.lock(miniLockWatcher, sld);
       context.setServiceLock(miniLock);
       HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);

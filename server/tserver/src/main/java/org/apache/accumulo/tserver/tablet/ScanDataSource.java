@@ -62,12 +62,12 @@ class ScanDataSource implements DataSource {
   // data source state
   private final TabletBase tablet;
   private ScanFileManager fileManager;
-  private static AtomicLong nextSourceId = new AtomicLong(0);
+  private static final AtomicLong nextSourceId = new AtomicLong(0);
   private SortedKeyValueIterator<Key,Value> iter;
   private long expectedDeletionCount;
   private List<MemoryIterator> memIters = null;
   private long fileReservationId;
-  private AtomicBoolean interruptFlag;
+  private final AtomicBoolean interruptFlag;
   private StatsIterator statsIterator;
 
   private final ScanParameters scanParams;
@@ -320,5 +320,9 @@ class ScanDataSource implements DataSource {
         .append("fileReservationId", fileReservationId).append("interruptFlag", interruptFlag.get())
         .append("expectedDeletionCount", expectedDeletionCount).append("scanParams", scanParams)
         .toString();
+  }
+
+  public ScanParameters getScanParameters() {
+    return scanParams;
   }
 }

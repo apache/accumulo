@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.Repo;
@@ -48,7 +49,8 @@ public class ShutdownTServerTest {
     final TServerInstance tserver = new TServerInstance(hap, "fake");
     final boolean force = false;
 
-    final ShutdownTServer op = new ShutdownTServer(tserver, force);
+    final ShutdownTServer op =
+        new ShutdownTServer(tserver, Constants.DEFAULT_RESOURCE_GROUP_NAME, force);
 
     final Manager manager = EasyMock.createMock(Manager.class);
     final FateId fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());

@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.MINC_QUEUED;
+import static org.apache.accumulo.core.metrics.Metric.MINC_RUNNING;
+
 import java.time.Duration;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -41,10 +44,10 @@ public class TabletServerMinCMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    activeMinc = Timer.builder(METRICS_MINC_RUNNING).description("Minor compactions time active")
+    activeMinc = Timer.builder(MINC_RUNNING.getName()).description("Minor compactions time active")
         .register(registry);
 
-    queuedMinc = Timer.builder(METRICS_MINC_QUEUED)
+    queuedMinc = Timer.builder(MINC_QUEUED.getName())
         .description("Queued minor compactions time queued").register(registry);
   }
 

@@ -75,6 +75,7 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -91,10 +92,10 @@ import org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -205,7 +206,7 @@ public class ScanServer extends AbstractServer
   private ScanServerMetrics scanServerMetrics;
   private BlockCacheMetrics blockCacheMetrics;
 
-  private ZooCache managerLockCache;
+  private final ZooCache managerLockCache;
 
   public ScanServer(ConfigOpts opts, String[] args) {
     super("sserver", opts, ServerContext::new, args);
@@ -331,10 +332,16 @@ public class ScanServer extends AbstractServer
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
     try {
 
-      var zLockPath = ServiceLock.path(
-          getContext().getZooKeeperRoot() + Constants.ZSSERVERS + "/" + getClientAddressString());
-
+      final ServiceLockPath zLockPath =
+          context.getServerPaths().createScanServerPath(getResourceGroup(), clientAddress);
+      serverLockUUID = UUID.randomUUID();
+      // The ServiceLockPath contains a resource group in the path which is not created
+      // at initialization time. If it does not exist, then create it.
+      String sserverGroupPath = zLockPath.toString().substring(0,
+          zLockPath.toString().lastIndexOf("/" + zLockPath.getServer()));
+      LOG.debug("Creating sserver resource group path in zookeeper: {}", sserverGroupPath);
       try {
+        zoo.mkdirs(sserverGroupPath);
         // Old zk nodes can be cleaned up by ZooZap
         zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
       } catch (KeeperException e) {
@@ -344,8 +351,6 @@ public class ScanServer extends AbstractServer
         }
         throw e;
       }
-
-      serverLockUUID = UUID.randomUUID();
       scanServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, serverLockUUID);
 
       LockWatcher lw = new LockWatcher() {
@@ -408,6 +413,7 @@ public class ScanServer extends AbstractServer
     metricsInfo.addServiceTags(getApplicationName(), clientAddress, getResourceGroup());
 
     scanMetrics = new TabletServerScanMetrics();
+    sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);
     scanServerMetrics = new ScanServerMetrics(tabletMetadataCache);
     blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),
         resourceManager.getDataCache(), resourceManager.getSummaryCache());
@@ -720,7 +726,7 @@ public class ScanServer extends AbstractServer
   @VisibleForTesting
   ScanReservation reserveFilesInstrumented(Map<KeyExtent,List<TRange>> extents)
       throws AccumuloException {
-    NanoTime start = NanoTime.now();
+    Timer start = Timer.startNew();
     try {
       return reserveFiles(extents);
     } finally {
@@ -761,7 +767,7 @@ public class ScanServer extends AbstractServer
 
   @VisibleForTesting
   ScanReservation reserveFilesInstrumented(long scanId) throws NoSuchScanIDException {
-    NanoTime start = NanoTime.now();
+    Timer start = Timer.startNew();
     try {
       return reserveFiles(scanId);
     } finally {
@@ -807,7 +813,7 @@ public class ScanServer extends AbstractServer
     return new ScanReservation(scanSessionFiles, myReservationId);
   }
 
-  private static Set<StoredTabletFile> getScanSessionFiles(ScanSession session) {
+  private static Set<StoredTabletFile> getScanSessionFiles(ScanSession<?> session) {
     if (session instanceof SingleScanSession) {
       var sss = (SingleScanSession) session;
       return Set.copyOf(session.getTabletResolver().getTablet(sss.extent).getDatafiles().keySet());

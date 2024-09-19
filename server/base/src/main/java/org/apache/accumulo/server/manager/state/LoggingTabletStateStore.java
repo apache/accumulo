@@ -40,7 +40,7 @@ import com.google.common.net.HostAndPort;
  */
 class LoggingTabletStateStore implements TabletStateStore {
 
-  private TabletStateStore wrapped;
+  private final TabletStateStore wrapped;
 
   LoggingTabletStateStore(TabletStateStore tss) {
     this.wrapped = tss;

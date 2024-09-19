@@ -38,7 +38,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -49,7 +48,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -116,7 +114,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     getCluster().killProcess(ServerType.GARBAGE_COLLECTOR,
         getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
-    var path = ServiceLock.path(getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
+    var path = getServerContext().getServerPaths().createGarbageCollectorPath();
     ZooReaderWriter zk = getServerContext().getZooReaderWriter();
     try {
       ServiceLock.deleteLock(zk, path);
@@ -410,8 +408,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
       ZooReaderWriter zk = cluster.getServerContext().getZooReaderWriter();
-      var path = ServiceLock
-          .path(ZooUtil.getRoot(client.instanceOperations().getInstanceId()) + Constants.ZGC_LOCK);
+      var path = getServerContext().getServerPaths().createGarbageCollectorPath();
       for (int i = 0; i < 5; i++) {
         List<String> locks;
         try {

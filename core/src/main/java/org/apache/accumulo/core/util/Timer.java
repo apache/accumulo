@@ -32,10 +32,6 @@ public final class Timer {
     this.startNanos = System.nanoTime();
   }
 
-  private Timer(long offsetNanos) {
-    this.startNanos = System.nanoTime() + offsetNanos;
-  }
-
   /**
    * Creates and starts a new Timer instance.
    *
@@ -43,27 +39,6 @@ public final class Timer {
    */
   public static Timer startNew() {
     return new Timer();
-  }
-
-  /**
-   * Creates a new Timer with an offset applied.
-   *
-   * @param offset the duration of the offset to apply.
-   * @return a new Timer instance with the specified offset.
-   */
-  public static Timer startNewWithOffset(Duration offset) {
-    return new Timer(offset.toNanos());
-  }
-
-  /**
-   * Creates a new Timer with an offset applied.
-   *
-   * @param offset the duration of the offset to apply.
-   * @param unit the TimeUnit of the offset.
-   * @return a new Timer instance with the specified offset.
-   */
-  public static Timer startNewWithOffset(long offset, TimeUnit unit) {
-    return new Timer(unit.toNanos(offset));
   }
 
   /**
@@ -84,7 +59,7 @@ public final class Timer {
    * @return true if the specified duration has elapsed, false otherwise.
    */
   public boolean hasElapsed(Duration duration) {
-    return getElapsedNanos() >= duration.toNanos();
+    return getElapsedNanos() >= toNanos(duration);
   }
 
   /**
@@ -113,4 +88,21 @@ public final class Timer {
     return unit.convert(getElapsedNanos(), TimeUnit.NANOSECONDS);
   }
 
+  /**
+   * @return true if this timer was started/reset after the other timer was started/reset, false
+   *         otherwise
+   */
+  public boolean startedAfter(Timer otherTimer) {
+    return (startNanos - otherTimer.startNanos) > 0;
+  }
+
+  private static long toNanos(Duration duration) {
+    try {
+      // This can overflow when very large, such as when the
+      // duration is created using Long.MAX_VALUE millis
+      return duration.toNanos();
+    } catch (ArithmeticException e) {
+      return Long.MAX_VALUE;
+    }
+  }
 }

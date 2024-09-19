@@ -62,7 +62,7 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
-  private static Logger log = LoggerFactory.getLogger(ServerAmpleImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(ServerAmpleImpl.class);
 
   private final ServerContext context;
   private final ScanServerRefStore scanServerRefStore;

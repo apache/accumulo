@@ -58,7 +58,7 @@ public class ZooSession {
       this.zooKeeper = zooKeeper;
     }
 
-    ZooKeeper zooKeeper;
+    final ZooKeeper zooKeeper;
   }
 
   private static Map<String,ZooSessionInfo> sessions = new HashMap<>();

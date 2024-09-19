@@ -19,6 +19,7 @@
 package org.apache.accumulo.gc;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -53,9 +54,9 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
 import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.server.AbstractServer;
@@ -90,7 +91,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
 
   private ServiceLock gcLock;
-  private NanoTime lastCompactorCheck = NanoTime.now();
+  private final Timer lastCompactorCheck = Timer.startNew();
 
   SimpleGarbageCollector(ConfigOpts opts, String[] args) {
     super("gc", opts, ServerContext::new, args);
@@ -306,7 +307,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         gcCycleMetrics.incrementRunCycleCount();
         long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
 
-        if (NanoTime.now().subtract(lastCompactorCheck).toMillis() > gcDelay * 3) {
+        if (lastCompactorCheck.hasElapsed(gcDelay * 3, MILLISECONDS)) {
           Map<String,Set<TableId>> resourceMapping = new HashMap<>();
           for (TableId tid : AccumuloTable.allTableIds()) {
             TableConfiguration tconf = getContext().getTableConfiguration(tid);
@@ -321,7 +322,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
                   e.getValue());
             }
           }
-          lastCompactorCheck = NanoTime.now();
+          lastCompactorCheck.restart();
         }
 
         log.debug("Sleeping for {} milliseconds", gcDelay);
@@ -366,7 +367,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
-    var path = ServiceLock.path(getContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
+    var path = getContext().getServerPaths().createGarbageCollectorPath();
 
     LockWatcher lockWatcher = new LockWatcher() {
       @Override
@@ -383,8 +384,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     };
 
     UUID zooLockUUID = UUID.randomUUID();
+    gcLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
     while (true) {
-      gcLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
       if (gcLock.tryLock(lockWatcher, new ServiceLockData(zooLockUUID, addr.toString(),
           ThriftService.GC, this.getResourceGroup()))) {
         log.debug("Got GC ZooKeeper lock");

@@ -66,7 +66,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     // idle compactions may addess the problem this test is creating, however they will not prevent
     // lots of closed WALs for all write patterns. This test ensures code that directly handles many
     // tablets referencing many different WALs is working.
-    cfg.setProperty(Property.TABLE_MINC_COMPACT_IDLETIME, "1h");
+    cfg.setProperty(Property.TABLE_MINC_COMPACT_MAXAGE, "1h");
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }

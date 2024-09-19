@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.manager.metrics.fate.meta;
 
+import static org.apache.accumulo.core.metrics.Metric.FATE_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.FATE_OPS_ACTIVITY;
+
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -53,8 +56,9 @@ public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
-    registry.gauge(METRICS_FATE_OPS_ACTIVITY, totalOpsGauge);
-    registry.gauge(METRICS_FATE_ERRORS, List.of(Tag.of("type", "zk.connection")), fateErrorsGauge);
+    registry.gauge(FATE_OPS_ACTIVITY.getName(), totalOpsGauge);
+    registry.gauge(FATE_ERRORS.getName(), List.of(Tag.of("type", "zk.connection")),
+        fateErrorsGauge);
   }
 
   @Override

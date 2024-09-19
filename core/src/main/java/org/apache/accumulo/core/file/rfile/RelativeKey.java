@@ -204,9 +204,9 @@ public class RelativeKey implements Writable {
   }
 
   public static class SkippR {
-    RelativeKey rk;
-    int skipped;
-    Key prevKey;
+    final RelativeKey rk;
+    final int skipped;
+    final Key prevKey;
 
     SkippR(RelativeKey rk, int skipped, Key prevKey) {
       this.rk = rk;
