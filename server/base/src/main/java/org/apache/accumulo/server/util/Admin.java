@@ -20,6 +20,7 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -912,8 +913,8 @@ public class Admin implements KeywordExecutable {
     var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     String fateZkPath = zkRoot + Constants.ZFATE;
     ZooReaderWriter zk = context.getZooReaderWriter();
-    MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk);
-    UserFateStore<Admin> ufs = new UserFateStore<>(context);
+    MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk, createDummyLockID(), null);
+    UserFateStore<Admin> ufs = new UserFateStore<>(context, createDummyLockID(), null);
     Map<FateInstanceType,FateStore<Admin>> fateStores =
         Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
     Map<FateInstanceType,ReadOnlyFateStore<Admin>> readOnlyFateStores =
@@ -1106,9 +1107,9 @@ public class Admin implements KeywordExecutable {
       }
     };
 
-    UserFateStore<?> ufs = new UserFateStore<>(context);
+    UserFateStore<?> ufs = new UserFateStore<>(context, createDummyLockID(), null);
     MetaFateStore<?> mfs = new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
-        context.getZooReaderWriter());
+        context.getZooReaderWriter(), createDummyLockID(), null);
     LoadingCache<FateId,ReadOnlyFateStore.TStatus> fateStatusCache = Caffeine.newBuilder()
         .maximumSize(100_000).expireAfterWrite(10, TimeUnit.SECONDS).build(fateId -> {
           if (fateId.getType() == FateInstanceType.META) {

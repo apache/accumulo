@@ -81,7 +81,7 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
 
     // use the list of fateIds to simulate collisions on fateIds
     public TestUserFateStore(ClientContext context, String tableName, List<FateId> fateIds) {
-      super(context, tableName);
+      super(context, tableName, createDummyLockID(), null);
       this.fateIdIterator = fateIds.iterator();
     }
 
@@ -232,7 +232,7 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
 
   // Create the fate table with the exact configuration as the real Fate user instance table
   // including table properties and TabletAvailability
-  protected static void createFateTable(ClientContext client, String table) throws Exception {
+  public static void createFateTable(ClientContext client, String table) throws Exception {
     final var fateTableProps =
         client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
 

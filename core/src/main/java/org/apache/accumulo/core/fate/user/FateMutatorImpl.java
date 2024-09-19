@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.fate.user;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.fate.AbstractFateStore.serialize;
 import static org.apache.accumulo.core.fate.user.UserFateStore.getRow;
 import static org.apache.accumulo.core.fate.user.UserFateStore.getRowId;
@@ -39,6 +40,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.RepoColumnFamily;
@@ -48,6 +50,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 public class FateMutatorImpl<T> implements FateMutator<T> {
+
+  public static final byte[] NOT_RESERVED = "".getBytes(UTF_8);
 
   private final ClientContext context;
   private final String tableName;
@@ -76,6 +80,43 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   @Override
   public FateMutator<T> putCreateTime(long ctime) {
     TxColumnFamily.CREATE_TIME_COLUMN.put(mutation, new Value(Long.toString(ctime)));
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> putReservedTx(FateStore.FateReservation reservation) {
+    Condition condition = new Condition(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+        TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier()).setValue(NOT_RESERVED);
+    mutation.addCondition(condition);
+    TxColumnFamily.RESERVATION_COLUMN.put(mutation, new Value(reservation.getSerialized()));
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> putReservedTxOnCreation(FateStore.FateReservation reservation) {
+    Condition condition = new Condition(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+        TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+    mutation.addCondition(condition);
+    TxColumnFamily.RESERVATION_COLUMN.put(mutation, new Value(reservation.getSerialized()));
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> putUnreserveTx(FateStore.FateReservation reservation) {
+    Condition condition = new Condition(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+        TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier())
+        .setValue(reservation.getSerialized());
+    mutation.addCondition(condition);
+    TxColumnFamily.RESERVATION_COLUMN.put(mutation, new Value(NOT_RESERVED));
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> putInitReservationVal() {
+    Condition condition = new Condition(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+        TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+    mutation.addCondition(condition);
+    TxColumnFamily.RESERVATION_COLUMN.put(mutation, new Value(NOT_RESERVED));
     return this;
   }
 
