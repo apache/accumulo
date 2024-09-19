@@ -350,7 +350,7 @@ public class SessionManager {
     return Stream.concat(deferredCleanupQueue.stream(), sessions.values().stream())
         .filter(session -> {
           if (session instanceof ScanSession) {
-            var scanSession = (ScanSession) session;
+            var scanSession = (ScanSession<?>) session;
             synchronized (scanSession) {
               var scanTask = scanSession.getScanTask();
               if (scanTask != null && scanSession.getState() == State.REMOVED
