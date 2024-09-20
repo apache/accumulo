@@ -1711,7 +1711,7 @@ public class RFile {
 
       // If exclusive we need to strip the last byte to get the last key that is part of the
       // actual range to return
-      final byte[] ba = key.getRow().getBytes();
+      final byte[] ba = key.getRowData().toArray();
       Preconditions.checkArgument(ba.length > 0 && ba[ba.length - 1] == (byte) 0x00);
       byte[] fba = new byte[ba.length - 1];
       System.arraycopy(ba, 0, fba, 0, ba.length - 1);
