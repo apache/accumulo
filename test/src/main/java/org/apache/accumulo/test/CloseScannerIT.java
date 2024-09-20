@@ -27,11 +27,13 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.util.Wait;
@@ -55,7 +57,8 @@ public class CloseScannerIT extends AccumuloClusterHarness {
   }
 
   /**
-   * {@link org.apache.accumulo.test.functional.ScannerIT#testSessionCleanup()} is a similar test.
+   * {@link org.apache.accumulo.test.functional.ScannerIT#testSessionCleanup(ScannerBase.ConsistencyLevel)}
+   * is a similar test.
    */
   @Test
   public void testManyScans() throws Exception {
@@ -104,8 +107,8 @@ public class CloseScannerIT extends AccumuloClusterHarness {
       // time the test will allow to 3s+13s=16s which is less than the 20s when idle session clean
       // starts.
 
-      Wait.waitFor(() -> countActiveScans(client, tableName) < 1, 13000, 250,
-          "Found active scans after closing all scanners. Expected to find no scans");
+      Wait.waitFor(() -> countActiveScans(client, ServerType.TABLET_SERVER, tableName) < 1, 13000,
+          250, "Found active scans after closing all scanners. Expected to find no scans");
 
       var elasped = timer.elapsed(TimeUnit.MILLISECONDS);
       if (elasped > 20000) {
