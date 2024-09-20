@@ -168,4 +168,12 @@ public class FateKey {
         throw new IllegalStateException("Unexpected FateInstanceType found " + type);
     }
   }
+
+  @Override
+  public String toString() {
+    return "[" + getClass().getSimpleName() + " FateKeyType:" + type
+        + (keyExtent.isPresent() ? ", KeyExtent:" + keyExtent.orElseThrow()
+            : ", ExternalCompactionID:" + compactionId.orElseThrow())
+        + "]";
+  }
 }

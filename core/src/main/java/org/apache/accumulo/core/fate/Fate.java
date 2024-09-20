@@ -384,7 +384,7 @@ public class Fate<T> {
       deadResCleanerExecutor = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,
           store.type() + "-dead-reservation-cleaner-pool");
       ScheduledFuture<?> deadReservationCleaner = deadResCleanerExecutor
-          .scheduleWithFixedDelay(new DeadReservationCleaner(), 3, 30, SECONDS);
+          .scheduleWithFixedDelay(new DeadReservationCleaner(), 3, 180, SECONDS);
       ThreadPools.watchCriticalScheduledTask(deadReservationCleaner);
     }
     this.deadResCleanerExecutor = deadResCleanerExecutor;

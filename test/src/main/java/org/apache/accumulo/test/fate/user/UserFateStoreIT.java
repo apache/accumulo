@@ -23,10 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -40,6 +37,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
@@ -74,29 +72,6 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
   @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
-  }
-
-  private static class TestUserFateStore extends UserFateStore<TestEnv> {
-    private final Iterator<FateId> fateIdIterator;
-
-    // use the list of fateIds to simulate collisions on fateIds
-    public TestUserFateStore(ClientContext context, String tableName, List<FateId> fateIds) {
-      super(context, tableName, createDummyLockID(), null);
-      this.fateIdIterator = fateIds.iterator();
-    }
-
-    @Override
-    public FateId getFateId() {
-      if (fateIdIterator.hasNext()) {
-        return fateIdIterator.next();
-      } else {
-        return FateId.from(fateInstanceType, UUID.randomUUID());
-      }
-    }
-
-    public TStatus getStatus(FateId fateId) {
-      return _getStatus(fateId);
-    }
   }
 
   // Test that configs related to the correctness of the FATE instance user table
@@ -151,7 +126,7 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
     String tableName;
     ClientContext client;
     FateId fateId;
-    TestUserFateStore store;
+    UserFateStore<TestEnv> store;
     FateStore.FateTxStore<FateIT.TestEnv> txStore;
 
     @BeforeEach
@@ -159,9 +134,8 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
       client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
       tableName = getUniqueNames(1)[0];
       createFateTable(client, tableName);
-      fateId = FateId.from(fateInstanceType, UUID.randomUUID());
-      store = new TestUserFateStore(client, tableName, List.of(fateId));
-      store.create();
+      store = new UserFateStore<>(client, tableName, AbstractFateStore.createDummyLockID(), null);
+      fateId = store.create();
       txStore = store.reserve(fateId);
     }
 
@@ -177,7 +151,10 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
         beforeOperation.run();
 
         injectStatus(client, tableName, fateId, status);
-        assertEquals(status, store.getStatus(fateId));
+        var fateIdStatus =
+            store.list().filter(statusEntry -> statusEntry.getFateId().equals(fateId)).findFirst()
+                .orElseThrow();
+        assertEquals(status, fateIdStatus.getStatus());
         if (!acceptableStatuses.contains(status)) {
           assertThrows(IllegalStateException.class, operation,
               "Expected operation to fail with status " + status + " but it did not");
@@ -210,8 +187,12 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
 
     @Test
     public void delete() throws Exception {
-      testOperationWithStatuses(() -> {}, // No special setup needed for delete
-          txStore::delete,
+      testOperationWithStatuses(() -> {
+        // Setup for delete: Create a new txStore before each delete since delete cannot be called
+        // on the same txStore more than once
+        fateId = store.create();
+        txStore = store.reserve(fateId);
+      }, () -> txStore.delete(),
           Set.of(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED));
     }
   }

@@ -46,10 +46,10 @@ import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
-import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -111,7 +111,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     final int numFateIds = 500;
     final FateId fakeFateId = FateId.from(storeType, UUID.randomUUID());
     final List<FateStore.FateTxStore<SleepingTestEnv>> reservations = new ArrayList<>();
-    final boolean isUserStore = storeType.equals(FateInstanceType.USER);
+    final boolean isUserStore = storeType == FateInstanceType.USER;
     final Set<FateId> allIds = new HashSet<>();
     final FateStore<SleepingTestEnv> store1, store2;
     final ZooUtil.LockID lock1 = new ZooUtil.LockID("/locks", "L1", 50);
@@ -182,7 +182,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     // Tests that reserve() doesn't hang indefinitely and instead throws an error
     // on reserve() a non-existent transaction.
     final FateStore<SleepingTestEnv> store;
-    final boolean isUserStore = storeType.equals(FateInstanceType.USER);
+    final boolean isUserStore = storeType == FateInstanceType.USER;
     final String tableName = getUniqueNames(1)[0];
     final FateId fakeFateId = FateId.from(storeType, UUID.randomUUID());
     final ZooUtil.LockID lock = new ZooUtil.LockID("/locks", "L1", 50);
@@ -208,7 +208,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
       throws Exception {
     final String tableName = getUniqueNames(1)[0];
     final int numFateIds = 500;
-    final boolean isUserStore = storeType.equals(FateInstanceType.USER);
+    final boolean isUserStore = storeType == FateInstanceType.USER;
     final Set<FateId> allIds = new HashSet<>();
     final List<FateStore.FateTxStore<SleepingTestEnv>> reservations = new ArrayList<>();
     final FateStore<SleepingTestEnv> store;
@@ -256,7 +256,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
       throws Exception {
     final String tableName = getUniqueNames(1)[0];
     final int numFateIds = 500;
-    final boolean isUserStore = storeType.equals(FateInstanceType.USER);
+    final boolean isUserStore = storeType == FateInstanceType.USER;
     final Set<FateId> allIds = new HashSet<>();
     final List<FateStore.FateTxStore<SleepingTestEnv>> reservations = new ArrayList<>();
     final FateStore<SleepingTestEnv> store;
@@ -312,7 +312,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
   private void testMultipleFateInstances(FateInstanceType storeType) throws Exception {
     final String tableName = getUniqueNames(1)[0];
     final int numFateIds = 500;
-    final boolean isUserStore = storeType.equals(FateInstanceType.USER);
+    final boolean isUserStore = storeType == FateInstanceType.USER;
     final Set<FateId> allIds = new HashSet<>();
     final FateStore<SleepingTestEnv> store1, store2;
     final SleepingTestEnv testEnv1 = new SleepingTestEnv(50);
@@ -380,7 +380,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     // One transaction for each FATE worker thread
     final int numFateIds =
         Integer.parseInt(Property.MANAGER_FATE_THREADPOOL_SIZE.getDefaultValue());
-    final boolean isUserStore = storeType.equals(FateInstanceType.USER);
+    final boolean isUserStore = storeType == FateInstanceType.USER;
     final Set<FateId> allIds = new HashSet<>();
     final FateStore<LatchTestEnv> store1, store2;
     final LatchTestEnv testEnv1 = new LatchTestEnv();
@@ -458,7 +458,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
       boolean allReservedWithLock2 = store2Reservations.values().stream()
           .allMatch(entry -> FateStore.FateReservation.locksAreEqual(entry.getLockID(), lock2));
       return store2Reservations.keySet().equals(allIds) && allReservedWithLock2;
-    }, 60_000);
+    }, 60_000 * 4);
 
     // Finish work and shutdown
     testEnv1.workersLatch.countDown();
