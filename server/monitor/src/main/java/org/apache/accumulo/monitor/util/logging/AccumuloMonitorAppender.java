@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
@@ -121,6 +122,9 @@ public class AccumuloMonitorAppender extends AbstractAppender {
   private final ThreadPoolExecutor executor;
   private final boolean async;
   private final int queueSize;
+  private final AtomicLong appends = new AtomicLong(0);
+  private final AtomicLong discards = new AtomicLong(0);
+  private final AtomicLong errors = new AtomicLong(0);
 
   private ServerContext context;
   private String path;
@@ -158,9 +162,14 @@ public class AccumuloMonitorAppender extends AbstractAppender {
     };
   }
 
+  private String getStats() {
+    return "discards:" + discards.get() + " errors:" + errors.get() + " appends:" + appends.get();
+  }
+
   @Override
   public void append(final LogEvent event) {
-    monitorLocator.get().ifPresent(uri -> {
+    appends.getAndIncrement();
+    monitorLocator.get().ifPresentOrElse(uri -> {
       try {
         var pojo = new SingleLogEvent();
         pojo.timestamp = event.getTimeMillis();
@@ -180,14 +189,20 @@ public class AccumuloMonitorAppender extends AbstractAppender {
             @SuppressWarnings("unused")
             var future = httpClient.sendAsync(req, BodyHandlers.discarding());
           } else {
-            error("Unable to send HTTP in appender [" + getName() + "]. Queue full.");
+            discards.getAndIncrement();
+            error("Unable to send HTTP in appender [" + getName() + "]. Queue full. " + getStats());
           }
         } else {
           httpClient.send(req, BodyHandlers.discarding());
         }
       } catch (final Exception e) {
-        error("Unable to send HTTP in appender [" + getName() + "]", event, e);
+        errors.getAndIncrement();
+        error("Unable to send HTTP in appender [" + getName() + "] " + getStats(), event, e);
       }
+    }, () -> {
+      discards.getAndIncrement();
+      error("Unable to send HTTP in appender [" + getName() + "]. No monitor is running. "
+          + getStats());
     });
   }
 
