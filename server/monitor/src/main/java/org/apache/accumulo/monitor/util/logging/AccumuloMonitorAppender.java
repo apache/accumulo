@@ -31,7 +31,6 @@ import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
@@ -65,11 +64,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class AccumuloMonitorAppender extends AbstractAppender {
 
   @PluginBuilderFactory
-  public static <B extends Builder<B>> B newBuilder() {
-    return new Builder<B>().asBuilder();
+  public static Builder newBuilder() {
+    return new Builder();
   }
 
-  public static class Builder<B extends Builder<B>> extends AbstractAppender.Builder<B>
+  public static class Builder extends AbstractAppender.Builder<Builder>
       implements org.apache.logging.log4j.core.util.Builder<AccumuloMonitorAppender> {
 
     @PluginBuilderAttribute
@@ -81,7 +80,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
     @PluginBuilderAttribute
     private int maxThreads = 2;
 
-    public Builder<B> setAsync(boolean async) {
+    public Builder setAsync(boolean async) {
       this.async = async;
       return this;
     }
@@ -90,7 +89,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
       return async;
     }
 
-    public Builder<B> setQueueSize(int size) {
+    public Builder setQueueSize(int size) {
       queueSize = size;
       return this;
     }
@@ -99,7 +98,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
       return queueSize;
     }
 
-    public Builder<B> setMaxThreads(int maxThreads) {
+    public Builder setMaxThreads(int maxThreads) {
       this.maxThreads = maxThreads;
       return this;
     }
@@ -119,8 +118,9 @@ public class AccumuloMonitorAppender extends AbstractAppender {
   private final Gson gson = new Gson();
   private final HttpClient httpClient;
   private final Supplier<Optional<URI>> monitorLocator;
-  private final BooleanSupplier canAppend;
+  private final ThreadPoolExecutor executor;
   private final boolean async;
+  private final int queueSize;
 
   private ServerContext context;
   private String path;
@@ -131,20 +131,15 @@ public class AccumuloMonitorAppender extends AbstractAppender {
       boolean async) {
     super(name, filter, null, ignoreExceptions, properties);
 
+    this.executor = async ? new ThreadPoolExecutor(0, maxThreads, 30, TimeUnit.SECONDS,
+        new LinkedBlockingQueue<Runnable>()) : null;
+    final var builder = HttpClient.newBuilder();
+    this.httpClient = (async ? builder.executor(executor) : builder).build();
+    this.queueSize = queueSize;
     this.async = async;
-    var builder = HttpClient.newBuilder();
-    if (async) {
-      var queue = new LinkedBlockingQueue<Runnable>();
-      builder =
-          builder.executor(new ThreadPoolExecutor(0, maxThreads, 30, TimeUnit.SECONDS, queue));
-      this.canAppend = () -> queue.size() < queueSize;
-    } else {
-      this.canAppend = () -> true;
-    }
-    this.httpClient = builder.build();
 
-    final ZcStat stat = new ZcStat();
-    monitorLocator = () -> {
+    final var stat = new ZcStat();
+    this.monitorLocator = () -> {
       // lazily set up context/path
       if (context == null) {
         context = new ServerContext(SiteConfiguration.auto());
@@ -181,7 +176,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
             .setHeader("Content-Type", "application/json").build();
 
         if (async) {
-          if (canAppend.getAsBoolean()) {
+          if (executor.getQueue().size() < queueSize) {
             @SuppressWarnings("unused")
             var future = httpClient.sendAsync(req, BodyHandlers.discarding());
           } else {
@@ -194,6 +189,17 @@ public class AccumuloMonitorAppender extends AbstractAppender {
         error("Unable to send HTTP in appender [" + getName() + "]", event, e);
       }
     });
+  }
+
+  @Override
+  protected boolean stop(long timeout, TimeUnit timeUnit, boolean changeLifeCycleState) {
+    if (changeLifeCycleState) {
+      setStopping();
+    }
+    if (executor != null) {
+      executor.shutdown();
+    }
+    return super.stop(timeout, timeUnit, changeLifeCycleState);
   }
 
   @SuppressFBWarnings(value = "INFORMATION_EXPOSURE_THROUGH_AN_ERROR_MESSAGE",
