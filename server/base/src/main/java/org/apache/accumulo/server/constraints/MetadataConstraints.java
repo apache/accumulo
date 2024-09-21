@@ -259,6 +259,8 @@ public class MetadataConstraints implements Constraint {
         return "Invalid data file metadata format";
       case 10:
         return "Suspended timestamp is not valid";
+      case 17:
+        return "Invalid directory column value";
     }
     return null;
   }
@@ -356,6 +358,12 @@ public class MetadataConstraints implements Constraint {
         }
         break;
       case ServerColumnFamily.DIRECTORY_QUAL:
+        try {
+          ServerColumnFamily.validateDirCol(new String(columnUpdate.getValue(), UTF_8));
+        } catch (IllegalArgumentException e) {
+          addViolation(violations, 17);
+        }
+
         // splits, which also write the time reference, are allowed to write this reference
         // even when the transaction is not running because the other half of the tablet is
         // holding a reference to the file.
