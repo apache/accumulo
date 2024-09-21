@@ -269,7 +269,7 @@ public class MetadataConstraintsTest {
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
         new Value(fateId1.canonical()));
-    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t1"));
+    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("t-000009x"));
     violations = mc.check(createEnv(), m);
     assertTrue(violations.isEmpty());
 
@@ -606,6 +606,24 @@ public class MetadataConstraintsTest {
     assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 15), violations.get(0));
+  }
+
+  @Test
+  public void testDirectoryColumn() {
+    MetadataConstraints mc = new MetadataConstraints();
+    Mutation m;
+    List<Short> violations;
+    m = new Mutation(new Text("0;foo"));
+    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("t-000009x"));
+    violations = mc.check(createEnv(), m);
+    assertTrue(violations.isEmpty());
+
+    m = new Mutation(new Text("0;foo"));
+    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/invalid"));
+    violations = mc.check(createEnv(), m);
+    assertFalse(violations.isEmpty());
+    assertEquals(1, violations.size());
+    assertEquals((short) 17, violations.get(0));
   }
 
   // Encode a row how it would appear in Json
