@@ -299,6 +299,8 @@ public class MetadataConstraints implements Constraint {
         return "Invalid unsplittable column";
       case 16:
         return "Malformed availability value";
+      case 17:
+        return "Invalid directory column value";
     }
     return null;
   }
@@ -409,6 +411,12 @@ public class MetadataConstraints implements Constraint {
         }
         break;
       case ServerColumnFamily.DIRECTORY_QUAL:
+        try {
+          ServerColumnFamily.validateDirCol(new String(columnUpdate.getValue(), UTF_8));
+        } catch (IllegalArgumentException e) {
+          addViolation(violations, 17);
+        }
+
         // splits, which also write the time reference, are allowed to write this reference
         // even when the transaction is not running because the other half of the tablet is
         // holding a reference to the file.
