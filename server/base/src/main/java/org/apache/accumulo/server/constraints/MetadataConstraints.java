@@ -300,6 +300,8 @@ public class MetadataConstraints implements Constraint {
         return "Invalid unsplittable column";
       case 16:
         return "Malformed availability value";
+      case 17:
+        return "Invalid directory column value";
     }
     return null;
   }
@@ -410,9 +412,11 @@ public class MetadataConstraints implements Constraint {
         }
         break;
       case ServerColumnFamily.DIRECTORY_QUAL:
-        // TODO: Validation will be added here in #4913
-        // Also, do we still want to check/require this column
-        // exists in addition to the opid check for splits?
+        try {
+          ServerColumnFamily.validateDirCol(new String(columnUpdate.getValue(), UTF_8));
+        } catch (IllegalArgumentException e) {
+          addViolation(violations, 17);
+        }
         break;
       case ServerColumnFamily.OPID_QUAL:
         try {
