@@ -26,8 +26,11 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -125,6 +128,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
   private final AtomicLong appends = new AtomicLong(0);
   private final AtomicLong discards = new AtomicLong(0);
   private final AtomicLong errors = new AtomicLong(0);
+  private final ConcurrentMap<Integer,AtomicLong> statusCodes = new ConcurrentSkipListMap<>();
 
   private ServerContext context;
   private String path;
@@ -163,7 +167,17 @@ public class AccumuloMonitorAppender extends AbstractAppender {
   }
 
   private String getStats() {
-    return "discards:" + discards.get() + " errors:" + errors.get() + " appends:" + appends.get();
+    return "discards:" + discards.get() + " errors:" + errors.get() + " appends:" + appends.get()
+        + " statusCodes:" + statusCodes;
+  }
+
+  private void processResponse(HttpResponse<?> response) {
+    var statusCode = response.statusCode();
+    statusCodes.computeIfAbsent(statusCode, sc -> new AtomicLong()).getAndIncrement();
+    if (statusCode >= 400 && statusCode < 600) {
+      error("Unable to send HTTP in appender [" + getName() + "]. Status: " + statusCode + " "
+          + getStats());
+    }
   }
 
   @Override
@@ -186,14 +200,19 @@ public class AccumuloMonitorAppender extends AbstractAppender {
 
         if (async) {
           if (executor.getQueue().size() < queueSize) {
-            @SuppressWarnings("unused")
-            var future = httpClient.sendAsync(req, BodyHandlers.discarding());
+            httpClient.sendAsync(req, BodyHandlers.discarding()).thenAccept(this::processResponse)
+                .exceptionally(e -> {
+                  errors.getAndIncrement();
+                  error("Unable to send HTTP in appender [" + getName() + "] " + getStats(), event,
+                      e);
+                  return null;
+                });
           } else {
             discards.getAndIncrement();
             error("Unable to send HTTP in appender [" + getName() + "]. Queue full. " + getStats());
           }
         } else {
-          httpClient.send(req, BodyHandlers.discarding());
+          processResponse(httpClient.send(req, BodyHandlers.discarding()));
         }
       } catch (final Exception e) {
         errors.getAndIncrement();
