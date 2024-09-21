@@ -61,6 +61,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Up
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
@@ -409,16 +410,22 @@ public class MetadataConstraints implements Constraint {
         }
         break;
       case ServerColumnFamily.DIRECTORY_QUAL:
-        // splits, which also write the time reference, are allowed to write this reference
-        // even when the transaction is not running because the other half of the tablet is
-        // holding a reference to the file.
-        if (bfcValidationData != null) {
-          bfcValidationData.setIsSplitMutation(true);
-        }
+        // TODO: Validation will be added here in #4913
+        // Also, do we still want to check/require this column
+        // exists in addition to the opid check for splits?
         break;
       case ServerColumnFamily.OPID_QUAL:
         try {
-          TabletOperationId.validate(new String(columnUpdate.getValue(), UTF_8));
+          // Loading the TabletOperationId will also validate it
+          var id = TabletOperationId.from(new String(columnUpdate.getValue(), UTF_8));
+          if (id.getType() == TabletOperationType.SPLITTING) {
+            // splits, which also write the time reference, are allowed to write this reference
+            // even when the transaction is not running because the other half of the tablet is
+            // holding a reference to the file.
+            if (bfcValidationData != null) {
+              bfcValidationData.setIsSplitMutation(true);
+            }
+          }
         } catch (IllegalArgumentException e) {
           addViolation(violations, 9);
         }

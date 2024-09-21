@@ -270,6 +270,19 @@ public class MetadataConstraintsTest {
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
         new Value(fateId1.canonical()));
     ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t1"));
+    // Missing split column, should fail
+    assertViolation(mc, m, (short) 8);
+
+    // mutation that looks like split
+    m = new Mutation(new Text("0;foo"));
+    m.put(
+        BulkFileColumnFamily.NAME, StoredTabletFile
+            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
+        new Value(fateId1.canonical()));
+    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t1"));
+    // Add opid column
+    ServerColumnFamily.OPID_COLUMN.put(m,
+        new Value("SPLITTING:FATE:META:12345678-9abc-def1-2345-6789abcdef12"));
     violations = mc.check(createEnv(), m);
     assertTrue(violations.isEmpty());
 
