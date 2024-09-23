@@ -188,14 +188,12 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
     FunctionCounter.builder(COMPACTOR_ENTRIES_READ.getName(), this, Compactor::getTotalEntriesRead)
-        .description("Number of entries read by all compactions that have run on this compactor")
-        .register(registry);
+        .description(COMPACTOR_ENTRIES_READ.getDescription()).register(registry);
     FunctionCounter
         .builder(COMPACTOR_ENTRIES_WRITTEN.getName(), this, Compactor::getTotalEntriesWritten)
-        .description("Number of entries written by all compactions that have run on this compactor")
-        .register(registry);
+        .description(COMPACTOR_ENTRIES_WRITTEN.getDescription()).register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(COMPACTOR_MAJC_STUCK.getName())
-        .description("Number and duration of stuck major compactions").register(registry);
+        .description(COMPACTOR_MAJC_STUCK.getDescription()).register(registry);
     CompactionWatcher.setTimer(timer);
   }
 

@@ -43,9 +43,10 @@ public class ThriftMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    idle = DistributionSummary.builder(THRIFT_IDLE.getName()).baseUnit("ms").register(registry);
-    execute =
-        DistributionSummary.builder(THRIFT_EXECUTE.getName()).baseUnit("ms").register(registry);
+    idle = DistributionSummary.builder(THRIFT_IDLE.getName()).baseUnit("ms")
+        .description(THRIFT_IDLE.getDescription()).register(registry);
+    execute = DistributionSummary.builder(THRIFT_EXECUTE.getName()).baseUnit("ms")
+        .description(THRIFT_EXECUTE.getDescription()).register(registry);
   }
 
 }

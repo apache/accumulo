@@ -53,41 +53,39 @@ public class GcMetrics implements MetricsProducer {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     Gauge.builder(GC_STARTED.getName(), metricValues, v -> v.getLastCollect().getStarted())
-        .description("Timestamp GC file collection cycle started").register(registry);
+        .description(GC_STARTED.getDescription()).register(registry);
     Gauge.builder(GC_FINISHED.getName(), metricValues, v -> v.getLastCollect().getFinished())
-        .description("Timestamp GC file collect cycle finished").register(registry);
+        .description(GC_FINISHED.getDescription()).register(registry);
     Gauge.builder(GC_CANDIDATES.getName(), metricValues, v -> v.getLastCollect().getCandidates())
-        .description("Number of files that are candidates for deletion").register(registry);
+        .description(GC_CANDIDATES.getDescription()).register(registry);
     Gauge.builder(GC_IN_USE.getName(), metricValues, v -> v.getLastCollect().getInUse())
-        .description("Number of candidate files still in use").register(registry);
+        .description(GC_IN_USE.getDescription()).register(registry);
     Gauge.builder(GC_DELETED.getName(), metricValues, v -> v.getLastCollect().getDeleted())
-        .description("Number of candidate files deleted").register(registry);
+        .description(GC_DELETED.getDescription()).register(registry);
     Gauge.builder(GC_ERRORS.getName(), metricValues, v -> v.getLastCollect().getErrors())
-        .description("Number of candidate deletion errors").register(registry);
+        .description(GC_ERRORS.getDescription()).register(registry);
 
     // WAL metrics Gauges
     Gauge.builder(GC_WAL_STARTED.getName(), metricValues, v -> v.getLastWalCollect().getStarted())
-        .description("Timestamp GC WAL collection cycle started").register(registry);
+        .description(GC_WAL_STARTED.getDescription()).register(registry);
     Gauge.builder(GC_WAL_FINISHED.getName(), metricValues, v -> v.getLastWalCollect().getFinished())
-        .description("Timestamp GC WAL collect cycle finished").register(registry);
+        .description(GC_WAL_FINISHED.getDescription()).register(registry);
     Gauge
         .builder(GC_WAL_CANDIDATES.getName(), metricValues,
             v -> v.getLastWalCollect().getCandidates())
-        .description("Number of files that are candidates for deletion").register(registry);
+        .description(GC_WAL_CANDIDATES.getDescription()).register(registry);
     Gauge.builder(GC_WAL_IN_USE.getName(), metricValues, v -> v.getLastWalCollect().getInUse())
-        .description("Number of wal file candidates that are still in use").register(registry);
+        .description(GC_WAL_IN_USE.getDescription()).register(registry);
     Gauge.builder(GC_WAL_DELETED.getName(), metricValues, v -> v.getLastWalCollect().getDeleted())
-        .description("Number of candidate wal files deleted").register(registry);
+        .description(GC_WAL_DELETED.getDescription()).register(registry);
     Gauge.builder(GC_WAL_ERRORS.getName(), metricValues, v -> v.getLastWalCollect().getErrors())
-        .description("Number candidate wal file deletion errors").register(registry);
+        .description(GC_WAL_ERRORS.getDescription()).register(registry);
     Gauge
         .builder(GC_POST_OP_DURATION.getName(), metricValues,
             v -> TimeUnit.NANOSECONDS.toMillis(v.getPostOpDurationNanos()))
-        .description("GC metadata table post operation duration in milliseconds")
-        .register(registry);
+        .description(GC_POST_OP_DURATION.getDescription()).register(registry);
     Gauge.builder(GC_RUN_CYCLE.getName(), metricValues, GcCycleMetrics::getRunCycleCount)
-        .description("gauge incremented each gc cycle run, rest on process start")
-        .register(registry);
+        .description(GC_RUN_CYCLE.getDescription()).register(registry);
 
   }
 
