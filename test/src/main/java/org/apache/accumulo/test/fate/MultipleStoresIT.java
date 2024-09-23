@@ -458,7 +458,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
       boolean allReservedWithLock2 = store2Reservations.values().stream()
           .allMatch(entry -> FateStore.FateReservation.locksAreEqual(entry.getLockID(), lock2));
       return store2Reservations.keySet().equals(allIds) && allReservedWithLock2;
-    }, FastFate.delay * 2 * 1000);
+    }, fate1.getDeadResCleanupDelay().toMillis() * 2);
 
     // Finish work and shutdown
     testEnv1.workersLatch.countDown();

@@ -384,7 +384,7 @@ public class Fate<T> {
       deadResCleanerExecutor = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,
           store.type() + "-dead-reservation-cleaner-pool");
       ScheduledFuture<?> deadReservationCleaner = deadResCleanerExecutor.scheduleWithFixedDelay(
-          new DeadReservationCleaner(), 3, getDeadResCleanupDelay(), SECONDS);
+          new DeadReservationCleaner(), 3, getDeadResCleanupDelay().toSeconds(), SECONDS);
       ThreadPools.watchCriticalScheduledTask(deadReservationCleaner);
     }
     this.deadResCleanerExecutor = deadResCleanerExecutor;
@@ -393,8 +393,8 @@ public class Fate<T> {
     this.workFinder.start();
   }
 
-  protected long getDeadResCleanupDelay() {
-    return 180;
+  public Duration getDeadResCleanupDelay() {
+    return Duration.ofMinutes(3);
   }
 
   // get a transaction id back to the requester before doing any work

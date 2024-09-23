@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
+import java.time.Duration;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -29,7 +30,6 @@ import org.apache.accumulo.core.fate.Repo;
  * A FATE which performs the dead reservation cleanup with a much shorter delay between
  */
 public class FastFate<T> extends Fate<T> {
-  public static final long delay = 15;
 
   public FastFate(T environment, FateStore<T> store, boolean runDeadResCleaner,
       Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf) {
@@ -37,7 +37,7 @@ public class FastFate<T> extends Fate<T> {
   }
 
   @Override
-  protected long getDeadResCleanupDelay() {
-    return delay;
+  public Duration getDeadResCleanupDelay() {
+    return Duration.ofSeconds(15);
   }
 }
