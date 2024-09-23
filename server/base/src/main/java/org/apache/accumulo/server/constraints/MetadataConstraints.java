@@ -133,7 +133,7 @@ public class MetadataConstraints implements Constraint {
     try {
       stfConsumer.accept(StoredTabletFile.of(metadata));
     } catch (RuntimeException e) {
-      addViolation(violations, 9);
+      addViolation(violations, 3100);
     }
   }
 
@@ -255,11 +255,11 @@ public class MetadataConstraints implements Constraint {
         return "Lock not held in zookeeper by writer";
       case 8:
         return "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
-      case 9:
+      case 3100:
         return "Invalid data file metadata format";
-      case 10:
+      case 3101:
         return "Suspended timestamp is not valid";
-      case 17:
+      case 3102:
         return "Invalid directory column value";
     }
     return null;
@@ -361,7 +361,7 @@ public class MetadataConstraints implements Constraint {
         try {
           ServerColumnFamily.validateDirCol(new String(columnUpdate.getValue(), UTF_8));
         } catch (IllegalArgumentException e) {
-          addViolation(violations, 17);
+          addViolation(violations, 3102);
         }
 
         // splits, which also write the time reference, are allowed to write this reference
@@ -384,7 +384,7 @@ public class MetadataConstraints implements Constraint {
       try {
         SuspendingTServer.fromValue(new Value(columnUpdate.getValue()));
       } catch (IllegalArgumentException e) {
-        addViolation(violations, 10);
+        addViolation(violations, 3101);
       }
     }
   }
