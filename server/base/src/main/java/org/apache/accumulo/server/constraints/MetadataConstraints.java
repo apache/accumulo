@@ -201,7 +201,7 @@ public class MetadataConstraints implements Constraint {
 
       validateColValLen(violations, columnUpdate);
 
-      switch (new String(columnFamily.getBytes(), UTF_8)) {
+      switch (columnFamily.toString()) {
         case TabletColumnFamily.STR_NAME:
           validateTabletFamily(violations, columnUpdate, mutation);
           break;
