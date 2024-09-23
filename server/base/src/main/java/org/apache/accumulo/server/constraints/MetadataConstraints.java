@@ -151,7 +151,7 @@ public class MetadataConstraints implements Constraint {
     try {
       stfConsumer.accept(StoredTabletFile.of(metadata));
     } catch (RuntimeException e) {
-      addViolation(violations, 12);
+      addViolation(violations, 3100);
     }
   }
 
@@ -284,24 +284,25 @@ public class MetadataConstraints implements Constraint {
         return "Lock not held in zookeeper by writer";
       case 8:
         return "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
-      case 9:
-        return "Malformed operation id";
-      case 10:
-        return "Suspended timestamp is not valid";
-      case 11:
-        return "Malformed file selection value";
-      case 12:
+      case 3100:
         return "Invalid data file metadata format";
-      case 13:
-        return "Invalid compacted column";
-      case 14:
-        return "Invalid user compaction requested column";
-      case 15:
-        return "Invalid unsplittable column";
-      case 16:
-        return "Malformed availability value";
-      case 17:
+      case 3101:
+        return "Suspended timestamp is not valid";
+      case 3102:
         return "Invalid directory column value";
+      case 4000:
+        return "Malformed operation id";
+      case 4001:
+        return "Malformed file selection value";
+      case 4002:
+        return "Invalid compacted column";
+      case 4003:
+        return "Invalid user compaction requested column";
+      case 4004:
+        return "Invalid unsplittable column";
+      case 4005:
+        return "Malformed availability value";
+
     }
     return null;
   }
@@ -377,7 +378,7 @@ public class MetadataConstraints implements Constraint {
         try {
           TabletAvailabilityUtil.fromValue(new Value(columnUpdate.getValue()));
         } catch (IllegalArgumentException e) {
-          addViolation(violations, 16);
+          addViolation(violations, 4005);
         }
         break;
     }
@@ -415,7 +416,7 @@ public class MetadataConstraints implements Constraint {
         try {
           ServerColumnFamily.validateDirCol(new String(columnUpdate.getValue(), UTF_8));
         } catch (IllegalArgumentException e) {
-          addViolation(violations, 17);
+          addViolation(violations, (short) 3102);
         }
         break;
       case ServerColumnFamily.OPID_QUAL:
@@ -431,14 +432,14 @@ public class MetadataConstraints implements Constraint {
             }
           }
         } catch (IllegalArgumentException e) {
-          addViolation(violations, 9);
+          addViolation(violations, 4000);
         }
         break;
       case ServerColumnFamily.SELECTED_QUAL:
         try {
           SelectedFiles.from(new String(columnUpdate.getValue(), UTF_8));
         } catch (RuntimeException e) {
-          addViolation(violations, 11);
+          addViolation(violations, 4001);
         }
         break;
     }
@@ -454,7 +455,7 @@ public class MetadataConstraints implements Constraint {
       try {
         SuspendingTServer.fromValue(new Value(columnUpdate.getValue()));
       } catch (IllegalArgumentException e) {
-        addViolation(violations, 10);
+        addViolation(violations, 3101);
       }
     }
   }
@@ -512,14 +513,14 @@ public class MetadataConstraints implements Constraint {
 
   private void validateCompactedFamily(ArrayList<Short> violations, ColumnUpdate columnUpdate) {
     if (!FateId.isFateId(new String(columnUpdate.getColumnQualifier(), UTF_8))) {
-      addViolation(violations, 13);
+      addViolation(violations, 4002);
     }
   }
 
   private void validateUserCompactionRequestedFamily(ArrayList<Short> violations,
       ColumnUpdate columnUpdate) {
     if (!FateId.isFateId(new String(columnUpdate.getColumnQualifier(), UTF_8))) {
-      addViolation(violations, 14);
+      addViolation(violations, 4003);
     }
   }
 
@@ -530,7 +531,7 @@ public class MetadataConstraints implements Constraint {
       try {
         UnSplittableMetadata.toUnSplittable(new String(columnUpdate.getValue(), UTF_8));
       } catch (RuntimeException e) {
-        addViolation(violations, 15);
+        addViolation(violations, 4004);
       }
     }
   }
