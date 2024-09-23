@@ -24,6 +24,8 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.server.rpc.TServerUtils;
 
+import com.google.common.base.Preconditions;
+
 public class Session {
 
   enum State {
@@ -38,6 +40,7 @@ public class Session {
   private final Timer stateChangeTimer = Timer.startNew();
   private final TCredentials credentials;
   private long sessionId;
+  private boolean sessionIdSet = false;
 
   Session(TCredentials credentials) {
     this.credentials = credentials;
@@ -68,10 +71,13 @@ public class Session {
   }
 
   public void setSessionId(long sessionId) {
+    Preconditions.checkState(!sessionIdSet);
     this.sessionId = sessionId;
+    this.sessionIdSet = true;
   }
 
   public long getSessionId() {
+    Preconditions.checkState(sessionIdSet);
     return sessionId;
   }
 
