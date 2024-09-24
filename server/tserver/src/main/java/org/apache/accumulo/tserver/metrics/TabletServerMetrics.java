@@ -90,7 +90,7 @@ public class TabletServerMetrics implements MetricsProducer {
     Gauge
         .builder(TSERVER_MAJC_QUEUED.getName(), util,
             TabletServerMetricsUtil::getMajorCompactionsQueued)
-        .description(TSERVER_MINC_QUEUED.getDescription()).register(registry);
+        .description(TSERVER_MAJC_QUEUED.getDescription()).register(registry);
     Gauge
         .builder(TSERVER_MINC_RUNNING.getName(), util, TabletServerMetricsUtil::getMinorCompactions)
         .description(TSERVER_MINC_RUNNING.getDescription()).register(registry);
