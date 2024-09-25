@@ -99,15 +99,11 @@ public class FateMetrics implements MetricsProducer {
     fateErrorsCount.set(metricValues.getZkConnectionErrors());
 
     for (Entry<TStatus,Long> entry : metricValues.getTxStateCounters().entrySet()) {
-      try {
-        AtomicLong counter = txStatusCounters.get(entry.getKey());
-        if (counter != null) {
-          counter.set(entry.getValue());
-        } else {
-          log.warn("Unhandled TStatus: {}", entry.getKey());
-        }
-      } catch (IllegalArgumentException e) {
-        log.warn("Unknown TStatus value: {}", entry.getKey(), e);
+      AtomicLong counter = txStatusCounters.get(entry.getKey());
+      if (counter != null) {
+        counter.set(entry.getValue());
+      } else {
+        log.warn("Unhandled TStatus: {}", entry.getKey());
       }
     }
 
