@@ -651,11 +651,11 @@ public class CompactionCoordinator
   @Override
   public void registerMetrics(MeterRegistry registry) {
     Gauge.builder(MAJC_QUEUED.getName(), jobQueues, CompactionJobQueues::getQueuedJobCount)
-        .tag("subprocess", "compaction.coordinator")
-        .description("Number of queued major compactions").register(registry);
+        .tag("subprocess", "compaction.coordinator").description(MAJC_QUEUED.getDescription())
+        .register(registry);
     Gauge.builder(MAJC_RUNNING.getName(), this, CompactionCoordinator::getNumRunningCompactions)
-        .tag("subprocess", "compaction.coordinator")
-        .description("Number of running major compactions").register(registry);
+        .tag("subprocess", "compaction.coordinator").description(MAJC_RUNNING.getDescription())
+        .register(registry);
 
     queueMetrics.registerMetrics(registry);
   }
