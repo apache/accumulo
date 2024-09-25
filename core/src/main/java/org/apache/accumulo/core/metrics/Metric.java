@@ -249,14 +249,18 @@ public enum Metric {
       MetricType.GAUGE,
       "The number of migrations that need to complete before the system is balanced.",
       MetricCategory.MANAGER),
-  MANAGER_ROOT_TGW_ERRORS("accumulo.manager.tabletmgmt.root.errors", MetricType.GAUGE, "",
+  MANAGER_ROOT_TGW_ERRORS("accumulo.manager.tabletmgmt.root.errors", MetricType.GAUGE,
+      "Error count encountered by the TabletGroupWatcher for the ROOT data level.",
       MetricCategory.MANAGER),
-  MANAGER_META_TGW_ERRORS("accumulo.manager.tabletmgmt.meta.errors", MetricType.GAUGE, "",
+  MANAGER_META_TGW_ERRORS("accumulo.manager.tabletmgmt.meta.errors", MetricType.GAUGE,
+      "Error count encountered by the TabletGroupWatcher for the META data level.",
       MetricCategory.MANAGER),
-  MANAGER_USER_TGW_ERRORS("accumulo.manager.tabletmgmt.user.errors", MetricType.GAUGE, "",
+  MANAGER_USER_TGW_ERRORS("accumulo.manager.tabletmgmt.user.errors", MetricType.GAUGE,
+      "Error count encountered by the TabletGroupWatcher for the USER data level.",
       MetricCategory.MANAGER),
   MANAGER_COMPACTION_SVC_ERRORS("accumulo.manager.compaction.svc.misconfigured", MetricType.GAUGE,
-      "", MetricCategory.MANAGER);
+      "A value of 1 indicates a misconfiguration in the compaction service, while a value of 0 indicates that the configuration is valid.",
+      MetricCategory.MANAGER);
 
   private final String name;
   private final MetricType type;
