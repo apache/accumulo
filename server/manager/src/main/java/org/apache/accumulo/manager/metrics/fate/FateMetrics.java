@@ -22,7 +22,7 @@ import static org.apache.accumulo.core.metrics.Metric.FATE_OPS;
 import static org.apache.accumulo.core.metrics.Metric.FATE_TX;
 import static org.apache.accumulo.core.metrics.Metric.FATE_TYPE_IN_PROGRESS;
 
-import java.util.List;
+import java.util.EnumMap;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,15 +31,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
-import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 
 public abstract class FateMetrics<T extends FateMetricValues> implements MetricsProducer {
@@ -55,14 +56,8 @@ public abstract class FateMetrics<T extends FateMetricValues> implements Metrics
   protected final ReadOnlyFateStore<FateMetrics<T>> fateStore;
   protected final long refreshDelay;
 
-  protected final AtomicLong totalCurrentOpsGauge = new AtomicLong(0);
-  protected final AtomicLong newTxGauge = new AtomicLong(0);
-  protected final AtomicLong submittedTxGauge = new AtomicLong(0);
-  protected final AtomicLong inProgressTxGauge = new AtomicLong(0);
-  protected final AtomicLong failedInProgressTxGauge = new AtomicLong(0);
-  protected final AtomicLong failedTxGauge = new AtomicLong(0);
-  protected final AtomicLong successfulTxGauge = new AtomicLong(0);
-  protected final AtomicLong unknownTxGauge = new AtomicLong(0);
+  protected final AtomicLong totalCurrentOpsCount = new AtomicLong(0);
+  private final EnumMap<TStatus,AtomicLong> txStatusCounters = new EnumMap<>(TStatus.class);
 
   public FateMetrics(final ServerContext context, final long minimumRefreshDelay) {
     this.context = context;
@@ -79,74 +74,31 @@ public abstract class FateMetrics<T extends FateMetricValues> implements Metrics
   }
 
   protected void update(T metricValues) {
-    totalCurrentOpsGauge.set(metricValues.getCurrentFateOps());
+    totalCurrentOpsCount.set(metricValues.getCurrentFateOps());
 
-    for (Entry<String,Long> vals : metricValues.getTxStateCounters().entrySet()) {
-      switch (ReadOnlyFateStore.TStatus.valueOf(vals.getKey())) {
-        case NEW:
-          newTxGauge.set(vals.getValue());
-          break;
-        case SUBMITTED:
-          submittedTxGauge.set(vals.getValue());
-          break;
-        case IN_PROGRESS:
-          inProgressTxGauge.set(vals.getValue());
-          break;
-        case FAILED_IN_PROGRESS:
-          failedInProgressTxGauge.set(vals.getValue());
-          break;
-        case FAILED:
-          failedTxGauge.set(vals.getValue());
-          break;
-        case SUCCESSFUL:
-          successfulTxGauge.set(vals.getValue());
-          break;
-        case UNKNOWN:
-          unknownTxGauge.set(vals.getValue());
-          break;
-        default:
-          log.warn("Unhandled status type: {}", vals.getKey());
+    for (Entry<TStatus,Long> entry : metricValues.getTxStateCounters().entrySet()) {
+      AtomicLong counter = txStatusCounters.get(entry.getKey());
+      if (counter != null) {
+        counter.set(entry.getValue());
+      } else {
+        log.warn("Unhandled TStatus: {}", entry.getKey());
       }
     }
-    metricValues.getOpTypeCounters().forEach((name, count) -> {
-      Metrics.gauge(FATE_TYPE_IN_PROGRESS.getName(), Tags.of(OP_TYPE_TAG, name), count);
-    });
+
+    metricValues.getOpTypeCounters().forEach((name, count) -> Metrics
+        .gauge(FATE_TYPE_IN_PROGRESS.getName(), Tags.of(OP_TYPE_TAG, name), count));
   }
 
   @Override
   public void registerMetrics(final MeterRegistry registry) {
-    var type = fateStore.type().name().toLowerCase();
-    var instanceTypeTag = Tag.of("instanceType", type);
+    String type = fateStore.type().name().toLowerCase();
 
-    registry.gauge(FATE_OPS.getName(), totalCurrentOpsGauge);
+    Gauge.builder(FATE_OPS.getName(), totalCurrentOpsCount, AtomicLong::get)
+        .description(FATE_OPS.getDescription()).register(registry);
 
-    registry.gauge(FATE_TX.getName(), List
-        .of(Tag.of("state", ReadOnlyFateStore.TStatus.NEW.name().toLowerCase()), instanceTypeTag),
-        newTxGauge);
-    registry.gauge(FATE_TX.getName(),
-        List.of(Tag.of("state", ReadOnlyFateStore.TStatus.SUBMITTED.name().toLowerCase()),
-            instanceTypeTag),
-        submittedTxGauge);
-    registry.gauge(FATE_TX.getName(),
-        List.of(Tag.of("state", ReadOnlyFateStore.TStatus.IN_PROGRESS.name().toLowerCase()),
-            instanceTypeTag),
-        inProgressTxGauge);
-    registry.gauge(FATE_TX.getName(),
-        List.of(Tag.of("state", ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS.name().toLowerCase()),
-            instanceTypeTag),
-        failedInProgressTxGauge);
-    registry.gauge(FATE_TX.getName(),
-        List.of(Tag.of("state", ReadOnlyFateStore.TStatus.FAILED.name().toLowerCase()),
-            instanceTypeTag),
-        failedTxGauge);
-    registry.gauge(FATE_TX.getName(),
-        List.of(Tag.of("state", ReadOnlyFateStore.TStatus.SUCCESSFUL.name().toLowerCase()),
-            instanceTypeTag),
-        successfulTxGauge);
-    registry.gauge(FATE_TX.getName(),
-        List.of(Tag.of("state", ReadOnlyFateStore.TStatus.UNKNOWN.name().toLowerCase()),
-            instanceTypeTag),
-        unknownTxGauge);
+    txStatusCounters.forEach((status, counter) -> Gauge
+        .builder(FATE_TX.getName(), counter, AtomicLong::get).description(FATE_TX.getDescription())
+        .tags("state", status.name().toLowerCase(), "instanceType", type).register(registry));
 
     // get fate status is read only operation - no reason to be nice on shutdown.
     ScheduledExecutorService scheduler = ThreadPools.getServerThreadPools()
