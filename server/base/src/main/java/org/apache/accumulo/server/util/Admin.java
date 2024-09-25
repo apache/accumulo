@@ -508,6 +508,7 @@ public class Admin implements KeywordExecutable {
       log.error("{}", e.getMessage(), e);
       System.exit(3);
     } finally {
+      context.close();
       SingletonManager.setMode(Mode.CLOSED);
     }
   }
