@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.metrics.fate.user;
 
+import java.util.EnumMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -30,7 +31,7 @@ import com.google.common.base.Preconditions;
 public class UserFateMetricValues extends FateMetricValues {
 
   protected UserFateMetricValues(long updateTime, long currentFateOps,
-      Map<String,Long> txStateCounters, Map<String,Long> opTypeCounters) {
+      EnumMap<ReadOnlyFateStore.TStatus,Long> txStateCounters, Map<String,Long> opTypeCounters) {
     super(updateTime, currentFateOps, txStateCounters, opTypeCounters);
   }
 
