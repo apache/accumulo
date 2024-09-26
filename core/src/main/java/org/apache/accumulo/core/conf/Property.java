@@ -116,7 +116,7 @@ public enum Property {
           + " everywhere. Before using the ChangeSecret tool, make sure Accumulo is not"
           + " running and you are logged in as the user that controls Accumulo files in"
           + " HDFS. To use the ChangeSecret tool, run the command: `./bin/accumulo"
-          + " org.apache.accumulo.server.util.ChangeSecret`.",
+          + " admin changeSecret`.",
       "1.3.5"),
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
       "A comma separated list of dfs uris to use. Files will be stored across"
