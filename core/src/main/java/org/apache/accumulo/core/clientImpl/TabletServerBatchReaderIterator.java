@@ -78,6 +78,7 @@ import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.thrift.TApplicationException;
@@ -503,7 +504,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private void doLookups(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
       final ResultReceiver receiver, List<Column> columns) {
-    Timer startTime = Timer.startNew();
+    CountDownTimer retryCountDownTimer = CountDownTimer.startNew(retryTimeout, MILLISECONDS);
     int maxTabletsPerRequest = Integer.MAX_VALUE;
 
     long busyTimeout = 0;
@@ -511,7 +512,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     Map<String,ScanServerAttemptReporter> reporters = Map.of();
 
     if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
-      var scanServerData = rebinToScanServers(binnedRanges, startTime);
+      var scanServerData = rebinToScanServers(binnedRanges, retryCountDownTimer);
       busyTimeout = scanServerData.actions.getBusyTimeout().toMillis();
       reporters = scanServerData.reporters;
       scanServerSelectorDelay = scanServerData.actions.getDelay();
@@ -605,7 +606,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private ScanServerData rebinToScanServers(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
-      Timer startTime) {
+      CountDownTimer retryCountDownTimer) {
     ScanServerSelector ecsm = context.getScanServerSelector();
 
     List<TabletIdImpl> tabletIds =
@@ -634,7 +635,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       @Override
       public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
           String description) {
-        Duration timeoutLeft = Duration.ofMillis(retryTimeout - startTime.elapsed(MILLISECONDS));
+        Duration timeoutLeft = retryCountDownTimer.timeLeft();
         return ThriftScanner.waitUntil(condition, maxWaitTime, description, timeoutLeft, context,
             tableId, log);
       }

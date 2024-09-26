@@ -83,6 +83,13 @@ public class CountDownTimer {
   }
 
   /**
+   * @return the remaining time, or zero if expired.
+   */
+  public Duration timeLeft() {
+    return Duration.ofNanos(timeLeft(TimeUnit.NANOSECONDS));
+  }
+
+  /**
    * Checks if the countdown timer has expired.
    *
    * @return true if the elapsed time since creation is greater than or equals to the initial
