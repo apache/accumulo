@@ -63,6 +63,10 @@ public abstract class FateMetrics<T extends FateMetricValues> implements Metrics
     this.context = context;
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
     this.fateStore = Objects.requireNonNull(buildStore(context));
+
+    for (TStatus status : TStatus.values()) {
+      txStatusCounters.put(status, new AtomicLong(0));
+    }
   }
 
   protected abstract ReadOnlyFateStore<FateMetrics<T>> buildStore(ServerContext context);
