@@ -732,9 +732,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     String server;
     Set<String> badServers;
+    CountDownTimer timeoutCountDownTimer;
     long timeOut;
-    long activityTime;
-    Long firstErrorTime = null;
+    CountDownTimer errorTimer;
 
     TimeoutTracker(String server, Set<String> badServers, long timeOut) {
       this(timeOut);
@@ -744,29 +744,29 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     TimeoutTracker(long timeOut) {
       this.timeOut = timeOut;
+      this.timeoutCountDownTimer = CountDownTimer.startNew(timeOut, MILLISECONDS);
     }
 
     void startingScan() {
-      activityTime = System.currentTimeMillis();
+      timeoutCountDownTimer.restart();
     }
 
     void check() throws IOException {
-      if (System.currentTimeMillis() - activityTime > timeOut) {
+      if (timeoutCountDownTimer.isExpired()) {
         badServers.add(server);
-        throw new IOException(
-            "Time exceeded " + (System.currentTimeMillis() - activityTime) + " " + server);
+        throw new IOException("Time exceeded " + timeOut + " ms for server " + server);
       }
     }
 
     void madeProgress() {
-      activityTime = System.currentTimeMillis();
-      firstErrorTime = null;
+      timeoutCountDownTimer.restart();
+      errorTimer = null;
     }
 
     void errorOccured() {
-      if (firstErrorTime == null) {
-        firstErrorTime = activityTime;
-      } else if (System.currentTimeMillis() - firstErrorTime > timeOut) {
+      if (errorTimer == null) {
+        errorTimer = CountDownTimer.startNew(timeOut, MILLISECONDS);
+      } else if (errorTimer.isExpired()) {
         badServers.add(server);
       }
     }

@@ -39,7 +39,7 @@ import com.google.common.base.Preconditions;
  * </pre>
  */
 public class CountDownTimer {
-  private final long startNanos;
+  private long startNanos;
   private final long durationNanos;
 
   private CountDownTimer(long durationNanos) {
@@ -66,6 +66,13 @@ public class CountDownTimer {
   public static CountDownTimer startNew(long duration, TimeUnit unit) {
     Preconditions.checkArgument(duration >= 0);
     return new CountDownTimer(unit.toNanos(duration));
+  }
+
+  /**
+   * Resets the timer to the initial duration.
+   */
+  public void restart() {
+    this.startNanos = System.nanoTime();
   }
 
   /**
