@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -68,7 +67,7 @@ public class RowFateStatusFilter extends WholeRowIterator {
   }
 
   public static void configureScanner(ScannerBase scanner,
-      Set<ReadOnlyFateStore.TStatus> statuses) {
+      EnumSet<ReadOnlyFateStore.TStatus> statuses) {
     // only filter when getting a subset of statuses
     if (!statuses.equals(ALL_STATUSES)) {
       String statusesStr = statuses.stream().map(Enum::name).collect(Collectors.joining(","));

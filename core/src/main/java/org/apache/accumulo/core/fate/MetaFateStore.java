@@ -29,11 +29,11 @@ import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -503,7 +503,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected Stream<FateIdStatus> getTransactions(Set<TStatus> statuses) {
+  protected Stream<FateIdStatus> getTransactions(EnumSet<TStatus> statuses) {
     try {
       Stream<FateIdStatus> stream = zk.getChildren(path).stream().map(strTxid -> {
         String txUUIDStr = strTxid.split("_")[1];

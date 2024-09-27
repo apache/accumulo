@@ -23,9 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -171,7 +171,7 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
     }
 
     private void testOperationWithStatuses(Runnable beforeOperation, Executable operation,
-        Set<TStatus> acceptableStatuses) throws Exception {
+        EnumSet<TStatus> acceptableStatuses) throws Exception {
       for (TStatus status : TStatus.values()) {
         // Run any needed setup for the operation before each iteration
         beforeOperation.run();
@@ -192,7 +192,7 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
     public void push() throws Exception {
       testOperationWithStatuses(() -> {}, // No special setup needed for push
           () -> txStore.push(new FateIT.TestRepo("testOp")),
-          Set.of(TStatus.IN_PROGRESS, TStatus.NEW));
+          EnumSet.of(TStatus.IN_PROGRESS, TStatus.NEW));
     }
 
     @Test
@@ -205,14 +205,14 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
         } catch (Exception e) {
           throw new RuntimeException("Failed to setup for pop", e);
         }
-      }, txStore::pop, Set.of(TStatus.FAILED_IN_PROGRESS, TStatus.SUCCESSFUL));
+      }, txStore::pop, EnumSet.of(TStatus.FAILED_IN_PROGRESS, TStatus.SUCCESSFUL));
     }
 
     @Test
     public void delete() throws Exception {
       testOperationWithStatuses(() -> {}, // No special setup needed for delete
           txStore::delete,
-          Set.of(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED));
+          EnumSet.of(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED));
     }
   }
 

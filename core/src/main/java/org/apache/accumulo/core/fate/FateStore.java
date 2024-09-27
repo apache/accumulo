@@ -25,9 +25,11 @@ import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.user.FateMutatorImpl;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -64,6 +66,8 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    *         hash to the same FateId or if a random FateId already exists.
    */
   Optional<FateTxStore<T>> createAndReserve(FateKey fateKey);
+
+  Stream<FateIdStatus> list(EnumSet<TStatus> statuses);
 
   /**
    * An interface that allows read/write access to the data related to a single fate operation.

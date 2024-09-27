@@ -234,7 +234,7 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public Stream<FateIdStatus> list(Set<TStatus> statuses) {
+  public Stream<FateIdStatus> list(EnumSet<TStatus> statuses) {
     return list().filter(fis -> statuses.contains(fis.getStatus()));
   }
 
