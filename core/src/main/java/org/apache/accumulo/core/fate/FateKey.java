@@ -176,7 +176,7 @@ public class FateKey {
     var buf = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);
     buf.append("FateKeyType", type);
     keyExtent.ifPresentOrElse(keyExtent -> buf.append("KeyExtent", keyExtent),
-            () -> buf.append("ExternalCompactionID", compactionId.orElseThrow()));
+        () -> buf.append("ExternalCompactionID", compactionId.orElseThrow()));
     return buf.toString();
   }
 }
