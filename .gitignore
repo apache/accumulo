@@ -19,6 +19,7 @@
 
 # Maven ignores
 /target/
+.flattened-pom.xml
 
 # IDE ignores
 /.settings/
