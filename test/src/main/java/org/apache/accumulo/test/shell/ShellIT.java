@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.shell;
 
+import static org.apache.accumulo.core.conf.Property.COMPACTION_WARN_TIME;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -26,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -49,6 +51,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -605,6 +608,38 @@ public class ShellIT extends SharedMiniClusterBase {
         "src/main/resources/org/apache/accumulo/test/shellit.shellit");
     assertEquals(0, shell.start());
     assertGoodExit("Unknown command", false);
+  }
+
+  @TempDir
+  private static File tempDir;
+
+  @Test
+  public void propFileNotFoundTest() throws IOException {
+    String fileName = new File(tempDir, "propFile.shellit").getAbsolutePath();
+
+    Shell.log.debug("Starting prop file not found test --------------------------");
+    exec("config --propFile " + fileName, false,
+        "FileNotFoundException: " + fileName + "(No such file or directory)");
+  }
+
+  @Test
+  public void setpropsViaFile() throws Exception {
+
+    File file = File.createTempFile("propFile", ".conf", tempDir);
+    PrintWriter writer = new PrintWriter(file.getAbsolutePath());
+    writer.println(COMPACTION_WARN_TIME.getKey() + "=11m");
+    writer.close();
+    exec("config --propFile " + file.getAbsolutePath(), true);
+  }
+
+  @Test
+  public void invalidPropFileTest() throws Exception {
+    File file = File.createTempFile("invalidPropFile", ".conf", tempDir);
+    PrintWriter writer = new PrintWriter(file.getAbsolutePath());
+    writer.println("this is not a valid property file");
+    writer.close();
+    exec("config --propFile " + file.getAbsolutePath(), false,
+        "InvalidPropertyFile: " + file.getAbsolutePath());
   }
 
   @Test
