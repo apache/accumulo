@@ -53,8 +53,11 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.rpc.TimedProcessor.AsyncTimedProcessor;
+import org.apache.accumulo.server.rpc.TimedProcessor.SyncTimedProcessor;
 import org.apache.hadoop.security.SaslRpcServer;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.thrift.TAsyncProcessor;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.protocol.TProtocolFactory;
@@ -170,7 +173,7 @@ public class TServerUtils {
     // create the TimedProcessor outside the port search loop so we don't try to
     // register the same
     // metrics mbean more than once
-    TimedProcessor timedProcessor = new TimedProcessor(processor, context.getMetricsInfo());
+    TimedProcessor timedProcessor = newTimedProcessor(processor, context.getMetricsInfo());
 
     HostAndPort[] addresses = getHostAndPorts(hostname, portHint);
     try {
@@ -574,7 +577,7 @@ public class TServerUtils {
     }
 
     try {
-      return startTServer(serverType, new TimedProcessor(processor, metricsInfo), serverName,
+      return startTServer(serverType, newTimedProcessor(processor, metricsInfo), serverName,
           threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize,
           sslParams, saslParams, serverSocketTimeout, backlog, portSearch, addresses);
     } catch (TTransportException e) {
@@ -701,5 +704,11 @@ public class TServerUtils {
     log.info("Wrapping {} in UGIAssumingProcessor", processor.getClass());
 
     return new UGIAssumingProcessor(processor);
+  }
+
+  private static TimedProcessor newTimedProcessor(TProcessor processor, MetricsInfo metricsInfo) {
+    return processor instanceof TAsyncProcessor
+        ? new AsyncTimedProcessor((TAsyncProcessor) processor, metricsInfo)
+        : new SyncTimedProcessor(processor, metricsInfo);
   }
 }

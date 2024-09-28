@@ -33,19 +33,17 @@ import com.google.common.base.Preconditions;
 /**
  * A {@link TProcessor} which tracks the duration of an RPC and adds it to the metrics subsystem.
  */
-public class TimedProcessor implements TProcessor, TAsyncProcessor {
+public abstract class TimedProcessor implements TProcessor {
 
-  private final TProcessor other;
-  private final ThriftMetrics thriftMetrics;
-  private long idleStart;
-  private final boolean async;
+  protected final TProcessor other;
+  protected final ThriftMetrics thriftMetrics;
+  protected long idleStart;
 
-  public TimedProcessor(final TProcessor next, final MetricsInfo metricsInfo) {
+  protected TimedProcessor(final TProcessor next, final MetricsInfo metricsInfo) {
     this.other = next;
     thriftMetrics = new ThriftMetrics();
     metricsInfo.addMetricsProducers(thriftMetrics);
     idleStart = System.nanoTime();
-    this.async = next instanceof TAsyncProcessor;
   }
 
   @Override
@@ -53,14 +51,8 @@ public class TimedProcessor implements TProcessor, TAsyncProcessor {
     time(() -> other.process(in, out));
   }
 
-  @Override
-  public void process(AsyncFrameBuffer fb) throws TException {
-    Preconditions.checkState(isAsync(), "Processor is not Async");
-    time(() -> ((TAsyncProcessor) this.other).process(fb));
-  }
-
   public boolean isAsync() {
-    return async;
+    return false;
   }
 
   protected void time(ThriftRunnable runnable) throws TException {
@@ -72,6 +64,37 @@ public class TimedProcessor implements TProcessor, TAsyncProcessor {
       // set idle to now, calc time in process
       idleStart = System.nanoTime();
       thriftMetrics.addExecute(NANOSECONDS.toMillis(idleStart - processStart));
+    }
+  }
+
+  public static class SyncTimedProcessor extends TimedProcessor {
+    protected SyncTimedProcessor(TProcessor next, MetricsInfo metricsInfo) {
+      super(next, metricsInfo);
+    }
+  }
+
+  public static class AsyncTimedProcessor extends TimedProcessor implements TAsyncProcessor {
+    private final TAsyncProcessor other;
+
+    public AsyncTimedProcessor(TAsyncProcessor next, MetricsInfo metricsInfo) {
+      super(validate(next), metricsInfo);
+      this.other = next;
+    }
+
+    @Override
+    public boolean isAsync() {
+      return true;
+    }
+
+    @Override
+    public void process(AsyncFrameBuffer fb) throws TException {
+      this.other.process(fb);
+    }
+
+    private static TProcessor validate(TAsyncProcessor other) {
+      Preconditions.checkArgument(other instanceof TProcessor,
+          "Async processor must also implement TProcessor");
+      return (TProcessor) other;
     }
   }
 
