@@ -164,12 +164,12 @@ public class CompactionCoordinatorTest {
 
     @Override
     public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-        String externalCompactionId, TKeyExtent textent, TCompactionStats stats,
-        AsyncMethodCallback<Void> callback) throws ThriftSecurityException {}
+        String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
+        throws ThriftSecurityException {}
 
     @Override
     public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-        TKeyExtent extent, AsyncMethodCallback<Void> callback) throws ThriftSecurityException {}
+        TKeyExtent extent) throws ThriftSecurityException {}
 
     void setMetadataCompactionIds(Set<ExternalCompactionId> mci) {
       metadataCompactionIds = mci;
@@ -370,8 +370,8 @@ public class CompactionCoordinatorTest {
     // Get the next job
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
     CompletableFuture<TNextCompactionJob> future = new CompletableFuture<>();
-    coordinator.getCompactionJob(new TInfo(), creds, GROUP_ID.toString(), "localhost:10241",
-        eci.toString(), new AsyncMethodCallback<>() {
+    coordinator.getAsyncThriftService().getCompactionJob(new TInfo(), creds, GROUP_ID.toString(),
+        "localhost:10241", eci.toString(), new AsyncMethodCallback<>() {
           @Override
           public void onComplete(TNextCompactionJob response) {
             future.complete(response);
@@ -429,8 +429,9 @@ public class CompactionCoordinatorTest {
 
     var coordinator = new TestCoordinator(context, security, new ArrayList<>(), manager);
     CompletableFuture<TNextCompactionJob> future = new CompletableFuture<>();
-    coordinator.getCompactionJob(TraceUtil.traceInfo(), creds, GROUP_ID.toString(),
-        "localhost:10240", UUID.randomUUID().toString(), new AsyncMethodCallback<>() {
+    coordinator.getAsyncThriftService().getCompactionJob(TraceUtil.traceInfo(), creds,
+        GROUP_ID.toString(), "localhost:10240", UUID.randomUUID().toString(),
+        new AsyncMethodCallback<>() {
           @Override
           public void onComplete(TNextCompactionJob response) {
             future.complete(response);

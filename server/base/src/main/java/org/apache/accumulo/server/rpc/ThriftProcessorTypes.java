@@ -18,9 +18,12 @@
  */
 package org.apache.accumulo.server.rpc;
 
+import java.util.Optional;
+
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.AsyncProcessor;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.manager.thrift.FateService;
@@ -114,10 +117,16 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   }
 
   public static TMultiplexedProcessor getManagerTProcessor(FateService.Iface fateServiceHandler,
-      ManagerClientService.Iface managerServiceHandler, ServerContext context) {
+      ManagerClientService.Iface managerServiceHandler,
+      Optional<CompactionCoordinatorService.Iface> coordinatorServiceHandler,
+      ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(FATE.getServiceName(), FATE.getTProcessor(
         FateService.Processor.class, FateService.Iface.class, fateServiceHandler, context));
+    coordinatorServiceHandler
+        .ifPresent(csh -> muxProcessor.registerProcessor(COORDINATOR.getServiceName(),
+            COORDINATOR.getTProcessor(CompactionCoordinatorService.Processor.class, Iface.class,
+                csh, context)));
     muxProcessor.registerProcessor(MANAGER.getServiceName(),
         MANAGER.getTProcessor(ManagerClientService.Processor.class,
             ManagerClientService.Iface.class, managerServiceHandler, context));

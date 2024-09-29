@@ -57,4 +57,14 @@ public enum ThriftServerType {
   public static ThriftServerType getDefault() {
     return CUSTOM_HS_HA;
   }
+
+  public static boolean supportsAsync(ThriftServerType thriftServerType) {
+    switch (thriftServerType) {
+      case CUSTOM_HS_HA:
+      case THREADED_SELECTOR:
+        return true;
+      default:
+        return false;
+    }
+  }
 }

@@ -30,6 +30,8 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metrics.Metric.MAJC_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.MAJC_RUNNING;
+import static org.apache.accumulo.core.rpc.ThriftUtil.asyncMethodFuture;
+import static org.apache.accumulo.core.rpc.ThriftUtil.getFutureThriftResult;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -46,6 +48,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
@@ -69,6 +72,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.AsyncIface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -156,7 +160,7 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class CompactionCoordinator
-    implements CompactionCoordinatorService.AsyncIface, Runnable, MetricsProducer {
+    implements CompactionCoordinatorService.Iface, Runnable, MetricsProducer {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
 
@@ -198,6 +202,7 @@ public class CompactionCoordinator
 
   private volatile long coordinatorStartTime;
   private final long maxJobRequestWaitTime;
+  private final CompactionCoordinatorService.AsyncIface asyncThriftService;
 
   public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
       AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances, Manager manager) {
@@ -244,6 +249,8 @@ public class CompactionCoordinator
     compactorCounts = ctx.getCaches().createNewBuilder(CacheName.COMPACTOR_COUNTS, false)
         .expireAfterWrite(30, TimeUnit.SECONDS).build(this::countCompactors);
     // At this point the manager does not have its lock so no actions should be taken yet
+
+    this.asyncThriftService = newAsyncThriftService();
   }
 
   protected int countCompactors(String groupName) {
@@ -365,77 +372,15 @@ public class CompactionCoordinator
    * @param groupName group
    * @param compactorAddress compactor address
    * @throws ThriftSecurityException when permission error
+   * @return compaction job
    */
   @Override
-  public void getCompactionJob(TInfo tinfo, TCredentials credentials, String groupName,
-      String compactorAddress, String externalCompactionId,
-      AsyncMethodCallback<TNextCompactionJob> resultHandler) throws ThriftSecurityException {
-
-    // do not expect users to call this directly, expect compactors to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    // Get the next job as a future as we need to wait until something is available
-    CompactorGroupId groupId = CompactorGroupId.of(groupName);
-    LOG.trace("getCompactionJob called for group {} by compactor {}", groupId, compactorAddress);
-    TIME_COMPACTOR_LAST_CHECKED.put(groupId, System.currentTimeMillis());
-
-    var future = jobQueues.getAsync(groupId).thenApply(metaJob -> {
-      LOG.trace("Next metaJob is ready {}", metaJob.getJob());
-      Optional<CompactionConfig> compactionConfig = getCompactionConfig(metaJob);
-
-      // this method may reread the metadata, do not use the metadata in metaJob for anything after
-      // this method
-      CompactionMetadata ecm = null;
-
-      var kind = metaJob.getJob().getKind();
-
-      // Only reserve user compactions when the config is present. When compactions are canceled the
-      // config is deleted.
-      var cid = ExternalCompactionId.from(externalCompactionId);
-      if (kind == CompactionKind.SYSTEM
-          || (kind == CompactionKind.USER && compactionConfig.isPresent())) {
-        ecm = reserveCompaction(metaJob, compactorAddress, cid);
-      }
-
-      final TExternalCompactionJob result;
-      if (ecm != null) {
-        result = createThriftJob(externalCompactionId, ecm, metaJob, compactionConfig);
-        // It is possible that by the time this added that the the compactor that made this request
-        // is dead. In this cases the compaction is not actually running.
-        RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
-            new RunningCompaction(result, compactorAddress, groupName));
-        TabletLogger.compacting(metaJob.getTabletMetadata(), cid, compactorAddress,
-            metaJob.getJob());
-      } else {
-        LOG.debug("Unable to reserve compaction job for {} {}, returning empty job to compactor {}",
-            groupName, metaJob.getTabletMetadata().getExtent(), compactorAddress);
-        result = new TExternalCompactionJob();
-      }
-
-      return new TNextCompactionJob(result, compactorCounts.get(groupName));
-    });
-
-    // TODO: Use a thread pool and use thenAcceptAsync and exceptionallyAsync()
-    // Async send back to the compactor when a new job is ready
-    // Need the unused var for errorprone
-    var unused = future.thenAccept(ecj -> {
-      LOG.debug("Received next compaction job {}", ecj);
-      resultHandler.onComplete(ecj);
-    }).orTimeout(maxJobRequestWaitTime, MILLISECONDS).exceptionally(e -> {
-      if (e instanceof TimeoutException) {
-        LOG.trace("Compaction job request with ecid {} timed out.", externalCompactionId);
-        resultHandler.onComplete(
-            new TNextCompactionJob(new TExternalCompactionJob(), compactorCounts.get(groupName)));
-      } else {
-        LOG.warn("Received exception processing compaction job {}", e.getMessage());
-        LOG.debug(e.getMessage(), e);
-        resultHandler.onError(new RuntimeException(e));
-      }
-      return null;
-    });
+  public TNextCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
+      String groupName, String compactorAddress, String externalCompactionId) throws TException {
+    final CompletableFuture<TNextCompactionJob> future = new CompletableFuture<>();
+    asyncThriftService.getCompactionJob(tinfo, credentials, groupName, compactorAddress,
+        externalCompactionId, asyncMethodFuture(future));
+    return getFutureThriftResult(future);
   }
 
   @VisibleForTesting
@@ -676,8 +621,141 @@ public class CompactionCoordinator
     jobQueues.add(tabletMetadata, jobs);
   }
 
-  public CompactionCoordinatorService.AsyncIface getThriftService() {
+  public CompactionCoordinatorService.Iface getThriftService() {
     return this;
+  }
+
+  public CompactionCoordinatorService.AsyncIface getAsyncThriftService() {
+    return asyncThriftService;
+  }
+
+  private CompactionCoordinatorService.AsyncIface newAsyncThriftService() {
+    return new AsyncIface() {
+      @Override
+      public void compactionCompleted(TInfo tinfo, TCredentials credentials,
+          String externalCompactionId, TKeyExtent textent, TCompactionStats stats,
+          AsyncMethodCallback<Void> resultHandler) throws TException {
+        CompactionCoordinator.this.compactionCompleted(tinfo, credentials, externalCompactionId,
+            textent, stats);
+        resultHandler.onComplete(null);
+      }
+
+      @Override
+      public void getCompactionJob(TInfo tinfo, TCredentials credentials, String groupName,
+          String compactorAddress, String externalCompactionId,
+          AsyncMethodCallback<TNextCompactionJob> resultHandler) throws TException {
+
+        // do not expect users to call this directly, expect compactors to call this method
+        if (!security.canPerformSystemActions(credentials)) {
+          throw new AccumuloSecurityException(credentials.getPrincipal(),
+              SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+        }
+
+        // Get the next job as a future as we need to wait until something is available
+        CompactorGroupId groupId = CompactorGroupId.of(groupName);
+        LOG.trace("getCompactionJob called for group {} by compactor {}", groupId,
+            compactorAddress);
+        TIME_COMPACTOR_LAST_CHECKED.put(groupId, System.currentTimeMillis());
+
+        var future = jobQueues.getAsync(groupId).thenApply(metaJob -> {
+          LOG.trace("Next metaJob is ready {}", metaJob.getJob());
+          Optional<CompactionConfig> compactionConfig = getCompactionConfig(metaJob);
+
+          // this method may reread the metadata, do not use the metadata in metaJob for anything
+          // after
+          // this method
+          CompactionMetadata ecm = null;
+
+          var kind = metaJob.getJob().getKind();
+
+          // Only reserve user compactions when the config is present. When compactions are canceled
+          // the
+          // config is deleted.
+          var cid = ExternalCompactionId.from(externalCompactionId);
+          if (kind == CompactionKind.SYSTEM
+              || (kind == CompactionKind.USER && compactionConfig.isPresent())) {
+            ecm = reserveCompaction(metaJob, compactorAddress, cid);
+          }
+
+          final TExternalCompactionJob result;
+          if (ecm != null) {
+            result = createThriftJob(externalCompactionId, ecm, metaJob, compactionConfig);
+            // It is possible that by the time this added that the the compactor that made this
+            // request
+            // is dead. In this cases the compaction is not actually running.
+            RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
+                new RunningCompaction(result, compactorAddress, groupName));
+            TabletLogger.compacting(metaJob.getTabletMetadata(), cid, compactorAddress,
+                metaJob.getJob());
+          } else {
+            LOG.debug(
+                "Unable to reserve compaction job for {} {}, returning empty job to compactor {}",
+                groupName, metaJob.getTabletMetadata().getExtent(), compactorAddress);
+            result = new TExternalCompactionJob();
+          }
+
+          return new TNextCompactionJob(result, compactorCounts.get(groupName));
+        });
+
+        // TODO: Use a thread pool and use thenAcceptAsync and exceptionallyAsync()
+        // Async send back to the compactor when a new job is ready
+        // Need the unused var for errorprone
+        var unused = future.thenAccept(ecj -> {
+          LOG.debug("Received next compaction job {}", ecj);
+          resultHandler.onComplete(ecj);
+        }).orTimeout(maxJobRequestWaitTime, MILLISECONDS).exceptionally(e -> {
+          if (e instanceof TimeoutException) {
+            LOG.trace("Compaction job request with ecid {} timed out.", externalCompactionId);
+            resultHandler.onComplete(new TNextCompactionJob(new TExternalCompactionJob(),
+                compactorCounts.get(groupName)));
+          } else {
+            LOG.warn("Received exception processing compaction job {}", e.getMessage());
+            LOG.debug(e.getMessage(), e);
+            resultHandler.onError(new RuntimeException(e));
+          }
+          return null;
+        });
+      }
+
+      @Override
+      public void updateCompactionStatus(TInfo tinfo, TCredentials credentials,
+          String externalCompactionId, TCompactionStatusUpdate update, long timestamp,
+          AsyncMethodCallback<Void> resultHandler) throws TException {
+        CompactionCoordinator.this.updateCompactionStatus(tinfo, credentials, externalCompactionId,
+            update, timestamp);
+        resultHandler.onComplete(null);
+      }
+
+      @Override
+      public void compactionFailed(TInfo tinfo, TCredentials credentials,
+          String externalCompactionId, TKeyExtent extent, AsyncMethodCallback<Void> resultHandler)
+          throws TException {
+        CompactionCoordinator.this.compactionFailed(tinfo, credentials, externalCompactionId,
+            extent);
+        resultHandler.onComplete(null);
+      }
+
+      @Override
+      public void getRunningCompactions(TInfo tinfo, TCredentials credentials,
+          AsyncMethodCallback<TExternalCompactionList> resultHandler) throws TException {
+        resultHandler
+            .onComplete(CompactionCoordinator.this.getRunningCompactions(tinfo, credentials));
+      }
+
+      @Override
+      public void getCompletedCompactions(TInfo tinfo, TCredentials credentials,
+          AsyncMethodCallback<TExternalCompactionList> resultHandler) throws TException {
+        resultHandler
+            .onComplete(CompactionCoordinator.this.getCompletedCompactions(tinfo, credentials));
+      }
+
+      @Override
+      public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId,
+          AsyncMethodCallback<Void> resultHandler) throws TException {
+        CompactionCoordinator.this.cancel(tinfo, credentials, externalCompactionId);
+        resultHandler.onComplete(null);
+      }
+    };
   }
 
   private Optional<CompactionConfig> getCompactionConfig(CompactionJobQueues.MetaJob metaJob) {
@@ -725,8 +803,8 @@ public class CompactionCoordinator
    */
   @Override
   public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent textent, TCompactionStats stats,
-      AsyncMethodCallback<Void> resultHandler) throws ThriftSecurityException {
+      String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
+      throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -738,7 +816,6 @@ public class CompactionCoordinator
     while (localFates == null) {
       UtilWaitThread.sleep(100);
       if (shutdown.getCount() == 0) {
-        resultHandler.onComplete(null);
         return;
       }
       localFates = fateInstances.get();
@@ -765,12 +842,10 @@ public class CompactionCoordinator
           tableState);
       // cleanup metadata table and files related to the compaction
       compactionsFailed(Map.of(ecid, extent));
-      resultHandler.onComplete(null);
       return;
     }
 
     if (!CommitCompaction.canCommitCompaction(ecid, tabletMeta)) {
-      resultHandler.onComplete(null);
       return;
     }
 
@@ -782,12 +857,11 @@ public class CompactionCoordinator
 
     txid.ifPresentOrElse(fateId -> LOG.debug("initiated compaction commit {} {}", ecid, fateId),
         () -> LOG.debug("compaction commit already initiated for {}", ecid));
-    resultHandler.onComplete(null);
   }
 
   @Override
   public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      TKeyExtent extent, AsyncMethodCallback<Void> resultHandler) throws ThriftSecurityException {
+      TKeyExtent extent) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -797,7 +871,6 @@ public class CompactionCoordinator
     LOG.info("Compaction failed, id: {}, extent: {}", externalCompactionId, fromThriftExtent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     compactionsFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
-    resultHandler.onComplete(null);
   }
 
   void compactionsFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
@@ -913,8 +986,8 @@ public class CompactionCoordinator
    */
   @Override
   public void updateCompactionStatus(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TCompactionStatusUpdate update, long timestamp,
-      AsyncMethodCallback<Void> resultHandler) throws ThriftSecurityException {
+      String externalCompactionId, TCompactionStatusUpdate update, long timestamp)
+      throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -926,7 +999,6 @@ public class CompactionCoordinator
     if (null != rc) {
       rc.addUpdate(timestamp, update);
     }
-    resultHandler.onComplete(null);
   }
 
   public void recordCompletion(ExternalCompactionId ecid) {
@@ -946,16 +1018,16 @@ public class CompactionCoordinator
   }
 
   /**
-   * Return information about running compactions Sends back map of ECID to TExternalCompaction
-   * objects
+   * Return information about running compactions
    *
    * @param tinfo trace info
    * @param credentials tcredentials object
+   * @return map of ECID to TExternalCompaction objects
    * @throws ThriftSecurityException permission error
    */
   @Override
-  public void getRunningCompactions(TInfo tinfo, TCredentials credentials,
-      AsyncMethodCallback<TExternalCompactionList> callback) throws ThriftSecurityException {
+  public TExternalCompactionList getRunningCompactions(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -971,20 +1043,20 @@ public class CompactionCoordinator
       trc.setJob(rc.getJob());
       result.putToCompactions(ecid.canonical(), trc);
     });
-    callback.onComplete(result);
+    return result;
   }
 
   /**
-   * Return information about recently completed compactions send back map of ECID to
-   * TExternalCompaction objects
+   * Return information about recently completed compactions
    *
    * @param tinfo trace info
    * @param credentials tcredentials object
+   * @return map of ECID to TExternalCompaction objects
    * @throws ThriftSecurityException permission error
    */
   @Override
-  public void getCompletedCompactions(TInfo tinfo, TCredentials credentials,
-      AsyncMethodCallback<TExternalCompactionList> callback) throws ThriftSecurityException {
+  public TExternalCompactionList getCompletedCompactions(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -999,13 +1071,12 @@ public class CompactionCoordinator
       trc.setUpdates(rc.getUpdates());
       result.putToCompactions(ecid.canonical(), trc);
     });
-    callback.onComplete(result);
+    return result;
   }
 
   @Override
-  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      AsyncMethodCallback<Void> callback) throws TException {
-
+  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
+      throws TException {
     var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
     try {
@@ -1020,7 +1091,6 @@ public class CompactionCoordinator
     }
 
     cancelCompactionOnCompactor(runningCompaction.getCompactorAddress(), externalCompactionId);
-    callback.onComplete(null);
   }
 
   /* Method exists to be called from test */

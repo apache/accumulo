@@ -26,6 +26,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.server.rpc.ThriftServerType.supportsAsync;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -65,6 +66,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -216,7 +218,7 @@ public class Manager extends AbstractServer
 
   ServiceLock managerLock = null;
   private TServer clientService = null;
-  private TServer asyncClientService = null;
+  private Optional<TServer> asyncClientService = null;
   protected volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
   private final BalancerMetrics balancerMetrics = new BalancerMetrics();
@@ -333,13 +335,15 @@ public class Manager extends AbstractServer
         }, 100L, 1000L, MILLISECONDS);
         ThreadPools.watchNonCriticalScheduledTask(future);
 
-        final var asyncClientFuture =
-            getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
-              // This frees the main thread and will cause the manager to exit
-              asyncClientService.stop();
-              Manager.this.nextEvent.event("stopped event loop");
-            }, 100L, 1000L, MILLISECONDS);
-        ThreadPools.watchNonCriticalScheduledTask(asyncClientFuture);
+        asyncClientService.ifPresent(acs -> {
+          final var asyncClientFuture =
+              getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
+                // This frees the main thread and will cause the manager to exit
+                acs.stop();
+                Manager.this.nextEvent.event("stopped event loop");
+              }, 100L, 1000L, MILLISECONDS);
+          ThreadPools.watchNonCriticalScheduledTask(asyncClientFuture);
+        });
         break;
       case HAVE_LOCK:
         if (isUpgrading()) {
@@ -1124,28 +1128,41 @@ public class Manager extends AbstractServer
     ManagerClientService.Iface haProxy =
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
 
-    final ServerAddress sa;
-    final ServerAddress asyncSa;
-    var processor =
-        ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy, getContext());
-    var asyncProcessor = ThriftProcessorTypes
-        .getManagerTAsyncProcessor(compactionCoordinator.getThriftService(), getContext());
+    final boolean isAsync = supportsAsync(context.getThriftServerType());
 
+    Optional<CompactionCoordinatorService.Iface> syncCompactionCoordinator =
+        isAsync ? Optional.empty() : Optional.of(compactionCoordinator.getThriftService());
+    final ServerAddress sa;
+    var processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy,
+        syncCompactionCoordinator, getContext());
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
           "Manager", "Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,
           Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
-      asyncSa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_ASYNC_CLIENTPORT,
-          asyncProcessor, "AsyncManager", "Async Manager Client Service Handler", null,
-          Property.MANAGER_MINTHREADS, Property.MANAGER_MINTHREADS_TIMEOUT,
-          Property.MANAGER_THREADCHECK);
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }
     clientService = sa.server;
-    asyncClientService = asyncSa.server;
     log.info("Started Manager client service at {}", sa.address);
-    log.info("Started Manager async client service at {}", asyncSa.address);
+
+    final Optional<ServerAddress> asyncSa;
+    if (isAsync) {
+      var asyncProcessor = ThriftProcessorTypes
+          .getManagerTAsyncProcessor(compactionCoordinator.getAsyncThriftService(), getContext());
+      try {
+        asyncSa = Optional.of(TServerUtils.startServer(context, getHostname(),
+            Property.MANAGER_ASYNC_CLIENTPORT, asyncProcessor, "AsyncManager",
+            "Async Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,
+            Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK));
+      } catch (UnknownHostException e) {
+        throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
+      }
+      asyncClientService = asyncSa.map(serverAddress -> serverAddress.server);
+      log.info("Started Manager async client service at {}", asyncSa.orElseThrow().address);
+    } else {
+      asyncSa = Optional.empty();
+      asyncClientService = Optional.empty();
+    }
 
     // block until we can obtain the ZK lock for the manager
     ServiceLockData sld;
@@ -1315,14 +1332,18 @@ public class Manager extends AbstractServer
     String address = sa.address.toString();
     UUID uuid = sld.getServerUUID(ThriftService.MANAGER);
     ServiceDescriptors descriptors = new ServiceDescriptors();
+
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.FATE}) {
       descriptors.addService(new ServiceDescriptor(uuid, svc, address, this.getResourceGroup()));
     }
 
-    // Advertise the COORDINATOR service on the async port so clients correct to the
-    // correct one
-    descriptors.addService(new ServiceDescriptor(uuid, ThriftService.COORDINATOR,
-        asyncSa.address.toString(), this.getResourceGroup()));
+    asyncSa.ifPresentOrElse(asyncService -> {
+      // Advertise the COORDINATOR service on the async port so clients correct to the
+      // correct one
+      descriptors.addService(new ServiceDescriptor(uuid, ThriftService.COORDINATOR,
+          asyncSa.orElseThrow().address.toString(), this.getResourceGroup()));
+    }, () -> descriptors.addService(
+        new ServiceDescriptor(uuid, ThriftService.COORDINATOR, address, this.getResourceGroup())));
 
     sld = new ServiceLockData(descriptors);
     log.info("Setting manager lock data to {}", sld);
@@ -1332,14 +1353,14 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Exception updating manager lock", e);
     }
 
-    while (!clientService.isServing() && !asyncClientService.isServing()) {
+    while (!isServing()) {
       sleepUninterruptibly(100, MILLISECONDS);
     }
 
     // The manager is fully initialized. Clients are allowed to connect now.
     managerInitialized.set(true);
 
-    while (clientService.isServing() && asyncClientService.isServing()) {
+    while (isServing()) {
       sleepUninterruptibly(500, MILLISECONDS);
     }
     log.info("Shutting down fate.");
@@ -1884,5 +1905,13 @@ public class Manager extends AbstractServer
     var fateRefs = this.fateRefs.get();
     Preconditions.checkState(fateRefs != null, "Unexpected null fate references map");
     return fateRefs;
+  }
+
+  private boolean isServing() {
+    if (asyncClientService.isPresent()) {
+      return clientService.isServing() && asyncClientService.orElseThrow().isServing();
+    } else {
+      return clientService.isServing();
+    }
   }
 }

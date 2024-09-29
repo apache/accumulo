@@ -27,14 +27,18 @@ import java.net.InetAddress;
 import java.nio.channels.ClosedByInterruptException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
+import org.apache.thrift.async.AsyncMethodCallback;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.transport.TSSLTransportFactory;
 import org.apache.thrift.transport.TSaslClientTransport;
@@ -45,6 +49,7 @@ import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -119,7 +124,13 @@ public class ThriftUtil {
     // THRIFT-2427 is tracking this issue and the plan is to reopen a new PR
     // to add support in the next version. Once we support multiplexing we can
     // remove this special case.
-    if (type == COORDINATOR) {
+    // Note: you could have a sync server that doesn't use SSL or SASL by using
+    // ThriftServerType.THREADPOOL on the server but the client wouldn't know that
+    // For now this should be good enough as we will be able to remove this anyways
+    // when we can multiplex async. So this currently will not work if using that mode.
+    boolean isSync = context.getConfiguration().getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)
+        || context.getConfiguration().getBoolean(Property.INSTANCE_RPC_SSL_ENABLED);
+    if (type == COORDINATOR && !isSync) {
       return type.getClientFactory().getClient(protocolFactory.getProtocol(transport));
     }
 
@@ -390,6 +401,34 @@ public class ThriftUtil {
     if (e instanceof ClosedByInterruptException) {
       Thread.currentThread().interrupt();
       throw new UncheckedIOException(e);
+    }
+  }
+
+  public static <T> AsyncMethodCallback<T> asyncMethodFuture(CompletableFuture<T> future) {
+    return new AsyncMethodCallback<T>() {
+      @Override
+      public void onComplete(T response) {
+        future.complete(response);
+      }
+
+      @Override
+      public void onError(Exception exception) {
+        future.completeExceptionally(exception);
+      }
+    };
+  }
+
+  public static <T> T getFutureThriftResult(CompletableFuture<T> future) throws TException {
+    try {
+      return future.get();
+    } catch (Exception e) {
+      if (e instanceof ExecutionException) {
+        Throwable rootCause = Throwables.getRootCause(e);
+        if (rootCause instanceof TException) {
+          throw (TException) rootCause;
+        }
+      }
+      throw new RuntimeException(e);
     }
   }
 }
