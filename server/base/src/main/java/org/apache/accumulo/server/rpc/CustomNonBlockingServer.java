@@ -23,7 +23,7 @@ import java.lang.reflect.Field;
 import java.net.Socket;
 import java.nio.channels.SelectionKey;
 
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.AsyncProcessor;
+import org.apache.thrift.TAsyncProcessor;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.server.AbstractNonblockingServer.FrameBuffer;
 import org.apache.thrift.server.THsHaServer;
@@ -104,14 +104,9 @@ public class CustomNonBlockingServer extends THsHaServer {
         throws TTransportException {
 
       TProcessor processor = processorFactory_.getProcessor(null);
-      // Processors are generally wrapped in TimedProcessor so we need to ask TimedProcessor
-      // what type of processor is being wrapped
-      if (processor instanceof TimedProcessor) {
-        return newFrameBuffer(trans, selectionKey, selectThread,
-            ((TimedProcessor) processor).isAsync());
-      }
-
-      return newFrameBuffer(trans, selectionKey, selectThread, processor instanceof AsyncProcessor);
+      return processor instanceof TAsyncProcessor
+          ? new CustomAsyncFrameBuffer(trans, selectionKey, selectThread)
+          : new CustomFrameBuffer(trans, selectionKey, selectThread);
     }
   }
 
@@ -230,9 +225,4 @@ public class CustomNonBlockingServer extends THsHaServer {
     return clientAddress;
   }
 
-  private FrameBuffer newFrameBuffer(TNonblockingTransport trans, SelectionKey selectionKey,
-      AbstractSelectThread selectThread, boolean async) throws TTransportException {
-    return async ? new CustomAsyncFrameBuffer(trans, selectionKey, selectThread)
-        : new CustomFrameBuffer(trans, selectionKey, selectThread);
-  }
 }
