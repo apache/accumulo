@@ -738,6 +738,7 @@ public class CompactionCoordinator
     while (localFates == null) {
       UtilWaitThread.sleep(100);
       if (shutdown.getCount() == 0) {
+        resultHandler.onComplete(null);
         return;
       }
       localFates = fateInstances.get();
@@ -764,10 +765,12 @@ public class CompactionCoordinator
           tableState);
       // cleanup metadata table and files related to the compaction
       compactionsFailed(Map.of(ecid, extent));
+      resultHandler.onComplete(null);
       return;
     }
 
     if (!CommitCompaction.canCommitCompaction(ecid, tabletMeta)) {
+      resultHandler.onComplete(null);
       return;
     }
 
