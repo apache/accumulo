@@ -405,8 +405,8 @@ public class LoadPlan {
 
     /**
      * For a given row R this function should find two split points S1 and S2 that exist in the
-     * table being bulk imported to such that S1 < R <= S2. The closer S1 and S2 are to each other
-     * the better.
+     * table being bulk imported to such that S1 &lt; R &lt;= S2. The closer S1 and S2 are to each
+     * other the better.
      */
     @Override
     TableSplits apply(Text row);
