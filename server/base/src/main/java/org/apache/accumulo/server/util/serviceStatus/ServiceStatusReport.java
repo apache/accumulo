@@ -53,6 +53,7 @@ public class ServiceStatusReport {
   private Map<ReportKey,StatusSummary> summaries;
 
   // Gson requires a default constructor when JDK Unsafe usage is disabled
+  @SuppressWarnings("unused")
   private ServiceStatusReport() {}
 
   public ServiceStatusReport(final Map<ReportKey,StatusSummary> summaries, final boolean noHosts) {

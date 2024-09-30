@@ -228,6 +228,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     private String group;
 
     // default constructor required for Gson
+    @SuppressWarnings("unused")
     public ServiceDescriptorGson() {}
 
     public ServiceDescriptorGson(UUID uuid, ThriftService service, String address, String group) {
