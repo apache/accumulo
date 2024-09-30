@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -92,12 +93,17 @@ public class RFileWriter implements AutoCloseable {
 
   private final FileSKVWriter writer;
   private final LRUMap<ByteSequence,Boolean> validVisibilities;
+
+  // TODO should be able to completely remove this as lower level code is already doing some things
+  // like tracking first and last keys per LG. Added to get simple initial impl before optimizing.
+  private final LoadPlanCollector loadPlanCollector;
   private boolean startedLG;
   private boolean startedDefaultLG;
 
-  RFileWriter(FileSKVWriter fileSKVWriter, int visCacheSize) {
+  RFileWriter(FileSKVWriter fileSKVWriter, int visCacheSize, LoadPlanCollector loadPlanCollector) {
     this.writer = fileSKVWriter;
     this.validVisibilities = new LRUMap<>(visCacheSize);
+    this.loadPlanCollector = loadPlanCollector;
   }
 
   private void _startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies)
@@ -106,6 +112,7 @@ public class RFileWriter implements AutoCloseable {
         "Cannot start a locality group after starting the default locality group");
     writer.startNewLocalityGroup(name, columnFamilies);
     startedLG = true;
+    loadPlanCollector.startLocalityGroup();
   }
 
   /**
@@ -175,6 +182,7 @@ public class RFileWriter implements AutoCloseable {
 
   public void startDefaultLocalityGroup() throws IOException {
     Preconditions.checkState(!startedDefaultLG);
+    loadPlanCollector.startLocalityGroup();
     writer.startDefaultLocalityGroup();
     startedDefaultLG = true;
     startedLG = true;
@@ -204,6 +212,7 @@ public class RFileWriter implements AutoCloseable {
       validVisibilities.put(new ArrayByteSequence(Arrays.copyOf(cv, cv.length)), Boolean.TRUE);
     }
     writer.append(key, val);
+    loadPlanCollector.append(key);
   }
 
   /**
@@ -250,5 +259,22 @@ public class RFileWriter implements AutoCloseable {
   @Override
   public void close() throws IOException {
     writer.close();
+    loadPlanCollector.close();
+  }
+
+  /**
+   * If no split resolver was provided when the RFileWriter was built then this method will return a
+   * simple load plan of type {@link org.apache.accumulo.core.data.LoadPlan.RangeType#FILE} using
+   * the first and last row seen. If a splitResolver was provided then this will return a load plan
+   * of type {@link org.apache.accumulo.core.data.LoadPlan.RangeType#TABLE} that has the split
+   * ranges the rows written overlapped.
+   *
+   * @param filename
+   * @return load plan computed from the keys written to the rfile.
+   * @see org.apache.accumulo.core.client.rfile.RFile.WriterOptions#withSplitResolver(LoadPlan.SplitResolver)
+   * @since 3.1.0
+   */
+  public LoadPlan getLoadPlan(String filename) {
+    return loadPlanCollector.getLoadPlan(filename);
   }
 }

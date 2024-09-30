@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,7 +40,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -57,6 +62,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.LoadPlan;
+import org.apache.accumulo.core.data.LoadPlanTest;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -937,5 +944,152 @@ public class RFileClientTest {
         .withFileSystem(localFs).withIndexCache(1000000).withDataCache(10000000).build();
     assertEquals(testData, toMap(scanner));
     scanner.close();
+  }
+
+  @Test
+  public void testLoadPlanEmpty() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    LoadPlan.SplitResolver splitResolver =
+        LoadPlan.SplitResolver.from(new TreeSet<>(List.of(new Text("m"))));
+
+    for (boolean withSplits : List.of(true, false)) {
+      String testFile = createTmpTestFile();
+      var builder = RFile.newWriter().to(testFile).withFileSystem(localFs);
+      if (withSplits) {
+        builder = builder.withSplitResolver(splitResolver);
+      }
+      var writer = builder.build();
+
+      try (writer) {
+        writer.startDefaultLocalityGroup();
+      }
+      var loadPlan = writer.getLoadPlan(new Path(testFile).getName());
+      assertEquals(0, loadPlan.getDestinations().size());
+
+      loadPlan = LoadPlan.compute(new URI(testFile), splitResolver);
+      assertEquals(0, loadPlan.getDestinations().size());
+    }
+  }
+
+  @Test
+  public void testLoadPlanLocalityGroupsNoSplits() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    String testFile = createTmpTestFile();
+    var writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build();
+    try (writer) {
+      writer.startNewLocalityGroup("LG1", "F1");
+      writer.append(new Key("001", "F1"), "V1");
+      writer.append(new Key("005", "F1"), "V2");
+      writer.startNewLocalityGroup("LG2", "F3");
+      writer.append(new Key("003", "F3"), "V3");
+      writer.append(new Key("004", "F3"), "V4");
+      writer.startDefaultLocalityGroup();
+      writer.append(new Key("007", "F4"), "V5");
+      writer.append(new Key("009", "F4"), "V6");
+    }
+
+    var filename = new Path(testFile).getName();
+    var loadPlan = writer.getLoadPlan(filename);
+    assertEquals(1, loadPlan.getDestinations().size());
+
+    // The minimum and maximum rows happend in different locality groups, the load plan should
+    // reflect this
+    var expectedLoadPlan =
+        LoadPlan.builder().loadFileTo(filename, LoadPlan.RangeType.FILE, "001", "009").build();
+    assertEquals(expectedLoadPlan.toJson(), loadPlan.toJson());
+  }
+
+  @Test
+  public void testLoadPlanLocalityGroupsSplits() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    SortedSet<Text> splits =
+        Stream.of("001", "002", "003", "004", "005", "006", "007", "008", "009").map(Text::new)
+            .collect(Collectors.toCollection(TreeSet::new));
+    var splitResolver = LoadPlan.SplitResolver.from(splits);
+
+    String testFile = createTmpTestFile();
+    var writer = RFile.newWriter().to(testFile).withFileSystem(localFs)
+        .withSplitResolver(splitResolver).build();
+    try (writer) {
+      writer.startNewLocalityGroup("LG1", "F1");
+      writer.append(new Key("001", "F1"), "V1");
+      writer.append(new Key("005", "F1"), "V2");
+      writer.startNewLocalityGroup("LG2", "F3");
+      writer.append(new Key("003", "F3"), "V3");
+      writer.append(new Key("005", "F3"), "V3");
+      writer.append(new Key("007", "F3"), "V4");
+      writer.startDefaultLocalityGroup();
+      writer.append(new Key("007", "F4"), "V5");
+      writer.append(new Key("009", "F4"), "V6");
+    }
+
+    var filename = new Path(testFile).getName();
+    var loadPlan = writer.getLoadPlan(filename);
+    assertEquals(5, loadPlan.getDestinations().size());
+
+    var builder = LoadPlan.builder();
+    builder.loadFileTo(filename, LoadPlan.RangeType.TABLE, null, "001");
+    builder.loadFileTo(filename, LoadPlan.RangeType.TABLE, "004", "005");
+    builder.loadFileTo(filename, LoadPlan.RangeType.TABLE, "002", "003");
+    builder.loadFileTo(filename, LoadPlan.RangeType.TABLE, "006", "007");
+    builder.loadFileTo(filename, LoadPlan.RangeType.TABLE, "008", "009");
+    assertEquals(LoadPlanTest.toString(builder.build().getDestinations()),
+        LoadPlanTest.toString(loadPlan.getDestinations()));
+
+    loadPlan = LoadPlan.compute(new URI(testFile), splitResolver);
+    assertEquals(LoadPlanTest.toString(builder.build().getDestinations()),
+        LoadPlanTest.toString(loadPlan.getDestinations()));
+  }
+
+  @Test
+  public void testIncorrectSplitResolver() throws Exception {
+    // for some rows the returns table splits will not contain the row. This should cause an error.
+    LoadPlan.SplitResolver splitResolver =
+        row -> new LoadPlan.TableSplits(new Text("003"), new Text("005"));
+
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    String testFile = createTmpTestFile();
+    var writer = RFile.newWriter().to(testFile).withFileSystem(localFs)
+        .withSplitResolver(splitResolver).build();
+    try (writer) {
+      writer.startDefaultLocalityGroup();
+      writer.append(new Key("004", "F4"), "V2");
+      var e = assertThrows(IllegalStateException.class,
+          () -> writer.append(new Key("007", "F4"), "V2"));
+      assertTrue(e.getMessage().contains("(003,005]"));
+      assertTrue(e.getMessage().contains("007"));
+    }
+
+    var testFile2 = createTmpTestFile();
+    var writer2 = RFile.newWriter().to(testFile2).withFileSystem(localFs).build();
+    try (writer2) {
+      writer2.startDefaultLocalityGroup();
+      writer2.append(new Key("004", "F4"), "V2");
+      writer2.append(new Key("007", "F4"), "V2");
+    }
+
+    var e = assertThrows(IllegalStateException.class,
+        () -> LoadPlan.compute(new URI(testFile), splitResolver));
+    assertTrue(e.getMessage().contains("(003,005]"));
+    assertTrue(e.getMessage().contains("007"));
+  }
+
+  @Test
+  public void testGetLoadPlanBeforeClose() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    String testFile = createTmpTestFile();
+    var writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build();
+    try (writer) {
+      writer.startDefaultLocalityGroup();
+      writer.append(new Key("004", "F4"), "V2");
+      var e = assertThrows(IllegalStateException.class,
+          () -> writer.getLoadPlan(new Path(testFile).getName()));
+      assertEquals("Attempted to get load plan before closing", e.getMessage());
+    }
   }
 }

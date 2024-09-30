@@ -23,8 +23,11 @@ import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Base64;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.LoadPlan.Destination;
 import org.apache.accumulo.core.data.LoadPlan.RangeType;
@@ -100,6 +103,47 @@ public class LoadPlanTest {
 
     assertEquals(expected, actual);
 
+    var loadPlan2 = LoadPlan.fromJson(loadPlan.toJson());
+    Set<String> actual2 =
+        loadPlan2.getDestinations().stream().map(LoadPlanTest::toString).collect(toSet());
+    assertEquals(expected, actual2);
+  }
+
+  @Test
+  public void testJson() {
+    var loadPlan = LoadPlan.builder().build();
+    assertEquals(0, loadPlan.getDestinations().size());
+    assertEquals("{\"destinations\":[]}", loadPlan.toJson());
+
+    var builder = LoadPlan.builder();
+    builder.loadFileTo("f1.rf", RangeType.TABLE, null, "003");
+    builder.loadFileTo("f2.rf", RangeType.FILE, "004", "007");
+    builder.loadFileTo("f1.rf", RangeType.TABLE, "005", "006");
+    builder.loadFileTo("f3.rf", RangeType.TABLE, "008", null);
+    String json = builder.build().toJson();
+
+    String b64003 = Base64.getUrlEncoder().encodeToString("003".getBytes(UTF_8));
+    String b64004 = Base64.getUrlEncoder().encodeToString("004".getBytes(UTF_8));
+    String b64005 = Base64.getUrlEncoder().encodeToString("005".getBytes(UTF_8));
+    String b64006 = Base64.getUrlEncoder().encodeToString("006".getBytes(UTF_8));
+    String b64007 = Base64.getUrlEncoder().encodeToString("007".getBytes(UTF_8));
+    String b64008 = Base64.getUrlEncoder().encodeToString("008".getBytes(UTF_8));
+
+    String expected = "{'destinations':[{'fileName':'f1.rf','startRow':null,'endRow':'" + b64003
+        + "','rangeType':'TABLE'}," + "{'fileName':'f2.rf','startRow':'" + b64004 + "','endRow':'"
+        + b64007 + "','rangeType':'FILE'}," + "{'fileName':'f1.rf','startRow':'" + b64005
+        + "','endRow':'" + b64006 + "','rangeType':'TABLE'}," + "{'fileName':'f3.rf','startRow':'"
+        + b64008 + "','endRow':null,'rangeType':'TABLE'}]}";
+
+    assertEquals(expected.replace("'", "\""), json);
+  }
+
+  @Test
+  public void testTableSplits() {
+    assertThrows(IllegalArgumentException.class,
+        () -> new LoadPlan.TableSplits(new Text("004"), new Text("004")));
+    assertThrows(IllegalArgumentException.class,
+        () -> new LoadPlan.TableSplits(new Text("004"), new Text("003")));
   }
 
   private static String toString(Destination d) {
@@ -109,5 +153,9 @@ public class LoadPlanTest {
 
   private static String toString(byte[] r) {
     return r == null ? null : new String(r, UTF_8);
+  }
+
+  public static Set<String> toString(Collection<Destination> destinations) {
+    return destinations.stream().map(d -> toString(d)).collect(Collectors.toSet());
   }
 }

@@ -20,17 +20,31 @@ package org.apache.accumulo.core.data;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.SortedSet;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
+import org.apache.accumulo.core.client.rfile.RFile;
+import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -227,5 +241,216 @@ public class LoadPlan {
         return new LoadPlan(fmb.build());
       }
     };
+  }
+
+  private static final TableId FAKE_ID = TableId.of("999");
+
+  private static class JsonDestination {
+    String fileName;
+    String startRow;
+    String endRow;
+    RangeType rangeType;
+
+    JsonDestination() {}
+
+    JsonDestination(Destination destination) {
+      fileName = destination.getFileName();
+      startRow = destination.getStartRow() == null ? null
+          : Base64.getUrlEncoder().encodeToString(destination.getStartRow());
+      endRow = destination.getEndRow() == null ? null
+          : Base64.getUrlEncoder().encodeToString(destination.getEndRow());
+      rangeType = destination.getRangeType();
+    }
+
+    Destination toDestination() {
+      return new Destination(fileName, rangeType,
+          startRow == null ? null : Base64.getUrlDecoder().decode(startRow),
+          endRow == null ? null : Base64.getUrlDecoder().decode(endRow));
+    }
+  }
+
+  private static final class JsonAll {
+    List<JsonDestination> destinations;
+
+    JsonAll() {}
+
+    JsonAll(List<Destination> destinations) {
+      this.destinations =
+          destinations.stream().map(JsonDestination::new).collect(Collectors.toList());
+    }
+
+  }
+
+  private static final Gson gson = new GsonBuilder().disableJdkUnsafe().serializeNulls().create();
+
+  /**
+   * Serializes the load plan to json that looks like the following. The values of startRow and
+   * endRow field are base64 encoded using {@link Base64#getUrlEncoder()}.
+   *
+   * <pre>
+   * {
+   *   "destinations": [
+   *     {
+   *       "fileName": "f1.rf",
+   *       "startRow": null,
+   *       "endRow": "MDAz",
+   *       "rangeType": "TABLE"
+   *     },
+   *     {
+   *       "fileName": "f2.rf",
+   *       "startRow": "MDA0",
+   *       "endRow": "MDA3",
+   *       "rangeType": "FILE"
+   *     },
+   *     {
+   *       "fileName": "f1.rf",
+   *       "startRow": "MDA1",
+   *       "endRow": "MDA2",
+   *       "rangeType": "TABLE"
+   *     },
+   *     {
+   *       "fileName": "f3.rf",
+   *       "startRow": "MDA4",
+   *       "endRow": null,
+   *       "rangeType": "TABLE"
+   *     }
+   *   ]
+   * }
+   * </pre>
+   *
+   * @since 3.1.0
+   */
+  public String toJson() {
+    return gson.toJson(new JsonAll(destinations));
+  }
+
+  /**
+   * Deserializes json to a load plan.
+   *
+   * @param json produced by {@link #toJson()}
+   */
+  public static LoadPlan fromJson(String json) {
+    var dests = gson.fromJson(json, JsonAll.class).destinations.stream()
+        .map(JsonDestination::toDestination).collect(Collectors.toUnmodifiableList());
+    return new LoadPlan(dests);
+  }
+
+  /**
+   * Represents two split points that exist in a table being bulk imported to.
+   *
+   * @since 3.1.0
+   */
+  public static class TableSplits {
+    private final Text prevRow;
+    private final Text endRow;
+
+    public TableSplits(Text prevRow, Text endRow) {
+      Preconditions.checkArgument(
+          prevRow == null || endRow == null || prevRow.compareTo(endRow) < 0, "%s >= %s", prevRow,
+          endRow);
+      this.prevRow = prevRow;
+      this.endRow = endRow;
+    }
+
+    public Text getPrevRow() {
+      return prevRow;
+    }
+
+    public Text getEndRow() {
+      return endRow;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o)
+        return true;
+      if (o == null || getClass() != o.getClass())
+        return false;
+      TableSplits that = (TableSplits) o;
+      return Objects.equals(prevRow, that.prevRow) && Objects.equals(endRow, that.endRow);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(prevRow, endRow);
+    }
+
+    @Override
+    public String toString() {
+      return "(" + prevRow + "," + endRow + "]";
+    }
+  }
+
+  /**
+   * A function that maps a row to two table split points that contain the row. These splits must
+   * exist in the table being bulk imported to. There is no requirement that the splits are
+   * contiguous. For example if a table has splits C,D,E,M and we ask for splits containing row H
+   * its ok to return D,M, but that could result in the file mapping to more actual tablets than
+   * needed.
+   *
+   * @since 3.1.0
+   */
+  public interface SplitResolver extends Function<Text,TableSplits> {
+    static SplitResolver from(SortedSet<Text> splits) {
+      return row -> {
+        var headSet = splits.headSet(row);
+        Text prevRow = headSet.isEmpty() ? null : headSet.last();
+        var tailSet = splits.tailSet(row);
+        Text endRow = tailSet.isEmpty() ? null : tailSet.first();
+        return new TableSplits(prevRow, endRow);
+      };
+    }
+
+    /**
+     * For a given row R this function should find two split points S1 and S2 that exist in the
+     * table being bulk imported to such that S1 < R <= S2. The closer S1 and S2 are to each other
+     * the better.
+     */
+    @Override
+    TableSplits apply(Text row);
+  }
+
+  public static LoadPlan compute(URI file, SplitResolver splitResolver) throws IOException {
+    return compute(file, Map.of(), splitResolver);
+  }
+
+  /**
+   * Computes a load plan for a given rfile. This will open the rfile and find every
+   * {@link TableSplits} that overlaps rows in the file and add those to the returned load plan.
+   *
+   * @since 3.1.0
+   */
+  public static LoadPlan compute(URI file, Map<String,String> properties,
+      SplitResolver splitResolver) throws IOException {
+    try (var scanner = RFile.newScanner().from(file.toString()).withoutSystemIterators()
+        .withTableProperties(properties).withIndexCache(10_000_000).build()) {
+      BulkImport.NextRowFunction nextRowFunction = row -> {
+        scanner.setRange(new Range(row, null));
+        var iter = scanner.iterator();
+        if (iter.hasNext()) {
+          return iter.next().getKey().getRow();
+        } else {
+          return null;
+        }
+      };
+
+      Function<Text,KeyExtent> rowToExtentResolver = row -> {
+        var tabletRange = splitResolver.apply(row);
+        var extent = new KeyExtent(FAKE_ID, tabletRange.endRow, tabletRange.prevRow);
+        Preconditions.checkState(extent.contains(row), "%s does not contain %s", tabletRange, row);
+        return extent;
+      };
+
+      List<KeyExtent> overlapping =
+          BulkImport.findOverlappingTablets(rowToExtentResolver, nextRowFunction);
+
+      Path path = new Path(file);
+
+      var builder = builder();
+      for (var extent : overlapping) {
+        builder.loadFileTo(path.getName(), RangeType.TABLE, extent.prevEndRow(), extent.endRow());
+      }
+      return builder.build();
+    }
   }
 }

@@ -37,6 +37,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
+import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.ValidationUtil;
@@ -73,6 +74,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
   private int visCacheSize = 1000;
   private Map<String,String> samplerProps = Collections.emptyMap();
   private Map<String,String> summarizerProps = Collections.emptyMap();
+  private LoadPlan.SplitResolver splitResolver;
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps,
       String kind) {
@@ -107,6 +109,13 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
     CryptoService cs =
         CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE, tableConfig);
 
+    LoadPlanCollector loadPlanCollector;
+    if (splitResolver != null) {
+      loadPlanCollector = new LoadPlanCollector(splitResolver);
+    } else {
+      loadPlanCollector = new LoadPlanCollector();
+    }
+
     if (out.getOutputStream() != null) {
       FSDataOutputStream fsdo;
       if (out.getOutputStream() instanceof FSDataOutputStream) {
@@ -117,12 +126,13 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
       return new RFileWriter(
           fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf(), cs)
               .withTableConfiguration(acuconf).withStartDisabled().build(),
-          visCacheSize);
+          visCacheSize, loadPlanCollector);
     } else {
       return new RFileWriter(fileops.newWriterBuilder()
           .forFile(UnreferencedTabletFile.of(out.getFileSystem(), out.path), out.getFileSystem(),
               out.getConf(), cs)
-          .withTableConfiguration(acuconf).withStartDisabled().build(), visCacheSize);
+          .withTableConfiguration(acuconf).withStartDisabled().build(), visCacheSize,
+          loadPlanCollector);
     }
   }
 
@@ -171,6 +181,12 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
   public WriterOptions withVisibilityCacheSize(int maxSize) {
     Preconditions.checkArgument(maxSize > 0);
     this.visCacheSize = maxSize;
+    return this;
+  }
+
+  @Override
+  public WriterOptions withSplitResolver(LoadPlan.SplitResolver splitResolver) {
+    this.splitResolver = splitResolver;
     return this;
   }
 
