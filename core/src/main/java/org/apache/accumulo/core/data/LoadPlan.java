@@ -412,6 +412,12 @@ public class LoadPlan {
     TableSplits apply(Text row);
   }
 
+  /**
+   * Computes a load plan for a given rfile. This will open the rfile and find every
+   * {@link TableSplits} that overlaps rows in the file and add those to the returned load plan.
+   *
+   * @since 3.1.0
+   */
   public static LoadPlan compute(URI file, SplitResolver splitResolver) throws IOException {
     return compute(file, Map.of(), splitResolver);
   }
@@ -420,6 +426,8 @@ public class LoadPlan {
    * Computes a load plan for a given rfile. This will open the rfile and find every
    * {@link TableSplits} that overlaps rows in the file and add those to the returned load plan.
    *
+   * @param properties used when opening the rfile, see
+   *        {@link org.apache.accumulo.core.client.rfile.RFile.ScannerOptions#withTableProperties(Map)}
    * @since 3.1.0
    */
   public static LoadPlan compute(URI file, Map<String,String> properties,
