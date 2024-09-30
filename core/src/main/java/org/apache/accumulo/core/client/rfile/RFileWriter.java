@@ -269,13 +269,17 @@ public class RFileWriter implements AutoCloseable {
    * of type {@link org.apache.accumulo.core.data.LoadPlan.RangeType#TABLE} that has the split
    * ranges the rows written overlapped.
    *
-   * @param filename
+   * @param filename This file name will be used in the load plan and it should match the name that
+   *        will be used when bulk importing this file. Only a filename is needed, not a full path.
    * @return load plan computed from the keys written to the rfile.
    * @see org.apache.accumulo.core.client.rfile.RFile.WriterOptions#withSplitResolver(LoadPlan.SplitResolver)
    * @since 3.1.0
    * @throws IllegalStateException is attempting to get load plan before calling {@link #close()}
+   * @throws IllegalArgumentException is a full path is passed instead of a filename
    */
   public LoadPlan getLoadPlan(String filename) {
+    Preconditions.checkArgument(!filename.contains("/"),
+        "Unexpected path %s seen instead of file name", filename);
     return loadPlanCollector.getLoadPlan(filename);
   }
 }

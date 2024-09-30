@@ -1101,4 +1101,18 @@ public class RFileClientTest {
       assertEquals("Attempted to get load plan before closing", e2.getMessage());
     }
   }
+
+  @Test
+  public void testGetLoadPlanWithPath() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    String testFile = createTmpTestFile();
+    var writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build();
+    writer.close();
+
+    var e =
+        assertThrows(IllegalArgumentException.class, () -> writer.getLoadPlan(testFile.toString()));
+    assertTrue(e.getMessage().contains("Unexpected path"));
+    assertEquals(0, writer.getLoadPlan(new Path(testFile).getName()).getDestinations().size());
+  }
 }
