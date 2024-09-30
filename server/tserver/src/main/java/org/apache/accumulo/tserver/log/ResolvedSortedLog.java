@@ -32,8 +32,6 @@ import org.apache.accumulo.server.manager.recovery.RecoveryPath;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Write ahead logs have two paths in DFS. There is the path of the original unsorted walog and the
@@ -41,8 +39,6 @@ import org.slf4j.LoggerFactory;
  * sorted wal path and validate the sorted dir exists and is finished.
  */
 public class ResolvedSortedLog {
-
-  private static final Logger log = LoggerFactory.getLogger(ResolvedSortedLog.class);
 
   private final SortedSet<UnreferencedTabletFile> children;
   private final LogEntry origin;
