@@ -273,6 +273,7 @@ public class RFileWriter implements AutoCloseable {
    * @return load plan computed from the keys written to the rfile.
    * @see org.apache.accumulo.core.client.rfile.RFile.WriterOptions#withSplitResolver(LoadPlan.SplitResolver)
    * @since 3.1.0
+   * @throws IllegalStateException is attempting to get load plan before calling {@link #close()}
    */
   public LoadPlan getLoadPlan(String filename) {
     return loadPlanCollector.getLoadPlan(filename);

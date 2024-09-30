@@ -130,9 +130,9 @@ public class LoadPlanTest {
     String b64008 = Base64.getUrlEncoder().encodeToString("008".getBytes(UTF_8));
 
     String expected = "{'destinations':[{'fileName':'f1.rf','startRow':null,'endRow':'" + b64003
-        + "','rangeType':'TABLE'}," + "{'fileName':'f2.rf','startRow':'" + b64004 + "','endRow':'"
-        + b64007 + "','rangeType':'FILE'}," + "{'fileName':'f1.rf','startRow':'" + b64005
-        + "','endRow':'" + b64006 + "','rangeType':'TABLE'}," + "{'fileName':'f3.rf','startRow':'"
+        + "','rangeType':'TABLE'},{'fileName':'f2.rf','startRow':'" + b64004 + "','endRow':'"
+        + b64007 + "','rangeType':'FILE'},{'fileName':'f1.rf','startRow':'" + b64005
+        + "','endRow':'" + b64006 + "','rangeType':'TABLE'},{'fileName':'f3.rf','startRow':'"
         + b64008 + "','endRow':null,'rangeType':'TABLE'}]}";
 
     assertEquals(expected.replace("'", "\""), json);

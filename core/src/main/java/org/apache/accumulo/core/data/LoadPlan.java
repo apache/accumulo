@@ -362,10 +362,12 @@ public class LoadPlan {
 
     @Override
     public boolean equals(Object o) {
-      if (this == o)
+      if (this == o) {
         return true;
-      if (o == null || getClass() != o.getClass())
+      }
+      if (o == null || getClass() != o.getClass()) {
         return false;
+      }
       TableSplits that = (TableSplits) o;
       return Objects.equals(prevRow, that.prevRow) && Objects.equals(endRow, that.endRow);
     }

@@ -103,11 +103,12 @@ class LoadPlanCollector {
   }
 
   public LoadPlan getLoadPlan(String filename) {
+    Preconditions.checkState(finished, "Attempted to get load plan before closing");
+
     if (appended == 0) {
       return LoadPlan.builder().build();
     }
 
-    Preconditions.checkState(finished, "Attempted to get load plan before closing");
     if (splitResolver == null) {
       return LoadPlan.builder().loadFileTo(filename, LoadPlan.RangeType.FILE, firstRow, lastRow)
           .build();
