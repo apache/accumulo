@@ -57,6 +57,8 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
@@ -220,11 +222,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   @Deprecated(since = "4.0.0")
   public List<String> getManagerLocations() {
-    ServiceLockPath slp = context.getServerPaths().getManager(true);
-    if (slp == null) {
-      return null;
+
+    Set<ServerId> managers = getServers(ServerTypeName.MANAGER);
+    if (managers == null || managers.isEmpty()) {
+      return List.of();
     } else {
-      return List.of(slp.getServer());
+      return List.of(managers.iterator().next().toHostPortString());
     }
   }
 
@@ -530,7 +533,14 @@ public class InstanceOperationsImpl implements InstanceOperations {
         break;
       case MANAGER:
         ServiceLockPath m = context.getServerPaths().getManager(true);
-        results.add(createServerId(type, m));
+        Optional<ServiceLockData> sld = context.getZooCache().getLockData(m);
+        String location = null;
+        if (sld.isPresent()) {
+          location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
+          HostAndPort hp = HostAndPort.fromString(location);
+          results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
+              hp.getPort()));
+        }
         break;
       case SCAN_SERVER:
         context.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true)
