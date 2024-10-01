@@ -145,10 +145,10 @@ public class RecoveryIT extends AccumuloClusterHarness {
       control.stopAllServers(ServerType.COMPACTOR);
       Wait.waitFor(() -> getServerContext().getServerPaths()
           .getCompactor(Optional.empty(), Optional.empty(), true).size() == 0, 60_000);
-      Wait.waitFor(() -> getServerContext().getServerPaths()
-          .getScanServer(Optional.empty(), Optional.empty(), true).size() == 0, 60_000);
 
       control.stopAllServers(ServerType.SCAN_SERVER);
+      Wait.waitFor(() -> getServerContext().getServerPaths()
+          .getScanServer(Optional.empty(), Optional.empty(), true).size() == 0, 60_000);
 
       // Kill the TabletServer in resource group that is hosting the table
       List<Process> procs = control.getTabletServers(RESOURCE_GROUP);

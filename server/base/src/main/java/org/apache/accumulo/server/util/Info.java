@@ -48,7 +48,7 @@ public class Info implements KeywordExecutable {
   public void execute(final String[] args) throws KeeperException, InterruptedException {
     var context = new ServerContext(SiteConfiguration.auto());
     System.out.println("monitor: " + MonitorUtil.getLocation(context));
-    System.out.println("managers: " + context.getServerPaths().getManager(true));
+    System.out.println("managers: " + context.getServerPaths().getManager(true).getServer());
     System.out.println("zookeepers: " + context.getZooKeepers());
   }
 
