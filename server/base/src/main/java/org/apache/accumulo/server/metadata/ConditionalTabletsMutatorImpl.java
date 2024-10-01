@@ -93,8 +93,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
     Preconditions.checkState(extents.putIfAbsent(extent.toMetaRow(), extent) == null,
         "Duplicate extents not handled %s", extent);
-    return new ConditionalTabletMutatorImpl(this, context, extent, mutations::add,
-        rejectedHandlers::put);
+    return new ConditionalTabletMutatorImpl(context, extent, mutations::add, rejectedHandlers::put);
   }
 
   protected ConditionalWriter createConditionalWriter(Ample.DataLevel dataLevel)

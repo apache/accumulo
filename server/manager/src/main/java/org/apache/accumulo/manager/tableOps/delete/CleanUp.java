@@ -59,8 +59,6 @@ class CleanUp extends ManagerRepo {
   private final TableId tableId;
   private final NamespaceId namespaceId;
 
-  private long creationTime;
-
   public CleanUp(TableId tableId, NamespaceId namespaceId) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;

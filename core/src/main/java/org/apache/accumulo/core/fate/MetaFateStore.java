@@ -226,7 +226,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     return fateInstanceType;
   }
 
-  private class FateTxStoreImpl extends AbstractFateTxStoreImpl<T> {
+  private class FateTxStoreImpl extends AbstractFateTxStoreImpl {
 
     private FateTxStoreImpl(FateId fateId) {
       super(fateId);

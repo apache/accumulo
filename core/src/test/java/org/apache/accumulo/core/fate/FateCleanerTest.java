@@ -20,6 +20,7 @@ package org.apache.accumulo.core.fate;
 
 import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
@@ -288,7 +289,7 @@ public class FateCleanerTest {
     tts.time += Duration.ofHours(6).toNanos();
 
     FateCleaner<String> cleaner1 = new FateCleaner<>(testStore, Duration.ofHours(10), tts);
-    FateId fateId1 = testStore.create();
+    assertNotNull(testStore.create());
     cleaner1.ageOff();
     tts.time -= Duration.ofHours(3).toNanos();
     // steady time going backwards should cause an error

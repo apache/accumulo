@@ -27,16 +27,12 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Immutable class that holds a snapshot of fate metric values - use builder to instantiate an
  * instance.
  */
 public abstract class FateMetricValues {
-
-  private static final Logger log = LoggerFactory.getLogger(FateMetricValues.class);
 
   protected final long updateTime;
   protected final long currentFateOps;

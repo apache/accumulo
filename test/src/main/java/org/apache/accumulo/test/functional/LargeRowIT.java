@@ -78,7 +78,6 @@ public class LargeRowIT extends AccumuloClusterHarness {
   private String REG_TABLE_NAME;
   private String PRE_SPLIT_TABLE_NAME;
   private int timeoutFactor = 1;
-  private String tservMajcDelay;
 
   @BeforeEach
   public void getTimeoutFactor() throws Exception {

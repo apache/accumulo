@@ -284,7 +284,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   protected abstract FateTxStore<T> newUnreservedFateTxStore(FateId fateId);
 
-  protected abstract class AbstractFateTxStoreImpl<T> implements FateTxStore<T> {
+  protected abstract class AbstractFateTxStoreImpl implements FateTxStore<T> {
     protected final FateId fateId;
     protected boolean deleted;
     protected FateReservation reservation;
