@@ -18,11 +18,13 @@
  */
 package org.apache.accumulo.manager.metrics.fate.meta;
 
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
 
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.manager.metrics.fate.FateMetricValues;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.accumulo.server.ServerContext;
@@ -42,7 +44,7 @@ public class MetaFateMetricValues extends FateMetricValues {
 
   protected MetaFateMetricValues(final long updateTime, final long currentFateOps,
       final long zkFateChildOpsTotal, final long zkConnectionErrors,
-      final Map<String,Long> txStateCounters, final Map<String,Long> opTypeCounters) {
+      final EnumMap<TStatus,Long> txStateCounters, final Map<String,Long> opTypeCounters) {
     super(updateTime, currentFateOps, txStateCounters, opTypeCounters);
 
     this.zkFateChildOpsTotal = zkFateChildOpsTotal;

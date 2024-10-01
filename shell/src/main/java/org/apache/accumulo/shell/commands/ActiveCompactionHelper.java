@@ -41,8 +41,7 @@ import com.google.common.net.HostAndPort;
 
 class ActiveCompactionHelper {
 
-  private static final Logger log = LoggerFactory.getLogger(ActiveCompactionHelper.class);
-
+  private static final Logger LOG = LoggerFactory.getLogger(ActiveCompactionHelper.class);
   private static final Comparator<ActiveCompaction> COMPACTION_AGE_DESCENDING =
       Comparator.comparingLong(ActiveCompaction::getAge).reversed();
 
@@ -134,7 +133,7 @@ class ActiveCompactionHelper {
         return instanceOps.getActiveCompactions(server).stream().sorted(COMPACTION_AGE_DESCENDING)
             .map(ActiveCompactionHelper::formatActiveCompactionLine);
       } catch (Exception e) {
-        log.debug("Failed to list active compactions for server {}", tserver, e);
+        LOG.debug("Failed to list active compactions for server {}", tserver, e);
         return Stream.of(tserver + " ERROR " + e.getMessage());
       }
     }

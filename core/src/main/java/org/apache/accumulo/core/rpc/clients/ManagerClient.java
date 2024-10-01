@@ -41,7 +41,7 @@ public interface ManagerClient<C extends TServiceClient> {
   default C getManagerConnection(Logger log, ThriftClientTypes<C> type, ClientContext context) {
     checkArgument(context != null, "context is null");
 
-    ServiceLockPath slp = context.getServerPaths().getManager();
+    ServiceLockPath slp = context.getServerPaths().getManager(true);
 
     if (slp == null) {
       log.debug("No managers...");

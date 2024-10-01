@@ -141,8 +141,8 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
       ClientContext ctx = (ClientContext) client;
 
       Wait.waitFor(() -> ctx.getServerPaths()
-          .getCompactor(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty()).size()
-          == 1, 60_000);
+          .getCompactor(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty(), true)
+          .size() == 1, 60_000);
 
       ServerId csi =
           ctx.instanceOperations().getServers(ServerTypeName.COMPACTOR).iterator().next();

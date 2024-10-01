@@ -66,7 +66,7 @@ public class StatusResource {
         gcStatus = Status.ERROR;
       }
 
-      ServiceLockPath slp = monitor.getContext().getServerPaths().getManager();
+      ServiceLockPath slp = monitor.getContext().getServerPaths().getManager(true);
       managerStatus = slp == null ? Status.ERROR : Status.OK;
 
       int tServerUp = mmi.getTServerInfoSize();

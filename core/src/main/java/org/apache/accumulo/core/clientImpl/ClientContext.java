@@ -196,8 +196,8 @@ public class ClientContext implements AccumuloClient {
 
         @Override
         public Supplier<Collection<ScanServerInfo>> getScanServers() {
-          return () -> getServerPaths().getScanServer(Optional.empty(), Optional.empty()).stream()
-              .map(entry -> new ScanServerInfo() {
+          return () -> getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true)
+              .stream().map(entry -> new ScanServerInfo() {
                 @Override
                 public String getAddress() {
                   return entry.getServer();
@@ -414,7 +414,7 @@ public class ClientContext implements AccumuloClient {
   public Map<String,Pair<UUID,String>> getScanServers() {
     Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
     Set<ServiceLockPath> scanServerPaths =
-        getServerPaths().getScanServer(Optional.empty(), Optional.empty());
+        getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true);
     for (ServiceLockPath path : scanServerPaths) {
       try {
         ZcStat stat = new ZcStat();

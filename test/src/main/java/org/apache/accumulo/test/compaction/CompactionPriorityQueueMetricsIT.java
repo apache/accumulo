@@ -120,7 +120,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   public void setupMetricsTest() throws Exception {
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
     Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-        .getCompactor(Optional.empty(), Optional.empty()).size() == 0, 60_000);
+        .getCompactor(Optional.empty(), Optional.empty(), true).size() == 0, 60_000);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = getUniqueNames(1)[0];

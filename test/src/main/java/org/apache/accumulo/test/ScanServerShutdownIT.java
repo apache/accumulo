@@ -86,8 +86,8 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
 
     ServerContext ctx = getCluster().getServerContext();
 
-    Wait.waitFor(
-        () -> !ctx.getServerPaths().getScanServer(Optional.empty(), Optional.empty()).isEmpty());
+    Wait.waitFor(() -> !ctx.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true)
+        .isEmpty());
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];

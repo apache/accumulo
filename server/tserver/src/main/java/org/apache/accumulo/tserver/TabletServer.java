@@ -417,7 +417,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private HostAndPort getManagerAddress() {
     try {
-      ServiceLockPath slp = getContext().getServerPaths().getManager();
+      ServiceLockPath slp = getContext().getServerPaths().getManager(true);
       if (slp == null) {
         return null;
       }

@@ -145,11 +145,6 @@ public class CompactionCoordinatorTest {
     protected void startDeadCompactionDetector() {}
 
     @Override
-    protected long getTServerCheckInterval() {
-      return 5000L;
-    }
-
-    @Override
     protected void startCompactorZKCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
 
     @Override

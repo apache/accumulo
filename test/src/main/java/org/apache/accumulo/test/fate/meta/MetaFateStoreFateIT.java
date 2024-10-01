@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -28,11 +29,13 @@ import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -75,8 +78,8 @@ public class MetaFateStoreFateIT extends FateStoreIT {
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(sctx);
-    MetaFateStore<TestEnv> store =
-        new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk, maxDeferred, fateIdGenerator);
+    MetaFateStore<TestEnv> store = new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk,
+        createDummyLockID(), null, maxDeferred, fateIdGenerator);
 
     // Check that the store has no transactions before and after each test
     assertEquals(0, store.list().count());
@@ -89,32 +92,53 @@ public class MetaFateStoreFateIT extends FateStoreIT {
     try {
       // We have to use reflection since the NodeValue is internal to the store
 
-      // Grab both the constructor that uses the serialized bytes and status
+      // Grab both the constructors that use the serialized bytes and status, reservation
       Class<?> nodeClass = Class.forName(MetaFateStore.class.getName() + "$NodeValue");
-      Constructor<?> statusCons = nodeClass.getDeclaredConstructor(TStatus.class);
+      Constructor<?> statusReservationCons =
+          nodeClass.getDeclaredConstructor(TStatus.class, FateStore.FateReservation.class);
       Constructor<?> serializedCons = nodeClass.getDeclaredConstructor(byte[].class);
-      statusCons.setAccessible(true);
+      statusReservationCons.setAccessible(true);
       serializedCons.setAccessible(true);
 
-      // Get the status field so it can be read and the serialize method
+      // Get the status and reservation fields so they can be read and get the serialize method
       Field nodeStatus = nodeClass.getDeclaredField("status");
+      Field nodeReservation = nodeClass.getDeclaredField("reservation");
       Method nodeSerialize = nodeClass.getDeclaredMethod("serialize");
       nodeStatus.setAccessible(true);
+      nodeReservation.setAccessible(true);
       nodeSerialize.setAccessible(true);
 
-      // Get the existing status for the node and build a new node with an empty key
+      // Get the existing status and reservation for the node and build a new node with an empty key
       // but uses the existing tid
       String txPath = ZK_ROOT + Constants.ZFATE + "/tx_" + fateId.getTxUUIDStr();
       Object currentNode = serializedCons.newInstance(new Object[] {zk.getData(txPath)});
       TStatus currentStatus = (TStatus) nodeStatus.get(currentNode);
-      // replace the node with no key and just a tid and existing status
-      Object newNode = statusCons.newInstance(currentStatus);
+      Optional<FateStore.FateReservation> currentReservation =
+          getCurrentReservation(nodeReservation, currentNode);
+      // replace the node with no key and just a tid and existing status and reservation
+      Object newNode =
+          statusReservationCons.newInstance(currentStatus, currentReservation.orElse(null));
 
-      // Replace the transaction with the same status and no key
+      // Replace the transaction with the same status and reservation but no key
       zk.putPersistentData(txPath, (byte[]) nodeSerialize.invoke(newNode),
           NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  private Optional<FateStore.FateReservation> getCurrentReservation(Field nodeReservation,
+      Object currentNode) throws Exception {
+    Object currentResAsObject = nodeReservation.get(currentNode);
+    Optional<FateStore.FateReservation> currentReservation = Optional.empty();
+    if (currentResAsObject instanceof Optional) {
+      Optional<?> currentResAsOptional = (Optional<?>) currentResAsObject;
+      if (currentResAsOptional.isPresent()
+          && currentResAsOptional.orElseThrow() instanceof FateStore.FateReservation) {
+        currentReservation =
+            Optional.of((FateStore.FateReservation) currentResAsOptional.orElseThrow());
+      }
+    }
+    return currentReservation;
   }
 }

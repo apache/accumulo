@@ -40,6 +40,7 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
   private List<String> locksWaiting = List.of();
 
   // Default constructor for Gson
+  @SuppressWarnings("unused")
   private FateTxnDetails() {}
 
   /**

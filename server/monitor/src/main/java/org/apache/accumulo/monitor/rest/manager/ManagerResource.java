@@ -101,7 +101,7 @@ public class ManagerResource {
         tservers.add(down.server);
       }
 
-      ServiceLockPath slp = monitor.getContext().getServerPaths().getManager();
+      ServiceLockPath slp = monitor.getContext().getServerPaths().getManager(true);
 
       String manager = slp == null ? "Down" : AddressUtil.parseAddress(slp.getServer()).getHost();
       int onlineTabletServers = mmi.tServerInfo.size();

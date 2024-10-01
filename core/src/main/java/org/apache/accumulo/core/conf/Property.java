@@ -31,6 +31,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.data.constraints.NoDeleteConstraint;
+import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
@@ -143,7 +144,7 @@ public enum Property {
           + " everywhere. Before using the ChangeSecret tool, make sure Accumulo is not"
           + " running and you are logged in as the user that controls Accumulo files in"
           + " HDFS. To use the ChangeSecret tool, run the command: `./bin/accumulo"
-          + " org.apache.accumulo.server.util.ChangeSecret`.",
+          + " admin changeSecret`.",
       "1.3.5"),
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
       "A comma separated list of dfs uris to use. Files will be stored across"
@@ -554,11 +555,8 @@ public enum Property {
       "Time to wait for clients to continue scans before closing a session.", "1.3.5"),
   TSERV_DEFAULT_BLOCKSIZE("tserver.default.blocksize", "1M", PropertyType.BYTES,
       "Specifies a default blocksize for the tserver caches.", "1.3.5"),
-  TSERV_CACHE_MANAGER_IMPL("tserver.cache.manager.class",
-      "org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager", PropertyType.STRING,
-      "Specifies the class name of the block cache factory implementation."
-          + " Alternative implementation is"
-          + " org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager.",
+  TSERV_CACHE_MANAGER_IMPL("tserver.cache.manager.class", TinyLfuBlockCacheManager.class.getName(),
+      PropertyType.STRING, "Specifies the class name of the block cache factory implementation.",
       "2.0.0"),
   TSERV_DATACACHE_SIZE("tserver.cache.data.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile data blocks.", "1.3.5"),
@@ -865,14 +863,6 @@ public enum Property {
           + "server to see a write to a tablet server. The default value of this property is set to such a "
           + "high value that is should never cause a minor compaction.",
       "3.1.0"),
-  @Deprecated(since = "3.1.0")
-  @ReplacedBy(property = TABLE_MINC_COMPACT_MAXAGE)
-  TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,
-      "When the age of the youngest key value in a tablets in memory map exceeds this configuration, then"
-          + " a minor compaction may be initiated. There is no guarantee an idle tablet will be compacted."
-          + "This property was deprecated because the new property table.compaction.minor.age can offer the "
-          + " same functionality although it may cause more minor compactions than this property would have.",
-      "1.3.5"),
   TABLE_COMPACTION_DISPATCHER("table.compaction.dispatcher",
       SimpleCompactionDispatcher.class.getName(), PropertyType.CLASSNAME,
       "A configurable dispatcher that decides what compaction service a table should use.",
@@ -1160,22 +1150,7 @@ public enum Property {
   @Experimental
   COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL(
       "compaction.coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
-      "The interval at which to check for dead compactors.", "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_FINALIZER_TSERVER_NOTIFIER_MAXTHREADS(
-      "compaction.coordinator.compaction.finalizer.threads.maximum", "5", PropertyType.COUNT,
-      "The maximum number of threads to use for notifying tablet servers that an external compaction has completed.",
-      "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL(
-      "compaction.coordinator.compaction.finalizer.check.interval", "60s",
-      PropertyType.TIMEDURATION,
-      "The interval at which to check for external compaction final state markers in the metadata table.",
-      "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
-      "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
-      "The interval at which to check the tservers for external compactions.", "2.1.0");
+      "The interval at which to check for dead compactors.", "2.1.0");
 
   private final String key;
   private final String defaultValue;

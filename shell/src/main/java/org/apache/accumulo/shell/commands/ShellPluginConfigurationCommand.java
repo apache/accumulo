@@ -34,7 +34,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.slf4j.LoggerFactory;
 
 public abstract class ShellPluginConfigurationCommand extends Command {
   private Option removePluginOption, pluginClassOption, listPluginOption;
@@ -115,20 +114,16 @@ public abstract class ShellPluginConfigurationCommand extends Command {
           pluginClazz =
               shellState.getClassLoader(cl, shellState).loadClass(ent.getValue()).asSubclass(clazz);
         } catch (ClassNotFoundException e) {
-          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class).error("Class not found {}",
-              e.getMessage());
+          Shell.log.error("Class not found {}", e.getMessage());
           return null;
         } catch (ParseException e) {
-          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class)
-              .error("Error parsing table: {} {}", Arrays.toString(args), e.getMessage());
+          Shell.log.error("Error parsing table: {} {}", Arrays.toString(args), e.getMessage());
           return null;
         } catch (TableNotFoundException e) {
-          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class)
-              .error("Table not found: {} {}", tableName, e.getMessage());
+          Shell.log.error("Table not found: {} {}", tableName, e.getMessage());
           return null;
         } catch (Exception e) {
-          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class).error("Error: {}",
-              e.getMessage());
+          Shell.log.error("Error: {}", e.getMessage());
           return null;
         }
 

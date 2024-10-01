@@ -577,7 +577,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
 
     HashSet<TServerInstance> tservers = new HashSet<>();
     for (ServiceLockPath tserver : context.getServerPaths().getTabletServer(Optional.empty(),
-        Optional.empty())) {
+        Optional.empty(), true)) {
       try {
         long sessionId = ServiceLock.getSessionId(context.getZooCache(), tserver);
         tservers.add(new TServerInstance(tserver.getServer(), sessionId));

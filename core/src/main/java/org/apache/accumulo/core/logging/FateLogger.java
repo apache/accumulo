@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.logging;
 
 import java.io.Serializable;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -174,6 +175,16 @@ public class FateLogger {
           }
         }
         return txStore;
+      }
+
+      @Override
+      public Map<FateId,FateReservation> getActiveReservations() {
+        return store.getActiveReservations();
+      }
+
+      @Override
+      public void deleteDeadReservations() {
+        store.deleteDeadReservations();
       }
     };
   }

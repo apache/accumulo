@@ -577,10 +577,9 @@ public class TabletServerResourceManager {
       }
     }
 
-    public void updateMemoryUsageStats(Tablet tablet, long size, long lastCommitTime, long mincSize,
+    public void updateMemoryUsageStats(Tablet tablet, long size, long mincSize,
         Timer firstWriteTimer) {
-      memUsageReports
-          .add(new TabletMemoryReport(tablet, lastCommitTime, size, mincSize, firstWriteTimer));
+      memUsageReports.add(new TabletMemoryReport(tablet, size, mincSize, firstWriteTimer));
     }
 
     public void tabletClosed(KeyExtent extent) {
@@ -686,7 +685,6 @@ public class TabletServerResourceManager {
     private final AtomicLong lastReportedSize = new AtomicLong();
     private final AtomicLong lastReportedMincSize = new AtomicLong();
     private final AtomicReference<Timer> firstReportedCommitTimer = new AtomicReference<>(null);
-    private volatile long lastReportedCommitTime = 0;
 
     public void updateMemoryUsageStats(Tablet tablet, long size, long mincSize) {
 
@@ -721,19 +719,12 @@ public class TabletServerResourceManager {
         report = true;
       }
 
-      long currentTime = System.currentTimeMillis();
-
-      if ((delta > 32000 || delta < 0 || (currentTime - lastReportedCommitTime > 1000))
-          && lastReportedSize.compareAndSet(lrs, totalSize)) {
-        if (delta > 0) {
-          lastReportedCommitTime = currentTime;
-        }
+      if ((delta > 32000 || delta < 0) && lastReportedSize.compareAndSet(lrs, totalSize)) {
         report = true;
       }
 
       if (report) {
-        memMgmt.updateMemoryUsageStats(tablet, size, lastReportedCommitTime, mincSize,
-            firstReportedCommitTimer.get());
+        memMgmt.updateMemoryUsageStats(tablet, size, mincSize, firstReportedCommitTimer.get());
       }
     }
 

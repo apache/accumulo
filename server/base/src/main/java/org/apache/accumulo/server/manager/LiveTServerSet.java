@@ -229,17 +229,8 @@ public class LiveTServerSet implements Watcher {
     try {
       final Set<TServerInstance> updates = new HashSet<>();
       final Set<TServerInstance> doomed = new HashSet<>();
-      final ZooCache zc = getZooCache();
-      final String tserverRoot = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-
-      Set<ServiceLockPath> tservers = new HashSet<>();
-
-      for (String resourceGroup : zc.getChildren(tserverRoot)) {
-        for (String host : zc.getChildren(tserverRoot + "/" + resourceGroup)) {
-          tservers.add(ServiceLockPaths.parse(Optional.of(Constants.ZTSERVERS),
-              tserverRoot + "/" + resourceGroup + "/" + host));
-        }
-      }
+      final Set<ServiceLockPath> tservers =
+          context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), false);
 
       locklessServers.keySet().retainAll(tservers);
 
@@ -468,7 +459,8 @@ public class LiveTServerSet implements Watcher {
     }
     current.remove(address.orElseThrow().toString());
 
-    Set<ServiceLockPath> paths = context.getServerPaths().getTabletServer(resourceGroup, address);
+    Set<ServiceLockPath> paths =
+        context.getServerPaths().getTabletServer(resourceGroup, address, false);
     if (paths.isEmpty() || paths.size() > 1) {
       log.error("Zero or many zookeeper entries match input arguments.");
     } else {

@@ -60,7 +60,8 @@ public class TestStore implements FateStore<String> {
   @Override
   public FateTxStore<String> reserve(FateId fateId) {
     if (reserved.contains(fateId)) {
-      throw new IllegalStateException(); // zoo store would wait, but do not expect test to reserve
+      // other fate stores would wait, but do not expect test to reserve
+      throw new IllegalStateException();
     }
     // twice... if test change, then change this
     reserved.add(fateId);
@@ -76,6 +77,18 @@ public class TestStore implements FateStore<String> {
       }
       return Optional.empty();
     }
+  }
+
+  @Override
+  public Map<FateId,FateReservation> getActiveReservations() {
+    // This method only makes sense for the FateStores that don't store their reservations in memory
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void deleteDeadReservations() {
+    // This method only makes sense for the FateStores that don't store their reservations in memory
+    throw new UnsupportedOperationException();
   }
 
   private class TestFateTxStore implements FateTxStore<String> {
@@ -98,26 +111,28 @@ public class TestStore implements FateStore<String> {
 
     @Override
     public TStatus getStatus() {
-      return getStatusAndKey().getFirst();
-    }
-
-    @Override
-    public Optional<FateKey> getKey() {
-      return getStatusAndKey().getSecond();
-    }
-
-    @Override
-    public Pair<TStatus,Optional<FateKey>> getStatusAndKey() {
       if (!reserved.contains(fateId)) {
         throw new IllegalStateException();
       }
 
       Pair<TStatus,Optional<FateKey>> status = statuses.get(fateId);
       if (status == null) {
-        return new Pair<>(TStatus.UNKNOWN, Optional.empty());
+        return TStatus.UNKNOWN;
+      }
+      return status.getFirst();
+    }
+
+    @Override
+    public Optional<FateKey> getKey() {
+      if (!reserved.contains(fateId)) {
+        throw new IllegalStateException();
       }
 
-      return status;
+      Pair<TStatus,Optional<FateKey>> status = statuses.get(fateId);
+      if (status == null) {
+        return Optional.empty();
+      }
+      return status.getSecond();
     }
 
     @Override
@@ -208,6 +223,12 @@ public class TestStore implements FateStore<String> {
       @Override
       public TStatus getStatus() {
         return e.getValue().getFirst();
+      }
+
+      @Override
+      public Optional<FateReservation> getFateReservation() {
+        throw new UnsupportedOperationException(
+            "Only the 'reserved' set should be used for reservations in the test store");
       }
     });
   }

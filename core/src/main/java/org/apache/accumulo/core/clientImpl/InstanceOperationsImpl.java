@@ -219,7 +219,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   @Deprecated(since = "4.0.0")
   public List<String> getManagerLocations() {
-    ServiceLockPath slp = context.getServerPaths().getManager();
+    ServiceLockPath slp = context.getServerPaths().getManager(true);
     if (slp == null) {
       return null;
     } else {
@@ -231,7 +231,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public Set<String> getCompactors() {
     Set<String> results = new HashSet<>();
-    context.getServerPaths().getCompactor(Optional.empty(), Optional.empty())
+    context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -240,7 +240,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public Set<String> getScanServers() {
     Set<String> results = new HashSet<>();
-    context.getServerPaths().getScanServer(Optional.empty(), Optional.empty())
+    context.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -249,7 +249,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public List<String> getTabletServers() {
     List<String> results = new ArrayList<>();
-    context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty())
+    context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -465,7 +465,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     switch (type) {
       case COMPACTOR:
-        Set<ServiceLockPath> compactors = context.getServerPaths().getCompactor(rg, hp);
+        Set<ServiceLockPath> compactors = context.getServerPaths().getCompactor(rg, hp, true);
         if (compactors.isEmpty()) {
           return null;
         } else if (compactors.size() == 1) {
@@ -481,7 +481,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
           return managers.iterator().next();
         }
       case SCAN_SERVER:
-        Set<ServiceLockPath> sservers = context.getServerPaths().getScanServer(rg, hp);
+        Set<ServiceLockPath> sservers = context.getServerPaths().getScanServer(rg, hp, true);
         if (sservers.isEmpty()) {
           return null;
         } else if (sservers.size() == 1) {
@@ -490,7 +490,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
           throw new IllegalStateException("Multiple servers matching provided address");
         }
       case TABLET_SERVER:
-        Set<ServiceLockPath> tservers = context.getServerPaths().getScanServer(rg, hp);
+        Set<ServiceLockPath> tservers = context.getServerPaths().getScanServer(rg, hp, true);
         if (tservers.isEmpty()) {
           return null;
         } else if (tservers.size() == 1) {
@@ -513,19 +513,19 @@ public class InstanceOperationsImpl implements InstanceOperations {
     final Set<ServerId> results = new HashSet<>();
     switch (type) {
       case COMPACTOR:
-        context.getServerPaths().getCompactor(Optional.empty(), Optional.empty())
+        context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true)
             .forEach(c -> results.add(createServerId(type, c)));
         break;
       case MANAGER:
-        ServiceLockPath m = context.getServerPaths().getManager();
+        ServiceLockPath m = context.getServerPaths().getManager(true);
         results.add(createServerId(type, m));
         break;
       case SCAN_SERVER:
-        context.getServerPaths().getScanServer(Optional.empty(), Optional.empty())
+        context.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true)
             .forEach(s -> results.add(createServerId(type, s)));
         break;
       case TABLET_SERVER:
-        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty())
+        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true)
             .forEach(t -> results.add(createServerId(type, t)));
         break;
       default:

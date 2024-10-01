@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
+import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -40,6 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -60,6 +62,7 @@ import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
@@ -98,7 +101,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
     Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getCompactor(Optional.empty(), Optional.empty()).isEmpty(), 60_000);
+        .getCompactor(Optional.empty(), Optional.empty(), true).isEmpty(), 60_000);
   }
 
   @Test
@@ -623,14 +626,16 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // This error was occurring in AdminUtil.getTransactionStatus(), so we will test this method.
     if (store.type().equals(FateInstanceType.USER)) {
       Method listMethod = UserFateStore.class.getMethod("list");
-      mockedStore =
-          EasyMock.createMockBuilder(UserFateStore.class).withConstructor(ClientContext.class)
-              .withArgs(sctx).addMockedMethod(listMethod).createMock();
+      mockedStore = EasyMock.createMockBuilder(UserFateStore.class)
+          .withConstructor(ClientContext.class, ZooUtil.LockID.class, Predicate.class)
+          .withArgs(sctx, createDummyLockID(), null).addMockedMethod(listMethod).createMock();
     } else {
       Method listMethod = MetaFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
-          .withConstructor(String.class, ZooReaderWriter.class)
-          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter())
+          .withConstructor(String.class, ZooReaderWriter.class, ZooUtil.LockID.class,
+              Predicate.class)
+          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter(),
+              createDummyLockID(), null)
           .addMockedMethod(listMethod).createMock();
     }
 
@@ -686,10 +691,16 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
   }
 
   private ReadOnlyFateStore.FateIdStatus createFateIdStatus(FateId fateId) {
+    // We are only using the fateId from this, so null/empty is fine for the rest
     return new AbstractFateStore.FateIdStatusBase(fateId) {
       @Override
       public ReadOnlyFateStore.TStatus getStatus() {
         return null;
+      }
+
+      @Override
+      public Optional<FateStore.FateReservation> getFateReservation() {
+        return Optional.empty();
       }
     };
   }
@@ -762,7 +773,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    return new Fate<>(new TestEnv(), store, Object::toString, config);
+    return new Fate<>(new TestEnv(), store, false, Object::toString, config);
   }
 
   private boolean wordIsTStatus(String word) {

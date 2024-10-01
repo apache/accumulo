@@ -69,7 +69,7 @@ public class DeadServerList {
     List<DeadServer> result = new ArrayList<>();
     try {
       Set<ServiceLockPath> deadServers =
-          ctx.getServerPaths().getDeadTabletServer(Optional.empty(), Optional.empty());
+          ctx.getServerPaths().getDeadTabletServer(Optional.empty(), Optional.empty(), false);
       for (ServiceLockPath path : deadServers) {
         Stat stat = new Stat();
         byte[] data;

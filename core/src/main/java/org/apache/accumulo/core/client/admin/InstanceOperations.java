@@ -233,7 +233,7 @@ public interface InstanceOperations {
   /**
    * Returns all servers of the given types
    *
-   * @return set of servers of the supplied types matching the supplied test
+   * @return set of servers of the supplied type
    * @since 4.0.0
    */
   Set<ServerId> getServers(ServerTypeName type);
@@ -241,7 +241,7 @@ public interface InstanceOperations {
   /**
    * Returns the servers of a given type that match the given criteria
    *
-   * @return set of servers of the supplied types matching the supplied test
+   * @return set of servers of the supplied type matching the supplied test
    * @since 4.0.0
    */
   Set<ServerId> getServers(ServerTypeName type, Predicate<ServerId> test);
