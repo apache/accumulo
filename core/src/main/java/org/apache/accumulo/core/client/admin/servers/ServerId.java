@@ -24,6 +24,11 @@ import org.apache.accumulo.core.conf.PropertyType.PortRange;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * Object representing the type, resource group, and address of a server process.
+ *
+ * @since 4.0.0
+ */
 public final class ServerId implements Comparable<ServerId> {
 
   private final ServerTypeName type;

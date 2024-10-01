@@ -18,6 +18,12 @@
  */
 package org.apache.accumulo.core.client.admin.servers;
 
+/**
+ * Server process type names that a client can be expected to interact with. Clients are not
+ * expected to interact directly with the GarbageCollector or Monitor processes.
+ *
+ * @since 4.0.0
+ */
 public enum ServerTypeName {
   MANAGER, COMPACTOR, SCAN_SERVER, TABLET_SERVER;
 }

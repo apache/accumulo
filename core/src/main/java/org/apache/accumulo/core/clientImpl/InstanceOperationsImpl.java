@@ -28,6 +28,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.INSTANCE_OPS
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.List;
@@ -289,8 +290,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     @SuppressWarnings("unused")
     var unused = Objects.nonNull(server);
-    Preconditions.checkArgument(server.getType() == ServerTypeName.SCAN_SERVER
-        || server.getType() == ServerTypeName.TABLET_SERVER);
+    Preconditions.checkArgument(
+        server.getType() == ServerTypeName.SCAN_SERVER
+            || server.getType() == ServerTypeName.TABLET_SERVER,
+        "Server type %s is not %s or %s.", server.getType(), ServerTypeName.SCAN_SERVER,
+        ServerTypeName.TABLET_SERVER);
 
     final var parsedTserver = HostAndPort.fromParts(server.getHost(), server.getPort());
     TabletScanClientService.Client client = null;
@@ -344,6 +348,14 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<ActiveCompaction> getActiveCompactions(ServerId server)
       throws AccumuloException, AccumuloSecurityException {
+
+    @SuppressWarnings("unused")
+    var unused = Objects.nonNull(server);
+    Preconditions.checkArgument(
+        server.getType() == ServerTypeName.COMPACTOR
+            || server.getType() == ServerTypeName.TABLET_SERVER,
+        "Server type %s is not %s or %s.", server.getType(), ServerTypeName.COMPACTOR,
+        ServerTypeName.TABLET_SERVER);
 
     final HostAndPort serverHostAndPort = HostAndPort.fromParts(server.getHost(), server.getPort());
     final List<ActiveCompaction> as = new ArrayList<>();
@@ -532,9 +544,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
         break;
     }
     if (test == null) {
-      return results;
+      return Collections.unmodifiableSet(results);
     }
-    return results.stream().filter(test).collect(Collectors.toCollection(HashSet::new));
+    return results.stream().filter(test).collect(Collectors.toUnmodifiableSet());
   }
 
   private ServerId createServerId(ServerTypeName type, ServiceLockPath slp) {

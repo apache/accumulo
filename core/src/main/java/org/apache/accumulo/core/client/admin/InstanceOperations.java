@@ -263,9 +263,9 @@ public interface InstanceOperations {
    *
    * @param server server type and address
    * @return A stream of active scans on server.
-   * @since 4.0.0
    * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or
    *         SCAN_SERVER
+   * @since 4.0.0
    */
   List<ActiveScan> getActiveScans(ServerId server)
       throws AccumuloException, AccumuloSecurityException;
@@ -293,6 +293,7 @@ public interface InstanceOperations {
    *
    * @param server The ServerId object
    * @return the list of active compactions
+   * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or COMPACTOR
    * @since 4.0.0
    */
   List<ActiveCompaction> getActiveCompactions(ServerId server)
