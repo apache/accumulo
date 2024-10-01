@@ -383,8 +383,7 @@ public class ServiceLockPaths {
                 results.add(slp);
               } else {
                 Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
-                if (!sld.isEmpty()
-                    && (address.isEmpty() || address.orElseThrow().toString().equals(server))) {
+                if (!sld.isEmpty()) {
                   results.add(slp);
                 }
               }

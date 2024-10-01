@@ -99,6 +99,8 @@ public class ServiceLockPathsIT extends AccumuloClusterHarness {
     getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
 
     Wait.waitFor(() -> paths.getTabletServer(Optional.empty(), Optional.empty(), true).size() == 0);
+    Wait.waitFor(
+        () -> paths.getTabletServer(Optional.empty(), Optional.empty(), false).size() == 2);
 
   }
 
