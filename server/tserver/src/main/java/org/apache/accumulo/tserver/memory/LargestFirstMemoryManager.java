@@ -45,7 +45,6 @@ import org.slf4j.LoggerFactory;
 public class LargestFirstMemoryManager {
 
   private static final Logger log = LoggerFactory.getLogger(LargestFirstMemoryManager.class);
-  static final long ZERO_TIME = System.currentTimeMillis();
   private static final int TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER = 2;
   private static final double MAX_FLUSH_AT_ONCE_PERCENT = 0.20;
 
@@ -63,14 +62,10 @@ public class LargestFirstMemoryManager {
   private static class TabletInfo {
     final KeyExtent extent;
     final long memTableSize;
-    final long idleTime;
-    final long load;
 
-    public TabletInfo(KeyExtent extent, long memTableSize, long idleTime, long load) {
+    public TabletInfo(KeyExtent extent, long memTableSize) {
       this.extent = extent;
       this.memTableSize = memTableSize;
-      this.idleTime = idleTime;
-      this.load = load;
     }
   }
 
@@ -138,13 +133,6 @@ public class LargestFirstMemoryManager {
     maxObserved = 0;
   }
 
-  @SuppressWarnings("deprecation")
-  protected long getMinCIdleThreshold(KeyExtent extent) {
-    TableId tableId = extent.tableId();
-    return mincIdleThresholds.computeIfAbsent(tableId, tid -> context.getTableConfiguration(tid)
-        .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
-  }
-
   protected long getMaxAge(KeyExtent extent) {
     TableId tableId = extent.tableId();
     return mincAgeThresholds.computeIfAbsent(tableId, tid -> context.getTableConfiguration(tid)
@@ -174,8 +162,7 @@ public class LargestFirstMemoryManager {
     final List<KeyExtent> tabletsToMinorCompact = new ArrayList<>();
 
     LargestMap largestMemTablets = new LargestMap(maxMinCs);
-    final LargestMap largestIdleMemTablets = new LargestMap(maxConcurrentMincs);
-    final long now = currentTimeMillis();
+    final LargestMap oldMemTablets = new LargestMap(maxConcurrentMincs);
 
     long ingestMemory = 0;
     long compactionMemory = 0;
@@ -191,17 +178,15 @@ public class LargestFirstMemoryManager {
       }
 
       final long memTabletSize = ts.getMemTableSize();
+
       final long minorCompactingSize = ts.getMinorCompactingMemTableSize();
-      final long idleTime = now - Math.max(ts.getLastCommitTime(), ZERO_TIME);
-      final long timeMemoryLoad = timeMemoryLoad(memTabletSize, idleTime);
       ingestMemory += memTabletSize;
       if (minorCompactingSize == 0 && memTabletSize > 0) {
-        TabletInfo tabletInfo = new TabletInfo(tablet, memTabletSize, idleTime, timeMemoryLoad);
+        TabletInfo tabletInfo = new TabletInfo(tablet, memTabletSize);
         try {
           // If the table was deleted, getMinCIdleThreshold will throw an exception
-          if (idleTime > getMinCIdleThreshold(tablet)
-              || ts.getElapsedSinceFirstWrite(TimeUnit.MILLISECONDS) > getMaxAge(tablet)) {
-            largestIdleMemTablets.put(timeMemoryLoad, tabletInfo);
+          if (ts.getElapsedSinceFirstWrite(TimeUnit.MILLISECONDS) > getMaxAge(tablet)) {
+            oldMemTablets.put(memTabletSize, tabletInfo);
           }
         } catch (IllegalArgumentException e) {
           Throwable cause = e.getCause();
@@ -216,7 +201,7 @@ public class LargestFirstMemoryManager {
           throw e;
         }
         // Only place the tablet into largestMemTablets map when the table still exists
-        largestMemTablets.put(timeMemoryLoad, tabletInfo);
+        largestMemTablets.put(memTabletSize, tabletInfo);
       }
 
       compactionMemory += minorCompactingSize;
@@ -241,10 +226,9 @@ public class LargestFirstMemoryManager {
       // compaction
       if (memoryChange >= 0 && ingestMemory + memoryChange > compactionThreshold * maxMemory) {
         startMinC = true;
-      } else if (!largestIdleMemTablets.isEmpty()) {
+      } else if (!oldMemTablets.isEmpty()) {
         startMinC = true;
-        // switch largestMemTablets to largestIdleMemTablets
-        largestMemTablets = largestIdleMemTablets;
+        largestMemTablets = oldMemTablets;
         log.debug("IDLE minor compaction chosen");
       }
     }
@@ -257,10 +241,9 @@ public class LargestFirstMemoryManager {
         for (TabletInfo largest : lastEntry.getValue()) {
           toBeCompacted += largest.memTableSize;
           tabletsToMinorCompact.add(largest.extent);
-          log.debug(String.format("COMPACTING %s  total = %,d ingestMemory = %,d",
-              largest.extent.toString(), (ingestMemory + compactionMemory), ingestMemory));
-          log.debug(String.format("chosenMem = %,d chosenIT = %.2f load %,d", largest.memTableSize,
-              largest.idleTime / 1000.0, largest.load));
+          log.debug(String.format("COMPACTING %s  total = %,d ingestMemory = %,d chosenMem = %,d",
+              largest.extent.toString(), (ingestMemory + compactionMemory), ingestMemory,
+              largest.memTableSize));
           if (toBeCompacted > ingestMemory * MAX_FLUSH_AT_ONCE_PERCENT) {
             break outer;
           }
@@ -296,16 +279,5 @@ public class LargestFirstMemoryManager {
     }
 
     return tabletsToMinorCompact;
-  }
-
-  protected long currentTimeMillis() {
-    return System.currentTimeMillis();
-  }
-
-  // The load function: memory times the idle time, doubling every 15 mins
-  static long timeMemoryLoad(long mem, long time) {
-    double minutesIdle = time / 60000.0;
-
-    return (long) (mem * Math.pow(2, minutesIdle / 15.0));
   }
 }

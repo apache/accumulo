@@ -80,6 +80,7 @@ import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
@@ -1244,10 +1245,13 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Upgrade coordinator is unexpectedly not complete");
     }
     try {
-      var metaInstance = initializeFateInstance(context,
-          new MetaFateStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
-      var userInstance = initializeFateInstance(context,
-          new UserFateStore<>(context, AccumuloTable.FATE.tableName()));
+      Predicate<ZooUtil.LockID> isLockHeld =
+          lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
+      var metaInstance =
+          initializeFateInstance(context, new MetaFateStore<>(getZooKeeperRoot() + Constants.ZFATE,
+              context.getZooReaderWriter(), managerLock.getLockID(), isLockHeld));
+      var userInstance = initializeFateInstance(context, new UserFateStore<>(context,
+          AccumuloTable.FATE.tableName(), managerLock.getLockID(), isLockHeld));
 
       if (!fateRefs.compareAndSet(null,
           Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userInstance))) {
@@ -1358,7 +1362,7 @@ public class Manager extends AbstractServer
   protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
 
     final Fate<Manager> fateInstance =
-        new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
+        new Fate<>(this, store, true, TraceRepo::toLogString, getConfiguration());
 
     var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), this::getSteadyTime);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()

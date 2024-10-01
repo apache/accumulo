@@ -44,8 +44,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
+import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.FencedReader;
@@ -56,6 +55,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
+import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
@@ -164,7 +164,7 @@ public abstract class AbstractRFileTest {
 
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       ConfigurationCopy cc = new ConfigurationCopy(dc);
-      cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
+      cc.set(Property.TSERV_CACHE_MANAGER_IMPL, TinyLfuBlockCacheManager.class.getName());
       try {
         manager = BlockCacheManagerFactory.getInstance(cc);
       } catch (ReflectiveOperationException e) {
@@ -174,8 +174,8 @@ public abstract class AbstractRFileTest {
       cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));
       cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
       manager.start(BlockCacheConfiguration.forTabletServer(cc));
-      LruBlockCache indexCache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
-      LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
+      BlockCache indexCache = manager.getBlockCache(CacheType.INDEX);
+      BlockCache dataCache = manager.getBlockCache(CacheType.DATA);
 
       CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
           accumuloConfiguration.getAllCryptoProperties());

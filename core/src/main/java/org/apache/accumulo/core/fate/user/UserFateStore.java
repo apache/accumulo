@@ -18,14 +18,18 @@
  */
 package org.apache.accumulo.core.fate.user;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -46,10 +50,11 @@ import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.RepoColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxInfoColumnFamily;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -70,20 +75,22 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   private static final com.google.common.collect.Range<Integer> REPO_RANGE =
       com.google.common.collect.Range.closed(1, maxRepos);
 
-  public UserFateStore(ClientContext context, String tableName) {
-    this(context, tableName, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
+  public UserFateStore(ClientContext context, String tableName, ZooUtil.LockID lockID,
+      Predicate<ZooUtil.LockID> isLockHeld) {
+    this(context, tableName, lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
   @VisibleForTesting
-  public UserFateStore(ClientContext context, String tableName, int maxDeferred,
-      FateIdGenerator fateIdGenerator) {
-    super(maxDeferred, fateIdGenerator);
+  public UserFateStore(ClientContext context, String tableName, ZooUtil.LockID lockID,
+      Predicate<ZooUtil.LockID> isLockHeld, int maxDeferred, FateIdGenerator fateIdGenerator) {
+    super(lockID, isLockHeld, maxDeferred, fateIdGenerator);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
   }
 
-  public UserFateStore(ClientContext context) {
-    this(context, AccumuloTable.FATE.tableName());
+  public UserFateStore(ClientContext context, ZooUtil.LockID lockID,
+      Predicate<ZooUtil.LockID> isLockHeld) {
+    this(context, AccumuloTable.FATE.tableName(), lockID, isLockHeld);
   }
 
   @Override
@@ -100,7 +107,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       }
 
       var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW)
-          .putCreateTime(System.currentTimeMillis()).tryMutate();
+          .putCreateTime(System.currentTimeMillis()).putInitReservationVal().tryMutate();
 
       switch (status) {
         case ACCEPTED:
@@ -120,35 +127,162 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected void create(FateId fateId, FateKey fateKey) {
-    final int maxAttempts = 5;
+  public Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
+    final var reservation = FateReservation.from(lockID, UUID.randomUUID());
+    final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
+    Optional<FateTxStore<T>> txStore = Optional.empty();
+    int maxAttempts = 5;
+    FateMutator.Status status = null;
 
+    // Only need to retry if it is UNKNOWN
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
-
-      if (attempt >= 1) {
-        log.debug("Failed to create transaction with fateId {} and fateKey {}, trying again",
-            fateId, fateKey);
-        UtilWaitThread.sleep(100);
+      status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW).putKey(fateKey)
+          .putReservedTxOnCreation(reservation).putCreateTime(System.currentTimeMillis())
+          .tryMutate();
+      if (status != FateMutator.Status.UNKNOWN) {
+        break;
       }
-
-      var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW).putKey(fateKey)
-          .putCreateTime(System.currentTimeMillis()).tryMutate();
-
-      switch (status) {
-        case ACCEPTED:
-          return;
-        case UNKNOWN:
-          continue;
-        case REJECTED:
-          throw new IllegalStateException("Attempt to create transaction with fateId " + fateId
-              + " and fateKey " + fateKey + " was rejected");
-        default:
-          throw new IllegalStateException("Unknown status " + status);
-      }
+      UtilWaitThread.sleep(100);
     }
 
-    throw new IllegalStateException("Failed to create transaction with fateId " + fateId
-        + " and fateKey " + fateKey + " after " + maxAttempts + " attempts");
+    switch (status) {
+      case ACCEPTED:
+        txStore = Optional.of(new FateTxStoreImpl(fateId, reservation));
+        break;
+      case REJECTED:
+        // If the status is REJECTED, we need to check what about the mutation was REJECTED:
+        // 1) Possible something like the following occurred:
+        // the first attempt was UNKNOWN but written, the next attempt would be rejected
+        // We return the FateTxStore in this case.
+        // 2) If there is a collision with existing fate id, throw error
+        // 3) If the fate id is already reserved, return an empty optional
+        // 4) If the fate id is still NEW/unseeded and unreserved, we can try to reserve it
+        try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
+          scanner.setRange(getRow(fateId));
+          scanner.fetchColumn(TxColumnFamily.STATUS_COLUMN.getColumnFamily(),
+              TxColumnFamily.STATUS_COLUMN.getColumnQualifier());
+          scanner.fetchColumn(TxColumnFamily.TX_KEY_COLUMN.getColumnFamily(),
+              TxColumnFamily.TX_KEY_COLUMN.getColumnQualifier());
+          scanner.fetchColumn(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+              TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+          TStatus statusSeen = TStatus.UNKNOWN;
+          Optional<FateKey> fateKeySeen = Optional.empty();
+          Optional<FateReservation> reservationSeen = Optional.empty();
+
+          for (Entry<Key,Value> entry : scanner) {
+            Text colf = entry.getKey().getColumnFamily();
+            Text colq = entry.getKey().getColumnQualifier();
+            Value val = entry.getValue();
+
+            switch (colq.toString()) {
+              case TxColumnFamily.STATUS:
+                statusSeen = TStatus.valueOf(val.toString());
+                break;
+              case TxColumnFamily.TX_KEY:
+                fateKeySeen = Optional.of(FateKey.deserialize(val.get()));
+                break;
+              case TxColumnFamily.RESERVATION:
+                if (FateReservation.isFateReservation(val.get())) {
+                  reservationSeen = Optional.of(FateReservation.deserialize(val.get()));
+                }
+                break;
+              default:
+                throw new IllegalStateException("Unexpected column seen: " + colf + ":" + colq);
+            }
+          }
+
+          if (statusSeen == TStatus.NEW) {
+            verifyFateKey(fateId, fateKeySeen, fateKey);
+            // This will be the case if the mutation status is REJECTED but the mutation was written
+            if (reservationSeen.isPresent() && reservationSeen.orElseThrow().equals(reservation)) {
+              txStore = Optional.of(new FateTxStoreImpl(fateId, reservation));
+            } else if (reservationSeen.isEmpty()) {
+              // NEW/unseeded transaction and not reserved, so we can allow it to be reserved
+              // we tryReserve() since another thread may have reserved it since the scan
+              txStore = tryReserve(fateId);
+              // the status was known before reserving to be NEW,
+              // however it could change so check after reserving to avoid race conditions.
+              var statusAfterReserve =
+                  txStore.map(ReadOnlyFateTxStore::getStatus).orElse(TStatus.UNKNOWN);
+              if (statusAfterReserve != TStatus.NEW) {
+                txStore.ifPresent(txs -> txs.unreserve(Duration.ZERO));
+                txStore = Optional.empty();
+              }
+            }
+          } else {
+            log.trace(
+                "fate id {} tstatus {} fate key {} is reserved {} "
+                    + "has already been seeded with work (non-NEW status)",
+                fateId, statusSeen, fateKeySeen.orElse(null), reservationSeen.isPresent());
+          }
+        } catch (TableNotFoundException e) {
+          throw new IllegalStateException(tableName + " not found!", e);
+        }
+        break;
+      default:
+        throw new IllegalStateException("Unknown or unexpected status " + status);
+    }
+
+    return txStore;
+  }
+
+  @Override
+  public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
+    // Create a unique FateReservation for this reservation attempt
+    FateReservation reservation = FateReservation.from(lockID, UUID.randomUUID());
+
+    FateMutator.Status status = newMutator(fateId).putReservedTx(reservation).tryMutate();
+    if (status.equals(FateMutator.Status.ACCEPTED)) {
+      return Optional.of(new FateTxStoreImpl(fateId, reservation));
+    } else if (status.equals(FateMutator.Status.UNKNOWN)) {
+      // If the status is UNKNOWN, this means an error occurred after the mutation was
+      // sent to the TabletServer, and it is unknown if the mutation was written. We
+      // need to check if the mutation was written and if it was written by this
+      // attempt at reservation. If it was written by this reservation attempt,
+      // we can return the FateTxStore since it was successfully reserved in this
+      // attempt, otherwise we return empty (was written by another reservation
+      // attempt or was not written at all).
+      try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(getRow(fateId));
+        scanner.fetchColumn(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+            TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+        FateReservation persistedRes = scanner.stream()
+            .filter(entry -> FateReservation.isFateReservation(entry.getValue().get()))
+            .map(entry -> FateReservation.deserialize(entry.getValue().get())).findFirst()
+            .orElse(null);
+        if (persistedRes != null && persistedRes.equals(reservation)) {
+          return Optional.of(new FateTxStoreImpl(fateId, reservation));
+        }
+      } catch (TableNotFoundException e) {
+        throw new IllegalStateException(tableName + " not found!", e);
+      }
+    }
+    return Optional.empty();
+  }
+
+  @Override
+  public void deleteDeadReservations() {
+    for (Entry<FateId,FateReservation> activeRes : getActiveReservations().entrySet()) {
+      FateId fateId = activeRes.getKey();
+      FateReservation reservation = activeRes.getValue();
+      if (!isLockHeld.test(reservation.getLockID())) {
+        var status = newMutator(fateId).putUnreserveTx(reservation).tryMutate();
+        if (status == FateMutator.Status.ACCEPTED) {
+          // Technically, this should also be logged for the case where the mutation status
+          // is UNKNOWN, but the mutation was actually written (fate id was unreserved)
+          // but there is no way to tell if it was unreserved from this mutation or another
+          // thread simply unreserving the transaction
+          log.trace("Deleted the dead reservation {} for fate id {}", reservation, fateId);
+        }
+        // No need to verify the status... If it is ACCEPTED, we have successfully unreserved
+        // the dead transaction. If it is REJECTED, the reservation has changed (i.e.,
+        // has been unreserved so no need to do anything, or has been unreserved and reserved
+        // again in which case we don't want to change it). If it is UNKNOWN, the mutation
+        // may or may not have been written. If it was written, we have successfully unreserved
+        // the dead transaction. If it was not written, the next cycle/call to
+        // deleteDeadReservations() will try again.
+      }
+    }
   }
 
   @Override
@@ -156,15 +290,53 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     try {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
-      FateStatusFilter.configureScanner(scanner, statuses);
+      RowFateStatusFilter.configureScanner(scanner, statuses);
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
+      TxColumnFamily.RESERVATION_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {
         String txUUIDStr = e.getKey().getRow().toString();
         FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
+        SortedMap<Key,Value> rowMap;
+        TStatus status = TStatus.UNKNOWN;
+        FateReservation reservation = null;
+        try {
+          rowMap = WholeRowIterator.decodeRow(e.getKey(), e.getValue());
+        } catch (IOException ex) {
+          throw new RuntimeException(ex);
+        }
+        // expect status and optionally reservation
+        Preconditions.checkState(rowMap.size() == 1 || rowMap.size() == 2,
+            "Invalid row seen: %s. Expected to see one entry for the status and optionally an "
+                + "entry for the fate reservation",
+            rowMap);
+        for (Entry<Key,Value> entry : rowMap.entrySet()) {
+          Text colf = entry.getKey().getColumnFamily();
+          Text colq = entry.getKey().getColumnQualifier();
+          Value val = entry.getValue();
+          switch (colq.toString()) {
+            case TxColumnFamily.STATUS:
+              status = TStatus.valueOf(val.toString());
+              break;
+            case TxColumnFamily.RESERVATION:
+              if (FateReservation.isFateReservation(val.get())) {
+                reservation = FateReservation.deserialize(val.get());
+              }
+              break;
+            default:
+              throw new IllegalStateException("Unexpected column seen: " + colf + ":" + colq);
+          }
+        }
+        final TStatus finalStatus = status;
+        final Optional<FateReservation> finalReservation = Optional.ofNullable(reservation);
         return new FateIdStatusBase(fateId) {
           @Override
           public TStatus getStatus() {
-            return TStatus.valueOf(e.getValue().toString());
+            return finalStatus;
+          }
+
+          @Override
+          public Optional<FateReservation> getFateReservation() {
+            return finalReservation;
           }
         };
       });
@@ -207,42 +379,8 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected Pair<TStatus,Optional<FateKey>> getStatusAndKey(FateId fateId) {
-    return scanTx(scanner -> {
-      scanner.setRange(getRow(fateId));
-      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
-      TxColumnFamily.TX_KEY_COLUMN.fetch(scanner);
-
-      TStatus status = null;
-      FateKey key = null;
-
-      for (Entry<Key,Value> entry : scanner) {
-        final String qual = entry.getKey().getColumnQualifierData().toString();
-        switch (qual) {
-          case TxColumnFamily.STATUS:
-            status = TStatus.valueOf(entry.getValue().toString());
-            break;
-          case TxColumnFamily.TX_KEY:
-            key = FateKey.deserialize(entry.getValue().get());
-            break;
-          default:
-            throw new IllegalStateException("Unexpected column qualifier: " + qual);
-        }
-      }
-
-      return new Pair<>(Optional.ofNullable(status).orElse(TStatus.UNKNOWN),
-          Optional.ofNullable(key));
-    });
-  }
-
-  @Override
-  protected FateTxStore<T> newFateTxStore(FateId fateId, boolean isReserved) {
-    return new FateTxStoreImpl(fateId, isReserved);
-  }
-
-  @Override
-  protected FateInstanceType getInstanceType() {
-    return fateInstanceType;
+  protected FateTxStore<T> newUnreservedFateTxStore(FateId fateId) {
+    return new FateTxStoreImpl(fateId);
   }
 
   static Range getRow(FateId fateId) {
@@ -272,8 +410,12 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
   private class FateTxStoreImpl extends AbstractFateTxStoreImpl<T> {
 
-    private FateTxStoreImpl(FateId fateId, boolean isReserved) {
-      super(fateId, isReserved);
+    private FateTxStoreImpl(FateId fateId) {
+      super(fateId);
+    }
+
+    private FateTxStoreImpl(FateId fateId, FateReservation reservation) {
+      super(fateId, reservation);
     }
 
     @Override
@@ -403,6 +545,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       var mutator = newMutator(fateId);
       mutator.requireStatus(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED);
       mutator.delete().mutate();
+      this.deleted = true;
     }
 
     private Optional<Integer> findTop() {
@@ -412,6 +555,17 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         scanner.fetchColumnFamily(RepoColumnFamily.NAME);
         return scanner.stream().map(e -> restoreRepo(e.getKey().getColumnQualifier())).findFirst();
       });
+    }
+
+    @Override
+    protected void unreserve() {
+      if (!deleted) {
+        FateMutator.Status status;
+        do {
+          status = newMutator(fateId).putUnreserveTx(reservation).tryMutate();
+        } while (status.equals(FateMutator.Status.UNKNOWN));
+      }
+      reservation = null;
     }
   }
 

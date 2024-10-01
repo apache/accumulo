@@ -18,9 +18,20 @@
  */
 package org.apache.accumulo.core.fate;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
+
+import org.apache.accumulo.core.fate.user.FateMutatorImpl;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.hadoop.io.DataInputBuffer;
 
 /**
  * Transaction Store: a place to save transactions
@@ -108,10 +119,122 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
   }
 
   /**
+   * The value stored to indicate a FATE transaction ID ({@link FateId}) has been reserved
+   */
+  class FateReservation {
+
+    // The LockID (provided by the Manager running the FATE which uses this store) which is used for
+    // identifying dead Managers, so their reservations can be deleted and picked up again since
+    // they can no longer be worked on.
+    private final ZooUtil.LockID lockID;
+    // The UUID generated on a reservation attempt (tryReserve()) used to uniquely identify that
+    // attempt. This is useful for the edge case where the reservation is sent to the server
+    // (Tablet Server for UserFateStore and the ZooKeeper Server for MetaFateStore), but the server
+    // dies before the store receives the response. It allows us to determine if the reservation
+    // was successful and was written by this reservation attempt (could have been successfully
+    // reserved by another attempt or not reserved at all, in which case, we wouldn't want to
+    // expose a FateTxStore).
+    private final UUID reservationUUID;
+    private final byte[] serialized;
+
+    private FateReservation(ZooUtil.LockID lockID, UUID reservationUUID) {
+      this.lockID = Objects.requireNonNull(lockID);
+      this.reservationUUID = Objects.requireNonNull(reservationUUID);
+      this.serialized = serialize(lockID, reservationUUID);
+    }
+
+    public static FateReservation from(ZooUtil.LockID lockID, UUID reservationUUID) {
+      return new FateReservation(lockID, reservationUUID);
+    }
+
+    /**
+     * @param serializedFateRes the value present in the table for the reservation column
+     * @return true if the array represents a valid serialized FateReservation object, false if it
+     *         represents an unreserved value, error otherwise
+     */
+    public static boolean isFateReservation(byte[] serializedFateRes) {
+      if (Arrays.equals(serializedFateRes, FateMutatorImpl.NOT_RESERVED)) {
+        return false;
+      }
+      deserialize(serializedFateRes);
+      return true;
+    }
+
+    public ZooUtil.LockID getLockID() {
+      return lockID;
+    }
+
+    public UUID getReservationUUID() {
+      return reservationUUID;
+    }
+
+    public byte[] getSerialized() {
+      return serialized;
+    }
+
+    private static byte[] serialize(ZooUtil.LockID lockID, UUID reservationUUID) {
+      try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+          DataOutputStream dos = new DataOutputStream(baos)) {
+        dos.writeUTF(lockID.serialize("/"));
+        dos.writeUTF(reservationUUID.toString());
+        dos.close();
+        return baos.toByteArray();
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+
+    public static FateReservation deserialize(byte[] serialized) {
+      try (DataInputBuffer buffer = new DataInputBuffer()) {
+        buffer.reset(serialized, serialized.length);
+        ZooUtil.LockID lockID = new ZooUtil.LockID("", buffer.readUTF());
+        UUID reservationUUID = UUID.fromString(buffer.readUTF());
+        return new FateReservation(lockID, reservationUUID);
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+
+    public static boolean locksAreEqual(ZooUtil.LockID lockID1, ZooUtil.LockID lockID2) {
+      return lockID1.serialize("/").equals(lockID2.serialize("/"));
+    }
+
+    @Override
+    public String toString() {
+      return lockID.serialize("/") + ":" + reservationUUID;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == this) {
+        return true;
+      }
+      if (obj instanceof FateReservation) {
+        FateReservation other = (FateReservation) obj;
+        return Arrays.equals(this.getSerialized(), other.getSerialized());
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(lockID, reservationUUID);
+    }
+  }
+
+  /**
+   * Deletes the current reservations which were reserved by a now dead Manager. These reservations
+   * can no longer be worked on so their reservation should be deleted, so they can be picked up and
+   * worked on again.
+   */
+  void deleteDeadReservations();
+
+  /**
    * Attempt to reserve the fate transaction.
    *
    * @param fateId The FateId
-   * @return true if reserved by this call, false if already reserved
+   * @return An Optional containing the {@link FateTxStore} if the transaction was successfully
+   *         reserved, or an empty Optional if the transaction was not able to be reserved.
    */
   Optional<FateTxStore<T>> tryReserve(FateId fateId);
 

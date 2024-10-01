@@ -28,11 +28,8 @@ import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DeleteTableCommand extends TableOperation {
-  private static final Logger log = LoggerFactory.getLogger(DeleteTableCommand.class);
 
   private Option forceOpt;
 
@@ -78,7 +75,7 @@ public class DeleteTableCommand extends TableOperation {
       String table = tableNames.next();
       Pair<String,String> qualifiedName = TableNameUtil.qualify(table);
       if (Namespace.ACCUMULO.name().equals(qualifiedName.getFirst())) {
-        log.trace("Removing table from deletion set: {}", table);
+        Shell.log.trace("Removing table from deletion set: {}", table);
         tableNames.remove();
       }
     }

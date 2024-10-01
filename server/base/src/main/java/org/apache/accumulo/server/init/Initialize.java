@@ -54,7 +54,6 @@ import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.server.util.ChangeSecret;
 import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang3.StringUtils;
@@ -107,7 +106,7 @@ public class Initialize implements KeywordExecutable {
       System.out.println();
       System.out.println();
       System.out.println("You can change the instance secret in accumulo by using:");
-      System.out.println("   bin/accumulo " + ChangeSecret.class.getName());
+      System.out.println("   bin/accumulo admin changeSecret");
       System.out.println("You will also need to edit your secret in your configuration"
           + " file by adding the property instance.secret to your"
           + " accumulo.properties. Without this accumulo will not operate correctly");
