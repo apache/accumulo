@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -244,12 +245,14 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     executeTest(this::testListStatus);
   }
 
-  protected void testListStatus(FateStore<TestEnv> store, ServerContext sctx) throws Exception {
+  protected void testListStatus(FateStore<TestEnv> store, ServerContext sctx) {
     try {
       Map<FateId,TStatus> expectedStatus = new HashMap<>();
 
+      final EnumSet<TStatus> allStatuses = EnumSet.allOf(TStatus.class);
+
       for (int i = 0; i < 5; i++) {
-        for (var status : TStatus.values()) {
+        for (var status : allStatuses) {
           var fateId = store.create();
           var txStore = store.reserve(fateId);
           txStore.setStatus(status);
@@ -257,12 +260,15 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
           expectedStatus.put(fateId, status);
         }
       }
+      for (Set<TStatus> statuses : Sets.powerSet(allStatuses)) {
+        EnumSet<TStatus> enumSet =
+            statuses.isEmpty() ? EnumSet.noneOf(TStatus.class) : EnumSet.copyOf(statuses);
 
-      for (var statuses : Sets.powerSet(Set.of(TStatus.values()))) {
         var expected =
-            expectedStatus.entrySet().stream().filter(e -> statuses.contains(e.getValue()))
+            expectedStatus.entrySet().stream().filter(e -> enumSet.contains(e.getValue()))
                 .map(Map.Entry::getKey).collect(Collectors.toSet());
-        var actual = store.list(statuses).map(FateIdStatus::getFateId).collect(Collectors.toSet());
+
+        var actual = store.list(enumSet).map(FateIdStatus::getFateId).collect(Collectors.toSet());
         assertEquals(expected, actual);
       }
     } finally {

@@ -19,15 +19,12 @@
 package org.apache.accumulo.core.fate;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -56,9 +53,6 @@ public interface ReadOnlyFateStore<T> {
     UNKNOWN,
     /** Transaction that is eligible to be executed */
     SUBMITTED;
-
-    public static final Set<TStatus> ALL_STATUSES =
-        Arrays.stream(values()).collect(Collectors.toUnmodifiableSet());
   }
 
   /**
@@ -148,7 +142,7 @@ public interface ReadOnlyFateStore<T> {
    *
    * @return all outstanding transactions, including those reserved by others.
    */
-  Stream<FateIdStatus> list(Set<TStatus> statuses);
+  Stream<FateIdStatus> list(EnumSet<TStatus> statuses);
 
   /**
    * list transaction in the store that have a given fate key type.

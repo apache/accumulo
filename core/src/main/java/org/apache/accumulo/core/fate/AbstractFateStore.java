@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -151,9 +150,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     return reserveAttempt.orElseThrow();
   }
 
-  private static final Set<TStatus> IN_PROGRESS_SET = Set.of(TStatus.IN_PROGRESS);
-  private static final Set<TStatus> OTHER_RUNNABLE_SET =
-      Set.of(TStatus.SUBMITTED, TStatus.FAILED_IN_PROGRESS);
+  private static final EnumSet<TStatus> IN_PROGRESS_SET = EnumSet.of(TStatus.IN_PROGRESS);
+  private static final EnumSet<TStatus> OTHER_RUNNABLE_SET =
+      EnumSet.of(TStatus.SUBMITTED, TStatus.FAILED_IN_PROGRESS);
 
   @Override
   public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
@@ -219,11 +218,11 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   @Override
   public Stream<FateIdStatus> list() {
-    return getTransactions(TStatus.ALL_STATUSES);
+    return getTransactions(EnumSet.allOf(TStatus.class));
   }
 
   @Override
-  public Stream<FateIdStatus> list(Set<TStatus> statuses) {
+  public Stream<FateIdStatus> list(EnumSet<TStatus> statuses) {
     return getTransactions(statuses);
   }
 
@@ -276,7 +275,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         "Collision detected for fate id " + fateId);
   }
 
-  protected abstract Stream<FateIdStatus> getTransactions(Set<TStatus> statuses);
+  protected abstract Stream<FateIdStatus> getTransactions(EnumSet<TStatus> statuses);
 
   protected abstract TStatus _getStatus(FateId fateId);
 
