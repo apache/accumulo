@@ -406,7 +406,7 @@ public class ClientContext implements AccumuloClient {
   public Map<String,Pair<UUID,String>> getScanServers() {
     Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
     Set<ServiceLockPath> scanServerPaths =
-        getServerPaths().getScanServer(Optional.empty(), Optional.empty());
+        getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true);
     for (ServiceLockPath path : scanServerPaths) {
       try {
         ZcStat stat = new ZcStat();
@@ -483,7 +483,7 @@ public class ClientContext implements AccumuloClient {
    */
   public List<String> getManagerLocations() {
     ensureOpen();
-    var zLockManagerPath = getServerPaths().getManager();
+    var zLockManagerPath = getServerPaths().getManager(true);
 
     Timer timer = null;
 

@@ -200,7 +200,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     final ZooCache zc = context.getZooCache();
 
     Set<ServiceLockPath> servers =
-        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
+        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true);
     for (ServiceLockPath server : servers) {
       Optional<ServiceLockData> data = zc.getLockData(server);
       if (data != null && data.isPresent()) {

@@ -111,7 +111,7 @@ public class ZooZap implements KeywordExecutable {
         if (opts.zapTservers) {
           try {
             Set<ServiceLockPath> tserverLockPaths =
-                context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
+                context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), false);
             for (ServiceLockPath tserverPath : tserverLockPaths) {
 
               message("Deleting " + tserverPath + " from zookeeper", opts);
@@ -133,7 +133,7 @@ public class ZooZap implements KeywordExecutable {
 
         if (opts.zapCompactors) {
           Set<ServiceLockPath> compactorLockPaths =
-              context.getServerPaths().getCompactor(Optional.empty(), Optional.empty());
+              context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), false);
           Set<String> compactorResourceGroupPaths = new HashSet<>();
           compactorLockPaths.forEach(p -> compactorResourceGroupPaths
               .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
@@ -151,7 +151,7 @@ public class ZooZap implements KeywordExecutable {
         if (opts.zapScanServers) {
           try {
             Set<ServiceLockPath> sserverLockPaths =
-                context.getServerPaths().getScanServer(Optional.empty(), Optional.empty());
+                context.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), false);
             for (ServiceLockPath sserverPath : sserverLockPaths) {
               message("Deleting " + sserverPath + " from zookeeper", opts);
               if (!zoo.getChildren(sserverPath.toString()).isEmpty()) {

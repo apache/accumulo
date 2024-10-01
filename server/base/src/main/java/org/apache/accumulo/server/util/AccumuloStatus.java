@@ -33,17 +33,17 @@ public class AccumuloStatus {
    */
   public static boolean isAccumuloOffline(ClientContext context) {
     Set<ServiceLockPath> tservers =
-        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
+        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true);
     if (!tservers.isEmpty()) {
       return false;
     }
-    if (context.getServerPaths().getManager() != null) {
+    if (context.getServerPaths().getManager(true) != null) {
       return false;
     }
-    if (context.getServerPaths().getMonitor() != null) {
+    if (context.getServerPaths().getMonitor(true) != null) {
       return false;
     }
-    if (context.getServerPaths().getGarbageCollector() != null) {
+    if (context.getServerPaths().getGarbageCollector(true) != null) {
       return false;
     }
     return true;

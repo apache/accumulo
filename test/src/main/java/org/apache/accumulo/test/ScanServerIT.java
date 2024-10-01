@@ -116,7 +116,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
         "localhost");
 
     Wait.waitFor(() -> !getCluster().getServerContext().getServerPaths()
-        .getScanServer(Optional.empty(), Optional.empty()).isEmpty());
+        .getScanServer(Optional.empty(), Optional.empty(), true).isEmpty());
   }
 
   @AfterAll

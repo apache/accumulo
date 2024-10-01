@@ -126,7 +126,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
 
     // Ensure no scan servers running
     Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-        .getScanServer(Optional.empty(), Optional.empty()).isEmpty());
+        .getScanServer(Optional.empty(), Optional.empty(), true).isEmpty());
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
@@ -148,7 +148,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
         // Start a ScanServer. No group specified, should be in the default group.
         getCluster().getClusterControl().start(ServerType.SCAN_SERVER, "localhost");
         Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-            .getScanServer(Optional.empty(), Optional.empty()).size() == 1, 30_000);
+            .getScanServer(Optional.empty(), Optional.empty(), true).size() == 1, 30_000);
         Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
             (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
             == true);
@@ -166,7 +166,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
             .addScanServerResourceGroup("GROUP1", 1);
         getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
         Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-            .getScanServer(Optional.empty(), Optional.empty()).size() == 2, 30_000);
+            .getScanServer(Optional.empty(), Optional.empty(), true).size() == 2, 30_000);
         Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
             (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
             == true);
