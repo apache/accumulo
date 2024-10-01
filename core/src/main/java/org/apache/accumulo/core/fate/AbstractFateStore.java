@@ -218,7 +218,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   @Override
   public Stream<FateIdStatus> list() {
-    return getTransactions(TStatus.ALL_STATUSES);
+    return getTransactions(EnumSet.allOf(TStatus.class));
   }
 
   @Override

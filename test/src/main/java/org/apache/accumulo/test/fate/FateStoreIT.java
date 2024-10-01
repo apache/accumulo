@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.ALL_STATUSES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -250,8 +249,10 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     try {
       Map<FateId,TStatus> expectedStatus = new HashMap<>();
 
+      final EnumSet<TStatus> allStatuses = EnumSet.allOf(TStatus.class);
+
       for (int i = 0; i < 5; i++) {
-        for (var status : ALL_STATUSES) {
+        for (var status : allStatuses) {
           var fateId = store.create();
           var txStore = store.reserve(fateId);
           txStore.setStatus(status);
@@ -259,8 +260,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
           expectedStatus.put(fateId, status);
         }
       }
-
-      for (Set<TStatus> statuses : Sets.powerSet(ALL_STATUSES)) {
+      for (Set<TStatus> statuses : Sets.powerSet(allStatuses)) {
         EnumSet<TStatus> enumSet =
             statuses.isEmpty() ? EnumSet.noneOf(TStatus.class) : EnumSet.copyOf(statuses);
 

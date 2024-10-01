@@ -20,7 +20,6 @@ package org.apache.accumulo.core.fate;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.ALL_STATUSES;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -525,11 +524,10 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
         };
       });
 
-      if (!ALL_STATUSES.equals(statuses)) {
-        stream = stream.filter(s -> statuses.contains(s.getStatus()));
+      if (statuses.equals(EnumSet.allOf(TStatus.class))) {
+        return stream;
       }
-
-      return stream;
+      return stream.filter(s -> statuses.contains(s.getStatus()));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
@@ -537,7 +535,8 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   public Stream<FateKey> list(FateKey.FateKeyType type) {
-    return getTransactions(ALL_STATUSES).flatMap(fis -> getKey(fis.getFateId()).stream())
+    return getTransactions(EnumSet.allOf(TStatus.class))
+        .flatMap(fis -> getKey(fis.getFateId()).stream())
         .filter(fateKey -> fateKey.getType() == type);
   }
 

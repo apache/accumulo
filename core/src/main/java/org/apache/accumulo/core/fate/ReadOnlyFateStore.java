@@ -53,8 +53,6 @@ public interface ReadOnlyFateStore<T> {
     UNKNOWN,
     /** Transaction that is eligible to be executed */
     SUBMITTED;
-
-    public static final EnumSet<TStatus> ALL_STATUSES = EnumSet.allOf(TStatus.class);
   }
 
   /**
