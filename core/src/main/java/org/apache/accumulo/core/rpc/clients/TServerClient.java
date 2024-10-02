@@ -161,10 +161,9 @@ public interface TServerClient<C extends TServiceClient> {
     // Need to throw a different exception, when a TTransportException is
     // thrown below, then the operation will be retried endlessly.
     if (type == ThriftClientTypes.CLIENT && debugHost != null) {
-      throw new UncheckedIOException("Error creating transport to preferred client host: "
-          + debugHost
-          + ". If this server is down, then you will need to remove or change the preferred client property value.",
-          new IOException(""));
+      throw new UncheckedIOException("Error creating transport to debug host: " + debugHost
+          + ". If this server is down, then you will need to remove or change the system property "
+          + DEBUG_HOST + ".", new IOException(""));
     } else {
       throw new TTransportException("Failed to connect to any server for API type " + type);
     }
