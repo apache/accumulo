@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver.session;
 
+import java.util.OptionalLong;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -39,8 +40,7 @@ public class Session {
   boolean allowReservation = true;
   private final Timer stateChangeTimer = Timer.startNew();
   private final TCredentials credentials;
-  private long sessionId;
-  private boolean sessionIdSet = false;
+  private OptionalLong sessionId = OptionalLong.empty();
 
   Session(TCredentials credentials) {
     this.credentials = credentials;
@@ -71,14 +71,13 @@ public class Session {
   }
 
   public void setSessionId(long sessionId) {
-    Preconditions.checkState(!sessionIdSet);
-    this.sessionId = sessionId;
-    this.sessionIdSet = true;
+    Preconditions.checkState(this.sessionId.isEmpty());
+    this.sessionId = OptionalLong.of(sessionId);
   }
 
   public long getSessionId() {
-    Preconditions.checkState(sessionIdSet);
-    return sessionId;
+    Preconditions.checkState(this.sessionId.isPresent());
+    return sessionId.orElseThrow();
   }
 
   public long elaspedSinceStateChange(TimeUnit unit) {
