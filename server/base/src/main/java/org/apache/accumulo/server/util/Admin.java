@@ -450,15 +450,13 @@ public class Admin implements KeywordExecutable {
       return;
     }
 
-    ServerContext context = opts.getServerContext();
+    try (ServerContext context = opts.getServerContext()) {
 
-    AccumuloConfiguration conf = context.getConfiguration();
-    // Login as the server on secure HDFS
-    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-      SecurityUtil.serverLogin(conf);
-    }
-
-    try {
+      AccumuloConfiguration conf = context.getConfiguration();
+      // Login as the server on secure HDFS
+      if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        SecurityUtil.serverLogin(conf);
+      }
 
       int rc = 0;
 
@@ -537,7 +535,6 @@ public class Admin implements KeywordExecutable {
       log.error("{}", e.getMessage(), e);
       System.exit(3);
     } finally {
-      context.close();
       SingletonManager.setMode(Mode.CLOSED);
     }
   }
