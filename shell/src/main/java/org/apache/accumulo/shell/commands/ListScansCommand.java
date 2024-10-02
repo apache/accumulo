@@ -46,22 +46,19 @@ public class ListScansCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
 
-    Set<ServerId> servers;
-
     final InstanceOperations instanceOps = shellState.getAccumuloClient().instanceOperations();
-
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
+    final Set<ServerId> servers = new HashSet<>();
 
     if (cl.hasOption(tserverOption.getOpt())) {
       String serverAddress = cl.getOptionValue(tserverOption.getOpt());
       final HostAndPort hp = HostAndPort.fromString(serverAddress);
-      servers = new HashSet<>();
       servers
           .add(instanceOps.getServer(ServerTypeName.SCAN_SERVER, null, hp.getHost(), hp.getPort()));
       servers.add(
           instanceOps.getServer(ServerTypeName.TABLET_SERVER, null, hp.getHost(), hp.getPort()));
     } else {
-      servers = instanceOps.getServers(ServerTypeName.SCAN_SERVER);
+      servers.addAll(instanceOps.getServers(ServerTypeName.SCAN_SERVER));
       servers.addAll(instanceOps.getServers(ServerTypeName.TABLET_SERVER));
     }
 
