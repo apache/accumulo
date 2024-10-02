@@ -34,7 +34,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class PreferredClientConnectionIT extends AccumuloClusterHarness {
+public class DebugClientConnectionIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -54,15 +54,15 @@ public class PreferredClientConnectionIT extends AccumuloClusterHarness {
 
   @Test
   public void testPreferredConnection() throws Exception {
-    System.setProperty(TServerClient.PREFERRED_HOST, tservers.get(0));
+    System.setProperty(TServerClient.DEBUG_HOST, tservers.get(0));
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       assertNotNull(client.instanceOperations().getSiteConfiguration());
     }
-    System.setProperty(TServerClient.PREFERRED_HOST, tservers.get(1));
+    System.setProperty(TServerClient.DEBUG_HOST, tservers.get(1));
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       assertNotNull(client.instanceOperations().getSiteConfiguration());
     }
-    System.setProperty(TServerClient.PREFERRED_HOST, "localhost:1");
+    System.setProperty(TServerClient.DEBUG_HOST, "localhost:1");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       assertThrows(UncheckedIOException.class,
           () -> client.instanceOperations().getSiteConfiguration());

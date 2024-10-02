@@ -56,7 +56,7 @@ import com.google.common.net.HostAndPort;
 
 public interface TServerClient<C extends TServiceClient> {
 
-  static final String PREFERRED_HOST = "org.apache.accumulo.client.rpc.preferred.host";
+  static final String DEBUG_HOST = "org.apache.accumulo.client.rpc.debug.host";
 
   Pair<String,C> getThriftServerConnection(ClientContext context, boolean preferCachedConnections)
       throws TTransportException;
@@ -66,9 +66,9 @@ public interface TServerClient<C extends TServiceClient> {
       ThriftService service) throws TTransportException {
     checkArgument(context != null, "context is null");
 
-    final String preferredClientHost = System.getProperty(PREFERRED_HOST, null);
+    final String debugHost = System.getProperty(DEBUG_HOST, null);
 
-    if (preferCachedConnections && preferredClientHost != null) {
+    if (preferCachedConnections && debugHost != null) {
       Pair<String,TTransport> cachedTransport =
           context.getTransportPool().getAnyCachedTransport(type);
       if (cachedTransport != null) {
@@ -85,15 +85,15 @@ public interface TServerClient<C extends TServiceClient> {
     final ZooCache zc = context.getZooCache();
 
     final List<String> serverPaths = new ArrayList<>();
-    if (type == ThriftClientTypes.CLIENT && preferredClientHost != null) {
+    if (type == ThriftClientTypes.CLIENT && debugHost != null) {
       // add all three paths to the set even though they may not be correct.
       // The entire set will be checked in the code below to validate
       // that the path is correct and the lock is held and will return the
       // correct one.
-      serverPaths.add(tserverZooPath + "/" + preferredClientHost);
-      serverPaths.add(sserverZooPath + "/" + preferredClientHost);
+      serverPaths.add(tserverZooPath + "/" + debugHost);
+      serverPaths.add(sserverZooPath + "/" + debugHost);
       zc.getChildren(compactorZooPath).forEach(compactorGroup -> {
-        serverPaths.add(compactorZooPath + "/" + compactorGroup + "/" + preferredClientHost);
+        serverPaths.add(compactorZooPath + "/" + compactorGroup + "/" + debugHost);
       });
     } else {
       zc.getChildren(tserverZooPath).forEach(tserverAddress -> {
@@ -112,10 +112,10 @@ public interface TServerClient<C extends TServiceClient> {
     }
 
     if (serverPaths.isEmpty()) {
-      if (type == ThriftClientTypes.CLIENT && preferredClientHost != null) {
+      if (type == ThriftClientTypes.CLIENT && debugHost != null) {
         LOG.error(
-            "No entry in ZooKeeper for  preferred client host: {}. If this server is down, then you will need to remove or change the preferred client property value.",
-            preferredClientHost);
+            "No entry in ZooKeeper for debug host: {}. If this server is down, then you will need to remove or change the system property {}.",
+            debugHost, DEBUG_HOST);
       } else if (warned.compareAndSet(false, true)) {
         LOG.warn(
             "There are no servers serving the {} api: check that zookeeper and accumulo are running.",
@@ -135,16 +135,16 @@ public interface TServerClient<C extends TServiceClient> {
             TTransport transport = context.getTransportPool().getTransport(type,
                 tserverClientAddress, rpcTimeout, context, preferCachedConnections);
             C client = ThriftUtil.createClient(type, transport);
-            if (type == ThriftClientTypes.CLIENT && preferredClientHost != null) {
-              LOG.info("Connecting to preferred client host: {}", preferredClientHost);
+            if (type == ThriftClientTypes.CLIENT && debugHost != null) {
+              LOG.info("Connecting to debug host: {}", debugHost);
             }
             warned.set(false);
             return new Pair<String,C>(tserverClientAddress.toString(), client);
           } catch (TTransportException e) {
-            if (type == ThriftClientTypes.CLIENT && preferredClientHost != null) {
+            if (type == ThriftClientTypes.CLIENT && debugHost != null) {
               LOG.error(
-                  "Error creating transport to preferred client host: {}. If this server is down, then you will need to remove or change the preferred client property value.",
-                  preferredClientHost);
+                  "Error creating transport to debug host: {}. If this server is down, then you will need to remove or change the system property {}.",
+                  debugHost, DEBUG_HOST);
             } else {
               LOG.trace("Error creating transport to {}", tserverClientAddress);
             }
@@ -160,9 +160,9 @@ public interface TServerClient<C extends TServiceClient> {
     }
     // Need to throw a different exception, when a TTransportException is
     // thrown below, then the operation will be retried endlessly.
-    if (type == ThriftClientTypes.CLIENT && preferredClientHost != null) {
+    if (type == ThriftClientTypes.CLIENT && debugHost != null) {
       throw new UncheckedIOException("Error creating transport to preferred client host: "
-          + preferredClientHost
+          + debugHost
           + ". If this server is down, then you will need to remove or change the preferred client property value.",
           new IOException(""));
     } else {
