@@ -21,6 +21,9 @@ package org.apache.accumulo.compactor;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
@@ -179,15 +182,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
-    FunctionCounter.builder(METRICS_COMPACTOR_ENTRIES_READ, this, Compactor::getTotalEntriesRead)
-        .description("Number of entries read by all compactions that have run on this compactor")
-        .register(registry);
+    FunctionCounter.builder(COMPACTOR_ENTRIES_READ.getName(), this, Compactor::getTotalEntriesRead)
+        .description(COMPACTOR_ENTRIES_READ.getDescription()).register(registry);
     FunctionCounter
-        .builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, this, Compactor::getTotalEntriesWritten)
-        .description("Number of entries written by all compactions that have run on this compactor")
-        .register(registry);
-    LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
-        .description("Number and duration of stuck major compactions").register(registry);
+        .builder(COMPACTOR_ENTRIES_WRITTEN.getName(), this, Compactor::getTotalEntriesWritten)
+        .description(COMPACTOR_ENTRIES_WRITTEN.getDescription()).register(registry);
+    LongTaskTimer timer = LongTaskTimer.builder(COMPACTOR_MAJC_STUCK.getName())
+        .description(COMPACTOR_MAJC_STUCK.getDescription()).register(registry);
     CompactionWatcher.setTimer(timer);
   }
 

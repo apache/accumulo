@@ -23,12 +23,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MaxRowCommand extends ScanCommand {
-
-  private static final Logger log = LoggerFactory.getLogger(MaxRowCommand.class);
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -47,7 +43,7 @@ public class MaxRowCommand extends ScanCommand {
         shellState.getWriter().println(max);
       }
     } catch (Exception e) {
-      log.debug("Could not get shell state.", e);
+      Shell.log.debug("Could not get shell state.", e);
     }
 
     return 0;

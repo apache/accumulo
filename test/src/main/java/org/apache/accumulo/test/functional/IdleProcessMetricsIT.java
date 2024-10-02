@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.metrics.Metric.SERVER_IDLE;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
@@ -42,7 +43,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -128,8 +128,8 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
     AtomicBoolean sawTServer = new AtomicBoolean(false);
     Wait.waitFor(() -> {
       List<String> statsDMetrics = sink.getLines();
-      statsDMetrics.stream().filter(line -> line.startsWith(MetricsProducer.METRICS_SERVER_IDLE))
-          .peek(log::info).map(TestStatsDSink::parseStatsDMetric).forEach(a -> {
+      statsDMetrics.stream().filter(line -> line.startsWith(SERVER_IDLE.getName())).peek(log::info)
+          .map(TestStatsDSink::parseStatsDMetric).forEach(a -> {
             String processName = a.getTags().get("process.name");
             int value = Integer.parseInt(a.getValue());
             assertTrue(value == 0 || value == 1 || value == -1, "Unexpected value " + value);
@@ -235,8 +235,7 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
 
   private static void waitForIdleMetricValueToBe(int expectedValue, String processName) {
     Wait.waitFor(
-        () -> sink.getLines().stream()
-            .filter(line -> line.startsWith(MetricsProducer.METRICS_SERVER_IDLE))
+        () -> sink.getLines().stream().filter(line -> line.startsWith(SERVER_IDLE.getName()))
             .map(TestStatsDSink::parseStatsDMetric)
             .filter(a -> a.getTags().get("process.name").equals(processName))
             .peek(a -> log.info("Idle metric: {}", a))

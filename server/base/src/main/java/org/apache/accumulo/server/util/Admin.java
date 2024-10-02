@@ -35,11 +35,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -76,6 +80,13 @@ import org.apache.accumulo.core.util.tables.TableMap;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.accumulo.server.util.checkCommand.CheckRunner;
+import org.apache.accumulo.server.util.checkCommand.MetadataTableCheckRunner;
+import org.apache.accumulo.server.util.checkCommand.RootMetadataCheckRunner;
+import org.apache.accumulo.server.util.checkCommand.RootTableCheckRunner;
+import org.apache.accumulo.server.util.checkCommand.SystemConfigCheckRunner;
+import org.apache.accumulo.server.util.checkCommand.SystemFilesCheckRunner;
+import org.apache.accumulo.server.util.checkCommand.UserFilesCheckRunner;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
@@ -86,6 +97,8 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.net.HostAndPort;
@@ -112,6 +125,93 @@ public class Admin implements KeywordExecutable {
   static class PingCommand {
     @Parameter(description = "{<host> ... }")
     List<String> args = new ArrayList<>();
+  }
+
+  @Parameters(commandNames = "check",
+      commandDescription = "Performs checks for problems in Accumulo.")
+  public static class CheckCommand {
+    @Parameter(names = "list",
+        description = "Lists the different checks that can be run, the description of each check, and the other check(s) each check depends on.")
+    boolean list;
+
+    @Parameter(names = "run",
+        description = "Runs the provided check(s) (explicit list or regex pattern specified following '-p'), beginning with their dependencies, or all checks if none are provided.")
+    boolean run;
+
+    @Parameter(names = {"--name_pattern", "-p"},
+        description = "Runs all checks that match the provided regex pattern.")
+    String pattern;
+
+    @Parameter(description = "[<Check>...]")
+    List<String> checks;
+
+    /**
+     * This should be used to get the check runner instead of {@link Check#getCheckRunner()}. This
+     * exists so that its functionality can be changed for testing.
+     *
+     * @return the interface for running a check
+     */
+    public CheckRunner getCheckRunner(Check check) {
+      return check.getCheckRunner();
+    }
+
+    public enum Check {
+      // Caution should be taken when changing or adding any new checks: order is important
+      SYSTEM_CONFIG(SystemConfigCheckRunner::new, "Validate the system config stored in ZooKeeper",
+          Collections.emptyList()),
+      ROOT_METADATA(RootMetadataCheckRunner::new,
+          "Checks integrity of the root tablet metadata stored in ZooKeeper",
+          Collections.singletonList(SYSTEM_CONFIG)),
+      ROOT_TABLE(RootTableCheckRunner::new,
+          "Scans all the tablet metadata stored in the root table and checks integrity",
+          Collections.singletonList(ROOT_METADATA)),
+      METADATA_TABLE(MetadataTableCheckRunner::new,
+          "Scans all the tablet metadata stored in the metadata table and checks integrity",
+          Collections.singletonList(ROOT_TABLE)),
+      SYSTEM_FILES(SystemFilesCheckRunner::new,
+          "Checks that files in system tablet metadata exist in DFS",
+          Collections.singletonList(ROOT_TABLE)),
+      USER_FILES(UserFilesCheckRunner::new,
+          "Checks that files in user tablet metadata exist in DFS",
+          Collections.singletonList(METADATA_TABLE));
+
+      private final Supplier<CheckRunner> checkRunner;
+      private final String description;
+      private final List<Check> dependencies;
+
+      Check(Supplier<CheckRunner> checkRunner, String description, List<Check> dependencies) {
+        this.checkRunner = Objects.requireNonNull(checkRunner);
+        this.description = Objects.requireNonNull(description);
+        this.dependencies = Objects.requireNonNull(dependencies);
+      }
+
+      /**
+       * This should not be called directly; use {@link CheckCommand#getCheckRunner(Check)} instead
+       *
+       * @return the interface for running a check
+       */
+      public CheckRunner getCheckRunner() {
+        return checkRunner.get();
+      }
+
+      /**
+       * @return the description of the check
+       */
+      public String getDescription() {
+        return description;
+      }
+
+      /**
+       * @return the list of other checks the check depends on
+       */
+      public List<Check> getDependencies() {
+        return dependencies;
+      }
+    }
+
+    public enum CheckStatus {
+      OK, FAILED, SKIPPED_DEPENDENCY_FAILED, FILTERED_OUT;
+    }
   }
 
   @Parameters(commandDescription = "print tablets that are offline in online tables")
@@ -274,6 +374,9 @@ public class Admin implements KeywordExecutable {
     ChangeSecretCommand changeSecretCommand = new ChangeSecretCommand();
     cl.addCommand("changeSecret", changeSecretCommand);
 
+    CheckCommand checkCommand = new CheckCommand();
+    cl.addCommand("check", checkCommand);
+
     CheckTabletsCommand checkTabletsCommand = new CheckTabletsCommand();
     cl.addCommand("checkTablets", checkTabletsCommand);
 
@@ -321,15 +424,13 @@ public class Admin implements KeywordExecutable {
       return;
     }
 
-    ServerContext context = opts.getServerContext();
+    try (ServerContext context = opts.getServerContext()) {
 
-    AccumuloConfiguration conf = context.getConfiguration();
-    // Login as the server on secure HDFS
-    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-      SecurityUtil.serverLogin(conf);
-    }
-
-    try {
+      AccumuloConfiguration conf = context.getConfiguration();
+      // Login as the server on secure HDFS
+      if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        SecurityUtil.serverLogin(conf);
+      }
 
       int rc = 0;
 
@@ -380,6 +481,8 @@ public class Admin implements KeywordExecutable {
         executeFateOpsCommand(context, fateOpsCommand);
       } else if (cl.getParsedCommand().equals("serviceStatus")) {
         printServiceStatus(context, serviceStatusCommandOpts);
+      } else if (cl.getParsedCommand().equals("check")) {
+        executeCheckCommand(context, checkCommand);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
@@ -906,5 +1009,96 @@ public class Admin implements KeywordExecutable {
       }
     }
     return statusFilter;
+  }
+
+  @VisibleForTesting
+  public static void executeCheckCommand(ServerContext context, CheckCommand cmd) {
+    validateAndTransformCheckCommand(cmd);
+
+    if (cmd.list) {
+      listChecks();
+    } else if (cmd.run) {
+      var givenChecks =
+          cmd.checks.stream().map(CheckCommand.Check::valueOf).collect(Collectors.toList());
+      executeRunCheckCommand(cmd, givenChecks);
+    }
+  }
+
+  private static void validateAndTransformCheckCommand(CheckCommand cmd) {
+    Preconditions.checkArgument(cmd.list != cmd.run, "Must use either 'list' or 'run'");
+    if (cmd.list) {
+      Preconditions.checkArgument(cmd.checks == null && cmd.pattern == null,
+          "'list' does not expect any further arguments");
+    } else if (cmd.pattern != null) {
+      Preconditions.checkArgument(cmd.checks == null, "Expected one argument (the regex pattern)");
+      List<String> matchingChecks = new ArrayList<>();
+      var pattern = Pattern.compile(cmd.pattern.toUpperCase());
+      for (CheckCommand.Check check : CheckCommand.Check.values()) {
+        if (pattern.matcher(check.name()).matches()) {
+          matchingChecks.add(check.name());
+        }
+      }
+      Preconditions.checkArgument(!matchingChecks.isEmpty(),
+          "No checks matched the given pattern: " + pattern.pattern());
+      cmd.checks = matchingChecks;
+    } else {
+      if (cmd.checks == null) {
+        cmd.checks = EnumSet.allOf(CheckCommand.Check.class).stream().map(Enum::name)
+            .collect(Collectors.toList());
+      }
+    }
+  }
+
+  private static void listChecks() {
+    System.out.println();
+    System.out.printf("%-20s | %-80s | %-20s%n", "Check Name", "Description", "Depends on");
+    System.out.println("-".repeat(120));
+    for (CheckCommand.Check check : CheckCommand.Check.values()) {
+      System.out.printf("%-20s | %-80s | %-20s%n", check.name(), check.getDescription(),
+          check.getDependencies().stream().map(CheckCommand.Check::name)
+              .collect(Collectors.joining(", ")));
+    }
+    System.out.println("-".repeat(120));
+    System.out.println();
+  }
+
+  private static void executeRunCheckCommand(CheckCommand cmd,
+      List<CheckCommand.Check> givenChecks) {
+    // Get all the checks in the order they are declared in the enum
+    final var allChecks = CheckCommand.Check.values();
+    final TreeMap<CheckCommand.Check,CheckCommand.CheckStatus> checkStatus = new TreeMap<>();
+
+    for (CheckCommand.Check check : allChecks) {
+      if (depsFailed(check, checkStatus)) {
+        checkStatus.put(check, CheckCommand.CheckStatus.SKIPPED_DEPENDENCY_FAILED);
+      } else {
+        if (givenChecks.contains(check)) {
+          checkStatus.put(check, cmd.getCheckRunner(check).runCheck());
+        } else {
+          checkStatus.put(check, CheckCommand.CheckStatus.FILTERED_OUT);
+        }
+      }
+    }
+
+    printChecksResults(checkStatus);
+  }
+
+  private static boolean depsFailed(CheckCommand.Check check,
+      TreeMap<CheckCommand.Check,CheckCommand.CheckStatus> checkStatus) {
+    return check.getDependencies().stream()
+        .anyMatch(dep -> checkStatus.get(dep) == CheckCommand.CheckStatus.FAILED
+            || checkStatus.get(dep) == CheckCommand.CheckStatus.SKIPPED_DEPENDENCY_FAILED);
+  }
+
+  private static void
+      printChecksResults(TreeMap<CheckCommand.Check,CheckCommand.CheckStatus> checkStatus) {
+    System.out.println();
+    System.out.printf("%-20s | %-20s%n", "Check Name", "Status");
+    System.out.println("-".repeat(50));
+    for (Map.Entry<CheckCommand.Check,CheckCommand.CheckStatus> entry : checkStatus.entrySet()) {
+      System.out.printf("%-20s | %-20s%n", entry.getKey().name(), entry.getValue().name());
+    }
+    System.out.println("-".repeat(50));
+    System.out.println();
   }
 }

@@ -18,14 +18,16 @@
  */
 package org.apache.accumulo.monitor.util.logging;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.monitor.rest.logs.LogResource;
 import org.apache.accumulo.monitor.rest.logs.SanitizedLogEvent;
 import org.apache.accumulo.monitor.rest.logs.SingleLogEvent;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * A recent logs cache for the monitor that holds log messages received from
@@ -38,52 +40,44 @@ public class RecentLogs {
 
   private static final int MAX_LOGS = 50;
 
+  private final Cache<String,DedupedEvent> events =
+      Caffeine.newBuilder().maximumSize(MAX_LOGS).build();
+
   /**
    * Internal class for keeping the current count and most recent event that matches a given cache
    * key (derived from the event's application, logger, level, and message fields).
    */
   private static class DedupedEvent {
     private final SingleLogEvent event;
-    private final int count;
+    private final AtomicInteger count;
 
-    private DedupedEvent(SingleLogEvent event, int count) {
+    private DedupedEvent(SingleLogEvent event) {
       this.event = event;
-      this.count = count;
+      this.count = new AtomicInteger();
     }
   }
 
-  private final LinkedHashMap<String,DedupedEvent> events =
-      new LinkedHashMap<>(MAX_LOGS + 1, (float) .75, true) {
-
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String,DedupedEvent> eldest) {
-          return size() > MAX_LOGS;
-        }
-      };
-
-  public synchronized void addEvent(SingleLogEvent event) {
+  public void addEvent(SingleLogEvent event) {
     String key = event.application + ":" + event.logger + ":" + event.level + ":" + event.message;
-    int count = events.containsKey(key) ? events.remove(key).count + 1 : 1;
-    events.put(key, new DedupedEvent(event, count));
+    events.asMap().computeIfAbsent(key, k -> new DedupedEvent(event)).count.incrementAndGet();
   }
 
-  public synchronized void clearEvents() {
-    events.clear();
+  public void clearEvents() {
+    events.invalidateAll();
   }
 
-  public synchronized int numEvents() {
-    return events.size();
+  public int numEvents() {
+    return events.asMap().size();
   }
 
-  public synchronized boolean eventsIncludeErrors() {
-    return events.values().stream().anyMatch(
+  public boolean eventsIncludeErrors() {
+    return events.asMap().values().stream().anyMatch(
         x -> x.event.level.equalsIgnoreCase("ERROR") || x.event.level.equalsIgnoreCase("FATAL"));
   }
 
-  public synchronized List<SanitizedLogEvent> getSanitizedEvents() {
-    return events.values().stream().map(ev -> new SanitizedLogEvent(ev.event, ev.count))
+  public List<SanitizedLogEvent> getSanitizedEvents() {
+    return events.asMap().values().stream()
+        .map(ev -> new SanitizedLogEvent(ev.event, ev.count.get())).limit(MAX_LOGS)
         .collect(Collectors.toList());
   }
 
