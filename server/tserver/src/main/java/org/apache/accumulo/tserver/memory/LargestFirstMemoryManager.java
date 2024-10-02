@@ -19,7 +19,6 @@
 package org.apache.accumulo.tserver.memory;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -56,8 +55,6 @@ public class LargestFirstMemoryManager {
   // The fraction of memory that needs to be used before we begin flushing.
   private double compactionThreshold;
   private long maxObserved;
-  private final HashMap<TableId,Long> mincIdleThresholds = new HashMap<>();
-  private final HashMap<TableId,Long> mincAgeThresholds = new HashMap<>();
   private ServerContext context = null;
 
   private static class TabletInfo {
@@ -140,15 +137,13 @@ public class LargestFirstMemoryManager {
 
   @SuppressWarnings("deprecation")
   protected long getMinCIdleThreshold(KeyExtent extent) {
-    TableId tableId = extent.tableId();
-    return mincIdleThresholds.computeIfAbsent(tableId, tid -> context.getTableConfiguration(tid)
-        .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
+    return context.getTableConfiguration(extent.tableId())
+        .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME);
   }
 
   protected long getMaxAge(KeyExtent extent) {
-    TableId tableId = extent.tableId();
-    return mincAgeThresholds.computeIfAbsent(tableId, tid -> context.getTableConfiguration(tid)
-        .getTimeInMillis(Property.TABLE_MINC_COMPACT_MAXAGE));
+    return context.getTableConfiguration(extent.tableId())
+        .getTimeInMillis(Property.TABLE_MINC_COMPACT_MAXAGE);
   }
 
   protected boolean tableExists(TableId tableId) {
@@ -167,9 +162,6 @@ public class LargestFirstMemoryManager {
     }
 
     final int maxMinCs = maxConcurrentMincs * numWaitingMultiplier;
-
-    mincIdleThresholds.clear();
-    mincAgeThresholds.clear();
 
     final List<KeyExtent> tabletsToMinorCompact = new ArrayList<>();
 
