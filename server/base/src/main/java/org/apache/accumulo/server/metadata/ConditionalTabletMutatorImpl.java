@@ -75,7 +75,6 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
 
   private final ConditionalMutation mutation;
   private final Consumer<ConditionalMutation> mutationConsumer;
-  private final Ample.ConditionalTabletsMutator parent;
 
   private final BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer;
 
@@ -86,13 +85,12 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   private boolean sawOperationRequirement = false;
   private boolean checkPrevEndRow = true;
 
-  protected ConditionalTabletMutatorImpl(Ample.ConditionalTabletsMutator parent,
-      ServerContext context, KeyExtent extent, Consumer<ConditionalMutation> mutationConsumer,
+  protected ConditionalTabletMutatorImpl(ServerContext context, KeyExtent extent,
+      Consumer<ConditionalMutation> mutationConsumer,
       BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer) {
     super(new ConditionalMutation(extent.toMetaRow()));
     this.mutation = (ConditionalMutation) super.mutation;
     this.mutationConsumer = mutationConsumer;
-    this.parent = parent;
     this.rejectionHandlerConsumer = rejectionHandlerConsumer;
     this.extent = extent;
     this.context = context;

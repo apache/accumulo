@@ -24,8 +24,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
-
 public class WrappedFateTxStore<T> implements FateStore.FateTxStore<T> {
   protected final FateStore.FateTxStore<T> wrapped;
 

@@ -35,9 +35,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -361,10 +358,7 @@ public class NullTserver {
       context.setServiceLock(miniLock);
       HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 
-      TableId tableId = context.getTableId(opts.tableName);
-
       // read the locations for the table
-      Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
       List<Assignment> assignments = new ArrayList<>();
       try (var tablets = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
         long randomSessionID = opts.port;
@@ -377,7 +371,6 @@ public class NullTserver {
         }
       }
       // point them to this server
-      final ServiceLock lock = miniLock;
       TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
       store.setLocations(assignments);
 

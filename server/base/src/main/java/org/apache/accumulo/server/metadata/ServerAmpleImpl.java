@@ -50,7 +50,6 @@ import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
-import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
@@ -82,7 +81,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public Ample.TabletMutator mutateTablet(KeyExtent extent) {
     TabletsMutator tmi = mutateTablets();
     Ample.TabletMutator tabletMutator = tmi.mutateTablet(extent);
-    ((TabletMutatorBase) tabletMutator).setCloseAfterMutate(tmi);
+    ((TabletMutatorImpl) tabletMutator).setCloseAfterMutate(tmi);
     return tabletMutator;
   }
 

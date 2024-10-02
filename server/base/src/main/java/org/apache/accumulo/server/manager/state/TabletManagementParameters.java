@@ -251,6 +251,7 @@ public class TabletManagementParameters {
     }
 
     // Gson requires private constructor
+    @SuppressWarnings("unused")
     private JsonData() {}
 
     JsonData(TabletManagementParameters params) {

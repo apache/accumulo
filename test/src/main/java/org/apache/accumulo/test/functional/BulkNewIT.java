@@ -222,29 +222,28 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
   @Test
   public void testSetTime() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+    try (var client = (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       tableName = "testSetTime_table1";
       NewTableConfiguration newTableConf = new NewTableConfiguration();
       // set logical time type so we can set time on bulk import
       newTableConf.setTimeType(TimeType.LOGICAL);
       client.tableOperations().create(tableName, newTableConf);
 
-      var ctx = (ClientContext) client;
-
-      var tablet = ctx.getAmple().readTablet(new KeyExtent(ctx.getTableId(tableName), null, null));
+      var tablet =
+          client.getAmple().readTablet(new KeyExtent(client.getTableId(tableName), null, null));
       assertEquals(new MetadataTime(0, TimeType.LOGICAL), tablet.getTime());
 
-      var extent = new KeyExtent(ctx.getTableId(tableName), new Text("0333"), null);
+      var extent = new KeyExtent(client.getTableId(tableName), new Text("0333"), null);
 
       testSingleTabletSingleFile(client, false, true, () -> {
         // Want to test with and without a location, assuming the tablet does not have a location
         // now. Need to validate that assumption.
-        assertNull(ctx.getAmple().readTablet(extent).getLocation());
+        assertNull(client.getAmple().readTablet(extent).getLocation());
         return null;
       });
 
       assertEquals(new MetadataTime(1, TimeType.LOGICAL),
-          ctx.getAmple().readTablet(extent).getTime());
+          client.getAmple().readTablet(extent).getTime());
 
       int added = 0;
       try (var writer = client.createBatchWriter(tableName);
@@ -263,7 +262,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       // Writes to a tablet should not change time unless it flushes, so time in metadata table
       // should be the same
       assertEquals(new MetadataTime(1, TimeType.LOGICAL),
-          ctx.getAmple().readTablet(extent).getTime());
+          client.getAmple().readTablet(extent).getTime());
 
       // verify data written by batch writer overwrote bulk imported data
       try (var scanner = client.createScanner(tableName)) {
@@ -298,13 +297,13 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       // the bulk import should update the time in the metadata table
       assertEquals(new MetadataTime(2 + added, TimeType.LOGICAL),
-          ctx.getAmple().readTablet(extent).getTime());
+          client.getAmple().readTablet(extent).getTime());
 
       client.tableOperations().flush(tableName, null, null, true);
 
       // the flush should not change the time in the metadata table
       assertEquals(new MetadataTime(2 + added, TimeType.LOGICAL),
-          ctx.getAmple().readTablet(extent).getTime());
+          client.getAmple().readTablet(extent).getTime());
 
       try (var scanner = client.createScanner("accumulo.metadata")) {
         scanner.forEach((k, v) -> System.out.println(k + " " + v));
