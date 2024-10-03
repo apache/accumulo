@@ -28,6 +28,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -703,43 +704,31 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return coordinatorClient;
   }
 
-  private Map<HostAndPort,ScanStats> fetchTServerScans() {
+  private Map<HostAndPort,ScanStats> fetchScans(Collection<String> servers) {
     ServerContext context = getContext();
-    Map<HostAndPort,ScanStats> tserverScans = new HashMap<>();
-    final long now = System.currentTimeMillis();
-    for (String server : context.instanceOperations().getTabletServers()) {
+    Map<HostAndPort,ScanStats> scans = new HashMap<>();
+    for (String server : servers) {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
-      TabletScanClientService.Client tserver = null;
+      TabletScanClientService.Client client = null;
       try {
-        tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
-        List<ActiveScan> scans = tserver.getActiveScans(null, context.rpcCreds());
-        tserverScans.put(parsedServer, new ScanStats(scans));
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
+        List<ActiveScan> activeScans = client.getActiveScans(null, context.rpcCreds());
+        scans.put(parsedServer, new ScanStats(activeScans));
       } catch (Exception ex) {
         log.error("Failed to get active scans from {}", server, ex);
       } finally {
-        ThriftUtil.returnClient(tserver, context);
+        ThriftUtil.returnClient(client, context);
       }
     }
-    return Collections.unmodifiableMap(tserverScans);
+    return Collections.unmodifiableMap(scans);
+  }
+
+  private Map<HostAndPort,ScanStats> fetchTServerScans() {
+    return fetchScans(getContext().instanceOperations().getTabletServers());
   }
 
   private Map<HostAndPort,ScanStats> fetchSServerScans() {
-    ServerContext context = getContext();
-    Map<HostAndPort,ScanStats> sserverScans = new HashMap<>();
-    for (String server : context.instanceOperations().getScanServers()) {
-      final HostAndPort parsedServer = HostAndPort.fromString(server);
-      TabletScanClientService.Client sserver = null;
-      try {
-        sserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
-        List<ActiveScan> scans = sserver.getActiveScans(null, context.rpcCreds());
-        sserverScans.put(parsedServer, new ScanStats(scans));
-      } catch (Exception ex) {
-        log.error("Failed to get active scans from {}", server, ex);
-      } finally {
-        ThriftUtil.returnClient(sserver, context);
-      }
-    }
-    return Collections.unmodifiableMap(sserverScans);
+    return fetchScans(getContext().instanceOperations().getScanServers());
   }
 
   private Map<HostAndPort,CompactionStats> fetchCompactions() {
