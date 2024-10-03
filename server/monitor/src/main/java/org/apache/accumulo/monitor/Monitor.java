@@ -720,7 +720,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         ThriftUtil.returnClient(tserver, context);
       }
     }
-    return tserverScans;
+    return Collections.unmodifiableMap(tserverScans);
   }
 
   private Map<HostAndPort,ScanStats> fetchSServerScans() {
@@ -739,7 +739,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         ThriftUtil.returnClient(sserver, context);
       }
     }
-    return sserverScans;
+    return Collections.unmodifiableMap(sserverScans);
   }
 
   private Map<HostAndPort,CompactionStats> fetchCompactions() {
@@ -758,7 +758,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         ThriftUtil.returnClient(tserver, context);
       }
     }
-    return allCompactions;
+    return Collections.unmodifiableMap(allCompactions);
   }
 
   private ExternalCompactionInfo fetchCompactorsInfo() {
