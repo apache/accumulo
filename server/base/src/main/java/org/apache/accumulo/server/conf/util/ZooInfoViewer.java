@@ -21,8 +21,6 @@ package org.apache.accumulo.server.conf.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZINSTANCES;
 import static org.apache.accumulo.core.Constants.ZROOT;
-import static org.apache.accumulo.server.conf.util.ZooPropUtils.getNamespaceIdToNameMap;
-import static org.apache.accumulo.server.conf.util.ZooPropUtils.getTableIdToName;
 import static org.apache.accumulo.server.conf.util.ZooPropUtils.readInstancesFromZk;
 import static org.apache.accumulo.server.zookeeper.ZooAclUtil.checkWritableAuth;
 import static org.apache.accumulo.server.zookeeper.ZooAclUtil.extractAuthName;
@@ -117,16 +115,12 @@ public class ZooInfoViewer implements KeywordExecutable {
 
     var conf = opts.getSiteConfiguration();
 
-    ZooReader zooReader = new ZooReaderWriter(conf);
-
     try (ServerContext context = new ServerContext(conf)) {
-      InstanceId iid = context.getInstanceID();
-      generateReport(iid, opts, zooReader);
+      generateReport(context, opts);
     }
   }
 
-  void generateReport(final InstanceId iid, final ZooInfoViewer.Opts opts,
-      final ZooReader zooReader) throws Exception {
+  void generateReport(final ServerContext context, final ZooInfoViewer.Opts opts) throws Exception {
 
     OutputStream outStream;
 
@@ -145,27 +139,29 @@ public class ZooInfoViewer implements KeywordExecutable {
       writer.println("Report Time: " + tsFormat.format(Instant.now()));
       writer.println("-----------------------------------------------");
       if (opts.printInstanceIds) {
-        Map<String,InstanceId> instanceMap = readInstancesFromZk(zooReader);
+        Map<String,InstanceId> instanceMap = readInstancesFromZk(context.getZooReader());
         printInstanceIds(instanceMap, writer);
       }
 
       if (opts.printIdMap) {
-        printIdMapping(iid, zooReader, writer);
+        printIdMapping(context, writer);
       }
 
       if (opts.printProps) {
-        printProps(iid, zooReader, opts, writer);
+        printProps(context, opts, writer);
       }
 
       if (opts.printAcls) {
-        printAcls(iid, opts, writer);
+        printAcls(context, opts, writer);
       }
       writer.println("-----------------------------------------------");
     }
   }
 
-  private void printProps(final InstanceId iid, final ZooReader zooReader, final Opts opts,
-      final PrintWriter writer) throws Exception {
+  private void printProps(final ServerContext context, final Opts opts, final PrintWriter writer)
+      throws Exception {
+    var iid = context.getInstanceID();
+    var zooReader = context.getZooReader();
 
     if (opts.printAllProps()) {
       log.info("all: {}", opts.printAllProps());
@@ -184,7 +180,7 @@ public class ZooInfoViewer implements KeywordExecutable {
     }
 
     if (opts.printNamespaceProps()) {
-      Map<NamespaceId,String> id2NamespaceMap = getNamespaceIdToNameMap(iid, zooReader);
+      Map<NamespaceId,String> id2NamespaceMap = context.getNamespaceIdToNameMap();
 
       Map<String,VersionedProperties> nsProps =
           fetchNamespaceProps(iid, zooReader, id2NamespaceMap, opts.getNamespaces());
@@ -195,16 +191,17 @@ public class ZooInfoViewer implements KeywordExecutable {
     }
 
     if (opts.printTableProps()) {
-      Map<String,VersionedProperties> tProps = fetchTableProps(iid, opts.getTables(), zooReader);
+      Map<String,VersionedProperties> tProps = fetchTableProps(context, opts.getTables());
       writer.println("Tables: ");
       printSortedProps(writer, tProps);
     }
     writer.println();
   }
 
-  private void printIdMapping(InstanceId iid, ZooReader zooReader, PrintWriter writer) {
+  private void printIdMapping(ServerContext context, PrintWriter writer) {
+    var iid = context.getInstanceID();
     // namespaces
-    Map<NamespaceId,String> id2NamespaceMap = getNamespaceIdToNameMap(iid, zooReader);
+    Map<NamespaceId,String> id2NamespaceMap = context.getNamespaceIdToNameMap();
     writer.println("ID Mapping (id => name) for instance: " + iid);
     writer.println("Namespace ids:");
     for (Map.Entry<NamespaceId,String> e : id2NamespaceMap.entrySet()) {
@@ -213,7 +210,7 @@ public class ZooInfoViewer implements KeywordExecutable {
     }
     writer.println();
     // tables
-    Map<TableId,String> id2TableMap = getTableIdToName(iid, id2NamespaceMap, zooReader);
+    Map<TableId,String> id2TableMap = context.getTableIdToNameMap();
     writer.println("Table ids:");
     for (Map.Entry<TableId,String> e : id2TableMap.entrySet()) {
       writer.printf("%s%-9s => %24s\n", INDENT, e.getKey(), e.getValue());
@@ -221,7 +218,8 @@ public class ZooInfoViewer implements KeywordExecutable {
     writer.println();
   }
 
-  private void printAcls(final InstanceId iid, final Opts opts, final PrintWriter writer) {
+  private void printAcls(final ServerContext context, final Opts opts, final PrintWriter writer) {
+    var iid = context.getInstanceID();
 
     Map<String,List<ACL>> aclMap = new TreeMap<>();
 
@@ -344,13 +342,14 @@ public class ZooInfoViewer implements KeywordExecutable {
     return results;
   }
 
-  private Map<String,VersionedProperties> fetchTableProps(final InstanceId iid,
-      final List<String> tables, final ZooReader zooReader) {
+  private Map<String,VersionedProperties> fetchTableProps(final ServerContext context,
+      final List<String> tables) {
+    var iid = context.getInstanceID();
+    var zooReader = context.getZooReader();
 
     Set<String> cmdOptTables = new TreeSet<>(tables);
 
-    Map<NamespaceId,String> id2NamespaceMap = getNamespaceIdToNameMap(iid, zooReader);
-    Map<TableId,String> allIds = getTableIdToName(iid, id2NamespaceMap, zooReader);
+    Map<TableId,String> allIds = context.getTableIdToNameMap();
 
     Map<TableId,String> filteredIds;
     if (cmdOptTables.isEmpty()) {
