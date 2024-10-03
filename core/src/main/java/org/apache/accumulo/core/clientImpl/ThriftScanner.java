@@ -389,8 +389,8 @@ public class ThriftScanner {
       // call the scan server selector and just go back to the previous scan server
       addr = scanState.prevLoc;
       log.trace(
-          "For tablet {} continuing scan on scan server {} without consulting scan server selector, using busyTimeout {}",
-          loc.getExtent(), addr.serverAddress, scanState.busyTimeout);
+          "For tablet {} continuing scan {} on scan server {} without consulting scan server selector, using busyTimeout {}",
+          loc.getExtent(), scanState.scanID, addr.serverAddress, scanState.busyTimeout);
     } else {
       var tabletId = new TabletIdImpl(loc.getExtent());
       // obtain a snapshot once and only expose this snapshot to the plugin for consistency
@@ -898,7 +898,6 @@ public class ThriftScanner {
         }
 
       } else {
-        // log.debug("Calling continue scan : "+scanState.range+" loc = "+loc);
         String msg =
             "Continuing scan tserver=" + addr.serverAddress + " scanid=" + scanState.scanID;
         Thread.currentThread().setName(msg);
