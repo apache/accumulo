@@ -68,7 +68,7 @@ public interface TServerClient<C extends TServiceClient> {
 
     final String debugHost = System.getProperty(DEBUG_HOST, null);
 
-    if (preferCachedConnections && debugHost != null) {
+    if (preferCachedConnections && debugHost == null) {
       Pair<String,TTransport> cachedTransport =
           context.getTransportPool().getAnyCachedTransport(type);
       if (cachedTransport != null) {
@@ -109,20 +109,16 @@ public interface TServerClient<C extends TServiceClient> {
           });
         });
       }
+      if (serverPaths.isEmpty()) {
+        if (warned.compareAndSet(false, true)) {
+          LOG.warn(
+              "There are no servers serving the {} api: check that zookeeper and accumulo are running.",
+              type);
+        }
+        throw new TTransportException("There are no servers for type: " + type);
+      }
     }
 
-    if (serverPaths.isEmpty()) {
-      if (type == ThriftClientTypes.CLIENT && debugHost != null) {
-        LOG.error(
-            "No entry in ZooKeeper for debug host: {}. If this server is down, then you will need to remove or change the system property {}.",
-            debugHost, DEBUG_HOST);
-      } else if (warned.compareAndSet(false, true)) {
-        LOG.warn(
-            "There are no servers serving the {} api: check that zookeeper and accumulo are running.",
-            type);
-      }
-      throw new TTransportException("There are no servers for type: " + type);
-    }
     Collections.shuffle(serverPaths, RANDOM.get());
 
     for (String serverPath : serverPaths) {
