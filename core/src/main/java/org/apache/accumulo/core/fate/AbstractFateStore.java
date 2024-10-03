@@ -310,7 +310,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     public TStatus waitForStatusChange(EnumSet<TStatus> expected) {
       Preconditions.checkState(!isReserved(),
           "Attempted to wait for status change while reserved: " + fateId);
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
 
       int currNumCallers = concurrentStatusChangeCallers.incrementAndGet();
 
@@ -375,16 +375,14 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
     protected abstract void unreserve();
 
-    protected void verifyReserved(boolean isWrite) {
-      if (!isReserved() && isWrite) {
-        throw new IllegalStateException(
-            "Attempted write on unreserved FATE transaction: " + fateId);
-      }
+    protected void verifyReservedAndNotDeleted(boolean isWrite) {
+      Preconditions.checkState(!isWrite || (isReserved() && !deleted),
+          "Attempted write on unreserved or deleted FATE transaction: " + fateId);
     }
 
     @Override
     public TStatus getStatus() {
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
       var status = _getStatus(fateId);
       observedStatus = status;
       return status;
@@ -392,7 +390,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
     @Override
     public Optional<FateKey> getKey() {
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
       return AbstractFateStore.this.getKey(fateId);
     }
 

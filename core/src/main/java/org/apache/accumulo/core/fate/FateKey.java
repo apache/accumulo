@@ -28,6 +28,8 @@ import java.util.Optional;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.hadoop.io.DataInputBuffer;
 
 public class FateKey {
@@ -167,5 +169,14 @@ public class FateKey {
       default:
         throw new IllegalStateException("Unexpected FateInstanceType found " + type);
     }
+  }
+
+  @Override
+  public String toString() {
+    var buf = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);
+    buf.append("FateKeyType", type);
+    keyExtent.ifPresentOrElse(keyExtent -> buf.append("KeyExtent", keyExtent),
+        () -> buf.append("ExternalCompactionID", compactionId.orElseThrow()));
+    return buf.toString();
   }
 }

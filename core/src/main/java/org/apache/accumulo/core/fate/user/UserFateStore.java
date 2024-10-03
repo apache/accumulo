@@ -420,7 +420,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public Repo<T> top() {
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
 
       return scanTx(scanner -> {
         scanner.setRange(getRow(fateId));
@@ -436,7 +436,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public List<ReadOnlyRepo<T>> getStack() {
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
 
       return scanTx(scanner -> {
         scanner.setRange(getRow(fateId));
@@ -451,7 +451,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public Serializable getTransactionInfo(TxInfo txInfo) {
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
 
       try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(getRow(fateId));
@@ -487,7 +487,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public long timeCreated() {
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
 
       return scanTx(scanner -> {
         scanner.setRange(getRow(fateId));
@@ -499,7 +499,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public void push(Repo<T> repo) throws StackOverflowException {
-      verifyReserved(true);
+      verifyReservedAndNotDeleted(true);
 
       Optional<Integer> top = findTop();
 
@@ -514,7 +514,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public void pop() {
-      verifyReserved(true);
+      verifyReservedAndNotDeleted(true);
 
       Optional<Integer> top = findTop();
       top.ifPresent(t -> newMutator(fateId)
@@ -523,7 +523,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public void setStatus(TStatus status) {
-      verifyReserved(true);
+      verifyReservedAndNotDeleted(true);
 
       newMutator(fateId).putStatus(status).mutate();
       observedStatus = status;
@@ -531,7 +531,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public void setTransactionInfo(TxInfo txInfo, Serializable so) {
-      verifyReserved(true);
+      verifyReservedAndNotDeleted(true);
 
       final byte[] serialized = serializeTxInfo(so);
 
@@ -540,7 +540,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public void delete() {
-      verifyReserved(true);
+      verifyReservedAndNotDeleted(true);
 
       var mutator = newMutator(fateId);
       mutator.requireStatus(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED);

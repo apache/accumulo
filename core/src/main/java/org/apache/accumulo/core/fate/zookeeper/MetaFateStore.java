@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.fate;
+package org.apache.accumulo.core.fate.zookeeper;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -39,9 +39,15 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.ReadOnlyRepo;
+import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -239,7 +245,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public Repo<T> top() {
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
 
       for (int i = 0; i < RETRIES; i++) {
         String txpath = getTXPath(fateId);
@@ -291,7 +297,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public void push(Repo<T> repo) throws StackOverflowException {
-      verifyReserved(true);
+      verifyReservedAndNotDeleted(true);
 
       String txpath = getTXPath(fateId);
       try {
@@ -310,7 +316,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public void pop() {
-      verifyReserved(true);
+      verifyReservedAndNotDeleted(true);
 
       try {
         String txpath = getTXPath(fateId);
@@ -326,7 +332,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public void setStatus(TStatus status) {
-      verifyReserved(true);
+      verifyReservedAndNotDeleted(true);
 
       try {
         zk.mutateExisting(getTXPath(fateId), currSerializedData -> {
@@ -353,7 +359,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public void delete() {
-      verifyReserved(true);
+      verifyReservedAndNotDeleted(true);
 
       try {
         zk.recursiveDelete(getTXPath(fateId), NodeMissingPolicy.SKIP);
@@ -365,7 +371,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public void setTransactionInfo(Fate.TxInfo txInfo, Serializable so) {
-      verifyReserved(true);
+      verifyReservedAndNotDeleted(true);
 
       try {
         zk.putPersistentData(getTXPath(fateId) + "/" + txInfo, serializeTxInfo(so),
@@ -377,14 +383,14 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public Serializable getTransactionInfo(Fate.TxInfo txInfo) {
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
 
       return MetaFateStore.this.getTransactionInfo(txInfo, fateId);
     }
 
     @Override
     public long timeCreated() {
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
 
       try {
         Stat stat = zk.getZooKeeper().exists(getTXPath(fateId), false);
@@ -396,7 +402,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public List<ReadOnlyRepo<T>> getStack() {
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
       String txpath = getTXPath(fateId);
 
       outer: while (true) {
