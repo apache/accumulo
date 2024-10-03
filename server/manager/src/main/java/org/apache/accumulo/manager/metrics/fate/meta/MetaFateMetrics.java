@@ -26,8 +26,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore;
-import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;

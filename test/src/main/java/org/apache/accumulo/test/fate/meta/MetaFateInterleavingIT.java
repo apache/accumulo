@@ -24,7 +24,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore;
-import org.apache.accumulo.core.fate.MetaFateStore;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateInterleavingIT;

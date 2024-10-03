@@ -24,8 +24,10 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.IN_PROGRES
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -43,6 +45,7 @@ import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -477,6 +480,35 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     } finally {
       fate.shutdown(10, TimeUnit.MINUTES);
     }
+  }
+
+  @Test
+  @Timeout(30)
+  public void testNoWriteAfterDelete() throws Exception {
+    executeTest(this::testNoWriteAfterDelete);
+  }
+
+  protected void testNoWriteAfterDelete(FateStore<TestEnv> store, ServerContext sctx)
+      throws Exception {
+    final String tableName = getUniqueNames(1)[0];
+    final FateId fateId = store.create();
+    final Repo<TestEnv> repo = new TestRepo("testNoWriteAfterDelete");
+
+    var txStore = store.reserve(fateId);
+
+    // all write ops should be ok after reservation
+    assertDoesNotThrow(() -> txStore.push(repo));
+    assertDoesNotThrow(() -> txStore.setStatus(ReadOnlyFateStore.TStatus.SUCCESSFUL));
+    assertDoesNotThrow(txStore::pop);
+    assertDoesNotThrow(() -> txStore.setTransactionInfo(Fate.TxInfo.TX_NAME, "name"));
+    assertDoesNotThrow(txStore::delete);
+
+    // test that all write ops result in an exception since the tx has been deleted
+    assertThrows(Exception.class, () -> txStore.push(repo));
+    assertThrows(Exception.class, () -> txStore.setStatus(ReadOnlyFateStore.TStatus.SUCCESSFUL));
+    assertThrows(Exception.class, txStore::pop);
+    assertThrows(Exception.class, () -> txStore.setTransactionInfo(Fate.TxInfo.TX_NAME, "name"));
+    assertThrows(Exception.class, txStore::delete);
   }
 
   private void submitDeferred(Fate<TestEnv> fate, ServerContext sctx, Set<FateId> transactions) {

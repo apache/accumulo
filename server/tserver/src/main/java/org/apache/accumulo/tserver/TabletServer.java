@@ -124,7 +124,6 @@ import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
-import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyWatcher;
 import org.apache.accumulo.server.util.time.RelativeTime;
@@ -198,7 +197,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   final Map<KeyExtent,Long> recentlyUnloadedCache = Collections.synchronizedMap(new LRUMap<>(1000));
 
   final TabletServerResourceManager resourceManager;
-  private final SecurityOperation security;
 
   private final BlockingDeque<ManagerMessage> managerMessages = new LinkedBlockingDeque<>();
 
@@ -326,7 +324,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter,
         walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
     this.resourceManager = new TabletServerResourceManager(context, this);
-    this.security = context.getSecurityOperation();
 
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
         ClientTabletCache::clearInstances, jitter(), jitter(), TimeUnit.MILLISECONDS));

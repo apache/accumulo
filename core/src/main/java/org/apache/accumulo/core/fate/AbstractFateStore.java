@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -151,9 +150,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     return reserveAttempt.orElseThrow();
   }
 
-  private static final Set<TStatus> IN_PROGRESS_SET = Set.of(TStatus.IN_PROGRESS);
-  private static final Set<TStatus> OTHER_RUNNABLE_SET =
-      Set.of(TStatus.SUBMITTED, TStatus.FAILED_IN_PROGRESS);
+  private static final EnumSet<TStatus> IN_PROGRESS_SET = EnumSet.of(TStatus.IN_PROGRESS);
+  private static final EnumSet<TStatus> OTHER_RUNNABLE_SET =
+      EnumSet.of(TStatus.SUBMITTED, TStatus.FAILED_IN_PROGRESS);
 
   @Override
   public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
@@ -219,11 +218,11 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   @Override
   public Stream<FateIdStatus> list() {
-    return getTransactions(TStatus.ALL_STATUSES);
+    return getTransactions(EnumSet.allOf(TStatus.class));
   }
 
   @Override
-  public Stream<FateIdStatus> list(Set<TStatus> statuses) {
+  public Stream<FateIdStatus> list(EnumSet<TStatus> statuses) {
     return getTransactions(statuses);
   }
 
@@ -276,7 +275,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         "Collision detected for fate id " + fateId);
   }
 
-  protected abstract Stream<FateIdStatus> getTransactions(Set<TStatus> statuses);
+  protected abstract Stream<FateIdStatus> getTransactions(EnumSet<TStatus> statuses);
 
   protected abstract TStatus _getStatus(FateId fateId);
 
@@ -284,7 +283,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   protected abstract FateTxStore<T> newUnreservedFateTxStore(FateId fateId);
 
-  protected abstract class AbstractFateTxStoreImpl<T> implements FateTxStore<T> {
+  protected abstract class AbstractFateTxStoreImpl implements FateTxStore<T> {
     protected final FateId fateId;
     protected boolean deleted;
     protected FateReservation reservation;
@@ -311,7 +310,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     public TStatus waitForStatusChange(EnumSet<TStatus> expected) {
       Preconditions.checkState(!isReserved(),
           "Attempted to wait for status change while reserved: " + fateId);
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
 
       int currNumCallers = concurrentStatusChangeCallers.incrementAndGet();
 
@@ -376,16 +375,14 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
     protected abstract void unreserve();
 
-    protected void verifyReserved(boolean isWrite) {
-      if (!isReserved() && isWrite) {
-        throw new IllegalStateException(
-            "Attempted write on unreserved FATE transaction: " + fateId);
-      }
+    protected void verifyReservedAndNotDeleted(boolean isWrite) {
+      Preconditions.checkState(!isWrite || (isReserved() && !deleted),
+          "Attempted write on unreserved or deleted FATE transaction: " + fateId);
     }
 
     @Override
     public TStatus getStatus() {
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
       var status = _getStatus(fateId);
       observedStatus = status;
       return status;
@@ -393,7 +390,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
     @Override
     public Optional<FateKey> getKey() {
-      verifyReserved(false);
+      verifyReservedAndNotDeleted(false);
       return AbstractFateStore.this.getKey(fateId);
     }
 

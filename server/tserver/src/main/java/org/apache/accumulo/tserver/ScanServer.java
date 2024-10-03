@@ -136,7 +136,7 @@ import com.google.common.net.HostAndPort;
 public class ScanServer extends AbstractServer
     implements TabletScanClientService.Iface, TabletHostingServer {
 
-  private static final Logger log = LoggerFactory.getLogger(ScanServer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ScanServer.class);
 
   private static class TabletMetadataLoader implements CacheLoader<KeyExtent,TabletMetadata> {
 
@@ -172,8 +172,6 @@ public class ScanServer extends AbstractServer
       return tms;
     }
   }
-
-  private static final Logger LOG = LoggerFactory.getLogger(ScanServer.class);
 
   protected ThriftScanClientHandler delegate;
   private UUID serverLockUUID;
@@ -212,8 +210,8 @@ public class ScanServer extends AbstractServer
     super("sserver", opts, ServerContext::new, args);
 
     context = super.getContext();
-    log.info("Version " + Constants.VERSION);
-    log.info("Instance " + getContext().getInstanceID());
+    LOG.info("Version " + Constants.VERSION);
+    LOG.info("Instance " + getContext().getInstanceID());
     this.sessionManager = new SessionManager(context);
 
     this.resourceManager = new TabletServerResourceManager(context, this);
@@ -433,11 +431,11 @@ public class ScanServer extends AbstractServer
         // thread to look for log sorting work in the future
         logSorter.startWatchingForRecoveryLogs(threadPoolSize);
       } catch (Exception ex) {
-        log.error("Error starting LogSorter");
+        LOG.error("Error starting LogSorter");
         throw new RuntimeException(ex);
       }
     } else {
-      log.info(
+      LOG.info(
           "Log sorting for tablet recovery is disabled, SSERV_WAL_SORT_MAX_CONCURRENT is less than 1.");
     }
 
@@ -987,6 +985,7 @@ public class ScanServer extends AbstractServer
           batchTimeOut, classLoaderContext, executionHints, getScanTabletResolver(tablet),
           busyTimeout);
 
+      LOG.trace("started scan: {}", is.getScanID());
       return is;
     } catch (ScanServerBusyException be) {
       scanServerMetrics.incrementBusy();
@@ -1058,16 +1057,16 @@ public class ScanServer extends AbstractServer
           ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
           executionHints, getBatchScanTabletResolver(tablets), busyTimeout);
 
-      LOG.trace("started scan: {}", ims.getScanID());
+      LOG.trace("started multi scan: {}", ims.getScanID());
       return ims;
     } catch (ScanServerBusyException be) {
       scanServerMetrics.incrementBusy();
       throw be;
     } catch (TException e) {
-      LOG.error("Error starting scan", e);
+      LOG.error("Error starting multi scan", e);
       throw e;
     } catch (AccumuloException e) {
-      LOG.error("Error starting scan", e);
+      LOG.error("Error starting multi scan", e);
       throw new RuntimeException(e);
     }
   }

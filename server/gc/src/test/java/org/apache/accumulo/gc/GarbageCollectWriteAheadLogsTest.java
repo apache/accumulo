@@ -37,7 +37,6 @@ import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -60,7 +59,6 @@ public class GarbageCollectWriteAheadLogsTest {
       Collections.singletonMap(server2, Collections.singletonList(id));
   private final Path path = new Path("hdfs://localhost:9000/accumulo/wal/localhost+1234/" + id);
   private final KeyExtent extent = KeyExtent.fromMetaRow(new Text("1<"));
-  private final List<LogEntry> walogs = Collections.emptyList();
   private final TabletMetadata tabletAssignedToServer1;
   private final TabletMetadata tabletAssignedToServer2;
 

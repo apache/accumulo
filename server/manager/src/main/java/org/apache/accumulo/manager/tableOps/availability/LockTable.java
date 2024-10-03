@@ -29,12 +29,9 @@ import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class LockTable extends ManagerRepo {
   private static final long serialVersionUID = 1L;
-  private static final Logger LOG = LoggerFactory.getLogger(LockTable.class);
 
   private final TableId tableId;
   private final NamespaceId namespaceId;

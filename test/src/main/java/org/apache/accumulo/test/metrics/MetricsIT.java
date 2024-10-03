@@ -202,6 +202,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
                 case COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY:
                   queueMetricsSeen.set(compactionPriorityQueuePriorityBit, true);
                   break;
+                default:
+                  break;
               }
             } else {
               // completely unexpected metric

@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
@@ -104,7 +103,7 @@ public class SplitIT extends AccumuloClusterHarness {
     cfg.setMemory(ServerType.TABLET_SERVER, 384, MemoryUnit.MEGABYTE);
   }
 
-  private String tservMaxMem, tservMajcDelay;
+  private String tservMaxMem;
 
   @BeforeEach
   public void alterConfig() throws Exception {
@@ -115,12 +114,10 @@ public class SplitIT extends AccumuloClusterHarness {
       tservMaxMem = config.get(Property.TSERV_MAXMEM.getKey());
 
       // Property.TSERV_MAXMEM can't be altered on a running server
-      boolean restarted = false;
       if (!tservMaxMem.equals("5K")) {
         iops.setProperty(Property.TSERV_MAXMEM.getKey(), "5K");
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
         getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-        restarted = true;
       }
     }
   }
@@ -555,7 +552,7 @@ public class SplitIT extends AccumuloClusterHarness {
 
       // remove the srv:lock column for tests as this will change
       // because we are changing the metadata from the IT.
-      var original = (SortedMap<Key,Value>) tabletMetadata.getKeyValues().stream()
+      var original = tabletMetadata.getKeyValues().stream()
           .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (a1, b1) -> b1, TreeMap::new));
       assertTrue(original.keySet().removeIf(LOCK_COLUMN::hasColumns));
 
@@ -570,7 +567,7 @@ public class SplitIT extends AccumuloClusterHarness {
       assertEquals(extent, tabletMetadata.getExtent());
 
       // tablet should have an operation id set, but nothing else changed
-      var kvCopy = (SortedMap<Key,Value>) tabletMetadata2.getKeyValues().stream()
+      var kvCopy = tabletMetadata2.getKeyValues().stream()
           .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (a, b) -> b, TreeMap::new));
       assertTrue(kvCopy.keySet().removeIf(LOCK_COLUMN::hasColumns));
       assertTrue(kvCopy.keySet().removeIf(OPID_COLUMN::hasColumns));

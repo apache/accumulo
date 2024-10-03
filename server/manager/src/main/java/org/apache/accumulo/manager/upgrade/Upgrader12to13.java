@@ -257,7 +257,6 @@ public class Upgrader12to13 implements Upgrader {
       final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
 
       for (Entry<String,String> e : context.tableOperations().tableIdMap().entrySet()) {
-        final String tName = e.getKey();
         final String tId = e.getValue();
         final String zTablePath = zkRoot + Constants.ZTABLES + "/" + tId;
         zrw.delete(zTablePath + ZTABLE_COMPACT_ID);
