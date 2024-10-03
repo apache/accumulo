@@ -115,7 +115,7 @@ public class ExternalCompactionUtil {
    */
   public static Map<String,Set<HostAndPort>> getCompactorAddrs(ClientContext context) {
     final Map<String,Set<HostAndPort>> groupsAndAddresses = new HashMap<>();
-    context.getServerPaths().getCompactor(Optional.empty(), Optional.empty()).forEach(slp -> {
+    context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true).forEach(slp -> {
       groupsAndAddresses.computeIfAbsent(slp.getResourceGroup(), (k) -> new HashSet<>())
           .add(HostAndPort.fromString(slp.getServer()));
     });
@@ -256,8 +256,8 @@ public class ExternalCompactionUtil {
 
   public static int countCompactors(String groupName, ClientContext context) {
     var start = Timer.startNew();
-    int count =
-        context.getServerPaths().getCompactor(Optional.of(groupName), Optional.empty()).size();
+    int count = context.getServerPaths()
+        .getCompactor(Optional.of(groupName), Optional.empty(), true).size();
     long elapsed = start.elapsed(MILLISECONDS);
     if (elapsed > 100) {
       LOG.debug("Took {} ms to count {} compactors for {}", elapsed, count, groupName);

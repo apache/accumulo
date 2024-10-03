@@ -343,11 +343,6 @@ public class CompactionCoordinator
     return this.ctx.getConfiguration().getTimeInMillis(Property.COMPACTOR_MAX_JOB_WAIT_TIME) * 3;
   }
 
-  protected long getTServerCheckInterval() {
-    return this.ctx.getConfiguration()
-        .getTimeInMillis(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL);
-  }
-
   public long getNumRunningCompactions() {
     return RUNNING_CACHE.size();
   }

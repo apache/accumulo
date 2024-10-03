@@ -236,7 +236,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<String> getTabletServers() {
     Set<ServiceLockPath> paths =
-        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty());
+        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true);
     List<String> results = new ArrayList<>();
     paths.forEach(p -> {
       if (!p.getServer().equals("manager")) {

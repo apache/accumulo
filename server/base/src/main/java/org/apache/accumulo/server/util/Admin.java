@@ -450,15 +450,13 @@ public class Admin implements KeywordExecutable {
       return;
     }
 
-    ServerContext context = opts.getServerContext();
+    try (ServerContext context = opts.getServerContext()) {
 
-    AccumuloConfiguration conf = context.getConfiguration();
-    // Login as the server on secure HDFS
-    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-      SecurityUtil.serverLogin(conf);
-    }
-
-    try {
+      AccumuloConfiguration conf = context.getConfiguration();
+      // Login as the server on secure HDFS
+      if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        SecurityUtil.serverLogin(conf);
+      }
 
       int rc = 0;
 
@@ -681,7 +679,7 @@ public class Admin implements KeywordExecutable {
   static String qualifyWithZooKeeperSessionId(ClientContext context, ZooCache zooCache,
       String hostAndPort) {
     Set<ServiceLockPath> paths = context.getServerPaths().getTabletServer(Optional.empty(),
-        Optional.of(HostAndPort.fromString(hostAndPort)));
+        Optional.of(HostAndPort.fromString(hostAndPort)), true);
     if (paths.size() != 1) {
       return hostAndPort;
     }

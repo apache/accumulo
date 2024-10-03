@@ -21,11 +21,11 @@ package org.apache.accumulo.core.fate.user;
 import java.io.IOException;
 import java.io.Serializable;
 import java.time.Duration;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
 import java.util.function.Function;
@@ -286,7 +286,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  protected Stream<FateIdStatus> getTransactions(Set<TStatus> statuses) {
+  protected Stream<FateIdStatus> getTransactions(EnumSet<TStatus> statuses) {
     try {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
@@ -408,7 +408,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     return fateInstanceType;
   }
 
-  private class FateTxStoreImpl extends AbstractFateTxStoreImpl<T> {
+  private class FateTxStoreImpl extends AbstractFateTxStoreImpl {
 
     private FateTxStoreImpl(FateId fateId) {
       super(fateId);

@@ -93,7 +93,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
         1, null);
 
     Wait.waitFor(() -> !getCluster().getServerContext().getServerPaths()
-        .getScanServer(Optional.empty(), Optional.empty()).isEmpty());
+        .getScanServer(Optional.empty(), Optional.empty(), true).isEmpty());
 
   }
 

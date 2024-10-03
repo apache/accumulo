@@ -67,64 +67,61 @@ public class TabletServerMetrics implements MetricsProducer {
   public void registerMetrics(MeterRegistry registry) {
     FunctionCounter
         .builder(COMPACTOR_ENTRIES_READ.getName(), this, TabletServerMetrics::getTotalEntriesRead)
-        .description("Number of entries read by all compactions that have run on this tserver")
-        .register(registry);
+        .description(COMPACTOR_ENTRIES_READ.getDescription()).register(registry);
     FunctionCounter
         .builder(COMPACTOR_ENTRIES_WRITTEN.getName(), this,
             TabletServerMetrics::getTotalEntriesWritten)
-        .description("Number of entries written by all compactions that have run on this tserver")
-        .register(registry);
+        .description(COMPACTOR_ENTRIES_WRITTEN.getDescription()).register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(COMPACTOR_MAJC_STUCK.getName())
-        .description("Number and duration of stuck major compactions").register(registry);
+        .description(COMPACTOR_MAJC_STUCK.getDescription()).register(registry);
     CompactionWatcher.setTimer(timer);
 
     Gauge
         .builder(TSERVER_TABLETS_LONG_ASSIGNMENTS.getName(), util,
             TabletServerMetricsUtil::getLongTabletAssignments)
-        .description("Number of tablet assignments that are taking a long time").register(registry);
+        .description(TSERVER_TABLETS_LONG_ASSIGNMENTS.getDescription()).register(registry);
 
     Gauge.builder(TSERVER_ENTRIES.getName(), util, TabletServerMetricsUtil::getEntries)
-        .description("Number of entries").register(registry);
+        .description(TSERVER_ENTRIES.getDescription()).register(registry);
     Gauge.builder(TSERVER_MEM_ENTRIES.getName(), util, TabletServerMetricsUtil::getEntriesInMemory)
-        .description("Number of entries in memory").register(registry);
+        .description(TSERVER_MEM_ENTRIES.getDescription()).register(registry);
     Gauge
         .builder(TSERVER_MINC_RUNNING.getName(), util, TabletServerMetricsUtil::getMinorCompactions)
-        .description("Number of active minor compactions").register(registry);
+        .description(TSERVER_MINC_RUNNING.getDescription()).register(registry);
     Gauge
         .builder(TSERVER_MINC_QUEUED.getName(), util,
             TabletServerMetricsUtil::getMinorCompactionsQueued)
-        .description("Number of queued minor compactions").register(registry);
+        .description(TSERVER_MINC_QUEUED.getDescription()).register(registry);
     Gauge
         .builder(TSERVER_TABLETS_ONLINE_ONDEMAND.getName(), util,
             TabletServerMetricsUtil::getOnDemandOnlineCount)
-        .description("Number of online on-demand tablets").register(registry);
+        .description(TSERVER_TABLETS_ONLINE_ONDEMAND.getDescription()).register(registry);
     Gauge
         .builder(TSERVER_TABLETS_ONDEMAND_UNLOADED_FOR_MEM.getName(), util,
             TabletServerMetricsUtil::getOnDemandUnloadedLowMem)
-        .description("Number of online on-demand tablets unloaded due to low memory")
-        .register(registry);
+        .description(TSERVER_TABLETS_ONDEMAND_UNLOADED_FOR_MEM.getDescription()).register(registry);
     Gauge.builder(TSERVER_TABLETS_ONLINE.getName(), util, TabletServerMetricsUtil::getOnlineCount)
-        .description("Number of online tablets").register(registry);
+        .description(TSERVER_TABLETS_ONLINE.getDescription()).register(registry);
     Gauge.builder(TSERVER_TABLETS_OPENING.getName(), util, TabletServerMetricsUtil::getOpeningCount)
-        .description("Number of opening tablets").register(registry);
+        .description(TSERVER_TABLETS_OPENING.getDescription()).register(registry);
     Gauge
         .builder(TSERVER_TABLETS_UNOPENED.getName(), util,
             TabletServerMetricsUtil::getUnopenedCount)
-        .description("Number of unopened tablets").register(registry);
+        .description(TSERVER_TABLETS_UNOPENED.getDescription()).register(registry);
     Gauge
         .builder(TSERVER_MINC_TOTAL.getName(), util,
             TabletServerMetricsUtil::getTotalMinorCompactions)
-        .description("Total number of minor compactions performed").register(registry);
+        .description(TSERVER_MINC_TOTAL.getDescription()).register(registry);
 
     Gauge
         .builder(TSERVER_TABLETS_FILES.getName(), util,
             TabletServerMetricsUtil::getAverageFilesPerTablet)
-        .description("Number of files per tablet").register(registry);
+        .description(TSERVER_TABLETS_FILES.getDescription()).register(registry);
     Gauge.builder(TSERVER_HOLD.getName(), util, TabletServerMetricsUtil::getHoldTime)
-        .description("Time commits held").register(registry);
+        .description(TSERVER_HOLD.getDescription()).register(registry);
     Gauge.builder(TSERVER_INGEST_MUTATIONS.getName(), util, TabletServerMetricsUtil::getIngestCount)
-        .description("Ingest rate (entries/sec)").register(registry);
+        .description(TSERVER_INGEST_MUTATIONS.getDescription()).register(registry);
     Gauge.builder(TSERVER_INGEST_BYTES.getName(), util, TabletServerMetricsUtil::getIngestByteCount)
-        .description("Ingest rate (bytes/sec)").register(registry);
+        .description(TSERVER_INGEST_BYTES.getDescription()).register(registry);
   }
 }

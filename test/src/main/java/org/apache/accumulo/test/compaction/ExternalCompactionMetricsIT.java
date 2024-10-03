@@ -138,7 +138,7 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
             if (shutdownTailer.get()) {
               break;
             }
-            if (s.startsWith("accumulo.tserver.compactions.")) {
+            if (s.startsWith("accumulo.compactor.")) {
               queueMetrics.add(TestStatsDSink.parseStatsDMetric(s));
             }
           }

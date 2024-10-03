@@ -61,6 +61,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Up
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
@@ -150,7 +151,7 @@ public class MetadataConstraints implements Constraint {
     try {
       stfConsumer.accept(StoredTabletFile.of(metadata));
     } catch (RuntimeException e) {
-      addViolation(violations, 12);
+      addViolation(violations, 3100);
     }
   }
 
@@ -200,7 +201,7 @@ public class MetadataConstraints implements Constraint {
 
       validateColValLen(violations, columnUpdate);
 
-      switch (new String(columnFamily.getBytes(), UTF_8)) {
+      switch (columnFamily.toString()) {
         case TabletColumnFamily.STR_NAME:
           validateTabletFamily(violations, columnUpdate, mutation);
           break;
@@ -283,22 +284,25 @@ public class MetadataConstraints implements Constraint {
         return "Lock not held in zookeeper by writer";
       case 8:
         return "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
-      case 9:
-        return "Malformed operation id";
-      case 10:
-        return "Suspended timestamp is not valid";
-      case 11:
-        return "Malformed file selection value";
-      case 12:
+      case 3100:
         return "Invalid data file metadata format";
-      case 13:
+      case 3101:
+        return "Suspended timestamp is not valid";
+      case 3102:
+        return "Invalid directory column value";
+      case 4000:
+        return "Malformed operation id";
+      case 4001:
+        return "Malformed file selection value";
+      case 4002:
         return "Invalid compacted column";
-      case 14:
+      case 4003:
         return "Invalid user compaction requested column";
-      case 15:
+      case 4004:
         return "Invalid unsplittable column";
-      case 16:
+      case 4005:
         return "Malformed availability value";
+
     }
     return null;
   }
@@ -374,7 +378,7 @@ public class MetadataConstraints implements Constraint {
         try {
           TabletAvailabilityUtil.fromValue(new Value(columnUpdate.getValue()));
         } catch (IllegalArgumentException e) {
-          addViolation(violations, 16);
+          addViolation(violations, 4005);
         }
         break;
     }
@@ -409,25 +413,33 @@ public class MetadataConstraints implements Constraint {
         }
         break;
       case ServerColumnFamily.DIRECTORY_QUAL:
-        // splits, which also write the time reference, are allowed to write this reference
-        // even when the transaction is not running because the other half of the tablet is
-        // holding a reference to the file.
-        if (bfcValidationData != null) {
-          bfcValidationData.setIsSplitMutation(true);
+        try {
+          ServerColumnFamily.validateDirCol(new String(columnUpdate.getValue(), UTF_8));
+        } catch (IllegalArgumentException e) {
+          addViolation(violations, (short) 3102);
         }
         break;
       case ServerColumnFamily.OPID_QUAL:
         try {
-          TabletOperationId.validate(new String(columnUpdate.getValue(), UTF_8));
+          // Loading the TabletOperationId will also validate it
+          var id = TabletOperationId.from(new String(columnUpdate.getValue(), UTF_8));
+          if (id.getType() == TabletOperationType.SPLITTING) {
+            // splits, which also write the time reference, are allowed to write this reference
+            // even when the transaction is not running because the other half of the tablet is
+            // holding a reference to the file.
+            if (bfcValidationData != null) {
+              bfcValidationData.setIsSplitMutation(true);
+            }
+          }
         } catch (IllegalArgumentException e) {
-          addViolation(violations, 9);
+          addViolation(violations, 4000);
         }
         break;
       case ServerColumnFamily.SELECTED_QUAL:
         try {
           SelectedFiles.from(new String(columnUpdate.getValue(), UTF_8));
         } catch (RuntimeException e) {
-          addViolation(violations, 11);
+          addViolation(violations, 4001);
         }
         break;
     }
@@ -436,14 +448,13 @@ public class MetadataConstraints implements Constraint {
   private void validateSuspendLocationFamily(ArrayList<Short> violations,
       ColumnUpdate columnUpdate) {
     String qualStr = new String(columnUpdate.getColumnQualifier(), UTF_8);
-    String suspendColQualStr =
-        new String(SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier().getBytes(), UTF_8);
+    String suspendColQualStr = SuspendLocationColumn.SUSPEND_QUAL;
 
     if (qualStr.equals(suspendColQualStr)) {
       try {
         SuspendingTServer.fromValue(new Value(columnUpdate.getValue()));
       } catch (IllegalArgumentException e) {
-        addViolation(violations, 10);
+        addViolation(violations, 3101);
       }
     }
   }
@@ -501,14 +512,14 @@ public class MetadataConstraints implements Constraint {
 
   private void validateCompactedFamily(ArrayList<Short> violations, ColumnUpdate columnUpdate) {
     if (!FateId.isFateId(new String(columnUpdate.getColumnQualifier(), UTF_8))) {
-      addViolation(violations, 13);
+      addViolation(violations, 4002);
     }
   }
 
   private void validateUserCompactionRequestedFamily(ArrayList<Short> violations,
       ColumnUpdate columnUpdate) {
     if (!FateId.isFateId(new String(columnUpdate.getColumnQualifier(), UTF_8))) {
-      addViolation(violations, 14);
+      addViolation(violations, 4003);
     }
   }
 
@@ -519,7 +530,7 @@ public class MetadataConstraints implements Constraint {
       try {
         UnSplittableMetadata.toUnSplittable(new String(columnUpdate.getValue(), UTF_8));
       } catch (RuntimeException e) {
-        addViolation(violations, 15);
+        addViolation(violations, 4004);
       }
     }
   }

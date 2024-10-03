@@ -23,8 +23,11 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
+import java.util.List;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -39,13 +42,23 @@ public class ZookeeperLockCheckerTest {
     expect(context.getZooKeeperRoot()).andReturn("/accumulo/iid").anyTimes();
     zc = createMock(ZooCache.class);
     expect(context.getZooCache()).andReturn(zc).anyTimes();
+    expect(context.getServerPaths()).andReturn(new ServiceLockPaths(context)).anyTimes();
     replay(context);
     zklc = new ZookeeperLockChecker(context);
   }
 
   @Test
   public void testInvalidateCache() {
-    zc.clear(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/server");
+    expect(zc.getChildren(context.getZooKeeperRoot())).andReturn(List.of(Constants.ZTSERVERS))
+        .anyTimes();
+    expect(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS))
+        .andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME)).anyTimes();
+    expect(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/"
+        + Constants.DEFAULT_RESOURCE_GROUP_NAME)).andReturn(List.of("server")).anyTimes();
+    expect(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/"
+        + Constants.DEFAULT_RESOURCE_GROUP_NAME + "/server")).andReturn(List.of()).anyTimes();
+    zc.clear(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/"
+        + Constants.DEFAULT_RESOURCE_GROUP_NAME + "/server");
     replay(zc);
     zklc.invalidateCache("server");
     verify(zc);
