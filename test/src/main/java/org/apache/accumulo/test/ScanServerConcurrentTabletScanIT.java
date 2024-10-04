@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -93,7 +92,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
         1, null);
 
     Wait.waitFor(() -> !getCluster().getServerContext().getServerPaths()
-        .getScanServer(Optional.empty(), Optional.empty(), true).isEmpty());
+        .getScanServer(rg -> true, addr -> true, true).isEmpty());
 
   }
 

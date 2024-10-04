@@ -21,7 +21,6 @@ package org.apache.accumulo.server.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -112,7 +111,7 @@ public class ServiceStatusCmd {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> compactors =
-        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true);
+        context.getServerPaths().getTabletServer(rg -> true, addr -> true, true);
     compactors.forEach(c -> hostsByGroups
         .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, hostsByGroups.keySet(),
@@ -129,7 +128,7 @@ public class ServiceStatusCmd {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> scanServers =
-        context.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true);
+        context.getServerPaths().getScanServer(rg -> true, addr -> true, true);
     scanServers.forEach(c -> hostsByGroups
         .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.S_SERVER, hostsByGroups.keySet(),
@@ -156,7 +155,7 @@ public class ServiceStatusCmd {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> compactors =
-        context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true);
+        context.getServerPaths().getCompactor(rg -> true, addr -> true, true);
     compactors.forEach(c -> hostsByGroups
         .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.COMPACTOR, hostsByGroups.keySet(),

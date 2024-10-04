@@ -42,7 +42,7 @@ public class TabletServerLocks {
 
     if (delete == null) {
       Set<ServiceLockPath> tabletServers =
-          context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), false);
+          context.getServerPaths().getTabletServer(rg -> true, addr -> true, false);
       if (tabletServers.isEmpty()) {
         System.err.println("No tservers found in ZK");
       }
@@ -62,8 +62,9 @@ public class TabletServerLocks {
       if (lock == null) {
         printUsage();
       } else {
-        Set<ServiceLockPath> paths = context.getServerPaths().getTabletServer(Optional.empty(),
-            Optional.of(HostAndPort.fromString(lock)), true);
+        var hostAndPort = HostAndPort.fromString(lock);
+        Set<ServiceLockPath> paths = context.getServerPaths().getTabletServer(rg -> true,
+            addr -> addr.equals(hostAndPort), true);
         Preconditions.checkArgument(paths.size() == 1,
             lock + " does not match a single ZooKeeper TabletServer lock. matches=" + paths);
         ServiceLockPath path = paths.iterator().next();
