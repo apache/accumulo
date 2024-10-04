@@ -115,7 +115,7 @@ public class ExternalCompactionUtil {
    */
   public static Map<String,Set<HostAndPort>> getCompactorAddrs(ClientContext context) {
     final Map<String,Set<HostAndPort>> groupsAndAddresses = new HashMap<>();
-    context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true).forEach(slp -> {
+    context.getServerPaths().getCompactor(rg -> true, addr -> true, true).forEach(slp -> {
       groupsAndAddresses.computeIfAbsent(slp.getResourceGroup(), (k) -> new HashSet<>())
           .add(HostAndPort.fromString(slp.getServer()));
     });
@@ -202,7 +202,7 @@ public class ExternalCompactionUtil {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
 
-    context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true).forEach(slp -> {
+    context.getServerPaths().getCompactor(rg -> true, addr -> true, true).forEach(slp -> {
       final HostAndPort hp = HostAndPort.fromString(slp.getServer());
       rcFutures.add(new RunningCompactionFuture(slp.getResourceGroup(), hp,
           executor.submit(() -> getRunningCompaction(hp, context))));
@@ -230,7 +230,7 @@ public class ExternalCompactionUtil {
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTION_IDS_POOL).numCoreThreads(16).build();
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
-    context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true).forEach(slp -> {
+    context.getServerPaths().getCompactor(rg -> true, addr -> true, true).forEach(slp -> {
       final HostAndPort hp = HostAndPort.fromString(slp.getServer());
       futures.add(executor.submit(() -> getRunningCompactionId(hp, context)));
     });
@@ -255,7 +255,7 @@ public class ExternalCompactionUtil {
   public static int countCompactors(String groupName, ClientContext context) {
     var start = Timer.startNew();
     int count = context.getServerPaths()
-        .getCompactor(Optional.of(groupName), Optional.empty(), true).size();
+        .getCompactor(rg -> rg.equals(groupName), addr -> true, true).size();
     long elapsed = start.elapsed(MILLISECONDS);
     if (elapsed > 100) {
       LOG.debug("Took {} ms to count {} compactors for {}", elapsed, count, groupName);

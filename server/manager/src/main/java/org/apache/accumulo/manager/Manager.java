@@ -644,8 +644,8 @@ public class Manager extends AbstractServer
 
       while (stillManager()) {
         try {
-          Set<ServiceLockPath> scanServerPaths = getContext().getServerPaths()
-              .getScanServer(Optional.empty(), Optional.empty(), false);
+          Set<ServiceLockPath> scanServerPaths =
+              getContext().getServerPaths().getScanServer(rg -> true, addr -> true, false);
           for (ServiceLockPath path : scanServerPaths) {
 
             ZcStat stat = new ZcStat();

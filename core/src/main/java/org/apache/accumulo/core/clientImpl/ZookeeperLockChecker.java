@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 
 import com.google.common.net.HostAndPort;
@@ -37,16 +37,18 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   public boolean doesTabletServerLockExist(String server) {
     // ServiceLockPaths only returns items that have a lock
-    Set<ServiceLockPath> tservers = ctx.getServerPaths().getTabletServer(Optional.empty(),
-        Optional.of(HostAndPort.fromString(server)), true);
+    var hostAndPort = HostAndPort.fromString(server);
+    Set<ServiceLockPath> tservers =
+        ctx.getServerPaths().getTabletServer(rg -> true, AddressPredicate.exact(hostAndPort), true);
     return !tservers.isEmpty();
   }
 
   @Override
   public boolean isLockHeld(String server, String session) {
     // ServiceLockPaths only returns items that have a lock
-    Set<ServiceLockPath> tservers = ctx.getServerPaths().getTabletServer(Optional.empty(),
-        Optional.of(HostAndPort.fromString(server)), true);
+    var hostAndPort = HostAndPort.fromString(server);
+    Set<ServiceLockPath> tservers =
+        ctx.getServerPaths().getTabletServer(rg -> true, AddressPredicate.exact(hostAndPort), true);
     for (ServiceLockPath slp : tservers) {
       if (ServiceLock.getSessionId(ctx.getZooCache(), slp) == Long.parseLong(session, 16)) {
         return true;
@@ -57,8 +59,8 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   @Override
   public void invalidateCache(String tserver) {
-    ctx.getServerPaths()
-        .getTabletServer(Optional.empty(), Optional.of(HostAndPort.fromString(tserver)), false)
+    var hostAndPort = HostAndPort.fromString(tserver);
+    ctx.getServerPaths().getTabletServer(rg -> true, AddressPredicate.exact(hostAndPort), false)
         .forEach(slp -> {
           ctx.getZooCache().clear(slp.toString());
         });

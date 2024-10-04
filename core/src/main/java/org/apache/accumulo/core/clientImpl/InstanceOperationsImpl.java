@@ -59,6 +59,8 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressPredicate;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
@@ -235,7 +237,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public Set<String> getCompactors() {
     Set<String> results = new HashSet<>();
-    context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true)
+    context.getServerPaths().getCompactor(rg -> true, addr -> true, true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -244,7 +246,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public Set<String> getScanServers() {
     Set<String> results = new HashSet<>();
-    context.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true)
+    context.getServerPaths().getScanServer(rg -> true, addr -> true, true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -253,7 +255,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public List<String> getTabletServers() {
     List<String> results = new ArrayList<>();
-    context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true)
+    context.getServerPaths().getTabletServer(rg -> true, addr -> true, true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -473,8 +475,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     Objects.requireNonNull(type, "type parameter cannot be null");
     Objects.requireNonNull(host, "host parameter cannot be null");
 
-    final Optional<String> rg = Optional.ofNullable(resourceGroup);
-    final Optional<HostAndPort> hp = Optional.of(HostAndPort.fromParts(host, port));
+    final ResourceGroupPredicate rg =
+        resourceGroup == null ? rgt -> true : rgt -> rgt.equals(resourceGroup);
+    final AddressPredicate hp = AddressPredicate.exact(HostAndPort.fromParts(host, port));
 
     switch (type) {
       case COMPACTOR:
@@ -526,7 +529,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     final Set<ServerId> results = new HashSet<>();
     switch (type) {
       case COMPACTOR:
-        context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true)
+        context.getServerPaths().getCompactor(rg -> true, addr -> true, true)
             .forEach(c -> results.add(createServerId(type, c)));
         break;
       case MANAGER:
@@ -541,11 +544,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
         }
         break;
       case SCAN_SERVER:
-        context.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true)
+        context.getServerPaths().getScanServer(rg -> true, addr -> true, true)
             .forEach(s -> results.add(createServerId(type, s)));
         break;
       case TABLET_SERVER:
-        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true)
+        context.getServerPaths().getTabletServer(rg -> true, addr -> true, true)
             .forEach(t -> results.add(createServerId(type, t)));
         break;
       default:

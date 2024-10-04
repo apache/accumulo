@@ -36,7 +36,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -576,8 +575,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         tableId -> context.getTableState(tableId) == TableState.ONLINE);
 
     HashSet<TServerInstance> tservers = new HashSet<>();
-    for (ServiceLockPath tserver : context.getServerPaths().getTabletServer(Optional.empty(),
-        Optional.empty(), true)) {
+    for (ServiceLockPath tserver : context.getServerPaths().getTabletServer(rg -> true,
+        addr -> true, true)) {
       try {
         long sessionId = ServiceLock.getSessionId(context.getZooCache(), tserver);
         tservers.add(new TServerInstance(tserver.getServer(), sessionId));

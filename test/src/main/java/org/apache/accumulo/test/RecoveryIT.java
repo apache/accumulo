@@ -26,7 +26,6 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.IntStream;
@@ -144,11 +143,11 @@ public class RecoveryIT extends AccumuloClusterHarness {
       // Stop any running Compactors and ScanServers
       control.stopAllServers(ServerType.COMPACTOR);
       Wait.waitFor(() -> getServerContext().getServerPaths()
-          .getCompactor(Optional.empty(), Optional.empty(), true).size() == 0, 60_000);
+          .getCompactor(rg -> true, addr -> true, true).size() == 0, 60_000);
 
       control.stopAllServers(ServerType.SCAN_SERVER);
       Wait.waitFor(() -> getServerContext().getServerPaths()
-          .getScanServer(Optional.empty(), Optional.empty(), true).size() == 0, 60_000);
+          .getScanServer(rg -> true, addr -> true, true).size() == 0, 60_000);
 
       // Kill the TabletServer in resource group that is hosting the table
       List<Process> procs = control.getTabletServers(RESOURCE_GROUP);

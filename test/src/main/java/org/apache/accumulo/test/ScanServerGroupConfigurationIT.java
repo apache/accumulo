@@ -21,7 +21,6 @@ package org.apache.accumulo.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
-import java.util.Optional;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -125,7 +124,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
 
     // Ensure no scan servers running
     Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-        .getScanServer(Optional.empty(), Optional.empty(), true).isEmpty());
+        .getScanServer(rg -> true, addr -> true, true).isEmpty());
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
@@ -147,10 +146,10 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
         // Start a ScanServer. No group specified, should be in the default group.
         getCluster().getClusterControl().start(ServerType.SCAN_SERVER, "localhost");
         Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-            .getScanServer(Optional.empty(), Optional.empty(), true).size() == 1, 30_000);
+            .getScanServer(rg -> true, addr -> true, true).size() == 1, 30_000);
         Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-            .getScanServer(Optional.of(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME),
-                Optional.empty(), true)
+            .getScanServer(rg -> rg.equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME),
+                addr -> true, true)
             .size() > 0);
 
         assertEquals(ingestedEntryCount, Iterables.size(scanner),
@@ -166,13 +165,13 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
             .addScanServerResourceGroup("GROUP1", 1);
         getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
         Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-            .getScanServer(Optional.empty(), Optional.empty(), true).size() == 2, 30_000);
+            .getScanServer(rg -> true, addr -> true, true).size() == 2, 30_000);
         Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-            .getScanServer(Optional.of(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME),
-                Optional.empty(), true)
+            .getScanServer(rg -> rg.equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME),
+                addr -> true, true)
             .size() == 1);
         Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-            .getScanServer(Optional.of("GROUP1"), Optional.empty(), true).size() == 1);
+            .getScanServer(rg -> rg.equals("GROUP1"), addr -> true, true).size() == 1);
 
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
         assertEquals(ingestedEntryCount + additionalIngest1, Iterables.size(scanner),

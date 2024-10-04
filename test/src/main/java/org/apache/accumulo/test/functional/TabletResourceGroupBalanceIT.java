@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -98,7 +97,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
     Map<String,String> tservers = new HashMap<>();
     for (ServiceLockPath tserver : cluster.getServerContext().getServerPaths()
-        .getTabletServer(Optional.empty(), Optional.empty(), true)) {
+        .getTabletServer(rg -> true, addr -> true, true)) {
       tservers.put(tserver.getServer(), tserver.getResourceGroup());
     }
     return tservers;

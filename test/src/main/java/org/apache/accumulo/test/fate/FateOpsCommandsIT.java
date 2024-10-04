@@ -101,7 +101,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
     Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getCompactor(Optional.empty(), Optional.empty(), true).isEmpty(), 60_000);
+        .getCompactor(rg -> true, addr -> true, true).isEmpty(), 60_000);
   }
 
   @Test

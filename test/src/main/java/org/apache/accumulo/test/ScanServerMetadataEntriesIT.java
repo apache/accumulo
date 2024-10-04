@@ -30,7 +30,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -92,7 +91,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         "localhost");
 
     Wait.waitFor(() -> !getCluster().getServerContext().getServerPaths()
-        .getScanServer(Optional.empty(), Optional.empty(), true).isEmpty());
+        .getScanServer(rg -> true, addr -> true, true).isEmpty());
 
   }
 

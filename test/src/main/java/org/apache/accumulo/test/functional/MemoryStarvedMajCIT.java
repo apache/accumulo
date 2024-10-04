@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.DoubleAdder;
 
@@ -141,7 +140,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
       ClientContext ctx = (ClientContext) client;
 
       Wait.waitFor(() -> ctx.getServerPaths()
-          .getCompactor(Optional.of(Constants.DEFAULT_RESOURCE_GROUP_NAME), Optional.empty(), true)
+          .getCompactor(rg -> rg.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME), addr -> true, true)
           .size() == 1, 60_000);
 
       ServerId csi =

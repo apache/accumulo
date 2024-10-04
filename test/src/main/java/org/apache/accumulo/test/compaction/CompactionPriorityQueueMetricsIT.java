@@ -36,7 +36,6 @@ import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -120,7 +119,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   public void setupMetricsTest() throws Exception {
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
     Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-        .getCompactor(Optional.empty(), Optional.empty(), true).size() == 0, 60_000);
+        .getCompactor(rg -> true, addr -> true, true).size() == 0, 60_000);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = getUniqueNames(1)[0];

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -282,14 +283,13 @@ public class ServiceLockPaths {
         serverAddress.toString());
   }
 
-  public Set<ServiceLockPath> getCompactor(Optional<String> resourceGroup,
-      Optional<HostAndPort> address, boolean withLock) {
-    return get(Constants.ZCOMPACTORS, resourceGroup, address, withLock);
+  public Set<ServiceLockPath> getCompactor(ResourceGroupPredicate resourceGroupPredicate,
+      AddressPredicate address, boolean withLock) {
+    return get(Constants.ZCOMPACTORS, resourceGroupPredicate, address, withLock);
   }
 
   public ServiceLockPath getGarbageCollector(boolean withLock) {
-    Set<ServiceLockPath> results =
-        get(Constants.ZGC_LOCK, Optional.empty(), Optional.empty(), withLock);
+    Set<ServiceLockPath> results = get(Constants.ZGC_LOCK, rg -> true, addr -> true, withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -298,8 +298,7 @@ public class ServiceLockPaths {
   }
 
   public ServiceLockPath getManager(boolean withLock) {
-    Set<ServiceLockPath> results =
-        get(Constants.ZMANAGER_LOCK, Optional.empty(), Optional.empty(), withLock);
+    Set<ServiceLockPath> results = get(Constants.ZMANAGER_LOCK, rg -> true, addr -> true, withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -308,8 +307,7 @@ public class ServiceLockPaths {
   }
 
   public ServiceLockPath getMonitor(boolean withLock) {
-    Set<ServiceLockPath> results =
-        get(Constants.ZMONITOR_LOCK, Optional.empty(), Optional.empty(), withLock);
+    Set<ServiceLockPath> results = get(Constants.ZMONITOR_LOCK, rg -> true, addr -> true, withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -317,19 +315,32 @@ public class ServiceLockPaths {
     }
   }
 
-  public Set<ServiceLockPath> getScanServer(Optional<String> resourceGroup,
-      Optional<HostAndPort> address, boolean withLock) {
-    return get(Constants.ZSSERVERS, resourceGroup, address, withLock);
+  public Set<ServiceLockPath> getScanServer(ResourceGroupPredicate resourceGroupPredicate,
+      AddressPredicate address, boolean withLock) {
+    return get(Constants.ZSSERVERS, resourceGroupPredicate, address, withLock);
   }
 
-  public Set<ServiceLockPath> getTabletServer(Optional<String> resourceGroup,
-      Optional<HostAndPort> address, boolean withLock) {
-    return get(Constants.ZTSERVERS, resourceGroup, address, withLock);
+  public Set<ServiceLockPath> getTabletServer(ResourceGroupPredicate resourceGroupPredicate,
+      AddressPredicate address, boolean withLock) {
+    return get(Constants.ZTSERVERS, resourceGroupPredicate, address, withLock);
   }
 
-  public Set<ServiceLockPath> getDeadTabletServer(Optional<String> resourceGroup,
-      Optional<HostAndPort> address, boolean withLock) {
-    return get(Constants.ZDEADTSERVERS, resourceGroup, address, withLock);
+  public Set<ServiceLockPath> getDeadTabletServer(ResourceGroupPredicate resourceGroupPredicate,
+      AddressPredicate address, boolean withLock) {
+    return get(Constants.ZDEADTSERVERS, resourceGroupPredicate, address, withLock);
+  }
+
+  public interface ResourceGroupPredicate extends Predicate<String> {
+
+  }
+
+  public interface AddressPredicate extends Predicate<String> {
+
+    static AddressPredicate exact(HostAndPort hostAndPort) {
+      Objects.requireNonNull(hostAndPort);
+      AddressPredicate predicate = addr -> hostAndPort.equals(HostAndPort.fromString(addr));
+      return predicate;
+    }
   }
 
   /**
@@ -338,18 +349,19 @@ public class ServiceLockPaths {
    *
    * @param serverType type of lock, should be something like Constants.ZTSERVERS or
    *        Constants.ZMANAGER_LOCK
-   * @param resourceGroup name of resource group, if empty will return all resource groups
-   * @param address address of server (host:port), if empty will return all addresses
+   * @param resourceGroupPredicate only returns servers in resource groups that pass this predicate
+   * @param addressPredicate only return servers that match this predicate
    * @param withLock supply true if you only want to return servers that have an active lock. Not
    *        applicable for types that don't use a lock (e.g. dead tservers)
    * @return set of ServiceLockPath objects for the paths found based on the search criteria
    */
-  private Set<ServiceLockPath> get(final String serverType, Optional<String> resourceGroup,
-      Optional<HostAndPort> address, boolean withLock) {
+  private Set<ServiceLockPath> get(final String serverType,
+      ResourceGroupPredicate resourceGroupPredicate, AddressPredicate addressPredicate,
+      boolean withLock) {
 
     Objects.requireNonNull(serverType);
-    Objects.requireNonNull(resourceGroup);
-    Objects.requireNonNull(address);
+    Objects.requireNonNull(resourceGroupPredicate);
+    Objects.requireNonNull(addressPredicate);
 
     final Set<ServiceLockPath> results = new HashSet<>();
     final String typePath = ctx.getZooKeeperRoot() + serverType;
@@ -371,13 +383,13 @@ public class ServiceLockPaths {
         || serverType.equals(Constants.ZTSERVERS) || serverType.equals(Constants.ZDEADTSERVERS)) {
       final List<String> resourceGroups = cache.getChildren(typePath);
       for (final String group : resourceGroups) {
-        if (resourceGroup.isEmpty() || resourceGroup.orElseThrow().equals(group)) {
+        if (resourceGroupPredicate.test(group)) {
           final List<String> servers = cache.getChildren(typePath + "/" + group);
           for (final String server : servers) {
             final ZcStat stat = new ZcStat();
             final ServiceLockPath slp =
                 parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
-            if (address.isEmpty() || address.orElseThrow().toString().equals(server)) {
+            if (addressPredicate.test(server)) {
               if (!withLock || slp.getType().equals(Constants.ZDEADTSERVERS)) {
                 // Dead TServers don't have lock data
                 results.add(slp);
