@@ -26,6 +26,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.server.ServerContext;
 
@@ -64,7 +65,7 @@ public class TabletServerLocks {
       } else {
         var hostAndPort = HostAndPort.fromString(lock);
         Set<ServiceLockPath> paths = context.getServerPaths().getTabletServer(rg -> true,
-            addr -> addr.equals(hostAndPort), true);
+            ServiceLockPaths.AddressPredicate.exact(hostAndPort), true);
         Preconditions.checkArgument(paths.size() == 1,
             lock + " does not match a single ZooKeeper TabletServer lock. matches=" + paths);
         ServiceLockPath path = paths.iterator().next();
