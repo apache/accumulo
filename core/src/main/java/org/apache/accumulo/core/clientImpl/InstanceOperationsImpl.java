@@ -291,8 +291,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveScan> getActiveScans(ServerId server)
       throws AccumuloException, AccumuloSecurityException {
 
-    @SuppressWarnings("unused")
-    var unused = Objects.nonNull(server);
+    Objects.requireNonNull(server);
     Preconditions.checkArgument(
         server.getType() == ServerTypeName.SCAN_SERVER
             || server.getType() == ServerTypeName.TABLET_SERVER,
@@ -300,12 +299,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
         ServerTypeName.TABLET_SERVER);
 
     final var parsedTserver = HostAndPort.fromParts(server.getHost(), server.getPort());
-    TabletScanClientService.Client client = null;
+    TabletScanClientService.Client rpcClient = null;
     try {
-      client = getClient(ThriftClientTypes.TABLET_SCAN, parsedTserver, context);
+      rpcClient = getClient(ThriftClientTypes.TABLET_SCAN, parsedTserver, context);
 
       List<ActiveScan> as = new ArrayList<>();
-      for (var activeScan : client.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
+      for (var activeScan : rpcClient.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
         try {
           as.add(new ActiveScanImpl(context, activeScan));
         } catch (TableNotFoundException e) {
@@ -318,8 +317,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     } catch (TException e) {
       throw new AccumuloException(e);
     } finally {
-      if (client != null) {
-        returnClient(client, context);
+      if (rpcClient != null) {
+        returnClient(rpcClient, context);
       }
     }
   }
@@ -352,8 +351,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveCompaction> getActiveCompactions(ServerId server)
       throws AccumuloException, AccumuloSecurityException {
 
-    @SuppressWarnings("unused")
-    var unused = Objects.nonNull(server);
+    Objects.requireNonNull(server);
     Preconditions.checkArgument(
         server.getType() == ServerTypeName.COMPACTOR
             || server.getType() == ServerTypeName.TABLET_SERVER,
