@@ -245,9 +245,9 @@ public class CompactionJobPriorityQueue {
   }
 
   public synchronized CompletableFuture<CompactionJobQueues.MetaJob> getAsync() {
-    var job = jobQueue.pollFirstEntry();
+    var job = poll();
     if (job != null) {
-      return CompletableFuture.completedFuture(job.getValue());
+      return CompletableFuture.completedFuture(job);
     }
 
     // There is currently nothing in the queue, so create an uncompleted future and queue it up to
