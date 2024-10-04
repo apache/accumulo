@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.Optional;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -86,8 +85,8 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
 
     ServerContext ctx = getCluster().getServerContext();
 
-    Wait.waitFor(() -> !ctx.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true)
-        .isEmpty());
+    Wait.waitFor(
+        () -> !ctx.getServerPaths().getScanServer(rg -> true, addr -> true, true).isEmpty());
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
