@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ThriftTransportKey;
 import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
@@ -56,14 +56,14 @@ public class TransportCachingIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       Wait.waitFor(
-          () -> !client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).isEmpty());
+          () -> !client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).isEmpty());
 
       ClientContext context = (ClientContext) client;
       long rpcTimeout =
           ConfigurationTypeHelper.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
       List<ThriftTransportKey> servers =
-          client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).stream().map(tsi -> {
+          client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).stream().map(tsi -> {
             return new ThriftTransportKey(ThriftClientTypes.CLIENT,
                 HostAndPort.fromParts(tsi.getHost(), tsi.getPort()), rpcTimeout, context);
           }).collect(Collectors.toList());

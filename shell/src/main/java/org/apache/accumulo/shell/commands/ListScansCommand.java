@@ -23,7 +23,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -54,12 +53,12 @@ public class ListScansCommand extends Command {
       String serverAddress = cl.getOptionValue(tserverOption.getOpt());
       final HostAndPort hp = HostAndPort.fromString(serverAddress);
       servers
-          .add(instanceOps.getServer(ServerTypeName.SCAN_SERVER, null, hp.getHost(), hp.getPort()));
+          .add(instanceOps.getServer(ServerId.Type.SCAN_SERVER, null, hp.getHost(), hp.getPort()));
       servers.add(
-          instanceOps.getServer(ServerTypeName.TABLET_SERVER, null, hp.getHost(), hp.getPort()));
+          instanceOps.getServer(ServerId.Type.TABLET_SERVER, null, hp.getHost(), hp.getPort()));
     } else {
-      servers.addAll(instanceOps.getServers(ServerTypeName.SCAN_SERVER));
-      servers.addAll(instanceOps.getServers(ServerTypeName.TABLET_SERVER));
+      servers.addAll(instanceOps.getServers(ServerId.Type.SCAN_SERVER));
+      servers.addAll(instanceOps.getServers(ServerId.Type.TABLET_SERVER));
     }
 
     shellState.printLines(new ActiveScanIterator(servers, instanceOps), paginate);

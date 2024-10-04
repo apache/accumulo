@@ -49,7 +49,6 @@ import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.ScanType;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -203,7 +202,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
       // should eventually see the four zombie scans running against four tablets
       Wait.waitFor(() -> countDistinctTabletsScans(table, c) == 4);
 
-      assertEquals(1, c.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size());
+      assertEquals(1, c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size());
 
       // Start 3 new tablet servers, this should cause the table to balance and the tablets with
       // zombie scans to unload. The Zombie scans should not prevent the table from unloading. The
@@ -213,7 +212,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
 
       // Wait for all tablets servers
       Wait.waitFor(
-          () -> c.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size() == 4);
+          () -> c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 4);
 
       // The table should eventually balance across the 4 tablet servers
       Wait.waitFor(() -> countLocations(table, c) == 4);
@@ -238,7 +237,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
       // The zombie scans should migrate with the tablets, taking up more scan threads in the
       // system.
       Set<ServerId> tabletServersWithZombieScans = new HashSet<>();
-      for (ServerId tserver : c.instanceOperations().getServers(ServerTypeName.TABLET_SERVER)) {
+      for (ServerId tserver : c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)) {
         if (c.instanceOperations().getActiveScans(tserver).stream()
             .flatMap(activeScan -> activeScan.getSsiList().stream())
             .anyMatch(scanIters -> scanIters.contains(ZombieIterator.class.getName()))) {
@@ -277,8 +276,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
       if (serverType == SCAN_SERVER) {
         // Scans will fall back to tablet servers when no scan servers are present. So wait for scan
         // servers to show up in zookeeper. Can remove this in 3.1.
-        Wait.waitFor(
-            () -> !c.instanceOperations().getServers(ServerTypeName.SCAN_SERVER).isEmpty());
+        Wait.waitFor(() -> !c.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).isEmpty());
       }
 
       c.tableOperations().create(table);
@@ -356,7 +354,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
 
   private static long countDistinctTabletsScans(String table, AccumuloClient client)
       throws Exception {
-    Set<ServerId> tservers = client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER);
+    Set<ServerId> tservers = client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
     long count = 0;
     for (ServerId tserver : tservers) {
       count += client.instanceOperations().getActiveScans(tserver).stream()
@@ -422,7 +420,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
       throws AccumuloException, AccumuloSecurityException {
     Set<Long> scanIds = new HashSet<>();
     Set<ScanType> scanTypes = new HashSet<>();
-    for (ServerId tserver : c.instanceOperations().getServers(ServerTypeName.TABLET_SERVER)) {
+    for (ServerId tserver : c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)) {
       c.instanceOperations().getActiveScans(tserver).forEach(activeScan -> {
         scanIds.add(activeScan.getScanid());
         scanTypes.add(activeScan.getType());

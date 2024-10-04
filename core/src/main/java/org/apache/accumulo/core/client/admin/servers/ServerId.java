@@ -31,12 +31,22 @@ import com.google.common.base.Preconditions;
  */
 public final class ServerId implements Comparable<ServerId> {
 
-  private final ServerTypeName type;
+  /**
+   * Server process type names that a client can be expected to interact with. Clients are not
+   * expected to interact directly with the GarbageCollector or Monitor processes.
+   *
+   * @since 4.0.0
+   */
+  public enum Type {
+    MANAGER, COMPACTOR, SCAN_SERVER, TABLET_SERVER;
+  }
+
+  private final Type type;
   private final String resourceGroup;
   private final String host;
   private final int port;
 
-  public ServerId(ServerTypeName type, String resourceGroup, String host, int port) {
+  public ServerId(Type type, String resourceGroup, String host, int port) {
     super();
     Preconditions.checkArgument(port == 0 || PortRange.VALID_RANGE.contains(port),
         "invalid server port value: " + port);
@@ -46,7 +56,7 @@ public final class ServerId implements Comparable<ServerId> {
     this.port = port;
   }
 
-  public ServerTypeName getType() {
+  public Type getType() {
     return type;
   }
 

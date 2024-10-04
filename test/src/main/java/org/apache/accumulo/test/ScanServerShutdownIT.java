@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -116,7 +116,7 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
 
       // ScanServer should stop after the 3rd batch scan closes
       Wait.waitFor(
-          () -> client.instanceOperations().getServers(ServerTypeName.SCAN_SERVER).isEmpty());
+          () -> client.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).isEmpty());
 
       // The ScanServer should clean up the references on normal shutdown
       Wait.waitFor(() -> ctx.getAmple().scanServerRefs().list().count() == 0);

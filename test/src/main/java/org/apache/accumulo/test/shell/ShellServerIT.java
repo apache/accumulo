@@ -60,7 +60,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.sample.RowColumnSampler;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -1677,7 +1677,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         // loopback...?
         String hostPortPattern = ".+:\\d+";
         assertMatches(tserver, hostPortPattern);
-        assertTrue(accumuloClient.instanceOperations().getServers(ServerTypeName.TABLET_SERVER)
+        assertTrue(accumuloClient.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)
             .stream().anyMatch((srv) -> srv.toHostPortString().equals(tserver)));
         String client = parts[1].trim();
         assertMatches(client, hostPortPattern);

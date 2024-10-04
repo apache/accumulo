@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -51,7 +51,7 @@ public class PingCommand extends Command {
     if (cl.hasOption(tserverOption.getOpt())) {
       tservers.add(cl.getOptionValue(tserverOption.getOpt()));
     } else {
-      instanceOps.getServers(ServerTypeName.TABLET_SERVER)
+      instanceOps.getServers(ServerId.Type.TABLET_SERVER)
           .forEach(s -> tservers.add(s.toHostPortString()));
     }
 

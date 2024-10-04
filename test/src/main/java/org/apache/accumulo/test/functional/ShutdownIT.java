@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
@@ -119,13 +118,13 @@ public class ShutdownIT extends ConfigurableMacBase {
     int x = cluster.exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--createTable")
         .getProcess().waitFor();
     assertEquals(0, x);
-    Set<ServerId> tabletServers = c.instanceOperations().getServers(ServerTypeName.TABLET_SERVER);
+    Set<ServerId> tabletServers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
     assertEquals(2, tabletServers.size());
     ServerId doomed = tabletServers.iterator().next();
     log.info("Stopping " + doomed);
     assertEquals(0,
         cluster.exec(Admin.class, "stop", doomed.toHostPortString()).getProcess().waitFor());
-    tabletServers = c.instanceOperations().getServers(ServerTypeName.TABLET_SERVER);
+    tabletServers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
     assertEquals(1, tabletServers.size());
     assertNotEquals(tabletServers.iterator().next(), doomed);
   }

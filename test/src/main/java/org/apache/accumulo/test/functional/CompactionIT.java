@@ -72,7 +72,6 @@ import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -1178,7 +1177,7 @@ public class CompactionIT extends CompactionBaseIT {
 
       compactions.clear();
       do {
-        client.instanceOperations().getActiveCompactions(new ServerId(ServerTypeName.COMPACTOR,
+        client.instanceOperations().getActiveCompactions(new ServerId(ServerId.Type.COMPACTOR,
             host.getResourceGroup(), host.getAddress(), host.getPort())).forEach((ac) -> {
               try {
                 if (ac.getTable().equals(table1)) {

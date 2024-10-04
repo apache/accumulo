@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -56,7 +56,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       Wait.waitFor(
-          () -> !client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).isEmpty());
+          () -> !client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).isEmpty());
       final String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
@@ -90,7 +90,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
       });
       backgroundWriter.start();
       // wait for the tserver to give up on writing to the WAL
-      while (client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER).size() == 1) {
+      while (client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 1) {
         Thread.sleep(SECONDS.toMillis(1));
       }
     }

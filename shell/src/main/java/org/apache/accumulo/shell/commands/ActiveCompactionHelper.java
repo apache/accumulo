@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.util.DurationFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,10 +120,9 @@ class ActiveCompactionHelper {
       InstanceOperations instanceOps) {
     final HostAndPort hp = HostAndPort.fromString(tserver);
     ServerId server =
-        instanceOps.getServer(ServerTypeName.COMPACTOR, null, hp.getHost(), hp.getPort());
+        instanceOps.getServer(ServerId.Type.COMPACTOR, null, hp.getHost(), hp.getPort());
     if (server == null) {
-      server =
-          instanceOps.getServer(ServerTypeName.TABLET_SERVER, null, hp.getHost(), hp.getPort());
+      server = instanceOps.getServer(ServerId.Type.TABLET_SERVER, null, hp.getHost(), hp.getPort());
     }
     if (server == null) {
       return Stream.of();

@@ -27,7 +27,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost.Type;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -51,7 +50,7 @@ public class ActiveCompactionImpl extends ActiveCompaction {
     this.tac = tac;
     this.context = context;
     this.hostport = HostAndPort.fromParts(server.getHost(), server.getPort());
-    this.type = server.getType() == ServerTypeName.COMPACTOR ? Type.COMPACTOR : Type.TSERVER;
+    this.type = server.getType() == ServerId.Type.COMPACTOR ? Type.COMPACTOR : Type.TSERVER;
     this.resourceGroup = server.getResourceGroup();
   }
 

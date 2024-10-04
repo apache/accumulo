@@ -48,7 +48,6 @@ import jakarta.inject.Singleton;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -672,7 +671,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     if (System.nanoTime() - ecInfoFetchedNanos > fetchTimeNanos) {
       log.info("User initiated fetch of External Compaction info");
       Set<ServerId> compactors =
-          getContext().instanceOperations().getServers(ServerTypeName.COMPACTOR);
+          getContext().instanceOperations().getServers(ServerId.Type.COMPACTOR);
       log.debug("Found compactors: " + compactors);
       ecInfo.setFetchedTimeMillis(System.currentTimeMillis());
       ecInfo.setCompactors(compactors);
@@ -739,8 +738,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private void fetchScans() {
     final ServerContext context = getContext();
     final Set<ServerId> servers = new HashSet<>();
-    servers.addAll(context.instanceOperations().getServers(ServerTypeName.SCAN_SERVER));
-    servers.addAll(context.instanceOperations().getServers(ServerTypeName.TABLET_SERVER));
+    servers.addAll(context.instanceOperations().getServers(ServerId.Type.SCAN_SERVER));
+    servers.addAll(context.instanceOperations().getServers(ServerId.Type.TABLET_SERVER));
 
     for (ServerId server : servers) {
       TabletScanClientService.Client tserver = null;
@@ -771,7 +770,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private void fetchCompactions() {
     final ServerContext context = getContext();
 
-    for (ServerId server : context.instanceOperations().getServers(ServerTypeName.TABLET_SERVER)) {
+    for (ServerId server : context.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)) {
       final HostAndPort parsedServer = HostAndPort.fromParts(server.getHost(), server.getPort());
       Client tserver = null;
       try {
@@ -785,7 +784,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         ThriftUtil.returnClient(tserver, context);
       }
     }
-    for (ServerId server : context.instanceOperations().getServers(ServerTypeName.COMPACTOR)) {
+    for (ServerId server : context.instanceOperations().getServers(ServerId.Type.COMPACTOR)) {
       final HostAndPort parsedServer = HostAndPort.fromParts(server.getHost(), server.getPort());
       CompactorService.Client compactor = null;
       try {

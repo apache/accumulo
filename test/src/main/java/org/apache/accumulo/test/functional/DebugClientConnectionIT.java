@@ -29,7 +29,6 @@ import java.util.Set;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.rpc.clients.TServerClient;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -49,7 +48,7 @@ public class DebugClientConnectionIT extends AccumuloClusterHarness {
   @BeforeEach
   public void getTServerAddresses() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      tservers = client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER);
+      tservers = client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
     }
     assertNotNull(tservers);
     assertEquals(2, tservers.size());

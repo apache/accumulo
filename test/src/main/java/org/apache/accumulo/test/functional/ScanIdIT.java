@@ -53,7 +53,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -181,7 +180,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
     // all scanner have reported at least 1 result, so check for unique scan ids.
     Set<Long> scanIds = new HashSet<>();
 
-    Set<ServerId> tservers = client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER);
+    Set<ServerId> tservers = client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
 
     log.debug("tablet servers {}", tservers);
 

@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -58,37 +57,36 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
 
-      assertEquals(3, iops.getServers(ServerTypeName.COMPACTOR).size());
+      assertEquals(3, iops.getServers(ServerId.Type.COMPACTOR).size());
       assertEquals(3, iops.getCompactors().size());
-      assertTrue(
-          validateAddresses(iops.getCompactors(), iops.getServers(ServerTypeName.COMPACTOR)));
+      assertTrue(validateAddresses(iops.getCompactors(), iops.getServers(ServerId.Type.COMPACTOR)));
 
-      assertEquals(2, iops.getServers(ServerTypeName.SCAN_SERVER).size());
+      assertEquals(2, iops.getServers(ServerId.Type.SCAN_SERVER).size());
       assertEquals(2, iops.getScanServers().size());
       assertTrue(
-          validateAddresses(iops.getScanServers(), iops.getServers(ServerTypeName.SCAN_SERVER)));
+          validateAddresses(iops.getScanServers(), iops.getServers(ServerId.Type.SCAN_SERVER)));
 
-      assertEquals(1, iops.getServers(ServerTypeName.TABLET_SERVER).size());
+      assertEquals(1, iops.getServers(ServerId.Type.TABLET_SERVER).size());
       assertEquals(1, iops.getTabletServers().size());
-      assertTrue(validateAddresses(iops.getTabletServers(),
-          iops.getServers(ServerTypeName.TABLET_SERVER)));
+      assertTrue(
+          validateAddresses(iops.getTabletServers(), iops.getServers(ServerId.Type.TABLET_SERVER)));
 
-      assertEquals(1, iops.getServers(ServerTypeName.MANAGER).size());
+      assertEquals(1, iops.getServers(ServerId.Type.MANAGER).size());
       assertEquals(1, iops.getManagerLocations().size());
       assertTrue(
-          validateAddresses(iops.getManagerLocations(), iops.getServers(ServerTypeName.MANAGER)));
+          validateAddresses(iops.getManagerLocations(), iops.getServers(ServerId.Type.MANAGER)));
 
-      for (ServerId compactor : iops.getServers(ServerTypeName.COMPACTOR)) {
+      for (ServerId compactor : iops.getServers(ServerId.Type.COMPACTOR)) {
         assertNotNull(iops.getActiveCompactions(compactor));
         assertThrows(IllegalArgumentException.class, () -> iops.getActiveScans(compactor));
       }
 
-      for (ServerId tserver : iops.getServers(ServerTypeName.TABLET_SERVER)) {
+      for (ServerId tserver : iops.getServers(ServerId.Type.TABLET_SERVER)) {
         assertNotNull(iops.getActiveCompactions(tserver));
         assertNotNull(iops.getActiveScans(tserver));
       }
 
-      for (ServerId sserver : iops.getServers(ServerTypeName.SCAN_SERVER)) {
+      for (ServerId sserver : iops.getServers(ServerId.Type.SCAN_SERVER)) {
         assertThrows(IllegalArgumentException.class, () -> iops.getActiveCompactions(sserver));
         assertNotNull(iops.getActiveScans(sserver));
       }

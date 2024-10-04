@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -143,8 +142,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
           .getCompactor(rg -> rg.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME), addr -> true, true)
           .size() == 1, 60_000);
 
-      ServerId csi =
-          ctx.instanceOperations().getServers(ServerTypeName.COMPACTOR).iterator().next();
+      ServerId csi = ctx.instanceOperations().getServers(ServerId.Type.COMPACTOR).iterator().next();
       HostAndPort compactorAddr = HostAndPort.fromParts(csi.getHost(), csi.getPort());
 
       TableOperations to = client.tableOperations();

@@ -42,7 +42,7 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -117,7 +117,7 @@ public class LocatorIT extends AccumuloClusterHarness {
       ArrayList<Range> ranges = new ArrayList<>();
 
       HashSet<String> tservers = new HashSet<>();
-      client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER)
+      client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)
           .forEach((s) -> tservers.add(s.toHostPortString()));
 
       // locate won't find any locations, tablets are not hosted

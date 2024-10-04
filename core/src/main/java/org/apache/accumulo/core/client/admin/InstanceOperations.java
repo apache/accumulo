@@ -27,7 +27,6 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -184,7 +183,7 @@ public interface InstanceOperations {
    *
    * @return a list of locations in <code>hostname:port</code> form.
    * @since 2.1.0
-   * @deprecated see {@link #getServers(ServerTypeName)}
+   * @deprecated see {@link #getServers(ServerId.Type)}
    */
   @Deprecated(since = "4.0.0")
   List<String> getManagerLocations();
@@ -194,7 +193,7 @@ public interface InstanceOperations {
    *
    * @return A set of currently active compactors.
    * @since 2.1.4
-   * @deprecated see {@link #getServers(ServerTypeName)}
+   * @deprecated see {@link #getServers(ServerId.Type)}
    */
   @Deprecated(since = "4.0.0")
   Set<String> getCompactors();
@@ -203,7 +202,7 @@ public interface InstanceOperations {
    * Returns the locations of the active scan servers
    *
    * @return A set of currently active scan servers.
-   * @deprecated see {@link #getServers(ServerTypeName)}
+   * @deprecated see {@link #getServers(ServerId.Type)}
    * @since 2.1.0
    */
   @Deprecated(since = "4.0.0")
@@ -213,7 +212,7 @@ public interface InstanceOperations {
    * List the currently active tablet servers participating in the accumulo instance
    *
    * @return A list of currently active tablet servers.
-   * @deprecated see {@link #getServers(ServerTypeName)}
+   * @deprecated see {@link #getServers(ServerId.Type)}
    */
   @Deprecated(since = "4.0.0")
   List<String> getTabletServers();
@@ -228,7 +227,7 @@ public interface InstanceOperations {
    * @return ServerId if found, else null
    * @since 4.0.0
    */
-  ServerId getServer(ServerTypeName type, String resourceGroup, String host, int port);
+  ServerId getServer(ServerId.Type type, String resourceGroup, String host, int port);
 
   /**
    * Returns all servers of the given types
@@ -236,7 +235,7 @@ public interface InstanceOperations {
    * @return set of servers of the supplied type
    * @since 4.0.0
    */
-  Set<ServerId> getServers(ServerTypeName type);
+  Set<ServerId> getServers(ServerId.Type type);
 
   /**
    * Returns the servers of a given type that match the given criteria
@@ -244,7 +243,7 @@ public interface InstanceOperations {
    * @return set of servers of the supplied type matching the supplied test
    * @since 4.0.0
    */
-  Set<ServerId> getServers(ServerTypeName type, Predicate<ServerId> test);
+  Set<ServerId> getServers(ServerId.Type type, Predicate<ServerId> test);
 
   /**
    * List the active scans on a tablet server.

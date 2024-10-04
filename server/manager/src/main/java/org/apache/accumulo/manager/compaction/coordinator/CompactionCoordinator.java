@@ -61,7 +61,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -1012,7 +1011,7 @@ public class CompactionCoordinator
 
   /* Method exists to be overridden in test to hide static method */
   protected Set<ServerId> getRunningCompactors() {
-    return ctx.instanceOperations().getServers(ServerTypeName.COMPACTOR);
+    return ctx.instanceOperations().getServers(ServerId.Type.COMPACTOR);
   }
 
   /* Method exists to be overridden in test to hide static method */

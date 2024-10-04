@@ -50,7 +50,6 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -225,7 +224,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public List<String> getManagerLocations() {
 
-    Set<ServerId> managers = getServers(ServerTypeName.MANAGER);
+    Set<ServerId> managers = getServers(ServerId.Type.MANAGER);
     if (managers == null || managers.isEmpty()) {
       return List.of();
     } else {
@@ -295,10 +294,10 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     Objects.requireNonNull(server);
     Preconditions.checkArgument(
-        server.getType() == ServerTypeName.SCAN_SERVER
-            || server.getType() == ServerTypeName.TABLET_SERVER,
-        "Server type %s is not %s or %s.", server.getType(), ServerTypeName.SCAN_SERVER,
-        ServerTypeName.TABLET_SERVER);
+        server.getType() == ServerId.Type.SCAN_SERVER
+            || server.getType() == ServerId.Type.TABLET_SERVER,
+        "Server type %s is not %s or %s.", server.getType(), ServerId.Type.SCAN_SERVER,
+        ServerId.Type.TABLET_SERVER);
 
     final var parsedTserver = HostAndPort.fromParts(server.getHost(), server.getPort());
     TabletScanClientService.Client rpcClient = null;
@@ -339,9 +338,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     HostAndPort hp = HostAndPort.fromString(server);
 
-    ServerId si = getServer(ServerTypeName.COMPACTOR, null, hp.getHost(), hp.getPort());
+    ServerId si = getServer(ServerId.Type.COMPACTOR, null, hp.getHost(), hp.getPort());
     if (si == null) {
-      si = getServer(ServerTypeName.TABLET_SERVER, null, hp.getHost(), hp.getPort());
+      si = getServer(ServerId.Type.TABLET_SERVER, null, hp.getHost(), hp.getPort());
     }
     if (si == null) {
       return new ArrayList<>();
@@ -355,15 +354,15 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     Objects.requireNonNull(server);
     Preconditions.checkArgument(
-        server.getType() == ServerTypeName.COMPACTOR
-            || server.getType() == ServerTypeName.TABLET_SERVER,
-        "Server type %s is not %s or %s.", server.getType(), ServerTypeName.COMPACTOR,
-        ServerTypeName.TABLET_SERVER);
+        server.getType() == ServerId.Type.COMPACTOR
+            || server.getType() == ServerId.Type.TABLET_SERVER,
+        "Server type %s is not %s or %s.", server.getType(), ServerId.Type.COMPACTOR,
+        ServerId.Type.TABLET_SERVER);
 
     final HostAndPort serverHostAndPort = HostAndPort.fromParts(server.getHost(), server.getPort());
     final List<ActiveCompaction> as = new ArrayList<>();
     try {
-      if (server.getType() == ServerTypeName.TABLET_SERVER) {
+      if (server.getType() == ServerId.Type.TABLET_SERVER) {
         Client client = null;
         try {
           client = getClient(ThriftClientTypes.TABLET_SERVER, serverHostAndPort, context);
@@ -394,8 +393,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException {
 
     Set<ServerId> compactionServers = new HashSet<>();
-    compactionServers.addAll(getServers(ServerTypeName.COMPACTOR));
-    compactionServers.addAll(getServers(ServerTypeName.TABLET_SERVER));
+    compactionServers.addAll(getServers(ServerId.Type.COMPACTOR));
+    compactionServers.addAll(getServers(ServerId.Type.TABLET_SERVER));
 
     int numThreads = Math.max(4, Math.min((compactionServers.size()) / 10, 256));
     var executorService = context.threadPools().getPoolBuilder(INSTANCE_OPS_COMPACTIONS_FINDER_POOL)
@@ -471,7 +470,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public ServerId getServer(ServerTypeName type, String resourceGroup, String host, int port) {
+  public ServerId getServer(ServerId.Type type, String resourceGroup, String host, int port) {
     Objects.requireNonNull(type, "type parameter cannot be null");
     Objects.requireNonNull(host, "host parameter cannot be null");
 
@@ -520,12 +519,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public Set<ServerId> getServers(ServerTypeName type) {
+  public Set<ServerId> getServers(ServerId.Type type) {
     return getServers(type, null);
   }
 
   @Override
-  public Set<ServerId> getServers(ServerTypeName type, Predicate<ServerId> test) {
+  public Set<ServerId> getServers(ServerId.Type type, Predicate<ServerId> test) {
     final Set<ServerId> results = new HashSet<>();
     switch (type) {
       case COMPACTOR:
@@ -560,7 +559,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     return results.stream().filter(test).collect(Collectors.toUnmodifiableSet());
   }
 
-  private ServerId createServerId(ServerTypeName type, ServiceLockPath slp) {
+  private ServerId createServerId(ServerId.Type type, ServiceLockPath slp) {
     Objects.requireNonNull(type);
     Objects.requireNonNull(slp);
     String resourceGroup = Objects.requireNonNull(slp.getResourceGroup());

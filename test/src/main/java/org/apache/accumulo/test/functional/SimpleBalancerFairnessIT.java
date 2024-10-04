@@ -30,7 +30,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
@@ -68,7 +67,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       TreeSet<Text> splits = TestIngest.getSplitPoints(0, 10000000, NUM_SPLITS);
       log.info("Creating {} splits", splits.size());
       c.tableOperations().addSplits("unused", splits);
-      Set<ServerId> tservers = c.instanceOperations().getServers(ServerTypeName.TABLET_SERVER);
+      Set<ServerId> tservers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
       TestIngest.IngestParams params = new TestIngest.IngestParams(getClientProperties());
       params.rows = 5000;
       TestIngest.ingest(c, params);

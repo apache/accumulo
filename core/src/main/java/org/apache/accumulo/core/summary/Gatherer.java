@@ -50,7 +50,6 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -206,7 +205,7 @@ public class Gatherer {
       if (location == null) {
         if (tservers == null) {
           tservers =
-              new ArrayList<>(ctx.instanceOperations().getServers(ServerTypeName.TABLET_SERVER));
+              new ArrayList<>(ctx.instanceOperations().getServers(ServerId.Type.TABLET_SERVER));
           Collections.sort(tservers);
         }
 

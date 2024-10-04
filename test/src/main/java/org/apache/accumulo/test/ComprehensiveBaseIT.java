@@ -69,7 +69,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
-import org.apache.accumulo.core.client.admin.servers.ServerTypeName;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -477,7 +477,7 @@ public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
     try (var client = Accumulo.newClient().to("fake_instance_name", getCluster().getZooKeepers())
         .as(getAdminPrincipal(), getToken()).build()) {
       assertThrows(RuntimeException.class,
-          () -> client.instanceOperations().getServers(ServerTypeName.TABLET_SERVER));
+          () -> client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER));
     }
   }
 
