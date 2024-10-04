@@ -77,6 +77,7 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
@@ -679,8 +680,8 @@ public class Admin implements KeywordExecutable {
   static String qualifyWithZooKeeperSessionId(ClientContext context, ZooCache zooCache,
       String hostAndPort) {
     var hpObj = HostAndPort.fromString(hostAndPort);
-    Set<ServiceLockPath> paths =
-        context.getServerPaths().getTabletServer(rg -> true, addr -> addr.equals(hpObj), true);
+    Set<ServiceLockPath> paths = context.getServerPaths().getTabletServer(rg -> true,
+        ServiceLockPaths.AddressPredicate.exact(hpObj), true);
     if (paths.size() != 1) {
       return hostAndPort;
     }

@@ -284,7 +284,7 @@ public class ServiceLockPaths {
   }
 
   public Set<ServiceLockPath> getCompactor(ResourceGroupPredicate resourceGroupPredicate,
-      Predicate<HostAndPort> address, boolean withLock) {
+      AddressPredicate address, boolean withLock) {
     return get(Constants.ZCOMPACTORS, resourceGroupPredicate, address, withLock);
   }
 
@@ -316,22 +316,31 @@ public class ServiceLockPaths {
   }
 
   public Set<ServiceLockPath> getScanServer(ResourceGroupPredicate resourceGroupPredicate,
-      Predicate<HostAndPort> address, boolean withLock) {
+      AddressPredicate address, boolean withLock) {
     return get(Constants.ZSSERVERS, resourceGroupPredicate, address, withLock);
   }
 
   public Set<ServiceLockPath> getTabletServer(ResourceGroupPredicate resourceGroupPredicate,
-      Predicate<HostAndPort> address, boolean withLock) {
+      AddressPredicate address, boolean withLock) {
     return get(Constants.ZTSERVERS, resourceGroupPredicate, address, withLock);
   }
 
   public Set<ServiceLockPath> getDeadTabletServer(ResourceGroupPredicate resourceGroupPredicate,
-      Predicate<HostAndPort> address, boolean withLock) {
+      AddressPredicate address, boolean withLock) {
     return get(Constants.ZDEADTSERVERS, resourceGroupPredicate, address, withLock);
   }
 
   public interface ResourceGroupPredicate extends Predicate<String> {
 
+  }
+
+  public interface AddressPredicate extends Predicate<String> {
+
+    static AddressPredicate exact(HostAndPort hostAndPort) {
+      Objects.requireNonNull(hostAndPort);
+      AddressPredicate predicate = addr -> hostAndPort.equals(HostAndPort.fromString(addr));
+      return predicate;
+    }
   }
 
   /**
@@ -347,7 +356,7 @@ public class ServiceLockPaths {
    * @return set of ServiceLockPath objects for the paths found based on the search criteria
    */
   private Set<ServiceLockPath> get(final String serverType,
-      ResourceGroupPredicate resourceGroupPredicate, Predicate<HostAndPort> addressPredicate,
+      ResourceGroupPredicate resourceGroupPredicate, AddressPredicate addressPredicate,
       boolean withLock) {
 
     Objects.requireNonNull(serverType);
@@ -380,7 +389,7 @@ public class ServiceLockPaths {
             final ZcStat stat = new ZcStat();
             final ServiceLockPath slp =
                 parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
-            if (addressPredicate.test(HostAndPort.fromString(server))) {
+            if (addressPredicate.test(server)) {
               if (!withLock || slp.getType().equals(Constants.ZDEADTSERVERS)) {
                 // Dead TServers don't have lock data
                 results.add(slp);
