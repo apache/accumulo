@@ -45,6 +45,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
@@ -385,7 +386,7 @@ public class ServiceLockPathsTest {
     assertTrue(ctx.getServerPaths()
         .getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> true, true).isEmpty());
     assertTrue(ctx.getServerPaths()
-        .getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> addr.equals(hp), true)
+        .getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressPredicate.exact(hp), true)
         .isEmpty());
 
     EasyMock.verify(ctx, zc);
@@ -504,7 +505,7 @@ public class ServiceLockPathsTest {
 
     // query for a specific server
     results = ctx.getServerPaths().getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        addr -> addr.equals(hp), true);
+        AddressPredicate.exact(hp), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -515,7 +516,7 @@ public class ServiceLockPathsTest {
 
     // query for a wrong server
     results = ctx.getServerPaths().getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        addr -> addr.equals(HostAndPort.fromString("localhost:1234")), true);
+        AddressPredicate.exact(HostAndPort.fromString("localhost:1234")), true);
     assertEquals(0, results.size());
 
     EasyMock.verify(ctx, zc);
@@ -542,7 +543,7 @@ public class ServiceLockPathsTest {
     assertTrue(ctx.getServerPaths()
         .getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> true, true).isEmpty());
     assertTrue(ctx.getServerPaths()
-        .getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> addr.equals(hp), true)
+        .getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressPredicate.exact(hp), true)
         .isEmpty());
 
     EasyMock.verify(ctx, zc);
@@ -658,7 +659,7 @@ public class ServiceLockPathsTest {
 
     // query for a specific server
     results = ctx.getServerPaths().getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        addr -> addr.equals(hp), true);
+        AddressPredicate.exact(hp), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -669,7 +670,7 @@ public class ServiceLockPathsTest {
 
     // query for a wrong server
     results = ctx.getServerPaths().getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        addr -> addr.equals(HostAndPort.fromString("localhost:1234")), true);
+        AddressPredicate.exact(HostAndPort.fromString("localhost:1234")), true);
     assertEquals(0, results.size());
 
     EasyMock.verify(ctx, zc);
@@ -696,7 +697,7 @@ public class ServiceLockPathsTest {
     assertTrue(ctx.getServerPaths()
         .getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> true, true).isEmpty());
     assertTrue(ctx.getServerPaths()
-        .getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> addr.equals(hp), true)
+        .getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressPredicate.exact(hp), true)
         .isEmpty());
 
     EasyMock.verify(ctx, zc);
@@ -812,7 +813,7 @@ public class ServiceLockPathsTest {
 
     // query for a specific server
     results = ctx.getServerPaths().getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        addr -> addr.equals(hp), true);
+        AddressPredicate.exact(hp), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -823,7 +824,7 @@ public class ServiceLockPathsTest {
 
     // query for a wrong server
     results = ctx.getServerPaths().getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        addr -> addr.equals(HostAndPort.fromString("localhost:1234")), true);
+        AddressPredicate.exact(HostAndPort.fromString("localhost:1234")), true);
     assertEquals(0, results.size());
 
     EasyMock.verify(ctx, zc);
@@ -849,9 +850,8 @@ public class ServiceLockPathsTest {
     assertTrue(ctx.getServerPaths().getDeadTabletServer(rg -> true, addr -> true, false).isEmpty());
     assertTrue(ctx.getServerPaths()
         .getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> true, false).isEmpty());
-    assertTrue(ctx.getServerPaths()
-        .getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> addr.equals(hp), false)
-        .isEmpty());
+    assertTrue(ctx.getServerPaths().getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
+        AddressPredicate.exact(hp), false).isEmpty());
 
     EasyMock.verify(ctx, zc);
 
@@ -946,7 +946,7 @@ public class ServiceLockPathsTest {
 
     // query for a specific server
     results = ctx.getServerPaths().getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        addr -> addr.equals(hp), false);
+        AddressPredicate.exact(hp), false);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -958,7 +958,7 @@ public class ServiceLockPathsTest {
 
     // query for a wrong server
     results = ctx.getServerPaths().getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        addr -> addr.equals(HostAndPort.fromString("localhost:1234")), false);
+        AddressPredicate.exact(HostAndPort.fromString("localhost:1234")), false);
     assertEquals(0, results.size());
 
     EasyMock.verify(ctx, zc);

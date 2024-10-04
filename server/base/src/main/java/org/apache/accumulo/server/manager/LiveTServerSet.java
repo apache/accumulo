@@ -30,7 +30,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -41,6 +40,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -465,10 +465,7 @@ public class LiveTServerSet implements Watcher {
       ResourceGroupPredicate rgp = rg2 -> rg.equals(rg2);
       return rgp;
     }).orElse(rg -> true);
-    Predicate<HostAndPort> addrPredicate = address.map(addr -> {
-      Predicate<HostAndPort> ap = addr2 -> addr.equals(addr2);
-      return ap;
-    }).orElse(addr -> true);
+    AddressPredicate addrPredicate = address.map(AddressPredicate::exact).orElse(addr -> true);
     Set<ServiceLockPath> paths =
         context.getServerPaths().getTabletServer(rgPredicate, addrPredicate, false);
     if (paths.isEmpty() || paths.size() > 1) {
