@@ -48,7 +48,10 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * Consistency level for the scanner. The default level is IMMEDIATE, which means that this
    * scanner will see keys and values that have been successfully written to a TabletServer.
    * EVENTUAL means that the scanner may not see the latest data that was written to a TabletServer,
-   * but may instead see an older version of data.
+   * but may instead see an older version of data. To use the EVENTUAL consistency level, ScanServer
+   * processes must be running. If not specifically configured, clients will use the default
+   * settings ({@code ConfigurableScanServerSelector#PROFILES_DEFAULT}). See
+   * {@code ConfigurableScanServerSelector} for information on how to configure the client.
    *
    * @since 2.1.0
    */
