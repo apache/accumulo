@@ -34,7 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -236,7 +235,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<String> getTabletServers() {
     Set<ServiceLockPath> paths =
-        context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true);
+        context.getServerPaths().getTabletServer(rg -> true, addr -> true, true);
     List<String> results = new ArrayList<>();
     paths.forEach(p -> {
       if (!p.getServer().equals("manager")) {

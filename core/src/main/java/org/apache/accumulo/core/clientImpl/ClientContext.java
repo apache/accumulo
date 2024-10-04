@@ -406,7 +406,7 @@ public class ClientContext implements AccumuloClient {
   public Map<String,Pair<UUID,String>> getScanServers() {
     Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
     Set<ServiceLockPath> scanServerPaths =
-        getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true);
+        getServerPaths().getScanServer(rg -> true, addr -> true, true);
     for (ServiceLockPath path : scanServerPaths) {
       try {
         ZcStat stat = new ZcStat();

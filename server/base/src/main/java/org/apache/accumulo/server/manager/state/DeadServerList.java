@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
@@ -69,7 +68,7 @@ public class DeadServerList {
     List<DeadServer> result = new ArrayList<>();
     try {
       Set<ServiceLockPath> deadServers =
-          ctx.getServerPaths().getDeadTabletServer(Optional.empty(), Optional.empty(), false);
+          ctx.getServerPaths().getDeadTabletServer(rg -> true, addr -> true, false);
       for (ServiceLockPath path : deadServers) {
         Stat stat = new Stat();
         byte[] data;

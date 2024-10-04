@@ -44,7 +44,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -863,7 +862,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int tsActualCount = 0;
     while (tsActualCount < tsExpectedCount) {
       Set<ServiceLockPath> tservers =
-          context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true);
+          context.getServerPaths().getTabletServer(rg -> true, addr -> true, true);
       tsActualCount = tservers.size();
       log.info(tsActualCount + " of " + tsExpectedCount + " tablet servers present in ZooKeeper");
       Thread.sleep(500);
@@ -872,7 +871,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int ssActualCount = 0;
     while (ssActualCount < ssExpectedCount) {
       Set<ServiceLockPath> tservers =
-          context.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true);
+          context.getServerPaths().getScanServer(rg -> true, addr -> true, true);
       ssActualCount = tservers.size();
       log.info(ssActualCount + " of " + ssExpectedCount + " scan servers present in ZooKeeper");
       Thread.sleep(500);
@@ -881,7 +880,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int ecActualCount = 0;
     while (ecActualCount < ecExpectedCount) {
       Set<ServiceLockPath> compactors =
-          context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true);
+          context.getServerPaths().getCompactor(rg -> true, addr -> true, true);
       ecActualCount = compactors.size();
       log.info(ecActualCount + " of " + ecExpectedCount + " compactors present in ZooKeeper");
       Thread.sleep(500);

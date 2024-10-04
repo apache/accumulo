@@ -85,18 +85,18 @@ public interface TServerClient<C extends TServiceClient> {
       // The entire set will be checked in the code below to validate
       // that the path is correct and the lock is held and will return the
       // correct one.
-      Optional<HostAndPort> hp = Optional.of(HostAndPort.fromString(debugHost));
-      serverPaths.addAll(context.getServerPaths().getCompactor(Optional.empty(), hp, true));
-      serverPaths.addAll(context.getServerPaths().getScanServer(Optional.empty(), hp, true));
-      serverPaths.addAll(context.getServerPaths().getTabletServer(Optional.empty(), hp, true));
-    } else {
+      HostAndPort hp = HostAndPort.fromString(debugHost);
+      serverPaths
+          .addAll(context.getServerPaths().getCompactor(rg -> true, addr -> addr.equals(hp), true));
       serverPaths.addAll(
-          context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), true));
+          context.getServerPaths().getScanServer(rg -> true, addr -> addr.equals(hp), true));
+      serverPaths.addAll(
+          context.getServerPaths().getTabletServer(rg -> true, addr -> addr.equals(hp), true));
+    } else {
+      serverPaths.addAll(context.getServerPaths().getTabletServer(rg -> true, addr -> true, true));
       if (type == ThriftClientTypes.CLIENT) {
-        serverPaths.addAll(
-            context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), true));
-        serverPaths.addAll(
-            context.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), true));
+        serverPaths.addAll(context.getServerPaths().getCompactor(rg -> true, addr -> true, true));
+        serverPaths.addAll(context.getServerPaths().getScanServer(rg -> true, addr -> true, true));
       }
       if (serverPaths.isEmpty()) {
         if (warned.compareAndSet(false, true)) {

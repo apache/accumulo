@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -40,6 +41,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -230,7 +232,7 @@ public class LiveTServerSet implements Watcher {
       final Set<TServerInstance> updates = new HashSet<>();
       final Set<TServerInstance> doomed = new HashSet<>();
       final Set<ServiceLockPath> tservers =
-          context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), false);
+          context.getServerPaths().getTabletServer(rg -> true, addr -> true, false);
 
       locklessServers.keySet().retainAll(tservers);
 
@@ -459,8 +461,16 @@ public class LiveTServerSet implements Watcher {
     }
     current.remove(address.orElseThrow().toString());
 
+    ResourceGroupPredicate rgPredicate = resourceGroup.map(rg -> {
+      ResourceGroupPredicate rgp = rg2 -> rg.equals(rg2);
+      return rgp;
+    }).orElse(rg -> true);
+    Predicate<HostAndPort> addrPredicate = address.map(addr -> {
+      Predicate<HostAndPort> ap = addr2 -> addr.equals(addr2);
+      return ap;
+    }).orElse(addr -> true);
     Set<ServiceLockPath> paths =
-        context.getServerPaths().getTabletServer(resourceGroup, address, false);
+        context.getServerPaths().getTabletServer(rgPredicate, addrPredicate, false);
     if (paths.isEmpty() || paths.size() > 1) {
       log.error("Zero or many zookeeper entries match input arguments.");
     } else {

@@ -20,7 +20,6 @@ package org.apache.accumulo.server.util;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.cli.Help;
@@ -111,7 +110,7 @@ public class ZooZap implements KeywordExecutable {
         if (opts.zapTservers) {
           try {
             Set<ServiceLockPath> tserverLockPaths =
-                context.getServerPaths().getTabletServer(Optional.empty(), Optional.empty(), false);
+                context.getServerPaths().getTabletServer(rg -> true, addr -> true, false);
             for (ServiceLockPath tserverPath : tserverLockPaths) {
 
               message("Deleting " + tserverPath + " from zookeeper", opts);
@@ -133,7 +132,7 @@ public class ZooZap implements KeywordExecutable {
 
         if (opts.zapCompactors) {
           Set<ServiceLockPath> compactorLockPaths =
-              context.getServerPaths().getCompactor(Optional.empty(), Optional.empty(), false);
+              context.getServerPaths().getCompactor(rg -> true, addr -> true, false);
           Set<String> compactorResourceGroupPaths = new HashSet<>();
           compactorLockPaths.forEach(p -> compactorResourceGroupPaths
               .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
@@ -151,7 +150,7 @@ public class ZooZap implements KeywordExecutable {
         if (opts.zapScanServers) {
           try {
             Set<ServiceLockPath> sserverLockPaths =
-                context.getServerPaths().getScanServer(Optional.empty(), Optional.empty(), false);
+                context.getServerPaths().getScanServer(rg -> true, addr -> true, false);
             for (ServiceLockPath sserverPath : sserverLockPaths) {
               message("Deleting " + sserverPath + " from zookeeper", opts);
               if (!zoo.getChildren(sserverPath.toString()).isEmpty()) {
