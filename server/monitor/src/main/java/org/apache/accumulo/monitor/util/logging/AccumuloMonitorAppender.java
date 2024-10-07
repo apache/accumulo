@@ -27,8 +27,15 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
@@ -45,6 +52,7 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
+import org.apache.logging.log4j.core.config.plugins.PluginBuilderAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginBuilderFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -59,33 +67,85 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class AccumuloMonitorAppender extends AbstractAppender {
 
   @PluginBuilderFactory
-  public static <B extends Builder<B>> B newBuilder() {
-    return new Builder<B>().asBuilder();
+  public static Builder newBuilder() {
+    return new Builder();
   }
 
-  public static class Builder<B extends Builder<B>> extends AbstractAppender.Builder<B>
+  public static class Builder extends AbstractAppender.Builder<Builder>
       implements org.apache.logging.log4j.core.util.Builder<AccumuloMonitorAppender> {
+
+    @PluginBuilderAttribute
+    private boolean async = true;
+
+    @PluginBuilderAttribute
+    private int queueSize = 1024;
+
+    @PluginBuilderAttribute
+    private int maxThreads = 2;
+
+    public Builder setAsync(boolean async) {
+      this.async = async;
+      return this;
+    }
+
+    public boolean getAsync() {
+      return async;
+    }
+
+    public Builder setQueueSize(int size) {
+      queueSize = size;
+      return this;
+    }
+
+    public int getQueueSize() {
+      return queueSize;
+    }
+
+    public Builder setMaxThreads(int maxThreads) {
+      this.maxThreads = maxThreads;
+      return this;
+    }
+
+    public int getMaxThreads() {
+      return maxThreads;
+    }
 
     @Override
     public AccumuloMonitorAppender build() {
       return new AccumuloMonitorAppender(getName(), getFilter(), isIgnoreExceptions(),
-          getPropertyArray());
+          getPropertyArray(), getQueueSize(), getMaxThreads(), getAsync());
     }
 
   }
 
-  private final HttpClient httpClient = HttpClient.newHttpClient();
+  private final HttpClient httpClient;
   private final Supplier<Optional<URI>> monitorLocator;
+  private final ThreadPoolExecutor executor;
+  private final boolean async;
+  private final int queueSize;
+  private final AtomicLong appends = new AtomicLong(0);
+  private final AtomicLong discards = new AtomicLong(0);
+  private final AtomicLong errors = new AtomicLong(0);
+  private final ConcurrentMap<Integer,AtomicLong> statusCodes = new ConcurrentSkipListMap<>();
 
   private ServerContext context;
   private String path;
   private Pair<Long,Optional<URI>> lastResult = new Pair<>(0L, Optional.empty());
 
   private AccumuloMonitorAppender(final String name, final Filter filter,
-      final boolean ignoreExceptions, final Property[] properties) {
+      final boolean ignoreExceptions, final Property[] properties, int queueSize, int maxThreads,
+      boolean async) {
     super(name, filter, null, ignoreExceptions, properties);
-    final ZcStat stat = new ZcStat();
-    monitorLocator = () -> {
+
+    this.executor = async ? new ThreadPoolExecutor(0, maxThreads, 30, TimeUnit.SECONDS,
+        new LinkedBlockingQueue<Runnable>()) : null;
+    final var builder = HttpClient.newBuilder();
+    this.httpClient = (async ? builder.executor(executor) : builder).build();
+    this.queueSize = queueSize;
+    this.async = async;
+
+    final var stat = new ZcStat();
+    this.monitorLocator = () -> {
       // lazily set up context/path
       if (context == null) {
         context = new ServerContext(SiteConfiguration.auto());
@@ -104,9 +164,24 @@ public class AccumuloMonitorAppender extends AbstractAppender {
     };
   }
 
+  private String getStats() {
+    return "discards:" + discards.get() + " errors:" + errors.get() + " appends:" + appends.get()
+        + " statusCodes:" + statusCodes;
+  }
+
+  private void processResponse(HttpResponse<?> response) {
+    var statusCode = response.statusCode();
+    statusCodes.computeIfAbsent(statusCode, sc -> new AtomicLong()).getAndIncrement();
+    if (statusCode >= 400 && statusCode < 600) {
+      error("Unable to send HTTP in appender [" + getName() + "]. Status: " + statusCode + " "
+          + getStats());
+    }
+  }
+
   @Override
   public void append(final LogEvent event) {
-    monitorLocator.get().ifPresent(uri -> {
+    appends.getAndIncrement();
+    monitorLocator.get().ifPresentOrElse(uri -> {
       try {
         var pojo = new SingleLogEvent();
         pojo.timestamp = event.getTimeMillis();
@@ -120,12 +195,43 @@ public class AccumuloMonitorAppender extends AbstractAppender {
 
         var req = HttpRequest.newBuilder(uri).POST(BodyPublishers.ofString(jsonEvent, UTF_8))
             .setHeader("Content-Type", "application/json").build();
-        @SuppressWarnings("unused")
-        var future = httpClient.sendAsync(req, BodyHandlers.discarding());
+
+        if (async) {
+          if (executor.getQueue().size() < queueSize) {
+            httpClient.sendAsync(req, BodyHandlers.discarding()).thenAccept(this::processResponse)
+                .exceptionally(e -> {
+                  errors.getAndIncrement();
+                  error("Unable to send HTTP in appender [" + getName() + "] " + getStats(), event,
+                      e);
+                  return null;
+                });
+          } else {
+            discards.getAndIncrement();
+            error("Unable to send HTTP in appender [" + getName() + "]. Queue full. " + getStats());
+          }
+        } else {
+          processResponse(httpClient.send(req, BodyHandlers.discarding()));
+        }
       } catch (final Exception e) {
-        error("Unable to send HTTP in appender [" + getName() + "]", event, e);
+        errors.getAndIncrement();
+        error("Unable to send HTTP in appender [" + getName() + "] " + getStats(), event, e);
       }
+    }, () -> {
+      discards.getAndIncrement();
+      error("Unable to send HTTP in appender [" + getName() + "]. No monitor is running. "
+          + getStats());
     });
+  }
+
+  @Override
+  protected boolean stop(long timeout, TimeUnit timeUnit, boolean changeLifeCycleState) {
+    if (changeLifeCycleState) {
+      setStopping();
+    }
+    if (executor != null) {
+      executor.shutdown();
+    }
+    return super.stop(timeout, timeUnit, changeLifeCycleState);
   }
 
   @SuppressFBWarnings(value = "INFORMATION_EXPOSURE_THROUGH_AN_ERROR_MESSAGE",
