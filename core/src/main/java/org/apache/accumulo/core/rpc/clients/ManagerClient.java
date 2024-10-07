@@ -21,14 +21,10 @@ package org.apache.accumulo.core.rpc.clients;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.net.UnknownHostException;
-import java.util.Optional;
+import java.util.Set;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
-import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
@@ -41,37 +37,26 @@ public interface ManagerClient<C extends TServiceClient> {
   default C getManagerConnection(Logger log, ThriftClientTypes<C> type, ClientContext context) {
     checkArgument(context != null, "context is null");
 
-    ServiceLockPath slp = context.getServerPaths().getManager(true);
+    Set<ServerId> managers = context.instanceOperations().getServers(ServerId.Type.MANAGER);
 
-    if (slp == null) {
+    if (managers == null || managers.isEmpty()) {
       log.debug("No managers...");
       return null;
     }
 
-    ZcStat stat = new ZcStat();
-    Optional<ServiceLockData> sld = ServiceLock.getLockData(context.getZooCache(), slp, stat);
-    if (sld.isPresent()) {
-      String location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
-      HostAndPort manager = HostAndPort.fromString(location);
-      if (manager.getPort() == 0) {
-        return null;
+    HostAndPort manager = HostAndPort.fromString(managers.iterator().next().toHostPortString());
+    try {
+      // Manager requests can take a long time: don't ever time out
+      return ThriftUtil.getClientNoTimeout(type, manager, context);
+    } catch (TTransportException tte) {
+      Throwable cause = tte.getCause();
+      if (cause != null && cause instanceof UnknownHostException) {
+        // do not expect to recover from this
+        throw new IllegalStateException(tte);
       }
-
-      try {
-        // Manager requests can take a long time: don't ever time out
-        return ThriftUtil.getClientNoTimeout(type, manager, context);
-      } catch (TTransportException tte) {
-        Throwable cause = tte.getCause();
-        if (cause != null && cause instanceof UnknownHostException) {
-          // do not expect to recover from this
-          throw new IllegalStateException(tte);
-        }
-        log.debug("Failed to connect to manager=" + manager + ", will retry... ", tte);
-        return null;
-      }
+      log.debug("Failed to connect to manager=" + manager + ", will retry... ", tte);
+      return null;
     }
-    return null;
-
   }
 
 }

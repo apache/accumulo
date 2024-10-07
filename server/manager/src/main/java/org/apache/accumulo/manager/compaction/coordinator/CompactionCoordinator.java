@@ -315,8 +315,8 @@ public class CompactionCoordinator
   private Map<String,Set<HostAndPort>> getIdleCompactors(Set<ServerId> runningCompactors) {
 
     final Map<String,Set<HostAndPort>> allCompactors = new HashMap<>();
-    runningCompactors
-        .forEach((csi) -> allCompactors.putIfAbsent(csi.getResourceGroup(), new HashSet<>())
+    runningCompactors.forEach(
+        (csi) -> allCompactors.computeIfAbsent(csi.getResourceGroup(), (k) -> new HashSet<>())
             .add(HostAndPort.fromParts(csi.getHost(), csi.getPort())));
 
     final Set<String> emptyQueues = new HashSet<>();

@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -30,12 +31,11 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
-import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.DeadServer;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.logs.DeadLoggerInformation;
 import org.apache.accumulo.monitor.rest.logs.DeadLoggerList;
@@ -101,9 +101,13 @@ public class ManagerResource {
         tservers.add(down.server);
       }
 
-      ServiceLockPath slp = monitor.getContext().getServerPaths().getManager(true);
+      Set<ServerId> managers =
+          monitor.getContext().instanceOperations().getServers(ServerId.Type.MANAGER);
+      String manager = "Down";
+      if (managers != null && !managers.isEmpty()) {
+        manager = managers.iterator().next().getHost();
+      }
 
-      String manager = slp == null ? "Down" : AddressUtil.parseAddress(slp.getServer()).getHost();
       int onlineTabletServers = mmi.tServerInfo.size();
       int totalTabletServers = tservers.size();
       int tablets = monitor.getTotalTabletCount();
