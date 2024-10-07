@@ -39,17 +39,13 @@ import java.util.Set;
 import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters;
-import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
@@ -67,7 +63,7 @@ public class RatioBasedCompactionPlannerTest {
   }
 
   private static final Configuration defaultConf =
-      new ConfigurationImpl(DefaultConfiguration.getInstance());
+      ServiceEnvironment.Configuration.from(Map.of(), true);
   private static final CompactionServiceId csid = CompactionServiceId.of("cs1");
   private static final String prefix = Property.COMPACTION_SERVICE_PREFIX.getKey();
 
@@ -182,9 +178,8 @@ public class RatioBasedCompactionPlannerTest {
 
   @Test
   public void testUserCompaction() {
-    ConfigurationCopy aconf = new ConfigurationCopy(DefaultConfiguration.getInstance());
-    aconf.set(prefix + "cs1.planner.opts.maxOpen", "15");
-    ConfigurationImpl config = new ConfigurationImpl(aconf);
+    var config = ServiceEnvironment.Configuration
+        .from(Map.of(prefix + "cs1.planner.opts.maxOpen", "15"), true);
 
     String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
         + "{'group':'large','maxSize':'512M'}, {'group':'huge'}]";
@@ -544,7 +539,7 @@ public class RatioBasedCompactionPlannerTest {
     Map<String,String> overrides = new HashMap<>();
     overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
     overrides.put(Property.TABLE_FILE_MAX.getKey(), "7");
-    var conf = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides).build());
+    var conf = ServiceEnvironment.Configuration.from(overrides, false);
 
     // For this case need to compact three files and the highest ratio that achieves that is 1.8
     var planner = createPlanner(conf, groups);
@@ -620,7 +615,7 @@ public class RatioBasedCompactionPlannerTest {
     Map<String,String> overrides = new HashMap<>();
     overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
     overrides.put(Property.TABLE_FILE_MAX.getKey(), "7");
-    var conf = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides).build());
+    var conf = ServiceEnvironment.Configuration.from(overrides, false);
 
     // ensure that when a compaction would be over the max size limit that it is not planned
     var planner = createPlanner(conf, groups);
@@ -658,7 +653,7 @@ public class RatioBasedCompactionPlannerTest {
     overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
     overrides.put(Property.TABLE_FILE_MAX.getKey(), "0");
     overrides.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "5");
-    var conf = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides).build());
+    var conf = ServiceEnvironment.Configuration.from(overrides, false);
 
     var planner = createPlanner(conf, groups);
     var all = createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1);

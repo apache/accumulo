@@ -40,8 +40,6 @@ import java.util.SortedMap;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -53,8 +51,8 @@ import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.junit.jupiter.api.Test;
 
@@ -67,9 +65,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     tables.put(BAR.getTableName(), BAR.getId());
     tables.put(BAZ.getTableName(), BAZ.getId());
 
-    ConfigurationCopy config = new ConfigurationCopy(SiteConfiguration.empty().build());
-    tableProperties.forEach(config::set);
-    ConfigurationImpl configImpl = new ConfigurationImpl(config);
+    var configImpl = ServiceEnvironment.Configuration.from(tableProperties, false);
     BalancerEnvironment environment = createMock(BalancerEnvironment.class);
     expect(environment.getConfiguration()).andReturn(configImpl).anyTimes();
     expect(environment.getTableIdMap()).andReturn(tables).anyTimes();
