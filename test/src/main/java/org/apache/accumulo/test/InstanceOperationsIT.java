@@ -21,7 +21,6 @@ package org.apache.accumulo.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,22 +58,19 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
 
       assertEquals(3, iops.getServers(ServerId.Type.COMPACTOR).size());
       assertEquals(3, iops.getCompactors().size());
-      assertTrue(validateAddresses(iops.getCompactors(), iops.getServers(ServerId.Type.COMPACTOR)));
+      validateAddresses(iops.getCompactors(), iops.getServers(ServerId.Type.COMPACTOR));
 
       assertEquals(2, iops.getServers(ServerId.Type.SCAN_SERVER).size());
       assertEquals(2, iops.getScanServers().size());
-      assertTrue(
-          validateAddresses(iops.getScanServers(), iops.getServers(ServerId.Type.SCAN_SERVER)));
+      validateAddresses(iops.getScanServers(), iops.getServers(ServerId.Type.SCAN_SERVER));
 
       assertEquals(1, iops.getServers(ServerId.Type.TABLET_SERVER).size());
       assertEquals(1, iops.getTabletServers().size());
-      assertTrue(
-          validateAddresses(iops.getTabletServers(), iops.getServers(ServerId.Type.TABLET_SERVER)));
+      validateAddresses(iops.getTabletServers(), iops.getServers(ServerId.Type.TABLET_SERVER));
 
       assertEquals(1, iops.getServers(ServerId.Type.MANAGER).size());
       assertEquals(1, iops.getManagerLocations().size());
-      assertTrue(
-          validateAddresses(iops.getManagerLocations(), iops.getServers(ServerId.Type.MANAGER)));
+      validateAddresses(iops.getManagerLocations(), iops.getServers(ServerId.Type.MANAGER));
 
       for (ServerId compactor : iops.getServers(ServerId.Type.COMPACTOR)) {
         assertNotNull(iops.getActiveCompactions(compactor));
@@ -94,14 +90,13 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
     }
   }
 
-  private boolean validateAddresses(Collection<String> e, Set<ServerId> addresses) {
+  private void validateAddresses(Collection<String> e, Set<ServerId> addresses) {
     List<String> actual = new ArrayList<>(addresses.size());
     addresses.forEach(a -> actual.add(a.toHostPortString()));
     List<String> expected = new ArrayList<>(e);
     Collections.sort(expected);
     Collections.sort(actual);
     assertEquals(actual, expected);
-    return true;
   }
 
 }

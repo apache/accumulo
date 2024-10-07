@@ -343,7 +343,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       si = getServer(ServerId.Type.TABLET_SERVER, null, hp.getHost(), hp.getPort());
     }
     if (si == null) {
-      return new ArrayList<>();
+      return List.of();
     }
     return getActiveCompactions(si);
   }

@@ -77,13 +77,13 @@ public final class ServerId implements Comparable<ServerId> {
     if (this == other) {
       return 0;
     }
-    int result = this.getHost().compareTo(other.getHost());
+    int result = this.getType().compareTo(other.getType());
     if (result == 0) {
-      result = Integer.compare(this.getPort(), other.getPort());
+      result = this.getResourceGroup().compareTo(other.getResourceGroup());
       if (result == 0) {
-        result = this.getType().compareTo(other.getType());
+        result = this.getHost().compareTo(other.getHost());
         if (result == 0) {
-          result = this.getResourceGroup().compareTo(other.getResourceGroup());
+          result = Integer.compare(this.getPort(), other.getPort());
         }
       }
     }

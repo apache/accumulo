@@ -230,7 +230,8 @@ public interface InstanceOperations {
   ServerId getServer(ServerId.Type type, String resourceGroup, String host, int port);
 
   /**
-   * Returns all servers of the given types
+   * Returns all servers of the given types. For the Manager, the result will contain only one
+   * element for the current active Manager.
    *
    * @return set of servers of the supplied type
    * @since 4.0.0

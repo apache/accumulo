@@ -143,7 +143,7 @@ public class RecoveryIT extends AccumuloClusterHarness {
       // Stop any running Compactors and ScanServers
       control.stopAllServers(ServerType.COMPACTOR);
       Wait.waitFor(() -> getServerContext().getServerPaths()
-          .getCompactor(rg -> true, addr -> true, true).size() == 0, 60_000);
+          .getCompactor(rg -> true, addr -> true, true).isEmpty(), 60_000);
 
       control.stopAllServers(ServerType.SCAN_SERVER);
       Wait.waitFor(() -> getServerContext().getServerPaths()

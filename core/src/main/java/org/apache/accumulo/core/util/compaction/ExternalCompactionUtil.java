@@ -62,10 +62,9 @@ public class ExternalCompactionUtil {
     private final HostAndPort compactor;
     private final Future<TExternalCompactionJob> future;
 
-    public RunningCompactionFuture(String group, HostAndPort compactor,
-        Future<TExternalCompactionJob> future) {
-      this.group = group;
-      this.compactor = compactor;
+    public RunningCompactionFuture(ServiceLockPath slp, Future<TExternalCompactionJob> future) {
+      this.group = slp.getResourceGroup();
+      this.compactor = HostAndPort.fromString(slp.getServer());
       this.future = future;
     }
 
@@ -204,7 +203,7 @@ public class ExternalCompactionUtil {
 
     context.getServerPaths().getCompactor(rg -> true, addr -> true, true).forEach(slp -> {
       final HostAndPort hp = HostAndPort.fromString(slp.getServer());
-      rcFutures.add(new RunningCompactionFuture(slp.getResourceGroup(), hp,
+      rcFutures.add(new RunningCompactionFuture(slp,
           executor.submit(() -> getRunningCompaction(hp, context))));
     });
     executor.shutdown();
