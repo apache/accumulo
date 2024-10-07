@@ -182,11 +182,6 @@ public enum Property {
           + "other reserved characters in a URI use standard URI hex encoding. For "
           + "example replace commas with %2C.",
       "1.6.0"),
-  INSTANCE_VOLUMES_UPGRADE_RELATIVE("instance.volumes.upgrade.relative", "", PropertyType.STRING,
-      "The volume dfs uri containing relative tablet file paths. Relative paths may exist in the metadata from "
-          + "versions prior to 1.6. This property is only required if a relative path is detected "
-          + "during the upgrade process and will only be used once.",
-      "2.1.0"),
   @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator",
       "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
