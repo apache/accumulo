@@ -371,6 +371,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  @Deprecated
   public void ping(String tserver) throws AccumuloException {
     try (TTransport transport = createTransport(AddressUtil.parseAddress(tserver), context)) {
       Client client = createClient(ThriftClientTypes.TABLET_SERVER, transport);

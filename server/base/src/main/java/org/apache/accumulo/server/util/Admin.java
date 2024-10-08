@@ -515,6 +515,7 @@ public class Admin implements KeywordExecutable {
     ssc.execute(context, opts);
   }
 
+  @SuppressWarnings("deprecation")
   private static int ping(ClientContext context, List<String> args) {
 
     InstanceOperations io = context.instanceOperations();

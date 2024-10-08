@@ -244,7 +244,9 @@ public interface InstanceOperations {
    * @param tserver The tablet server address. This should be of the form
    *        {@code <ip address>:<port>}
    * @since 1.5.0
+   * @deprecated - to be replaced with a new ping method in a future version
    */
+  @Deprecated
   void ping(String tserver) throws AccumuloException;
 
   /**
