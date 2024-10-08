@@ -38,13 +38,6 @@ public class AdminCommandsTest {
   }
 
   @Test
-  public void testCheckTabletsCommand() {
-    Admin.CheckTabletsCommand cmd = new Admin.CheckTabletsCommand();
-    assertFalse(cmd.fixFiles);
-    assertNull(cmd.tableName);
-  }
-
-  @Test
   public void testStopManagerCommand() {
     new Admin.StopManagerCommand();
   }

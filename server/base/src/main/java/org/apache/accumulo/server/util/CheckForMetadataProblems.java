@@ -45,13 +45,13 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
 public class CheckForMetadataProblems {
-  private static boolean sawProblems = false;
-  private static ServerUtilOpts opts;
 
-  private static void checkTable(TableId tableId, TreeSet<KeyExtent> tablets) {
+  private static boolean checkTable(TableId tableId, TreeSet<KeyExtent> tablets,
+      ServerUtilOpts opts) {
     // sanity check of metadata table entries
-    // make sure tablets has no holes, and that it starts and ends w/ null
+    // make sure tablets have no holes, and that it starts and ends w/ null
     String tableName;
+    boolean sawProblems = false;
 
     try {
       tableName = opts.getServerContext().getTableName(tableId);
@@ -59,25 +59,26 @@ public class CheckForMetadataProblems {
       tableName = null;
     }
 
+    System.out.printf("Ensuring tablets for table %s (%s) have: no holes, "
+        + "valid (null) prev end row for first tablet, and valid (null) end row "
+        + "for last tablet...\n", tableName, tableId);
+
     if (tablets.isEmpty()) {
       System.out.println(
           "...No entries found in metadata table for table " + tableName + " (" + tableId + ")");
-      sawProblems = true;
-      return;
+      return true;
     }
 
     if (tablets.first().prevEndRow() != null) {
       System.out.println("...First entry for table " + tableName + " (" + tableId + ")  - "
           + tablets.first() + " - has non null prev end row");
-      sawProblems = true;
-      return;
+      return true;
     }
 
     if (tablets.last().endRow() != null) {
       System.out.println("...Last entry for table " + tableName + " (" + tableId + ") - "
           + tablets.last() + " - has non null end row");
-      sawProblems = true;
-      return;
+      return true;
     }
 
     Iterator<KeyExtent> tabIter = tablets.iterator();
@@ -106,14 +107,17 @@ public class CheckForMetadataProblems {
     } else {
       sawProblems = true;
     }
+
+    return sawProblems;
   }
 
-  private static void checkMetadataAndRootTableEntries(String tableNameToCheck, ServerUtilOpts opts)
-      throws Exception {
+  public static boolean checkMetadataAndRootTableEntries(String tableNameToCheck,
+      ServerUtilOpts opts) throws Exception {
     TableId tableCheckId = opts.getServerContext().getTableId(tableNameToCheck);
     System.out.println("Checking tables whose metadata is found in: " + tableNameToCheck + " ("
-        + tableCheckId + ")");
+        + tableCheckId + ")...\n");
     Map<TableId,TreeSet<KeyExtent>> tables = new HashMap<>();
+    boolean sawProblems = false;
 
     try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build();
         Scanner scanner = client.createScanner(tableNameToCheck, Authorizations.EMPTY)) {
@@ -139,7 +143,10 @@ public class CheckForMetadataProblems {
         TreeSet<KeyExtent> tablets = tables.get(tableId);
         if (tablets == null) {
 
-          tables.forEach(CheckForMetadataProblems::checkTable);
+          for (var e : tables.entrySet()) {
+            sawProblems =
+                CheckForMetadataProblems.checkTable(e.getKey(), e.getValue(), opts) || sawProblems;
+          }
 
           tables.clear();
 
@@ -167,23 +174,30 @@ public class CheckForMetadataProblems {
       }
     }
 
-    tables.forEach(CheckForMetadataProblems::checkTable);
+    for (var e : tables.entrySet()) {
+      sawProblems =
+          CheckForMetadataProblems.checkTable(e.getKey(), e.getValue(), opts) || sawProblems;
+    }
 
     if (!sawProblems) {
-      System.out.println("No problems found in " + tableNameToCheck + " (" + tableCheckId + ")");
+      System.out
+          .println("\n...No problems found in " + tableNameToCheck + " (" + tableCheckId + ")");
     }
     // end METADATA table sanity check
+    return sawProblems;
   }
 
   public static void main(String[] args) throws Exception {
-    opts = new ServerUtilOpts();
+    ServerUtilOpts opts = new ServerUtilOpts();
     opts.parseArgs(CheckForMetadataProblems.class.getName(), args);
     Span span = TraceUtil.startSpan(CheckForMetadataProblems.class, "main");
+    boolean sawProblems;
     try (Scope scope = span.makeCurrent()) {
 
-      checkMetadataAndRootTableEntries(AccumuloTable.ROOT.tableName(), opts);
+      sawProblems = checkMetadataAndRootTableEntries(AccumuloTable.ROOT.tableName(), opts);
       System.out.println();
-      checkMetadataAndRootTableEntries(AccumuloTable.METADATA.tableName(), opts);
+      sawProblems =
+          checkMetadataAndRootTableEntries(AccumuloTable.METADATA.tableName(), opts) || sawProblems;
       if (sawProblems) {
         throw new IllegalStateException();
       }

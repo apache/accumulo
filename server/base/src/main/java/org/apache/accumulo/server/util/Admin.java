@@ -145,6 +145,10 @@ public class Admin implements KeywordExecutable {
     @Parameter(description = "[<Check>...]")
     List<String> checks;
 
+    @Parameter(names = "--fixFiles", description = "Removes dangling file pointers. Used by the "
+        + "USER_FILES and SYSTEM_FILES checks.")
+    boolean fixFiles = false;
+
     /**
      * This should be used to get the check runner instead of {@link Check#getCheckRunner()}. This
      * exists so that its functionality can be changed for testing.
@@ -212,16 +216,6 @@ public class Admin implements KeywordExecutable {
     public enum CheckStatus {
       OK, FAILED, SKIPPED_DEPENDENCY_FAILED, FILTERED_OUT;
     }
-  }
-
-  @Parameters(commandDescription = "print tablets that are offline in online tables")
-  static class CheckTabletsCommand {
-    @Parameter(names = "--fixFiles", description = "Remove dangling file pointers")
-    boolean fixFiles = false;
-
-    @Parameter(names = {"-t", "--table"},
-        description = "Table to check, if not set checks all tables")
-    String tableName = null;
   }
 
   @Parameters(commandDescription = "stop the manager")
@@ -377,9 +371,6 @@ public class Admin implements KeywordExecutable {
     CheckCommand checkCommand = new CheckCommand();
     cl.addCommand("check", checkCommand);
 
-    CheckTabletsCommand checkTabletsCommand = new CheckTabletsCommand();
-    cl.addCommand("checkTablets", checkTabletsCommand);
-
     DeleteZooInstanceCommand deleteZooInstOpts = new DeleteZooInstanceCommand();
     cl.addCommand("deleteZooInstance", deleteZooInstOpts);
 
@@ -424,15 +415,13 @@ public class Admin implements KeywordExecutable {
       return;
     }
 
-    ServerContext context = opts.getServerContext();
+    try (ServerContext context = opts.getServerContext()) {
 
-    AccumuloConfiguration conf = context.getConfiguration();
-    // Login as the server on secure HDFS
-    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-      SecurityUtil.serverLogin(conf);
-    }
-
-    try {
+      AccumuloConfiguration conf = context.getConfiguration();
+      // Login as the server on secure HDFS
+      if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        SecurityUtil.serverLogin(conf);
+      }
 
       int rc = 0;
 
@@ -443,24 +432,6 @@ public class Admin implements KeywordExecutable {
         if (ping(context, pingCommand.args) != 0) {
           rc = 4;
         }
-      } else if (cl.getParsedCommand().equals("checkTablets")) {
-        System.out.println("\n*** Looking for offline tablets ***\n");
-        if (FindOfflineTablets.findOffline(context, checkTabletsCommand.tableName) != 0) {
-          rc = 5;
-        }
-        System.out.println("\n*** Looking for missing files ***\n");
-        if (checkTabletsCommand.tableName == null) {
-          if (RemoveEntriesForMissingFiles.checkAllTables(context, checkTabletsCommand.fixFiles)
-              != 0) {
-            rc = 6;
-          }
-        } else {
-          if (RemoveEntriesForMissingFiles.checkTable(context, checkTabletsCommand.tableName,
-              checkTabletsCommand.fixFiles) != 0) {
-            rc = 6;
-          }
-        }
-
       } else if (cl.getParsedCommand().equals("stop")) {
         stopTabletServer(context, stopOpts.args, opts.force);
       } else if (cl.getParsedCommand().equals("dumpConfig")) {
@@ -484,7 +455,7 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("serviceStatus")) {
         printServiceStatus(context, serviceStatusCommandOpts);
       } else if (cl.getParsedCommand().equals("check")) {
-        executeCheckCommand(context, checkCommand);
+        executeCheckCommand(context, checkCommand, opts);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
@@ -1014,15 +985,16 @@ public class Admin implements KeywordExecutable {
   }
 
   @VisibleForTesting
-  public static void executeCheckCommand(ServerContext context, CheckCommand cmd) {
+  public static void executeCheckCommand(ServerContext context, CheckCommand cmd,
+      ServerUtilOpts opts) throws Exception {
     validateAndTransformCheckCommand(cmd);
 
     if (cmd.list) {
       listChecks();
     } else if (cmd.run) {
-      var givenChecks =
-          cmd.checks.stream().map(CheckCommand.Check::valueOf).collect(Collectors.toList());
-      executeRunCheckCommand(cmd, givenChecks);
+      var givenChecks = cmd.checks.stream()
+          .map(name -> CheckCommand.Check.valueOf(name.toUpperCase())).collect(Collectors.toList());
+      executeRunCheckCommand(cmd, givenChecks, context, opts);
     }
   }
 
@@ -1064,8 +1036,8 @@ public class Admin implements KeywordExecutable {
     System.out.println();
   }
 
-  private static void executeRunCheckCommand(CheckCommand cmd,
-      List<CheckCommand.Check> givenChecks) {
+  private static void executeRunCheckCommand(CheckCommand cmd, List<CheckCommand.Check> givenChecks,
+      ServerContext context, ServerUtilOpts opts) throws Exception {
     // Get all the checks in the order they are declared in the enum
     final var allChecks = CheckCommand.Check.values();
     final TreeMap<CheckCommand.Check,CheckCommand.CheckStatus> checkStatus = new TreeMap<>();
@@ -1075,7 +1047,7 @@ public class Admin implements KeywordExecutable {
         checkStatus.put(check, CheckCommand.CheckStatus.SKIPPED_DEPENDENCY_FAILED);
       } else {
         if (givenChecks.contains(check)) {
-          checkStatus.put(check, cmd.getCheckRunner(check).runCheck());
+          checkStatus.put(check, cmd.getCheckRunner(check).runCheck(context, opts, cmd.fixFiles));
         } else {
           checkStatus.put(check, CheckCommand.CheckStatus.FILTERED_OUT);
         }

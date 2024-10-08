@@ -55,13 +55,14 @@ public class FindOfflineTablets {
     Span span = TraceUtil.startSpan(FindOfflineTablets.class, "main");
     try (Scope scope = span.makeCurrent()) {
       ServerContext context = opts.getServerContext();
-      findOffline(context, null);
+      findOffline(context, null, false, false);
     } finally {
       span.end();
     }
   }
 
-  static int findOffline(ServerContext context, String tableName) throws TableNotFoundException {
+  public static int findOffline(ServerContext context, String tableName, boolean skipZkScan,
+      boolean skipRootScan) throws TableNotFoundException {
 
     final AtomicBoolean scanning = new AtomicBoolean(false);
 
@@ -85,20 +86,24 @@ public class FindOfflineTablets {
 
     int offline = 0;
 
-    System.out.println("Scanning zookeeper");
-    if ((offline = checkTablets(context, zooScanner, tservers)) > 0) {
-      return offline;
+    if (!skipZkScan) {
+      System.out.println("Scanning zookeeper");
+      if ((offline = checkTablets(context, zooScanner, tservers)) > 0) {
+        return offline;
+      }
     }
 
     if (AccumuloTable.ROOT.tableName().equals(tableName)) {
       return 0;
     }
 
-    System.out.println("Scanning " + AccumuloTable.ROOT.tableName());
-    Iterator<TabletLocationState> rootScanner = new MetaDataTableScanner(context,
-        TabletsSection.getRange(), AccumuloTable.ROOT.tableName());
-    if ((offline = checkTablets(context, rootScanner, tservers)) > 0) {
-      return offline;
+    if (!skipRootScan) {
+      System.out.println("Scanning " + AccumuloTable.ROOT.tableName());
+      Iterator<TabletLocationState> rootScanner = new MetaDataTableScanner(context,
+          TabletsSection.getRange(), AccumuloTable.ROOT.tableName());
+      if ((offline = checkTablets(context, rootScanner, tservers)) > 0) {
+        return offline;
+      }
     }
 
     if (AccumuloTable.METADATA.tableName().equals(tableName)) {

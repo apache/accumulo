@@ -18,18 +18,28 @@
  */
 package org.apache.accumulo.server.util.checkCommand;
 
+import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.RemoveEntriesForMissingFiles;
 
 public class SystemFilesCheckRunner implements CheckRunner {
   private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.SYSTEM_FILES;
 
   @Override
-  public Admin.CheckCommand.CheckStatus runCheck() {
+  public Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
+      boolean fixFiles) throws Exception {
     Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
+    printRunning();
 
-    System.out.println("Running check " + check);
-    // work
-    System.out.println("Check " + check + " completed with status " + status);
+    System.out.println("\n********** Looking for missing system files **********\n");
+    if (RemoveEntriesForMissingFiles.checkTable(context, AccumuloTable.METADATA.tableName(),
+        fixFiles) != 0) {
+      status = Admin.CheckCommand.CheckStatus.FAILED;
+    }
+
+    printCompleted(status);
     return status;
   }
 
