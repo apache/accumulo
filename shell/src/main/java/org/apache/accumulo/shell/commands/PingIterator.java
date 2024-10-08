@@ -29,8 +29,8 @@ class PingIterator implements Iterator<String> {
   private Iterator<String> iter;
   private InstanceOperations instanceOps;
 
-  PingIterator(List<String> tservers, InstanceOperations instanceOps) {
-    iter = tservers.iterator();
+  PingIterator(List<String> servers, InstanceOperations instanceOps) {
+    iter = servers.iterator();
     this.instanceOps = instanceOps;
   }
 
@@ -41,15 +41,15 @@ class PingIterator implements Iterator<String> {
 
   @Override
   public String next() {
-    String tserver = iter.next();
+    String server = iter.next();
 
     try {
-      instanceOps.ping(tserver);
+      instanceOps.ping(server);
     } catch (AccumuloException e) {
-      return tserver + " ERROR " + e.getMessage();
+      return server + " ERROR " + e.getMessage();
     }
 
-    return tserver + " OK";
+    return server + " OK";
   }
 
   @Override

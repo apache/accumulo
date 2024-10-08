@@ -308,10 +308,9 @@ public interface InstanceOperations {
   List<ActiveCompaction> getActiveCompactions() throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Throws an exception if a tablet server can not be contacted.
+   * Throws an exception if a compactor, scan server, or tablet server can not be contacted.
    *
-   * @param tserver The tablet server address. This should be of the form
-   *        {@code <ip address>:<port>}
+   * @param tserver The server address. This should be of the form {@code <ip address>:<port>}
    * @since 1.5.0
    */
   void ping(String tserver) throws AccumuloException;
