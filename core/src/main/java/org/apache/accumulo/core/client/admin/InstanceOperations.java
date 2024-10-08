@@ -21,6 +21,7 @@ package org.apache.accumulo.core.client.admin;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -241,10 +242,15 @@ public interface InstanceOperations {
   /**
    * Returns the servers of a given type that match the given criteria
    *
+   * @param resourceGroupPredicate only returns servers where the resource group matches this
+   *        predicate. For the manager it does not have a resoruce group and this parameters is not
+   *        used.
+   * @param hostPortPredicate only returns servers where its host and port match this predicate.
    * @return set of servers of the supplied type matching the supplied test
    * @since 4.0.0
    */
-  Set<ServerId> getServers(ServerId.Type type, Predicate<ServerId> test);
+  Set<ServerId> getServers(ServerId.Type type, Predicate<String> resourceGroupPredicate,
+      BiPredicate<String,Integer> hostPortPredicate);
 
   /**
    * List the active scans on a tablet server.

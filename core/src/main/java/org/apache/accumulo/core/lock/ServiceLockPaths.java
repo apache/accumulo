@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
@@ -396,14 +397,14 @@ public class ServiceLockPaths {
         if (resourceGroupPredicate.test(group)) {
           final List<String> servers = cache.getChildren(typePath + "/" + group);
           for (final String server : servers) {
-            final ZcStat stat = new ZcStat();
-            final ServiceLockPath slp =
-                parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
             if (addressPredicate.test(server)) {
+              final ServiceLockPath slp =
+                  parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
               if (!withLock || slp.getType().equals(Constants.ZDEADTSERVERS)) {
                 // Dead TServers don't have lock data
                 results.add(slp);
               } else {
+                final ZcStat stat = new ZcStat();
                 Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
                 if (!sld.isEmpty()) {
                   results.add(slp);
