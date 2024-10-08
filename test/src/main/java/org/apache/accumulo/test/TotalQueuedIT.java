@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -127,9 +128,10 @@ public class TotalQueuedIT extends ConfigurableMacBase {
 
   private long getSyncs(AccumuloClient c) throws Exception {
     ServerContext context = getServerContext();
-    for (String address : c.instanceOperations().getTabletServers()) {
-      TabletServerClientService.Client client = ThriftUtil
-          .getClient(ThriftClientTypes.TABLET_SERVER, HostAndPort.fromString(address), context);
+    for (ServerId tserver : c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)) {
+      TabletServerClientService.Client client =
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
+              HostAndPort.fromParts(tserver.getHost(), tserver.getPort()), context);
       TabletServerStatus status = client.getTabletServerStatus(null, context.rpcCreds());
       return status.syncs;
     }

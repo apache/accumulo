@@ -23,10 +23,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.UncheckedIOException;
-import java.util.List;
+import java.util.Iterator;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.rpc.clients.TServerClient;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -41,12 +43,12 @@ public class DebugClientConnectionIT extends AccumuloClusterHarness {
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
   }
 
-  private List<String> tservers = null;
+  private Set<ServerId> tservers = null;
 
   @BeforeEach
   public void getTServerAddresses() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      tservers = client.instanceOperations().getTabletServers();
+      tservers = client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
     }
     assertNotNull(tservers);
     assertEquals(2, tservers.size());
@@ -54,11 +56,12 @@ public class DebugClientConnectionIT extends AccumuloClusterHarness {
 
   @Test
   public void testPreferredConnection() throws Exception {
-    System.setProperty(TServerClient.DEBUG_HOST, tservers.get(0));
+    Iterator<ServerId> tsi = tservers.iterator();
+    System.setProperty(TServerClient.DEBUG_HOST, tsi.next().toHostPortString());
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       assertNotNull(client.instanceOperations().getSiteConfiguration());
     }
-    System.setProperty(TServerClient.DEBUG_HOST, tservers.get(1));
+    System.setProperty(TServerClient.DEBUG_HOST, tsi.next().toHostPortString());
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       assertNotNull(client.instanceOperations().getSiteConfiguration());
     }

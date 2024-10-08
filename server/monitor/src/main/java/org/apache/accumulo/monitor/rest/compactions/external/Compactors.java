@@ -31,9 +31,10 @@ public class Compactors {
   public final List<CompactorInfo> compactors = new ArrayList<>();
 
   public Compactors(ExternalCompactionInfo ecInfo) {
-    ecInfo.getCompactors().forEach((q, c) -> {
+    ecInfo.getCompactors().forEach(csi -> {
       var fetchedTime = ecInfo.getFetchedTimeMillis();
-      c.forEach(hp -> compactors.add(new CompactorInfo(fetchedTime, q, hp.toString())));
+      compactors
+          .add(new CompactorInfo(fetchedTime, csi.getResourceGroup(), csi.toHostPortString()));
     });
     numCompactors = compactors.size();
   }

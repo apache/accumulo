@@ -288,6 +288,11 @@ public class ServiceLockPaths {
     return get(Constants.ZCOMPACTORS, resourceGroupPredicate, address, withLock);
   }
 
+  /**
+   * Note that the ServiceLockPath object returned by this method does not populate the server
+   * attribute. To get the location of the GarbageCollector you will need to parse the lock data at
+   * the ZooKeeper path.
+   */
   public ServiceLockPath getGarbageCollector(boolean withLock) {
     Set<ServiceLockPath> results = get(Constants.ZGC_LOCK, rg -> true, addr -> true, withLock);
     if (results.isEmpty()) {
@@ -297,6 +302,11 @@ public class ServiceLockPaths {
     }
   }
 
+  /**
+   * Note that the ServiceLockPath object returned by this method does not populate the server
+   * attribute. The location of the Manager is not in the ZooKeeper path. Instead, use
+   * InstanceOperations.getServers(ServerId.Type.MANAGER) to get the location.
+   */
   public ServiceLockPath getManager(boolean withLock) {
     Set<ServiceLockPath> results = get(Constants.ZMANAGER_LOCK, rg -> true, addr -> true, withLock);
     if (results.isEmpty()) {

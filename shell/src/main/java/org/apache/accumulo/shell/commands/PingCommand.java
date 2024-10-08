@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -41,17 +42,17 @@ public class PingCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
 
-    List<String> tservers;
+    final List<String> tservers = new ArrayList<>();
 
     final InstanceOperations instanceOps = shellState.getAccumuloClient().instanceOperations();
 
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
 
     if (cl.hasOption(tserverOption.getOpt())) {
-      tservers = new ArrayList<>();
       tservers.add(cl.getOptionValue(tserverOption.getOpt()));
     } else {
-      tservers = instanceOps.getTabletServers();
+      instanceOps.getServers(ServerId.Type.TABLET_SERVER)
+          .forEach(s -> tservers.add(s.toHostPortString()));
     }
 
     shellState.printLines(new PingIterator(tservers, instanceOps), paginate);

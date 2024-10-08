@@ -31,11 +31,16 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.util.DurationFormat;
-import org.apache.accumulo.shell.Shell;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 class ActiveCompactionHelper {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ActiveCompactionHelper.class);
   private static final Comparator<ActiveCompaction> COMPACTION_AGE_DESCENDING =
       Comparator.comparingLong(ActiveCompaction::getAge).reversed();
 
@@ -94,10 +99,10 @@ class ActiveCompactionHelper {
     try {
       var dur = new DurationFormat(ac.getAge(), "");
       return String.format(
-          "%21s | %9s | %5s | %6s | %5s | %5s | %15s | %-40s | %5s | %35s | %9s | %s", host, dur,
-          ac.getType(), ac.getReason(), shortenCount(ac.getEntriesRead()),
-          shortenCount(ac.getEntriesWritten()), ac.getTable(), ac.getTablet(),
-          ac.getInputFiles().size(), output, iterList, iterOpts);
+          "%21s | %21s | %9s | %5s | %6s | %5s | %5s | %15s | %-40s | %5s | %35s | %9s | %s",
+          ac.getHost().getResourceGroup(), host, dur, ac.getType(), ac.getReason(),
+          shortenCount(ac.getEntriesRead()), shortenCount(ac.getEntriesWritten()), ac.getTable(),
+          ac.getTablet(), ac.getInputFiles().size(), output, iterList, iterOpts);
     } catch (TableNotFoundException e) {
       return "ERROR " + e.getMessage();
     }
@@ -105,20 +110,30 @@ class ActiveCompactionHelper {
 
   public static Stream<String> appendHeader(Stream<String> stream) {
     Stream<String> header = Stream.of(String.format(
-        " %-21s| %-9s | %-5s | %-6s | %-5s | %-5s | %-15s | %-40s | %-5s | %-35s | %-9s | %s",
-        "SERVER", "AGE", "TYPE", "REASON", "READ", "WROTE", "TABLE", "TABLET", "INPUT", "OUTPUT",
-        "ITERATORS", "ITERATOR OPTIONS"));
+        " %-21s| %-21s| %-9s | %-5s | %-6s | %-5s | %-5s | %-15s | %-40s | %-5s | %-35s | %-9s | %s",
+        "GROUP", "SERVER", "AGE", "TYPE", "REASON", "READ", "WROTE", "TABLE", "TABLET", "INPUT",
+        "OUTPUT", "ITERATORS", "ITERATOR OPTIONS"));
     return Stream.concat(header, stream);
   }
 
   public static Stream<String> activeCompactionsForServer(String tserver,
       InstanceOperations instanceOps) {
-    try {
-      return instanceOps.getActiveCompactions(tserver).stream().sorted(COMPACTION_AGE_DESCENDING)
-          .map(ActiveCompactionHelper::formatActiveCompactionLine);
-    } catch (Exception e) {
-      Shell.log.debug("Failed to list active compactions for server {}", tserver, e);
-      return Stream.of(tserver + " ERROR " + e.getMessage());
+    final HostAndPort hp = HostAndPort.fromString(tserver);
+    ServerId server =
+        instanceOps.getServer(ServerId.Type.COMPACTOR, null, hp.getHost(), hp.getPort());
+    if (server == null) {
+      server = instanceOps.getServer(ServerId.Type.TABLET_SERVER, null, hp.getHost(), hp.getPort());
+    }
+    if (server == null) {
+      return Stream.of();
+    } else {
+      try {
+        return instanceOps.getActiveCompactions(server).stream().sorted(COMPACTION_AGE_DESCENDING)
+            .map(ActiveCompactionHelper::formatActiveCompactionLine);
+      } catch (Exception e) {
+        LOG.debug("Failed to list active compactions for server {}", tserver, e);
+        return Stream.of(tserver + " ERROR " + e.getMessage());
+      }
     }
   }
 

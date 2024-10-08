@@ -60,6 +60,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.sample.RowColumnSampler;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -1530,7 +1531,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String[] lines = ts.output.get().split("\n");
     String last = lines[lines.length - 1];
     String[] parts = last.split("\\|");
-    assertEquals(12, parts.length);
+    assertEquals(13, parts.length);
     ts.exec("deletetable -f " + table, true);
   }
 
@@ -1669,18 +1670,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
           continue;
         }
         String[] parts = scan.split("\\|");
-        assertEquals(14, parts.length, "Expected 14 colums, but found " + parts.length
+        assertEquals(15, parts.length, "Expected 15 colums, but found " + parts.length
             + " instead for '" + Arrays.toString(parts) + "'");
-        String tserver = parts[0].trim();
+        String tserver = parts[1].trim();
         // TODO: any way to tell if the client address is accurate? could be local IP, host,
         // loopback...?
         String hostPortPattern = ".+:\\d+";
         assertMatches(tserver, hostPortPattern);
-        assertTrue(accumuloClient.instanceOperations().getTabletServers().contains(tserver));
+        assertTrue(accumuloClient.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)
+            .stream().anyMatch((srv) -> srv.toHostPortString().equals(tserver)));
         String client = parts[1].trim();
         assertMatches(client, hostPortPattern);
         // Scan ID should be a long (throwing an exception if it fails to parse)
-        Long r = Long.parseLong(parts[11].trim());
+        Long r = Long.parseLong(parts[12].trim());
         assertNotNull(r);
       }
     }

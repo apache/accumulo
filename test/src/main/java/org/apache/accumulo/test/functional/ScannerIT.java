@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -139,7 +140,8 @@ public class ScannerIT extends ConfigurableMacBase {
       if (serverType == SCAN_SERVER) {
         // Scans will fall back to tablet servers when no scan servers are present. So wait for scan
         // servers to show up in zookeeper. Can remove this in 3.1.
-        Wait.waitFor(() -> !accumuloClient.instanceOperations().getScanServers().isEmpty());
+        Wait.waitFor(() -> !accumuloClient.instanceOperations()
+            .getServers(ServerId.Type.SCAN_SERVER).isEmpty());
       }
 
       accumuloClient.tableOperations().create(tableName);
@@ -215,18 +217,18 @@ public class ScannerIT extends ConfigurableMacBase {
 
   public static long countActiveScans(AccumuloClient c, ServerType serverType, String tableName)
       throws Exception {
-    final Collection<String> servers;
+    final Collection<ServerId> servers;
     if (serverType == TABLET_SERVER) {
-      servers = c.instanceOperations().getTabletServers();
+      servers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
     } else if (serverType == SCAN_SERVER) {
-      servers = c.instanceOperations().getScanServers();
+      servers = c.instanceOperations().getServers(ServerId.Type.SCAN_SERVER);
     } else {
       throw new IllegalArgumentException("Unsupported server type " + serverType);
     }
 
     long count = 0;
-    for (String server : servers) {
-      count += c.instanceOperations().getActiveScans(server).stream()
+    for (ServerId tserver : servers) {
+      count += c.instanceOperations().getActiveScans(tserver).stream()
           .filter(activeScan -> activeScan.getTable().equals(tableName)).count();
     }
     return count;

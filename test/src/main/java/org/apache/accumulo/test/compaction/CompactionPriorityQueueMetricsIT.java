@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUE
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH;
-import static org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.getCompactorAddrs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -119,7 +118,9 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   @BeforeEach
   public void setupMetricsTest() throws Exception {
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty());
+    Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+        .getCompactor(rg -> true, addr -> true, true).isEmpty(), 60_000);
+
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = getUniqueNames(1)[0];
 

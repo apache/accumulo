@@ -65,6 +65,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Durability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -414,11 +415,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private HostAndPort getManagerAddress() {
     try {
-      List<String> locations = getContext().getManagerLocations();
-      if (locations.isEmpty()) {
+      Set<ServerId> managers = getContext().instanceOperations().getServers(ServerId.Type.MANAGER);
+      if (managers == null || managers.isEmpty()) {
         return null;
       }
-      return HostAndPort.fromString(locations.get(0));
+      return HostAndPort.fromString(managers.iterator().next().toHostPortString());
     } catch (Exception e) {
       log.warn("Failed to obtain manager host " + e);
     }

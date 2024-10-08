@@ -62,10 +62,9 @@ public class ExternalCompactionUtil {
     private final HostAndPort compactor;
     private final Future<TExternalCompactionJob> future;
 
-    public RunningCompactionFuture(String group, HostAndPort compactor,
-        Future<TExternalCompactionJob> future) {
-      this.group = group;
-      this.compactor = compactor;
+    public RunningCompactionFuture(ServiceLockPath slp, Future<TExternalCompactionJob> future) {
+      this.group = slp.getResourceGroup();
+      this.compactor = HostAndPort.fromString(slp.getServer());
       this.future = future;
     }
 
@@ -202,11 +201,10 @@ public class ExternalCompactionUtil {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
 
-    getCompactorAddrs(context).forEach((group, hp) -> {
-      hp.forEach(hostAndPort -> {
-        rcFutures.add(new RunningCompactionFuture(group, hostAndPort,
-            executor.submit(() -> getRunningCompaction(hostAndPort, context))));
-      });
+    context.getServerPaths().getCompactor(rg -> true, addr -> true, true).forEach(slp -> {
+      final HostAndPort hp = HostAndPort.fromString(slp.getServer());
+      rcFutures.add(new RunningCompactionFuture(slp,
+          executor.submit(() -> getRunningCompaction(hp, context))));
     });
     executor.shutdown();
 
@@ -231,10 +229,9 @@ public class ExternalCompactionUtil {
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTION_IDS_POOL).numCoreThreads(16).build();
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
-    getCompactorAddrs(context).forEach((q, hp) -> {
-      hp.forEach(hostAndPort -> {
-        futures.add(executor.submit(() -> getRunningCompactionId(hostAndPort, context)));
-      });
+    context.getServerPaths().getCompactor(rg -> true, addr -> true, true).forEach(slp -> {
+      final HostAndPort hp = HostAndPort.fromString(slp.getServer());
+      futures.add(executor.submit(() -> getRunningCompactionId(hp, context)));
     });
     executor.shutdown();
 
