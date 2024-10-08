@@ -65,7 +65,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
-import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
@@ -1172,21 +1171,20 @@ public class CompactionIT extends CompactionBaseIT {
       } while (compactions.isEmpty());
 
       ActiveCompaction running1 = compactions.get(0);
-      CompactionHost host = running1.getHost();
-      assertTrue(host.getType() == CompactionHost.Type.COMPACTOR);
+      ServerId host = running1.getHost();
+      assertTrue(host.getType() == ServerId.Type.COMPACTOR);
 
       compactions.clear();
       do {
-        client.instanceOperations().getActiveCompactions(new ServerId(ServerId.Type.COMPACTOR,
-            host.getResourceGroup(), host.getAddress(), host.getPort())).forEach((ac) -> {
-              try {
-                if (ac.getTable().equals(table1)) {
-                  compactions.add(ac);
-                }
-              } catch (TableNotFoundException e1) {
-                fail("Table was deleted during test, should not happen");
-              }
-            });
+        client.instanceOperations().getActiveCompactions(host).forEach((ac) -> {
+          try {
+            if (ac.getTable().equals(table1)) {
+              compactions.add(ac);
+            }
+          } catch (TableNotFoundException e1) {
+            fail("Table was deleted during test, should not happen");
+          }
+        });
         Thread.sleep(1000);
       } while (compactions.isEmpty());
 
