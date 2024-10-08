@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 public class BlockCacheFactoryTest {
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testCreateLruBlockCacheFactory() throws Exception {
     DefaultConfiguration dc = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(dc);

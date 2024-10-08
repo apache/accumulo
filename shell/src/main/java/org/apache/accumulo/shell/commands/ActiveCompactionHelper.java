@@ -32,12 +32,9 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.util.DurationFormat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.accumulo.shell.Shell;
 
 class ActiveCompactionHelper {
-
-  private static final Logger log = LoggerFactory.getLogger(ActiveCompactionHelper.class);
 
   private static final Comparator<ActiveCompaction> COMPACTION_AGE_DESCENDING =
       Comparator.comparingLong(ActiveCompaction::getAge).reversed();
@@ -120,7 +117,7 @@ class ActiveCompactionHelper {
       return instanceOps.getActiveCompactions(tserver).stream().sorted(COMPACTION_AGE_DESCENDING)
           .map(ActiveCompactionHelper::formatActiveCompactionLine);
     } catch (Exception e) {
-      log.debug("Failed to list active compactions for server {}", tserver, e);
+      Shell.log.debug("Failed to list active compactions for server {}", tserver, e);
       return Stream.of(tserver + " ERROR " + e.getMessage());
     }
   }

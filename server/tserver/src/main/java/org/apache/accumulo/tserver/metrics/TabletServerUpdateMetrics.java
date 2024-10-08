@@ -76,21 +76,21 @@ public class TabletServerUpdateMetrics implements MetricsProducer {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     FunctionCounter.builder(UPDATE_ERRORS.getName(), permissionErrorsCount, AtomicLong::get)
-        .tags("type", "permission").description("Counts permission errors").register(registry);
+        .tags("type", "permission").description(UPDATE_ERRORS.getDescription()).register(registry);
     FunctionCounter.builder(UPDATE_ERRORS.getName(), unknownTabletErrorsCount, AtomicLong::get)
-        .tags("type", "unknown.tablet").description("Counts unknown tablet errors")
+        .tags("type", "unknown.tablet").description(UPDATE_ERRORS.getDescription())
         .register(registry);
     FunctionCounter.builder(UPDATE_ERRORS.getName(), constraintViolationsCount, AtomicLong::get)
-        .tags("type", "constraint.violation").description("Counts constraint violations")
+        .tags("type", "constraint.violation").description(UPDATE_ERRORS.getDescription())
         .register(registry);
     commitPrepStat = Timer.builder(UPDATE_COMMIT_PREP.getName())
-        .description("preparing to commit mutations").register(registry);
+        .description(UPDATE_COMMIT_PREP.getDescription()).register(registry);
     walogWriteTimeStat = Timer.builder(UPDATE_WALOG_WRITE.getName())
-        .description("writing mutations to WAL").register(registry);
-    commitTimeStat = Timer.builder(UPDATE_COMMIT.getName()).description("committing mutations")
-        .register(registry);
+        .description(UPDATE_WALOG_WRITE.getDescription()).register(registry);
+    commitTimeStat = Timer.builder(UPDATE_COMMIT.getName())
+        .description(UPDATE_COMMIT.getDescription()).register(registry);
     mutationArraySizeStat = DistributionSummary.builder(UPDATE_MUTATION_ARRAY_SIZE.getName())
-        .description("mutation array").register(registry);
+        .description(UPDATE_MUTATION_ARRAY_SIZE.getDescription()).register(registry);
   }
 
 }

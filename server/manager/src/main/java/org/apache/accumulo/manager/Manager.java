@@ -1035,6 +1035,7 @@ public class Manager extends AbstractServer
       long totalMigrationsOut = 0;
       final Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
           partitionMigrations(migrationsSnapshot());
+      int levelsCompleted = 0;
 
       for (DataLevel dl : DataLevel.values()) {
         if (dl == DataLevel.USER && tabletsNotHosted > 0) {
@@ -1072,14 +1073,17 @@ public class Manager extends AbstractServer
           }
         } while (migrationsOutForLevel > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
         totalMigrationsOut += migrationsOutForLevel;
+
+        // increment this at end of loop to signal complete run w/o any continue
+        levelsCompleted++;
       }
       balancerMetrics.assignMigratingCount(migrations::size);
 
-      if (totalMigrationsOut == 0) {
+      if (totalMigrationsOut == 0 && levelsCompleted == DataLevel.values().length) {
         synchronized (balancedNotifier) {
           balancedNotifier.notifyAll();
         }
-      } else {
+      } else if (totalMigrationsOut > 0) {
         nextEvent.event("Migrating %d more tablets, %d total", totalMigrationsOut,
             migrations.size());
       }

@@ -35,8 +35,6 @@ import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A tablet that can not be written to and operates off of a snapshot of tablet metadata for its
@@ -44,8 +42,6 @@ import org.slf4j.LoggerFactory;
  * for its lifetime.
  */
 public class SnapshotTablet extends TabletBase {
-
-  private static final Logger log = LoggerFactory.getLogger(SnapshotTablet.class);
 
   private final TabletHostingServer server;
   private final SortedMap<StoredTabletFile,DataFileValue> files;

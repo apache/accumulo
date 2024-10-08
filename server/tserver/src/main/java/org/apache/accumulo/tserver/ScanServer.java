@@ -754,7 +754,7 @@ public class ScanServer extends AbstractServer
   }
 
   protected ScanReservation reserveFiles(long scanId) throws NoSuchScanIDException {
-    var session = (ScanSession) sessionManager.getSession(scanId);
+    var session = (ScanSession<?>) sessionManager.getSession(scanId);
     if (session == null) {
       throw new NoSuchScanIDException();
     }

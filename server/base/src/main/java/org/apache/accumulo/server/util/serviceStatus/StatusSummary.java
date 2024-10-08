@@ -31,6 +31,7 @@ public class StatusSummary {
   private int errorCount;
 
   // Default constructor required for Gson
+  @SuppressWarnings("unused")
   private StatusSummary() {}
 
   public StatusSummary(ServiceStatusReport.ReportKey serviceType, final Set<String> resourceGroups,

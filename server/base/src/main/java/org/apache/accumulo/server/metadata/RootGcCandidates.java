@@ -53,6 +53,7 @@ public class RootGcCandidates {
     private SortedMap<String,SortedSet<String>> candidates;
 
     // Gson requires a default constructor when JDK Unsafe usage is disabled
+    @SuppressWarnings("unused")
     private Data() {}
 
     public Data(int version, SortedMap<String,SortedSet<String>> candidates) {

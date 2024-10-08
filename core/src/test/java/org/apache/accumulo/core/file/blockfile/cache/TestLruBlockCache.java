@@ -49,6 +49,7 @@ import org.junit.jupiter.api.Test;
  * Tests will ensure it grows and shrinks in size properly, evictions run when they're supposed to
  * and do what they should, and that cached blocks are accessible when expected to be.
  */
+@SuppressWarnings("deprecation")
 public class TestLruBlockCache {
 
   @Test

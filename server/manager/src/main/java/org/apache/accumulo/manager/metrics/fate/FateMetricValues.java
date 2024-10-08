@@ -19,12 +19,14 @@
 package org.apache.accumulo.manager.metrics.fate;
 
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -44,12 +46,12 @@ class FateMetricValues {
   private final long zkFateChildOpsTotal;
   private final long zkConnectionErrors;
 
-  private final Map<String,Long> txStateCounters;
+  private final EnumMap<TStatus,Long> txStateCounters;
   private final Map<String,Long> opTypeCounters;
 
   private FateMetricValues(final long updateTime, final long currentFateOps,
       final long zkFateChildOpsTotal, final long zkConnectionErrors,
-      final Map<String,Long> txStateCounters, final Map<String,Long> opTypeCounters) {
+      final EnumMap<TStatus,Long> txStateCounters, final Map<String,Long> opTypeCounters) {
     this.updateTime = updateTime;
     this.currentFateOps = currentFateOps;
     this.zkFateChildOpsTotal = zkFateChildOpsTotal;
@@ -75,7 +77,7 @@ class FateMetricValues {
    *
    * @return a map of transaction status counters.
    */
-  Map<String,Long> getTxStateCounters() {
+  EnumMap<TStatus,Long> getTxStateCounters() {
     return txStateCounters;
   }
 
@@ -115,9 +117,9 @@ class FateMetricValues {
       builder.withCurrentFateOps(currFates.size());
 
       // states are enumerated - create new map with counts initialized to 0.
-      Map<String,Long> states = new TreeMap<>();
-      for (ReadOnlyTStore.TStatus t : ReadOnlyTStore.TStatus.values()) {
-        states.put(t.name(), 0L);
+      EnumMap<TStatus,Long> states = new EnumMap<>(TStatus.class);
+      for (TStatus t : TStatus.values()) {
+        states.put(t, 0L);
       }
 
       // op types are dynamic, no count initialization needed - clearing prev values will
@@ -126,7 +128,7 @@ class FateMetricValues {
 
       for (AdminUtil.TransactionStatus tx : currFates) {
 
-        String stateName = tx.getStatus().name();
+        TStatus stateName = tx.getStatus();
 
         // incr count for state
         states.merge(stateName, 1L, Long::sum);
@@ -182,15 +184,15 @@ class FateMetricValues {
     private long zkFateChildOpsTotal = 0;
     private long zkConnectionErrors = 0;
 
-    private final Map<String,Long> txStateCounters;
+    private final EnumMap<TStatus,Long> txStateCounters;
     private Map<String,Long> opTypeCounters;
 
     Builder() {
 
       // states are enumerated - create new map with counts initialized to 0.
-      txStateCounters = new TreeMap<>();
-      for (ReadOnlyTStore.TStatus t : ReadOnlyTStore.TStatus.values()) {
-        txStateCounters.put(t.name(), 0L);
+      txStateCounters = new EnumMap<>(TStatus.class);
+      for (TStatus t : TStatus.values()) {
+        txStateCounters.put(t, 0L);
       }
 
       opTypeCounters = Collections.emptyMap();
@@ -216,7 +218,7 @@ class FateMetricValues {
       return this;
     }
 
-    Builder withTxStateCounters(final Map<String,Long> txStateCounters) {
+    Builder withTxStateCounters(final EnumMap<TStatus,Long> txStateCounters) {
       this.txStateCounters.putAll(txStateCounters);
       return this;
     }

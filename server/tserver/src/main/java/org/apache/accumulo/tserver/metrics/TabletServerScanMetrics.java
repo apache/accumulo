@@ -138,40 +138,39 @@ public class TabletServerScanMetrics implements MetricsProducer {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     Gauge.builder(SCAN_OPEN_FILES.getName(), openFiles::get)
-        .description("Number of files open for scans").register(registry);
-    scans = Timer.builder(SCAN_TIMES.getName()).description("Scans").register(registry);
+        .description(SCAN_OPEN_FILES.getDescription()).register(registry);
+    scans = Timer.builder(SCAN_TIMES.getName()).description(SCAN_TIMES.getDescription())
+        .register(registry);
     resultsPerScan = DistributionSummary.builder(SCAN_RESULTS.getName())
-        .description("Results per scan").register(registry);
-    yields =
-        DistributionSummary.builder(SCAN_YIELDS.getName()).description("yields").register(registry);
+        .description(SCAN_RESULTS.getDescription()).register(registry);
+    yields = DistributionSummary.builder(SCAN_YIELDS.getName())
+        .description(SCAN_YIELDS.getDescription()).register(registry);
     FunctionCounter.builder(SCAN_START.getName(), this.startScanCalls, AtomicLong::get)
-        .description("calls to start a scan / multiscan").register(registry);
+        .description(SCAN_START.getDescription()).register(registry);
     FunctionCounter.builder(SCAN_CONTINUE.getName(), this.continueScanCalls, AtomicLong::get)
-        .description("calls to continue a scan / multiscan").register(registry);
+        .description(SCAN_CONTINUE.getDescription()).register(registry);
     FunctionCounter.builder(SCAN_CLOSE.getName(), this.closeScanCalls, AtomicLong::get)
-        .description("calls to close a scan / multiscan").register(registry);
+        .description(SCAN_CLOSE.getDescription()).register(registry);
     FunctionCounter
         .builder(SCAN_BUSY_TIMEOUT_COUNT.getName(), this.busyTimeoutCount, AtomicLong::get)
-        .description("The number of scans where a busy timeout happened").register(registry);
+        .description(SCAN_BUSY_TIMEOUT_COUNT.getDescription()).register(registry);
     FunctionCounter.builder(SCAN_QUERIES.getName(), this.lookupCount, LongAdder::sum)
-        .description("Number of queries").register(registry);
+        .description(SCAN_QUERIES.getDescription()).register(registry);
     FunctionCounter.builder(SCAN_SCANNED_ENTRIES.getName(), this.scannedCount, LongAdder::sum)
-        .description("Scanned rate").register(registry);
+        .description(SCAN_SCANNED_ENTRIES.getDescription()).register(registry);
     FunctionCounter.builder(SCAN_PAUSED_FOR_MEM.getName(), this.pausedForMemory, AtomicLong::get)
-        .description("scan paused due to server being low on memory").register(registry);
+        .description(SCAN_PAUSED_FOR_MEM.getDescription()).register(registry);
     FunctionCounter
         .builder(SCAN_RETURN_FOR_MEM.getName(), this.earlyReturnForMemory, AtomicLong::get)
-        .description("scan returned results early due to server being low on memory")
-        .register(registry);
+        .description(SCAN_RETURN_FOR_MEM.getDescription()).register(registry);
     Gauge.builder(SCAN_QUERY_SCAN_RESULTS.getName(), this.queryResultCount, LongAdder::sum)
-        .description("Query rate (entries/sec)").register(registry);
+        .description(SCAN_QUERY_SCAN_RESULTS.getDescription()).register(registry);
     Gauge.builder(SCAN_QUERY_SCAN_RESULTS_BYTES.getName(), this.queryResultBytes, LongAdder::sum)
-        .description("Query rate (bytes/sec)").register(registry);
+        .description(SCAN_QUERY_SCAN_RESULTS_BYTES.getDescription()).register(registry);
     Gauge
         .builder(SCAN_ZOMBIE_THREADS.getName(), this,
             TabletServerScanMetrics::getZombieThreadsCount)
-        .description("Number of scan threads that have no associated client session")
-        .register(registry);
+        .description(SCAN_ZOMBIE_THREADS.getDescription()).register(registry);
   }
 
 }

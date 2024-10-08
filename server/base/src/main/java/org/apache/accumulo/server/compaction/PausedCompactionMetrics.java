@@ -44,9 +44,9 @@ public class PausedCompactionMetrics implements MetricsProducer {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     FunctionCounter.builder(MAJC_PAUSED.getName(), majcPauseCount, AtomicLong::get)
-        .description("major compaction pause count").register(registry);
+        .description(MAJC_PAUSED.getDescription()).register(registry);
     FunctionCounter.builder(MINC_PAUSED.getName(), mincPauseCount, AtomicLong::get)
-        .description("minor compactor pause count").register(registry);
+        .description(MINC_PAUSED.getDescription()).register(registry);
   }
 
 }
