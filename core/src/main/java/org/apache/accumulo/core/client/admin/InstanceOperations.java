@@ -319,7 +319,7 @@ public interface InstanceOperations {
   /**
    * Check to see if a server process at the host and port is up and responding to RPC requests.
    *
-   * @param server
+   * @param server ServerId object for the server to be pinged, only the host and port is used.
    * @throws AccumuloException if the server cannot be contacted
    * @since 4.0.0
    */
