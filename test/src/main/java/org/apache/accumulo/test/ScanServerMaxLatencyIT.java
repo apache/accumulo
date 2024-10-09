@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.util.Timer;
@@ -67,7 +68,8 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
     ExecutorService executor = Executors.newCachedThreadPool();
     try (var client = Accumulo.newClient().from(getClientProperties()).build()) {
 
-      Wait.waitFor(() -> !client.instanceOperations().getScanServers().isEmpty());
+      Wait.waitFor(
+          () -> !client.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).isEmpty());
 
       var ntc = new NewTableConfiguration();
       ntc.setProperties(Map.of(Property.TABLE_MINC_COMPACT_MAXAGE.getKey(), "2s"));

@@ -61,6 +61,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -550,7 +551,7 @@ public class Admin implements KeywordExecutable {
     InstanceOperations io = context.instanceOperations();
 
     if (args.isEmpty()) {
-      args = io.getTabletServers();
+      io.getServers(ServerId.Type.TABLET_SERVER).forEach(t -> args.add(t.toHostPortString()));
     }
 
     int unreachable = 0;
@@ -631,7 +632,7 @@ public class Admin implements KeywordExecutable {
 
   private static void stopTabletServer(final ClientContext context, List<String> servers,
       final boolean force) throws AccumuloException, AccumuloSecurityException {
-    if (context.getManagerLocations().isEmpty()) {
+    if (context.instanceOperations().getServers(ServerId.Type.MANAGER).isEmpty()) {
       log.info("No managers running. Not attempting safe unload of tserver.");
       return;
     }
@@ -641,10 +642,10 @@ public class Admin implements KeywordExecutable {
     }
 
     final ZooCache zc = context.getZooCache();
-    List<String> runningServers;
+    Set<ServerId> runningServers;
 
     for (String server : servers) {
-      runningServers = context.instanceOperations().getTabletServers();
+      runningServers = context.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
       if (runningServers.size() == 1 && !force) {
         log.info("Only 1 tablet server running. Not attempting shutdown of {}", server);
         return;

@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
@@ -288,6 +289,11 @@ public class ServiceLockPaths {
     return get(Constants.ZCOMPACTORS, resourceGroupPredicate, address, withLock);
   }
 
+  /**
+   * Note that the ServiceLockPath object returned by this method does not populate the server
+   * attribute. To get the location of the GarbageCollector you will need to parse the lock data at
+   * the ZooKeeper path.
+   */
   public ServiceLockPath getGarbageCollector(boolean withLock) {
     Set<ServiceLockPath> results = get(Constants.ZGC_LOCK, rg -> true, addr -> true, withLock);
     if (results.isEmpty()) {
@@ -297,6 +303,11 @@ public class ServiceLockPaths {
     }
   }
 
+  /**
+   * Note that the ServiceLockPath object returned by this method does not populate the server
+   * attribute. The location of the Manager is not in the ZooKeeper path. Instead, use
+   * InstanceOperations.getServers(ServerId.Type.MANAGER) to get the location.
+   */
   public ServiceLockPath getManager(boolean withLock) {
     Set<ServiceLockPath> results = get(Constants.ZMANAGER_LOCK, rg -> true, addr -> true, withLock);
     if (results.isEmpty()) {
@@ -386,14 +397,14 @@ public class ServiceLockPaths {
         if (resourceGroupPredicate.test(group)) {
           final List<String> servers = cache.getChildren(typePath + "/" + group);
           for (final String server : servers) {
-            final ZcStat stat = new ZcStat();
-            final ServiceLockPath slp =
-                parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
             if (addressPredicate.test(server)) {
+              final ServiceLockPath slp =
+                  parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
               if (!withLock || slp.getType().equals(Constants.ZDEADTSERVERS)) {
                 // Dead TServers don't have lock data
                 results.add(slp);
               } else {
+                final ZcStat stat = new ZcStat();
                 Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
                 if (!sld.isEmpty()) {
                   results.add(slp);

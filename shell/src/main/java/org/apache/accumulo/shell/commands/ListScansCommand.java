@@ -18,15 +18,18 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+
+import com.google.common.net.HostAndPort;
 
 public class ListScansCommand extends Command {
 
@@ -42,21 +45,23 @@ public class ListScansCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
 
-    List<String> tservers;
-
     final InstanceOperations instanceOps = shellState.getAccumuloClient().instanceOperations();
-
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
+    final Set<ServerId> servers = new HashSet<>();
 
     if (cl.hasOption(tserverOption.getOpt())) {
-      tservers = new ArrayList<>();
-      tservers.add(cl.getOptionValue(tserverOption.getOpt()));
+      String serverAddress = cl.getOptionValue(tserverOption.getOpt());
+      final HostAndPort hp = HostAndPort.fromString(serverAddress);
+      servers
+          .add(instanceOps.getServer(ServerId.Type.SCAN_SERVER, null, hp.getHost(), hp.getPort()));
+      servers.add(
+          instanceOps.getServer(ServerId.Type.TABLET_SERVER, null, hp.getHost(), hp.getPort()));
     } else {
-      tservers = instanceOps.getTabletServers();
-      tservers.addAll(instanceOps.getScanServers());
+      servers.addAll(instanceOps.getServers(ServerId.Type.SCAN_SERVER));
+      servers.addAll(instanceOps.getServers(ServerId.Type.TABLET_SERVER));
     }
 
-    shellState.printLines(new ActiveScanIterator(tservers, instanceOps), paginate);
+    shellState.printLines(new ActiveScanIterator(servers, instanceOps), paginate);
 
     return 0;
   }

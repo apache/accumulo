@@ -21,7 +21,6 @@ package org.apache.accumulo.manager.metrics.fate.meta;
 import static org.apache.accumulo.core.metrics.Metric.FATE_ERRORS;
 import static org.apache.accumulo.core.metrics.Metric.FATE_OPS_ACTIVITY;
 
-import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
@@ -32,8 +31,8 @@ import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tag;
 
 public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
 
@@ -56,9 +55,10 @@ public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
-    registry.gauge(FATE_OPS_ACTIVITY.getName(), totalOpsGauge);
-    registry.gauge(FATE_ERRORS.getName(), List.of(Tag.of("type", "zk.connection")),
-        fateErrorsGauge);
+    Gauge.builder(FATE_OPS_ACTIVITY.getName(), totalOpsGauge, AtomicLong::get)
+        .description(FATE_OPS_ACTIVITY.getDescription()).register(registry);
+    Gauge.builder(FATE_ERRORS.getName(), fateErrorsGauge, AtomicLong::get)
+        .tag("type", "zk.connection").description(FATE_ERRORS.getDescription()).register(registry);
   }
 
   @Override

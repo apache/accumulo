@@ -100,7 +100,6 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -197,16 +196,16 @@ public class ClientContext implements AccumuloClient {
 
         @Override
         public Supplier<Collection<ScanServerInfo>> getScanServers() {
-          return () -> ClientContext.this.getScanServers().entrySet().stream()
+          return () -> getServerPaths().getScanServer(rg -> true, addr -> true, true).stream()
               .map(entry -> new ScanServerInfo() {
                 @Override
                 public String getAddress() {
-                  return entry.getKey();
+                  return entry.getServer();
                 }
 
                 @Override
                 public String getGroup() {
-                  return entry.getValue().getSecond();
+                  return entry.getResourceGroup();
                 }
               }).collect(Collectors.toSet());
         }
@@ -401,6 +400,15 @@ public class ClientContext implements AccumuloClient {
   }
 
   /**
+   * @return the scan server selector implementation used for determining which scan servers will be
+   *         used when performing an eventually consistent scan
+   */
+  public ScanServerSelector getScanServerSelector() {
+    ensureOpen();
+    return scanServerSelectorSupplier.get();
+  }
+
+  /**
    * @return map of live scan server addresses to lock uuids.
    */
   public Map<String,Pair<UUID,String>> getScanServers() {
@@ -423,15 +431,6 @@ public class ClientContext implements AccumuloClient {
       }
     }
     return liveScanServers;
-  }
-
-  /**
-   * @return the scan server selector implementation used for determining which scan servers will be
-   *         used when performing an eventually consistent scan
-   */
-  public ScanServerSelector getScanServerSelector() {
-    ensureOpen();
-    return scanServerSelectorSupplier.get();
   }
 
   static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {
@@ -474,42 +473,6 @@ public class ClientContext implements AccumuloClient {
     }
 
     return rpcCreds;
-  }
-
-  /**
-   * Returns the location(s) of the accumulo manager and any redundant servers.
-   *
-   * @return a list of locations in "hostname:port" form
-   */
-  public List<String> getManagerLocations() {
-    ensureOpen();
-    var zLockManagerPath = getServerPaths().getManager(true);
-
-    Timer timer = null;
-
-    if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up manager location in zookeeper at {}.",
-          Thread.currentThread().getId(), zLockManagerPath);
-      timer = Timer.startNew();
-    }
-
-    Optional<ServiceLockData> sld = zooCache.getLockData(zLockManagerPath);
-    String location = null;
-    if (sld.isPresent()) {
-      location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
-    }
-
-    if (timer != null) {
-      log.trace("tid={} Found manager at {} in {}", Thread.currentThread().getId(),
-          (location == null ? "null" : location),
-          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
-    }
-
-    if (location == null) {
-      return Collections.emptyList();
-    }
-
-    return Collections.singletonList(location);
   }
 
   /**

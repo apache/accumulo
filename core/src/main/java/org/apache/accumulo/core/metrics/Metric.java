@@ -41,16 +41,16 @@ public enum Metric {
       MetricCategory.COMPACTOR),
   COMPACTOR_JOB_PRIORITY_QUEUES("accumulo.compactor.queue.count", MetricType.GAUGE,
       "Number of priority queues for compaction jobs.", MetricCategory.COMPACTOR),
-  COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH("accumulo.compactor.queue.length", MetricType.GAUGE, "",
-      MetricCategory.COMPACTOR),
+  COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH("accumulo.compactor.queue.length", MetricType.GAUGE,
+      "Length of priority queue.", MetricCategory.COMPACTOR),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED("accumulo.compactor.queue.jobs.dequeued",
-      MetricType.GAUGE, "", MetricCategory.COMPACTOR),
+      MetricType.GAUGE, "Count of dequeued jobs.", MetricCategory.COMPACTOR),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED("accumulo.compactor.queue.jobs.queued", MetricType.GAUGE,
-      "", MetricCategory.COMPACTOR),
+      "Count of queued jobs.", MetricCategory.COMPACTOR),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED("accumulo.compactor.queue.jobs.rejected",
-      MetricType.GAUGE, "", MetricCategory.COMPACTOR),
+      MetricType.GAUGE, "Count of rejected jobs.", MetricCategory.COMPACTOR),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY("accumulo.compactor.queue.jobs.priority",
-      MetricType.GAUGE, "", MetricCategory.COMPACTOR),
+      MetricType.GAUGE, "Lowest priority queued job.", MetricCategory.COMPACTOR),
 
   // Fate Metrics
   FATE_TYPE_IN_PROGRESS("accumulo.fate.ops.in.progress.by.type", MetricType.GAUGE,
@@ -243,14 +243,18 @@ public enum Metric {
       MetricType.GAUGE,
       "The number of migrations that need to complete before the system is balanced.",
       MetricCategory.MANAGER),
-  MANAGER_ROOT_TGW_ERRORS("accumulo.manager.tabletmgmt.root.errors", MetricType.GAUGE, "",
+  MANAGER_ROOT_TGW_ERRORS("accumulo.manager.tabletmgmt.root.errors", MetricType.GAUGE,
+      "Error count encountered by the TabletGroupWatcher for the ROOT data level.",
       MetricCategory.MANAGER),
-  MANAGER_META_TGW_ERRORS("accumulo.manager.tabletmgmt.meta.errors", MetricType.GAUGE, "",
+  MANAGER_META_TGW_ERRORS("accumulo.manager.tabletmgmt.meta.errors", MetricType.GAUGE,
+      "Error count encountered by the TabletGroupWatcher for the META data level.",
       MetricCategory.MANAGER),
-  MANAGER_USER_TGW_ERRORS("accumulo.manager.tabletmgmt.user.errors", MetricType.GAUGE, "",
+  MANAGER_USER_TGW_ERRORS("accumulo.manager.tabletmgmt.user.errors", MetricType.GAUGE,
+      "Error count encountered by the TabletGroupWatcher for the USER data level.",
       MetricCategory.MANAGER),
   MANAGER_COMPACTION_SVC_ERRORS("accumulo.manager.compaction.svc.misconfigured", MetricType.GAUGE,
-      "", MetricCategory.MANAGER);
+      "A value of 1 indicates a misconfiguration in the compaction service, while a value of 0 indicates that the configuration is valid.",
+      MetricCategory.MANAGER);
 
   private final String name;
   private final MetricType type;

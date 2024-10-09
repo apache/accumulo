@@ -22,16 +22,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.ScanType;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.util.DurationFormat;
 
 class ActiveScanIterator implements Iterator<String> {
 
   private InstanceOperations instanceOps;
-  private Iterator<String> tsIter;
+  private Iterator<ServerId> tsIter;
   private Iterator<String> scansIter;
 
   private void readNext() {
@@ -39,22 +41,22 @@ class ActiveScanIterator implements Iterator<String> {
 
     while (tsIter.hasNext()) {
 
-      final String tserver = tsIter.next();
+      final ServerId server = tsIter.next();
       try {
-        final List<ActiveScan> asl = instanceOps.getActiveScans(tserver);
+        final List<ActiveScan> asl = instanceOps.getActiveScans(server);
 
         for (ActiveScan as : asl) {
           var dur = new DurationFormat(as.getAge(), "");
           var dur2 = new DurationFormat(as.getLastContactTime(), "");
           scans.add(String.format(
-              "%21s |%21s |%9s |%9s |%7s |%6s |%8s |%8s |%10s |%20s |%10s |%20s |%10s | %s",
-              tserver, as.getClient(), dur, dur2, as.getState(), as.getType(), as.getUser(),
-              as.getTable(), as.getColumns(), as.getAuthorizations(),
-              (as.getType() == ScanType.SINGLE ? as.getTablet() : "N/A"), as.getScanid(),
-              as.getSsiList(), as.getSsio()));
+              "%21s |%21s |%21s |%9s |%9s |%7s |%6s |%8s |%8s |%10s |%20s |%10s |%20s |%10s | %s",
+              server.getResourceGroup(), server.toHostPortString(), as.getClient(), dur, dur2,
+              as.getState(), as.getType(), as.getUser(), as.getTable(), as.getColumns(),
+              as.getAuthorizations(), (as.getType() == ScanType.SINGLE ? as.getTablet() : "N/A"),
+              as.getScanid(), as.getSsiList(), as.getSsio()));
         }
       } catch (Exception e) {
-        scans.add(tserver + " ERROR " + e.getMessage());
+        scans.add(server + " ERROR " + e.getMessage());
       }
 
       if (!scans.isEmpty()) {
@@ -65,14 +67,14 @@ class ActiveScanIterator implements Iterator<String> {
     scansIter = scans.iterator();
   }
 
-  ActiveScanIterator(List<String> tservers, InstanceOperations instanceOps) {
+  ActiveScanIterator(Set<ServerId> tservers, InstanceOperations instanceOps) {
     this.instanceOps = instanceOps;
     this.tsIter = tservers.iterator();
 
     final String header = String.format(
-        " %-21s| %-21s| %-9s| %-9s| %-7s| %-6s|"
+        " %-21s| %-21s| %-21s| %-9s| %-9s| %-7s| %-6s|"
             + " %-8s| %-8s| %-10s| %-20s| %-10s| %-10s | %-20s | %s",
-        "TABLET SERVER", "CLIENT", "AGE", "LAST", "STATE", "TYPE", "USER", "TABLE", "COLUMNS",
+        "GROUP", "SERVER", "CLIENT", "AGE", "LAST", "STATE", "TYPE", "USER", "TABLE", "COLUMNS",
         "AUTHORIZATIONS", "TABLET", "SCAN ID", "ITERATORS", "ITERATOR OPTIONS");
 
     scansIter = Collections.singletonList(header).iterator();

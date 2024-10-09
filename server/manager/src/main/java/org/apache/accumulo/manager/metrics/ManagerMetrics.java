@@ -38,6 +38,7 @@ import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.accumulo.manager.metrics.fate.meta.MetaFateMetrics;
 import org.apache.accumulo.manager.metrics.fate.user.UserFateMetrics;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class ManagerMetrics implements MetricsProducer {
@@ -86,11 +87,16 @@ public class ManagerMetrics implements MetricsProducer {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     fateMetrics.forEach(fm -> fm.registerMetrics(registry));
-    registry.gauge(MANAGER_ROOT_TGW_ERRORS.getName(), rootTGWErrorsGauge);
-    registry.gauge(MANAGER_META_TGW_ERRORS.getName(), metadataTGWErrorsGauge);
-    registry.gauge(MANAGER_USER_TGW_ERRORS.getName(), userTGWErrorsGauge);
-    registry.gauge(MANAGER_COMPACTION_SVC_ERRORS.getName(), compactionConfigurationError,
-        AtomicInteger::get);
+    Gauge.builder(MANAGER_ROOT_TGW_ERRORS.getName(), rootTGWErrorsGauge, AtomicLong::get)
+        .description(MANAGER_ROOT_TGW_ERRORS.getDescription()).register(registry);
+    Gauge.builder(MANAGER_META_TGW_ERRORS.getName(), metadataTGWErrorsGauge, AtomicLong::get)
+        .description(MANAGER_META_TGW_ERRORS.getDescription()).register(registry);
+    Gauge.builder(MANAGER_USER_TGW_ERRORS.getName(), userTGWErrorsGauge, AtomicLong::get)
+        .description(MANAGER_USER_TGW_ERRORS.getDescription()).register(registry);
+    Gauge
+        .builder(MANAGER_COMPACTION_SVC_ERRORS.getName(), compactionConfigurationError,
+            AtomicInteger::get)
+        .description(MANAGER_COMPACTION_SVC_ERRORS.getDescription()).register(registry);
   }
 
   public List<MetricsProducer> getProducers(AccumuloConfiguration conf, Manager manager) {

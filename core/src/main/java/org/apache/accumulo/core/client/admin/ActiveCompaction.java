@@ -145,6 +145,8 @@ public abstract class ActiveCompaction {
     String getAddress();
 
     int getPort();
+
+    String getResourceGroup();
   }
 
   /**

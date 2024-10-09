@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.ActiveScan;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -69,7 +70,8 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
         Thread thread = new Thread(() -> {
           try {
             // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
-            String tserver = client.instanceOperations().getTabletServers().iterator().next();
+            ServerId tserver = client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)
+                .iterator().next();
             do {
               ArrayList<ActiveScan> scans =
                   new ArrayList<>(client.instanceOperations().getActiveScans(tserver));
