@@ -127,7 +127,7 @@ function stop_service() {
     done
   else
     echo "Stopping service process: $service_name"
-    local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}-${group}.pid"
+    local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}.pid"
     control_process "TERM" "$service_name" "$pid_file"
   fi
 }
@@ -143,7 +143,7 @@ function kill_service() {
       control_process "KILL" "$process" "$pid_file"
     done
   else
-    local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}-${group}.pid"
+    local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}.pid"
     control_process "KILL" "$service_name" "$pid_file"
   fi
 }
@@ -195,15 +195,6 @@ function main() {
     HOST=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d'/')
   fi
 
-  # Find the group parameter if any
-  GROUP_PATTERN="^(compactor.group|sserver.group|tserver.group)=(.*)$"
-  group="default"
-  for param in "$@"; do
-    if [[ $param =~ $GROUP_PATTERN ]]; then
-      group="${BASH_REMATCH[2]}"
-    fi
-  done
-
   local service_type="$1"
   local command_name="$2"
   shift 2
@@ -223,7 +214,7 @@ function main() {
     fi
   # Use the special bash env var from accumulo-cluster
   else
-    service_name=${service_type}${ACCUMULO_SERVICE_INSTANCE}-${group}
+    service_name="${service_type}${ACCUMULO_SERVICE_INSTANCE}"
   fi
 
   case "$service_type" in
