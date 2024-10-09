@@ -438,6 +438,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  public void ping(ServerId server) throws AccumuloException {
+    ping(server.toHostPortString());
+  }
+
+  @Override
   public void waitForBalance() throws AccumuloException {
     try {
       ThriftClientTypes.MANAGER.executeVoid(context,

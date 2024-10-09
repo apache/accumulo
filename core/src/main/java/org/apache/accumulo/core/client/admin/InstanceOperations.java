@@ -308,12 +308,22 @@ public interface InstanceOperations {
   List<ActiveCompaction> getActiveCompactions() throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Throws an exception if a compactor, scan server, or tablet server can not be contacted.
+   * Check to see if a server process at the host and port is up and responding to RPC requests.
    *
    * @param tserver The server address. This should be of the form {@code <ip address>:<port>}
+   * @throws AccumuloException if the server cannot be contacted
    * @since 1.5.0
    */
   void ping(String tserver) throws AccumuloException;
+
+  /**
+   * Check to see if a server process at the host and port is up and responding to RPC requests.
+   *
+   * @param server
+   * @throws AccumuloException if the server cannot be contacted
+   * @since 4.0.0
+   */
+  void ping(ServerId server) throws AccumuloException;
 
   /**
    * Test to see if the instance can load the given class as the given type. This check does not
