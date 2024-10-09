@@ -34,7 +34,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -48,8 +47,8 @@ import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -117,9 +116,9 @@ public class TableLoadBalancerTest {
   @Test
   public void test() {
     BalancerEnvironment environment = createMock(BalancerEnvironment.class);
-    ConfigurationCopy cc = new ConfigurationCopy(
-        Map.of(Property.TABLE_LOAD_BALANCER.getKey(), TestSimpleLoadBalancer.class.getName()));
-    ConfigurationImpl tableConfig = new ConfigurationImpl(cc);
+    var tableConfig = ServiceEnvironment.Configuration.from(
+        Map.of(Property.TABLE_LOAD_BALANCER.getKey(), TestSimpleLoadBalancer.class.getName()),
+        false);
 
     Map<String,TableId> tableIdMap = TABLE_ID_MAP.entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> TableId.of(e.getValue())));
