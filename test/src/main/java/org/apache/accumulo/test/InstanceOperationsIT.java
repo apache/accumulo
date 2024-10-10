@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
@@ -88,6 +90,40 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
       }
 
     }
+  }
+
+  @Test
+  public void testPing() throws Exception {
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerId.Type.COMPACTOR).size() == 3);
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).size() == 2);
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 1);
+
+      final InstanceOperations io = client.instanceOperations();
+      Set<ServerId> servers = io.getServers(ServerId.Type.COMPACTOR);
+      for (ServerId sid : servers) {
+        io.ping(sid);
+      }
+
+      servers = io.getServers(ServerId.Type.SCAN_SERVER);
+      for (ServerId sid : servers) {
+        io.ping(sid);
+      }
+
+      servers = io.getServers(ServerId.Type.TABLET_SERVER);
+      for (ServerId sid : servers) {
+        io.ping(sid);
+      }
+
+      ServerId fake = new ServerId(ServerId.Type.COMPACTOR, Constants.DEFAULT_RESOURCE_GROUP_NAME,
+          "localhost", 1024);
+      assertThrows(AccumuloException.class, () -> io.ping(fake));
+    }
+
   }
 
   private void validateAddresses(Collection<String> e, Set<ServerId> addresses) {

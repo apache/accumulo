@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -427,13 +428,18 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public void ping(String tserver) throws AccumuloException {
-    try (TTransport transport = createTransport(AddressUtil.parseAddress(tserver), context)) {
-      Client client = createClient(ThriftClientTypes.TABLET_SERVER, transport);
-      client.getTabletServerStatus(TraceUtil.traceInfo(), context.rpcCreds());
+  public void ping(String server) throws AccumuloException {
+    try (TTransport transport = createTransport(AddressUtil.parseAddress(server), context)) {
+      ClientService.Client client = createClient(ThriftClientTypes.CLIENT, transport);
+      client.ping(context.rpcCreds());
     } catch (TException e) {
       throw new AccumuloException(e);
     }
+  }
+
+  @Override
+  public void ping(ServerId server) throws AccumuloException {
+    ping(server.toHostPortString());
   }
 
   @Override
