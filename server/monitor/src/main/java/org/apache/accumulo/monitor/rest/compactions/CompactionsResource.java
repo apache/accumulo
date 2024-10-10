@@ -27,7 +27,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 
 import com.google.common.net.HostAndPort;
@@ -59,12 +58,8 @@ public class CompactionsResource {
 
     Map<HostAndPort,Monitor.CompactionStats> entry = monitor.getCompactions();
 
-    for (TabletServerStatus tserverInfo : mmi.getTServerInfo()) {
-      var stats = entry.get(HostAndPort.fromString(tserverInfo.name));
-      if (stats != null) {
-        compactions.addCompaction(new CompactionInfo(tserverInfo, stats));
-      }
-    }
+    entry.forEach((k, v) -> compactions.addCompaction(new CompactionInfo(k, v)));
+
     return compactions;
   }
 }
