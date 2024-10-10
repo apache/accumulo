@@ -32,11 +32,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.checkCommand.CheckRunner;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.functional.ReadWriteIT;
+import org.apache.accumulo.test.functional.SlowIterator;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
 import org.junit.jupiter.api.AfterEach;
@@ -54,9 +62,9 @@ public class AdminCheckIT extends ConfigurableMacBase {
   }
 
   /*
-   * The following tests test the expected outputs and functionality of the admin check command
-   * (e.g., are the correct checks run, dependencies run before the actual check, run in the correct
-   * order, etc.) without actually testing the correct functionality of the checks
+   * The following tests test the expected outputs and run order of the admin check command (e.g.,
+   * are the correct checks run, dependencies run before the actual check, run in the correct order,
+   * etc.) without actually testing the correct functionality of the checks
    */
 
   @Test
@@ -264,6 +272,113 @@ public class AdminCheckIT extends ConfigurableMacBase {
     assertTrue(out4.contains(expStatusInfo3And4));
   }
 
+  /*
+   * The following tests test the expected functionality of the admin check command (e.g., are the
+   * checks correctly identifying problems)
+   */
+
+  @Test
+  public void testSystemConfigCheck() throws Exception {
+    String table = getUniqueNames(1)[0];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      client.tableOperations().create(table);
+
+      ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
+      client.tableOperations().flush(table, null, null, true);
+
+      // the slow compaction is to ensure we hold a table lock when the check runs, so we have
+      // locks to check
+      IteratorSetting is = new IteratorSetting(1, SlowIterator.class);
+      is.addOption("sleepTime", "10000");
+      CompactionConfig slowCompaction = new CompactionConfig();
+      slowCompaction.setWait(false);
+      slowCompaction.setIterators(List.of(is));
+      client.tableOperations().compact(table, slowCompaction);
+
+      var p = getCluster().exec(Admin.class, "check", "run", "system_config");
+      assertEquals(0, p.getProcess().waitFor());
+      String out = p.readStdOut();
+      assertTrue(out.contains("locks are valid"));
+      assertTrue(out.contains("Check SYSTEM_CONFIG completed with status OK"));
+    }
+  }
+
+  @Test
+  public void testPassingMetadataTableCheck() throws Exception {
+    // Tests the METADATA_TABLE check in the case where all checks pass
+
+    // no extra setup needed, just check the metadata table
+    var p = getCluster().exec(Admin.class, "check", "run", "metadata_table");
+    assertEquals(0, p.getProcess().waitFor());
+    String out = p.readStdOut();
+    assertTrue(out.contains("Looking for offline tablets"));
+    assertTrue(out.contains("Checking some references"));
+    assertTrue(out.contains("Looking for missing columns"));
+    assertTrue(out.contains("Looking for invalid columns"));
+    assertTrue(out.contains("Check METADATA_TABLE completed with status OK"));
+  }
+
+  @Test
+  public void testPassingRootTableCheck() throws Exception {
+    // Tests the ROOT_TABLE check in the case where all checks pass
+
+    // no extra setup needed, just check the root table
+    var p = getCluster().exec(Admin.class, "check", "run", "root_table");
+    assertEquals(0, p.getProcess().waitFor());
+    String out = p.readStdOut();
+    assertTrue(out.contains("Looking for offline tablets"));
+    assertTrue(out.contains("Checking some references"));
+    assertTrue(out.contains("Looking for missing columns"));
+    assertTrue(out.contains("Looking for invalid columns"));
+    assertTrue(out.contains("Check ROOT_TABLE completed with status OK"));
+  }
+
+  @Test
+  public void testPassingRootMetadataCheck() throws Exception {
+    // Tests the ROOT_TABLE check in the case where all checks pass
+
+    // no extra setup needed, just check the root table metadata
+    var p = getCluster().exec(Admin.class, "check", "run", "root_metadata");
+    assertEquals(0, p.getProcess().waitFor());
+    String out = p.readStdOut();
+    assertTrue(out.contains("Looking for offline tablets"));
+    assertTrue(out.contains("Looking for missing columns"));
+    assertTrue(out.contains("Looking for invalid columns"));
+    assertTrue(out.contains("Check ROOT_METADATA completed with status OK"));
+  }
+
+  @Test
+  public void testPassingSystemFilesCheck() throws Exception {
+    // Tests the SYSTEM_FILES check in the case where it should pass
+
+    // no extra setup needed, just run the check
+    var p = getCluster().exec(Admin.class, "check", "run", "system_files");
+    assertEquals(0, p.getProcess().waitFor());
+    String out = p.readStdOut();
+    assertTrue(Pattern.compile("missing files: 0, total files: [1-9]+").matcher(out).find());
+  }
+
+  @Test
+  public void testPassingUserFilesCheck() throws Exception {
+    // Tests the USER_FILES check in the case where it should pass
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      // create a table, insert some data, and flush so there's a file to check
+      String table = getUniqueNames(1)[0];
+      client.tableOperations().create(table);
+      ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
+      client.tableOperations().flush(table, null, null, true);
+
+      var p = getCluster().exec(Admin.class, "check", "run", "user_files");
+      assertEquals(0, p.getProcess().waitFor());
+      String out = p.readStdOut();
+      assertTrue(Pattern.compile("missing files: 0, total files: [1-9]+").matcher(out).find());
+    }
+  }
+
+  // TODO 4892 need failing tests...
+
   private String executeCheckCommand(String[] checkCmdArgs, boolean[] checksPass) {
     String output;
     Admin admin = createMockAdmin(checksPass);
@@ -294,7 +409,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
       Admin.CheckCommand dummyCheckCommand = new DummyCheckCommand(checksPass);
       cl.addCommand("check", dummyCheckCommand);
       cl.parse(args);
-      Admin.executeCheckCommand(getServerContext(), dummyCheckCommand);
+      Admin.executeCheckCommand(getServerContext(), dummyCheckCommand, opts);
       return null;
     });
     EasyMock.replay(admin);
@@ -309,7 +424,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
     }
 
     @Override
-    public Admin.CheckCommand.CheckStatus runCheck() {
+    public Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
+        boolean fixFiles) throws Exception {
       Admin.CheckCommand.CheckStatus status =
           passes ? Admin.CheckCommand.CheckStatus.OK : Admin.CheckCommand.CheckStatus.FAILED;
 
