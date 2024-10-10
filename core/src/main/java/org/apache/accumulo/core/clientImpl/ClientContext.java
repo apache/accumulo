@@ -634,6 +634,10 @@ public class ClientContext implements AccumuloClient {
     return tableZooHelper().getTableMap().getNameToIdMap();
   }
 
+  public Map<NamespaceId,String> getNamespaceIdToNameMap() {
+    return Namespaces.getIdToNameMap(this);
+  }
+
   public Map<TableId,String> getTableIdToNameMap() {
     return tableZooHelper().getTableMap().getIdtoNameMap();
   }
