@@ -279,8 +279,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           if (client != null) {
             mmi = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
             retry = false;
-            // Now that Manager is up, create the coordinator client
-            // to get majc information
+            // Now that Manager is up, set the coordinator host
             Set<ServerId> managers = context.instanceOperations().getServers(ServerId.Type.MANAGER);
             if (managers == null || managers.isEmpty()) {
               throw new IllegalStateException(
