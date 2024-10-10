@@ -959,6 +959,7 @@ public class CompactionIT extends AccumuloClusterHarness {
     }
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testGetActiveCompactions() throws Exception {
     final String table1 = this.getUniqueNames(1)[0];

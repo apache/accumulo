@@ -599,6 +599,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testGetActiveCompactions() throws Exception {
     final String table1 = this.getUniqueNames(1)[0];
