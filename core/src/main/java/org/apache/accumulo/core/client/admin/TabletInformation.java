@@ -62,7 +62,7 @@ public interface TabletInformation {
    * @return the Location of the tablet as a String or empty if the location in the TabletMetadata
    *         does not exist. When not empty, the String will be of the form
    *         "{@code <location type>:<host>:<port>}", where the location type is one of
-   *        {@code CURRENT} or {@code FUTURE}
+   *         {@code CURRENT} or {@code FUTURE}
    */
   Optional<String> getLocation();
 
