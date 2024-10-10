@@ -20,25 +20,15 @@ package org.apache.accumulo.server.conf.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZINSTANCES;
-import static org.apache.accumulo.core.Constants.ZNAMESPACES;
-import static org.apache.accumulo.core.Constants.ZNAMESPACE_NAME;
 import static org.apache.accumulo.core.Constants.ZROOT;
-import static org.apache.accumulo.core.Constants.ZTABLES;
-import static org.apache.accumulo.core.Constants.ZTABLE_NAME;
-import static org.apache.accumulo.core.Constants.ZTABLE_NAMESPACE;
 
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,50 +81,4 @@ public class ZooPropUtils {
     }
   }
 
-  public static Map<NamespaceId,String> getNamespaceIdToNameMap(final InstanceId iid,
-      final ZooReader zooReader) {
-    SortedMap<NamespaceId,String> namespaceToName = new TreeMap<>();
-    String zooNsRoot = ZooUtil.getRoot(iid) + ZNAMESPACES;
-    try {
-      List<String> nsids = zooReader.getChildren(zooNsRoot);
-      for (String id : nsids) {
-        String path = zooNsRoot + "/" + id + ZNAMESPACE_NAME;
-        String name = new String(zooReader.getData(path), UTF_8);
-        namespaceToName.put(NamespaceId.of(id), name);
-      }
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted reading namespace ids from ZooKeeper", ex);
-    } catch (KeeperException ex) {
-      throw new IllegalStateException("Failed to read namespace ids from ZooKeeper", ex);
-    }
-    return namespaceToName;
-  }
-
-  public static Map<TableId,String> getTableIdToName(InstanceId iid,
-      Map<NamespaceId,String> id2NamespaceMap, ZooReader zooReader) {
-    SortedMap<TableId,String> idToName = new TreeMap<>();
-
-    String zooTables = ZooUtil.getRoot(iid) + ZTABLES;
-    try {
-      List<String> tids = zooReader.getChildren(zooTables);
-      for (String t : tids) {
-        String path = zooTables + "/" + t;
-        String tname = new String(zooReader.getData(path + ZTABLE_NAME), UTF_8);
-        NamespaceId tNsId =
-            NamespaceId.of(new String(zooReader.getData(path + ZTABLE_NAMESPACE), UTF_8));
-        if (tNsId.equals(Namespace.DEFAULT.id())) {
-          idToName.put(TableId.of(t), tname);
-        } else {
-          idToName.put(TableId.of(t), id2NamespaceMap.get(tNsId) + "." + tname);
-        }
-      }
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted reading table ids from ZooKeeper", ex);
-    } catch (KeeperException ex) {
-      throw new IllegalStateException("Failed reading table id info from ZooKeeper");
-    }
-    return idToName;
-  }
 }

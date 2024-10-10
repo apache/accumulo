@@ -19,8 +19,6 @@
 package org.apache.accumulo.server.conf.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.server.conf.util.ZooPropUtils.getNamespaceIdToNameMap;
-import static org.apache.accumulo.server.conf.util.ZooPropUtils.getTableIdToName;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -34,7 +32,6 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
@@ -89,10 +86,7 @@ public class ZooPropEditor implements KeywordExecutable {
 
     var siteConfig = opts.getSiteConfiguration();
     try (ServerContext context = new ServerContext(siteConfig)) {
-
-      InstanceId iid = context.getInstanceID();
-
-      PropStoreKey<?> propKey = getPropKey(iid, opts, zrw);
+      PropStoreKey<?> propKey = getPropKey(context, opts);
       switch (opts.getCmdMode()) {
         case SET:
           setProperty(context, propKey, opts);
@@ -120,7 +114,7 @@ public class ZooPropEditor implements KeywordExecutable {
     }
     String targetName = "'invalid'";
     try {
-      targetName = getDisplayName(propKey, context.getInstanceID(), context.getZooReader());
+      targetName = getDisplayName(propKey, context);
 
       Map<String,String> prev = context.getPropStore().get(propKey).asMap();
       String[] tokens = opts.setOpt.split("=");
@@ -155,7 +149,7 @@ public class ZooPropEditor implements KeywordExecutable {
       return;
     }
     PropUtil.removeProperties(context, propKey, List.of(p));
-    String targetName = getDisplayName(propKey, context.getInstanceID(), context.getZooReader());
+    String targetName = getDisplayName(propKey, context);
     LOG.info("{}: deleted {}", targetName, p);
   }
 
@@ -183,8 +177,7 @@ public class ZooPropEditor implements KeywordExecutable {
       writer.printf(": Instance Id: %s\n", context.getInstanceID());
       writer.printf(": Property scope: %s\n", scope);
       writer.printf(": ZooKeeper path: %s\n", propKey.getPath());
-      writer.printf(": Name: %s\n",
-          getDisplayName(propKey, context.getInstanceID(), context.getZooReader()));
+      writer.printf(": Name: %s\n", getDisplayName(propKey, context));
       writer.printf(": Id: %s\n", propKey.getId());
       writer.printf(": Data version: %d\n", props.getDataVersion());
       writer.printf(": Timestamp: %s\n", props.getTimestampISO());
@@ -208,18 +201,18 @@ public class ZooPropEditor implements KeywordExecutable {
     }
   }
 
-  private PropStoreKey<?> getPropKey(final InstanceId iid, final ZooPropEditor.Opts opts,
-      final ZooReader zooReader) {
+  private PropStoreKey<?> getPropKey(final ServerContext context, final ZooPropEditor.Opts opts) {
+    var iid = context.getInstanceID();
 
     // either tid or table name option provided, get the table id
     if (!opts.tableOpt.isEmpty() || !opts.tableIdOpt.isEmpty()) {
-      TableId tid = getTableId(iid, opts, zooReader);
+      TableId tid = getTableId(context, opts);
       return TablePropKey.of(iid, tid);
     }
 
     // either nid of namespace name provided, get the namespace id.
     if (!opts.namespaceOpt.isEmpty() || !opts.namespaceIdOpt.isEmpty()) {
-      NamespaceId nid = getNamespaceId(iid, opts, zooReader);
+      NamespaceId nid = getNamespaceId(context, opts);
       return NamespacePropKey.of(iid, nid);
     }
 
@@ -227,41 +220,33 @@ public class ZooPropEditor implements KeywordExecutable {
     return SystemPropKey.of(iid);
   }
 
-  private TableId getTableId(final InstanceId iid, final ZooPropEditor.Opts opts,
-      final ZooReader zooReader) {
+  private TableId getTableId(final ServerContext context, final ZooPropEditor.Opts opts) {
     if (!opts.tableIdOpt.isEmpty()) {
       return TableId.of(opts.tableIdOpt);
     }
-    Map<NamespaceId,String> nids = getNamespaceIdToNameMap(iid, zooReader);
-
-    Map<TableId,String> tids = getTableIdToName(iid, nids, zooReader);
+    Map<TableId,String> tids = context.getTableIdToNameMap();
     return tids.entrySet().stream().filter(entry -> opts.tableOpt.equals(entry.getValue()))
         .map(Map.Entry::getKey).findAny()
         .orElseThrow(() -> new IllegalArgumentException("Could not find table " + opts.tableOpt));
   }
 
-  private NamespaceId getNamespaceId(final InstanceId iid, final ZooPropEditor.Opts opts,
-      final ZooReader zooReader) {
+  private NamespaceId getNamespaceId(final ServerContext context, final ZooPropEditor.Opts opts) {
     if (!opts.namespaceIdOpt.isEmpty()) {
       return NamespaceId.of(opts.namespaceIdOpt);
     }
-    Map<NamespaceId,String> nids = getNamespaceIdToNameMap(iid, zooReader);
+    Map<NamespaceId,String> nids = context.getNamespaceIdToNameMap();
     return nids.entrySet().stream().filter(entry -> opts.namespaceOpt.equals(entry.getValue()))
         .map(Map.Entry::getKey).findAny().orElseThrow(
             () -> new IllegalArgumentException("Could not find namespace " + opts.namespaceOpt));
   }
 
-  private String getDisplayName(final PropStoreKey<?> propStoreKey, final InstanceId iid,
-      final ZooReader zooReader) {
+  private String getDisplayName(final PropStoreKey<?> propStoreKey, final ServerContext context) {
 
     if (propStoreKey instanceof TablePropKey) {
-      Map<NamespaceId,String> nids = getNamespaceIdToNameMap(iid, zooReader);
-      return getTableIdToName(iid, nids, zooReader).getOrDefault((TableId) propStoreKey.getId(),
-          "unknown");
+      return context.getTableIdToNameMap().getOrDefault(propStoreKey.getId(), "unknown");
     }
     if (propStoreKey instanceof NamespacePropKey) {
-      return getNamespaceIdToNameMap(iid, zooReader)
-          .getOrDefault((NamespaceId) propStoreKey.getId(), "unknown");
+      return context.getNamespaceIdToNameMap().getOrDefault(propStoreKey.getId(), "unknown");
     }
     if (propStoreKey instanceof SystemPropKey) {
       return "system";

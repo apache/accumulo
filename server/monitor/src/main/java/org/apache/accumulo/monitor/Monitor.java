@@ -198,11 +198,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     Map<String,Pair<Long,Long>> samples = new HashMap<>();
     Set<String> serversUpdated = new HashSet<>();
 
-    void startingUpdates() {
+    synchronized void startingUpdates() {
       serversUpdated.clear();
     }
 
-    void updateTabletServer(String name, long sampleTime, long numEvents) {
+    synchronized void updateTabletServer(String name, long sampleTime, long numEvents) {
       Pair<Long,Long> newSample = new Pair<>(sampleTime, numEvents);
       Pair<Long,Long> lastSample = samples.get(name);
 
@@ -215,13 +215,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       serversUpdated.add(name);
     }
 
-    void finishedUpdating() {
+    synchronized void finishedUpdating() {
       // remove any tablet servers not updated
       samples.keySet().retainAll(serversUpdated);
       prevSamples.keySet().retainAll(serversUpdated);
     }
 
-    double calculateRate() {
+    synchronized double calculateRate() {
       double totalRate = 0;
 
       for (Entry<String,Pair<Long,Long>> entry : prevSamples.entrySet()) {
@@ -235,7 +235,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       return totalRate;
     }
 
-    long calculateCount() {
+    synchronized long calculateCount() {
       long count = 0;
 
       for (Entry<String,Pair<Long,Long>> entry : prevSamples.entrySet()) {
