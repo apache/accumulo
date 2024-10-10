@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -59,6 +59,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+      assertEquals(2, c.instanceOperations().getServers(Type.TABLET_SERVER).size());
       // ensure the metadata table is online
       try (Scanner scanner =
           c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
@@ -76,12 +77,15 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
         partitionKeys.add(new Text("" + i));
       }
       c.tableOperations().addSplits(tableName, partitionKeys);
+      c.instanceOperations().waitForBalance();
+      assertTrue(isBalanced(c));
+
+      // Add another tserver to force a rebalance
       getCluster().getConfig().getClusterServerConfiguration().setNumDefaultTabletServers(3);
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
       Wait.waitFor(() -> c.instanceOperations().getServers(Type.TABLET_SERVER).size() == 3);
-      assertFalse(isBalanced(c));
       c.instanceOperations().waitForBalance();
-      Wait.waitFor(() -> isBalanced(c));
+      assertTrue(isBalanced(c));
     }
   }
 
