@@ -41,7 +41,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import jakarta.inject.Singleton;
@@ -90,6 +89,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.util.TableInfoUtil;
+import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -180,9 +180,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private Map<TableId,Map<ProblemType,Integer>> problemSummary = Collections.emptyMap();
   private Exception problemException;
   private GCStatus gcStatus;
-  private Optional<HostAndPort> coordinatorHost = Optional.empty();
-  private final AtomicReference<CompactionCoordinatorService.Client> coordinatorClient =
-      new AtomicReference<>();
+  private volatile Optional<HostAndPort> coordinatorHost = Optional.empty();
   private final String coordinatorMissingMsg =
       "Error getting the compaction coordinator client. Check that the Manager is running.";
 
@@ -289,8 +287,12 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
                   "io.getServers returned nothing for Manager, but it's up.");
             }
             ServerId manager = managers.iterator().next();
-            coordinatorHost = Optional.of(HostAndPort.fromString(manager.toHostPortString()));
-            getCoordinator(coordinatorHost.orElseThrow());
+            Optional<HostAndPort> nextCoordinatorHost =
+                Optional.of(HostAndPort.fromString(manager.toHostPortString()));
+            if (coordinatorHost.isEmpty() || (!nextCoordinatorHost.isEmpty()
+                && !coordinatorHost.orElseThrow().equals(nextCoordinatorHost.orElseThrow()))) {
+              coordinatorHost = nextCoordinatorHost;
+            }
           } else {
             mmi = null;
             log.error("Unable to get info from Manager");
@@ -400,11 +402,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       }
 
     } finally {
-      var ccClient = coordinatorClient.get();
-      if (ccClient != null) {
-        ThriftUtil.returnClient(ccClient, context);
-        coordinatorClient.compareAndSet(ccClient, null);
-      }
       lastRecalc.set(currentTime);
       // stop fetching; log an error if this thread wasn't already fetching
       if (!fetching.compareAndSet(true, false)) {
@@ -701,16 +698,25 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
     var ccHost = coordinatorHost.orElseThrow();
     log.info("User initiated fetch of running External Compactions from " + ccHost);
-    var client = getCoordinator(ccHost);
-    TExternalCompactionList running;
     try {
-      running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
-    } catch (Exception e) {
-      throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
+      CompactionCoordinatorService.Client client =
+          ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, ccHost, getContext());
+      TExternalCompactionList running;
+      try {
+        running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
+        return new ExternalCompactionsSnapshot(
+            running.getCompactions() == null ? Map.of() : running.getCompactions());
+      } catch (Exception e) {
+        throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
+      } finally {
+        if (client != null) {
+          ThriftUtil.returnClient(client, getContext());
+        }
+      }
+    } catch (TTransportException e) {
+      log.error("Unable to get Compaction coordinator at {}", ccHost);
+      throw new IllegalStateException(coordinatorMissingMsg, e);
     }
-
-    return new ExternalCompactionsSnapshot(
-        running.getCompactions() == null ? Map.of() : running.getCompactions());
   }
 
   public RunningCompactions getRunnningCompactions() {
@@ -724,21 +730,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       return null;
     }
     return new RunningCompactorDetails(extCompaction);
-  }
-
-  private CompactionCoordinatorService.Client getCoordinator(HostAndPort address) {
-    if (coordinatorClient.get() == null) {
-      try {
-        var ccClient = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, getContext());
-        if (!coordinatorClient.compareAndSet(null, ccClient)) {
-          ThriftUtil.returnClient(ccClient, getContext());
-        }
-      } catch (Exception e) {
-        log.error("Unable to get Compaction coordinator at {}", address);
-        throw new IllegalStateException(coordinatorMissingMsg, e);
-      }
-    }
-    return coordinatorClient.get();
   }
 
   private void fetchScans() {
