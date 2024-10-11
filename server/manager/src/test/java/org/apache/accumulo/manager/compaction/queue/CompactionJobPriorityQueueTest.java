@@ -266,6 +266,11 @@ public class CompactionJobPriorityQueueTest {
     }
 
     assertEquals(100, matchesSeen);
+
+    var stats = queue.getJobQueueStats();
+    assertTrue(stats.getMinAge().toMillis() > 0);
+    assertTrue(stats.getMaxAge().toMillis() > 0);
+    assertTrue(stats.getAvgAge().toMillis() > 0);
   }
 
   /**
