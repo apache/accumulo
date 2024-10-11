@@ -22,8 +22,12 @@ import java.util.EnumSet;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.eclipse.jetty.server.AbstractConnectionFactory;
+import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
+import org.eclipse.jetty.http2.server.HTTP2CServerConnectionFactory;
+import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
+import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
@@ -41,18 +45,18 @@ public class EmbeddedWebServer {
           Property.MONITOR_SSL_TRUSTSTORE, Property.MONITOR_SSL_TRUSTSTOREPASS);
 
   private final Server server;
-  private final ServerConnector connector;
   private final ServletContextHandler handler;
   private final boolean secure;
 
-  public EmbeddedWebServer(Monitor monitor, int port) {
+  private int actualHttpPort;
+  private ServerConnector connector;
+
+  public EmbeddedWebServer(final Monitor monitor, int httpPort) {
     server = new Server();
     final AccumuloConfiguration conf = monitor.getContext().getConfiguration();
     secure = requireForSecure.stream().map(conf::get).allMatch(s -> s != null && !s.isEmpty());
 
-    connector = new ServerConnector(server, getConnectionFactories(conf, secure));
-    connector.setHost(monitor.getHostname());
-    connector.setPort(port);
+    addConnectors(monitor, conf, httpPort, secure);
 
     handler =
         new ServletContextHandler(ServletContextHandler.SESSIONS | ServletContextHandler.SECURITY);
@@ -60,11 +64,17 @@ public class EmbeddedWebServer {
     handler.setContextPath("/");
   }
 
-  private static AbstractConnectionFactory[] getConnectionFactories(AccumuloConfiguration conf,
+  private void addConnectors(Monitor monitor, AccumuloConfiguration conf, int httpPort,
       boolean secure) {
-    HttpConnectionFactory httpFactory = new HttpConnectionFactory();
+
+    final HttpConfiguration httpConfig = new HttpConfiguration();
+    httpConfig.setSendServerVersion(false);
+    httpConfig.setOutputBufferSize(10485760);
+    httpConfig.setRequestHeaderSize(10485760);
+    httpConfig.setResponseHeaderSize(10485760);
+
     if (secure) {
-      LOG.debug("Configuring Jetty to use TLS");
+      LOG.debug("Configuring Jetty with TLS");
       final SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
       // If the key password is the same as the keystore password, we don't
       // have to explicitly set it. Thus, if the user doesn't provide a key
@@ -95,12 +105,35 @@ public class EmbeddedWebServer {
         sslContextFactory.setIncludeProtocols(includeProtocols.split(","));
       }
 
-      SslConnectionFactory sslFactory =
-          new SslConnectionFactory(sslContextFactory, httpFactory.getProtocol());
-      return new AbstractConnectionFactory[] {sslFactory, httpFactory};
+      httpConfig.addCustomizer(new SecureRequestCustomizer());
+
+      HttpConnectionFactory http11 = new HttpConnectionFactory(httpConfig);
+
+      ALPNServerConnectionFactory alpn = new ALPNServerConnectionFactory();
+      alpn.setDefaultProtocol(http11.getProtocol());
+
+      HTTP2ServerConnectionFactory http2 = new HTTP2ServerConnectionFactory(httpConfig);
+
+      SslConnectionFactory tls = new SslConnectionFactory(sslContextFactory, alpn.getProtocol());
+
+      connector = new ServerConnector(server, tls, alpn, http2, http11);
+      connector.setHost(monitor.getHostname());
+      connector.setPort(httpPort);
+      server.addConnector(connector);
     } else {
-      LOG.debug("Not configuring Jetty to use TLS");
-      return new AbstractConnectionFactory[] {httpFactory};
+
+      LOG.debug("Configuring Jetty without TLS");
+
+      HttpConnectionFactory http11 = new HttpConnectionFactory(httpConfig);
+
+      HTTP2CServerConnectionFactory http2 = new HTTP2CServerConnectionFactory(httpConfig);
+      http2.setMaxFrameSize(14 * 1024 * 1024);
+
+      // The ServerConnector instance.
+      connector = new ServerConnector(server, http11, http2);
+      connector.setHost(monitor.getHostname());
+      connector.setPort(httpPort);
+      server.addConnector(connector);
     }
   }
 
@@ -108,8 +141,8 @@ public class EmbeddedWebServer {
     handler.addServlet(restServlet, where);
   }
 
-  public int getPort() {
-    return connector.getLocalPort();
+  public int getHttpPort() {
+    return this.actualHttpPort;
   }
 
   public boolean isSecure() {
@@ -118,9 +151,9 @@ public class EmbeddedWebServer {
 
   public void start() {
     try {
-      server.addConnector(connector);
       server.setHandler(handler);
       server.start();
+      this.actualHttpPort = connector.getLocalPort();
     } catch (Exception e) {
       stop();
       throw new RuntimeException(e);

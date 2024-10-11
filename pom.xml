@@ -151,6 +151,7 @@
     <version.curator>5.5.0</version.curator>
     <version.errorprone>2.24.1</version.errorprone>
     <version.hadoop>3.4.0</version.hadoop>
+    <version.jetty>11.0.24</version.jetty>
     <version.log4j>2.24.0</version.log4j>
     <version.opentelemetry>1.34.1</version.opentelemetry>
     <version.powermock>2.0.9</version.powermock>
@@ -206,7 +207,7 @@
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-bom</artifactId>
-        <version>11.0.19</version>
+        <version>${version.jetty}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

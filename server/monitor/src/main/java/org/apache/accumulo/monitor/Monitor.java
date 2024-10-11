@@ -187,7 +187,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           + "'accumulo compaction-coordinator'.";
 
   private EmbeddedWebServer server;
-  private int livePort = 0;
 
   private ServiceLock monitorLock;
 
@@ -465,7 +464,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         server.addServlet(getRestServlet(), "/rest/*");
         server.addServlet(getViewServlet(), "/*");
         server.start();
-        livePort = port;
         break;
       } catch (Exception ex) {
         log.error("Unable to start embedded web server", ex);
@@ -475,7 +473,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       throw new RuntimeException(
           "Unable to start embedded web server on ports: " + Arrays.toString(ports));
     } else {
-      log.debug("Monitor started on port {}", livePort);
+      log.debug("Monitor started on port h1/h2: {}", server.getHttpPort());
     }
 
     String advertiseHost = getHostname();
@@ -486,7 +484,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         log.error("Unable to get hostname", e);
       }
     }
-    HostAndPort monitorHostAndPort = HostAndPort.fromParts(advertiseHost, livePort);
+
+    HostAndPort monitorHostAndPort = HostAndPort.fromParts(advertiseHost, server.getHttpPort());
     log.debug("Using {} to advertise monitor location in ZooKeeper", monitorHostAndPort);
 
     try {
@@ -502,15 +501,16 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     metricsInfo.init();
 
     try {
-      URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
-      final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
       final ZooReaderWriter zoo = context.getZooReaderWriter();
+      URL url =
+          new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getHttpPort(), "/");
+      final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
       // Delete before we try to re-create in case the previous session hasn't yet expired
       zoo.delete(path);
       zoo.putEphemeralData(path, url.toString().getBytes(UTF_8));
-      log.info("Set monitor address in zookeeper to {}", url);
+      log.info("Set monitor http address in zookeeper to {}", url);
     } catch (Exception ex) {
-      log.error("Unable to advertise monitor HTTP address in zookeeper", ex);
+      log.error("Unable to advertise monitor HTTP addresses in zookeeper", ex);
     }
 
     // need to regularly fetch data so plot data is updated
@@ -1044,9 +1044,5 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   public Optional<HostAndPort> getCoordinatorHost() {
     return coordinatorHost;
-  }
-
-  public int getLivePort() {
-    return livePort;
   }
 }
