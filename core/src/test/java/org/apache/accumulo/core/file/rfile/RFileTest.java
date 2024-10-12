@@ -207,7 +207,6 @@ public class RFileTest extends AbstractRFileTest {
   public void test1() throws IOException {
 
     // test an empty file
-
     TestRFile trf = new TestRFile(conf);
 
     trf.openWriter();
