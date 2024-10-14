@@ -38,8 +38,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
 public class UserMultipleStoresIT extends MultipleStoresIT {
-  private static ClientContext CLIENT;
-  private static String TABLE_NAME;
+  private ClientContext client;
+  private String tableName;
 
   @BeforeAll
   public static void beforeAllSetup() throws Exception {
@@ -48,9 +48,9 @@ public class UserMultipleStoresIT extends MultipleStoresIT {
 
   @BeforeEach
   public void beforeEachSetup() throws Exception {
-    TABLE_NAME = getUniqueNames(1)[0];
-    CLIENT = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
-    createFateTable(CLIENT, TABLE_NAME);
+    tableName = getUniqueNames(1)[0];
+    client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
+    createFateTable(client, tableName);
   }
 
   @AfterAll
@@ -61,8 +61,8 @@ public class UserMultipleStoresIT extends MultipleStoresIT {
   @AfterEach
   public void afterEachTeardown()
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
-    CLIENT.tableOperations().delete(TABLE_NAME);
-    CLIENT.close();
+    client.tableOperations().delete(tableName);
+    client.close();
   }
 
   @Override
@@ -77,19 +77,19 @@ public class UserMultipleStoresIT extends MultipleStoresIT {
     testMethod.execute(new LatchEnvUserStoreFactory());
   }
 
-  static class SleepingEnvUserStoreFactory implements TestStoreFactory<SleepingTestEnv> {
+  class SleepingEnvUserStoreFactory implements TestStoreFactory<SleepingTestEnv> {
     @Override
     public FateStore<SleepingTestEnv> create(ZooUtil.LockID lockID,
         Predicate<ZooUtil.LockID> isLockHeld) {
-      return new UserFateStore<>(CLIENT, TABLE_NAME, lockID, isLockHeld);
+      return new UserFateStore<>(client, tableName, lockID, isLockHeld);
     }
   }
 
-  static class LatchEnvUserStoreFactory implements TestStoreFactory<LatchTestEnv> {
+  class LatchEnvUserStoreFactory implements TestStoreFactory<LatchTestEnv> {
     @Override
     public FateStore<LatchTestEnv> create(ZooUtil.LockID lockID,
         Predicate<ZooUtil.LockID> isLockHeld) {
-      return new UserFateStore<>(CLIENT, TABLE_NAME, lockID, isLockHeld);
+      return new UserFateStore<>(client, tableName, lockID, isLockHeld);
     }
   }
 }
