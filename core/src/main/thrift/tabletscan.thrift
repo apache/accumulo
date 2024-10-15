@@ -49,6 +49,8 @@ enum ScanState {
   IDLE
   RUNNING
   QUEUED
+  ZOMBIE
+  CLEANING
 }
 
 struct ActiveScan {

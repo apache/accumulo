@@ -28,7 +28,9 @@ package org.apache.accumulo.core.tabletscan.thrift;
 public enum ScanState implements org.apache.thrift.TEnum {
   IDLE(0),
   RUNNING(1),
-  QUEUED(2);
+  QUEUED(2),
+  ZOMBIE(3),
+  CLEANING(4);
 
   private final int value;
 
@@ -57,6 +59,10 @@ public enum ScanState implements org.apache.thrift.TEnum {
         return RUNNING;
       case 2:
         return QUEUED;
+      case 3:
+        return ZOMBIE;
+      case 4:
+        return CLEANING;
       default:
         return null;
     }

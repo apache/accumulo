@@ -34,5 +34,15 @@ public enum ScanState {
    * Indicates a task is queued in a server side thread pool to fetch the next bach of key/values
    * for a scan.
    */
-  QUEUED
+  QUEUED,
+
+  /**
+   * Indicate the session is no longer accessible and is in the process of cleaning up resources
+   */
+  CLEANING,
+  /**
+   * Indicate the client session is no longer accessible and still has a thread running on the
+   * server side
+   */
+  ZOMBIE
 }
