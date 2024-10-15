@@ -112,6 +112,20 @@ public class RunningCompactionInfo {
     }
   }
 
+  public RunningCompactionInfo(String server, String queueName, String ecid, String kind,
+      String tableId, int numFiles, float progress, long duration, String status, long lastUpdate) {
+    this.server = server;
+    this.queueName = queueName;
+    this.ecid = ecid;
+    this.kind = kind;
+    this.tableId = tableId;
+    this.numFiles = numFiles;
+    this.progress = progress;
+    this.duration = duration;
+    this.status = status;
+    this.lastUpdate = lastUpdate;
+  }
+
   @Override
   public String toString() {
     return ecid + ": " + status + " progress: " + progress;
