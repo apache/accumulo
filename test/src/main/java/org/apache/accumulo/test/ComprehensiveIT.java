@@ -165,6 +165,7 @@ public class ComprehensiveIT extends SharedMiniClusterBase {
       client.tableOperations().create(table);
 
       getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
+      Wait.waitFor(() -> !client.instanceOperations().getScanServers().isEmpty());
 
       // generate 100 rows of data
       write(client, table, generateMutations(0, 100, tr -> true));
