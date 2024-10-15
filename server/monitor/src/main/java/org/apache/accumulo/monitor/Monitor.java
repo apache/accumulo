@@ -288,8 +288,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
             ServerId manager = managers.iterator().next();
             Optional<HostAndPort> nextCoordinatorHost =
                 Optional.of(HostAndPort.fromString(manager.toHostPortString()));
-            if (coordinatorHost.isEmpty() || (!nextCoordinatorHost.isEmpty()
-                && !coordinatorHost.orElseThrow().equals(nextCoordinatorHost.orElseThrow()))) {
+            if (coordinatorHost.isEmpty()
+                || !coordinatorHost.orElseThrow().equals(nextCoordinatorHost.orElseThrow())) {
               coordinatorHost = nextCoordinatorHost;
             }
           } else {
