@@ -58,7 +58,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths.AddressPredicate;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -236,7 +236,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public Set<String> getCompactors() {
     Set<String> results = new HashSet<>();
-    context.getServerPaths().getCompactor(rg -> true, addr -> true, true)
+    context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -245,7 +245,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public Set<String> getScanServers() {
     Set<String> results = new HashSet<>();
-    context.getServerPaths().getScanServer(rg -> true, addr -> true, true)
+    context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -254,7 +254,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public List<String> getTabletServers() {
     List<String> results = new ArrayList<>();
-    context.getServerPaths().getTabletServer(rg -> true, addr -> true, true)
+    context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -476,7 +476,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     final ResourceGroupPredicate rg =
         resourceGroup == null ? rgt -> true : rgt -> rgt.equals(resourceGroup);
-    final AddressPredicate hp = AddressPredicate.exact(HostAndPort.fromParts(host, port));
+    final AddressSelector hp = AddressSelector.exact(HostAndPort.fromParts(host, port));
 
     switch (type) {
       case COMPACTOR:
@@ -520,8 +520,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public Set<ServerId> getServers(ServerId.Type type) {
-    AddressPredicate addressPredicate = addr -> true;
-    return getServers(type, rg -> true, addressPredicate);
+    return getServers(type, rg -> true, AddressSelector.all());
   }
 
   @Override
@@ -531,22 +530,22 @@ public class InstanceOperationsImpl implements InstanceOperations {
     Objects.requireNonNull(resourceGroupPredicate, "Resource group predicate was null");
     Objects.requireNonNull(hostPortPredicate, "Host port predicate was null");
 
-    AddressPredicate addressPredicate = addr -> {
+    AddressSelector addressPredicate = AddressSelector.matching(addr -> {
       var hp = HostAndPort.fromString(addr);
       return hostPortPredicate.test(hp.getHost(), hp.getPort());
-    };
+    });
 
     return getServers(type, resourceGroupPredicate, addressPredicate);
   }
 
   private Set<ServerId> getServers(ServerId.Type type, Predicate<String> resourceGroupPredicate,
-      AddressPredicate addressPredicate) {
+      AddressSelector addressSelector) {
 
     final Set<ServerId> results = new HashSet<>();
 
     switch (type) {
       case COMPACTOR:
-        context.getServerPaths().getCompactor(resourceGroupPredicate::test, addressPredicate, true)
+        context.getServerPaths().getCompactor(resourceGroupPredicate::test, addressSelector, true)
             .forEach(c -> results.add(createServerId(type, c)));
         break;
       case MANAGER:
@@ -556,7 +555,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
           String location = null;
           if (sld.isPresent()) {
             location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
-            if (addressPredicate.test(location)) {
+            if (addressSelector.getPredicate().test(location)) {
               HostAndPort hp = HostAndPort.fromString(location);
               results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
                   hp.getPort()));
@@ -565,12 +564,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
         }
         break;
       case SCAN_SERVER:
-        context.getServerPaths().getScanServer(resourceGroupPredicate::test, addressPredicate, true)
+        context.getServerPaths().getScanServer(resourceGroupPredicate::test, addressSelector, true)
             .forEach(s -> results.add(createServerId(type, s)));
         break;
       case TABLET_SERVER:
         context.getServerPaths()
-            .getTabletServer(resourceGroupPredicate::test, addressPredicate, true)
+            .getTabletServer(resourceGroupPredicate::test, addressSelector, true)
             .forEach(t -> results.add(createServerId(type, t)));
         break;
       default:

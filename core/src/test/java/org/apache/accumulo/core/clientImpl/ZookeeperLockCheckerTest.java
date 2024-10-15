@@ -53,10 +53,8 @@ public class ZookeeperLockCheckerTest {
         .anyTimes();
     expect(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS))
         .andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME)).anyTimes();
-    expect(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/"
-        + Constants.DEFAULT_RESOURCE_GROUP_NAME)).andReturn(List.of("server")).anyTimes();
-    expect(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/"
-        + Constants.DEFAULT_RESOURCE_GROUP_NAME + "/server")).andReturn(List.of()).anyTimes();
+    expect(zc.get(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/"
+        + Constants.DEFAULT_RESOURCE_GROUP_NAME + "/server")).andReturn(new byte[0]).anyTimes();
     zc.clear(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/"
         + Constants.DEFAULT_RESOURCE_GROUP_NAME + "/server");
     replay(zc);

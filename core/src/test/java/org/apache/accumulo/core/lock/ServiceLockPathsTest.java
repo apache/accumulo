@@ -45,7 +45,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths.AddressPredicate;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
@@ -382,11 +382,12 @@ public class ServiceLockPathsTest {
         () -> ctx.getServerPaths().getCompactor(null, null, true));
     assertThrows(NullPointerException.class,
         () -> ctx.getServerPaths().getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), null, true));
-    assertTrue(ctx.getServerPaths().getCompactor(rg -> true, addr -> true, true).isEmpty());
+    assertTrue(
+        ctx.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true).isEmpty());
     assertTrue(ctx.getServerPaths()
-        .getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> true, true).isEmpty());
+        .getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.all(), true).isEmpty());
     assertTrue(ctx.getServerPaths()
-        .getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressPredicate.exact(hp), true)
+        .getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.exact(hp), true)
         .isEmpty());
 
     EasyMock.verify(ctx, zc);
@@ -438,11 +439,16 @@ public class ServiceLockPathsTest {
             + HOSTNAME + "/" + svcLock1), EasyMock.isA(ZcStat.class)))
         .andReturn(sld2.serialize()).anyTimes();
     EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
+    EasyMock
+        .expect(zc.getChildren(ROOT + ZCOMPACTORS + "/" + TEST_RESOURCE_GROUP + "/localhost:1234"))
+        .andReturn(null).anyTimes();
+    EasyMock.expect(zc.get(ROOT + ZCOMPACTORS + "/" + TEST_RESOURCE_GROUP + "/localhost:1234"))
+        .andReturn(null).anyTimes();
     EasyMock.replay(ctx, zc);
 
     // query for all
     Set<ServiceLockPath> results =
-        ctx.getServerPaths().getCompactor(rg -> true, addr -> true, false);
+        ctx.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), false);
     assertEquals(4, results.size());
     for (ServiceLockPath path : results) {
       assertEquals(ZCOMPACTORS, path.getType());
@@ -459,7 +465,7 @@ public class ServiceLockPathsTest {
     }
 
     // query for all with locks
-    results = ctx.getServerPaths().getCompactor(rg -> true, addr -> true, true);
+    results = ctx.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true);
     assertEquals(2, results.size());
     Iterator<ServiceLockPath> iter = results.iterator();
     ServiceLockPath slp1 = iter.next();
@@ -489,12 +495,12 @@ public class ServiceLockPathsTest {
 
     // query for all in non-existent resource group
     results = ctx.getServerPaths().getCompactor(rg -> rg.equals("FAKE_RESOURCE_GROUP"),
-        addr -> true, true);
+        AddressSelector.all(), true);
     assertEquals(0, results.size());
 
     // query for all in test resource group
-    results =
-        ctx.getServerPaths().getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> true, true);
+    results = ctx.getServerPaths().getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP),
+        AddressSelector.all(), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -505,7 +511,7 @@ public class ServiceLockPathsTest {
 
     // query for a specific server
     results = ctx.getServerPaths().getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        AddressPredicate.exact(hp), true);
+        AddressSelector.exact(hp), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -515,9 +521,14 @@ public class ServiceLockPathsTest {
     assertEquals(ROOT + ZCOMPACTORS + "/" + TEST_RESOURCE_GROUP + "/" + HOSTNAME, slp1.toString());
 
     // query for a wrong server
-    results = ctx.getServerPaths().getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        AddressPredicate.exact(HostAndPort.fromString("localhost:1234")), true);
-    assertEquals(0, results.size());
+    for (boolean withLock : new boolean[] {true, false}) {
+      results = ctx.getServerPaths().getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP),
+          AddressSelector.exact(HostAndPort.fromString("localhost:1234")), withLock);
+      assertEquals(0, results.size());
+      results = ctx.getServerPaths().getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP),
+          AddressSelector.matching(hp -> hp.equals("localhost:1234")), withLock);
+      assertEquals(0, results.size());
+    }
 
     EasyMock.verify(ctx, zc);
 
@@ -539,11 +550,13 @@ public class ServiceLockPathsTest {
         () -> ctx.getServerPaths().getScanServer(null, null, true));
     assertThrows(NullPointerException.class,
         () -> ctx.getServerPaths().getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), null, true));
-    assertTrue(ctx.getServerPaths().getScanServer(rg -> true, addr -> true, true).isEmpty());
+    assertTrue(
+        ctx.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true).isEmpty());
     assertTrue(ctx.getServerPaths()
-        .getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> true, true).isEmpty());
+        .getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.all(), true)
+        .isEmpty());
     assertTrue(ctx.getServerPaths()
-        .getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressPredicate.exact(hp), true)
+        .getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.exact(hp), true)
         .isEmpty());
 
     EasyMock.verify(ctx, zc);
@@ -594,11 +607,14 @@ public class ServiceLockPathsTest {
             ROOT + ZSSERVERS + "/" + DEFAULT_RESOURCE_GROUP_NAME + "/" + HOSTNAME + "/" + svcLock1),
         EasyMock.isA(ZcStat.class))).andReturn(sld2.serialize()).anyTimes();
     EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
+    EasyMock
+        .expect(zc.getChildren(ROOT + ZSSERVERS + "/" + TEST_RESOURCE_GROUP + "/localhost:1234"))
+        .andReturn(null).anyTimes();
     EasyMock.replay(ctx, zc);
 
     // query for all
     Set<ServiceLockPath> results =
-        ctx.getServerPaths().getScanServer(rg -> true, addr -> true, false);
+        ctx.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), false);
     assertEquals(4, results.size());
     for (ServiceLockPath path : results) {
       assertEquals(ZSSERVERS, path.getType());
@@ -615,7 +631,7 @@ public class ServiceLockPathsTest {
     }
 
     // query for all with lock
-    results = ctx.getServerPaths().getScanServer(rg -> true, addr -> true, true);
+    results = ctx.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
     assertEquals(2, results.size());
     Iterator<ServiceLockPath> iter = results.iterator();
     ServiceLockPath slp1 = iter.next();
@@ -643,12 +659,12 @@ public class ServiceLockPathsTest {
 
     // query for all in non-existent resource group
     results = ctx.getServerPaths().getScanServer(rg -> rg.equals("FAKE_RESOURCE_GROUP"),
-        addr -> true, true);
+        AddressSelector.all(), true);
     assertEquals(0, results.size());
 
     // query for all in test resource group
-    results = ctx.getServerPaths().getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> true,
-        true);
+    results = ctx.getServerPaths().getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
+        AddressSelector.all(), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -659,7 +675,7 @@ public class ServiceLockPathsTest {
 
     // query for a specific server
     results = ctx.getServerPaths().getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        AddressPredicate.exact(hp), true);
+        AddressSelector.exact(hp), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -670,7 +686,7 @@ public class ServiceLockPathsTest {
 
     // query for a wrong server
     results = ctx.getServerPaths().getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        AddressPredicate.exact(HostAndPort.fromString("localhost:1234")), true);
+        AddressSelector.exact(HostAndPort.fromString("localhost:1234")), true);
     assertEquals(0, results.size());
 
     EasyMock.verify(ctx, zc);
@@ -693,11 +709,13 @@ public class ServiceLockPathsTest {
         () -> ctx.getServerPaths().getTabletServer(null, null, true));
     assertThrows(NullPointerException.class, () -> ctx.getServerPaths()
         .getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), null, true));
-    assertTrue(ctx.getServerPaths().getTabletServer(rg -> true, addr -> true, true).isEmpty());
+    assertTrue(
+        ctx.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true).isEmpty());
     assertTrue(ctx.getServerPaths()
-        .getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> true, true).isEmpty());
+        .getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.all(), true)
+        .isEmpty());
     assertTrue(ctx.getServerPaths()
-        .getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressPredicate.exact(hp), true)
+        .getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.exact(hp), true)
         .isEmpty());
 
     EasyMock.verify(ctx, zc);
@@ -748,11 +766,14 @@ public class ServiceLockPathsTest {
             ROOT + ZTSERVERS + "/" + DEFAULT_RESOURCE_GROUP_NAME + "/" + HOSTNAME + "/" + svcLock1),
         EasyMock.isA(ZcStat.class))).andReturn(sld2.serialize()).anyTimes();
     EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
+    EasyMock
+        .expect(zc.getChildren(ROOT + ZTSERVERS + "/" + TEST_RESOURCE_GROUP + "/localhost:1234"))
+        .andReturn(null).anyTimes();
     EasyMock.replay(ctx, zc);
 
     // query for all
     Set<ServiceLockPath> results =
-        ctx.getServerPaths().getTabletServer(rg -> true, addr -> true, false);
+        ctx.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), false);
     assertEquals(4, results.size());
     for (ServiceLockPath path : results) {
       assertEquals(ZTSERVERS, path.getType());
@@ -769,7 +790,7 @@ public class ServiceLockPathsTest {
     }
 
     // query for all with lock
-    results = ctx.getServerPaths().getTabletServer(rg -> true, addr -> true, true);
+    results = ctx.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true);
     assertEquals(2, results.size());
     Iterator<ServiceLockPath> iter = results.iterator();
     ServiceLockPath slp1 = iter.next();
@@ -797,12 +818,12 @@ public class ServiceLockPathsTest {
 
     // query for all in non-existent resource group
     results = ctx.getServerPaths().getTabletServer(rg -> rg.equals("FAKE_RESOURCE_GROUP"),
-        addr -> true, true);
+        AddressSelector.all(), true);
     assertEquals(0, results.size());
 
     // query for all in test resource group
     results = ctx.getServerPaths().getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        addr -> true, true);
+        AddressSelector.all(), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -813,7 +834,7 @@ public class ServiceLockPathsTest {
 
     // query for a specific server
     results = ctx.getServerPaths().getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        AddressPredicate.exact(hp), true);
+        AddressSelector.exact(hp), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -824,7 +845,7 @@ public class ServiceLockPathsTest {
 
     // query for a wrong server
     results = ctx.getServerPaths().getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        AddressPredicate.exact(HostAndPort.fromString("localhost:1234")), true);
+        AddressSelector.exact(HostAndPort.fromString("localhost:1234")), true);
     assertEquals(0, results.size());
 
     EasyMock.verify(ctx, zc);
@@ -847,11 +868,14 @@ public class ServiceLockPathsTest {
         () -> ctx.getServerPaths().getDeadTabletServer(null, null, false));
     assertThrows(NullPointerException.class, () -> ctx.getServerPaths()
         .getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), null, false));
-    assertTrue(ctx.getServerPaths().getDeadTabletServer(rg -> true, addr -> true, false).isEmpty());
+    assertTrue(ctx.getServerPaths().getDeadTabletServer(rg -> true, AddressSelector.all(), false)
+        .isEmpty());
     assertTrue(ctx.getServerPaths()
-        .getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), addr -> true, false).isEmpty());
-    assertTrue(ctx.getServerPaths().getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        AddressPredicate.exact(hp), false).isEmpty());
+        .getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.all(), false)
+        .isEmpty());
+    assertTrue(ctx.getServerPaths()
+        .getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.exact(hp), false)
+        .isEmpty());
 
     EasyMock.verify(ctx, zc);
 
@@ -882,6 +906,8 @@ public class ServiceLockPathsTest {
     EasyMock
         .expect(zc.getChildren(ROOT + ZDEADTSERVERS + "/" + TEST_RESOURCE_GROUP + "/" + HOSTNAME))
         .andReturn(List.of(svcLock1, svcLock2)).anyTimes();
+    EasyMock.expect(zc.get(ROOT + ZDEADTSERVERS + "/" + TEST_RESOURCE_GROUP + "/" + HOSTNAME))
+        .andReturn(new byte[0]).anyTimes();
     EasyMock
         .expect(zc
             .getChildren(ROOT + ZDEADTSERVERS + "/" + DEFAULT_RESOURCE_GROUP_NAME + "/" + HOSTNAME))
@@ -895,11 +921,13 @@ public class ServiceLockPathsTest {
             + HOSTNAME + "/" + svcLock1), EasyMock.isA(ZcStat.class)))
         .andReturn(sld2.serialize()).anyTimes();
     EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
+    EasyMock.expect(zc.get(ROOT + ZDEADTSERVERS + "/" + TEST_RESOURCE_GROUP + "/localhost:1234"))
+        .andReturn(null).anyTimes();
     EasyMock.replay(ctx, zc);
 
     // query for all
     Set<ServiceLockPath> results =
-        ctx.getServerPaths().getDeadTabletServer(rg -> true, addr -> true, false);
+        ctx.getServerPaths().getDeadTabletServer(rg -> true, AddressSelector.all(), false);
     assertEquals(2, results.size());
     Iterator<ServiceLockPath> iter = results.iterator();
     ServiceLockPath slp1 = iter.next();
@@ -929,12 +957,12 @@ public class ServiceLockPathsTest {
 
     // query for all in non-existent resource group
     results = ctx.getServerPaths().getDeadTabletServer(rg -> rg.equals("FAKE_RESOURCE_GROUP"),
-        addr -> true, false);
+        AddressSelector.all(), false);
     assertEquals(0, results.size());
 
     // query for all in test resource group
     results = ctx.getServerPaths().getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        addr -> true, false);
+        AddressSelector.all(), false);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -946,7 +974,7 @@ public class ServiceLockPathsTest {
 
     // query for a specific server
     results = ctx.getServerPaths().getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        AddressPredicate.exact(hp), false);
+        AddressSelector.exact(hp), false);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -958,7 +986,7 @@ public class ServiceLockPathsTest {
 
     // query for a wrong server
     results = ctx.getServerPaths().getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
-        AddressPredicate.exact(HostAndPort.fromString("localhost:1234")), false);
+        AddressSelector.exact(HostAndPort.fromString("localhost:1234")), false);
     assertEquals(0, results.size());
 
     EasyMock.verify(ctx, zc);
