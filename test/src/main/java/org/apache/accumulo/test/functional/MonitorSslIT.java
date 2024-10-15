@@ -88,6 +88,7 @@ public class MonitorSslIT extends AccumuloClusterHarness {
   }
 
   private static boolean sslEnabled = false;
+  private static boolean http2Enabled = false;
 
   @AfterEach
   public void after() throws Exception {
@@ -97,7 +98,7 @@ public class MonitorSslIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    LOG.info("*** Configuring server, SSL Enabled: {}", sslEnabled);
+    LOG.info("*** Configuring server, SSL enabled: {}", sslEnabled);
     if (sslEnabled) {
       File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName());
       ConfigurableMacBase.configureForSsl(cfg, getSslDir(baseDir));
@@ -124,8 +125,9 @@ public class MonitorSslIT extends AccumuloClusterHarness {
         siteConfig.put(Property.MONITOR_SSL_TRUSTSTORETYPE.getKey(),
             Property.RPC_SSL_TRUSTSTORE_TYPE.getDefaultValue());
       }
-      cfg.setSiteConfig(siteConfig);
     }
+    LOG.info("*** Configuring server, http2 enabled: {}", http2Enabled);
+    cfg.setProperty(Property.MONITOR_SUPPORT_HTTP2, Boolean.toString(http2Enabled));
   }
 
   @Test
@@ -134,12 +136,26 @@ public class MonitorSslIT extends AccumuloClusterHarness {
   }
 
   @Test
+  @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD",
+      justification = "writing to static ok for testing")
   public void test2() throws Exception {
+    test();
+    // Run the first two tests with http2 disabled. Enable for the remaining two tests
+    http2Enabled = true;
+  }
+
+  @Test
+  public void test3() throws Exception {
+    test();
+  }
+
+  @Test
+  public void test4() throws Exception {
     test();
   }
 
   public void test() throws Exception {
-    LOG.info("*** Running test, SSL Enabled: {}", sslEnabled);
+    LOG.info("*** Running test, SSL enabled: {}, HTTP2 enabled: {}", sslEnabled, http2Enabled);
 
     LOG.debug("Starting Monitor");
     cluster.getClusterControl().startAllServers(ServerType.MONITOR);
@@ -174,12 +190,14 @@ public class MonitorSslIT extends AccumuloClusterHarness {
     assertTrue(body.getContentAsString().indexOf("Accumulo Overview") >= 0);
     h1.stop();
 
-    HttpClient h2 = createHttp2(sslContextFactory);
-    h2.start();
-    body = h2.GET(monitorLocation);
-    assertTrue(body.getContentAsString().length() > 100);
-    assertTrue(body.getContentAsString().indexOf("Accumulo Overview") >= 0);
-    h2.stop();
+    if (http2Enabled) {
+      HttpClient h2 = createHttp2(sslContextFactory);
+      h2.start();
+      body = h2.GET(monitorLocation);
+      assertTrue(body.getContentAsString().length() > 100);
+      assertTrue(body.getContentAsString().indexOf("Accumulo Overview") >= 0);
+      h2.stop();
+    }
 
   }
 
@@ -203,8 +221,6 @@ public class MonitorSslIT extends AccumuloClusterHarness {
     }
 
     HTTP2Client h2Client = new HTTP2Client(connector);
-    h2Client.setInitialSessionRecvWindow(64 * 1024 * 1024);
-    h2Client.setMaxFrameSize(14 * 1024 * 1024);
 
     // Create and configure the HTTP/2 transport.
     HttpClientTransportOverHTTP2 transport = new HttpClientTransportOverHTTP2(h2Client);

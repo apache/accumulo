@@ -67,11 +67,10 @@ public class EmbeddedWebServer {
   private void addConnectors(Monitor monitor, AccumuloConfiguration conf, int httpPort,
       boolean secure) {
 
+    boolean configureHttp2 = conf.getBoolean(Property.MONITOR_SUPPORT_HTTP2);
+
     final HttpConfiguration httpConfig = new HttpConfiguration();
     httpConfig.setSendServerVersion(false);
-    httpConfig.setOutputBufferSize(10485760);
-    httpConfig.setRequestHeaderSize(10485760);
-    httpConfig.setResponseHeaderSize(10485760);
 
     if (secure) {
       LOG.debug("Configuring Jetty with TLS");
@@ -105,32 +104,35 @@ public class EmbeddedWebServer {
         sslContextFactory.setIncludeProtocols(includeProtocols.split(","));
       }
 
-      httpConfig.addCustomizer(new SecureRequestCustomizer());
-
-      HttpConnectionFactory http11 = new HttpConnectionFactory(httpConfig);
-
-      ALPNServerConnectionFactory alpn = new ALPNServerConnectionFactory();
-      alpn.setDefaultProtocol(http11.getProtocol());
-
-      HTTP2ServerConnectionFactory http2 = new HTTP2ServerConnectionFactory(httpConfig);
-
-      SslConnectionFactory tls = new SslConnectionFactory(sslContextFactory, alpn.getProtocol());
-
-      connector = new ServerConnector(server, tls, alpn, http2, http11);
+      if (!configureHttp2) {
+        HttpConnectionFactory http11 = new HttpConnectionFactory(httpConfig);
+        SslConnectionFactory tls =
+            new SslConnectionFactory(sslContextFactory, http11.getProtocol());
+        connector = new ServerConnector(server, tls, http11);
+      } else {
+        LOG.debug("Enabling http2 support");
+        httpConfig.addCustomizer(new SecureRequestCustomizer());
+        HttpConnectionFactory http11 = new HttpConnectionFactory(httpConfig);
+        ALPNServerConnectionFactory alpn = new ALPNServerConnectionFactory();
+        alpn.setDefaultProtocol(http11.getProtocol());
+        HTTP2ServerConnectionFactory http2 = new HTTP2ServerConnectionFactory(httpConfig);
+        SslConnectionFactory tls = new SslConnectionFactory(sslContextFactory, alpn.getProtocol());
+        connector = new ServerConnector(server, tls, alpn, http2, http11);
+      }
       connector.setHost(monitor.getHostname());
       connector.setPort(httpPort);
       server.addConnector(connector);
     } else {
-
       LOG.debug("Configuring Jetty without TLS");
-
-      HttpConnectionFactory http11 = new HttpConnectionFactory(httpConfig);
-
-      HTTP2CServerConnectionFactory http2 = new HTTP2CServerConnectionFactory(httpConfig);
-      http2.setMaxFrameSize(14 * 1024 * 1024);
-
-      // The ServerConnector instance.
-      connector = new ServerConnector(server, http11, http2);
+      if (!configureHttp2) {
+        HttpConnectionFactory http11 = new HttpConnectionFactory(httpConfig);
+        connector = new ServerConnector(server, http11);
+      } else {
+        LOG.debug("Enabling http2 support");
+        HttpConnectionFactory http11 = new HttpConnectionFactory(httpConfig);
+        HTTP2CServerConnectionFactory http2 = new HTTP2CServerConnectionFactory(httpConfig);
+        connector = new ServerConnector(server, http11, http2);
+      }
       connector.setHost(monitor.getHostname());
       connector.setPort(httpPort);
       server.addConnector(connector);

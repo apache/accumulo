@@ -868,6 +868,8 @@ public enum Property {
           + " The resources that are used by default can be seen in"
           + " `accumulo/server/monitor/src/main/resources/templates/default.ftl`.",
       "2.0.0"),
+  MONITOR_SUPPORT_HTTP2("monitor.http2.support", "false", PropertyType.BOOLEAN,
+      "If true will configure the Monitor web server to support http2 connections.", "3.1.0"),
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
       "Properties in this category affect tablet server treatment of tablets,"

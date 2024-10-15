@@ -473,7 +473,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       throw new RuntimeException(
           "Unable to start embedded web server on ports: " + Arrays.toString(ports));
     } else {
-      log.debug("Monitor started on port h1/h2: {}", server.getHttpPort());
+      log.debug("Monitor started on port {}", server.getHttpPort());
     }
 
     String advertiseHost = getHostname();
@@ -508,9 +508,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       // Delete before we try to re-create in case the previous session hasn't yet expired
       zoo.delete(path);
       zoo.putEphemeralData(path, url.toString().getBytes(UTF_8));
-      log.info("Set monitor http address in zookeeper to {}", url);
+      log.info("Set monitor address in zookeeper to {}", url);
     } catch (Exception ex) {
-      log.error("Unable to advertise monitor HTTP addresses in zookeeper", ex);
+      log.error("Unable to advertise monitor HTTP address in zookeeper", ex);
     }
 
     // need to regularly fetch data so plot data is updated
