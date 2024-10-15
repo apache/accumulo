@@ -48,6 +48,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.regex.Pattern;
 
@@ -1571,16 +1572,38 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void ping() throws Exception {
-    for (int i = 0; i < 10; i++) {
-      ts.exec("ping", true, "OK", true);
-      // wait for both tservers to start up
-      if (ts.output.get().split("\n").length == 3) {
-        break;
-      }
-      Thread.sleep(SECONDS.toMillis(1));
 
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerId.Type.COMPACTOR).size() == 1);
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).size() == 1);
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 1);
+
+      Set<ServerId> servers = client.instanceOperations().getServers(ServerId.Type.COMPACTOR);
+      for (ServerId sid : servers) {
+        ts.exec("ping -s " + sid.toHostPortString(), true, "OK", true);
+        ts.exec("ping -ts " + sid.toHostPortString(), true, "OK", true);
+      }
+
+      servers = client.instanceOperations().getServers(ServerId.Type.SCAN_SERVER);
+      for (ServerId sid : servers) {
+        ts.exec("ping -s " + sid.toHostPortString(), true, "OK", true);
+        ts.exec("ping -ts " + sid.toHostPortString(), true, "OK", true);
+      }
+
+      servers = client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
+      for (ServerId sid : servers) {
+        ts.exec("ping -s " + sid.toHostPortString(), true, "OK", true);
+        ts.exec("ping -ts " + sid.toHostPortString(), true, "OK", true);
+      }
+
+      ts.exec("ping", true, "OK", true);
+      // Should be 3, but there is an extra line with a single apostrophe trailing
+      assertEquals(4, ts.output.get().split("\n").length);
     }
-    assertEquals(2, ts.output.get().split("\n").length);
+
   }
 
   @Test
