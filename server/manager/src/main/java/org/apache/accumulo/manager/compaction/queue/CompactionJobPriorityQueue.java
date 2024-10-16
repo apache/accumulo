@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.compaction.queue;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,23 +29,31 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
+import org.apache.accumulo.core.util.Stat;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 
 /**
  * Priority Queue for {@link CompactionJob}s that supports a maximum size. When a job is added and
@@ -113,6 +122,9 @@ public class CompactionJobPriorityQueue {
   private final AtomicLong dequeuedJobs;
   private final ArrayDeque<CompletableFuture<CompactionJobQueues.MetaJob>> futures;
   private long futuresAdded = 0;
+  private final Map<KeyExtent,Timer> jobAges;
+  private final Supplier<CompactionJobPriorityQueueStats> jobQueueStats;
+  private final AtomicReference<io.micrometer.core.instrument.Timer> jobQueueTimer;
 
   private static class TabletJobs {
     final long generation;
@@ -138,6 +150,10 @@ public class CompactionJobPriorityQueue {
     this.rejectedJobs = new AtomicLong(0);
     this.dequeuedJobs = new AtomicLong(0);
     this.futures = new ArrayDeque<>();
+    this.jobAges = new ConcurrentHashMap<>();
+    this.jobQueueStats = Suppliers.memoizeWithExpiration(
+        () -> new CompactionJobPriorityQueueStats(jobAges), 5, TimeUnit.SECONDS);
+    this.jobQueueTimer = new AtomicReference<>();
   }
 
   public synchronized void removeOlderGenerations(Ample.DataLevel level, long currGeneration) {
@@ -235,10 +251,19 @@ public class CompactionJobPriorityQueue {
     if (first != null) {
       dequeuedJobs.getAndIncrement();
       var extent = first.getValue().getTabletMetadata().getExtent();
+      var timer = jobAges.get(extent);
+      checkState(timer != null);
+      Optional.ofNullable(jobQueueTimer.get()).ifPresent(jqt -> jqt.record(timer.elapsed()));
+      log.trace("Compaction job age for {} is {} ms", extent, timer.elapsed(TimeUnit.MILLISECONDS));
       Set<CjpqKey> jobs = tabletJobs.get(extent).jobs;
       checkState(jobs.remove(first.getKey()));
+      // If there are no more jobs for this extent we can remove the timer, otherwise
+      // we need to reset it
       if (jobs.isEmpty()) {
         tabletJobs.remove(extent);
+        jobAges.remove(extent);
+      } else {
+        timer.restart();
       }
     }
     return first == null ? null : first.getValue();
@@ -307,11 +332,49 @@ public class CompactionJobPriorityQueue {
 
     var key = new CjpqKey(job);
     jobQueue.put(key, new CompactionJobQueues.MetaJob(job, tabletMetadata));
+    jobAges.computeIfAbsent(tabletMetadata.getExtent(), e -> Timer.startNew());
     return key;
   }
 
   public synchronized void clear() {
     jobQueue.clear();
     tabletJobs.clear();
+    jobAges.clear();
+
+    // TODO, what do we do here for the jobQueueTimer, if anything?
+  }
+
+  public CompactionJobPriorityQueueStats getJobQueueStats() {
+    return jobQueueStats.get();
+  }
+
+  public void setJobQueueTimerCallback(io.micrometer.core.instrument.Timer jobQueueTimer) {
+    this.jobQueueTimer.set(jobQueueTimer);
+  }
+
+  public static class CompactionJobPriorityQueueStats {
+    private final Duration minAge;
+    private final Duration maxAge;
+    private final Duration avgAge;
+
+    private CompactionJobPriorityQueueStats(Map<KeyExtent,Timer> jobAges) {
+      final Stat stats = new Stat();
+      jobAges.values().forEach(t -> stats.addStat(t.elapsed(TimeUnit.MILLISECONDS)));
+      this.minAge = Duration.ofMillis(stats.min());
+      this.maxAge = Duration.ofMillis(stats.max());
+      this.avgAge = Duration.ofMillis(Math.round(stats.mean()));
+    }
+
+    public Duration getMinAge() {
+      return minAge;
+    }
+
+    public Duration getMaxAge() {
+      return maxAge;
+    }
+
+    public Duration getAvgAge() {
+      return avgAge;
+    }
   }
 }
