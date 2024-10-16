@@ -142,58 +142,32 @@ $(document).ready(function () {
     ]
   });
 
-  const isRegex = true;
-  const smartEnabled = false;
-
+  function handleFilterKeyup(input, feedbackElement, columnIndex) {
+    if (isValidRegex(input) || input === '') { // if valid, apply the filter
+      feedbackElement.hide();
+      $(this).removeClass('is-invalid');
+      const isRegex = true;
+      const smartEnabled = false;
+      runningTable
+        .column(columnIndex)
+        .search(input, isRegex, smartEnabled)
+        .draw();
+    } else { // if invalid, show the warning
+      feedbackElement.show();
+      $(this).addClass('is-invalid');
+    }
+  }
+  
   $('#hostname-filter').on('keyup', function () {
-    const input = this.value;
-    const feedbackEl = $('#hostname-feedback');
-
-    if (isValidRegex(input) || input === '') {
-      feedbackEl.hide();
-      $(this).removeClass('is-invalid');
-      runningTable
-        .column(0)
-        .search(input, isRegex, smartEnabled)
-        .draw();
-    } else {
-      feedbackEl.show();
-      $(this).addClass('is-invalid');
-    }
+    handleFilterKeyup.call(this, this.value, $('#hostname-feedback'), 0);
   });
-
+  
   $('#queue-filter').on('keyup', function () {
-    const input = this.value;
-    const feedbackEl = $('#queue-feedback');
-
-    if (isValidRegex(input) || input === '') {
-      feedbackEl.hide();
-      $(this).removeClass('is-invalid');
-      runningTable
-        .column(3)
-        .search(input, isRegex, smartEnabled)
-        .draw();
-    } else {
-      feedbackEl.show();
-      $(this).addClass('is-invalid');
-    }
+    handleFilterKeyup.call(this, this.value, $('#queue-feedback'), 3);
   });
-
+  
   $('#tableid-filter').on('keyup', function () {
-    const input = this.value;
-    const feedbackEl = $('#tableid-feedback');
-
-    if (isValidRegex(input) || input === '') {
-      feedbackEl.hide();
-      $(this).removeClass('is-invalid');
-      runningTable
-        .column(4)
-        .search(input, isRegex, smartEnabled)
-        .draw();
-    } else {
-      feedbackEl.show();
-      $(this).addClass('is-invalid');
-    }
+    handleFilterKeyup.call(this, this.value, $('#tableid-feedback'), 4);
   });
 
   // Placeholder for the age range filter
