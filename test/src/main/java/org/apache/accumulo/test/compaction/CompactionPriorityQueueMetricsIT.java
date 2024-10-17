@@ -56,6 +56,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -119,7 +120,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   public void setupMetricsTest() throws Exception {
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
     Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-        .getCompactor(rg -> true, addr -> true, true).isEmpty(), 60_000);
+        .getCompactor(rg -> true, AddressSelector.all(), true).isEmpty(), 60_000);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = getUniqueNames(1)[0];

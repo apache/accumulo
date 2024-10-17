@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.lock;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -285,7 +286,7 @@ public class ServiceLockPaths {
   }
 
   public Set<ServiceLockPath> getCompactor(ResourceGroupPredicate resourceGroupPredicate,
-      AddressPredicate address, boolean withLock) {
+      AddressSelector address, boolean withLock) {
     return get(Constants.ZCOMPACTORS, resourceGroupPredicate, address, withLock);
   }
 
@@ -295,7 +296,8 @@ public class ServiceLockPaths {
    * the ZooKeeper path.
    */
   public ServiceLockPath getGarbageCollector(boolean withLock) {
-    Set<ServiceLockPath> results = get(Constants.ZGC_LOCK, rg -> true, addr -> true, withLock);
+    Set<ServiceLockPath> results =
+        get(Constants.ZGC_LOCK, rg -> true, AddressSelector.all(), withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -309,7 +311,8 @@ public class ServiceLockPaths {
    * InstanceOperations.getServers(ServerId.Type.MANAGER) to get the location.
    */
   public ServiceLockPath getManager(boolean withLock) {
-    Set<ServiceLockPath> results = get(Constants.ZMANAGER_LOCK, rg -> true, addr -> true, withLock);
+    Set<ServiceLockPath> results =
+        get(Constants.ZMANAGER_LOCK, rg -> true, AddressSelector.all(), withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -318,7 +321,8 @@ public class ServiceLockPaths {
   }
 
   public ServiceLockPath getMonitor(boolean withLock) {
-    Set<ServiceLockPath> results = get(Constants.ZMONITOR_LOCK, rg -> true, addr -> true, withLock);
+    Set<ServiceLockPath> results =
+        get(Constants.ZMONITOR_LOCK, rg -> true, AddressSelector.all(), withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -327,17 +331,17 @@ public class ServiceLockPaths {
   }
 
   public Set<ServiceLockPath> getScanServer(ResourceGroupPredicate resourceGroupPredicate,
-      AddressPredicate address, boolean withLock) {
+      AddressSelector address, boolean withLock) {
     return get(Constants.ZSSERVERS, resourceGroupPredicate, address, withLock);
   }
 
   public Set<ServiceLockPath> getTabletServer(ResourceGroupPredicate resourceGroupPredicate,
-      AddressPredicate address, boolean withLock) {
+      AddressSelector address, boolean withLock) {
     return get(Constants.ZTSERVERS, resourceGroupPredicate, address, withLock);
   }
 
   public Set<ServiceLockPath> getDeadTabletServer(ResourceGroupPredicate resourceGroupPredicate,
-      AddressPredicate address, boolean withLock) {
+      AddressSelector address, boolean withLock) {
     return get(Constants.ZDEADTSERVERS, resourceGroupPredicate, address, withLock);
   }
 
@@ -345,11 +349,41 @@ public class ServiceLockPaths {
 
   }
 
-  public interface AddressPredicate extends Predicate<String> {
+  public static class AddressSelector {
+    private final Predicate<String> predicate;
+    private final HostAndPort exactAddress;
 
-    static AddressPredicate exact(HostAndPort hostAndPort) {
-      Objects.requireNonNull(hostAndPort);
-      AddressPredicate predicate = addr -> hostAndPort.equals(HostAndPort.fromString(addr));
+    private AddressSelector(Predicate<String> predicate, HostAndPort exactAddress) {
+      Preconditions.checkArgument((predicate == null && exactAddress != null)
+          || (predicate != null && exactAddress == null));
+      if (predicate == null) {
+        String hp = exactAddress.toString();
+        this.predicate = addr -> addr.equals(hp);
+      } else {
+        this.predicate = predicate;
+      }
+      this.exactAddress = exactAddress;
+    }
+
+    public static AddressSelector exact(HostAndPort hostAndPort) {
+      return new AddressSelector(null, hostAndPort);
+    }
+
+    public static AddressSelector matching(Predicate<String> predicate) {
+      return new AddressSelector(predicate, null);
+    }
+
+    private static AddressSelector ALL = new AddressSelector(s -> true, null);
+
+    public static AddressSelector all() {
+      return ALL;
+    }
+
+    public HostAndPort getExactAddress() {
+      return exactAddress;
+    }
+
+    public Predicate<String> getPredicate() {
       return predicate;
     }
   }
@@ -361,18 +395,18 @@ public class ServiceLockPaths {
    * @param serverType type of lock, should be something like Constants.ZTSERVERS or
    *        Constants.ZMANAGER_LOCK
    * @param resourceGroupPredicate only returns servers in resource groups that pass this predicate
-   * @param addressPredicate only return servers that match this predicate
+   * @param addressSelector only return servers that meet this criteria
    * @param withLock supply true if you only want to return servers that have an active lock. Not
    *        applicable for types that don't use a lock (e.g. dead tservers)
    * @return set of ServiceLockPath objects for the paths found based on the search criteria
    */
   private Set<ServiceLockPath> get(final String serverType,
-      ResourceGroupPredicate resourceGroupPredicate, AddressPredicate addressPredicate,
+      ResourceGroupPredicate resourceGroupPredicate, AddressSelector addressSelector,
       boolean withLock) {
 
     Objects.requireNonNull(serverType);
     Objects.requireNonNull(resourceGroupPredicate);
-    Objects.requireNonNull(addressPredicate);
+    Objects.requireNonNull(addressSelector);
 
     final Set<ServiceLockPath> results = new HashSet<>();
     final String typePath = ctx.getZooKeeperRoot() + serverType;
@@ -395,7 +429,24 @@ public class ServiceLockPaths {
       final List<String> resourceGroups = cache.getChildren(typePath);
       for (final String group : resourceGroups) {
         if (resourceGroupPredicate.test(group)) {
-          final List<String> servers = cache.getChildren(typePath + "/" + group);
+          final Collection<String> servers;
+          final Predicate<String> addressPredicate;
+
+          if (addressSelector.getExactAddress() != null) {
+            var server = addressSelector.getExactAddress().toString();
+            if (withLock || cache.get(typePath + "/" + group + "/" + server) != null) {
+              // When withLock is true the server in the list may not exist in zookeeper, if it does
+              // not exist then no lock will be found later when looking for a lock in zookeeper.
+              servers = List.of(server);
+            } else {
+              servers = List.of();
+            }
+            addressPredicate = s -> true;
+          } else {
+            servers = cache.getChildren(typePath + "/" + group);
+            addressPredicate = addressSelector.getPredicate();
+          }
+
           for (final String server : servers) {
             if (addressPredicate.test(server)) {
               final ServiceLockPath slp =

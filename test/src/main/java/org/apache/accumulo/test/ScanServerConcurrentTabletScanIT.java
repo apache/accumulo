@@ -39,6 +39,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -92,7 +93,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
         1, null);
 
     Wait.waitFor(() -> !getCluster().getServerContext().getServerPaths()
-        .getScanServer(rg -> true, addr -> true, true).isEmpty());
+        .getScanServer(rg -> true, AddressSelector.all(), true).isEmpty());
 
   }
 
