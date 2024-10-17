@@ -337,7 +337,6 @@ public class Upgrader11to12Test {
   }
 
   @Test
-  @SuppressWarnings("deprecation")
   public void upgradeZooKeeperTest() throws Exception {
 
     // taken from an uno instance.
@@ -380,6 +379,7 @@ public class Upgrader11to12Test {
     expect(zrw.getChildren(eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES)))
         .andReturn(List.copyOf(mockNamespaces.keySet())).once();
     for (String ns : mockNamespaces.keySet()) {
+      @SuppressWarnings("deprecation")
       Supplier<String> pathMatcher = () -> eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES
           + "/" + ns + Constants.ZNAMESPACE_NAME);
       expect(zrw.getData(pathMatcher.get())).andReturn(mockNamespaces.get(ns).getBytes(UTF_8))

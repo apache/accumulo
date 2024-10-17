@@ -88,7 +88,6 @@ public class Upgrader11to12 implements Upgrader {
   public static final String ZTRACERS = "/tracers";
 
   @Override
-  @SuppressWarnings("deprecation")
   public void upgradeZookeeper(@NonNull ServerContext context) {
     log.debug("Upgrade ZooKeeper: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
     var zooRoot = ZooUtil.getRoot(context.getInstanceID());
@@ -128,6 +127,7 @@ public class Upgrader11to12 implements Upgrader {
       Map<String,String> namespaceMap = new HashMap<>();
       List<String> namespaceIdList = zoo.getChildren(zPath);
       for (String namespaceId : namespaceIdList) {
+        @SuppressWarnings("deprecation")
         String namespaceNamePath = zPath + "/" + namespaceId + Constants.ZNAMESPACE_NAME;
         namespaceMap.put(namespaceId, new String(zoo.getData(namespaceNamePath), UTF_8));
         zoo.delete(namespaceNamePath);
