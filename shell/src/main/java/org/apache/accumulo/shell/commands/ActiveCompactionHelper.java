@@ -83,7 +83,7 @@ class ActiveCompactionHelper {
 
     String hostSuffix;
     switch (ac.getHost().getType()) {
-      case TSERVER:
+      case TABLET_SERVER:
         hostSuffix = "";
         break;
       case COMPACTOR:
@@ -94,7 +94,7 @@ class ActiveCompactionHelper {
         break;
     }
 
-    String host = ac.getHost().getAddress() + ":" + ac.getHost().getPort() + hostSuffix;
+    String host = ac.getHost().toHostPortString() + hostSuffix;
 
     try {
       var dur = new DurationFormat(ac.getAge(), "");
@@ -139,7 +139,7 @@ class ActiveCompactionHelper {
 
   public static Stream<String> activeCompactions(InstanceOperations instanceOps) {
     Comparator<ActiveCompaction> comparator =
-        Comparator.comparing((ActiveCompaction ac) -> ac.getHost().getAddress())
+        Comparator.comparing((ActiveCompaction ac) -> ac.getHost().getHost())
             .thenComparing(ac -> ac.getHost().getPort()).thenComparing(COMPACTION_AGE_DESCENDING);
     try {
       return instanceOps.getActiveCompactions().stream().sorted(comparator)
