@@ -22,6 +22,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
+import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -62,19 +64,23 @@ public class RenameNamespace extends ManagerRepo {
       Utils.checkNamespaceDoesNotExist(manager.getContext(), newName, namespaceId,
           TableOperation.RENAME);
 
-      final String tap = manager.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
-          + Constants.ZNAMESPACE_NAME;
+      final String tap = manager.getZooKeeperRoot() + Constants.ZNAMESPACES;
+
+      final String currentNamespaceName =
+          Namespaces.getNamespaceName(manager.getContext(), namespaceId);
+      final byte[] updatedNamespaceMap =
+          NamespaceMapping.writeNamespaceToMap(zoo, tap, namespaceId, newName);
 
       zoo.mutateExisting(tap, current -> {
         final String currentName = new String(current, UTF_8);
-        if (currentName.equals(newName)) {
+        if (currentNamespaceName.equals(newName)) {
           return null; // assume in this case the operation is running again, so we are done
         }
-        if (!currentName.equals(oldName)) {
+        if (!currentNamespaceName.equals(oldName)) {
           throw new AcceptableThriftTableOperationException(null, oldName, TableOperation.RENAME,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "Name changed while processing");
         }
-        return newName.getBytes(UTF_8);
+        return updatedNamespaceMap;
       });
       manager.getContext().clearTableListCache();
     } finally {
