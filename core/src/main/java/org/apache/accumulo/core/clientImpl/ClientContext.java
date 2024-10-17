@@ -143,6 +143,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<SslConnectionParams> sslSupplier;
   private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
   private final Supplier<ServiceLockPaths> serverPaths;
+  private final NamespaceMapping namespaces;
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
   private ZookeeperLockChecker zkLockChecker;
@@ -253,6 +254,7 @@ public class ClientContext implements AccumuloClient {
         clientThreadPools = ThreadPools.getClientThreadPools(ueh);
       }
     }
+    this.namespaces = new NamespaceMapping(this);
   }
 
   public Ample getAmple() {
@@ -1073,6 +1075,10 @@ public class ClientContext implements AccumuloClient {
 
   public ServiceLockPaths getServerPaths() {
     return this.serverPaths.get();
+  }
+
+  public NamespaceMapping getNamespaces() {
+    return namespaces;
   }
 
 }
