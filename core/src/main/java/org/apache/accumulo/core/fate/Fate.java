@@ -110,7 +110,6 @@ public class Fate<T> {
                   break;
                 }
               } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
                 throw new IllegalStateException(e);
               }
             }
