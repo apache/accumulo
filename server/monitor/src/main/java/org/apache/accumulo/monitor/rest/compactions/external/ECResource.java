@@ -74,16 +74,16 @@ public class ECResource {
 
     RunningCompactionInfo rci1 =
         new RunningCompactionInfo("server1", "queue1", "ecid1", "USER", "tableId1", 150, 0.1f,
-            Duration.ofMinutes(15).toNanos(), TCompactionState.ASSIGNED.name(), 10000);
+            Duration.ofMinutes(15).toMillis(), TCompactionState.ASSIGNED.name(), 10000);
     RunningCompactionInfo rci2 =
         new RunningCompactionInfo("server2", "queue2", "ecid2", "SYSTEM", "tableId2", 265, 0.2f,
-            Duration.ofMinutes(2).toNanos(), TCompactionState.CANCELLED.name(), 20000);
+            Duration.ofHours(2).toMillis(), TCompactionState.CANCELLED.name(), 20000);
     RunningCompactionInfo rci3 =
         new RunningCompactionInfo("server3", "queue3", "ecid3", "USER", "tableId3", 3555, 0.3f,
-            Duration.ofMinutes(70).toNanos(), TCompactionState.IN_PROGRESS.name(), 30000);
+            Duration.ofMinutes(70).toMillis(), TCompactionState.IN_PROGRESS.name(), 30000);
     RunningCompactionInfo rci4 =
         new RunningCompactionInfo("localhost:9999", "default", "ecid4", "SYSTEM", "1", 132342, 0.1f,
-            Duration.ofSeconds(15).toNanos(), TCompactionState.IN_PROGRESS.name(), 10000);
+            Duration.ofSeconds(15).toMillis(), TCompactionState.IN_PROGRESS.name(), 10000);
 
     List<RunningCompactionInfo> running = List.of(rci1, rci2, rci3, rci4);
 

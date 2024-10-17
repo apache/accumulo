@@ -90,9 +90,10 @@
                       <input type="text" id="tableid-filter" class="form-control" placeholder="Enter table ID regex">
                       <small id="tableid-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
                     </div>
-                    <div class="mb-3" id="age-filter-container" style="display: none;">
-                      <label for="age-filter" class="form-label">Age Range Filter</label>
-                      <input type="text" id="age-filter" class="form-control" placeholder="Enter age range (e.g., 10s, 5m)">
+                    <div class="mb-3">
+                      <label for="duration-filter" class="form-label">Duration Filter</label>
+                      <input type="text" id="duration-filter" class="form-control" placeholder="Enter duration (e.g., &gt;10m, &lt;1h, &gt;=5s, &lt;=2d)">
+                      <small id="duration-feedback" class="form-text text-danger" style="display:none;">Invalid duration format</small>
                     </div>
                   </div>
                 </div>
