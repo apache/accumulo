@@ -67,6 +67,7 @@ class ActiveCompactionHelper {
     return maxDecimal(count / 1_000_000_000.0) + "B";
   }
 
+  @SuppressWarnings("deprecation")
   private static String formatActiveCompactionLine(ActiveCompaction ac) {
     String output = ac.getOutputFile();
     int index = output.indexOf("tables");
@@ -138,6 +139,7 @@ class ActiveCompactionHelper {
   }
 
   public static Stream<String> activeCompactions(InstanceOperations instanceOps) {
+    @SuppressWarnings("deprecation")
     Comparator<ActiveCompaction> comparator =
         Comparator.comparing((ActiveCompaction ac) -> ac.getHost().getAddress())
             .thenComparing(ac -> ac.getHost().getPort()).thenComparing(COMPACTION_AGE_DESCENDING);
