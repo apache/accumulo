@@ -78,7 +78,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Cl
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactions;
@@ -90,6 +89,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.util.TableInfoUtil;
+import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -162,6 +162,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final List<Pair<Long,Double>> ingestRateOverTime = newMaxList();
   private final List<Pair<Long,Double>> ingestByteRateOverTime = newMaxList();
   private final List<Pair<Long,Integer>> minorCompactionsOverTime = newMaxList();
+  private final List<Pair<Long,Integer>> majorCompactionsOverTime = newMaxList();
   private final List<Pair<Long,Double>> lookupsOverTime = newMaxList();
   private final List<Pair<Long,Long>> queryRateOverTime = newMaxList();
   private final List<Pair<Long,Long>> scanRateOverTime = newMaxList();
@@ -179,13 +180,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private Map<TableId,Map<ProblemType,Integer>> problemSummary = Collections.emptyMap();
   private Exception problemException;
   private GCStatus gcStatus;
-  private Optional<HostAndPort> coordinatorHost = Optional.empty();
-  private long coordinatorCheckNanos = 0L;
-  private CompactionCoordinatorService.Client coordinatorClient;
+  private volatile Optional<HostAndPort> coordinatorHost = Optional.empty();
   private final String coordinatorMissingMsg =
-      "Error getting the compaction coordinator. Check that it is running. It is not "
-          + "started automatically with other cluster processes so must be started by running "
-          + "'accumulo compaction-coordinator'.";
+      "Error getting the compaction coordinator client. Check that the Manager is running.";
 
   private EmbeddedWebServer server;
   private int livePort = 0;
@@ -198,11 +195,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     Map<String,Pair<Long,Long>> samples = new HashMap<>();
     Set<String> serversUpdated = new HashSet<>();
 
-    void startingUpdates() {
+    synchronized void startingUpdates() {
       serversUpdated.clear();
     }
 
-    void updateTabletServer(String name, long sampleTime, long numEvents) {
+    synchronized void updateTabletServer(String name, long sampleTime, long numEvents) {
       Pair<Long,Long> newSample = new Pair<>(sampleTime, numEvents);
       Pair<Long,Long> lastSample = samples.get(name);
 
@@ -215,13 +212,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       serversUpdated.add(name);
     }
 
-    void finishedUpdating() {
+    synchronized void finishedUpdating() {
       // remove any tablet servers not updated
       samples.keySet().retainAll(serversUpdated);
       prevSamples.keySet().retainAll(serversUpdated);
     }
 
-    double calculateRate() {
+    synchronized double calculateRate() {
       double totalRate = 0;
 
       for (Entry<String,Pair<Long,Long>> entry : prevSamples.entrySet()) {
@@ -235,7 +232,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       return totalRate;
     }
 
-    long calculateCount() {
+    synchronized long calculateCount() {
       long count = 0;
 
       for (Entry<String,Pair<Long,Long>> entry : prevSamples.entrySet()) {
@@ -282,11 +279,25 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           if (client != null) {
             mmi = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
             retry = false;
+            // Now that Manager is up, set the coordinator host
+            Set<ServerId> managers = context.instanceOperations().getServers(ServerId.Type.MANAGER);
+            if (managers == null || managers.isEmpty()) {
+              throw new IllegalStateException(
+                  "io.getServers returned nothing for Manager, but it's up.");
+            }
+            ServerId manager = managers.iterator().next();
+            Optional<HostAndPort> nextCoordinatorHost =
+                Optional.of(HostAndPort.fromString(manager.toHostPortString()));
+            if (coordinatorHost.isEmpty()
+                || !coordinatorHost.orElseThrow().equals(nextCoordinatorHost.orElseThrow())) {
+              coordinatorHost = nextCoordinatorHost;
+            }
           } else {
             mmi = null;
             log.error("Unable to get info from Manager");
           }
           gcStatus = fetchGcStatus();
+
         } catch (Exception e) {
           mmi = null;
           log.info("Error fetching stats: ", e);
@@ -299,6 +310,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
       }
+
       if (mmi != null) {
         int minorCompactions = 0;
 
@@ -364,6 +376,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         loadOverTime.add(new Pair<>(currentTime, totalLoad));
 
         minorCompactionsOverTime.add(new Pair<>(currentTime, minorCompactions));
+        majorCompactionsOverTime
+            .add(new Pair<>(currentTime, getRunnningCompactions().running.size()));
 
         lookupsOverTime.add(new Pair<>(currentTime, lookupRateTracker.calculateRate()));
 
@@ -386,22 +400,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         this.problemException = e;
       }
 
-      // check for compaction coordinator host and only notify its discovery
-      Optional<HostAndPort> previousHost;
-      if (System.nanoTime() - coordinatorCheckNanos > fetchTimeNanos) {
-        previousHost = coordinatorHost;
-        coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
-        coordinatorCheckNanos = System.nanoTime();
-        if (previousHost.isEmpty() && coordinatorHost.isPresent()) {
-          log.info("External Compaction Coordinator found at {}", coordinatorHost.orElseThrow());
-        }
-      }
-
     } finally {
-      if (coordinatorClient != null) {
-        ThriftUtil.returnClient(coordinatorClient, context);
-        coordinatorClient = null;
-      }
       lastRecalc.set(currentTime);
       // stop fetching; log an error if this thread wasn't already fetching
       if (!fetching.compareAndSet(true, false)) {
@@ -698,15 +697,25 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
     var ccHost = coordinatorHost.orElseThrow();
     log.info("User initiated fetch of running External Compactions from " + ccHost);
-    var client = getCoordinator(ccHost);
-    TExternalCompactionList running;
     try {
-      running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
-    } catch (Exception e) {
-      throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
+      CompactionCoordinatorService.Client client =
+          ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, ccHost, getContext());
+      TExternalCompactionList running;
+      try {
+        running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
+        return new ExternalCompactionsSnapshot(
+            running.getCompactions() == null ? Map.of() : running.getCompactions());
+      } catch (Exception e) {
+        throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
+      } finally {
+        if (client != null) {
+          ThriftUtil.returnClient(client, getContext());
+        }
+      }
+    } catch (TTransportException e) {
+      log.error("Unable to get Compaction coordinator at {}", ccHost);
+      throw new IllegalStateException(coordinatorMissingMsg, e);
     }
-
-    return new ExternalCompactionsSnapshot(running.getCompactions());
   }
 
   public RunningCompactions getRunnningCompactions() {
@@ -720,19 +729,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       return null;
     }
     return new RunningCompactorDetails(extCompaction);
-  }
-
-  private CompactionCoordinatorService.Client getCoordinator(HostAndPort address) {
-    if (coordinatorClient == null) {
-      try {
-        coordinatorClient =
-            ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, getContext());
-      } catch (Exception e) {
-        log.error("Unable to get Compaction coordinator at {}", address);
-        throw new IllegalStateException(coordinatorMissingMsg, e);
-      }
-    }
-    return coordinatorClient;
   }
 
   private void fetchScans() {
@@ -996,6 +992,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   public List<Pair<Long,Integer>> getMinorCompactionsOverTime() {
     return new ArrayList<>(minorCompactionsOverTime);
+  }
+
+  public List<Pair<Long,Integer>> getMajorCompactionsOverTime() {
+    return new ArrayList<>(majorCompactionsOverTime);
   }
 
   public List<Pair<Long,Double>> getLookupsOverTime() {

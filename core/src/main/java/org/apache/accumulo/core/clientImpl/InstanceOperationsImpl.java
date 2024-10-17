@@ -38,9 +38,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -427,13 +428,18 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public void ping(String tserver) throws AccumuloException {
-    try (TTransport transport = createTransport(AddressUtil.parseAddress(tserver), context)) {
-      Client client = createClient(ThriftClientTypes.TABLET_SERVER, transport);
-      client.getTabletServerStatus(TraceUtil.traceInfo(), context.rpcCreds());
+  public void ping(String server) throws AccumuloException {
+    try (TTransport transport = createTransport(AddressUtil.parseAddress(server), context)) {
+      ClientService.Client client = createClient(ThriftClientTypes.CLIENT, transport);
+      client.ping(context.rpcCreds());
     } catch (TException e) {
       throw new AccumuloException(e);
     }
+  }
+
+  @Override
+  public void ping(ServerId server) throws AccumuloException {
+    ping(server.toHostPortString());
   }
 
   @Override
@@ -489,7 +495,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
           throw new IllegalStateException("Multiple servers matching provided address");
         }
       case MANAGER:
-        Set<ServerId> managers = getServers(type, null);
+        Set<ServerId> managers = getServers(type, rg2 -> true, hp);
         if (managers.isEmpty()) {
           return null;
         } else {
@@ -520,43 +526,64 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public Set<ServerId> getServers(ServerId.Type type) {
-    return getServers(type, null);
+    AddressPredicate addressPredicate = addr -> true;
+    return getServers(type, rg -> true, addressPredicate);
   }
 
   @Override
-  public Set<ServerId> getServers(ServerId.Type type, Predicate<ServerId> test) {
+  public Set<ServerId> getServers(ServerId.Type type, Predicate<String> resourceGroupPredicate,
+      BiPredicate<String,Integer> hostPortPredicate) {
+    Objects.requireNonNull(type, "Server type was null");
+    Objects.requireNonNull(resourceGroupPredicate, "Resource group predicate was null");
+    Objects.requireNonNull(hostPortPredicate, "Host port predicate was null");
+
+    AddressPredicate addressPredicate = addr -> {
+      var hp = HostAndPort.fromString(addr);
+      return hostPortPredicate.test(hp.getHost(), hp.getPort());
+    };
+
+    return getServers(type, resourceGroupPredicate, addressPredicate);
+  }
+
+  private Set<ServerId> getServers(ServerId.Type type, Predicate<String> resourceGroupPredicate,
+      AddressPredicate addressPredicate) {
+
     final Set<ServerId> results = new HashSet<>();
+
     switch (type) {
       case COMPACTOR:
-        context.getServerPaths().getCompactor(rg -> true, addr -> true, true)
+        context.getServerPaths().getCompactor(resourceGroupPredicate::test, addressPredicate, true)
             .forEach(c -> results.add(createServerId(type, c)));
         break;
       case MANAGER:
         ServiceLockPath m = context.getServerPaths().getManager(true);
-        Optional<ServiceLockData> sld = context.getZooCache().getLockData(m);
-        String location = null;
-        if (sld.isPresent()) {
-          location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
-          HostAndPort hp = HostAndPort.fromString(location);
-          results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
-              hp.getPort()));
+        if (m != null) {
+          Optional<ServiceLockData> sld = context.getZooCache().getLockData(m);
+          String location = null;
+          if (sld.isPresent()) {
+            location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
+            if (addressPredicate.test(location)) {
+              HostAndPort hp = HostAndPort.fromString(location);
+              results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
+                  hp.getPort()));
+            }
+          }
         }
         break;
       case SCAN_SERVER:
-        context.getServerPaths().getScanServer(rg -> true, addr -> true, true)
+        context.getServerPaths().getScanServer(resourceGroupPredicate::test, addressPredicate, true)
             .forEach(s -> results.add(createServerId(type, s)));
         break;
       case TABLET_SERVER:
-        context.getServerPaths().getTabletServer(rg -> true, addr -> true, true)
+        context.getServerPaths()
+            .getTabletServer(resourceGroupPredicate::test, addressPredicate, true)
             .forEach(t -> results.add(createServerId(type, t)));
         break;
       default:
         break;
     }
-    if (test == null) {
-      return Collections.unmodifiableSet(results);
-    }
-    return results.stream().filter(test).collect(Collectors.toUnmodifiableSet());
+
+    return Collections.unmodifiableSet(results);
   }
 
   private ServerId createServerId(ServerId.Type type, ServiceLockPath slp) {

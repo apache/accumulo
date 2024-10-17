@@ -21,6 +21,7 @@ package org.apache.accumulo.core.client.admin;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -241,10 +242,15 @@ public interface InstanceOperations {
   /**
    * Returns the servers of a given type that match the given criteria
    *
+   * @param resourceGroupPredicate only returns servers where the resource group matches this
+   *        predicate. For the manager it does not have a resoruce group and this parameters is not
+   *        used.
+   * @param hostPortPredicate only returns servers where its host and port match this predicate.
    * @return set of servers of the supplied type matching the supplied test
    * @since 4.0.0
    */
-  Set<ServerId> getServers(ServerId.Type type, Predicate<ServerId> test);
+  Set<ServerId> getServers(ServerId.Type type, Predicate<String> resourceGroupPredicate,
+      BiPredicate<String,Integer> hostPortPredicate);
 
   /**
    * List the active scans on a tablet server.
@@ -308,13 +314,22 @@ public interface InstanceOperations {
   List<ActiveCompaction> getActiveCompactions() throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Throws an exception if a tablet server can not be contacted.
+   * Check to see if a server process at the host and port is up and responding to RPC requests.
    *
-   * @param tserver The tablet server address. This should be of the form
-   *        {@code <ip address>:<port>}
+   * @param tserver The server address. This should be of the form {@code <ip address>:<port>}
+   * @throws AccumuloException if the server cannot be contacted
    * @since 1.5.0
    */
   void ping(String tserver) throws AccumuloException;
+
+  /**
+   * Check to see if a server process at the host and port is up and responding to RPC requests.
+   *
+   * @param server ServerId object for the server to be pinged, only the host and port is used.
+   * @throws AccumuloException if the server cannot be contacted
+   * @since 4.0.0
+   */
+  void ping(ServerId server) throws AccumuloException;
 
   /**
    * Test to see if the instance can load the given class as the given type. This check does not
