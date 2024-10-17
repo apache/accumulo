@@ -89,17 +89,14 @@ public class MetricsInfoImpl implements MetricsInfo {
     final boolean jvmMetricsEnabled =
         context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED);
     LOG.info("micrometer metrics enabled: {}", metricsEnabled);
+    if (!metricsEnabled) {
+      return;
+    }
     if (jvmMetricsEnabled) {
-      if (metricsEnabled) {
-        LOG.info("detailed jvm metrics enabled: {}", jvmMetricsEnabled);
-      } else {
-        LOG.info("requested jvm metrics, but micrometer metrics are disabled.");
-      }
+      LOG.info("detailed jvm metrics enabled: {}", jvmMetricsEnabled);
     }
-    if (metricsEnabled) {
-      LOG.info("metrics registry factories: {}",
-          context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY));
-    }
+    LOG.info("metrics registry factories: {}",
+        context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY));
   }
 
   @Override
@@ -112,6 +109,9 @@ public class MetricsInfoImpl implements MetricsInfo {
    */
   @Override
   public void addServiceTags(final String applicationName, final HostAndPort hostAndPort) {
+    if (!metricsEnabled) {
+      return;
+    }
     List<Tag> tags = new ArrayList<>();
 
     if (applicationName != null && !applicationName.isEmpty()) {
@@ -125,6 +125,9 @@ public class MetricsInfoImpl implements MetricsInfo {
 
   @Override
   public void addCommonTags(List<Tag> updates) {
+    if (!metricsEnabled) {
+      return;
+    }
     lock.lock();
     try {
       if (composite != null) {
@@ -151,6 +154,9 @@ public class MetricsInfoImpl implements MetricsInfo {
 
   @Override
   public void addRegistry(MeterRegistry registry) {
+    if (!metricsEnabled) {
+      return;
+    }
     lock.lock();
     try {
       if (composite != null) {
@@ -167,6 +173,9 @@ public class MetricsInfoImpl implements MetricsInfo {
 
   @Override
   public void addMetricsProducers(MetricsProducer... producer) {
+    if (!metricsEnabled) {
+      return;
+    }
     if (producer.length == 0) {
       LOG.debug(
           "called addMetricsProducers() without providing at least one producer - this has no effect");
@@ -199,6 +208,10 @@ public class MetricsInfoImpl implements MetricsInfo {
 
   @Override
   public void init() {
+    if (!metricsEnabled) {
+      LOG.info("Metrics not initialized, metrics are disabled.");
+      return;
+    }
     lock.lock();
     try {
       if (composite != null) {
@@ -235,20 +248,18 @@ public class MetricsInfoImpl implements MetricsInfo {
         }
       };
 
-      if (isMetricsEnabled()) {
-        // user specified registries
-        String userRegistryFactories =
-            context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY);
+      // user specified registries
+      String userRegistryFactories =
+          context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY);
 
-        for (String factoryName : getTrimmedStrings(userRegistryFactories)) {
-          try {
-            MeterRegistry registry = getRegistryFromFactory(factoryName, context);
-            registry.config().commonTags(commonTags.values());
-            registry.config().meterFilter(replicationFilter);
-            addRegistry(registry);
-          } catch (ReflectiveOperationException ex) {
-            LOG.warn("Could not load registry {}", factoryName, ex);
-          }
+      for (String factoryName : getTrimmedStrings(userRegistryFactories)) {
+        try {
+          MeterRegistry registry = getRegistryFromFactory(factoryName, context);
+          registry.config().commonTags(commonTags.values());
+          registry.config().meterFilter(replicationFilter);
+          addRegistry(registry);
+        } catch (ReflectiveOperationException ex) {
+          LOG.warn("Could not load registry {}", factoryName, ex);
         }
       }
 
