@@ -434,16 +434,11 @@ public class ServiceLockPaths {
 
           if (addressSelector.getExactAddress() != null) {
             var server = addressSelector.getExactAddress().toString();
-            if (withLock) {
-              // The server in the list may not exist, if it does not exist then no lock will be
-              // found later and nothing will be returned for the server.
+            if (withLock || cache.get(typePath + "/" + group + "/" + server) != null) {
+              // When withLock is true the server in the list may not exist in zookeeper, if it does
+              // not exist then no lock will be found later when looking for a lock in zookeeper.
               servers = List.of(server);
-            } else if (cache.get(typePath + "/" + group + "/" + server) != null) {
-              // Since the lock will not be checked, looked for a node in zookeeper for the server
-              // and found it.
-              servers = List.of(addressSelector.getExactAddress().toString());
             } else {
-              // The server does not exist in zookeeper
               servers = List.of();
             }
             addressPredicate = s -> true;
