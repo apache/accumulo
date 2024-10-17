@@ -286,6 +286,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         .checkClass(TraceUtil.traceInfo(), context.rpcCreds(), className, asTypeName));
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public List<ActiveCompaction> getActiveCompactions(String server)
       throws AccumuloException, AccumuloSecurityException {
@@ -340,6 +341,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
       compactors.values().forEach(compactorList -> {
         for (HostAndPort compactorAddr : compactorList) {
+          @SuppressWarnings("deprecation")
           Callable<List<ActiveCompaction>> task =
               () -> ExternalCompactionUtil.getActiveCompaction(compactorAddr, context).stream()
                   .map(tac -> new ActiveCompactionImpl(context, tac, compactorAddr,
