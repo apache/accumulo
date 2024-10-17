@@ -58,15 +58,16 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
     }
     Supplier<Map<String,String>> contextConfigSupplier =
         () -> accConf.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
-    setContextConfig(contextConfigSupplier);
+    setContextConfig(contextConfigSupplier, accConf::invalidateCache);
     LOG.debug("ContextManager configuration set");
     startCleanupThread(accConf, contextConfigSupplier);
   }
 
   @SuppressWarnings("deprecation")
-  private static void setContextConfig(Supplier<Map<String,String>> contextConfigSupplier) {
+  private static void setContextConfig(Supplier<Map<String,String>> contextConfigSupplier,
+      Runnable contextConfigInvalidator) {
     org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
-        .setContextConfig(contextConfigSupplier);
+        .setContextConfig(contextConfigSupplier, contextConfigInvalidator);
   }
 
   private static void startCleanupThread(final AccumuloConfiguration conf,
