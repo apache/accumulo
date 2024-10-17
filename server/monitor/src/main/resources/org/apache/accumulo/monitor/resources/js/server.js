@@ -86,9 +86,6 @@ function initServerTables(serv) {
         "data": "minors"
       },
       {
-        "data": "majors"
-      },
-      {
         "data": "splits"
       }
     ]
@@ -211,12 +208,6 @@ function initServerTables(serv) {
       },
       {
         "data": "currentMinorStdDev"
-      },
-      {
-        "data": "currentMajorAvg"
-      },
-      {
-        "data": "currentMajorStdDev"
       }
     ]
   });
@@ -285,15 +276,6 @@ function initServerTables(serv) {
       },
       {
         "data": "minorAvgES"
-      },
-      {
-        "data": "majorAvg"
-      },
-      {
-        "data": "majorStdDev"
-      },
-      {
-        "data": "majorAvgES"
       }
     ]
   });

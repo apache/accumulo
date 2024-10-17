@@ -38,7 +38,6 @@
                 <th class="big-num">Hosted&nbsp;Tablets&nbsp;</th>
                 <th class="big-num">Entries&nbsp;</th>
                 <th class="big-num">Minor&nbsp;Compacting&nbsp;</th>
-                <th class="big-num">Major&nbsp;Compacting&nbsp;</th>
                 <th class="big-num">Splitting&nbsp;</th>
               </tr>
             </thead>
@@ -76,8 +75,6 @@
               <tr>
                 <th class="duration">Minor&nbsp;Average&nbsp;</th>
                 <th class="duration">Minor&nbsp;Std&nbsp;Dev&nbsp;</th>
-                <th class="duration">Major&nbsp;Avg&nbsp;</th>
-                <th class="duration">Major&nbsp;Std&nbsp;Dev&nbsp;</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -99,9 +96,6 @@
                 <th class="duration">Minor&nbsp;Avg&nbsp;</th>
                 <th class="duration">Minor&nbsp;Std&nbsp;Dev&nbsp;</th>
                 <th class="big-num">Minor&nbsp;Avg&nbsp;e/s&nbsp;</th>
-                <th class="duration">Major&nbsp;Avg&nbsp;</th>
-                <th class="duration">Major&nbsp;Std&nbsp;Dev&nbsp;</th>
-                <th class="big-num">Major&nbsp;Avg&nbsp;e/s&nbsp;</th>
               </tr>
             </thead>
             <tbody></tbody>
