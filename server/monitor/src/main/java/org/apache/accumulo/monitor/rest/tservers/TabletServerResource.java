@@ -169,12 +169,8 @@ public class TabletServerResource {
     double splitStdDev = 0;
     double minorStdDev = 0;
     double minorQueueStdDev = 0;
-    double majorStdDev = 0;
-    double majorQueueStdDev = 0;
     double currentMinorAvg = 0;
-    double currentMajorAvg = 0;
     double currentMinorStdDev = 0;
-    double currentMajorStdDev = 0;
     total = new TabletStats(null, new ActionStats(), new ActionStats(), 0, 0, 0);
     HostAndPort address = HostAndPort.fromString(tserverAddress);
     historical = new TabletStats(null, new ActionStats(), new ActionStats(), 0, 0, 0);
@@ -215,10 +211,9 @@ public class TabletServerResource {
     TabletServerDetailInformation details = doDetails(tsStats.size());
 
     List<AllTimeTabletResults> allTime =
-        doAllTimeResults(majorQueueStdDev, minorQueueStdDev, splitStdDev, majorStdDev, minorStdDev);
+        doAllTimeResults(minorQueueStdDev, splitStdDev, minorStdDev);
 
-    CurrentTabletResults currentRes = doCurrentTabletResults(currentMinorAvg, currentMinorStdDev,
-        currentMajorAvg, currentMajorStdDev);
+    CurrentTabletResults currentRes = doCurrentTabletResults(currentMinorAvg, currentMinorStdDev);
 
     return new TabletServerSummary(details, allTime, currentRes, currentOps);
   }
@@ -259,8 +254,8 @@ public class TabletServerResource {
         historical.splits.status);
   }
 
-  private List<AllTimeTabletResults> doAllTimeResults(double majorQueueStdDev,
-      double minorQueueStdDev, double splitStdDev, double majorStdDev, double minorStdDev) {
+  private List<AllTimeTabletResults> doAllTimeResults(double minorQueueStdDev, double splitStdDev,
+      double minorStdDev) {
 
     List<AllTimeTabletResults> allTime = new ArrayList<>();
 
@@ -281,10 +276,9 @@ public class TabletServerResource {
   }
 
   private CurrentTabletResults doCurrentTabletResults(double currentMinorAvg,
-      double currentMinorStdDev, double currentMajorAvg, double currentMajorStdDev) {
+      double currentMinorStdDev) {
 
-    return new CurrentTabletResults(currentMinorAvg, currentMinorStdDev, currentMajorAvg,
-        currentMajorStdDev);
+    return new CurrentTabletResults(currentMinorAvg, currentMinorStdDev);
   }
 
   private List<CurrentOperations> doCurrentOperations(List<TabletStats> tsStats) throws Exception {

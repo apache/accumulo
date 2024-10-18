@@ -97,12 +97,6 @@ function initTableServerTable(tableID) {
         "type": "numeric",
         "orderData": [15, 16]
       },
-      // major compaction column will be sorted by number of running, then by number of queued
-      {
-        "targets": [9],
-        "type": "numeric",
-        "orderData": [17, 18]
-      }
     ],
     "columns": [{
         "data": "hostname",
@@ -143,11 +137,6 @@ function initTableServerTable(tableID) {
         }
       },
       {
-        "data": function (row) {
-          return getQueuedAndRunning(row.compactions.major);
-        }
-      },
-      {
         "data": "indexCacheHitRate"
       },
       {
@@ -170,14 +159,6 @@ function initTableServerTable(tableID) {
       },
       {
         "data": "minorQueued",
-        "visible": false
-      },
-      {
-        "data": "majorRunning",
-        "visible": false
-      },
-      {
-        "data": "majorQueued",
         "visible": false
       }
     ]
