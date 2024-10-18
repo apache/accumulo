@@ -18,18 +18,75 @@
  */
 package org.apache.accumulo.server.util.checkCommand;
 
-import org.apache.accumulo.server.util.Admin;
+import java.util.AbstractMap;
+import java.util.Set;
 
-public class MetadataTableCheckRunner implements CheckRunner {
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.CheckForMetadataProblems;
+import org.apache.accumulo.server.util.FindOfflineTablets;
+import org.apache.hadoop.io.Text;
+
+public class MetadataTableCheckRunner implements MetadataCheckRunner {
   private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.METADATA_TABLE;
 
   @Override
-  public Admin.CheckCommand.CheckStatus runCheck() {
-    Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
+  public String tableName() {
+    return AccumuloTable.METADATA.tableName();
+  }
 
-    System.out.println("Running check " + check);
-    // work
-    System.out.println("Check " + check + " completed with status " + status);
+  @Override
+  public TableId tableId() {
+    return AccumuloTable.METADATA.tableId();
+  }
+
+  @Override
+  public Set<ColumnFQ> requiredColFQs() {
+    return Set.of(MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
+        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
+        MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN);
+  }
+
+  @Override
+  public Set<Text> requiredColFams() {
+    return Set.of();
+  }
+
+  @Override
+  public Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
+      boolean fixFiles) throws Exception {
+    Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
+    printRunning();
+
+    System.out.println("\n********** Looking for offline tablets **********\n");
+    if (FindOfflineTablets.findOffline(context, null, true, true) != 0) {
+      status = Admin.CheckCommand.CheckStatus.FAILED;
+    } else {
+      System.out.println("All good... No offline tablets found");
+    }
+
+    System.out.println("\n********** Checking some references **********\n");
+    if (CheckForMetadataProblems.checkMetadataAndRootTableEntries(tableName(), opts)) {
+      status = Admin.CheckCommand.CheckStatus.FAILED;
+    }
+
+    System.out.println("\n********** Looking for missing columns **********\n");
+    status = checkRequiredColumns(context, status);
+
+    System.out.println("\n********** Looking for invalid columns **********\n");
+    try (Scanner scanner = context.createScanner(tableName(), Authorizations.EMPTY)) {
+      status = checkColumns(context,
+          scanner.stream().map(AbstractMap.SimpleImmutableEntry::new).iterator(), status);
+    }
+
+    printCompleted(status);
     return status;
   }
 

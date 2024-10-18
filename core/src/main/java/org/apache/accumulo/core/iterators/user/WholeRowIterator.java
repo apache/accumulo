@@ -86,7 +86,9 @@ public class WholeRowIterator extends RowEncodingIterator {
     return b;
   }
 
-  // decode a bunch of key value pairs that have been encoded into a single value
+  /**
+   * decode a bunch of key value pairs that have been encoded into a single value
+   */
   public static final SortedMap<Key,Value> decodeRow(Key rowKey, Value rowValue)
       throws IOException {
     SortedMap<Key,Value> map = new TreeMap<>();
@@ -110,8 +112,10 @@ public class WholeRowIterator extends RowEncodingIterator {
     dout.write(bs.getBackingArray(), bs.offset(), bs.length());
   }
 
-  // take a stream of keys and values and output a value that encodes everything but their row
-  // keys and values must be paired one for one
+  /**
+   * take a stream of keys and values and output a value that encodes everything but their row keys
+   * and values must be paired one for one
+   */
   public static final Value encodeRow(List<Key> keys, List<Value> values) throws IOException {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     DataOutputStream dout = new DataOutputStream(out);

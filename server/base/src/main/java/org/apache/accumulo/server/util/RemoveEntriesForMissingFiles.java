@@ -181,7 +181,7 @@ public class RemoveEntriesForMissingFiles {
       writer.close();
     }
 
-    System.out.printf("Scan finished, %d files of %d missing\n\n", missing.get(), count);
+    System.out.printf("Scan finished, missing files: %d, total files: %d\n", missing.get(), count);
 
     return missing.get();
   }
@@ -198,7 +198,8 @@ public class RemoveEntriesForMissingFiles {
     }
   }
 
-  static int checkTable(ServerContext context, String tableName, boolean fix) throws Exception {
+  public static int checkTable(ServerContext context, String tableName, boolean fix)
+      throws Exception {
     if (tableName.equals(AccumuloTable.ROOT.tableName())) {
       throw new IllegalArgumentException("Can not check root table");
     } else if (tableName.equals(AccumuloTable.METADATA.tableName())) {
