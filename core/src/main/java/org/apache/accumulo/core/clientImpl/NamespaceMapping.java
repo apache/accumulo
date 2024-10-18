@@ -68,7 +68,8 @@ public class NamespaceMapping {
   }
 
   public static byte[] serialize(Map<String,String> map) {
-    String jsonData = gson.toJson(map);
+    var sortedMap = ImmutableSortedMap.<String,String>naturalOrder().putAll(map).build();
+    String jsonData = gson.toJson(sortedMap);
     return jsonData.getBytes(UTF_8);
   }
 
@@ -84,7 +85,6 @@ public class NamespaceMapping {
     final ZooCache.ZcStat stat = new ZooCache.ZcStat();
     zc.clear();
 
-    // Retrieve the current data and stat from ZooCache
     byte[] data = zc.get(zPath, stat);
     if (stat.getMzxid() > lastMzxid) {
       if (data == null) {
