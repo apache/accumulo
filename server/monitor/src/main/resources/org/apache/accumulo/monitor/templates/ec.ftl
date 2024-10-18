@@ -60,8 +60,43 @@
         <div class="row">
           <div class="col-xs-12">
             <table id="runningTable" class="table caption-top table-bordered table-striped table-condensed">
-              <caption><span class="table-caption">Running Compactions</span>&nbsp;&nbsp;
-                <a href="javascript:refreshRunning();"><span style="font-size: 1.5em; color: black;" class="bi bi-arrow-repeat"></span></a>
+              <caption>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <div>
+                    <span class="table-caption">Running Compactions</span>&nbsp;&nbsp;
+                    <a href="javascript:refreshRunning();">
+                      <span style="font-size: 1.5em; color: black;" class="bi bi-arrow-repeat"></span>
+                    </a>
+                  </div>
+                </div>
+                <button class="btn btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+                  Toggle Filters
+                </button>
+                <!-- Collapsible Filter Section -->
+                <div class="collapse" id="filterCollapse">
+                  <div class="card card-body">
+                    <div class="mb-3">
+                      <label for="hostname-filter" class="form-label">Hostname Filter</label>
+                      <input type="text" id="hostname-filter" class="form-control" placeholder="Enter hostname regex">
+                      <small id="hostname-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
+                    </div>
+                    <div class="mb-3">
+                      <label for="queue-filter" class="form-label">Queue Filter</label>
+                      <input type="text" id="queue-filter" class="form-control" placeholder="Enter queue regex">
+                      <small id="queue-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
+                    </div>
+                    <div class="mb-3">
+                      <label for="tableid-filter" class="form-label">Table ID Filter</label>
+                      <input type="text" id="tableid-filter" class="form-control" placeholder="Enter table ID regex">
+                      <small id="tableid-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
+                    </div>
+                    <div class="mb-3">
+                      <label for="duration-filter" class="form-label">Duration Filter</label>
+                      <input type="text" id="duration-filter" class="form-control" placeholder="Enter duration (e.g., &gt;10m, &lt;1h, &gt;=5s, &lt;=2d)">
+                      <small id="duration-feedback" class="form-text text-danger" style="display:none;">Invalid duration format</small>
+                    </div>
+                  </div>
+                </div>
               </caption>
               <thead>
                 <tr>

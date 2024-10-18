@@ -142,6 +142,110 @@ $(document).ready(function () {
     ]
   });
 
+  function handleFilterKeyup(input, feedbackElement, columnIndex) {
+    if (isValidRegex(input) || input === '') { // if valid, apply the filter
+      feedbackElement.hide();
+      $(this).removeClass('is-invalid');
+      const isRegex = true;
+      const smartEnabled = false;
+      runningTable
+        .column(columnIndex)
+        .search(input, isRegex, smartEnabled)
+        .draw();
+    } else { // if invalid, show the warning
+      feedbackElement.show();
+      $(this).addClass('is-invalid');
+    }
+  }
+
+  $('#hostname-filter').on('keyup', function () {
+    handleFilterKeyup.call(this, this.value, $('#hostname-feedback'), 0);
+  });
+
+  $('#queue-filter').on('keyup', function () {
+    handleFilterKeyup.call(this, this.value, $('#queue-feedback'), 3);
+  });
+
+  $('#tableid-filter').on('keyup', function () {
+    handleFilterKeyup.call(this, this.value, $('#tableid-feedback'), 4);
+  });
+
+  $('#duration-filter').on('keyup', function () {
+    runningTable.draw();
+  });
+
+  // Custom filter function for duration
+  $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+    if (settings.nTable.id !== 'runningTable') {
+      return true;
+    }
+
+    const durationStr = data[8]; // duration is in the 9th column (index 8)
+    const durationSeconds = parseDuration(durationStr);
+
+    const input = $('#duration-filter').val().trim();
+    if (input === '') {
+      return true;
+    }
+
+    const match = validateDurationInput(input);
+    if (!match) {
+      $('#duration-feedback').show();
+      return false;
+    }
+
+    $('#duration-feedback').hide();
+    const operator = match[1];
+    const value = parseInt(match[2]);
+    const unit = match[3];
+    const filterSeconds = convertToSeconds(value, unit);
+
+    switch (operator) {
+    case '>':
+      return durationSeconds > filterSeconds;
+    case '>=':
+      return durationSeconds >= filterSeconds;
+    case '<':
+      return durationSeconds < filterSeconds;
+    case '<=':
+      return durationSeconds <= filterSeconds;
+    default:
+      return true;
+    }
+  });
+
+  // Helper function to convert duration strings to seconds
+  function convertToSeconds(value, unit) {
+    switch (unit.toLowerCase()) {
+    case 's':
+      return value;
+    case 'm':
+      return value * 60;
+    case 'h':
+      return value * 3600;
+    case 'd':
+      return value * 86400;
+    default:
+      return value;
+    }
+  }
+
+  // Helper function to validate duration input. Makes sure that the input is in the format of '<operator> <value> <unit>'
+  function validateDurationInput(input) {
+    return input.match(/^([<>]=?)\s*(\d+)([smhd])$/i);
+  }
+
+  /**
+   * @param {number} durationStr duration in milliseconds
+   * @returns duration in seconds
+   */
+  function parseDuration(durationStr) {
+    // Assuming durationStr is in milliseconds
+    const milliseconds = parseInt(durationStr, 10);
+    const seconds = milliseconds / 1000;
+    return seconds;
+  }
+
   // Create a table for compaction coordinator
   coordinatorTable = $('#coordinatorTable').DataTable({
     "ajax": {
@@ -342,4 +446,14 @@ function refreshRunning() {
   console.log("Refresh running compactions table.");
   // user paging is not reset on reload
   ajaxReloadTable(runningTable);
+}
+
+// Helper function to validate regex
+function isValidRegex(input) {
+  try {
+    new RegExp(input);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
