@@ -389,7 +389,7 @@ public class Upgrader11to12Test {
     }
     byte[] mapping = NamespaceMapping.serialize(mockNamespaces);
     expect(zrw.putPersistentData(eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES),
-        aryEq(mapping), eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(false).once();
+        aryEq(mapping), eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
 
     replay(context, zrw);
 
