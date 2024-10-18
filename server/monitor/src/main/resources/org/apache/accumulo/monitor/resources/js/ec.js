@@ -185,6 +185,7 @@ $(document).ready(function () {
 
     const input = $('#duration-filter').val().trim();
     if (input === '') {
+      $('#duration-feedback').hide();
       return true;
     }
 
