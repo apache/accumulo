@@ -31,6 +31,12 @@ import io.micrometer.core.instrument.Tag;
 
 public interface MetricsInfo {
 
+  public static final String INSTANCE_NAME_TAG_KEY = "instance.name";
+  public static final String PROCESS_NAME_TAG_KEY = "process.name";
+  public static final String RESOURCE_GROUP_TAG_KEY = "resource.group";
+  public static final String HOST_TAG_KEY = "host";
+  public static final String PORT_TAG_KEY = "port";
+
   /**
    * Convenience method to create tag name / value pair for the instance name
    *
@@ -39,7 +45,7 @@ public interface MetricsInfo {
   static Tag instanceNameTag(final String instanceName) {
     Objects.requireNonNull(instanceName,
         "cannot create the tag without providing the instance name");
-    return Tag.of("instance.name", instanceName);
+    return Tag.of(INSTANCE_NAME_TAG_KEY, instanceName);
   }
 
   /**
@@ -49,9 +55,9 @@ public interface MetricsInfo {
    */
   static Tag processTag(final String processName) {
     Objects.requireNonNull(processName, "cannot create the tag without providing the process name");
-    return Tag.of("process.name", processName);
+    return Tag.of(PROCESS_NAME_TAG_KEY, processName);
   }
-
+  
   /**
    * Convenience method to create tag name / value pair for the resource group name
    *
@@ -59,9 +65,9 @@ public interface MetricsInfo {
    */
   static Tag resourceGroupTag(final String resourceGroupName) {
     if (resourceGroupName == null || resourceGroupName.isEmpty()) {
-      return Tag.of("resource.group", "NOT_PROVIDED");
+      return Tag.of(RESOURCE_GROUP_TAG_KEY, "NOT_PROVIDED");
     }
-    return Tag.of("resource.group", resourceGroupName);
+    return Tag.of(RESOURCE_GROUP_TAG_KEY, resourceGroupName);
   }
 
   /**
@@ -73,10 +79,10 @@ public interface MetricsInfo {
   static List<Tag> addressTags(final HostAndPort hostAndPort) {
     Objects.requireNonNull(hostAndPort, "cannot create the tag without providing the hostAndPort");
     List<Tag> tags = new ArrayList<>(2);
-    tags.add(Tag.of("host", hostAndPort.getHost()));
+    tags.add(Tag.of(HOST_TAG_KEY, hostAndPort.getHost()));
     int port = hostAndPort.getPort();
     if (port != 0) {
-      tags.add(Tag.of("port", Integer.toString(hostAndPort.getPort())));
+      tags.add(Tag.of(PORT_TAG_KEY, Integer.toString(hostAndPort.getPort())));
     }
     return Collections.unmodifiableList(tags);
   }

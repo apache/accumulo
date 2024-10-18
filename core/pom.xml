@@ -52,6 +52,10 @@
       <artifactId>gson</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.google.flatbuffers</groupId>
+      <artifactId>flatbuffers-java</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <exclusions>
@@ -412,6 +416,37 @@
     </plugins>
   </build>
   <profiles>
+    <profile>
+      <id>flatbuffers</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.sequsoft.maven.plugins</groupId>
+            <artifactId>flatbuffers-maven-plugin</artifactId>
+            <version>0.0.1</version>
+            <executions>
+              <execution>
+                <id>compile-flatbuffers</id>
+                <goals>
+                  <goal>compile-flatbuffers</goal>
+                </goals>
+                <phase>generate-sources</phase>
+                <configuration>
+                  <version>${version.flatbuffers}</version>
+                  <sources>
+                    <source>${basedir}/src/main/flatbuffers/metric.fbs</source>
+                  </sources>
+                  <generators>
+                    <generator>all</generator>
+                  </generators>
+                  <destination>${basedir}/src/main/flatbuffers-gen-java</destination>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <id>thrift</id>
       <build>

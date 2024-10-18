@@ -50,6 +50,7 @@ import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.metrics.thrift.MetricSource;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -64,6 +65,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
+import org.apache.accumulo.server.metrics.MetricServiceHandler;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -397,7 +399,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   private HostAndPort startStatsService() {
-    var processor = ThriftProcessorTypes.getGcTProcessor(this, getContext());
+    MetricServiceHandler metricHandler = createMetricServiceHandler(MetricSource.GARBAGE_COLLECTOR);
+    var processor = ThriftProcessorTypes.getGcTProcessor(this, metricHandler, getContext());
     IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
@@ -407,6 +410,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         getContext().getServerSslParams(), getContext().getSaslParams(), 0,
         getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
         addresses);
+    metricHandler.setHost(server.address);
     log.debug("Starting garbage collector listening on " + server.address);
     return server.address;
   }

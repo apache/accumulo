@@ -82,6 +82,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.metrics.thrift.MetricSource;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletscan.thrift.ScanServerBusyException;
@@ -102,6 +103,7 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.metrics.MetricServiceHandler;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -304,14 +306,16 @@ public class ScanServer extends AbstractServer
     // This class implements TabletClientService.Iface and then delegates calls. Be sure
     // to set up the ThriftProcessor using this class, not the delegate.
     ClientServiceHandler clientHandler = new ClientServiceHandler(context);
-    TProcessor processor =
-        ThriftProcessorTypes.getScanServerTProcessor(clientHandler, this, getContext());
+    MetricServiceHandler metricHandler = createMetricServiceHandler(MetricSource.SCAN_SERVER);
+    TProcessor processor = ThriftProcessorTypes.getScanServerTProcessor(clientHandler, this,
+        metricHandler, getContext());
 
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS,
         Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK);
 
+    metricHandler.setHost(sp.address);
     LOG.info("address = {}", sp.address);
     return sp;
   }

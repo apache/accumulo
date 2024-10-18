@@ -222,7 +222,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cluster.stop();
   }
 
-  private void doWorkToGenerateMetrics() throws Exception {
+  void doWorkToGenerateMetrics(AccumuloClient client) throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = this.getClass().getSimpleName();
       client.tableOperations().create(tableName);
