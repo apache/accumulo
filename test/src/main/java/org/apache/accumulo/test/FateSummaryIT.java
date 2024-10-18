@@ -113,7 +113,7 @@ public class FateSummaryIT extends ConfigurableMacBase {
           "IN_PROGRESS", "-s", "FAILED");
       assertEquals(0, p.getProcess().waitFor());
       String result = p.readStdOut();
-      // remove an log messages
+      // remove any log messages
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
           .collect(Collectors.joining("\n"));
       FateSummaryReport report = FateSummaryReport.fromJson(result);
