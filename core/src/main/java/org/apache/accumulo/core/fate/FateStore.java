@@ -29,7 +29,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.apache.accumulo.core.fate.user.FateMutatorImpl;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.hadoop.io.DataInputBuffer;
 
@@ -147,19 +146,6 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
       return new FateReservation(lockID, reservationUUID);
     }
 
-    /**
-     * @param serializedFateRes the value present in the table for the reservation column
-     * @return true if the array represents a valid serialized FateReservation object, false if it
-     *         represents an unreserved value, error otherwise
-     */
-    public static boolean isFateReservation(byte[] serializedFateRes) {
-      if (Arrays.equals(serializedFateRes, FateMutatorImpl.NOT_RESERVED)) {
-        return false;
-      }
-      deserialize(serializedFateRes);
-      return true;
-    }
-
     public ZooUtil.LockID getLockID() {
       return lockID;
     }
@@ -193,10 +179,6 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
       } catch (IOException e) {
         throw new UncheckedIOException(e);
       }
-    }
-
-    public static boolean locksAreEqual(ZooUtil.LockID lockID1, ZooUtil.LockID lockID2) {
-      return lockID1.serialize("/").equals(lockID2.serialize("/"));
     }
 
     @Override

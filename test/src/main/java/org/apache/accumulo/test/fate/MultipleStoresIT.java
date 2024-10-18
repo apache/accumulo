@@ -421,8 +421,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     // Verify store1 has the transactions reserved and that they were reserved with lock1
     reservations = store1.getActiveReservations();
     assertEquals(allIds, reservations.keySet());
-    reservations.values().forEach(
-        res -> assertTrue(FateStore.FateReservation.locksAreEqual(lock1, res.getLockID())));
+    reservations.values().forEach(res -> assertEquals(lock1, res.getLockID()));
 
     if (isUserStore) {
       store2 = new UserFateStore<>(client, tableName, lock2, isLockHeld);
@@ -434,8 +433,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     // store1
     reservations = store2.getActiveReservations();
     assertEquals(allIds, reservations.keySet());
-    reservations.values().forEach(
-        res -> assertTrue(FateStore.FateReservation.locksAreEqual(lock1, res.getLockID())));
+    reservations.values().forEach(res -> assertEquals(lock1, res.getLockID()));
 
     // Simulate what would happen if the Manager using the Fate object (fate1) died.
     // isLockHeld would return false for the LockId of the Manager that died (in this case, lock1)
@@ -455,8 +453,8 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     // the workers for fate1 are hung up
     Wait.waitFor(() -> {
       Map<FateId,FateStore.FateReservation> store2Reservations = store2.getActiveReservations();
-      boolean allReservedWithLock2 = store2Reservations.values().stream()
-          .allMatch(entry -> FateStore.FateReservation.locksAreEqual(entry.getLockID(), lock2));
+      boolean allReservedWithLock2 =
+          store2Reservations.values().stream().allMatch(entry -> entry.getLockID().equals(lock2));
       return store2Reservations.keySet().equals(allIds) && allReservedWithLock2;
     }, fate1.getDeadResCleanupDelay().toMillis() * 2);
 
