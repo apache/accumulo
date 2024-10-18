@@ -375,7 +375,6 @@ public class CompactionJobQueuesTest {
 
     // Should be back to 0 size after futures complete
     assertTrue(jobQueues.getQueue(cg1).getJobAges().isEmpty());
-    ;
 
     assertTrue(future1.isDone());
     assertTrue(future2.isDone());
