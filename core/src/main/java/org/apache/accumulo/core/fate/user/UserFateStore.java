@@ -107,7 +107,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       }
 
       var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW)
-          .putCreateTime(System.currentTimeMillis()).putInitReservationVal().tryMutate();
+          .putCreateTime(System.currentTimeMillis()).tryMutate();
 
       switch (status) {
         case ACCEPTED:
@@ -137,8 +137,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     // Only need to retry if it is UNKNOWN
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW).putKey(fateKey)
-          .putReservedTxOnCreation(reservation).putCreateTime(System.currentTimeMillis())
-          .tryMutate();
+          .putReservedTx(reservation).putCreateTime(System.currentTimeMillis()).tryMutate();
       if (status != FateMutator.Status.UNKNOWN) {
         break;
       }
@@ -182,9 +181,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
                 fateKeySeen = Optional.of(FateKey.deserialize(val.get()));
                 break;
               case TxColumnFamily.RESERVATION:
-                if (FateReservation.isFateReservation(val.get())) {
-                  reservationSeen = Optional.of(FateReservation.deserialize(val.get()));
-                }
+                reservationSeen = Optional.of(FateReservation.deserialize(val.get()));
                 break;
               default:
                 throw new IllegalStateException("Unexpected column seen: " + colf + ":" + colq);
@@ -231,7 +228,9 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     // Create a unique FateReservation for this reservation attempt
     FateReservation reservation = FateReservation.from(lockID, UUID.randomUUID());
 
-    FateMutator.Status status = newMutator(fateId).putReservedTx(reservation).tryMutate();
+    // requiring any status prevents creating an entry if the fate id doesn't exist
+    FateMutator.Status status =
+        newMutator(fateId).requireStatus(TStatus.values()).putReservedTx(reservation).tryMutate();
     if (status.equals(FateMutator.Status.ACCEPTED)) {
       return Optional.of(new FateTxStoreImpl(fateId, reservation));
     } else if (status.equals(FateMutator.Status.UNKNOWN)) {
@@ -246,10 +245,9 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         scanner.setRange(getRow(fateId));
         scanner.fetchColumn(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
             TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
-        FateReservation persistedRes = scanner.stream()
-            .filter(entry -> FateReservation.isFateReservation(entry.getValue().get()))
-            .map(entry -> FateReservation.deserialize(entry.getValue().get())).findFirst()
-            .orElse(null);
+        FateReservation persistedRes =
+            scanner.stream().map(entry -> FateReservation.deserialize(entry.getValue().get()))
+                .findFirst().orElse(null);
         if (persistedRes != null && persistedRes.equals(reservation)) {
           return Optional.of(new FateTxStoreImpl(fateId, reservation));
         }
@@ -318,9 +316,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
               status = TStatus.valueOf(val.toString());
               break;
             case TxColumnFamily.RESERVATION:
-              if (FateReservation.isFateReservation(val.get())) {
-                reservation = FateReservation.deserialize(val.get());
-              }
+              reservation = FateReservation.deserialize(val.get());
               break;
             default:
               throw new IllegalStateException("Unexpected column seen: " + colf + ":" + colq);
