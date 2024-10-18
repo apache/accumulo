@@ -124,7 +124,7 @@ public class CompactionJobPriorityQueue {
   private long futuresAdded = 0;
   private final Map<KeyExtent,Timer> jobAges;
   private final Supplier<CompactionJobPriorityQueueStats> jobQueueStats;
-  private final AtomicReference<io.micrometer.core.instrument.Timer> jobQueueTimer;
+  private final AtomicReference<Optional<io.micrometer.core.instrument.Timer>> jobQueueTimer;
 
   private static class TabletJobs {
     final long generation;
@@ -153,7 +153,7 @@ public class CompactionJobPriorityQueue {
     this.jobAges = new ConcurrentHashMap<>();
     this.jobQueueStats = Suppliers.memoizeWithExpiration(
         () -> new CompactionJobPriorityQueueStats(jobAges), 5, TimeUnit.SECONDS);
-    this.jobQueueTimer = new AtomicReference<>();
+    this.jobQueueTimer = new AtomicReference<>(Optional.empty());
   }
 
   public synchronized void removeOlderGenerations(Ample.DataLevel level, long currGeneration) {
@@ -213,6 +213,9 @@ public class CompactionJobPriorityQueue {
     if (!newEntries.isEmpty()) {
       checkState(tabletJobs.put(tabletMetadata.getExtent(), new TabletJobs(generation, newEntries))
           == null);
+      jobAges.computeIfAbsent(tabletMetadata.getExtent(), e -> Timer.startNew());
+    } else {
+      jobAges.remove(tabletMetadata.getExtent());
     }
 
     return jobsAdded;
@@ -253,9 +256,9 @@ public class CompactionJobPriorityQueue {
       var extent = first.getValue().getTabletMetadata().getExtent();
       var timer = jobAges.get(extent);
       checkState(timer != null);
-      Optional.ofNullable(jobQueueTimer.get()).ifPresent(jqt -> jqt.record(timer.elapsed()));
+      jobQueueTimer.get().ifPresent(jqt -> jqt.record(timer.elapsed()));
       log.trace("Compaction job age for {} is {} ms", extent, timer.elapsed(TimeUnit.MILLISECONDS));
-      Set<CjpqKey> jobs = tabletJobs.get(extent).jobs;
+      Set<CompactionJobPriorityQueue.CjpqKey> jobs = tabletJobs.get(extent).jobs;
       checkState(jobs.remove(first.getKey()));
       // If there are no more jobs for this extent we can remove the timer, otherwise
       // we need to reset it
@@ -306,7 +309,7 @@ public class CompactionJobPriorityQueue {
   }
 
   private void removePreviousSubmissions(KeyExtent extent) {
-    TabletJobs prevJobs = tabletJobs.get(extent);
+    CompactionJobPriorityQueue.TabletJobs prevJobs = tabletJobs.get(extent);
     if (prevJobs != null) {
       prevJobs.jobs.forEach(jobQueue::remove);
       tabletJobs.remove(extent);
@@ -332,15 +335,18 @@ public class CompactionJobPriorityQueue {
 
     var key = new CjpqKey(job);
     jobQueue.put(key, new CompactionJobQueues.MetaJob(job, tabletMetadata));
-    jobAges.computeIfAbsent(tabletMetadata.getExtent(), e -> Timer.startNew());
     return key;
   }
 
-  public synchronized void clear() {
-    jobQueue.clear();
-    tabletJobs.clear();
-    jobAges.clear();
-
+  public synchronized void clearIfInactive(Duration duration) {
+    // IF the minimum age of jobs in the queue is older than the
+    // duration then clear all the maps as this queue is now
+    // considered inactive
+    if (getJobQueueStats().getMinAge().compareTo(duration) > 0) {
+      jobQueue.clear();
+      tabletJobs.clear();
+      jobAges.clear();
+    }
     // TODO, what do we do here for the jobQueueTimer, if anything?
   }
 
@@ -349,7 +355,7 @@ public class CompactionJobPriorityQueue {
   }
 
   public void setJobQueueTimerCallback(io.micrometer.core.instrument.Timer jobQueueTimer) {
-    this.jobQueueTimer.set(jobQueueTimer);
+    this.jobQueueTimer.set(Optional.of(jobQueueTimer));
   }
 
   public static class CompactionJobPriorityQueueStats {

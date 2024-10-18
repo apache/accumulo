@@ -1049,7 +1049,7 @@ public class CompactionCoordinator
           // associated priority queue of jobs
           CompactionJobPriorityQueue queue = getJobQueues().getQueue(cgid);
           if (queue != null) {
-            queue.clear();
+            queue.clearIfInactive(Duration.ofMinutes(10));
             queue.setMaxSize(this.jobQueueInitialSize);
           }
         } else {
