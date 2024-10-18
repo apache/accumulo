@@ -174,6 +174,19 @@ $(document).ready(function () {
     runningTable.draw();
   });
 
+  // Clear Filters button handler
+  $('#clear-filters').on('click', function () {
+    $(this).prop('disabled', true); // disable the clear button
+
+    // set the filter inputs to empty and trigger the keyup event to clear the filters
+    $('#hostname-filter').val('').trigger('keyup');
+    $('#queue-filter').val('').trigger('keyup');
+    $('#tableid-filter').val('').trigger('keyup');
+    $('#duration-filter').val('').trigger('keyup');
+
+    $(this).prop('disabled', false); // re-enable the clear
+  });
+
   // Custom filter function for duration
   $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
     if (settings.nTable.id !== 'runningTable') {

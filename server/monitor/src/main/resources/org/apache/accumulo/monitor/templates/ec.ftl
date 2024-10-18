@@ -78,26 +78,34 @@
                     </h2>
                     <div id="filterCollapse" class="accordion-collapse collapse" aria-labelledby="filterHeading" data-bs-parent="#filterAccordion">
                       <div class="accordion-body">
+                        <!-- Hostname Filter -->
                         <div class="mb-3">
                           <label for="hostname-filter" class="form-label">Hostname Filter</label>
                           <input type="text" id="hostname-filter" class="form-control" placeholder="Enter hostname regex">
                           <small id="hostname-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
                         </div>
+                        <!-- Queue Filter -->
                         <div class="mb-3">
                           <label for="queue-filter" class="form-label">Queue Filter</label>
                           <input type="text" id="queue-filter" class="form-control" placeholder="Enter queue regex">
                           <small id="queue-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
                         </div>
+                        <!-- Table ID Filter -->
                         <div class="mb-3">
                           <label for="tableid-filter" class="form-label">Table ID Filter</label>
                           <input type="text" id="tableid-filter" class="form-control" placeholder="Enter table ID regex">
                           <small id="tableid-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
                         </div>
+                        <!-- Duration Filter -->
                         <div class="mb-3">
                           <label for="duration-filter" class="form-label">Duration Filter</label>
                           <input type="text" id="duration-filter" class="form-control" placeholder="Enter duration (e.g., &gt;10m, &lt;1h, &gt;=5s, &lt;=2d)">
                           <small id="duration-feedback" class="form-text text-danger" style="display:none;">Invalid duration format</small>
                           <small class="form-text text-muted">Valid formats: &gt;10m, &lt;1h, &gt;=5s, &lt;=2d</small>
+                        </div>
+                        <!-- Clear Filters Button -->
+                        <div class="mb-3">
+                          <button id="clear-filters" class="btn btn-secondary">Clear Filters</button>
                         </div>
                       </div>
                     </div>
