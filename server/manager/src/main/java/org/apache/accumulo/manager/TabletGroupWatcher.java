@@ -371,7 +371,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
       });
 
-      processRanges(ranges);
+      if (!ranges.isEmpty()) {
+        processRanges(ranges);
+      }
     } finally {
       inProgress.forEach(hostingRequestInProgress::remove);
     }
