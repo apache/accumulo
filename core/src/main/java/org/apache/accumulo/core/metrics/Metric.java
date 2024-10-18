@@ -51,6 +51,18 @@ public enum Metric {
       MetricType.GAUGE, "Count of rejected jobs.", MetricCategory.COMPACTOR),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY("accumulo.compactor.queue.jobs.priority",
       MetricType.GAUGE, "Lowest priority queued job.", MetricCategory.COMPACTOR),
+  COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE("accumulo.compactor.queue.jobs.min.age",
+      MetricType.GAUGE, "Minimum age of currently queued jobs in seconds.",
+      MetricCategory.COMPACTOR),
+  COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE("accumulo.compactor.queue.jobs.max.age",
+      MetricType.GAUGE, "Maximum age of currently queued jobs in seconds.",
+      MetricCategory.COMPACTOR),
+  COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE("accumulo.compactor.queue.jobs.avg.age",
+      MetricType.GAUGE, "Average age of currently queued jobs in seconds.",
+      MetricCategory.COMPACTOR),
+  COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER("accumulo.compactor.queue.jobs.exit.time",
+      MetricType.TIMER, "Tracks time a job spent in the queue before exiting the queue.",
+      MetricCategory.COMPACTOR),
 
   // Fate Metrics
   FATE_TYPE_IN_PROGRESS("accumulo.fate.ops.in.progress.by.type", MetricType.GAUGE,

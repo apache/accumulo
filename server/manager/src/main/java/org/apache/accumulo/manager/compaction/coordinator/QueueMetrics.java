@@ -19,7 +19,11 @@
 package org.apache.accumulo.manager.compaction.coordinator;
 
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUES;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED;
@@ -48,6 +52,7 @@ import com.google.common.collect.Sets.SetView;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Timer;
 
 public class QueueMetrics implements MetricsProducer {
 
@@ -57,6 +62,10 @@ public class QueueMetrics implements MetricsProducer {
     private final Gauge jobsDequeued;
     private final Gauge jobsRejected;
     private final Gauge jobsLowestPriority;
+    private final Gauge jobsMinAge;
+    private final Gauge jobsMaxAge;
+    private final Gauge jobsAvgAge;
+    private final Timer jobsQueueTimer;
 
     public QueueMeters(MeterRegistry meterRegistry, CompactorGroupId cgid,
         CompactionJobPriorityQueue queue) {
@@ -90,6 +99,29 @@ public class QueueMetrics implements MetricsProducer {
               q -> q.getLowestPriority())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getDescription())
           .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+
+      jobsMinAge = Gauge
+          .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE.getName(), queue,
+              q -> q.getJobQueueStats().getMinAge().toSeconds())
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+
+      jobsMaxAge = Gauge
+          .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE.getName(), queue,
+              q -> q.getJobQueueStats().getMaxAge().toSeconds())
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+
+      jobsAvgAge = Gauge.builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE.getName(), queue,
+          // Divide by 1000.0 instead of using toSeconds() so we get a double
+          q -> q.getJobQueueStats().getAvgAge().toMillis() / 1000.0)
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+
+      jobsQueueTimer = Timer.builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER.getName())
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+      queue.setJobQueueTimerCallback(jobsQueueTimer);
     }
 
     private void removeMeters(MeterRegistry registry) {
@@ -98,6 +130,10 @@ public class QueueMetrics implements MetricsProducer {
       registry.remove(jobsDequeued);
       registry.remove(jobsRejected);
       registry.remove(jobsLowestPriority);
+      registry.remove(jobsMinAge);
+      registry.remove(jobsMaxAge);
+      registry.remove(jobsAvgAge);
+      registry.remove(jobsQueueTimer);
     }
   }
 
