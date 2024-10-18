@@ -170,7 +170,8 @@ public class CompactionJobPriorityQueue {
           removals.size(), groupId, level);
     }
 
-    removals.forEach(this::removePreviousSubmissions);
+    // Also clears jobAge timer for tablets that do not need compaction anymore
+    removals.forEach(ke -> removePreviousSubmissions(ke, true));
   }
 
   /**
@@ -180,7 +181,10 @@ public class CompactionJobPriorityQueue {
       long generation) {
     Preconditions.checkArgument(jobs.stream().allMatch(job -> job.getGroup().equals(groupId)));
 
-    removePreviousSubmissions(tabletMetadata.getExtent());
+    // Do not clear jobAge timers, they are cleared later at the end of this method
+    // if there are no jobs for the extent so we do not reset the timer for an extent
+    // that had previous jobs and still has jobs
+    removePreviousSubmissions(tabletMetadata.getExtent(), false);
 
     HashSet<CjpqKey> newEntries = new HashSet<>(jobs.size());
 
@@ -191,9 +195,14 @@ public class CompactionJobPriorityQueue {
         // its expected that if futures are present then the queue is empty, if this is not true
         // then there is a bug
         Preconditions.checkState(jobQueue.isEmpty());
+        // Queue should be empty so jobAges should be empty
+        Preconditions.checkState(jobAges.isEmpty());
         if (future.complete(new CompactionJobQueues.MetaJob(job, tabletMetadata))) {
           // successfully completed a future with this job, so do not need to queue the job
           jobsAdded++;
+          // Record a time of 0 as job as we were able to complete immediately and there
+          // were no jobs waiting
+          jobQueueTimer.get().ifPresent(jqt -> jqt.record(Duration.ZERO));
           continue outer;
         } // else the future was canceled or timed out so could not complete it
         future = futures.poll();
@@ -308,11 +317,15 @@ public class CompactionJobPriorityQueue {
     return firstEntry == null ? null : firstEntry.getValue();
   }
 
-  private void removePreviousSubmissions(KeyExtent extent) {
+  private void removePreviousSubmissions(KeyExtent extent, boolean removeJobAges) {
     CompactionJobPriorityQueue.TabletJobs prevJobs = tabletJobs.get(extent);
     if (prevJobs != null) {
       prevJobs.jobs.forEach(jobQueue::remove);
       tabletJobs.remove(extent);
+      if (removeJobAges) {
+        jobAges.remove(extent);
+        log.trace("Removed jobAge timer for tablet {} that no longer needs compaction", extent);
+      }
     }
   }
 
@@ -330,7 +343,6 @@ public class CompactionJobPriorityQueue {
           rejectedJobs.getAndIncrement();
         }
       }
-
     }
 
     var key = new CjpqKey(job);
@@ -347,7 +359,6 @@ public class CompactionJobPriorityQueue {
       tabletJobs.clear();
       jobAges.clear();
     }
-    // TODO, what do we do here for the jobQueueTimer, if anything?
   }
 
   public CompactionJobPriorityQueueStats getJobQueueStats() {
@@ -358,12 +369,20 @@ public class CompactionJobPriorityQueue {
     this.jobQueueTimer.set(Optional.of(jobQueueTimer));
   }
 
+  // Used for unit testing, can return the map as is because
+  // it is a ConcurrentHashMap
+  @VisibleForTesting
+  Map<KeyExtent,Timer> getJobAges() {
+    return jobAges;
+  }
+
   public static class CompactionJobPriorityQueueStats {
     private final Duration minAge;
     private final Duration maxAge;
     private final Duration avgAge;
 
-    private CompactionJobPriorityQueueStats(Map<KeyExtent,Timer> jobAges) {
+    @VisibleForTesting
+    CompactionJobPriorityQueueStats(Map<KeyExtent,Timer> jobAges) {
       final Stat stats = new Stat();
       jobAges.values().forEach(t -> stats.addStat(t.elapsed(TimeUnit.MILLISECONDS)));
       this.minAge = Duration.ofMillis(stats.min());

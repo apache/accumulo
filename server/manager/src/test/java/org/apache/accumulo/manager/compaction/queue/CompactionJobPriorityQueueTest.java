@@ -33,11 +33,13 @@ import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
+import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue.CompactionJobPriorityQueueStats;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues.MetaJob;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -193,21 +195,26 @@ public class CompactionJobPriorityQueueTest {
     assertEquals(0, queue.getDequeuedJobs());
     assertEquals(1, queue.getRejectedJobs());
     assertEquals(2, queue.getQueuedJobs());
+    // One tablet was added with jobs
+    assertEquals(1, queue.getJobAges().size());
 
     MetaJob job = queue.poll();
     assertEquals(cj1, job.getJob());
     assertEquals(tm, job.getTabletMetadata());
     assertEquals(1, queue.getDequeuedJobs());
+    // still 1 job left so should still have a timer
+    assertEquals(1, queue.getJobAges().size());
 
     job = queue.poll();
     assertEquals(cj2, job.getJob());
     assertEquals(tm, job.getTabletMetadata());
     assertEquals(2, queue.getDequeuedJobs());
+    // no more jobs so timer should be gone
+    assertTrue(queue.getJobAges().isEmpty());
 
     job = queue.poll();
     assertNull(job);
     assertEquals(2, queue.getDequeuedJobs());
-
   }
 
   private static int counter = 1;
@@ -251,6 +258,14 @@ public class CompactionJobPriorityQueueTest {
     assertEquals(100, queue.getMaxSize());
     assertEquals(100, queue.getQueuedJobs());
     assertEquals(900, queue.getRejectedJobs());
+    // There should be 1000 total job ages even though 900 were rejected
+    // as there were 1000 total tablets added
+    assertEquals(1000, queue.getJobAges().size());
+
+    var stats = queue.getJobQueueStats();
+    assertTrue(stats.getMinAge().toMillis() > 0);
+    assertTrue(stats.getMaxAge().toMillis() > 0);
+    assertTrue(stats.getAvgAge().toMillis() > 0);
 
     // iterate over the expected set and make sure that they next job in the queue
     // matches
@@ -266,11 +281,29 @@ public class CompactionJobPriorityQueueTest {
     }
 
     assertEquals(100, matchesSeen);
+    // Should be 900 left as the 100 that were polled would clear as there are no more
+    // jobs for those tablets. These 900 were rejected so their timers remain and will
+    // be cleared if there are no computed jobs when jobs are added again or by
+    // the call to removeOlderGenerations()
+    assertEquals(900, queue.getJobAges().size());
 
-    var stats = queue.getJobQueueStats();
+    // Create new stats directly vs using queue.getJobQueueStats() because that method
+    // caches the results for a short period
+    stats = new CompactionJobPriorityQueueStats(queue.getJobAges());
     assertTrue(stats.getMinAge().toMillis() > 0);
     assertTrue(stats.getMaxAge().toMillis() > 0);
     assertTrue(stats.getAvgAge().toMillis() > 0);
+
+    // Verify jobAges cleared when calling removeOlderGenerations()
+    queue.removeOlderGenerations(DataLevel.USER, 2);
+
+    // Stats should be 0 if no jobs
+    var jobAges = queue.getJobAges();
+    assertTrue(jobAges.isEmpty());
+    stats = new CompactionJobPriorityQueueStats(queue.getJobAges());
+    assertEquals(0, stats.getMinAge().toMillis());
+    assertEquals(0, stats.getMaxAge().toMillis());
+    assertEquals(0, stats.getAvgAge().toMillis());
   }
 
   /**
