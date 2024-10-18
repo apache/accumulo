@@ -113,7 +113,9 @@ public class FateSummaryIT extends ConfigurableMacBase {
           "IN_PROGRESS", "-s", "FAILED");
       assertEquals(0, p.getProcess().waitFor());
       String result = p.readStdOut();
-      result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+      // remove an log messages
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
       FateSummaryReport report = FateSummaryReport.fromJson(result);
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
@@ -134,7 +136,8 @@ public class FateSummaryIT extends ConfigurableMacBase {
       p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
-      result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
       report = FateSummaryReport.fromJson(result);
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
@@ -153,7 +156,8 @@ public class FateSummaryIT extends ConfigurableMacBase {
       p = getCluster().exec(Admin.class, "fate", txns.get(0), txns.get(1), "--summary", "-j");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
-      result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
       report = FateSummaryReport.fromJson(result);
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
@@ -167,7 +171,8 @@ public class FateSummaryIT extends ConfigurableMacBase {
       p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "FAILED");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
-      result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
       report = FateSummaryReport.fromJson(result);
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
