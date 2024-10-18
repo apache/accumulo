@@ -35,6 +35,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -85,8 +86,8 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
 
     ServerContext ctx = getCluster().getServerContext();
 
-    Wait.waitFor(
-        () -> !ctx.getServerPaths().getScanServer(rg -> true, addr -> true, true).isEmpty());
+    Wait.waitFor(() -> !ctx.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true)
+        .isEmpty());
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];

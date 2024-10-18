@@ -113,6 +113,7 @@ public class PropSnapshot implements PropChangeListener {
   public void zkChangeEvent(final PropStoreKey<?> eventPropKey) {
     if (propStoreKey.equals(eventPropKey)) {
       requireUpdate();
+      log.debug("Saw zk change event for {} - update properties required", propStoreKey);
     }
   }
 
@@ -120,6 +121,7 @@ public class PropSnapshot implements PropChangeListener {
   public void cacheChangeEvent(final PropStoreKey<?> eventPropKey) {
     if (propStoreKey.equals(eventPropKey)) {
       requireUpdate();
+      log.debug("Saw cache change event for {} - update properties required", propStoreKey);
     }
   }
 
@@ -127,14 +129,14 @@ public class PropSnapshot implements PropChangeListener {
   public void deleteEvent(final PropStoreKey<?> eventPropKey) {
     if (propStoreKey.equals(eventPropKey)) {
       requireUpdate();
-      log.debug("Received property delete event for {}", propStoreKey);
+      log.debug("Received property delete event for {} - update properties required", propStoreKey);
     }
   }
 
   @Override
   public void connectionEvent() {
     requireUpdate();
-    log.debug("Received connection event - update properties required");
+    log.debug("Received connection event for {} - update properties required", propStoreKey);
   }
 
 }

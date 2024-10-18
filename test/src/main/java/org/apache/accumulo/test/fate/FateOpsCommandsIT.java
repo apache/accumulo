@@ -64,6 +64,7 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -101,7 +102,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
     Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getCompactor(rg -> true, addr -> true, true).isEmpty(), 60_000);
+        .getCompactor(rg -> true, AddressSelector.all(), true).isEmpty(), 60_000);
   }
 
   @Test

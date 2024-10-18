@@ -25,14 +25,11 @@ import java.util.Map;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
-import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost.Type;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * @since 1.6.0
@@ -41,17 +38,13 @@ public class ActiveCompactionImpl extends ActiveCompaction {
 
   private final org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac;
   private final ClientContext context;
-  private final HostAndPort hostport;
-  private final Type type;
-  private final String resourceGroup;
+  private final ServerId server;
 
   ActiveCompactionImpl(ClientContext context,
       org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac, ServerId server) {
     this.tac = tac;
     this.context = context;
-    this.hostport = HostAndPort.fromParts(server.getHost(), server.getPort());
-    this.type = server.getType() == ServerId.Type.COMPACTOR ? Type.COMPACTOR : Type.TSERVER;
-    this.resourceGroup = server.getResourceGroup();
+    this.server = server;
   }
 
   @Override
@@ -126,27 +119,7 @@ public class ActiveCompactionImpl extends ActiveCompaction {
   }
 
   @Override
-  public CompactionHost getHost() {
-    return new CompactionHost() {
-      @Override
-      public Type getType() {
-        return type;
-      }
-
-      @Override
-      public String getAddress() {
-        return hostport.getHost();
-      }
-
-      @Override
-      public int getPort() {
-        return hostport.getPort();
-      }
-
-      @Override
-      public String getResourceGroup() {
-        return resourceGroup;
-      }
-    };
+  public ServerId getHost() {
+    return server;
   }
 }
