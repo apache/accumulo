@@ -69,31 +69,37 @@
                     </a>
                   </div>
                 </div>
-                <button class="btn btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
-                  Toggle Filters
-                </button>
-                <!-- Collapsible Filter Section -->
-                <div class="collapse" id="filterCollapse">
-                  <div class="card card-body">
-                    <div class="mb-3">
-                      <label for="hostname-filter" class="form-label">Hostname Filter</label>
-                      <input type="text" id="hostname-filter" class="form-control" placeholder="Enter hostname regex">
-                      <small id="hostname-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
-                    </div>
-                    <div class="mb-3">
-                      <label for="queue-filter" class="form-label">Queue Filter</label>
-                      <input type="text" id="queue-filter" class="form-control" placeholder="Enter queue regex">
-                      <small id="queue-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
-                    </div>
-                    <div class="mb-3">
-                      <label for="tableid-filter" class="form-label">Table ID Filter</label>
-                      <input type="text" id="tableid-filter" class="form-control" placeholder="Enter table ID regex">
-                      <small id="tableid-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
-                    </div>
-                    <div class="mb-3">
-                      <label for="duration-filter" class="form-label">Duration Filter</label>
-                      <input type="text" id="duration-filter" class="form-control" placeholder="Enter duration (e.g., &gt;10m, &lt;1h, &gt;=5s, &lt;=2d)">
-                      <small id="duration-feedback" class="form-text text-danger" style="display:none;">Invalid duration format</small>
+                <div class="accordion" id="filterAccordion">
+                  <div class="accordion-item">
+                    <h2 class="accordion-header" id="filterHeading">
+                      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+                        Filters
+                      </button>
+                    </h2>
+                    <div id="filterCollapse" class="accordion-collapse collapse" aria-labelledby="filterHeading" data-bs-parent="#filterAccordion">
+                      <div class="accordion-body">
+                        <div class="mb-3">
+                          <label for="hostname-filter" class="form-label">Hostname Filter</label>
+                          <input type="text" id="hostname-filter" class="form-control" placeholder="Enter hostname regex">
+                          <small id="hostname-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
+                        </div>
+                        <div class="mb-3">
+                          <label for="queue-filter" class="form-label">Queue Filter</label>
+                          <input type="text" id="queue-filter" class="form-control" placeholder="Enter queue regex">
+                          <small id="queue-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
+                        </div>
+                        <div class="mb-3">
+                          <label for="tableid-filter" class="form-label">Table ID Filter</label>
+                          <input type="text" id="tableid-filter" class="form-control" placeholder="Enter table ID regex">
+                          <small id="tableid-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
+                        </div>
+                        <div class="mb-3">
+                          <label for="duration-filter" class="form-label">Duration Filter</label>
+                          <input type="text" id="duration-filter" class="form-control" placeholder="Enter duration (e.g., &gt;10m, &lt;1h, &gt;=5s, &lt;=2d)">
+                          <small id="duration-feedback" class="form-text text-danger" style="display:none;">Invalid duration format</small>
+                          <small class="form-text text-muted">Valid formats: &gt;10m, &lt;1h, &gt;=5s, &lt;=2d</small>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
