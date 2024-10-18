@@ -26,21 +26,25 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -117,6 +121,20 @@ public class Upgrader11to12 implements Upgrader {
         zrw.overwritePersistentData(rootBase, rtm.toJson().getBytes(UTF_8), stat.getVersion());
         log.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
+
+      String zPath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNAMESPACES;
+      ZooReaderWriter zoo = context.getZooReaderWriter();
+      Map<String,String> namespaceMap = new HashMap<>();
+      List<String> namespaceIdList = zoo.getChildren(zPath);
+      for (String namespaceId : namespaceIdList) {
+        @SuppressWarnings("deprecation")
+        String namespaceNamePath = zPath + "/" + namespaceId + Constants.ZNAMESPACE_NAME;
+        namespaceMap.put(namespaceId, new String(zoo.getData(namespaceNamePath), UTF_8));
+        zoo.delete(namespaceNamePath);
+      }
+      byte[] mapping = NamespaceMapping.serialize(namespaceMap);
+      zoo.putPersistentData(zPath, mapping, ZooUtil.NodeExistsPolicy.OVERWRITE);
+
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException(
