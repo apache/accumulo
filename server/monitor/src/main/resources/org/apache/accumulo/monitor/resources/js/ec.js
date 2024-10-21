@@ -69,6 +69,11 @@ $(document).ready(function () {
     ]
   });
 
+  const hostnameColumnName = 'hostname';
+  const queueNameColumnName = 'queueName';
+  const tableIdColumnName = 'tableId';
+  const durationColumnName = 'duration';
+
   // Create a table for running compactors
   runningTable = $('#runningTable').DataTable({
     "ajax": {
@@ -93,7 +98,8 @@ $(document).ready(function () {
       }
     ],
     "columns": [{
-        "data": "server"
+        "data": "server",
+        "name": hostnameColumnName
       },
       {
         "data": "kind"
@@ -102,10 +108,12 @@ $(document).ready(function () {
         "data": "status"
       },
       {
-        "data": "queueName"
+        "data": "queueName",
+        "name": queueNameColumnName
       },
       {
-        "data": "tableId"
+        "data": "tableId",
+        "name": tableIdColumnName
       },
       {
         "data": "numFiles"
@@ -131,7 +139,8 @@ $(document).ready(function () {
         "data": "lastUpdate"
       },
       {
-        "data": "duration"
+        "data": "duration",
+        "name": durationColumnName
       },
       { // more column settings
         "class": "details-control",
@@ -142,14 +151,14 @@ $(document).ready(function () {
     ]
   });
 
-  function handleFilterKeyup(input, feedbackElement, columnIndex) {
+  function handleFilterKeyup(input, feedbackElement, columnName) {
     if (isValidRegex(input) || input === '') { // if valid, apply the filter
       feedbackElement.hide();
       $(this).removeClass('is-invalid');
       const isRegex = true;
       const smartEnabled = false;
       runningTable
-        .column(columnIndex)
+        .column(`${columnName}:name`)
         .search(input, isRegex, smartEnabled)
         .draw();
     } else { // if invalid, show the warning
@@ -159,15 +168,15 @@ $(document).ready(function () {
   }
 
   $('#hostname-filter').on('keyup', function () {
-    handleFilterKeyup.call(this, this.value, $('#hostname-feedback'), 0);
+    handleFilterKeyup.call(this, this.value, $('#hostname-feedback'), hostnameColumnName);
   });
 
   $('#queue-filter').on('keyup', function () {
-    handleFilterKeyup.call(this, this.value, $('#queue-feedback'), 3);
+    handleFilterKeyup.call(this, this.value, $('#queue-feedback'), queueNameColumnName);
   });
 
   $('#tableid-filter').on('keyup', function () {
-    handleFilterKeyup.call(this, this.value, $('#tableid-feedback'), 4);
+    handleFilterKeyup.call(this, this.value, $('#tableid-feedback'), tableIdColumnName);
   });
 
   $('#duration-filter').on('keyup', function () {
@@ -193,7 +202,8 @@ $(document).ready(function () {
       return true;
     }
 
-    const durationStr = data[8]; // duration is in the 9th column (index 8)
+    const durationColIndex = runningTable.column(`${durationColumnName}:name`).index();
+    const durationStr = data[durationColIndex];
     const durationSeconds = parseDuration(durationStr);
 
     const input = $('#duration-filter').val().trim();
@@ -224,6 +234,7 @@ $(document).ready(function () {
     case '<=':
       return durationSeconds <= filterSeconds;
     default:
+      console.error(`Unexpected operator "${operator}" encountered in duration filter.`);
       return true;
     }
   });
@@ -240,6 +251,7 @@ $(document).ready(function () {
     case 'd':
       return value * 86400;
     default:
+      console.error(`Unexpected unit "${unit}" encountered in duration filter. Defaulting to seconds.`);
       return value;
     }
   }
