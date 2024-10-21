@@ -181,29 +181,14 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
       ClientContext context = (ClientContext) client;
 
       FateId fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
-      FateId fateId1 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
       ZooUtil.LockID lockID = new ZooUtil.LockID("/locks", "L1", 50);
       FateStore.FateReservation reservation =
           FateStore.FateReservation.from(lockID, UUID.randomUUID());
       FateStore.FateReservation wrongReservation =
           FateStore.FateReservation.from(lockID, UUID.randomUUID());
 
-      // Ensure that we cannot do anything in the column until it is initialized
-      FateMutator.Status status =
-          new FateMutatorImpl<>(context, table, fateId).putReservedTx(reservation).tryMutate();
-      assertEquals(REJECTED, status);
-      status =
-          new FateMutatorImpl<>(context, table, fateId).putUnreserveTx(reservation).tryMutate();
-      assertEquals(REJECTED, status);
-
-      // Initialize the column and ensure we can't do it twice
-      status = new FateMutatorImpl<>(context, table, fateId).putInitReservationVal().tryMutate();
-      assertEquals(ACCEPTED, status);
-      status = new FateMutatorImpl<>(context, table, fateId).putInitReservationVal().tryMutate();
-      assertEquals(REJECTED, status);
-
       // Ensure that reserving is the only thing we can do
-      status =
+      FateMutator.Status status =
           new FateMutatorImpl<>(context, table, fateId).putUnreserveTx(reservation).tryMutate();
       assertEquals(REJECTED, status);
       status = new FateMutatorImpl<>(context, table, fateId).putReservedTx(reservation).tryMutate();
@@ -225,20 +210,6 @@ public class FateMutatorImplIT extends SharedMiniClusterBase {
       assertEquals(ACCEPTED, status);
       status =
           new FateMutatorImpl<>(context, table, fateId).putUnreserveTx(reservation).tryMutate();
-      assertEquals(REJECTED, status);
-
-      // Verify putReservedTxOnCreation works as expected
-      status = new FateMutatorImpl<>(context, table, fateId1).putReservedTxOnCreation(reservation)
-          .tryMutate();
-      assertEquals(ACCEPTED, status);
-      status = new FateMutatorImpl<>(context, table, fateId1).putReservedTxOnCreation(reservation)
-          .tryMutate();
-      assertEquals(REJECTED, status);
-      status =
-          new FateMutatorImpl<>(context, table, fateId1).putUnreserveTx(reservation).tryMutate();
-      assertEquals(ACCEPTED, status);
-      status = new FateMutatorImpl<>(context, table, fateId1).putReservedTxOnCreation(reservation)
-          .tryMutate();
       assertEquals(REJECTED, status);
     }
   }
