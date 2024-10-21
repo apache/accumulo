@@ -352,7 +352,7 @@ public class Fate<T> {
     this.workQueue = new LinkedTransferQueue<>();
     this.fatePoolWatcher =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
-    ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
+    ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.scheduleWithFixedDelay(() -> {
       // resize the pool if the property changed
       ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
       // If the pool grew, then ensure that there is a TransactionRunner for each thread
@@ -374,7 +374,7 @@ public class Fate<T> {
           }
         }
       }
-    }, 3, SECONDS));
+    }, 3, 30, SECONDS));
     this.transactionExecutor = pool;
 
     ScheduledExecutorService deadResCleanerExecutor = null;
