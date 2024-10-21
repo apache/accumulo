@@ -231,22 +231,22 @@ public class ColumnVisibility {
   public static Node normalize(Node root, byte[] expression, NodeComparator comparator) {
     if (root.type != NodeType.TERM) {
       TreeSet<Node> rolledUp = new TreeSet<>(comparator);
-      java.util.Iterator<Node> itr = root.children.iterator();
-      while (itr.hasNext()) {
-        Node c = normalize(itr.next(), expression, comparator);
-        if (c.type == root.type) {
-          rolledUp.addAll(c.children);
-          itr.remove();
+      for (Node child : root.children) {
+        Node newChild = normalize(child, expression, comparator);
+        if (newChild.type == root.type) {
+          rolledUp.addAll(newChild.children);
+        } else {
+          rolledUp.add(newChild);
         }
       }
-      rolledUp.addAll(root.children);
-      root.children.clear();
-      root.children.addAll(rolledUp);
 
-      // need to promote a child if it's an only child
-      if (root.children.size() == 1) {
-        return root.children.get(0);
+      if (rolledUp.size() == 1) {
+        return rolledUp.first();
       }
+
+      Node newRoot = new Node(root.type, root.start);
+      newRoot.children = List.copyOf(rolledUp);
+      return newRoot;
     }
 
     return root;
