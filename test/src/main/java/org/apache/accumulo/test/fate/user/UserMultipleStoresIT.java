@@ -66,13 +66,13 @@ public class UserMultipleStoresIT extends MultipleStoresIT {
   }
 
   @Override
-  public void executeSleepingEnvTest(MultipleStoresTestExecutor<SleepingTestEnv> testMethod)
+  protected void executeSleepingEnvTest(MultipleStoresTestExecutor<SleepingTestEnv> testMethod)
       throws Exception {
     testMethod.execute(new SleepingEnvUserStoreFactory());
   }
 
   @Override
-  public void executeLatchEnvTest(MultipleStoresTestExecutor<LatchTestEnv> testMethod)
+  protected void executeLatchEnvTest(MultipleStoresTestExecutor<LatchTestEnv> testMethod)
       throws Exception {
     testMethod.execute(new LatchEnvUserStoreFactory());
   }

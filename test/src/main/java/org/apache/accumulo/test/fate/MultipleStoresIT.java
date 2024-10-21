@@ -46,14 +46,14 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-public abstract class MultipleStoresIT extends SharedMiniClusterBase
-    implements MultipleStoresTestRunner {
+public abstract class MultipleStoresIT extends SharedMiniClusterBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(MultipleStoresIT.class);
 
@@ -446,4 +446,22 @@ public abstract class MultipleStoresIT extends SharedMiniClusterBase
     public final AtomicInteger numWorkers = new AtomicInteger(0);
     public final CountDownLatch workersLatch = new CountDownLatch(1);
   }
+
+  protected abstract void executeSleepingEnvTest(
+      MultipleStoresTestExecutor<SleepingTestEnv> testMethod) throws Exception;
+
+  protected abstract void executeLatchEnvTest(MultipleStoresTestExecutor<LatchTestEnv> testMethod)
+      throws Exception;
+
+  protected interface TestStoreFactory<T extends MultipleStoresTestEnv> {
+    FateStore<T> create(ZooUtil.LockID lockID, Predicate<ZooUtil.LockID> isLockHeld)
+        throws InterruptedException, KeeperException;
+  }
+
+  @FunctionalInterface
+  protected interface MultipleStoresTestExecutor<T extends MultipleStoresTestEnv> {
+    void execute(TestStoreFactory<T> fateStoreFactory) throws Exception;
+  }
+
+  protected static class MultipleStoresTestEnv {}
 }

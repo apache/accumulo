@@ -26,7 +26,6 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.MultipleStoresIT;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
@@ -43,7 +42,6 @@ public class MetaMultipleStoresIT extends MultipleStoresIT {
 
   @BeforeAll
   public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniCluster();
     SZK = new ZooKeeperTestingServer(TEMP_DIR);
     ZK = SZK.getZooReaderWriter();
     FATE_DIR = Constants.ZFATE;
@@ -52,17 +50,16 @@ public class MetaMultipleStoresIT extends MultipleStoresIT {
   @AfterAll
   public static void teardown() throws Exception {
     SZK.close();
-    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @Override
-  public void executeSleepingEnvTest(MultipleStoresTestExecutor<SleepingTestEnv> testMethod)
+  protected void executeSleepingEnvTest(MultipleStoresTestExecutor<SleepingTestEnv> testMethod)
       throws Exception {
     testMethod.execute(new SleepingEnvMetaStoreFactory());
   }
 
   @Override
-  public void executeLatchEnvTest(MultipleStoresTestExecutor<LatchTestEnv> testMethod)
+  protected void executeLatchEnvTest(MultipleStoresTestExecutor<LatchTestEnv> testMethod)
       throws Exception {
     testMethod.execute(new LatchEnvMetaStoreFactory());
   }
