@@ -18,10 +18,6 @@
  */
 package org.apache.accumulo.monitor.rest.compactions.external;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.GET;
@@ -30,9 +26,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,31 +60,7 @@ public class ECResource {
   @Path("running")
   @GET
   public RunningCompactions getRunning() {
-    // return monitor.getRunnningCompactions();
-    return getSampleData();
-  }
-
-  private RunningCompactions getSampleData() {
-
-    RunningCompactionInfo rci1 =
-        new RunningCompactionInfo("server1", "queue1", "ecid1", "USER", "tableId1", 150, 0.1f,
-            Duration.ofMinutes(15).toNanos(), TCompactionState.ASSIGNED.name(), 10000);
-    RunningCompactionInfo rci2 =
-        new RunningCompactionInfo("server2", "queue2", "ecid2", "SYSTEM", "tableId2", 265, 0.2f,
-            Duration.ofHours(2).toNanos(), TCompactionState.CANCELLED.name(), 20000);
-    RunningCompactionInfo rci3 =
-        new RunningCompactionInfo("server3", "queue3", "ecid3", "USER", "tableId3", 3555, 0.3f,
-            Duration.ofMinutes(70).toNanos(), TCompactionState.IN_PROGRESS.name(), 30000);
-    RunningCompactionInfo rci4 =
-        new RunningCompactionInfo("localhost:9999", "default", "ecid4", "SYSTEM", "1", 132342, 0.1f,
-            Duration.ofSeconds(15).toNanos(), TCompactionState.IN_PROGRESS.name(), 10000);
-
-    List<RunningCompactionInfo> running = List.of(rci1, rci2, rci3, rci4);
-
-    RunningCompactions result = new RunningCompactions(Map.of());
-    result.running.addAll(running);
-
-    return result;
+    return monitor.getRunnningCompactions();
   }
 
   @Path("details")
