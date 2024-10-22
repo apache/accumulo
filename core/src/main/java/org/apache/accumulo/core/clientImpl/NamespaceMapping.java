@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptySortedMap;
 
 import java.lang.reflect.Type;
+import java.util.Collections;
 import java.util.Map;
 import java.util.SortedMap;
 
@@ -74,6 +75,9 @@ public class NamespaceMapping {
   }
 
   public static Map<String,String> deserialize(byte[] data) {
+    if (data == null || data.length == 0) {
+      return Collections.emptyMap();
+    }
     String jsonData = new String(data, UTF_8);
     Type type = new TypeToken<Map<String,String>>() {}.getType();
     return gson.fromJson(jsonData, type);
