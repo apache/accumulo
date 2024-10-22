@@ -59,11 +59,6 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   @Override
   public void invalidateCache(String tserver) {
-    var hostAndPort = HostAndPort.fromString(tserver);
-    ctx.getServerPaths().getTabletServer(rg -> true, AddressSelector.exact(hostAndPort), false)
-        .forEach(slp -> {
-          ctx.getZooCache().clear(slp.toString());
-        });
+    ctx.getZooCache().clear(path -> path.contains(tserver));
   }
-
 }
