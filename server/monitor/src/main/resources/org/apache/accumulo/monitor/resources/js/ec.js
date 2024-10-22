@@ -80,9 +80,8 @@ $(document).ready(function () {
     "columnDefs": [{
         "targets": "duration",
         "render": function (data, type, row) {
-          // incoming data is in nanoseconds
-          const millisValue = data / 1_000_000;
-          if (type === 'display') data = timeDuration(millisValue);
+          data = data / 1_000_000; // convert from nanos to millis
+          if (type === 'display') data = timeDuration(data);
           return data;
         }
       },
