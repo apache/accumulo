@@ -59,6 +59,8 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   @Override
   public void invalidateCache(String tserver) {
+    // The path for the tserver contains a resource group. The resource group is unknown, so can not
+    // construct a prefix. Therefore clear any path that contains the tserver.
     ctx.getZooCache().clear(path -> path.contains(tserver));
   }
 }
