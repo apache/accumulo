@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
@@ -34,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
-import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
 
 public class MetricServiceHandler implements MetricService.Iface {
@@ -74,24 +75,28 @@ public class MetricServiceHandler implements MetricService.Iface {
       return response;
     }
 
-    if (!ctx.getMetricsInfo().isMetricsEnabled()) {
-      return response;
-    }
-
     response.setServerType(type);
     response.setServer(host);
     response.setResourceGroup(resourceGroup);
     response.setTimestamp(System.currentTimeMillis());
 
-    final List<Meter> meters = Metrics.globalRegistry.getMeters();
-    for (Meter m : meters) {
-      if (m.getId().getName().startsWith("accumulo.")) {
-        m.use(response::writeMeter, response::writeMeter, response::writeTimer,
-          response::writeDistributionSummary, response::writeLongTaskTimer, response::writeMeter,
-          response::writeMeter, response::writeFunctionTimer, response::writeMeter);
-      }
+    if (!ctx.getMetricsInfo().isMetricsEnabled()) {
+      return response;
     }
 
+    List<MeterRegistry> registries = new ArrayList<>(Metrics.globalRegistry.getRegistries());
+    registries.add(Metrics.globalRegistry);
+    registries.forEach(r -> {
+      r.getMeters().forEach(m -> {
+        if (m.getId().getName().startsWith("accumulo.")) {
+          m.match(response::writeMeter, response::writeMeter, response::writeTimer,
+              response::writeDistributionSummary, response::writeLongTaskTimer, response::writeMeter,
+              response::writeMeter, response::writeFunctionTimer, response::writeMeter);
+        }
+      });
+    });
+
+    response.cleanup();
     return response;
   }
 

@@ -18,11 +18,13 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import static org.apache.accumulo.core.metrics.MetricsInfo.HOST_TAG_KEY;
 import static org.apache.accumulo.core.metrics.MetricsInfo.INSTANCE_NAME_TAG_KEY;
 import static org.apache.accumulo.core.metrics.MetricsInfo.PORT_TAG_KEY;
 import static org.apache.accumulo.core.metrics.MetricsInfo.PROCESS_NAME_TAG_KEY;
 import static org.apache.accumulo.core.metrics.MetricsInfo.RESOURCE_GROUP_TAG_KEY;
 
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -32,6 +34,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 
 import com.google.flatbuffers.FlatBufferBuilder;
 
@@ -50,29 +53,62 @@ public class MetricResponseWrapper extends MetricResponse {
   private static final long serialVersionUID = 1L;
 
   private final TimeUnit UNIT = TimeUnit.SECONDS;
-  private final FlatBufferBuilder builder = new FlatBufferBuilder();
+  private final FlatBufferBuilder builder = new FlatBufferBuilder(1024);
 
+  public void cleanup() {
+    builder.clear();
+  }
+  
   private List<Tag> reduceTags(List<Tag> tags, List<Tag> extraTags) {
     return Stream.concat(tags.stream(), extraTags.stream()).filter(t -> {
       return !t.getKey().equals(INSTANCE_NAME_TAG_KEY) &&
           !t.getKey().equals(PROCESS_NAME_TAG_KEY) &&
           !t.getKey().equals(RESOURCE_GROUP_TAG_KEY) &&
-          !t.getKey().equals(RESOURCE_GROUP_TAG_KEY) &&
+          !t.getKey().equals(HOST_TAG_KEY) &&
           !t.getKey().equals(PORT_TAG_KEY);
       }).collect(Collectors.toList());
   }
   
-  private void addMetric(Meter.Id id, List<Tag> extraTags, int value) {
+  private synchronized void addMetric(Meter.Id id, List<Tag> extraTags, int value) {
 
     final String type = id.getType().name();
     final String name = id.getName();
     final List<Tag> tags = id.getTags();
 
     builder.clear();
+    int nameRef = builder.createString(name);
+    int typeRef = builder.createString(type);
+    List<Tag> tagList = reduceTags(tags, extraTags);
+    int[] tagRefs = new int[tagList.size()];
+    for (int idx = 0; idx < tagList.size(); idx++) {
+      Tag t = tagList.get(idx);
+      int k = builder.createString(t.getKey());
+      int v = builder.createString(t.getValue());
+      tagRefs[idx] = FTag.createFTag(builder, k, v);
+    }
+    int tagsRef = FMetric.createTagsVector(builder, tagRefs);
+    
     FMetric.startFMetric(builder);
-    FMetric.addName(builder, builder.createString(name));
-    FMetric.addType(builder, builder.createString(type));
+    FMetric.addName(builder, nameRef);
+    FMetric.addType(builder, typeRef);
+    FMetric.addTags(builder, tagsRef);
     FMetric.addIvalue(builder, value);
+    int metricRef = FMetric.endFMetric(builder);
+    builder.finish(metricRef);
+    ByteBuffer buf = builder.dataBuffer();
+    // We want to copy buf as the above returns a reference
+    // to a ByteBuffer that is reused by the FlatBufferBuilder
+    this.addToMetrics(ByteBuffer.wrap(ByteBufferUtil.toBytes(buf)));
+  }
+
+  private synchronized void addMetric(Meter.Id id, List<Tag> extraTags, long value) {
+    final String type = id.getType().name();
+    final String name = id.getName();
+    final List<Tag> tags = id.getTags();
+
+    builder.clear();
+    int nameRef = builder.createString(name);
+    int typeRef = builder.createString(type);
     List<Tag> tagList = reduceTags(tags, extraTags);
     int[] tagRefs = new int[tagList.size()];
     for (int idx = 0; idx < tagList.size(); idx++) {
@@ -81,46 +117,29 @@ public class MetricResponseWrapper extends MetricResponse {
       int v = builder.createString(t.getValue());
       tagRefs[idx] = FTag.createFTag(builder, k, v);
     }
-    FMetric.createTagsVector(builder, tagRefs);
-    int metricRef = FMetric.endFMetric(builder);
-    builder.finish(metricRef);
-    this.addToMetrics(builder.dataBuffer());
-  }
-
-  private void addMetric(Meter.Id id, List<Tag> extraTags, long value) {
-    final String type = id.getType().name();
-    final String name = id.getName();
-    final List<Tag> tags = id.getTags();
-
-    builder.clear();
+    int tagsRef = FMetric.createTagsVector(builder, tagRefs);
+    
     FMetric.startFMetric(builder);
-    FMetric.addName(builder, builder.createString(name));
-    FMetric.addType(builder, builder.createString(type));
+    FMetric.addName(builder, nameRef);
+    FMetric.addType(builder, typeRef);
+    FMetric.addTags(builder, tagsRef);
     FMetric.addLvalue(builder, value);
-    List<Tag> tagList = reduceTags(tags, extraTags);
-    int[] tagRefs = new int[tagList.size()];
-    for (int idx = 0; idx < tagList.size(); idx++) {
-      Tag t = tagList.get(idx);
-      int k = builder.createString(t.getKey());
-      int v = builder.createString(t.getValue());
-      tagRefs[idx] = FTag.createFTag(builder, k, v);
-    }
-    FMetric.createTagsVector(builder, tagRefs);
     int metricRef = FMetric.endFMetric(builder);
     builder.finish(metricRef);
-    this.addToMetrics(builder.dataBuffer());
+    ByteBuffer buf = builder.dataBuffer();
+    // We want to copy buf as the above returns a reference
+    // to a ByteBuffer that is reused by the FlatBufferBuilder
+    this.addToMetrics(ByteBuffer.wrap(ByteBufferUtil.toBytes(buf)));
   }
 
-  private void addMetric(Meter.Id id, List<Tag> extraTags, double value) {
+  private synchronized void addMetric(Meter.Id id, List<Tag> extraTags, double value) {
     final String type = id.getType().name();
     final String name = id.getName();
     final List<Tag> tags = id.getTags();
 
     builder.clear();
-    FMetric.startFMetric(builder);
-    FMetric.addName(builder, builder.createString(name));
-    FMetric.addType(builder, builder.createString(type));
-    FMetric.addDvalue(builder, value);
+    int nameRef = builder.createString(name);
+    int typeRef = builder.createString(type);
     List<Tag> tagList = reduceTags(tags, extraTags);
     int[] tagRefs = new int[tagList.size()];
     for (int idx = 0; idx < tagList.size(); idx++) {
@@ -129,10 +148,19 @@ public class MetricResponseWrapper extends MetricResponse {
       int v = builder.createString(t.getValue());
       tagRefs[idx] = FTag.createFTag(builder, k, v);
     }
-    FMetric.createTagsVector(builder, tagRefs);
+    int tagsRef = FMetric.createTagsVector(builder, tagRefs);
+    
+    FMetric.startFMetric(builder);
+    FMetric.addName(builder, nameRef);
+    FMetric.addType(builder, typeRef);
+    FMetric.addTags(builder, tagsRef);
+    FMetric.addDvalue(builder, value);
     int metricRef = FMetric.endFMetric(builder);
     builder.finish(metricRef);
-    this.addToMetrics(builder.dataBuffer());
+    ByteBuffer buf = builder.dataBuffer();
+    // We want to copy buf as the above returns a reference
+    // to a ByteBuffer that is reused by the FlatBufferBuilder
+    this.addToMetrics(ByteBuffer.wrap(ByteBufferUtil.toBytes(buf)));
   }
 
   public Consumer<Meter> writeMeter(Meter meter) {

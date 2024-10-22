@@ -157,8 +157,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
     AtomicReference<Exception> error = new AtomicReference<>();
     Thread workerThread = new Thread(() -> {
-      try {
-        doWorkToGenerateMetrics();
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+        doWorkToGenerateMetrics(client, getClass());
       } catch (Exception e) {
         error.set(e);
       }
@@ -222,49 +222,47 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cluster.stop();
   }
 
-  void doWorkToGenerateMetrics(AccumuloClient client) throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String tableName = this.getClass().getSimpleName();
-      client.tableOperations().create(tableName);
-      SortedSet<Text> splits = new TreeSet<>(List.of(new Text("5")));
-      client.tableOperations().addSplits(tableName, splits);
-      Thread.sleep(3_000);
-      BatchWriterConfig config = new BatchWriterConfig().setMaxMemory(0);
-      try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
-        Mutation m = new Mutation("row");
+  static void doWorkToGenerateMetrics(AccumuloClient client, Class<?> testClass) throws Exception {
+    String tableName = testClass.getSimpleName();
+    client.tableOperations().create(tableName);
+    SortedSet<Text> splits = new TreeSet<>(List.of(new Text("5")));
+    client.tableOperations().addSplits(tableName, splits);
+    Thread.sleep(3_000);
+    BatchWriterConfig config = new BatchWriterConfig().setMaxMemory(0);
+    try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
+      Mutation m = new Mutation("row");
+      m.put("cf", "cq", new Value("value"));
+      writer.addMutation(m);
+    }
+    client.tableOperations().flush(tableName);
+    try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
+      Mutation m = new Mutation("row");
+      m.put("cf", "cq", new Value("value"));
+      writer.addMutation(m);
+    }
+    client.tableOperations().flush(tableName);
+    try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
+      for (int i = 0; i < 10; i++) {
+        Mutation m = new Mutation(i + "_row");
         m.put("cf", "cq", new Value("value"));
         writer.addMutation(m);
       }
-      client.tableOperations().flush(tableName);
-      try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
-        Mutation m = new Mutation("row");
-        m.put("cf", "cq", new Value("value"));
-        writer.addMutation(m);
-      }
-      client.tableOperations().flush(tableName);
-      try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
-        for (int i = 0; i < 10; i++) {
-          Mutation m = new Mutation(i + "_row");
-          m.put("cf", "cq", new Value("value"));
-          writer.addMutation(m);
-        }
-      }
-      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-      try (Scanner scanner = client.createScanner(tableName)) {
-        scanner.forEach((k, v) -> {});
-      }
-      // Start a compaction with the slow iterator to ensure that the compaction queues
-      // are not removed quickly
-      CompactionConfig cc = new CompactionConfig();
-      IteratorSetting is = new IteratorSetting(100, "slow", SlowIterator.class);
-      SlowIterator.setSleepTime(is, 3000);
-      cc.setIterators(List.of(is));
-      cc.setWait(false);
-      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-      client.tableOperations().delete(tableName);
-      while (client.tableOperations().exists(tableName)) {
-        Thread.sleep(1000);
-      }
+    }
+    client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+    try (Scanner scanner = client.createScanner(tableName)) {
+      scanner.forEach((k, v) -> {});
+    }
+    // Start a compaction with the slow iterator to ensure that the compaction queues
+    // are not removed quickly
+    CompactionConfig cc = new CompactionConfig();
+    IteratorSetting is = new IteratorSetting(100, "slow", SlowIterator.class);
+    SlowIterator.setSleepTime(is, 3000);
+    cc.setIterators(List.of(is));
+    cc.setWait(false);
+    client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+    client.tableOperations().delete(tableName);
+    while (client.tableOperations().exists(tableName)) {
+      Thread.sleep(1000);
     }
   }
 
@@ -276,7 +274,9 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
   @Test
   public void metricTags() throws Exception {
 
-    doWorkToGenerateMetrics();
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      doWorkToGenerateMetrics(client, getClass());
+    }
     cluster.stop();
 
     List<String> statsDMetrics;
@@ -310,7 +310,9 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   @Test
   public void fateMetrics() throws Exception {
-    doWorkToGenerateMetrics();
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      doWorkToGenerateMetrics(client, getClass());
+    }
     cluster.stop();
 
     List<String> statsDMetrics;
