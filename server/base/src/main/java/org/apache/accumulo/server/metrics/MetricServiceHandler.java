@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import com.google.flatbuffers.FlatBufferBuilder;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
@@ -68,7 +69,8 @@ public class MetricServiceHandler implements MetricService.Iface {
           SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    final MetricResponseWrapper response = new MetricResponseWrapper();
+    final FlatBufferBuilder builder = new FlatBufferBuilder(1024);
+    final MetricResponseWrapper response = new MetricResponseWrapper(builder);
 
     if (host == null) {
       LOG.error("Host is not set, this should have been done after starting the Thrift service.");
@@ -90,13 +92,14 @@ public class MetricServiceHandler implements MetricService.Iface {
       r.getMeters().forEach(m -> {
         if (m.getId().getName().startsWith("accumulo.")) {
           m.match(response::writeMeter, response::writeMeter, response::writeTimer,
-              response::writeDistributionSummary, response::writeLongTaskTimer, response::writeMeter,
-              response::writeMeter, response::writeFunctionTimer, response::writeMeter);
+              response::writeDistributionSummary, response::writeLongTaskTimer,
+              response::writeMeter, response::writeMeter, response::writeFunctionTimer,
+              response::writeMeter);
         }
       });
     });
 
-    response.cleanup();
+    builder.clear();
     return response;
   }
 

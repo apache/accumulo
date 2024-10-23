@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.HOURS;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -524,6 +525,14 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }).start();
 
     monitorInitialized.set(true);
+
+    // Start up new Monitor
+    NewMonitor newMon = new NewMonitor(getContext(), getHostname());
+    try {
+      newMon.start();
+    } catch (IOException e) {
+      log.error("Unable to start new web server", e);
+    }
   }
 
   private ServletHolder getDefaultServlet() {

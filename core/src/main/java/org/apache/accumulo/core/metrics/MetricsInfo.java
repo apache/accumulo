@@ -57,7 +57,7 @@ public interface MetricsInfo {
     Objects.requireNonNull(processName, "cannot create the tag without providing the process name");
     return Tag.of(PROCESS_NAME_TAG_KEY, processName);
   }
-  
+
   /**
    * Convenience method to create tag name / value pair for the resource group name
    *

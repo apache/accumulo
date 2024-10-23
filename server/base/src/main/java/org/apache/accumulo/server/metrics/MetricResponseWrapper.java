@@ -48,52 +48,76 @@ import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.distribution.HistogramSnapshot;
 import io.micrometer.core.instrument.distribution.ValueAtPercentile;
 
+/**
+ * This class is not thread-safe
+ */
 public class MetricResponseWrapper extends MetricResponse {
+
+  private class CommonRefs {
+    int nameRef;
+    int typeRef;
+    int tagsRef;
+
+    private void reset(int nameRef, int typeRef, int tagsRef) {
+      this.nameRef = nameRef;
+      this.typeRef = typeRef;
+      this.tagsRef = tagsRef;
+    }
+
+  }
 
   private static final long serialVersionUID = 1L;
 
   private final TimeUnit UNIT = TimeUnit.SECONDS;
-  private final FlatBufferBuilder builder = new FlatBufferBuilder(1024);
+  private transient final FlatBufferBuilder builder;
+  private transient final CommonRefs common = new CommonRefs();
 
-  public void cleanup() {
-    builder.clear();
+  public MetricResponseWrapper(FlatBufferBuilder builder) {
+    this.builder = builder;
   }
-  
+
+  /**
+   * Remove tags from the Metric that duplicate other information found in the MetricResponse
+   */
   private List<Tag> reduceTags(List<Tag> tags, List<Tag> extraTags) {
     return Stream.concat(tags.stream(), extraTags.stream()).filter(t -> {
-      return !t.getKey().equals(INSTANCE_NAME_TAG_KEY) &&
-          !t.getKey().equals(PROCESS_NAME_TAG_KEY) &&
-          !t.getKey().equals(RESOURCE_GROUP_TAG_KEY) &&
-          !t.getKey().equals(HOST_TAG_KEY) &&
-          !t.getKey().equals(PORT_TAG_KEY);
-      }).collect(Collectors.toList());
+      return !t.getKey().equals(INSTANCE_NAME_TAG_KEY) && !t.getKey().equals(PROCESS_NAME_TAG_KEY)
+          && !t.getKey().equals(RESOURCE_GROUP_TAG_KEY) && !t.getKey().equals(HOST_TAG_KEY)
+          && !t.getKey().equals(PORT_TAG_KEY);
+    }).collect(Collectors.toList());
   }
-  
-  private synchronized void addMetric(Meter.Id id, List<Tag> extraTags, int value) {
 
+  private void parseAndCreateCommonInfo(Meter.Id id, List<Tag> extraTags) {
+    builder.clear();
     final String type = id.getType().name();
     final String name = id.getName();
     final List<Tag> tags = id.getTags();
 
-    builder.clear();
-    int nameRef = builder.createString(name);
-    int typeRef = builder.createString(type);
-    List<Tag> tagList = reduceTags(tags, extraTags);
-    int[] tagRefs = new int[tagList.size()];
+    final int nameRef = builder.createString(name);
+    final int typeRef = builder.createString(type);
+    final List<Tag> tagList = reduceTags(tags, extraTags);
+    final int[] tagRefs = new int[tagList.size()];
     for (int idx = 0; idx < tagList.size(); idx++) {
       Tag t = tagList.get(idx);
-      int k = builder.createString(t.getKey());
-      int v = builder.createString(t.getValue());
+      final int k = builder.createString(t.getKey());
+      final int v = builder.createString(t.getValue());
       tagRefs[idx] = FTag.createFTag(builder, k, v);
     }
-    int tagsRef = FMetric.createTagsVector(builder, tagRefs);
-    
+    final int tagsRef = FMetric.createTagsVector(builder, tagRefs);
+    common.reset(nameRef, typeRef, tagsRef);
+  }
+
+  private void addMetric(Meter.Id id, List<Tag> extraTags, int value) {
+    builder.clear();
+
+    parseAndCreateCommonInfo(id, extraTags);
+
     FMetric.startFMetric(builder);
-    FMetric.addName(builder, nameRef);
-    FMetric.addType(builder, typeRef);
-    FMetric.addTags(builder, tagsRef);
+    FMetric.addName(builder, common.nameRef);
+    FMetric.addType(builder, common.typeRef);
+    FMetric.addTags(builder, common.tagsRef);
     FMetric.addIvalue(builder, value);
-    int metricRef = FMetric.endFMetric(builder);
+    final int metricRef = FMetric.endFMetric(builder);
     builder.finish(metricRef);
     ByteBuffer buf = builder.dataBuffer();
     // We want to copy buf as the above returns a reference
@@ -101,30 +125,17 @@ public class MetricResponseWrapper extends MetricResponse {
     this.addToMetrics(ByteBuffer.wrap(ByteBufferUtil.toBytes(buf)));
   }
 
-  private synchronized void addMetric(Meter.Id id, List<Tag> extraTags, long value) {
-    final String type = id.getType().name();
-    final String name = id.getName();
-    final List<Tag> tags = id.getTags();
-
+  private void addMetric(Meter.Id id, List<Tag> extraTags, long value) {
     builder.clear();
-    int nameRef = builder.createString(name);
-    int typeRef = builder.createString(type);
-    List<Tag> tagList = reduceTags(tags, extraTags);
-    int[] tagRefs = new int[tagList.size()];
-    for (int idx = 0; idx < tagList.size(); idx++) {
-      Tag t = tagList.get(idx);
-      int k = builder.createString(t.getKey());
-      int v = builder.createString(t.getValue());
-      tagRefs[idx] = FTag.createFTag(builder, k, v);
-    }
-    int tagsRef = FMetric.createTagsVector(builder, tagRefs);
-    
+
+    parseAndCreateCommonInfo(id, extraTags);
+
     FMetric.startFMetric(builder);
-    FMetric.addName(builder, nameRef);
-    FMetric.addType(builder, typeRef);
-    FMetric.addTags(builder, tagsRef);
+    FMetric.addName(builder, common.nameRef);
+    FMetric.addType(builder, common.typeRef);
+    FMetric.addTags(builder, common.tagsRef);
     FMetric.addLvalue(builder, value);
-    int metricRef = FMetric.endFMetric(builder);
+    final int metricRef = FMetric.endFMetric(builder);
     builder.finish(metricRef);
     ByteBuffer buf = builder.dataBuffer();
     // We want to copy buf as the above returns a reference
@@ -132,30 +143,17 @@ public class MetricResponseWrapper extends MetricResponse {
     this.addToMetrics(ByteBuffer.wrap(ByteBufferUtil.toBytes(buf)));
   }
 
-  private synchronized void addMetric(Meter.Id id, List<Tag> extraTags, double value) {
-    final String type = id.getType().name();
-    final String name = id.getName();
-    final List<Tag> tags = id.getTags();
-
+  private void addMetric(Meter.Id id, List<Tag> extraTags, double value) {
     builder.clear();
-    int nameRef = builder.createString(name);
-    int typeRef = builder.createString(type);
-    List<Tag> tagList = reduceTags(tags, extraTags);
-    int[] tagRefs = new int[tagList.size()];
-    for (int idx = 0; idx < tagList.size(); idx++) {
-      Tag t = tagList.get(idx);
-      int k = builder.createString(t.getKey());
-      int v = builder.createString(t.getValue());
-      tagRefs[idx] = FTag.createFTag(builder, k, v);
-    }
-    int tagsRef = FMetric.createTagsVector(builder, tagRefs);
-    
+
+    parseAndCreateCommonInfo(id, extraTags);
+
     FMetric.startFMetric(builder);
-    FMetric.addName(builder, nameRef);
-    FMetric.addType(builder, typeRef);
-    FMetric.addTags(builder, tagsRef);
+    FMetric.addName(builder, common.nameRef);
+    FMetric.addType(builder, common.typeRef);
+    FMetric.addTags(builder, common.tagsRef);
     FMetric.addDvalue(builder, value);
-    int metricRef = FMetric.endFMetric(builder);
+    final int metricRef = FMetric.endFMetric(builder);
     builder.finish(metricRef);
     ByteBuffer buf = builder.dataBuffer();
     // We want to copy buf as the above returns a reference
