@@ -124,6 +124,7 @@ import com.google.common.base.Preconditions;
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
 
 public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface {
 
@@ -687,6 +688,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addServiceTags(getApplicationName(), clientAddress);
+    metricsInfo.addCommonTags(List.of(Tag.of("queue", this.queueName)));
 
     metricsInfo.addMetricsProducers(this);
     metricsInfo.init();
