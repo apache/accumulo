@@ -708,7 +708,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     metrics = new TabletServerMetrics(this);
     updateMetrics = new TabletServerUpdateMetrics();
-    scanMetrics = new TabletServerScanMetrics();
+    scanMetrics = new TabletServerScanMetrics(this.resourceManager::getOpenFiles);
     sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);
     mincMetrics = new TabletServerMinCMetrics();
     ceMetrics = new CompactionExecutorsMetrics();

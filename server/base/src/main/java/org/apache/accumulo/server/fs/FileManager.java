@@ -588,4 +588,8 @@ public class FileManager {
   public ScanFileManager newScanFileManager(KeyExtent tablet, CacheProvider cacheProvider) {
     return new ScanFileManager(tablet, cacheProvider);
   }
+
+  public int getOpenFiles() {
+    return maxOpen - filePermits.availablePermits();
+  }
 }

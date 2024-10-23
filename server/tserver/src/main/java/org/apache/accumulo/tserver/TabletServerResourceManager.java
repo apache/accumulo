@@ -402,6 +402,10 @@ public class TabletServerResourceManager {
         new AssignmentWatcher(acuConf, context, activeAssignments), 5000, TimeUnit.MILLISECONDS));
   }
 
+  public int getOpenFiles() {
+    return fileManager.getOpenFiles();
+  }
+
   /**
    * Accepts some map which is tracking active assignment task(s) (running) and monitors them to
    * ensure that the time the assignment(s) have been running don't exceed a threshold. If the time

@@ -35,9 +35,9 @@ import static org.apache.accumulo.core.metrics.Metric.SCAN_YIELDS;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_ZOMBIE_THREADS;
 
 import java.time.Duration;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.IntSupplier;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.server.metrics.NoopMetrics;
@@ -50,8 +50,7 @@ import io.micrometer.core.instrument.Timer;
 
 public class TabletServerScanMetrics implements MetricsProducer {
 
-  private final AtomicInteger openFiles = new AtomicInteger(0);
-
+  private final IntSupplier openFiles;
   private Timer scans = NoopMetrics.useNoopTimer();
   private DistributionSummary resultsPerScan = NoopMetrics.useNoopDistributionSummary();
   private DistributionSummary yields = NoopMetrics.useNoopDistributionSummary();
@@ -95,14 +94,6 @@ public class TabletServerScanMetrics implements MetricsProducer {
     yields.record(value);
   }
 
-  public void incrementOpenFiles(int delta) {
-    openFiles.addAndGet(Math.max(0, delta));
-  }
-
-  public void decrementOpenFiles(int delta) {
-    openFiles.addAndGet(delta < 0 ? delta : delta * -1);
-  }
-
   public void incrementStartScan() {
     startScanCalls.incrementAndGet();
   }
@@ -135,9 +126,13 @@ public class TabletServerScanMetrics implements MetricsProducer {
     return zombieScanThreads.get();
   }
 
+  public TabletServerScanMetrics(IntSupplier openFileSupplier) {
+    openFiles = openFileSupplier;
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder(SCAN_OPEN_FILES.getName(), openFiles::get)
+    Gauge.builder(SCAN_OPEN_FILES.getName(), openFiles::getAsInt)
         .description(SCAN_OPEN_FILES.getDescription()).register(registry);
     scans = Timer.builder(SCAN_TIMES.getName()).description(SCAN_TIMES.getDescription())
         .register(registry);
