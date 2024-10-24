@@ -28,6 +28,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
@@ -91,6 +92,24 @@ public class ZooUtil {
     @Override
     public String toString() {
       return " path = " + path + " node = " + node + " eid = " + Long.toHexString(eid);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == this) {
+        return true;
+      }
+      if (obj instanceof LockID) {
+        LockID other = (LockID) obj;
+        return this.path.equals(other.path) && this.node.equals(other.node)
+            && this.eid == other.eid;
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(path, node, eid);
     }
   }
 
