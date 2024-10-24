@@ -88,6 +88,7 @@ public interface MetricsInfo {
    *
    * @param applicationName the application (process) name.
    * @param hostAndPort the host:port pair
+   * @param resourceGroup the resource group name
    */
   void addServiceTags(final String applicationName, final HostAndPort hostAndPort,
       final String resourceGroup);
