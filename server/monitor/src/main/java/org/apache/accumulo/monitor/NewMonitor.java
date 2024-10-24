@@ -191,6 +191,7 @@ public class NewMonitor {
             ctx -> ctx.json(metrics.getSServers(ctx.pathParam("group"))))
         .get("/metrics/tservers/{group}",
             ctx -> ctx.json(metrics.getTServers(ctx.pathParam("group"))))
+        .get("/metrics/problems", ctx -> ctx.json(metrics.getProblemHosts()))
         .start(hostname, httpPort);
 
     LOG.info("New Monitor listening on port: {}", httpPort);

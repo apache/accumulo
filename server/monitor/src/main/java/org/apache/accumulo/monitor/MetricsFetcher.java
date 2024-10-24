@@ -244,6 +244,10 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
     return groups;
   }
 
+  public Collection<ServerId> getProblemHosts() {
+    return problemHosts;
+  }
+
   public Collection<MetricResponse> getAll() {
     return allMetrics.asMap().values();
   }
