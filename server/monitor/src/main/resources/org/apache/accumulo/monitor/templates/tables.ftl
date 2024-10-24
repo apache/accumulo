@@ -66,12 +66,6 @@
                 "type": "numeric",
                 "orderData": [15, 16]
               },
-              // major compaction column will be sorted by number of running, then by number of queued
-              {
-                "targets": [12],
-                "type": "numeric",
-                "orderData": [17, 18]
-              }
             ],
             "columns": [
               {
@@ -95,13 +89,10 @@
               { "data": "holdTime", "orderSequence": ["desc", "asc"] },
               { "data": "scansCombo", "orderSequence": ["desc", "asc"] },
               { "data": "minorCombo", "orderSequence": ["desc", "asc"] },
-              { "data": "majorCombo", "orderSequence": ["desc", "asc"] },
               { "data": "runningScans", "orderSequence": ["desc", "asc"], "visible": false },
               { "data": "queuedScans", "orderSequence": ["desc", "asc"], "visible": false},
               { "data": "runningMinorCompactions", "orderSequence": ["desc", "asc"], "visible": false },
               { "data": "queuedMinorCompactions", "orderSequence": ["desc", "asc"], "visible": false },
-              { "data": "runningMajorCompactions", "orderSequence": ["desc", "asc"], "visible": false },
-              { "data": "queuedMajorCompactions", "orderSequence": ["desc", "asc"], "visible": false }
             ]
           });
         });
@@ -139,7 +130,6 @@
               <th title="The amount of time live ingest operations (mutations, batch writes) have been waiting for the tserver to free up memory." class="duration">Hold&nbsp;Time</th>
               <th title="Running scans. The number queued waiting are in parentheses.">Scans</th>
               <th title="Minor Compactions. The number of tablets waiting for compaction are in parentheses.">MinC</th>
-              <th title="Major Compactions. The number of tablets waiting for compaction are in parentheses.">MajC</th>
             </tr>
           </thead>
           <tbody></tbody>
