@@ -193,8 +193,8 @@ public class CompactorTest {
     private TCompactionStatusUpdate latestState = null;
 
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
-        ServerContext context, ExternalCompactionId eci) {
-      super(new CompactorServerOpts(), new String[] {"-q", "testQ"});
+        ServerContext context, ExternalCompactionId eci, CompactorServerOpts compactorServerOpts) {
+      super(compactorServerOpts, new String[] {"-q", "testQ"});
       this.uuid = uuid;
       this.address = address;
       this.job = job;
@@ -277,8 +277,8 @@ public class CompactorTest {
   public class FailedCompactor extends SuccessfulCompactor {
 
     FailedCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
-        ServerContext context, ExternalCompactionId eci) {
-      super(uuid, address, job, context, eci);
+        ServerContext context, ExternalCompactionId eci, CompactorServerOpts compactorServerOpts) {
+      super(uuid, address, job, context, eci, compactorServerOpts);
     }
 
     @Override
@@ -292,8 +292,8 @@ public class CompactorTest {
   public class InterruptedCompactor extends SuccessfulCompactor {
 
     InterruptedCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
-        ServerContext context, ExternalCompactionId eci) {
-      super(uuid, address, job, context, eci);
+        ServerContext context, ExternalCompactionId eci, CompactorServerOpts compactorServerOpts) {
+      super(uuid, address, job, context, eci, compactorServerOpts);
     }
 
     @Override
@@ -345,6 +345,10 @@ public class CompactorTest {
     MetricsInfo metricsInfo = PowerMock.createNiceMock(MetricsInfo.class);
     expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
 
+    Compactor.CompactorServerOpts compactorServerOpts =
+        PowerMock.createNiceMock(Compactor.CompactorServerOpts.class);
+    expect(compactorServerOpts.getQueueName()).andReturn("testQ");
+
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
@@ -355,7 +359,8 @@ public class CompactorTest {
 
     PowerMock.replayAll();
 
-    SuccessfulCompactor c = new SuccessfulCompactor(supplier, client, job, context, eci);
+    SuccessfulCompactor c =
+        new SuccessfulCompactor(supplier, client, job, context, eci, compactorServerOpts);
     c.run();
 
     PowerMock.verifyAll();
@@ -396,6 +401,10 @@ public class CompactorTest {
     MetricsInfo metricsInfo = PowerMock.createNiceMock(MetricsInfo.class);
     expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
 
+    Compactor.CompactorServerOpts compactorServerOpts =
+        PowerMock.createNiceMock(Compactor.CompactorServerOpts.class);
+    expect(compactorServerOpts.getQueueName()).andReturn("testQ");
+
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
@@ -406,7 +415,8 @@ public class CompactorTest {
 
     PowerMock.replayAll();
 
-    FailedCompactor c = new FailedCompactor(supplier, client, job, context, eci);
+    FailedCompactor c =
+        new FailedCompactor(supplier, client, job, context, eci, compactorServerOpts);
     c.run();
 
     PowerMock.verifyAll();
@@ -448,6 +458,10 @@ public class CompactorTest {
     MetricsInfo metricsInfo = PowerMock.createNiceMock(MetricsInfo.class);
     expect(context.getMetricsInfo()).andReturn(metricsInfo).anyTimes();
 
+    Compactor.CompactorServerOpts compactorServerOpts =
+        PowerMock.createNiceMock(Compactor.CompactorServerOpts.class);
+    expect(compactorServerOpts.getQueueName()).andReturn("testQ");
+
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
@@ -458,7 +472,8 @@ public class CompactorTest {
 
     PowerMock.replayAll();
 
-    InterruptedCompactor c = new InterruptedCompactor(supplier, client, job, context, eci);
+    InterruptedCompactor c =
+        new InterruptedCompactor(supplier, client, job, context, eci, compactorServerOpts);
     c.run();
 
     PowerMock.verifyAll();
@@ -481,9 +496,13 @@ public class CompactorTest {
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
 
+    Compactor.CompactorServerOpts compactorServerOpts =
+        PowerMock.createNiceMock(Compactor.CompactorServerOpts.class);
+    expect(compactorServerOpts.getQueueName()).andReturn(null);
+
     PowerMock.replayAll();
 
-    try (var c = new SuccessfulCompactor(null, null, null, context, null)) {
+    try (var c = new SuccessfulCompactor(null, null, null, context, null, compactorServerOpts)) {
       Long maxWait = c.getWaitTimeBetweenCompactionChecks(1);
       // compaction jitter means maxWait is between 0.9 and 1.1 of the desired value.
       assertTrue(maxWait >= 720L);

@@ -167,7 +167,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), address);
+    metricsInfo.addServiceTags(getApplicationName(), address, "");
 
     metricsInfo.addMetricsProducers(new GcMetrics(this));
     metricsInfo.init();
