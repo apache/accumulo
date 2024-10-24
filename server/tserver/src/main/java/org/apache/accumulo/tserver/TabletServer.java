@@ -95,6 +95,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.metrics.thrift.MetricSource;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
@@ -122,6 +123,7 @@ import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
+import org.apache.accumulo.server.metrics.MetricServiceHandler;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -464,11 +466,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     clientHandler = newClientHandler();
     thriftClientHandler = newTabletClientHandler(writeTracker);
     scanClientHandler = newThriftScanClientHandler(writeTracker);
+    MetricServiceHandler metricHandler = createMetricServiceHandler(MetricSource.TABLET_SERVER);
 
-    TProcessor processor =
-        ThriftProcessorTypes.getTabletServerTProcessor(clientHandler, thriftClientHandler,
-            scanClientHandler, thriftClientHandler, thriftClientHandler, getContext());
+    TProcessor processor = ThriftProcessorTypes.getTabletServerTProcessor(clientHandler,
+        thriftClientHandler, scanClientHandler, thriftClientHandler, thriftClientHandler,
+        metricHandler, getContext());
     HostAndPort address = startServer(clientAddress.getHost(), processor);
+    metricHandler.setHost(address);
     log.info("address = {}", address);
     return address;
   }
