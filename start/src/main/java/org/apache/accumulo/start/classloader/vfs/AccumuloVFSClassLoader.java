@@ -398,8 +398,10 @@ public class AccumuloVFSClassLoader {
     }
   }
 
-  public static void setContextConfig(Supplier<Map<String,String>> contextConfigSupplier) {
-    var config = new ContextManager.DefaultContextsConfig(contextConfigSupplier);
+  public static void setContextConfig(Supplier<Map<String,String>> contextConfigSupplier,
+      Runnable contextConfigInvalidator) {
+    var config =
+        new ContextManager.DefaultContextsConfig(contextConfigSupplier, contextConfigInvalidator);
     try {
       getContextManager().setContextConfig(config);
     } catch (IOException e) {
