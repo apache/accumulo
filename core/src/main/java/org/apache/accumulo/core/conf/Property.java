@@ -601,7 +601,7 @@ public enum Property {
           + " until it is closed.",
       "1.3.5"),
   TSERV_NATIVEMAP_ENABLED("tserver.memory.maps.native.enabled", "true", PropertyType.BOOLEAN,
-      "An in-memory data store for accumulo implemented in c++ that increases"
+      "An off-heap in-memory data store for accumulo implemented in c++ that increases"
           + " the amount of data accumulo can hold in memory and avoids Java GC pauses.",
       "1.3.5"),
   TSERV_MAXMEM("tserver.memory.maps.max", "33%", PropertyType.MEMORY,
@@ -609,7 +609,8 @@ public enum Property {
           + " tablet server. There are two other properties that can effectively limit"
           + " memory usage `table.compaction.minor.logs.threshold` and"
           + " `tserver.wal.max.size`. Ensure that `table.compaction.minor.logs.threshold`"
-          + " * `tserver.wal.max.size` >= this property.",
+          + " * `tserver.wal.max.size` >= this property. This map is created in off-heap"
+          + " memory when " + TSERV_NATIVEMAP_ENABLED.name() + " is enabled.",
       "1.3.5"),
   TSERV_SESSION_MAXIDLE("tserver.session.idle.max", "1m", PropertyType.TIMEDURATION,
       "When a tablet server's SimpleTimer thread triggers to check idle"
