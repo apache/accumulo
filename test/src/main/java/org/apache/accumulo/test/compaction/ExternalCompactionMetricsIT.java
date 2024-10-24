@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP3;
@@ -151,7 +155,6 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
 
       boolean sawDCQ1_5 = false;
       boolean sawDCQ2_10 = false;
-
       // wait until expected number of queued are seen in metrics
       while (!sawDCQ1_5 || !sawDCQ2_10) {
         Metric qm = queueMetrics.take();
@@ -165,12 +168,22 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
 
       boolean sawDCQ1_0 = false;
       boolean sawDCQ2_0 = false;
+      boolean minDCQ1 = false;
+      boolean maxDCQ1 = false;
+      boolean avgDCQ1 = false;
+      boolean timerDCQ1 = false;
 
       // wait until queued goes to zero in metrics
-      while (!sawDCQ1_0 || !sawDCQ2_0) {
+      // and verify stats are positive values
+      while (!sawDCQ1_0 || !sawDCQ2_0 || !minDCQ1 || !maxDCQ1 || !avgDCQ1 || !timerDCQ1) {
         Metric qm = queueMetrics.take();
         sawDCQ1_0 |= match(qm, "dcq1", "0");
         sawDCQ2_0 |= match(qm, "dcq2", "0");
+        minDCQ1 |= assertMetric(qm, "dcq1", COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE.getName());
+        maxDCQ1 |= assertMetric(qm, "dcq1", COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE.getName());
+        avgDCQ1 |= assertMetric(qm, "dcq1", COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE.getName());
+        timerDCQ1 |=
+            assertMetric(qm, "dcq1", COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER.getName());
       }
 
       shutdownTailer.set(true);
@@ -198,6 +211,17 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
     if (input.getTags() != null) {
       String id = input.getTags().get("queue.id");
       if (id != null && id.equals(queue) && input.getValue().equals(value)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean assertMetric(Metric input, String queue, String name) {
+    if (input.getTags() != null) {
+      String id = input.getTags().get("queue.id");
+      if (id != null && id.equals(queue) && input.getName().equals(name)
+          && Double.parseDouble(input.getValue()) > 0) {
         return true;
       }
     }

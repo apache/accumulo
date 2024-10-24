@@ -46,6 +46,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -91,7 +92,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         "localhost");
 
     Wait.waitFor(() -> !getCluster().getServerContext().getServerPaths()
-        .getScanServer(rg -> true, addr -> true, true).isEmpty());
+        .getScanServer(rg -> true, AddressSelector.all(), true).isEmpty());
 
   }
 

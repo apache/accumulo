@@ -21,6 +21,7 @@ package org.apache.accumulo.server.util;
 import java.util.Set;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 
 public class AccumuloStatus {
@@ -32,7 +33,7 @@ public class AccumuloStatus {
    */
   public static boolean isAccumuloOffline(ClientContext context) {
     Set<ServiceLockPath> tservers =
-        context.getServerPaths().getTabletServer(rg -> true, addr -> true, true);
+        context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true);
     if (!tservers.isEmpty()) {
       return false;
     }

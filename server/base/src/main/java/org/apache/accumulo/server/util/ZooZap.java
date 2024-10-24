@@ -28,6 +28,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
@@ -110,7 +111,7 @@ public class ZooZap implements KeywordExecutable {
         if (opts.zapTservers) {
           try {
             Set<ServiceLockPath> tserverLockPaths =
-                context.getServerPaths().getTabletServer(rg -> true, addr -> true, false);
+                context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), false);
             for (ServiceLockPath tserverPath : tserverLockPaths) {
 
               message("Deleting " + tserverPath + " from zookeeper", opts);
@@ -132,7 +133,7 @@ public class ZooZap implements KeywordExecutable {
 
         if (opts.zapCompactors) {
           Set<ServiceLockPath> compactorLockPaths =
-              context.getServerPaths().getCompactor(rg -> true, addr -> true, false);
+              context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), false);
           Set<String> compactorResourceGroupPaths = new HashSet<>();
           compactorLockPaths.forEach(p -> compactorResourceGroupPaths
               .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
@@ -150,7 +151,7 @@ public class ZooZap implements KeywordExecutable {
         if (opts.zapScanServers) {
           try {
             Set<ServiceLockPath> sserverLockPaths =
-                context.getServerPaths().getScanServer(rg -> true, addr -> true, false);
+                context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), false);
             for (ServiceLockPath sserverPath : sserverLockPaths) {
               message("Deleting " + sserverPath + " from zookeeper", opts);
               if (!zoo.getChildren(sserverPath.toString()).isEmpty()) {

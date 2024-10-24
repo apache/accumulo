@@ -40,7 +40,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
-import org.apache.accumulo.core.lock.ServiceLockPaths.AddressPredicate;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -232,7 +232,7 @@ public class LiveTServerSet implements Watcher {
       final Set<TServerInstance> updates = new HashSet<>();
       final Set<TServerInstance> doomed = new HashSet<>();
       final Set<ServiceLockPath> tservers =
-          context.getServerPaths().getTabletServer(rg -> true, addr -> true, false);
+          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), false);
 
       locklessServers.keySet().retainAll(tservers);
 
@@ -465,7 +465,8 @@ public class LiveTServerSet implements Watcher {
       ResourceGroupPredicate rgp = rg2 -> rg.equals(rg2);
       return rgp;
     }).orElse(rg -> true);
-    AddressPredicate addrPredicate = address.map(AddressPredicate::exact).orElse(addr -> true);
+    AddressSelector addrPredicate =
+        address.map(AddressSelector::exact).orElse(AddressSelector.all());
     Set<ServiceLockPath> paths =
         context.getServerPaths().getTabletServer(rgPredicate, addrPredicate, false);
     if (paths.isEmpty() || paths.size() > 1) {

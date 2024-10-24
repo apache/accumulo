@@ -64,6 +64,7 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -101,7 +102,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
     Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getCompactor(rg -> true, addr -> true, true).isEmpty(), 60_000);
+        .getCompactor(rg -> true, AddressSelector.all(), true).isEmpty(), 60_000);
   }
 
   @Test
@@ -118,7 +119,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     FateSummaryReport report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -139,7 +141,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -160,7 +163,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
         "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -177,7 +181,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -195,7 +200,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", fakeFateId.canonical(), "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -216,7 +222,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "FAILED");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -232,7 +239,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "NEW");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -252,7 +260,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-t", "META");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -272,7 +281,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-t", "USER");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -454,7 +464,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       assertEquals(0, p.getProcess().waitFor());
 
       String result = p.readStdOut();
-      result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
       FateSummaryReport report = FateSummaryReport.fromJson(result);
 
       // Validate transaction name and transaction step from summary command
@@ -738,7 +749,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     FateSummaryReport report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     Map<String,String> fateIdToStatus = new HashMap<>();

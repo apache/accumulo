@@ -39,7 +39,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths.AddressPredicate;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
@@ -88,16 +88,19 @@ public interface TServerClient<C extends TServiceClient> {
       // correct one.
       HostAndPort hp = HostAndPort.fromString(debugHost);
       serverPaths.addAll(
-          context.getServerPaths().getCompactor(rg -> true, AddressPredicate.exact(hp), true));
+          context.getServerPaths().getCompactor(rg -> true, AddressSelector.exact(hp), true));
       serverPaths.addAll(
-          context.getServerPaths().getScanServer(rg -> true, AddressPredicate.exact(hp), true));
+          context.getServerPaths().getScanServer(rg -> true, AddressSelector.exact(hp), true));
       serverPaths.addAll(
-          context.getServerPaths().getTabletServer(rg -> true, AddressPredicate.exact(hp), true));
+          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.exact(hp), true));
     } else {
-      serverPaths.addAll(context.getServerPaths().getTabletServer(rg -> true, addr -> true, true));
+      serverPaths.addAll(
+          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true));
       if (type == ThriftClientTypes.CLIENT) {
-        serverPaths.addAll(context.getServerPaths().getCompactor(rg -> true, addr -> true, true));
-        serverPaths.addAll(context.getServerPaths().getScanServer(rg -> true, addr -> true, true));
+        serverPaths
+            .addAll(context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true));
+        serverPaths.addAll(
+            context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true));
       }
       if (serverPaths.isEmpty()) {
         if (warned.compareAndSet(false, true)) {

@@ -87,6 +87,7 @@ import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -862,7 +863,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int tsActualCount = 0;
     while (tsActualCount < tsExpectedCount) {
       Set<ServiceLockPath> tservers =
-          context.getServerPaths().getTabletServer(rg -> true, addr -> true, true);
+          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true);
       tsActualCount = tservers.size();
       log.info(tsActualCount + " of " + tsExpectedCount + " tablet servers present in ZooKeeper");
       Thread.sleep(500);
@@ -871,7 +872,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int ssActualCount = 0;
     while (ssActualCount < ssExpectedCount) {
       Set<ServiceLockPath> tservers =
-          context.getServerPaths().getScanServer(rg -> true, addr -> true, true);
+          context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
       ssActualCount = tservers.size();
       log.info(ssActualCount + " of " + ssExpectedCount + " scan servers present in ZooKeeper");
       Thread.sleep(500);
@@ -880,7 +881,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int ecActualCount = 0;
     while (ecActualCount < ecExpectedCount) {
       Set<ServiceLockPath> compactors =
-          context.getServerPaths().getCompactor(rg -> true, addr -> true, true);
+          context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true);
       ecActualCount = compactors.size();
       log.info(ecActualCount + " of " + ecExpectedCount + " compactors present in ZooKeeper");
       Thread.sleep(500);
