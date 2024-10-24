@@ -53,6 +53,18 @@ public interface MetricsInfo {
   }
 
   /**
+   * Convenience method to create tag name / value pair for the resource group name
+   *
+   * @param resourceGroupName the resource group name
+   */
+  static Tag resourceGroupTag(final String resourceGroupName) {
+    if (resourceGroupName == null || resourceGroupName.isEmpty()) {
+      return Tag.of("resource.group", "NOT_PROVIDED");
+    }
+    return Tag.of("resource.group", resourceGroupName);
+  }
+
+  /**
    * Convenience method to create tag name / value pairs for the host and port from address
    * host:port pair.
    *
@@ -76,8 +88,10 @@ public interface MetricsInfo {
    *
    * @param applicationName the application (process) name.
    * @param hostAndPort the host:port pair
+   * @oaram resourceGroup the resource group name
    */
-  void addServiceTags(final String applicationName, final HostAndPort hostAndPort);
+  void addServiceTags(final String applicationName, final HostAndPort hostAndPort,
+      final String resourceGroup);
 
   /**
    * Add the list of tag name / value pair to the common tags that will be emitted with all metrics.
