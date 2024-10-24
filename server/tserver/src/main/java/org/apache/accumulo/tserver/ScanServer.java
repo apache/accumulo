@@ -131,8 +131,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
-import io.micrometer.core.instrument.Tag;
-
 public class ScanServer extends AbstractServer
     implements TabletScanClientService.Iface, TabletHostingServer {
 
@@ -404,8 +402,7 @@ public class ScanServer extends AbstractServer
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), clientAddress);
-    metricsInfo.addCommonTags(List.of(Tag.of("resource.group", groupName)));
+    metricsInfo.addServiceTags(getApplicationName(), clientAddress, groupName);
 
     scanMetrics = new TabletServerScanMetrics(resourceManager::getOpenFiles);
     sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);

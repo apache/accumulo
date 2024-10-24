@@ -269,7 +269,7 @@ public class CompactionCoordinator extends AbstractServer
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), clientAddress);
+    metricsInfo.addServiceTags(getApplicationName(), clientAddress, "");
     metricsInfo.addMetricsProducers(this);
     metricsInfo.init();
 

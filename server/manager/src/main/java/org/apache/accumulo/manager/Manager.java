@@ -1253,7 +1253,7 @@ public class Manager extends AbstractServer
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), sa.getAddress());
+    metricsInfo.addServiceTags(getApplicationName(), sa.getAddress(), "");
 
     var producers = ManagerMetrics.getProducers(getConfiguration(), this);
     producers.add(balancerMetrics);

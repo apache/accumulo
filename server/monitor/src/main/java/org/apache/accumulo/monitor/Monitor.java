@@ -497,7 +497,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), monitorHostAndPort);
+    metricsInfo.addServiceTags(getApplicationName(), monitorHostAndPort, "");
     metricsInfo.addMetricsProducers(this);
     metricsInfo.init();
 
