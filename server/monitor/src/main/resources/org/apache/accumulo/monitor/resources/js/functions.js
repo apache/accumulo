@@ -157,7 +157,7 @@ function levelFormat(level) {
 /**
  * Converts the time to short number and adds unit
  *
- * @param {number} time Time in microseconds
+ * @param {number} time Time in milliseconds
  * @return {string} The time with units
  */
 function timeDuration(time) {
