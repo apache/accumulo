@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
@@ -59,11 +60,9 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   @Override
   public void invalidateCache(String tserver) {
-    var hostAndPort = HostAndPort.fromString(tserver);
-    ctx.getServerPaths().getTabletServer(rg -> true, AddressSelector.exact(hostAndPort), false)
-        .forEach(slp -> {
-          ctx.getZooCache().clear(slp.toString());
-        });
+    // The path for the tserver contains a resource group. The resource group is unknown, so can not
+    // construct a prefix. Therefore clear any path that contains the tserver.
+    ctx.getZooCache().clear(path -> path.startsWith(ctx.getZooKeeperRoot() + Constants.ZTSERVERS)
+        && path.contains(tserver));
   }
-
 }
