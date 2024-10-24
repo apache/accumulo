@@ -22,12 +22,19 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
+import java.util.EnumSet;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
+import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,12 +94,21 @@ public class NewMonitor {
 
   private static final Logger LOG = LoggerFactory.getLogger(NewMonitor.class);
 
+  private static final EnumSet<Property> requireForSecure =
+      EnumSet.of(Property.MONITOR_SSL_KEYSTORE, Property.MONITOR_SSL_KEYSTOREPASS,
+          Property.MONITOR_SSL_TRUSTSTORE, Property.MONITOR_SSL_TRUSTSTOREPASS);
+
+  public static final int NEW_MONITOR_PORT = 43331;
+
   private final ServerContext ctx;
   private final String hostname;
+  private final boolean secure;
 
   public NewMonitor(ServerContext ctx, String hostname) {
     this.ctx = ctx;
     this.hostname = hostname;
+    secure = requireForSecure.stream().map(ctx.getConfiguration()::get)
+        .allMatch(s -> s != null && !s.isEmpty());
   }
 
   @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET",
@@ -106,9 +122,9 @@ public class NewMonitor {
     // Find a free socket
     ServerSocket ss = new ServerSocket();
     ss.setReuseAddress(true);
-    ss.bind(new InetSocketAddress(hostname, 0));
+    ss.bind(new InetSocketAddress(hostname, NEW_MONITOR_PORT));
     ss.close();
-    final int port = ss.getLocalPort();
+    final int httpPort = ss.getLocalPort();
 
     Javalin.create(config -> {
       config.bundledPlugins.enableDevLogging();
@@ -118,6 +134,53 @@ public class NewMonitor {
         module.addSerializer(MetricResponse.class, new MetricResponseSerializer());
         mapper.registerModule(module);
       }));
+
+      if (secure) {
+        LOG.debug("Configuring Jetty to use TLS");
+
+        final AccumuloConfiguration conf = ctx.getConfiguration();
+
+        final SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
+        // If the key password is the same as the keystore password, we don't
+        // have to explicitly set it. Thus, if the user doesn't provide a key
+        // password, don't set anything.
+        final String keyPass = conf.get(Property.MONITOR_SSL_KEYPASS);
+        if (!Property.MONITOR_SSL_KEYPASS.getDefaultValue().equals(keyPass)) {
+          sslContextFactory.setKeyManagerPassword(keyPass);
+        }
+        sslContextFactory.setKeyStorePath(conf.get(Property.MONITOR_SSL_KEYSTORE));
+        sslContextFactory.setKeyStorePassword(conf.get(Property.MONITOR_SSL_KEYSTOREPASS));
+        sslContextFactory.setKeyStoreType(conf.get(Property.MONITOR_SSL_KEYSTORETYPE));
+        sslContextFactory.setTrustStorePath(conf.get(Property.MONITOR_SSL_TRUSTSTORE));
+        sslContextFactory.setTrustStorePassword(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS));
+        sslContextFactory.setTrustStoreType(conf.get(Property.MONITOR_SSL_TRUSTSTORETYPE));
+
+        final String includedCiphers = conf.get(Property.MONITOR_SSL_INCLUDE_CIPHERS);
+        if (!Property.MONITOR_SSL_INCLUDE_CIPHERS.getDefaultValue().equals(includedCiphers)) {
+          sslContextFactory.setIncludeCipherSuites(includedCiphers.split(","));
+        }
+
+        final String excludedCiphers = conf.get(Property.MONITOR_SSL_EXCLUDE_CIPHERS);
+        if (!Property.MONITOR_SSL_EXCLUDE_CIPHERS.getDefaultValue().equals(excludedCiphers)) {
+          sslContextFactory.setExcludeCipherSuites(excludedCiphers.split(","));
+        }
+
+        final String includeProtocols = conf.get(Property.MONITOR_SSL_INCLUDE_PROTOCOLS);
+        if (includeProtocols != null && !includeProtocols.isEmpty()) {
+          sslContextFactory.setIncludeProtocols(includeProtocols.split(","));
+        }
+
+        HttpConnectionFactory httpFactory = new HttpConnectionFactory();
+        SslConnectionFactory sslFactory =
+            new SslConnectionFactory(sslContextFactory, httpFactory.getProtocol());
+        config.jetty.addConnector((s, httpConfig) -> {
+          ServerConnector conn = new ServerConnector(s, sslFactory, httpFactory);
+          conn.setHost(hostname);
+          conn.setPort(httpPort);
+          return conn;
+        });
+      }
+
     }).get("/metrics", ctx -> ctx.json(metrics.getAll()))
         .get("/metrics/groups", ctx -> ctx.json(metrics.getResourceGroups()))
         .get("/metrics/manager", ctx -> ctx.json(metrics.getManager()))
@@ -128,8 +191,8 @@ public class NewMonitor {
             ctx -> ctx.json(metrics.getSServers(ctx.pathParam("group"))))
         .get("/metrics/tservers/{group}",
             ctx -> ctx.json(metrics.getTServers(ctx.pathParam("group"))))
-        .start(hostname, port);
+        .start(hostname, httpPort);
 
-    LOG.info("New Monitor listening on {}", port);
+    LOG.info("New Monitor listening on port: {}", httpPort);
   }
 }
