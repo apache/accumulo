@@ -20,8 +20,10 @@ package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.manager.upgrade.Upgrader11to12.UPGRADE_FAMILIES;
+import static org.easymock.EasyMock.aryEq;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createStrictMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -40,10 +42,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
@@ -346,10 +351,14 @@ public class Upgrader11to12Test {
     Upgrader11to12 upgrader = new Upgrader11to12();
 
     ServerContext context = createMock(ServerContext.class);
-    ZooReaderWriter zrw = createMock(ZooReaderWriter.class);
+    ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
 
     expect(context.getInstanceID()).andReturn(iid).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+
+    zrw.recursiveDelete("/accumulo/" + iid.canonical() + "/tracers",
+        ZooUtil.NodeMissingPolicy.SKIP);
+    expectLastCall().once();
 
     Capture<Stat> statCapture = newCapture();
     expect(zrw.getData(eq("/accumulo/" + iid.canonical() + "/root_tablet"), capture(statCapture)))
@@ -367,9 +376,28 @@ public class Upgrader11to12Test {
     expect(zrw.overwritePersistentData(eq("/accumulo/" + iid.canonical() + "/root_tablet"),
         capture(byteCapture), eq(123))).andReturn(true).once();
 
-    zrw.recursiveDelete("/accumulo/" + iid.canonical() + "/tracers",
-        ZooUtil.NodeMissingPolicy.SKIP);
-    expectLastCall().once();
+    expect(zrw.getData(eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES)))
+        .andReturn(new byte[0]).once();
+    Map<String,String> mockNamespaces = Map.of("ns1", "ns1name", "ns2", "ns2name");
+    expect(zrw.getChildren(eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES)))
+        .andReturn(List.copyOf(mockNamespaces.keySet())).once();
+    for (String ns : mockNamespaces.keySet()) {
+      @SuppressWarnings("deprecation")
+      Supplier<String> pathMatcher = () -> eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES
+          + "/" + ns + Constants.ZNAMESPACE_NAME);
+      expect(zrw.getData(pathMatcher.get())).andReturn(mockNamespaces.get(ns).getBytes(UTF_8))
+          .once();
+    }
+    byte[] mapping = NamespaceMapping.serialize(mockNamespaces);
+    expect(zrw.putPersistentData(eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES),
+        aryEq(mapping), eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
+    for (String ns : mockNamespaces.keySet()) {
+      @SuppressWarnings("deprecation")
+      Supplier<String> pathMatcher = () -> eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES
+          + "/" + ns + Constants.ZNAMESPACE_NAME);
+      zrw.delete(pathMatcher.get());
+      expectLastCall().once();
+    }
 
     replay(context, zrw);
 

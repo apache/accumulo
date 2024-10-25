@@ -26,17 +26,20 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -117,6 +120,30 @@ public class Upgrader11to12 implements Upgrader {
         zrw.overwritePersistentData(rootBase, rtm.toJson().getBytes(UTF_8), stat.getVersion());
         log.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
+
+      String zPath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNAMESPACES;
+      byte[] existingMapData = zrw.getData(zPath);
+      List<String> namespaceIdList = zrw.getChildren(zPath);
+      Map<String,String> namespaceMap = null;
+      if (existingMapData != null) {
+        namespaceMap = NamespaceMapping.deserialize(existingMapData);
+      }
+      if (namespaceMap == null || namespaceMap.isEmpty()) {
+        namespaceMap = new HashMap<>();
+        for (String namespaceId : namespaceIdList) {
+          @SuppressWarnings("deprecation")
+          String namespaceNamePath = zPath + "/" + namespaceId + Constants.ZNAMESPACE_NAME;
+          namespaceMap.put(namespaceId, new String(zrw.getData(namespaceNamePath), UTF_8));
+        }
+        byte[] mapping = NamespaceMapping.serialize(namespaceMap);
+        zrw.putPersistentData(zPath, mapping, ZooUtil.NodeExistsPolicy.OVERWRITE);
+      }
+      for (String namespaceId : namespaceIdList) {
+        @SuppressWarnings("deprecation")
+        String namespaceNamePath = zPath + "/" + namespaceId + Constants.ZNAMESPACE_NAME;
+        zrw.delete(namespaceNamePath);
+      }
+
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException(
