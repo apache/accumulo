@@ -1149,7 +1149,11 @@ public enum Property {
   @Experimental
   COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL(
       "compaction.coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
-      "The interval at which to check for dead compactors.", "2.1.0");
+      "The interval at which to check for dead compactors.", "2.1.0"),
+  COMPACTION_COORDINATOR_MAX_JOB_REQUEST_WAIT_TIME(
+      "compaction.coordinator.wait.time.job.request.max", "2m", PropertyType.TIMEDURATION,
+      "The maximum amount of time the coordinator will wait for a requested job from the job queue.",
+      "4.0.0");
 
   private final String key;
   private final String defaultValue;

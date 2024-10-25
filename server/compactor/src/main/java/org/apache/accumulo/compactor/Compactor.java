@@ -19,6 +19,7 @@
 package org.apache.accumulo.compactor;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
@@ -26,6 +27,10 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -45,6 +50,7 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -56,6 +62,7 @@ import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.C
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -65,6 +72,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -88,6 +96,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -115,18 +124,32 @@ import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.rest.ThriftMixIn;
+import org.apache.accumulo.server.rest.request.GetCompactionJobRequest;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
+import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.api.ContentResponse;
+import org.eclipse.jetty.client.dynamic.HttpClientTransportDynamic;
+import org.eclipse.jetty.client.util.BasicAuthentication;
+import org.eclipse.jetty.client.util.SPNEGOAuthentication;
+import org.eclipse.jetty.client.util.StringRequestContent;
+import org.eclipse.jetty.http.HttpHeader;
+import org.eclipse.jetty.io.ClientConnector;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
@@ -468,8 +491,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
             LOG.trace("Attempting to get next job, eci = {}", eci);
             currentCompactionId.set(eci);
-            return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
-                getContext().rpcCreds(), this.getResourceGroup(),
+
+            JsonCoordinatorService jsonClient = new JsonCoordinatorService(getContext());
+            return jsonClient.getCompactionJob(TraceUtil.traceInfo(), getContext().rpcCreds(),
+                this.getResourceGroup(),
                 ExternalCompactionUtil.getHostPortString(compactorAddress.getAddress()),
                 eci.toString());
           } catch (Exception e) {
@@ -997,6 +1022,173 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       return "";
     } else {
       return eci.canonical();
+    }
+  }
+
+  protected static class JsonCoordinatorService implements CompactionCoordinatorService.Iface {
+    private final ServerContext context;
+    private final ObjectMapper mapper;
+    private final URI ccBaseUri;
+    private final Duration timeout;
+
+    private static final String GET_COMPACTION_JOB_ENDPOINT = "get-compaction-job";
+
+    protected JsonCoordinatorService(ServerContext context) throws TTransportException {
+      this.context = context;
+      var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
+      if (coordinatorHost.isEmpty()) {
+        throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
+      }
+      try {
+        String scheme = context.getThriftServerType() == ThriftServerType.SSL ? "https" : "http";
+        this.ccBaseUri =
+            new URL(scheme + "://" + coordinatorHost.orElseThrow().getHost() + ":8999/rest/cc/")
+                .toURI();
+      } catch (MalformedURLException | URISyntaxException e) {
+        throw new RuntimeException(e);
+      }
+      mapper = new ObjectMapper();
+      // Register the custom serializer/deserializer to handle thrift classes
+      mapper.addMixIn(TBase.class, ThriftMixIn.class);
+
+      // TODO: We should add a property for this, for now just make the timeout 10 seconds longer
+      // than the coordinator job request timeout so the compactor will get back the empty job
+      // response under normal cases before timing out the http request
+      this.timeout = Duration
+          .ofMillis(context.getConfiguration()
+              .getTimeInMillis(Property.COMPACTION_COORDINATOR_MAX_JOB_REQUEST_WAIT_TIME))
+          .plus(Duration.ofSeconds(10));
+    }
+
+    @Override
+    public TNextCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
+        String groupName, String compactor, String externalCompactionId) throws TException {
+
+      var cjr = new GetCompactionJobRequest(tinfo, credentials, groupName, compactor,
+          externalCompactionId);
+
+      var requestUri = ccBaseUri.resolve("./" + GET_COMPACTION_JOB_ENDPOINT);
+      LOG.info("requesturi {}", requestUri);
+
+      // TODO: reuse client between requests
+      // For this prototype use the Jetty Http client as it was quick to set up
+      // For a real server we'd want to make sure we are re-using the client and set
+      // things like thread pooling so we could look at configuring the Jetty client
+      // or using something else like the Apache HTTP 5 client could be a better choice
+      HttpClient httpClient = null;
+
+      try {
+        httpClient = newHttpClient(requestUri);
+        httpClient.start();
+
+        ContentResponse response =
+            httpClient.POST(requestUri).timeout(timeout.toMillis(), TimeUnit.MILLISECONDS)
+                .headers(headers -> headers.put(HttpHeader.CONTENT_TYPE, "application/json"))
+                .body(new StringRequestContent(mapper.writeValueAsString(cjr))).send();
+
+        // If not 200 we have an error, such as 401
+        Preconditions.checkState(response.getStatus() == 200, "Response status code is %s",
+            response.getStatus());
+
+        return mapper.readValue(response.getContentAsString(), TNextCompactionJob.class);
+      } catch (Exception e) {
+        // TODO: This is wrapping errors for the http client in TException so that we can retry
+        // The current Retry logic only handles TException as it was meant for thrift so this
+        // was a quick way to re-use that logic for HTTP client issues (timeouts, etc)
+        // We would obviously need to clean this up if we plan to stick with REST for real
+        throw new TException(e);
+      } finally {
+        try {
+          // TODO: re use the client, don't re-create each time and start/stop
+          httpClient.stop();
+        } catch (Exception e) {
+          LOG.debug(e.getMessage(), e);
+        }
+      }
+    }
+
+    private HttpClient newHttpClient(URI requestUri) {
+      final HttpClient httpClient;
+
+      if (context.getThriftServerType() == ThriftServerType.SSL) {
+        SslContextFactory.Client sslContextFactory = getSslClient();
+        ClientConnector clientConnector = new ClientConnector();
+        clientConnector.setSslContextFactory(sslContextFactory);
+        httpClient = new HttpClient(new HttpClientTransportDynamic(clientConnector));
+      } else if (context.getThriftServerType() == ThriftServerType.SASL) {
+        httpClient = new HttpClient();
+        var principal = context.getConfiguration().get(Property.GENERAL_KERBEROS_PRINCIPAL);
+        SPNEGOAuthentication authentication = new SPNEGOAuthentication(requestUri);
+        authentication.setUserName(principal);
+        authentication.setUserKeyTabPath(java.nio.file.Path
+            .of(context.getConfiguration().getPath(Property.GENERAL_KERBEROS_KEYTAB)));
+        authentication.setServiceName("accumulo");
+        httpClient.getAuthenticationStore().addAuthentication(authentication);
+      } else {
+        httpClient = new HttpClient();
+        var creds = context.getCredentials();
+        BasicAuthentication authentication =
+            new BasicAuthentication(requestUri, "accumulo", creds.getPrincipal(),
+                new String(((PasswordToken) creds.getToken()).getPassword(), UTF_8));
+        httpClient.getAuthenticationStore().addAuthentication(authentication);
+      }
+      return httpClient;
+    }
+
+    private SslContextFactory.Client getSslClient() {
+      SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
+      SslConnectionParams sslParams = context.getClientSslParams();
+      sslContextFactory.setKeyStorePath(sslParams.getKeyStorePath());
+      sslContextFactory.setKeyStorePassword(sslParams.getKeyStorePass());
+      sslContextFactory.setKeyStoreType(sslParams.getKeyStoreType());
+      sslContextFactory.setTrustStorePath(sslParams.getTrustStorePath());
+      sslContextFactory.setTrustStorePassword(sslParams.getTrustStorePass());
+      sslContextFactory.setTrustStoreType(sslParams.getTrustStoreType());
+
+      // TODO: Disable hostname checks for testing
+      sslContextFactory.setEndpointIdentificationAlgorithm(null);
+      sslContextFactory.setHostnameVerifier((hostname, session) -> true);
+
+      return sslContextFactory;
+    }
+
+    // The following methods were not implemented but could be moved to Json as well if we
+    // decide to go with Jetty and REST
+    @Override
+    public void compactionCompleted(TInfo tinfo, TCredentials credentials,
+        String externalCompactionId, TKeyExtent extent, TCompactionStats stats) throws TException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void updateCompactionStatus(TInfo tinfo, TCredentials credentials,
+        String externalCompactionId, TCompactionStatusUpdate status, long timestamp)
+        throws TException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
+        TKeyExtent extent) throws TException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TExternalCompactionList getRunningCompactions(TInfo tinfo, TCredentials credentials)
+        throws TException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TExternalCompactionList getCompletedCompactions(TInfo tinfo, TCredentials credentials)
+        throws TException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
+        throws TException {
+      throw new UnsupportedOperationException();
     }
   }
 
