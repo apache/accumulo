@@ -108,18 +108,17 @@ public class MetricsInfoImpl implements MetricsInfo {
    * Common tags for all services.
    */
   @Override
-  public void addServiceTags(final String applicationName, final HostAndPort hostAndPort) {
+  public void addServiceTags(final String applicationName, final HostAndPort hostAndPort,
+      final String resourceGroupName) {
     if (!metricsEnabled) {
       return;
     }
     List<Tag> tags = new ArrayList<>();
 
-    if (applicationName != null && !applicationName.isEmpty()) {
-      tags.add(MetricsInfo.processTag(applicationName));
-    }
-    if (hostAndPort != null) {
-      tags.addAll(MetricsInfo.addressTags(hostAndPort));
-    }
+    tags.add(MetricsInfo.processTag(applicationName));
+    tags.addAll(MetricsInfo.addressTags(hostAndPort));
+    tags.add(MetricsInfo.resourceGroupTag(resourceGroupName));
+
     addCommonTags(tags);
   }
 
