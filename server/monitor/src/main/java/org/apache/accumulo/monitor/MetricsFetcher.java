@@ -26,16 +26,24 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -49,7 +57,9 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.ThreadPools.ExecutionError;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.eclipse.jetty.util.NanoTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,6 +144,62 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
 
   }
 
+  private class CompactionListFetcher implements Runnable {
+
+    private final String coordinatorMissingMsg =
+        "Error getting the compaction coordinator client. Check that the Manager is running.";
+
+    // Copied from Monitor
+    private TExternalCompactionList getExternalCompactions() {
+      Set<ServerId> managers = ctx.instanceOperations().getServers(ServerId.Type.MANAGER);
+      if (managers.isEmpty()) {
+        throw new IllegalStateException(coordinatorMissingMsg);
+      }
+      ServerId manager = managers.iterator().next();
+      HostAndPort hp = HostAndPort.fromParts(manager.getHost(), manager.getPort());
+      try {
+        CompactionCoordinatorService.Client client =
+            ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hp, ctx);
+        try {
+          return client.getRunningCompactions(TraceUtil.traceInfo(), ctx.rpcCreds());
+        } catch (Exception e) {
+          throw new IllegalStateException("Unable to get running compactions from " + hp, e);
+        } finally {
+          if (client != null) {
+            ThriftUtil.returnClient(client, ctx);
+          }
+        }
+      } catch (TTransportException e) {
+        LOG.error("Unable to get Compaction coordinator at {}", hp);
+        throw new IllegalStateException(coordinatorMissingMsg, e);
+      }
+    }
+
+    @Override
+    public void run() {
+      try {
+        TExternalCompactionList running = getExternalCompactions();
+        // Create an index into the running compaction list that is
+        // sorted by duration, meaning earliest start time first. This
+        // will allow us to show topN longest running compactions.
+        Map<Long,String> timeSortedEcids = new TreeMap<>();
+        if (running.getCompactions() != null) {
+          running.getCompactions().forEach((ecid, extComp) -> {
+            if (extComp.getUpdates() != null && !extComp.getUpdates().isEmpty()) {
+              Set<Long> orderedUpdateTimes = new TreeSet<>(extComp.getUpdates().keySet());
+              timeSortedEcids.put(orderedUpdateTimes.iterator().next(), ecid);
+            }
+          });
+        }
+        runningCompactions.set(running.getCompactions());
+        runningCompactionsDurationIndex.set(timeSortedEcids);
+      } catch (Exception e) {
+        LOG.error("Error gathering running compaction information", e);
+      }
+    }
+
+  }
+
   private static final Set<ServerId> EMPTY_MUTABLE_SET = new HashSet<>();
 
   private final String poolName = "MonitorMetricsThreadPool";
@@ -141,6 +207,8 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
       .getPoolBuilder(poolName).numCoreThreads(10).withTimeOut(30, SECONDS).build();
 
   private final ServerContext ctx;
+  private final Supplier<Long> connectionCount;
+  private final AtomicBoolean newConnectionEvent = new AtomicBoolean(false);
   private final Cache<ServerId,MetricResponse> allMetrics;
   private final Set<ServerId> problemHosts = new HashSet<>();
   private final AtomicReference<ServerId> manager = new AtomicReference<>();
@@ -148,11 +216,20 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
   private final ConcurrentHashMap<String,Set<ServerId>> compactors = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String,Set<ServerId>> sservers = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String,Set<ServerId>> tservers = new ConcurrentHashMap<>();
+  private final AtomicReference<Map<String,TExternalCompaction>> runningCompactions =
+      new AtomicReference<>();
+  private final AtomicReference<Map<Long,String>> runningCompactionsDurationIndex =
+      new AtomicReference<>();
 
-  public MetricsFetcher(ServerContext ctx) {
+  public MetricsFetcher(ServerContext ctx, Supplier<Long> connectionCount) {
     this.ctx = ctx;
+    this.connectionCount = connectionCount;
     this.allMetrics = Caffeine.newBuilder().executor(pool).scheduler(Scheduler.systemScheduler())
         .expireAfterWrite(Duration.ofMinutes(10)).removalListener(this::onRemoval).build();
+  }
+
+  public void newConnectionEvent() {
+    this.newConnectionEvent.compareAndSet(false, true);
   }
 
   @Override
@@ -187,8 +264,22 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
   @Override
   public void run() {
 
+    long refreshTime = 0;
+
     while (true) {
 
+      // Don't fetch new data if there are no connections
+      // On an initial connection, no data may be displayed
+      // If a connection has not been made in a while, stale data may be displayed
+      // Only refresh every 5s (old monitor logic)
+      while (!newConnectionEvent.get() && connectionCount.get() == 0
+          && NanoTime.millisElapsed(refreshTime, NanoTime.now()) > 5000) {
+        Thread.onSpinWait();
+      }
+      // reset the connection event flag
+      newConnectionEvent.compareAndExchange(true, false);
+
+      LOG.info("Fetching metrics from servers");
       final List<Future<?>> futures = new ArrayList<>();
 
       for (ServerId.Type type : ServerId.Type.values()) {
@@ -211,6 +302,9 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
         }
       }
 
+      // Fetch external compaction information from the Manager
+      futures.add(this.pool.submit(new CompactionListFetcher()));
+
       while (futures.size() > 0) {
         Iterator<Future<?>> iter = futures.iterator();
         while (iter.hasNext()) {
@@ -229,8 +323,7 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
           UtilWaitThread.sleep(3_000);
         }
       }
-
-      UtilWaitThread.sleep(30_000);
+      refreshTime = NanoTime.now();
     }
 
   }
@@ -289,4 +382,13 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
     return allMetrics.getAllPresent(tservers.get(resourceGroup)).values();
   }
 
+  public Collection<TExternalCompaction> getCompactions(int topN) {
+    List<TExternalCompaction> results = new ArrayList<>();
+    Map<String,TExternalCompaction> compactions = runningCompactions.get();
+    Iterator<String> ecids = runningCompactionsDurationIndex.get().values().iterator();
+    for (int i = 0; i < topN && ecids.hasNext(); i++) {
+      results.add(compactions.get(ecids.next()));
+    }
+    return results;
+  }
 }

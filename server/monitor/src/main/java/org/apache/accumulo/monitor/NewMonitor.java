@@ -24,13 +24,21 @@ import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.util.EnumSet;
 
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
+import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.thrift.TBase;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TSimpleJSONProtocol;
+import org.eclipse.jetty.io.Connection;
+import org.eclipse.jetty.io.ConnectionStatistics;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
@@ -48,7 +56,24 @@ import io.javalin.Javalin;
 import io.javalin.json.JavalinJackson;
 import io.javalin.security.RouteRole;
 
-public class NewMonitor {
+public class NewMonitor implements Connection.Listener {
+
+  public static class ThriftSerializer extends JsonSerializer<TBase<?,?>> {
+
+    private final TSimpleJSONProtocol.Factory factory = new TSimpleJSONProtocol.Factory();
+
+    @Override
+    public void serialize(TBase<?,?> value, JsonGenerator gen, SerializerProvider serializers)
+        throws IOException {
+      try {
+        // TSerializer is likely not thread safe
+        gen.writeRaw(new TSerializer(factory).toString(value));
+      } catch (TException e) {
+        LOG.error("Error serializing Thrift object", e);
+      }
+    }
+
+  }
 
   public static class MetricResponseSerializer extends JsonSerializer<MetricResponse> {
 
@@ -103,21 +128,22 @@ public class NewMonitor {
   private final ServerContext ctx;
   private final String hostname;
   private final boolean secure;
+  private final ConnectionStatistics connStats;
+  private final MetricsFetcher metrics;
 
   public NewMonitor(ServerContext ctx, String hostname) {
     this.ctx = ctx;
     this.hostname = hostname;
-    secure = requireForSecure.stream().map(ctx.getConfiguration()::get)
+    this.secure = requireForSecure.stream().map(ctx.getConfiguration()::get)
         .allMatch(s -> s != null && !s.isEmpty());
+
+    this.connStats = new ConnectionStatistics();
+    this.metrics = new MetricsFetcher(ctx, connStats::getConnections);
   }
 
   @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET",
       justification = "TODO Replace before merging")
   public void start() throws IOException {
-
-    MetricsFetcher metrics = new MetricsFetcher(ctx);
-
-    Threads.createThread("Metric Fetcher Thread", metrics).start();
 
     // Find a free socket
     ServerSocket ss = new ServerSocket();
@@ -126,15 +152,25 @@ public class NewMonitor {
     ss.close();
     final int httpPort = ss.getLocalPort();
 
+    Threads.createThread("Metric Fetcher Thread", metrics).start();
+
     Javalin.create(config -> {
+      // TODO Make dev logging and route overview configurable based on property
+      // They are useful for development and debugging, but should probably not
+      // be enabled for normal use.
       config.bundledPlugins.enableDevLogging();
       config.bundledPlugins.enableRouteOverview("/routes", new RouteRole[] {});
       config.jsonMapper(new JavalinJackson().updateMapper(mapper -> {
         SimpleModule module = new SimpleModule();
         module.addSerializer(MetricResponse.class, new MetricResponseSerializer());
+        module.addSerializer(TExternalCompaction.class, new ThriftSerializer());
+        module.addSerializer(TExternalCompactionJob.class, new ThriftSerializer());
         mapper.registerModule(module);
       }));
 
+      final HttpConnectionFactory httpFactory = new HttpConnectionFactory();
+
+      // Set up TLS
       if (secure) {
         LOG.debug("Configuring Jetty to use TLS");
 
@@ -170,18 +206,32 @@ public class NewMonitor {
           sslContextFactory.setIncludeProtocols(includeProtocols.split(","));
         }
 
-        HttpConnectionFactory httpFactory = new HttpConnectionFactory();
-        SslConnectionFactory sslFactory =
+        final SslConnectionFactory sslFactory =
             new SslConnectionFactory(sslContextFactory, httpFactory.getProtocol());
         config.jetty.addConnector((s, httpConfig) -> {
           ServerConnector conn = new ServerConnector(s, sslFactory, httpFactory);
+          // Capture connection statistics
+          conn.addBean(connStats);
+          // Listen for connection events
+          conn.addBean(this);
           conn.setHost(hostname);
           conn.setPort(httpPort);
           return conn;
         });
-      }
-
-    }).get("/metrics", ctx -> ctx.json(metrics.getAll()))
+      } else {
+        config.jetty.addConnector((s, httpConfig) -> {
+          ServerConnector conn = new ServerConnector(s, httpFactory);
+          // Capture connection statistics
+          conn.addBean(connStats);
+          // Listen for connection events
+          conn.addBean(this);
+          conn.setHost(hostname);
+          conn.setPort(httpPort);
+          return conn;
+        });
+      }     
+    }).get("/stats", ctx -> ctx.result(connStats.dump()))
+        .get("/metrics", ctx -> ctx.json(metrics.getAll()))
         .get("/metrics/groups", ctx -> ctx.json(metrics.getResourceGroups()))
         .get("/metrics/manager", ctx -> ctx.json(metrics.getManager()))
         .get("/metrics/gc", ctx -> ctx.json(metrics.getGarbageCollector()))
@@ -192,8 +242,23 @@ public class NewMonitor {
         .get("/metrics/tservers/{group}",
             ctx -> ctx.json(metrics.getTServers(ctx.pathParam("group"))))
         .get("/metrics/problems", ctx -> ctx.json(metrics.getProblemHosts()))
-        .start(hostname, httpPort);
+        .get("/metrics/compactions", ctx -> ctx.json(metrics.getCompactions(25)))
+        .get("/metrics/compactions/{num}",
+            ctx -> ctx.json(metrics.getCompactions(Integer.parseInt(ctx.pathParam("num")))))
+        .start();
 
     LOG.info("New Monitor listening on port: {}", httpPort);
   }
+
+  @Override
+  public void onOpened(Connection connection) {
+    LOG.info("New connection event");
+    metrics.newConnectionEvent();
+  }
+
+  @Override
+  public void onClosed(Connection connection) {
+    // do nothing
+  }
+
 }
