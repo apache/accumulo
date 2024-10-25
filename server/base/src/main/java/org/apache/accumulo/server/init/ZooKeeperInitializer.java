@@ -24,6 +24,7 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.data.InstanceId;
@@ -91,7 +92,7 @@ public class ZooKeeperInitializer {
 
   void initialize(final ServerContext context, final boolean clearInstanceName,
       final String instanceNamePath, final String rootTabletDirName, final String rootTabletFileUri)
-      throws KeeperException, InterruptedException {
+      throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
     // setup basic data in zookeeper
 
     ZooReaderWriter zoo = context.getZooReaderWriter();
@@ -111,14 +112,13 @@ public class ZooKeeperInitializer {
     String zkInstanceRoot = Constants.ZROOT + "/" + instanceId;
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES, Constants.ZTABLES_INITIAL_ID,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES, new byte[0],
-        ZooUtil.NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES,
+        NamespaceMapping.initializeNamespaceMap(), ZooUtil.NodeExistsPolicy.FAIL);
 
     TableManager.prepareNewNamespaceState(context, Namespace.DEFAULT.id(), Namespace.DEFAULT.name(),
-        ZooUtil.NodeExistsPolicy.OVERWRITE);
+        ZooUtil.NodeExistsPolicy.FAIL);
     TableManager.prepareNewNamespaceState(context, Namespace.ACCUMULO.id(),
-        Namespace.ACCUMULO.name(), ZooUtil.NodeExistsPolicy.OVERWRITE);
-    NamespaceMapping.initializeNamespaceMap(zoo, zkInstanceRoot + Constants.ZNAMESPACES);
+        Namespace.ACCUMULO.name(), ZooUtil.NodeExistsPolicy.FAIL);
 
     TableManager.prepareNewTableState(context, AccumuloTable.ROOT.tableId(),
         Namespace.ACCUMULO.id(), AccumuloTable.ROOT.tableName(), TableState.ONLINE,

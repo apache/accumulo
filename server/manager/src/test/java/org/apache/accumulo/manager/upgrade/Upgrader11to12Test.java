@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.manager.upgrade.Upgrader11to12.UPGRADE_FAMILIES;
+import static org.apache.accumulo.manager.upgrade.Upgrader11to12.ZNAMESPACE_NAME;
 import static org.easymock.EasyMock.aryEq;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
@@ -382,9 +383,8 @@ public class Upgrader11to12Test {
     expect(zrw.getChildren(eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES)))
         .andReturn(List.copyOf(mockNamespaces.keySet())).once();
     for (String ns : mockNamespaces.keySet()) {
-      @SuppressWarnings("deprecation")
-      Supplier<String> pathMatcher = () -> eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES
-          + "/" + ns + Constants.ZNAMESPACE_NAME);
+      Supplier<String> pathMatcher = () -> eq(
+          "/accumulo/" + iid.canonical() + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME);
       expect(zrw.getData(pathMatcher.get())).andReturn(mockNamespaces.get(ns).getBytes(UTF_8))
           .once();
     }
@@ -392,9 +392,8 @@ public class Upgrader11to12Test {
     expect(zrw.putPersistentData(eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES),
         aryEq(mapping), eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
     for (String ns : mockNamespaces.keySet()) {
-      @SuppressWarnings("deprecation")
-      Supplier<String> pathMatcher = () -> eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES
-          + "/" + ns + Constants.ZNAMESPACE_NAME);
+      Supplier<String> pathMatcher = () -> eq(
+          "/accumulo/" + iid.canonical() + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME);
       zrw.delete(pathMatcher.get());
       expectLastCall().once();
     }

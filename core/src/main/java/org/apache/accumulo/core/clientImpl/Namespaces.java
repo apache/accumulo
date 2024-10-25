@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -37,7 +38,8 @@ public class Namespaces {
 
   public static boolean exists(ClientContext context, NamespaceId namespaceId) {
     ZooCache zc = context.getZooCache();
-    List<String> namespaceIds = zc.getChildren(context.getZooKeeperRoot() + Constants.ZNAMESPACES);
+    List<String> namespaceIds = new ArrayList<>(NamespaceMapping
+        .deserialize(zc.get(context.getZooKeeperRoot() + Constants.ZNAMESPACES)).keySet());
     return namespaceIds.contains(namespaceId.canonical());
   }
 

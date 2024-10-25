@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptySortedMap;
 
 import java.lang.reflect.Type;
-import java.util.Collections;
 import java.util.Map;
 import java.util.SortedMap;
 
@@ -30,7 +29,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.collect.ImmutableSortedMap;
@@ -48,24 +46,25 @@ public class NamespaceMapping {
     this.context = context;
   }
 
-  public static void initializeNamespaceMap(ZooReaderWriter zoo, String zPath)
-      throws InterruptedException, KeeperException {
+  public static byte[] initializeNamespaceMap() {
     Map<String,String> map = Map.of(Namespace.DEFAULT.id().canonical(), Namespace.DEFAULT.name(),
         Namespace.ACCUMULO.id().canonical(), Namespace.ACCUMULO.name());
-    zoo.putPersistentData(zPath, serialize(map), ZooUtil.NodeExistsPolicy.OVERWRITE);
+    return serialize(map);
   }
 
-  public static byte[] writeNamespaceToMap(ZooReaderWriter zoo, String zPath,
-      NamespaceId namespaceId, String namespaceName) throws InterruptedException, KeeperException {
-    byte[] updatedMap = new byte[0];
+  public static void writeNamespaceToMap(ZooReaderWriter zoo, String zPath, NamespaceId namespaceId,
+      String namespaceName)
+      throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
+    // The built-in namespaces were already added during init or upgrade and can't be changed
     if (!Namespace.DEFAULT.id().equals(namespaceId)
         && !Namespace.ACCUMULO.id().equals(namespaceId)) {
-      byte[] data = zoo.getData(zPath);
-      Map<String,String> namespaceMap = deserialize(data);
-      namespaceMap.put(namespaceId.canonical(), namespaceName);
-      updatedMap = serialize(namespaceMap);
+      zoo.mutateExisting(zPath, data -> {
+        var namespaces = deserialize(data);
+        // TODO throw exception if namespace name already exists in map?
+        namespaces.put(namespaceId.canonical(), namespaceName);
+        return serialize(namespaces);
+      });
     }
-    return updatedMap;
   }
 
   public static byte[] serialize(Map<String,String> map) {
@@ -75,8 +74,8 @@ public class NamespaceMapping {
   }
 
   public static Map<String,String> deserialize(byte[] data) {
-    if (data == null || data.length == 0) {
-      return Collections.emptyMap();
+    if (data == null) {
+      throw new AssertionError("/namespaces node should not be null");
     }
     String jsonData = new String(data, UTF_8);
     Type type = new TypeToken<Map<String,String>>() {}.getType();
@@ -87,13 +86,11 @@ public class NamespaceMapping {
     final ZooCache zc = context.getZooCache();
     final String zPath = context.getZooKeeperRoot() + Constants.ZNAMESPACES;
     final ZooCache.ZcStat stat = new ZooCache.ZcStat();
-    zc.clear();
 
     byte[] data = zc.get(zPath, stat);
     if (stat.getMzxid() > lastMzxid) {
       if (data == null) {
-        currentNamespaceMap = emptySortedMap();
-        currentNamespaceReverseMap = emptySortedMap();
+        throw new AssertionError("/namespaces node should not be null");
       } else {
         Map<String,String> idToName = deserialize(data);
         var converted = ImmutableSortedMap.<NamespaceId,String>naturalOrder();

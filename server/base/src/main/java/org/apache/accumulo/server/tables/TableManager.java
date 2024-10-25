@@ -29,6 +29,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -70,13 +71,13 @@ public class TableManager {
 
   public static void prepareNewNamespaceState(ZooReaderWriter zoo, final PropStore propStore,
       InstanceId instanceId, NamespaceId namespaceId, String namespace,
-      NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
+      NodeExistsPolicy existsPolicy)
+      throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
     log.debug("Creating ZooKeeper entries for new namespace {} (ID: {})", namespace, namespaceId);
     String zPath = Constants.ZROOT + "/" + instanceId + Constants.ZNAMESPACES;
 
     zoo.putPersistentData(zPath + "/" + namespaceId, new byte[0], existsPolicy);
-    zoo.putPersistentData(zPath,
-        NamespaceMapping.writeNamespaceToMap(zoo, zPath, namespaceId, namespace), existsPolicy);
+    NamespaceMapping.writeNamespaceToMap(zoo, zPath, namespaceId, namespace);
     var propKey = NamespacePropKey.of(instanceId, namespaceId);
     if (!propStore.exists(propKey)) {
       propStore.create(propKey, Map.of());
@@ -85,7 +86,7 @@ public class TableManager {
 
   public static void prepareNewNamespaceState(final ServerContext context, NamespaceId namespaceId,
       String namespace, NodeExistsPolicy existsPolicy)
-      throws KeeperException, InterruptedException {
+      throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
     prepareNewNamespaceState(context.getZooReaderWriter(), context.getPropStore(),
         context.getInstanceID(), namespaceId, namespace, existsPolicy);
   }

@@ -86,6 +86,8 @@ public class Upgrader11to12 implements Upgrader {
 
   public static final String ZTRACERS = "/tracers";
 
+  public static final String ZNAMESPACE_NAME = "/name";
+
   @Override
   public void upgradeZookeeper(@NonNull ServerContext context) {
     log.debug("Upgrade ZooKeeper: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
@@ -131,16 +133,14 @@ public class Upgrader11to12 implements Upgrader {
       if (namespaceMap == null || namespaceMap.isEmpty()) {
         namespaceMap = new HashMap<>();
         for (String namespaceId : namespaceIdList) {
-          @SuppressWarnings("deprecation")
-          String namespaceNamePath = zPath + "/" + namespaceId + Constants.ZNAMESPACE_NAME;
+          String namespaceNamePath = zPath + "/" + namespaceId + ZNAMESPACE_NAME;
           namespaceMap.put(namespaceId, new String(zrw.getData(namespaceNamePath), UTF_8));
         }
         byte[] mapping = NamespaceMapping.serialize(namespaceMap);
         zrw.putPersistentData(zPath, mapping, ZooUtil.NodeExistsPolicy.OVERWRITE);
       }
       for (String namespaceId : namespaceIdList) {
-        @SuppressWarnings("deprecation")
-        String namespaceNamePath = zPath + "/" + namespaceId + Constants.ZNAMESPACE_NAME;
+        String namespaceNamePath = zPath + "/" + namespaceId + ZNAMESPACE_NAME;
         zrw.delete(namespaceNamePath);
       }
 
