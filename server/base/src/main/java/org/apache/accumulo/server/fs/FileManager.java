@@ -349,21 +349,21 @@ public class FileManager {
       boolean sawIOException) {
     // put files in openFiles
 
+    for (FileSKVIterator reader : readers) {
+      try {
+        reader.closeDeepCopies();
+      } catch (IOException e) {
+        log.warn("{}", e.getMessage(), e);
+        sawIOException = true;
+      }
+    }
+
     synchronized (this) {
 
       // check that readers were actually reserved ... want to make sure a thread does
       // not try to release readers they never reserved
       if (!reservedReaders.keySet().containsAll(readers)) {
         throw new IllegalArgumentException("Asked to release readers that were never reserved ");
-      }
-
-      for (FileSKVIterator reader : readers) {
-        try {
-          reader.closeDeepCopies();
-        } catch (IOException e) {
-          log.warn("{}", e.getMessage(), e);
-          sawIOException = true;
-        }
       }
 
       for (FileSKVIterator reader : readers) {
