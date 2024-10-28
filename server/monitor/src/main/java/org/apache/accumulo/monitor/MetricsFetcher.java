@@ -124,8 +124,8 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
                   .add(server);
               break;
             default:
+              LOG.error("Unhandled server type in fetch metric response: {}", response.serverType);
               break;
-
           }
         } finally {
           ThriftUtil.returnClient(metricsClient, ctx);
@@ -225,7 +225,7 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
     this.ctx = ctx;
     this.connectionCount = connectionCount;
     this.allMetrics = Caffeine.newBuilder().executor(pool).scheduler(Scheduler.systemScheduler())
-        .expireAfterWrite(Duration.ofMinutes(10)).removalListener(this::onRemoval).build();
+        .expireAfterWrite(Duration.ofMinutes(10)).evictionListener(this::onRemoval).build();
   }
 
   public void newConnectionEvent() {
@@ -238,6 +238,7 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
     if (server == null) {
       return;
     }
+    LOG.info("{} has been evicted", server);
     if (server instanceof GcServerId) {
       gc.compareAndSet(server, null);
     } else {
@@ -324,7 +325,14 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
         }
       }
       refreshTime = NanoTime.now();
+      LOG.info("Finished fetching metrics from servers");
+      LOG.info("All: {}, Manager: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
+          allMetrics.estimatedSize(), manager.get() != null, gc.get() != null,
+          compactors.values().stream().mapToInt(s -> s.size()).sum(),
+          sservers.values().stream().mapToInt(s -> s.size()).sum(),
+          tservers.values().stream().mapToInt(s -> s.size()).sum());
     }
+
 
   }
 
