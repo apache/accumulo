@@ -35,7 +35,7 @@ import org.apache.thrift.TBase;
 import org.apache.thrift.async.AsyncMethodCallback;
 
 @Path("/cc")
-@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+@Produces({MediaType.APPLICATION_JSON})
 public class CompactionCoordinatorResource {
 
   @Inject

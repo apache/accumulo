@@ -68,10 +68,6 @@ public class ExternalCompactionKerberosIT extends SharedMiniClusterBase {
     stopMiniCluster();
   }
 
-  // TODO: This test sets up Kerberos for Thrift but the Jetty service has not
-  // be set up yet to use Kerberos. The next step is to set up the Jetty service
-  // using SASL/JAAS for Kerberos support and then configure the Jetty http client
-  // with the correct auth credentials to see if it works.
   @Test
   public void testExternalCompaction() throws Exception {
     var principal = getAdminUser().getPrincipal();
