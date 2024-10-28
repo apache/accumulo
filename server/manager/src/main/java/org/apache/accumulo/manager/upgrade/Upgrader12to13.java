@@ -31,12 +31,14 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
@@ -82,6 +84,8 @@ public class Upgrader12to13 implements Upgrader {
     removeCompactColumnsFromRootTabletMetadata(context);
     LOG.info("Adding compactions node to zookeeper");
     addCompactionsNode(context);
+    LOG.info("Removing problems reports from zookeeper");
+    removeZKProblemReports(context);
   }
 
   @Override
@@ -114,6 +118,8 @@ public class Upgrader12to13 implements Upgrader {
     removeCompactColumnsFromTable(context, AccumuloTable.METADATA.tableName());
     LOG.info("Removing bulk file columns from metadata table");
     removeBulkFileColumnsFromTable(context, AccumuloTable.METADATA.tableName());
+    LOG.info("Removing problems reports from metadata table");
+    removeMetadataProblemReports(context);
   }
 
   private static void addCompactionsNode(ServerContext context) {
@@ -370,6 +376,37 @@ public class Upgrader12to13 implements Upgrader {
       } catch (InterruptedException | KeeperException e) {
         throw new IllegalStateException(e);
       }
+    }
+  }
+
+  private void removeZKProblemReports(ServerContext context) {
+    String zpath = context.getZooKeeperRoot() + "/problems";
+    try {
+      context.getZooReaderWriter().recursiveDelete(zpath, ZooUtil.NodeMissingPolicy.SKIP);
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  /**
+   * Holds error message processing flags
+   */
+  private static class ProblemSection {
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "err_", true, RESERVED_PREFIX + "err`", false);
+
+    public static Range getRange() {
+      return section.getRange();
+    }
+  }
+
+  private void removeMetadataProblemReports(ServerContext context) {
+    try (var deleter = context.createBatchDeleter(AccumuloTable.METADATA.tableName(),
+        Authorizations.EMPTY, 1, new BatchWriterConfig())) {
+      deleter.setRanges(List.of(ProblemSection.getRange()));
+      deleter.delete();
+    } catch (TableNotFoundException | MutationsRejectedException e) {
+      throw new IllegalStateException(e);
     }
   }
 }

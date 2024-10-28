@@ -132,8 +132,6 @@ public class ZooKeeperInitializer {
 
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY,
-        ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET,
         getInitialRootTabletJson(rootTabletDirName, rootTabletFileUri),
         ZooUtil.NodeExistsPolicy.FAIL);

@@ -64,7 +64,6 @@
               </a>
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="/log">Recent&nbsp;Logs&nbsp;<span id="recentLogsNotifications" class="badge"></span></a></li>
-                <li><a class="dropdown-item" href="/problems">Table&nbsp;Problems&nbsp;<span id="tableProblemsNotifications" class="badge"></span></a></li>
               </ul>
             </li>
             <li class="dropdown">

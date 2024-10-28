@@ -87,9 +87,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.problems.ProblemReport;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.tablets.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.accumulo.server.tablets.TabletTime;
@@ -980,8 +977,6 @@ public class Tablet extends TabletBase {
         }
       }
       if (err != null) {
-        ProblemReports.getInstance(context).report(new ProblemReport(extent.tableId(),
-            ProblemType.TABLET_LOAD, this.extent.toString(), err));
         log.error("Tablet closed consistency check has failed for {} giving up and closing",
             this.extent);
       }

@@ -19,13 +19,11 @@
 package org.apache.accumulo.tserver;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -36,8 +34,6 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
-import org.apache.accumulo.server.problems.ProblemReport;
-import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
@@ -178,10 +174,6 @@ class AssignmentHandler implements Runnable {
       if (e.getMessage() != null) {
         log.warn("{}", e.getMessage());
       }
-
-      TableId tableId = extent.tableId();
-      ProblemReports.getInstance(server.getContext()).report(new ProblemReport(tableId, TABLET_LOAD,
-          extent.getUUID().toString(), server.getClientAddressString(), e));
     }
 
     if (successful) {

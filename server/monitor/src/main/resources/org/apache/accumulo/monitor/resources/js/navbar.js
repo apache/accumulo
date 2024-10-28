@@ -138,25 +138,11 @@ function updateRecentLogsNotification(statusData) {
 }
 
 /**
- * Updates the notification color for the table problems icon within the debug dropdown
- */
-function updateTableProblemsNotification(statusData) {
-  if (statusData.problemNumber > 0) {
-    updateElementStatus('tableProblemsNotifications', STATUS.ERROR);
-  } else {
-    updateElementStatus('tableProblemsNotifications', STATUS.OK);
-  }
-  // Number
-  var problemNumber = statusData.problemNumber > 99 ? '99+' : statusData.problemNumber;
-  $('#tableProblemsNotifications').html(problemNumber);
-}
-
-/**
  * Updates the notification color for the debug dropdown icon
  */
 function updateDebugDropdownNotification(statusData) {
-  if (statusData.logNumber > 0 || statusData.problemNumber > 0) {
-    if (statusData.logsHaveError || statusData.problemNumber > 0) {
+  if (statusData.logNumber > 0) {
+    if (statusData.logsHaveError) {
       updateElementStatus('errorsNotification', STATUS.ERROR);
     } else {
       updateElementStatus('errorsNotification', STATUS.WARN);
@@ -165,8 +151,8 @@ function updateDebugDropdownNotification(statusData) {
     updateElementStatus('errorsNotification', STATUS.OK);
   }
   // Number
-  var totalNumber = statusData.logNumber + statusData.problemNumber > 99 ?
-    '99+' : statusData.logNumber + statusData.problemNumber;
+  var totalNumber = statusData.logNumber > 99 ?
+    '99+' : statusData.logNumber;
   $('#errorsNotification').html(totalNumber);
 }
 
@@ -203,6 +189,5 @@ function refreshSideBarNotifications() {
 
   updateServerNotifications(statusData);
   updateRecentLogsNotification(statusData);
-  updateTableProblemsNotification(statusData);
   updateDebugDropdownNotification(statusData);
 }

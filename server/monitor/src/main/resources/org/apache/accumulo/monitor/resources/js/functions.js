@@ -18,8 +18,7 @@
  */
 /* JSLint global definitions */
 /*global
-    $, sessionStorage, TIMER:true, NAMESPACES:true, refreshNavBar,
-    refreshProblems
+    $, sessionStorage, TIMER:true, NAMESPACES:true, refreshNavBar
 */
 "use strict";
 
@@ -456,43 +455,6 @@ function getLogs() {
  */
 function clearLogs() {
   doLoggedPostCall('/rest/logs/clear', refresh, false);
-}
-
-/**
- * REST POST call to clear all table problems
- *
- * @param {string} tableID Table ID
- */
-function clearTableProblems(tableID) {
-  doLoggedPostCall('/rest/problems/summary?s=' + tableID, refresh, true);
-}
-
-/**
- * REST POST call to clear detail problems
- *
- * @param {string} table Table ID
- * @param {string} resource Resource for problem
- * @param {string} type Type of problem
- */
-function clearDetailsProblems(table, resource, type) {
-  doLoggedPostCall('/rest/problems/details?table=' + table + '&resource=' +
-    resource + '&ptype=' + type, refresh, true);
-}
-
-/**
- * REST GET call for the problems summary,
- * stores it on a sessionStorage variable
- */
-function getProblemSummary() {
-  return getJSONForTable('/rest/problems/summary', 'problemSummary');
-}
-
-/**
- * REST GET call for the problems details,
- * stores it on a sessionStorage variable
- */
-function getProblemDetails() {
-  return getJSONForTable('/rest/problems/details', 'problemDetails');
 }
 
 //// Overview Plots Rest Calls
