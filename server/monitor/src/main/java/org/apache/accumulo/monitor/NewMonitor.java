@@ -229,7 +229,7 @@ public class NewMonitor implements Connection.Listener {
           conn.setPort(httpPort);
           return conn;
         });
-      }     
+      }
     }).get("/stats", ctx -> ctx.result(connStats.dump()))
         .get("/metrics", ctx -> ctx.json(metrics.getAll()))
         .get("/metrics/groups", ctx -> ctx.json(metrics.getResourceGroups()))
