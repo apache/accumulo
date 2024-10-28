@@ -326,13 +326,13 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
       }
       refreshTime = NanoTime.now();
       LOG.info("Finished fetching metrics from servers");
-      LOG.info("All: {}, Manager: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
+      LOG.info(
+          "All: {}, Manager: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
           allMetrics.estimatedSize(), manager.get() != null, gc.get() != null,
           compactors.values().stream().mapToInt(s -> s.size()).sum(),
           sservers.values().stream().mapToInt(s -> s.size()).sum(),
           tservers.values().stream().mapToInt(s -> s.size()).sum());
     }
-
 
   }
 
