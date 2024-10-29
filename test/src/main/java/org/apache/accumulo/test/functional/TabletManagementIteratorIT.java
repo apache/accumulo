@@ -68,6 +68,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -576,7 +577,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
 
     HashSet<TServerInstance> tservers = new HashSet<>();
     for (ServiceLockPath tserver : context.getServerPaths().getTabletServer(rg -> true,
-        addr -> true, true)) {
+        AddressSelector.all(), true)) {
       try {
         long sessionId = ServiceLock.getSessionId(context.getZooCache(), tserver);
         tservers.add(new TServerInstance(tserver.getServer(), sessionId));

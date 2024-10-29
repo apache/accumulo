@@ -20,7 +20,9 @@ package org.apache.accumulo.manager.compaction.queue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
@@ -29,9 +31,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -46,7 +50,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -362,11 +365,19 @@ public class CompactionJobQueuesTest {
 
     jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
     jobQueues.add(tm2, List.of(newJob((short) 2, 6, cg1)));
+    // Futures were immediately completed so nothing should be queued
+    assertTrue(jobQueues.getQueue(cg1).getJobAges().isEmpty());
+
     jobQueues.add(tm3, List.of(newJob((short) 3, 7, cg1)));
     jobQueues.add(tm4, List.of(newJob((short) 4, 8, cg1)));
+    // No futures available, so jobAges should exist for 2 tablets
+    assertEquals(2, jobQueues.getQueue(cg1).getJobAges().size());
 
     var future3 = jobQueues.getAsync(cg1);
     var future4 = jobQueues.getAsync(cg1);
+
+    // Should be back to 0 size after futures complete
+    assertTrue(jobQueues.getQueue(cg1).getJobAges().isEmpty());
 
     assertTrue(future1.isDone());
     assertTrue(future2.isDone());
@@ -385,8 +396,10 @@ public class CompactionJobQueuesTest {
     var future6 = jobQueues.getAsync(cg1);
     assertFalse(future6.isDone());
     future6.orTimeout(10, TimeUnit.MILLISECONDS);
-    // sleep for 20 millis, this should cause future6 to be timed out
-    UtilWaitThread.sleep(20);
+    // Wait for future6 to timeout to make sure future7 will
+    // receive the job when added to the queue
+    var ex = assertThrows(ExecutionException.class, future6::get);
+    assertInstanceOf(TimeoutException.class, ex.getCause());
     var future7 = jobQueues.getAsync(cg1);
     assertFalse(future7.isDone());
     // since future5 was canceled and future6 timed out, this addition should go to future7

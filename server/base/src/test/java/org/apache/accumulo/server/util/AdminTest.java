@@ -131,7 +131,6 @@ public class AdminTest {
     EasyMock.expect(ctx.getZooKeeperRoot()).andReturn("/accumulo/id").anyTimes();
     EasyMock.expect(ctx.getZooCache()).andReturn(zc).anyTimes();
     EasyMock.expect(zc.getChildren(type)).andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME));
-    EasyMock.expect(zc.getChildren(group)).andReturn(List.of(server));
     EasyMock.expect(zc.getChildren(serverPath)).andReturn(Collections.emptyList());
     EasyMock.expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
     EasyMock.replay(ctx, zc);

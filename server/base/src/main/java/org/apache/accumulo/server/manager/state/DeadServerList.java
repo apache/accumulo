@@ -28,6 +28,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.DeadServer;
 import org.apache.accumulo.server.ServerContext;
@@ -68,7 +69,7 @@ public class DeadServerList {
     List<DeadServer> result = new ArrayList<>();
     try {
       Set<ServiceLockPath> deadServers =
-          ctx.getServerPaths().getDeadTabletServer(rg -> true, addr -> true, false);
+          ctx.getServerPaths().getDeadTabletServer(rg -> true, AddressSelector.all(), false);
       for (ServiceLockPath path : deadServers) {
         Stat stat = new Stat();
         byte[] data;
