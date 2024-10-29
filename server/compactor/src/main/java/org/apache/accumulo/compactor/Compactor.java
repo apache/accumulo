@@ -686,10 +686,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), clientAddress, queueName);
 
     metricsInfo.addMetricsProducers(this);
-    metricsInfo.init();
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        clientAddress, queueName));
 
     var watcher = new CompactionWatcher(getConfiguration());
     var schedExecutor = ThreadPools.getServerThreadPools()
