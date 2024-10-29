@@ -26,7 +26,6 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.util.HostAndPort;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 
 public interface MetricsInfo {
@@ -108,8 +107,6 @@ public interface MetricsInfo {
    */
   Collection<Tag> getCommonTags();
 
-  void addRegistry(MeterRegistry registry);
-
   void addMetricsProducers(MetricsProducer... producer);
 
   /**
@@ -117,8 +114,6 @@ public interface MetricsInfo {
    * metrics.
    */
   void init();
-
-  MeterRegistry getRegistry();
 
   /**
    * Close the underlying registry and release resources. The registry will not accept new meters
