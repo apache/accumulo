@@ -232,15 +232,28 @@ public class NewMonitor implements Connection.Listener {
       }
     }).get("/stats", ctx -> ctx.result(connStats.dump()))
         .get("/metrics", ctx -> ctx.json(metrics.getAll()))
+        .get("/metrics/instance", ctx -> ctx.json(metrics.getInstanceSummary()))
         .get("/metrics/groups", ctx -> ctx.json(metrics.getResourceGroups()))
         .get("/metrics/manager", ctx -> ctx.json(metrics.getManager()))
         .get("/metrics/gc", ctx -> ctx.json(metrics.getGarbageCollector()))
-        .get("/metrics/compactors/{group}",
+        .get("/metrics/compactors/summary", ctx -> ctx.json(metrics.getCompactorAllMetricSummary()))
+        .get("/metrics/compactors/summary/{group}",
+            ctx -> ctx.json(metrics.getCompactorResourceGroupMetricSummary(ctx.pathParam("group"))))
+        .get("/metrics/compactors/detail/{group}",
             ctx -> ctx.json(metrics.getCompactors(ctx.pathParam("group"))))
-        .get("/metrics/sservers/{group}",
-            ctx -> ctx.json(metrics.getSServers(ctx.pathParam("group"))))
-        .get("/metrics/tservers/{group}",
-            ctx -> ctx.json(metrics.getTServers(ctx.pathParam("group"))))
+        .get("/metrics/sservers/summary", ctx -> ctx.json(metrics.getScanServerAllMetricSummary()))
+        .get("/metrics/sservers/summary/{group}",
+            ctx -> ctx
+                .json(metrics.getScanServerResourceGroupMetricSummary(ctx.pathParam("group"))))
+        .get("/metrics/sservers/detail/{group}",
+            ctx -> ctx.json(metrics.getScanServers(ctx.pathParam("group"))))
+        .get("/metrics/tservers/summary",
+            ctx -> ctx.json(metrics.getTabletServerAllMetricSummary()))
+        .get("/metrics/tservers/summary/{group}",
+            ctx -> ctx
+                .json(metrics.getTabletServerResourceGroupMetricSummary(ctx.pathParam("group"))))
+        .get("/metrics/tservers/detail/{group}",
+            ctx -> ctx.json(metrics.getTabletServers(ctx.pathParam("group"))))
         .get("/metrics/problems", ctx -> ctx.json(metrics.getProblemHosts()))
         .get("/metrics/compactions", ctx -> ctx.json(metrics.getCompactions(25)))
         .get("/metrics/compactions/{num}",
