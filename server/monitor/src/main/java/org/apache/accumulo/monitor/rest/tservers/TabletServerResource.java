@@ -166,14 +166,13 @@ public class TabletServerResource {
       return null;
     }
 
-    double splitStdDev = 0;
     double minorStdDev = 0;
     double minorQueueStdDev = 0;
     double currentMinorAvg = 0;
     double currentMinorStdDev = 0;
-    total = new TabletStats(null, new ActionStats(), new ActionStats(), 0, 0, 0);
+    total = new TabletStats(null, new ActionStats(), 0, 0, 0);
     HostAndPort address = HostAndPort.fromString(tserverAddress);
-    historical = new TabletStats(null, new ActionStats(), new ActionStats(), 0, 0, 0);
+    historical = new TabletStats(null, new ActionStats(), 0, 0, 0);
     List<TabletStats> tsStats = new ArrayList<>();
 
     try {
@@ -205,13 +204,10 @@ public class TabletServerResource {
 
     minorStdDev = stddev(total.minors.elapsed, total.minors.num, total.minors.sumDev);
     minorQueueStdDev = stddev(total.minors.queueTime, total.minors.num, total.minors.queueSumDev);
-    splitStdDev =
-        stddev(historical.splits.elapsed, historical.splits.num, historical.splits.sumDev);
 
     TabletServerDetailInformation details = doDetails(tsStats.size());
 
-    List<AllTimeTabletResults> allTime =
-        doAllTimeResults(minorQueueStdDev, splitStdDev, minorStdDev);
+    List<AllTimeTabletResults> allTime = doAllTimeResults(minorQueueStdDev, minorStdDev);
 
     CurrentTabletResults currentRes = doCurrentTabletResults(currentMinorAvg, currentMinorStdDev);
 
@@ -250,12 +246,10 @@ public class TabletServerResource {
 
   private TabletServerDetailInformation doDetails(int numTablets) {
 
-    return new TabletServerDetailInformation(numTablets, total.numEntries, total.minors.status,
-        historical.splits.status);
+    return new TabletServerDetailInformation(numTablets, total.numEntries, total.minors.status);
   }
 
-  private List<AllTimeTabletResults> doAllTimeResults(double minorQueueStdDev, double splitStdDev,
-      double minorStdDev) {
+  private List<AllTimeTabletResults> doAllTimeResults(double minorQueueStdDev, double minorStdDev) {
 
     List<AllTimeTabletResults> allTime = new ArrayList<>();
 
@@ -265,12 +259,6 @@ public class TabletServerResource {
         total.minors.num != 0 ? (total.minors.queueTime / total.minors.num) : null,
         minorQueueStdDev, total.minors.num != 0 ? (total.minors.elapsed / total.minors.num) : null,
         minorStdDev, total.minors.elapsed));
-
-    // Split Operation
-    allTime.add(
-        new AllTimeTabletResults("Split", historical.splits.num, historical.splits.fail, null, null,
-            historical.splits.num != 0 ? (historical.splits.elapsed / historical.splits.num) : null,
-            splitStdDev, historical.splits.elapsed));
 
     return allTime;
   }

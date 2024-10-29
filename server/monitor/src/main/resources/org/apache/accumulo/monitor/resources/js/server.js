@@ -84,9 +84,6 @@ function initServerTables(serv) {
       },
       {
         "data": "minors"
-      },
-      {
-        "data": "splits"
       }
     ]
   });

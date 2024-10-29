@@ -48,7 +48,8 @@ struct TabletStats {
   // do not reuse field 2, it was dropped
   //2:ActionStats majors
   3:ActionStats minors
-  4:ActionStats splits
+  // do not reuse field 4, it was dropped
+  //4:ActionStats splits
   5:i64 numEntries
   6:double ingestRate
   7:double queryRate

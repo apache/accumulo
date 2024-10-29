@@ -38,7 +38,6 @@
                 <th class="big-num">Hosted&nbsp;Tablets&nbsp;</th>
                 <th class="big-num">Entries&nbsp;</th>
                 <th class="big-num">Minor&nbsp;Compacting&nbsp;</th>
-                <th class="big-num">Splitting&nbsp;</th>
               </tr>
             </thead>
             <tbody></tbody>
