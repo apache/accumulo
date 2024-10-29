@@ -28,6 +28,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +79,8 @@ import org.powermock.core.classloader.annotations.SuppressStaticInitializationFo
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.google.common.collect.Sets;
+
+import io.micrometer.core.instrument.Tag;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({CompactionCoordinator.class, DeadCompactionDetector.class, ThriftUtil.class,
@@ -199,6 +202,10 @@ public class CompactionCoordinatorTest {
       metadataCompactionIds = null;
     }
 
+    @Override
+    public Collection<Tag> getServiceTags(HostAndPort clientAddr) {
+      return List.of();
+    }
   }
 
   @Test

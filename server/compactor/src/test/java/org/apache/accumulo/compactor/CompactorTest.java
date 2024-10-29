@@ -26,6 +26,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.UnknownHostException;
 import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -71,6 +73,8 @@ import org.powermock.core.classloader.annotations.SuppressStaticInitializationFo
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.micrometer.core.instrument.Tag;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({Compactor.class})
@@ -270,6 +274,11 @@ public class CompactorTest {
 
     public boolean isFailedCalled() {
       return failedCalled;
+    }
+
+    @Override
+    protected Collection<Tag> getServiceTags(HostAndPort clientAddress) {
+      return List.of();
     }
 
   }
