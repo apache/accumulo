@@ -16,27 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor;
+package org.apache.accumulo.monitor.next;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.nio.ByteBuffer;
 import java.util.EnumSet;
 
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
-import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.monitor.next.serializers.CumulativeDistributionSummarySerializer;
+import org.apache.accumulo.monitor.next.serializers.MetricResponseSerializer;
+import org.apache.accumulo.monitor.next.serializers.ThriftSerializer;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.thrift.TBase;
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TSimpleJSONProtocol;
 import org.eclipse.jetty.io.Connection;
 import org.eclipse.jetty.io.ConnectionStatistics;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -46,76 +42,15 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.javalin.Javalin;
 import io.javalin.json.JavalinJackson;
 import io.javalin.security.RouteRole;
+import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
 
 public class NewMonitor implements Connection.Listener {
-
-  public static class ThriftSerializer extends JsonSerializer<TBase<?,?>> {
-
-    private final TSimpleJSONProtocol.Factory factory = new TSimpleJSONProtocol.Factory();
-
-    @Override
-    public void serialize(TBase<?,?> value, JsonGenerator gen, SerializerProvider serializers)
-        throws IOException {
-      try {
-        // TSerializer is likely not thread safe
-        gen.writeRaw(new TSerializer(factory).toString(value));
-      } catch (TException e) {
-        LOG.error("Error serializing Thrift object", e);
-      }
-    }
-
-  }
-
-  public static class MetricResponseSerializer extends JsonSerializer<MetricResponse> {
-
-    @Override
-    public void serialize(MetricResponse value, JsonGenerator gen, SerializerProvider serializers)
-        throws IOException {
-      gen.writeStartObject();
-      gen.writeNumberField("timestamp", value.getTimestamp());
-      gen.writeStringField("serverType", value.getServerType().toString());
-      gen.writeStringField("resourceGroup", value.getResourceGroup());
-      gen.writeStringField("host", value.getServer());
-      gen.writeArrayFieldStart("metrics");
-      for (final ByteBuffer binary : value.getMetrics()) {
-        FMetric fm = FMetric.getRootAsFMetric(binary);
-        gen.writeStartObject();
-        gen.writeStringField("name", fm.name());
-        gen.writeStringField("type", fm.type());
-        gen.writeArrayFieldStart("tags");
-        for (int i = 0; i < fm.tagsLength(); i++) {
-          FTag t = fm.tags(i);
-          gen.writeStartObject();
-          gen.writeStringField(t.key(), t.value());
-          gen.writeEndObject();
-        }
-        gen.writeEndArray();
-        // Write the non-zero number as the value
-        if (fm.lvalue() > 0) {
-          gen.writeNumberField("value", fm.lvalue());
-        } else if (fm.ivalue() > 0) {
-          gen.writeNumberField("value", fm.ivalue());
-        } else if (fm.dvalue() > 0.0d) {
-          gen.writeNumberField("value", fm.dvalue());
-        } else {
-          gen.writeNumberField("value", 0);
-        }
-        gen.writeEndObject();
-      }
-      gen.writeEndArray();
-      gen.writeEndObject();
-    }
-
-  }
 
   private static final Logger LOG = LoggerFactory.getLogger(NewMonitor.class);
 
@@ -129,7 +64,7 @@ public class NewMonitor implements Connection.Listener {
   private final String hostname;
   private final boolean secure;
   private final ConnectionStatistics connStats;
-  private final MetricsFetcher metrics;
+  private final InformationFetcher metrics;
 
   public NewMonitor(ServerContext ctx, String hostname) {
     this.ctx = ctx;
@@ -138,7 +73,7 @@ public class NewMonitor implements Connection.Listener {
         .allMatch(s -> s != null && !s.isEmpty());
 
     this.connStats = new ConnectionStatistics();
-    this.metrics = new MetricsFetcher(ctx, connStats::getConnections);
+    this.metrics = new InformationFetcher(ctx, connStats::getConnections);
   }
 
   @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET",
@@ -165,6 +100,8 @@ public class NewMonitor implements Connection.Listener {
         module.addSerializer(MetricResponse.class, new MetricResponseSerializer());
         module.addSerializer(TExternalCompaction.class, new ThriftSerializer());
         module.addSerializer(TExternalCompactionJob.class, new ThriftSerializer());
+        module.addSerializer(CumulativeDistributionSummary.class,
+            new CumulativeDistributionSummarySerializer());
         mapper.registerModule(module);
       }));
 

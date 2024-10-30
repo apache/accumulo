@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor;
+package org.apache.accumulo.monitor.next;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -33,16 +34,20 @@ import org.slf4j.LoggerFactory;
 import com.github.benmanes.caffeine.cache.Cache;
 
 import io.micrometer.core.instrument.Clock;
-import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Meter.Type;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
 import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
 
-public class ResponseSummary {
+public class SystemInformation {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ResponseSummary.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
+
+  private final DistributionStatisticConfig DSC =
+      DistributionStatisticConfig.builder().percentilePrecision(1).minimumExpectedValue(0.1)
+          .maximumExpectedValue(Double.POSITIVE_INFINITY).expiry(Duration.ofMinutes(10))
+          .bufferLength(3).build();
 
   private final Cache<ServerId,MetricResponse> allMetrics;
 
@@ -58,20 +63,23 @@ public class ResponseSummary {
 
   // Summaries of metrics by server type
   // map of metric name to metric values
-  private final Map<String,DistributionSummary> totalCompactorMetrics = new ConcurrentHashMap<>();
-  private final Map<String,DistributionSummary> totalSServerMetrics = new ConcurrentHashMap<>();
-  private final Map<String,DistributionSummary> totalTServerMetrics = new ConcurrentHashMap<>();
+  private final Map<String,CumulativeDistributionSummary> totalCompactorMetrics =
+      new ConcurrentHashMap<>();
+  private final Map<String,CumulativeDistributionSummary> totalSServerMetrics =
+      new ConcurrentHashMap<>();
+  private final Map<String,CumulativeDistributionSummary> totalTServerMetrics =
+      new ConcurrentHashMap<>();
 
   // Summaries of metrics by server type and resource group
   // map of resource group to metric name to metric values
-  private final Map<String,Map<String,DistributionSummary>> rgCompactorMetrics =
+  private final Map<String,Map<String,CumulativeDistributionSummary>> rgCompactorMetrics =
       new ConcurrentHashMap<>();
-  private final Map<String,Map<String,DistributionSummary>> rgSServerMetrics =
+  private final Map<String,Map<String,CumulativeDistributionSummary>> rgSServerMetrics =
       new ConcurrentHashMap<>();
-  private final Map<String,Map<String,DistributionSummary>> rgTServerMetrics =
+  private final Map<String,Map<String,CumulativeDistributionSummary>> rgTServerMetrics =
       new ConcurrentHashMap<>();
 
-  public ResponseSummary(Cache<ServerId,MetricResponse> allMetrics) {
+  public SystemInformation(Cache<ServerId,MetricResponse> allMetrics) {
     this.allMetrics = allMetrics;
   }
 
@@ -89,11 +97,12 @@ public class ResponseSummary {
   }
 
   private void updateAggregates(final MetricResponse response,
-      final Map<String,DistributionSummary> total,
-      final Map<String,Map<String,DistributionSummary>> rg) {
+      final Map<String,CumulativeDistributionSummary> total,
+      final Map<String,Map<String,CumulativeDistributionSummary>> rg) {
 
-    final Map<String,DistributionSummary> rgMetrics = rg.computeIfAbsent(
-        response.getResourceGroup(), (k) -> new ConcurrentHashMap<String,DistributionSummary>());
+    final Map<String,CumulativeDistributionSummary> rgMetrics =
+        rg.computeIfAbsent(response.getResourceGroup(),
+            (k) -> new ConcurrentHashMap<String,CumulativeDistributionSummary>());
 
     response.getMetrics().forEach((bb) -> {
       final FMetric fm = FMetric.getRootAsFMetric(bb);
@@ -106,10 +115,14 @@ public class ResponseSummary {
         }
       }
       final Meter.Id id = new Meter.Id(name, Tags.empty(), null, null, Type.valueOf(fm.type()));
-      total.computeIfAbsent(name, (k) -> new CumulativeDistributionSummary(id, Clock.SYSTEM,
-          DistributionStatisticConfig.NONE, 1.0, false)).record(value);
-      rgMetrics.computeIfAbsent(name, (k) -> new CumulativeDistributionSummary(id, Clock.SYSTEM,
-          DistributionStatisticConfig.NONE, 1.0, false)).record(value);
+      total
+          .computeIfAbsent(name,
+              (k) -> new CumulativeDistributionSummary(id, Clock.SYSTEM, DSC, 1.0, false))
+          .record(value);
+      rgMetrics
+          .computeIfAbsent(name,
+              (k) -> new CumulativeDistributionSummary(id, Clock.SYSTEM, DSC, 1.0, false))
+          .record(value);
     });
 
   }
@@ -173,12 +186,12 @@ public class ResponseSummary {
     return this.compactors.get(resourceGroup);
   }
 
-  public Map<String,DistributionSummary>
+  public Map<String,CumulativeDistributionSummary>
       getCompactorResourceGroupMetricSummary(String resourceGroup) {
     return this.rgCompactorMetrics.get(resourceGroup);
   }
 
-  public Map<String,DistributionSummary> getCompactorAllMetricSummary() {
+  public Map<String,CumulativeDistributionSummary> getCompactorAllMetricSummary() {
     return this.totalCompactorMetrics;
   }
 
@@ -186,12 +199,12 @@ public class ResponseSummary {
     return this.sservers.get(resourceGroup);
   }
 
-  public Map<String,DistributionSummary>
+  public Map<String,CumulativeDistributionSummary>
       getSServerResourceGroupMetricSummary(String resourceGroup) {
     return this.rgSServerMetrics.get(resourceGroup);
   }
 
-  public Map<String,DistributionSummary> getSServerAllMetricSummary() {
+  public Map<String,CumulativeDistributionSummary> getSServerAllMetricSummary() {
     return this.totalSServerMetrics;
   }
 
@@ -199,12 +212,12 @@ public class ResponseSummary {
     return this.tservers.get(resourceGroup);
   }
 
-  public Map<String,DistributionSummary>
+  public Map<String,CumulativeDistributionSummary>
       getTServerResourceGroupMetricSummary(String resourceGroup) {
     return this.rgTServerMetrics.get(resourceGroup);
   }
 
-  public Map<String,DistributionSummary> getTServerAllMetricSummary() {
+  public Map<String,CumulativeDistributionSummary> getTServerAllMetricSummary() {
     return this.totalTServerMetrics;
   }
 

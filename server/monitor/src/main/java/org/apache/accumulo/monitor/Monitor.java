@@ -80,6 +80,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.monitor.next.NewMonitor;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactions;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactorDetails;

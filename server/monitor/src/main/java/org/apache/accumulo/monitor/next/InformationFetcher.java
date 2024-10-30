@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor;
+package org.apache.accumulo.monitor.next;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -54,7 +54,6 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.ThreadPools.ExecutionError;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jetty.util.NanoTime;
@@ -68,11 +67,11 @@ import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.net.HostAndPort;
 
-import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
 
-public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>, Runnable {
+public class InformationFetcher implements RemovalListener<ServerId,MetricResponse>, Runnable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(MetricsFetcher.class);
+  private static final Logger LOG = LoggerFactory.getLogger(InformationFetcher.class);
 
   private static class GcServerId extends ServerId {
     private GcServerId(String resourceGroup, String host, int port) {
@@ -85,9 +84,9 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
 
     private final ServerContext ctx;
     private final ServerId server;
-    private final ResponseSummary summary;
+    private final SystemInformation summary;
 
-    private MetricFetcher(ServerContext ctx, ServerId server, ResponseSummary summary) {
+    private MetricFetcher(ServerContext ctx, ServerId server, SystemInformation summary) {
       this.ctx = ctx;
       this.server = server;
       this.summary = summary;
@@ -104,7 +103,7 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
         } finally {
           ThriftUtil.returnClient(metricsClient, ctx);
         }
-      } catch (TException e) {
+      } catch (Exception e) {
         LOG.warn("Error trying to get metrics from server: {}", server);
         summary.processError(server);
       }
@@ -177,14 +176,14 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
   private final AtomicBoolean newConnectionEvent = new AtomicBoolean(false);
   private final Cache<ServerId,MetricResponse> allMetrics;
 
-  private final AtomicReference<ResponseSummary> summaryRef = new AtomicReference<>();
+  private final AtomicReference<SystemInformation> summaryRef = new AtomicReference<>();
 
   private final AtomicReference<Map<String,TExternalCompaction>> runningCompactions =
       new AtomicReference<>();
   private final AtomicReference<Map<Long,String>> runningCompactionsDurationIndex =
       new AtomicReference<>();
 
-  public MetricsFetcher(ServerContext ctx, Supplier<Long> connectionCount) {
+  public InformationFetcher(ServerContext ctx, Supplier<Long> connectionCount) {
     this.ctx = ctx;
     this.connectionCount = connectionCount;
     this.allMetrics = Caffeine.newBuilder().executor(pool).scheduler(Scheduler.systemScheduler())
@@ -226,7 +225,7 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
       LOG.info("Fetching metrics from servers");
 
       final List<Future<?>> futures = new ArrayList<>();
-      final ResponseSummary summary = new ResponseSummary(allMetrics);
+      final SystemInformation summary = new SystemInformation(allMetrics);
 
       for (ServerId.Type type : ServerId.Type.values()) {
         for (ServerId server : this.ctx.instanceOperations().getServers(type)) {
@@ -279,14 +278,16 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
           summary.getSServerAllMetricSummary().entrySet().iterator().next().getValue().count(),
           summary.getTServerAllMetricSummary().entrySet().iterator().next().getValue().count());
 
-      ResponseSummary oldSummary = summaryRef.getAndSet(summary);
-      oldSummary.clear();
+      SystemInformation oldSummary = summaryRef.getAndSet(summary);
+      if (oldSummary != null) {
+        oldSummary.clear();
+      }
     }
 
   }
 
   // Protect against NPE and wait for initial data gathering
-  private ResponseSummary getSummary() {
+  private SystemInformation getSummary() {
     while (summaryRef.get() == null) {
       Thread.onSpinWait();
     }
@@ -368,9 +369,9 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
     return allMetrics.getAllPresent(servers).values();
   }
 
-  public Map<String,DistributionSummary>
+  public Map<String,CumulativeDistributionSummary>
       getCompactorResourceGroupMetricSummary(String resourceGroup) {
-    final Map<String,DistributionSummary> metrics =
+    final Map<String,CumulativeDistributionSummary> metrics =
         getSummary().getCompactorResourceGroupMetricSummary(resourceGroup);
     if (metrics == null) {
       throw new IllegalArgumentException("Resource Group " + resourceGroup + " not found.");
@@ -378,7 +379,7 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
     return metrics;
   }
 
-  public Map<String,DistributionSummary> getCompactorAllMetricSummary() {
+  public Map<String,CumulativeDistributionSummary> getCompactorAllMetricSummary() {
     return getSummary().getCompactorAllMetricSummary();
   }
 
@@ -390,9 +391,9 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
     return allMetrics.getAllPresent(servers).values();
   }
 
-  public Map<String,DistributionSummary>
+  public Map<String,CumulativeDistributionSummary>
       getScanServerResourceGroupMetricSummary(String resourceGroup) {
-    final Map<String,DistributionSummary> metrics =
+    final Map<String,CumulativeDistributionSummary> metrics =
         getSummary().getSServerResourceGroupMetricSummary(resourceGroup);
     if (metrics == null) {
       throw new IllegalArgumentException("Resource Group " + resourceGroup + " not found.");
@@ -400,7 +401,7 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
     return metrics;
   }
 
-  public Map<String,DistributionSummary> getScanServerAllMetricSummary() {
+  public Map<String,CumulativeDistributionSummary> getScanServerAllMetricSummary() {
     return getSummary().getSServerAllMetricSummary();
   }
 
@@ -412,9 +413,9 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
     return allMetrics.getAllPresent(servers).values();
   }
 
-  public Map<String,DistributionSummary>
+  public Map<String,CumulativeDistributionSummary>
       getTabletServerResourceGroupMetricSummary(String resourceGroup) {
-    final Map<String,DistributionSummary> metrics =
+    final Map<String,CumulativeDistributionSummary> metrics =
         getSummary().getTServerResourceGroupMetricSummary(resourceGroup);
     if (metrics == null) {
       throw new IllegalArgumentException("Resource Group " + resourceGroup + " not found.");
@@ -422,7 +423,7 @@ public class MetricsFetcher implements RemovalListener<ServerId,MetricResponse>,
     return metrics;
   }
 
-  public Map<String,DistributionSummary> getTabletServerAllMetricSummary() {
+  public Map<String,CumulativeDistributionSummary> getTabletServerAllMetricSummary() {
     return getSummary().getTServerAllMetricSummary();
   }
 
