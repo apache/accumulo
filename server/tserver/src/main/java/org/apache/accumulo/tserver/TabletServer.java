@@ -761,7 +761,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     MetricsInfo metricsInfo = context.getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), clientAddress, "");
 
     metrics = new TabletServerMetrics(this);
     updateMetrics = new TabletServerUpdateMetrics();
@@ -774,7 +773,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
         ceMetrics, blockCacheMetrics);
-    metricsInfo.init();
+    metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
+        clientAddress, ""));
 
     this.compactionManager = new CompactionManager(() -> Iterators
         .transform(onlineTablets.snapshot().values().iterator(), Tablet::asCompactable),
