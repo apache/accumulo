@@ -19,11 +19,15 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13.COMPACT_COL;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +35,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -54,6 +57,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
@@ -379,9 +383,20 @@ public class Upgrader12to13 implements Upgrader {
     }
   }
 
+  private static final String ZPROBLEMS = "/problems";
+
   private void removeZKProblemReports(ServerContext context) {
-    String zpath = context.getZooKeeperRoot() + "/problems";
+    String zpath = context.getZooKeeperRoot() + ZPROBLEMS;
     try {
+      if (!context.getZooReaderWriter().exists(zpath)) {
+        // could be running a second time and the node was already deleted
+        return;
+      }
+      var children = context.getZooReaderWriter().getChildren(zpath);
+      for (var child : children) {
+        var pr = ProblemReport.decodeZooKeeperEntry(context, child);
+        logProblemDeletion(pr);
+      }
       context.getZooReaderWriter().recursiveDelete(zpath, ZooUtil.NodeMissingPolicy.SKIP);
     } catch (Exception e) {
       throw new IllegalStateException(e);
@@ -398,15 +413,108 @@ public class Upgrader12to13 implements Upgrader {
     public static Range getRange() {
       return section.getRange();
     }
+
+    public static String getRowPrefix() {
+      return section.getRowPrefix();
+    }
   }
 
   private void removeMetadataProblemReports(ServerContext context) {
-    try (var deleter = context.createBatchDeleter(AccumuloTable.METADATA.tableName(),
-        Authorizations.EMPTY, 1, new BatchWriterConfig())) {
-      deleter.setRanges(List.of(ProblemSection.getRange()));
-      deleter.delete();
+    try (
+        var scanner =
+            context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
+        var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      scanner.setRange(ProblemSection.getRange());
+      for (Entry<Key,Value> entry : scanner) {
+        var pr = ProblemReport.decodeMetadataEntry(entry.getKey(), entry.getValue());
+        logProblemDeletion(pr);
+        Mutation m = new Mutation(entry.getKey().getRow());
+        m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
+        writer.addMutation(m);
+      }
     } catch (TableNotFoundException | MutationsRejectedException e) {
       throw new IllegalStateException(e);
     }
   }
+
+  private void logProblemDeletion(ProblemReport pr) {
+    LOG.info(
+        "Deleting problem report tableId:{} type:{} resource:{} server:{} time:{} exception:{}",
+        pr.tableId, pr.problemType, pr.resource, pr.server, pr.creationTime, pr.exception);
+  }
+
+  public enum ProblemType {
+    FILE_READ, FILE_WRITE, TABLET_LOAD
+  }
+
+  private static class ProblemReport {
+    private final TableId tableId;
+    private final ProblemType problemType;
+    private final String resource;
+    private String exception;
+    private String server;
+    private long creationTime;
+
+    private ProblemReport(TableId table, ProblemType problemType, String resource, byte[] enc) {
+      requireNonNull(table, "table is null");
+      requireNonNull(problemType, "problemType is null");
+      requireNonNull(resource, "resource is null");
+      this.tableId = table;
+      this.problemType = problemType;
+      this.resource = resource;
+
+      decode(enc);
+    }
+
+    private void decode(byte[] enc) {
+      try {
+        ByteArrayInputStream bais = new ByteArrayInputStream(enc);
+        DataInputStream dis = new DataInputStream(bais);
+
+        creationTime = dis.readLong();
+
+        if (dis.readBoolean()) {
+          server = dis.readUTF();
+        } else {
+          server = null;
+        }
+
+        if (dis.readBoolean()) {
+          exception = dis.readUTF();
+        } else {
+          exception = null;
+        }
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+
+    static ProblemReport decodeZooKeeperEntry(ServerContext context, String node)
+        throws IOException, KeeperException, InterruptedException {
+      byte[] bytes = Encoding.decodeBase64FileName(node);
+
+      ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+      DataInputStream dis = new DataInputStream(bais);
+
+      TableId tableId = TableId.of(dis.readUTF());
+      String problemType = dis.readUTF();
+      String resource = dis.readUTF();
+
+      String zpath = context.getZooKeeperRoot() + ZPROBLEMS + "/" + node;
+      byte[] enc = context.getZooReaderWriter().getData(zpath);
+
+      return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, enc);
+
+    }
+
+    public static ProblemReport decodeMetadataEntry(Key key, Value value) {
+      TableId tableId =
+          TableId.of(key.getRow().toString().substring(ProblemSection.getRowPrefix().length()));
+      String problemType = key.getColumnFamily().toString();
+      String resource = key.getColumnQualifier().toString();
+
+      return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, value.get());
+    }
+  }
+
 }
