@@ -438,7 +438,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         iters.add(iter);
 
       } catch (Exception e) {
-        log.warn("Some problem opening data file {} {} {}", dataFile, extent, e.getMessage(), e);
+        log.warn("Some problem opening data file {} {}", dataFile, extent, e);
         // failed to open some data file... close the ones that were opened
         for (FileSKVIterator reader : readers) {
           try {
