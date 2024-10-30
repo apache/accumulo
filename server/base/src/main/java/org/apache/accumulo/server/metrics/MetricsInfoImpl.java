@@ -51,6 +51,8 @@ import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
+import io.micrometer.core.instrument.binder.logging.Log4j2Metrics;
+import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.micrometer.core.instrument.config.MeterFilter;
@@ -68,6 +70,9 @@ public class MetricsInfoImpl implements MetricsInfo {
 
   // JvmGcMetrics are declared with AutoCloseable - keep reference to use with close()
   private JvmGcMetrics jvmGcMetrics;
+  // Log4j2Metrics and LogbackMetrics are declared with AutoCloseable - keep reference to use with
+  // close()
+  private AutoCloseable logMetrics;
 
   private final boolean metricsEnabled;
 
@@ -235,6 +240,29 @@ public class MetricsInfoImpl implements MetricsInfo {
         new JvmThreadMetrics().bindTo(composite);
       }
 
+      boolean logMetricsEnabled =
+          context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_LOG_METRICS_ENABLED);
+
+      if (logMetricsEnabled) {
+        String loggingImpl =
+            context.getConfiguration().get(Property.GENERAL_MICROMETER_LOG_METRICS_IMPL);
+        switch (loggingImpl) {
+          case "log4j2":
+            Log4j2Metrics l2m = new Log4j2Metrics();
+            l2m.bindTo(composite);
+            logMetrics = l2m;
+            break;
+          case "logback":
+            LogbackMetrics lb = new LogbackMetrics();
+            lb.bindTo(composite);
+            logMetrics = lb;
+            break;
+          default:
+            LOG.info("Log metrics misconfigured, valid values for {} are 'log4j2' or 'logback'",
+                Property.GENERAL_MICROMETER_LOG_METRICS_IMPL.getKey());
+        }
+      }
+
       MeterFilter replicationFilter = new MeterFilter() {
         @Override
         public DistributionStatisticConfig configure(Meter.Id id,
@@ -312,6 +340,13 @@ public class MetricsInfoImpl implements MetricsInfo {
     if (jvmGcMetrics != null) {
       jvmGcMetrics.close();
       jvmGcMetrics = null;
+    }
+    if (logMetrics != null) {
+      try {
+        logMetrics.close();
+      } catch (Exception e) {
+        LOG.info("Exception when closing log metrics", e);
+      }
     }
     if (composite != null) {
       composite.close();
