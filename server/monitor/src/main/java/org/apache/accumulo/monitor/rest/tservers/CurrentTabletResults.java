@@ -28,8 +28,6 @@ public class CurrentTabletResults {
   // Variable names become JSON keys
   public Double currentMinorAvg;
   public Double currentMinorStdDev;
-  public Double currentMajorAvg;
-  public Double currentMajorStdDev;
 
   public CurrentTabletResults() {}
 
@@ -38,14 +36,9 @@ public class CurrentTabletResults {
    *
    * @param currentMinorAvg minor compaction average
    * @param currentMinorStdDev minor compaction standard deviation
-   * @param currentMajorAvg major compaction average
-   * @param currentMajorStdDev major compaction standard deviation
    */
-  public CurrentTabletResults(Double currentMinorAvg, Double currentMinorStdDev,
-      Double currentMajorAvg, Double currentMajorStdDev) {
+  public CurrentTabletResults(Double currentMinorAvg, Double currentMinorStdDev) {
     this.currentMinorAvg = currentMinorAvg;
     this.currentMinorStdDev = currentMinorStdDev;
-    this.currentMajorAvg = currentMajorAvg;
-    this.currentMajorStdDev = currentMajorStdDev;
   }
 }
