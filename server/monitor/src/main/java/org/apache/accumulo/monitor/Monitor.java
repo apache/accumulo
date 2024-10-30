@@ -497,9 +497,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), monitorHostAndPort, "");
     metricsInfo.addMetricsProducers(this);
-    metricsInfo.init();
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        monitorHostAndPort, ""));
 
     try {
       URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
