@@ -31,8 +31,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.accumulo.core.logging.TabletLogger;
 
 public class ProblemReportingIterator implements InterruptibleIterator {
   private final SortedKeyValueIterator<Key,Value> source;
@@ -40,8 +39,6 @@ public class ProblemReportingIterator implements InterruptibleIterator {
   private final boolean continueOnError;
   private final String resource;
   private final TableId tableId;
-
-  private static final Logger log = LoggerFactory.getLogger(ProblemReportingIterator.class);
 
   public ProblemReportingIterator(TableId tableId, String resource, boolean continueOnError,
       SortedKeyValueIterator<Key,Value> source) {
@@ -87,12 +84,10 @@ public class ProblemReportingIterator implements InterruptibleIterator {
       source.next();
     } catch (IOException ioe) {
       sawError = true;
+      TabletLogger.fileReadFailed(resource, tableId, ioe);
       if (!continueOnError) {
         // include the name of the resource being read from in the exception error message
         throw new IOException("Error reading from " + resource + " for table " + tableId, ioe);
-      } else {
-        log.warn("Error reading from {} for table {}, ignoring because of table settings.",
-            resource, tableId, ioe);
       }
     }
   }
@@ -108,12 +103,10 @@ public class ProblemReportingIterator implements InterruptibleIterator {
       source.seek(range, columnFamilies, inclusive);
     } catch (IOException ioe) {
       sawError = true;
+      TabletLogger.fileReadFailed(resource, tableId, ioe);
       if (!continueOnError) {
         // include the name of the resource being read from in the exception error message
         throw new IOException("Error reading from " + resource + " for table " + tableId, ioe);
-      } else {
-        log.warn("Error reading from {} for table {}, ignoring because of table settings.",
-            resource, tableId, ioe);
       }
     }
   }

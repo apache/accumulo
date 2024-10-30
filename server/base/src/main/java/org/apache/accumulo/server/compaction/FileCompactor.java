@@ -60,6 +60,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -438,7 +439,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         iters.add(iter);
 
       } catch (Exception e) {
-        log.warn("Some problem opening data file {} {}", dataFile, extent, e);
+        TabletLogger.fileReadFailed(dataFile.toString(), extent, e);
         // failed to open some data file... close the ones that were opened
         for (FileSKVIterator reader : readers) {
           try {

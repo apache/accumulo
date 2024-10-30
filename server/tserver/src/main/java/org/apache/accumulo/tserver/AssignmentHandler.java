@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -38,7 +39,6 @@ import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceMan
 import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.Tablet.RefreshPurpose;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +96,6 @@ class AssignmentHandler implements Runnable {
     }
 
     // check Metadata table before accepting assignment
-    Text locationToOpen = null;
     TabletMetadata tabletMetadata = null;
     boolean canLoad = false;
     try {
@@ -108,7 +107,7 @@ class AssignmentHandler implements Runnable {
         server.openingTablets.remove(extent);
         server.openingTablets.notifyAll();
       }
-      log.warn("Failed to verify tablet " + extent, e);
+      TabletLogger.tabletLoadFailed(extent, e);
       server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       throw new RuntimeException(e);
     }
@@ -169,11 +168,7 @@ class AssignmentHandler implements Runnable {
       tablet = null; // release this reference
       successful = true;
     } catch (Exception e) {
-      log.warn("exception trying to assign tablet {} {}", extent, locationToOpen, e);
-
-      if (e.getMessage() != null) {
-        log.warn("{}", e.getMessage());
-      }
+      TabletLogger.tabletLoadFailed(extent, e);
     }
 
     if (successful) {

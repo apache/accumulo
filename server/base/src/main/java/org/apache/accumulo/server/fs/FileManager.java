@@ -46,6 +46,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -305,12 +306,12 @@ public class FileManager {
             .withFileLenCache(fileLenCache).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
+        TabletLogger.fileReadFailed(file.toString(), tablet, e);
         if (continueOnFailure) {
           // release the permit for the file that failed to open
           if (!tablet.isMeta()) {
             filePermits.release(1);
           }
-          log.warn("Failed to open file {} {} {} continuing...", file, tablet, e.getMessage(), e);
         } else {
           // close whatever files were opened
           closeReaders(readersReserved.keySet());
@@ -319,7 +320,6 @@ public class FileManager {
             filePermits.release(files.size());
           }
 
-          log.error("Failed to open file {} {} {}", file, tablet, e.getMessage());
           throw new IOException("Failed to open " + file, e);
         }
       }

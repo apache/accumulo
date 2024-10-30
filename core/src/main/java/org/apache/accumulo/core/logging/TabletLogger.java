@@ -27,6 +27,7 @@ import java.util.SortedSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
@@ -114,6 +115,10 @@ public class TabletLogger {
     }
   }
 
+  public static void tabletLoadFailed(KeyExtent extent, Exception e) {
+    locLog.warn("Failed to load tablet {}", extent, e);
+  }
+
   private static String getSize(Collection<CompactableFile> files) {
     long sum = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
     return FileUtils.byteCountToDisplaySize(sum);
@@ -172,6 +177,14 @@ public class TabletLogger {
     fileLog.debug("Imported {} {}  ", extent, file);
   }
 
+  public static void fileReadFailed(String path, TableId tableId, Exception e) {
+    fileLog.error("For table {} failed to read {} ", tableId, path, e);
+  }
+
+  public static void fileReadFailed(String path, KeyExtent tablet, Exception e) {
+    fileLog.error("For tablet {} failed to read {} ", tablet, path, e);
+  }
+
   public static void recovering(KeyExtent extent, Collection<LogEntry> logEntries) {
     if (recoveryLog.isDebugEnabled()) {
       List<UUID> logIds = logEntries.stream().map(LogEntry::getUniqueID).collect(toList());
@@ -195,5 +208,4 @@ public class TabletLogger {
   public static void walRefsChanged(KeyExtent extent, Collection<String> refsSupplier) {
     walsLog.trace("{} has unflushed data in wals: {} ", extent, refsSupplier);
   }
-
 }
