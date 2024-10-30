@@ -516,7 +516,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         continue;
       }
 
-      if (FileOperations.getBulkWorkingFiles().contains(fname)) {
+      if (FileOperations.isBulkWorkingFile(fname)) {
         log.debug("{} is an internal working file, ignoring.", fileStatus.getPath());
         continue;
       }
