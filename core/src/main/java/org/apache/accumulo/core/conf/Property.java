@@ -314,7 +314,7 @@ public enum Property {
       "Enables additional JVM metrics collection and reporting using Micrometer. Requires "
           + "property 'general.micrometer.enabled' to be set to 'true' to take effect.",
       "2.1.0"),
-  GENERAL_MICROMETER_LOG_METRICS_ENABLED("general.micrometer.log.metrics.enabled", "false",
+  GENERAL_MICROMETER_LOG_METRICS_ENABLED("general.micrometer.log.metrics.enabled", "none",
       PropertyType.STRING,
       "Enables additional log metrics collection and reporting using Micrometer. Requires "
           + "property 'general.micrometer.enabled' to be set to 'true' to take effect. Micrometer "

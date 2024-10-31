@@ -26,7 +26,6 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.util.HostAndPort;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 
 public interface MetricsInfo {
@@ -84,31 +83,17 @@ public interface MetricsInfo {
   boolean isMetricsEnabled();
 
   /**
-   * Convenience method to set the common tags for application (process), host and port.
-   *
-   * @param applicationName the application (process) name.
-   * @param hostAndPort the host:port pair
-   * @param resourceGroup the resource group name
+   * Common tags for all services.
    */
-  void addServiceTags(final String applicationName, final HostAndPort hostAndPort,
-      final String resourceGroup);
-
-  /**
-   * Add the list of tag name / value pair to the common tags that will be emitted with all metrics.
-   * Common tags must ne added before initialization of any registries. Tags that are added after a
-   * registry is initialized may not be emitted by the underlying metrics system. This would cause
-   * inconsistent grouping and filtering based on tags,
-   *
-   * @param updates list of tags (name / value pairs)
-   */
-  void addCommonTags(final List<Tag> updates);
-
-  /**
-   * Get the current list of common tags.
-   */
-  Collection<Tag> getCommonTags();
-
-  void addRegistry(MeterRegistry registry);
+  static Collection<Tag> serviceTags(final String instanceName, final String applicationName,
+      final HostAndPort hostAndPort, final String resourceGroupName) {
+    List<Tag> tags = new ArrayList<>();
+    tags.add(instanceNameTag(instanceName));
+    tags.add(processTag(applicationName));
+    tags.addAll(addressTags(hostAndPort));
+    tags.add(resourceGroupTag(resourceGroupName));
+    return tags;
+  }
 
   void addMetricsProducers(MetricsProducer... producer);
 
@@ -116,9 +101,7 @@ public interface MetricsInfo {
    * Initialize the metrics system. This sets the list of common tags that are emitted with the
    * metrics.
    */
-  void init();
-
-  MeterRegistry getRegistry();
+  void init(Collection<Tag> commonTags);
 
   /**
    * Close the underlying registry and release resources. The registry will not accept new meters
