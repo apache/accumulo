@@ -31,6 +31,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
@@ -513,22 +514,29 @@ public class ZooCache {
   }
 
   /**
-   * Clears this cache of all information about nodes rooted at the given path.
-   *
-   * @param zPath path of top node
+   * Removes all paths in the cache match the predicate.
    */
-  public void clear(String zPath) {
+  public void clear(Predicate<String> pathPredicate) {
     Preconditions.checkState(!closed);
     cacheWriteLock.lock();
     try {
-      cache.keySet().removeIf(path -> path.startsWith(zPath));
-      childrenCache.keySet().removeIf(path -> path.startsWith(zPath));
-      statCache.keySet().removeIf(path -> path.startsWith(zPath));
+      cache.keySet().removeIf(pathPredicate);
+      childrenCache.keySet().removeIf(pathPredicate);
+      statCache.keySet().removeIf(pathPredicate);
 
       immutableCache = new ImmutableCacheCopies(++updateCount, cache, statCache, childrenCache);
     } finally {
       cacheWriteLock.unlock();
     }
+  }
+
+  /**
+   * Clears this cache of all information about nodes rooted at the given path.
+   *
+   * @param zPath path of top node
+   */
+  public void clear(String zPath) {
+    clear(path -> path.startsWith(zPath));
   }
 
   public Optional<ServiceLockData> getLockData(ServiceLockPath path) {

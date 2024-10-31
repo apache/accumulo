@@ -20,7 +20,9 @@ package org.apache.accumulo.manager.compaction.queue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
@@ -29,9 +31,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -46,7 +50,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -393,8 +396,10 @@ public class CompactionJobQueuesTest {
     var future6 = jobQueues.getAsync(cg1);
     assertFalse(future6.isDone());
     future6.orTimeout(10, TimeUnit.MILLISECONDS);
-    // sleep for 20 millis, this should cause future6 to be timed out
-    UtilWaitThread.sleep(20);
+    // Wait for future6 to timeout to make sure future7 will
+    // receive the job when added to the queue
+    var ex = assertThrows(ExecutionException.class, future6::get);
+    assertInstanceOf(TimeoutException.class, ex.getCause());
     var future7 = jobQueues.getAsync(cg1);
     assertFalse(future7.isDone());
     // since future5 was canceled and future6 timed out, this addition should go to future7
