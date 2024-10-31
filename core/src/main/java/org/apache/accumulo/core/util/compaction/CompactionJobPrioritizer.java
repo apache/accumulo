@@ -25,11 +25,16 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 
 public class CompactionJobPrioritizer {
 
+  public static enum Condition {
+    NONE, TABLET_OVER_SIZE;
+  }
+
   public static final Comparator<CompactionJob> JOB_COMPARATOR =
       Comparator.comparingInt(CompactionJob::getPriority)
           .thenComparingInt(job -> job.getFiles().size()).reversed();
 
-  public static short createPriority(CompactionKind kind, int totalFiles, int compactingFiles) {
+  public static short createPriority(CompactionKind kind, int totalFiles, int compactingFiles,
+      Condition condition) {
 
     int prio = totalFiles + compactingFiles;
 
@@ -44,6 +49,11 @@ public class CompactionJobPrioritizer {
         return (short) prio;
       case SELECTOR:
       case SYSTEM:
+        // Given that tablets with too many files cause several problems,
+        // boost their priority to the maximum allowed value.
+        if (condition == Condition.TABLET_OVER_SIZE) {
+          return Short.MAX_VALUE;
+        }
         // system-initiated compactions will have a negative priority
         // starting at -32768 and increasing based on number of files
         // maxing out at -1

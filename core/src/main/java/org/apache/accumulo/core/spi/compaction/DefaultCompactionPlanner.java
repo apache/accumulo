@@ -34,6 +34,7 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
+import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer.Condition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -250,6 +251,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
   @Override
   public CompactionPlan makePlan(PlanningParameters params) {
+    Condition priorityModifyingCondition = Condition.NONE;
     try {
 
       if (params.getCandidates().isEmpty()) {
@@ -329,6 +331,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
             // candidates for a system compaction, and no files were found to compact. Attempt to
             // find a set of files to compact by lowering the compaction ratio.
             group = findFilesToCompactWithLowerRatio(params, maxSizeToCompact, maxTabletFiles);
+            priorityModifyingCondition = Condition.TABLET_OVER_SIZE;
           }
         }
       }
@@ -339,8 +342,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         // determine which executor to use based on the size of the files
         var ceid = getExecutor(group);
 
-        return params.createPlanBuilder().addJob(createPriority(params, group), ceid, group)
-            .build();
+        return params.createPlanBuilder()
+            .addJob(createPriority(params, group, priorityModifyingCondition), ceid, group).build();
       }
     } catch (RuntimeException e) {
       throw e;
@@ -415,10 +418,10 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     return found;
   }
 
-  private static short createPriority(PlanningParameters params,
-      Collection<CompactableFile> group) {
+  private static short createPriority(PlanningParameters params, Collection<CompactableFile> group,
+      Condition condition) {
     return CompactionJobPrioritizer.createPriority(params.getKind(), params.getAll().size(),
-        group.size());
+        group.size(), condition);
   }
 
   private long getMaxSizeToCompact(CompactionKind kind) {

@@ -30,6 +30,7 @@ import java.util.Optional;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer.Condition;
 import org.junit.jupiter.api.Test;
 
 public class CompactionPrioritizerTest {
@@ -43,28 +44,40 @@ public class CompactionPrioritizerTest {
     }
     // TODO pass numFiles
     return new CompactionJobImpl(
-        CompactionJobPrioritizer.createPriority(kind, totalFiles, numFiles),
+        CompactionJobPrioritizer.createPriority(kind, totalFiles, numFiles, Condition.NONE),
         CompactionExecutorIdImpl.externalId("test"), files, kind, Optional.of(false));
   }
 
   @Test
   public void testPrioritizer() throws Exception {
-    assertEquals((short) 0, CompactionJobPrioritizer.createPriority(CompactionKind.USER, 0, 0));
+    assertEquals((short) 0,
+        CompactionJobPrioritizer.createPriority(CompactionKind.USER, 0, 0, Condition.NONE));
     assertEquals((short) 10000,
-        CompactionJobPrioritizer.createPriority(CompactionKind.USER, 10000, 0));
+        CompactionJobPrioritizer.createPriority(CompactionKind.USER, 10000, 0, Condition.NONE));
     assertEquals((short) 32767,
-        CompactionJobPrioritizer.createPriority(CompactionKind.USER, 32767, 0));
-    assertEquals((short) 32767,
-        CompactionJobPrioritizer.createPriority(CompactionKind.USER, Integer.MAX_VALUE, 0));
+        CompactionJobPrioritizer.createPriority(CompactionKind.USER, 32767, 0, Condition.NONE));
+    assertEquals((short) 32767, CompactionJobPrioritizer.createPriority(CompactionKind.USER,
+        Integer.MAX_VALUE, 0, Condition.NONE));
+
+    assertEquals((short) 0, CompactionJobPrioritizer.createPriority(CompactionKind.USER, 0, 0,
+        Condition.TABLET_OVER_SIZE));
+    assertEquals((short) 10000, CompactionJobPrioritizer.createPriority(CompactionKind.USER, 10000,
+        0, Condition.TABLET_OVER_SIZE));
+    assertEquals((short) 32767, CompactionJobPrioritizer.createPriority(CompactionKind.USER, 32767,
+        0, Condition.TABLET_OVER_SIZE));
+    assertEquals((short) 32767, CompactionJobPrioritizer.createPriority(CompactionKind.USER,
+        Integer.MAX_VALUE, 0, Condition.TABLET_OVER_SIZE));
 
     assertEquals((short) -32768,
-        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 0, 0));
+        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 0, 0, Condition.NONE));
     assertEquals((short) -22768,
-        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 10000, 0));
+        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 10000, 0, Condition.NONE));
     assertEquals((short) -1,
-        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 32767, 0));
-    assertEquals((short) -1,
-        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, Integer.MAX_VALUE, 0));
+        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 32767, 0, Condition.NONE));
+    assertEquals((short) -1, CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM,
+        Integer.MAX_VALUE, 0, Condition.NONE));
+    assertEquals(Short.MAX_VALUE, CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 0,
+        0, Condition.TABLET_OVER_SIZE));
   }
 
   @Test
