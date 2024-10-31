@@ -173,8 +173,7 @@ public class MetricsInfoImpl implements MetricsInfo {
       new JvmThreadMetrics().bindTo(Metrics.globalRegistry);
     }
 
-    String loggingMetrics =
-        context.getConfiguration().get(Property.GENERAL_MICROMETER_LOG_METRICS_ENABLED);
+    String loggingMetrics = context.getConfiguration().get(Property.GENERAL_MICROMETER_LOG_METRICS);
     switch (loggingMetrics) {
       case "none":
         LOG.info("Log metrics are disabled.");
@@ -191,7 +190,7 @@ public class MetricsInfoImpl implements MetricsInfo {
         break;
       default:
         LOG.info("Log metrics misconfigured, valid values for {} are 'none', 'log4j2' or 'logback'",
-            Property.GENERAL_MICROMETER_LOG_METRICS_ENABLED.getKey());
+            Property.GENERAL_MICROMETER_LOG_METRICS.getKey());
     }
 
     LOG.info("Metrics initialization. Register producers: {}", producers);
