@@ -47,6 +47,8 @@ import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
+import io.micrometer.core.instrument.binder.logging.Log4j2Metrics;
+import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
@@ -61,6 +63,9 @@ public class MetricsInfoImpl implements MetricsInfo {
 
   // JvmGcMetrics are declared with AutoCloseable - keep reference to use with close()
   private JvmGcMetrics jvmGcMetrics;
+  // Log4j2Metrics and LogbackMetrics are declared with AutoCloseable - keep reference to use with
+  // close()
+  private AutoCloseable logMetrics;
 
   private final boolean metricsEnabled;
 
@@ -117,6 +122,7 @@ public class MetricsInfoImpl implements MetricsInfo {
       LOG.info("Metrics not initialized, metrics are disabled.");
       return;
     }
+
     if (commonTags != null) {
       LOG.warn("metrics registry has already been initialized");
       return;
@@ -184,6 +190,26 @@ public class MetricsInfoImpl implements MetricsInfo {
       new JvmThreadMetrics().bindTo(Metrics.globalRegistry);
     }
 
+    String loggingMetrics = context.getConfiguration().get(Property.GENERAL_MICROMETER_LOG_METRICS);
+    switch (loggingMetrics) {
+      case "none":
+        LOG.info("Log metrics are disabled.");
+        break;
+      case "log4j2":
+        Log4j2Metrics l2m = new Log4j2Metrics();
+        l2m.bindTo(Metrics.globalRegistry);
+        logMetrics = l2m;
+        break;
+      case "logback":
+        LogbackMetrics lb = new LogbackMetrics();
+        lb.bindTo(Metrics.globalRegistry);
+        logMetrics = lb;
+        break;
+      default:
+        LOG.info("Log metrics misconfigured, valid values for {} are 'none', 'log4j2' or 'logback'",
+            Property.GENERAL_MICROMETER_LOG_METRICS.getKey());
+    }
+
     LOG.info("Metrics initialization. Register producers: {}", producers);
     producers.forEach(p -> p.registerMetrics(Metrics.globalRegistry));
   }
@@ -211,6 +237,14 @@ public class MetricsInfoImpl implements MetricsInfo {
     if (jvmGcMetrics != null) {
       jvmGcMetrics.close();
       jvmGcMetrics = null;
+    }
+
+    if (logMetrics != null) {
+      try {
+        logMetrics.close();
+      } catch (Exception e) {
+        LOG.info("Exception when closing log metrics", e);
+      }
     }
 
     Metrics.globalRegistry.close();
