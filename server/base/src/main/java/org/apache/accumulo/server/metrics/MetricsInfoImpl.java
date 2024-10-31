@@ -240,27 +240,26 @@ public class MetricsInfoImpl implements MetricsInfo {
         new JvmThreadMetrics().bindTo(composite);
       }
 
-      boolean logMetricsEnabled =
-          context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_LOG_METRICS_ENABLED);
-
-      if (logMetricsEnabled) {
-        String loggingImpl =
-            context.getConfiguration().get(Property.GENERAL_MICROMETER_LOG_METRICS_IMPL);
-        switch (loggingImpl) {
-          case "log4j2":
-            Log4j2Metrics l2m = new Log4j2Metrics();
-            l2m.bindTo(composite);
-            logMetrics = l2m;
-            break;
-          case "logback":
-            LogbackMetrics lb = new LogbackMetrics();
-            lb.bindTo(composite);
-            logMetrics = lb;
-            break;
-          default:
-            LOG.info("Log metrics misconfigured, valid values for {} are 'log4j2' or 'logback'",
-                Property.GENERAL_MICROMETER_LOG_METRICS_IMPL.getKey());
-        }
+      String loggingMetrics =
+          context.getConfiguration().get(Property.GENERAL_MICROMETER_LOG_METRICS_ENABLED);
+      switch (loggingMetrics) {
+        case "none":
+          LOG.info("Log metrics are disabled.");
+          break;
+        case "log4j2":
+          Log4j2Metrics l2m = new Log4j2Metrics();
+          l2m.bindTo(composite);
+          logMetrics = l2m;
+          break;
+        case "logback":
+          LogbackMetrics lb = new LogbackMetrics();
+          lb.bindTo(composite);
+          logMetrics = lb;
+          break;
+        default:
+          LOG.info(
+              "Log metrics misconfigured, valid values for {} are 'none', 'log4j2' or 'logback'",
+              Property.GENERAL_MICROMETER_LOG_METRICS_ENABLED.getKey());
       }
 
       MeterFilter replicationFilter = new MeterFilter() {
