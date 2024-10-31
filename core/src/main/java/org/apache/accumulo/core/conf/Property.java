@@ -314,6 +314,12 @@ public enum Property {
       "Enables additional JVM metrics collection and reporting using Micrometer. Requires "
           + "property 'general.micrometer.enabled' to be set to 'true' to take effect.",
       "2.1.0"),
+  GENERAL_MICROMETER_LOG_METRICS("general.micrometer.log.metrics", "none", PropertyType.STRING,
+      "Enables additional log metrics collection and reporting using Micrometer. Requires "
+          + "property 'general.micrometer.enabled' to be set to 'true' to take effect. Micrometer "
+          + "natively instruments Log4j2 and Logback. Valid values for this property are 'none',"
+          + "'log4j2' or 'logback'.",
+      "2.1.4"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
       "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory",
       PropertyType.CLASSNAMELIST,
