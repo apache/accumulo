@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate.user;
 
+import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -37,9 +38,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.user.UserFateStore;
@@ -61,8 +60,6 @@ import org.junit.jupiter.api.function.Executable;
 import com.google.common.collect.MoreCollectors;
 
 public class UserFateStoreIT extends SharedMiniClusterBase {
-
-  private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
 
   @BeforeAll
   public static void setup() throws Exception {
@@ -134,7 +131,7 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
       client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
       tableName = getUniqueNames(1)[0];
       createFateTable(client, tableName);
-      store = new UserFateStore<>(client, tableName, AbstractFateStore.createDummyLockID(), null);
+      store = new UserFateStore<>(client, tableName, createDummyLockID(), null);
       fateId = store.create();
       txStore = store.reserve(fateId);
     }

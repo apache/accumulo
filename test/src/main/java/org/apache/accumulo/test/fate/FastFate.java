@@ -27,7 +27,8 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 
 /**
- * A FATE which performs the dead reservation cleanup with a much shorter delay between
+ * A FATE which performs the dead reservation cleanup with a much shorter delay between. Useful for
+ * shortening test times for tests that are waiting for a cleanup to occur.
  */
 public class FastFate<T> extends Fate<T> {
 
@@ -38,6 +39,6 @@ public class FastFate<T> extends Fate<T> {
 
   @Override
   public Duration getDeadResCleanupDelay() {
-    return Duration.ofSeconds(15);
+    return Duration.ofSeconds(5);
   }
 }

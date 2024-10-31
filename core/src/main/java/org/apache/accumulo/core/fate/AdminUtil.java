@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -44,13 +45,11 @@ import org.apache.accumulo.core.fate.zookeeper.FateLock.FateLockPath;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A utility to administer FATE operations
@@ -204,18 +203,19 @@ public class AdminUtil<T> {
    * instance type. This method does not process lock information, if lock information is desired,
    * use {@link #getStatus(ReadOnlyFateStore, ZooReader, ServiceLockPath, Set, EnumSet, EnumSet)}
    *
-   * @param fateStores read-only fate stores
+   * @param readOnlyFateStores read-only fate stores
    * @param fateIdFilter filter results to include only provided fate transaction ids
    * @param statusFilter filter results to include only provided status types
    * @param typesFilter filter results to include only provided fate instance types
    * @return list of FATE transactions that match filter criteria
    */
   public List<TransactionStatus> getTransactionStatus(
-      Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, Set<FateId> fateIdFilter,
+      Map<FateInstanceType,ReadOnlyFateStore<T>> readOnlyFateStores, Set<FateId> fateIdFilter,
       EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter) {
 
-    FateStatus status = getTransactionStatus(fateStores, fateIdFilter, statusFilter, typesFilter,
-        Collections.<FateId,List<String>>emptyMap(), Collections.<FateId,List<String>>emptyMap());
+    FateStatus status = getTransactionStatus(readOnlyFateStores, fateIdFilter, statusFilter,
+        typesFilter, Collections.<FateId,List<String>>emptyMap(),
+        Collections.<FateId,List<String>>emptyMap());
 
     return status.getTransactions();
   }
@@ -224,7 +224,7 @@ public class AdminUtil<T> {
    * Get the FATE transaction status and lock information stored in zookeeper, optionally filtered
    * by fate id, status, and fate instance type
    *
-   * @param mfs read-only MetaFateStore
+   * @param readOnlyMFS read-only MetaFateStore
    * @param zk zookeeper reader.
    * @param lockPath the zookeeper path for locks
    * @param fateIdFilter filter results to include only provided fate transaction ids
@@ -234,27 +234,7 @@ public class AdminUtil<T> {
    * @throws KeeperException if zookeeper exception occurs
    * @throws InterruptedException if process is interrupted.
    */
-  public FateStatus getStatus(ReadOnlyFateStore<T> mfs, ZooReader zk, ServiceLockPath lockPath,
-      Set<FateId> fateIdFilter, EnumSet<TStatus> statusFilter,
-      EnumSet<FateInstanceType> typesFilter) throws KeeperException, InterruptedException {
-    Map<FateId,List<String>> heldLocks = new HashMap<>();
-    Map<FateId,List<String>> waitingLocks = new HashMap<>();
-
-    findLocks(zk, lockPath, heldLocks, waitingLocks);
-
-    return getTransactionStatus(Map.of(FateInstanceType.META, mfs), fateIdFilter, statusFilter,
-        typesFilter, heldLocks, waitingLocks);
-  }
-
-  public FateStatus getStatus(ReadOnlyFateStore<T> ufs, Set<FateId> fateIdFilter,
-      EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter)
-      throws KeeperException, InterruptedException {
-
-    return getTransactionStatus(Map.of(FateInstanceType.USER, ufs), fateIdFilter, statusFilter,
-        typesFilter, new HashMap<>(), new HashMap<>());
-  }
-
-  public FateStatus getStatus(Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, ZooReader zk,
+  public FateStatus getStatus(ReadOnlyFateStore<T> readOnlyMFS, ZooReader zk,
       ServiceLockPath lockPath, Set<FateId> fateIdFilter, EnumSet<TStatus> statusFilter,
       EnumSet<FateInstanceType> typesFilter) throws KeeperException, InterruptedException {
     Map<FateId,List<String>> heldLocks = new HashMap<>();
@@ -262,8 +242,29 @@ public class AdminUtil<T> {
 
     findLocks(zk, lockPath, heldLocks, waitingLocks);
 
-    return getTransactionStatus(fateStores, fateIdFilter, statusFilter, typesFilter, heldLocks,
-        waitingLocks);
+    return getTransactionStatus(Map.of(FateInstanceType.META, readOnlyMFS), fateIdFilter,
+        statusFilter, typesFilter, heldLocks, waitingLocks);
+  }
+
+  public FateStatus getStatus(ReadOnlyFateStore<T> readOnlyUFS, Set<FateId> fateIdFilter,
+      EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter)
+      throws KeeperException, InterruptedException {
+
+    return getTransactionStatus(Map.of(FateInstanceType.USER, readOnlyUFS), fateIdFilter,
+        statusFilter, typesFilter, new HashMap<>(), new HashMap<>());
+  }
+
+  public FateStatus getStatus(Map<FateInstanceType,ReadOnlyFateStore<T>> readOnlyFateStores,
+      ZooReader zk, ServiceLockPath lockPath, Set<FateId> fateIdFilter,
+      EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter)
+      throws KeeperException, InterruptedException {
+    Map<FateId,List<String>> heldLocks = new HashMap<>();
+    Map<FateId,List<String>> waitingLocks = new HashMap<>();
+
+    findLocks(zk, lockPath, heldLocks, waitingLocks);
+
+    return getTransactionStatus(readOnlyFateStores, fateIdFilter, statusFilter, typesFilter,
+        heldLocks, waitingLocks);
   }
 
   /**
@@ -340,7 +341,7 @@ public class AdminUtil<T> {
   /**
    * Returns fate status, possibly filtered
    *
-   * @param fateStores read-only access to populated transaction stores.
+   * @param readOnlyFateStores read-only access to populated transaction stores.
    * @param fateIdFilter Optional. List of transactions to filter results - if null, all
    *        transactions are returned
    * @param statusFilter Optional. List of status types to filter results - if null, all
@@ -352,12 +353,12 @@ public class AdminUtil<T> {
    * @return current fate and lock status
    */
   public static <T> FateStatus getTransactionStatus(
-      Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, Set<FateId> fateIdFilter,
+      Map<FateInstanceType,ReadOnlyFateStore<T>> readOnlyFateStores, Set<FateId> fateIdFilter,
       EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter,
       Map<FateId,List<String>> heldLocks, Map<FateId,List<String>> waitingLocks) {
     final List<TransactionStatus> statuses = new ArrayList<>();
 
-    fateStores.forEach((type, store) -> {
+    readOnlyFateStores.forEach((type, store) -> {
       try (Stream<FateId> fateIds = store.list().map(FateIdStatus::getFateId)) {
         fateIds.forEach(fateId -> {
 
@@ -410,17 +411,17 @@ public class AdminUtil<T> {
     return typesFilter == null || typesFilter.isEmpty() || typesFilter.contains(type);
   }
 
-  public void printAll(Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, ZooReader zk,
+  public void printAll(Map<FateInstanceType,ReadOnlyFateStore<T>> readOnlyFateStores, ZooReader zk,
       ServiceLockPath tableLocksPath) throws KeeperException, InterruptedException {
-    print(fateStores, zk, tableLocksPath, new Formatter(System.out), null, null, null);
+    print(readOnlyFateStores, zk, tableLocksPath, new Formatter(System.out), null, null, null);
   }
 
-  public void print(Map<FateInstanceType,ReadOnlyFateStore<T>> fateStores, ZooReader zk,
+  public void print(Map<FateInstanceType,ReadOnlyFateStore<T>> readOnlyFateStores, ZooReader zk,
       ServiceLockPath tableLocksPath, Formatter fmt, Set<FateId> fateIdFilter,
       EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter)
       throws KeeperException, InterruptedException {
     FateStatus fateStatus =
-        getStatus(fateStores, zk, tableLocksPath, fateIdFilter, statusFilter, typesFilter);
+        getStatus(readOnlyFateStores, zk, tableLocksPath, fateIdFilter, statusFilter, typesFilter);
 
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
       fmt.format(
@@ -443,11 +444,7 @@ public class AdminUtil<T> {
     }
   }
 
-  public boolean prepDelete(Map<FateInstanceType,FateStore<T>> stores, ZooReaderWriter zk,
-      ServiceLockPath path, String fateIdStr) {
-    if (!checkGlobalLock(zk, path)) {
-      return false;
-    }
+  public boolean prepDelete(Map<FateInstanceType,FateStore<T>> stores, String fateIdStr) {
 
     FateId fateId;
     try {
@@ -461,36 +458,37 @@ public class AdminUtil<T> {
     // determine which store to use
     FateStore<T> store = stores.get(fateId.getType());
 
-    FateTxStore<T> txStore = store.reserve(fateId);
-    try {
-      TStatus ts = txStore.getStatus();
-      switch (ts) {
-        case UNKNOWN:
-          System.out.println("Invalid transaction ID: " + fateId);
-          break;
+    Optional<FateTxStore<T>> opTxStore = tryReserve(store, fateId, "delete");
+    if (opTxStore.isPresent()) {
+      var txStore = opTxStore.orElseThrow();
 
-        case SUBMITTED:
-        case IN_PROGRESS:
-        case NEW:
-        case FAILED:
-        case FAILED_IN_PROGRESS:
-        case SUCCESSFUL:
-          System.out.printf("Deleting transaction: %s (%s)%n", fateIdStr, ts);
-          txStore.delete();
-          state = true;
-          break;
+      try {
+        TStatus ts = txStore.getStatus();
+        switch (ts) {
+          case UNKNOWN:
+            System.out.println("Invalid transaction ID: " + fateId);
+            break;
+
+          case SUBMITTED:
+          case IN_PROGRESS:
+          case NEW:
+          case FAILED:
+          case FAILED_IN_PROGRESS:
+          case SUCCESSFUL:
+            System.out.printf("Deleting transaction: %s (%s)%n", fateIdStr, ts);
+            txStore.delete();
+            state = true;
+            break;
+        }
+      } finally {
+        txStore.unreserve(Duration.ZERO);
       }
-    } finally {
-      txStore.unreserve(Duration.ZERO);
     }
+
     return state;
   }
 
-  public boolean prepFail(Map<FateInstanceType,FateStore<T>> stores, ZooReaderWriter zk,
-      ServiceLockPath zLockManagerPath, String fateIdStr) {
-    if (!checkGlobalLock(zk, zLockManagerPath)) {
-      return false;
-    }
+  public boolean prepFail(Map<FateInstanceType,FateStore<T>> stores, String fateIdStr) {
 
     FateId fateId;
     try {
@@ -504,37 +502,73 @@ public class AdminUtil<T> {
     // determine which store to use
     FateStore<T> store = stores.get(fateId.getType());
 
-    FateTxStore<T> txStore = store.reserve(fateId);
-    try {
-      TStatus ts = txStore.getStatus();
-      switch (ts) {
-        case UNKNOWN:
-          System.out.println("Invalid fate ID: " + fateId);
-          break;
+    Optional<FateTxStore<T>> opTxStore = tryReserve(store, fateId, "fail");
+    if (opTxStore.isPresent()) {
+      var txStore = opTxStore.orElseThrow();
 
-        case SUBMITTED:
-        case IN_PROGRESS:
-        case NEW:
-          System.out.printf("Failing transaction: %s (%s)%n", fateId, ts);
-          txStore.setStatus(TStatus.FAILED_IN_PROGRESS);
-          state = true;
-          break;
+      try {
+        TStatus ts = txStore.getStatus();
+        switch (ts) {
+          case UNKNOWN:
+            System.out.println("Invalid fate ID: " + fateId);
+            break;
 
-        case SUCCESSFUL:
-          System.out.printf("Transaction already completed: %s (%s)%n", fateId, ts);
-          break;
+          case SUBMITTED:
+          case IN_PROGRESS:
+          case NEW:
+            System.out.printf("Failing transaction: %s (%s)%n", fateId, ts);
+            txStore.setStatus(TStatus.FAILED_IN_PROGRESS);
+            state = true;
+            break;
 
-        case FAILED:
-        case FAILED_IN_PROGRESS:
-          System.out.printf("Transaction already failed: %s (%s)%n", fateId, ts);
-          state = true;
-          break;
+          case SUCCESSFUL:
+            System.out.printf("Transaction already completed: %s (%s)%n", fateId, ts);
+            break;
+
+          case FAILED:
+          case FAILED_IN_PROGRESS:
+            System.out.printf("Transaction already failed: %s (%s)%n", fateId, ts);
+            state = true;
+            break;
+        }
+      } finally {
+        txStore.unreserve(Duration.ZERO);
       }
-    } finally {
-      txStore.unreserve(Duration.ZERO);
     }
 
     return state;
+  }
+
+  /**
+   * Try to reserve the transaction for a minute. If it could not be reserved, return an empty
+   * optional
+   */
+  private Optional<FateTxStore<T>> tryReserve(FateStore<T> store, FateId fateId, String op) {
+    var retry = Retry.builder().maxRetriesWithinDuration(Duration.ofMinutes(1))
+        .retryAfter(Duration.ofMillis(25)).incrementBy(Duration.ofMillis(25))
+        .maxWait(Duration.ofSeconds(15)).backOffFactor(1.5).logInterval(Duration.ofSeconds(15))
+        .createRetry();
+
+    Optional<FateTxStore<T>> reserveAttempt = store.tryReserve(fateId);
+    while (reserveAttempt.isEmpty() && retry.canRetry()) {
+      retry.useRetry();
+      try {
+        retry.waitForNextAttempt(log, "Attempting to reserve " + fateId);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalArgumentException(e);
+      }
+      reserveAttempt = store.tryReserve(fateId);
+    }
+    if (reserveAttempt.isPresent()) {
+      retry.logCompletion(log, "Attempting to reserve " + fateId);
+    } else {
+      log.error("Could not {} {} in a reasonable time. This indicates the Manager is currently "
+          + "working on {}. If {} {} is still desired, the Manager needs to be stopped and "
+          + "the command needs to be rerun.", op, fateId, fateId, op, fateId);
+    }
+
+    return reserveAttempt;
   }
 
   public void deleteLocks(ZooReaderWriter zk, ServiceLockPath path, String fateIdStr)
@@ -554,36 +588,5 @@ public class AdminUtil<T> {
         }
       }
     }
-  }
-
-  @SuppressFBWarnings(value = "DM_EXIT",
-      justification = "TODO - should probably avoid System.exit here; "
-          + "this code is used by the fate admin shell command")
-  public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLockPath zLockManagerPath) {
-    try {
-      if (ServiceLock.getLockData(zk.getZooKeeper(), zLockManagerPath).isPresent()) {
-        System.err.println("ERROR: Manager lock is held, not running");
-        if (this.exitOnError) {
-          System.exit(1);
-        } else {
-          return false;
-        }
-      }
-    } catch (KeeperException e) {
-      System.err.println("ERROR: Could not read manager lock, not running " + e.getMessage());
-      if (this.exitOnError) {
-        System.exit(1);
-      } else {
-        return false;
-      }
-    } catch (InterruptedException e) {
-      System.err.println("ERROR: Could not read manager lock, not running" + e.getMessage());
-      if (this.exitOnError) {
-        System.exit(1);
-      } else {
-        return false;
-      }
-    }
-    return true;
   }
 }

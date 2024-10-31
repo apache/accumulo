@@ -443,8 +443,8 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
 
     // Create the new Fate/start the Fate threads (the work finder and the workers).
     // Don't run another dead reservation cleaner since we already have one running from fate1.
-    FastFate<LatchTestEnv> fate2 = new FastFate<>(testEnv2, store2, false, Object::toString,
-        DefaultConfiguration.getInstance());
+    Fate<LatchTestEnv> fate2 =
+        new Fate<>(testEnv2, store2, false, Object::toString, DefaultConfiguration.getInstance());
 
     // Wait for the "dead" reservations to be deleted and picked up again (reserved using
     // fate2/store2/lock2 now).
@@ -499,7 +499,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     }
   }
 
-  public static class SleepingTestEnv {
+  public static class SleepingTestEnv extends FateTestRunner.TestEnv {
     public final Set<FateId> executedOps = Collections.synchronizedSet(new HashSet<>());
     public final int sleepTimeMs;
 
@@ -542,7 +542,7 @@ public class MultipleStoresIT extends SharedMiniClusterBase {
     }
   }
 
-  public static class LatchTestEnv {
+  public static class LatchTestEnv extends FateTestRunner.TestEnv {
     public final AtomicInteger numWorkers = new AtomicInteger(0);
     public final CountDownLatch workersLatch = new CountDownLatch(1);
   }

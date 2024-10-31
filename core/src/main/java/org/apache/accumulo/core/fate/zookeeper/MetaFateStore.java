@@ -75,6 +75,17 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     return path + "/tx_" + fateId.getTxUUIDStr();
   }
 
+  /**
+   * Constructs a MetaFateStore
+   *
+   * @param path the path in ZK where the fate data will reside
+   * @param zk the {@link ZooReaderWriter}
+   * @param lockID the {@link ZooUtil.LockID} held by the process creating this store. Should be
+   *        null if this store will be used as read-only (will not be used to reserve transactions)
+   * @param isLockHeld the {@link Predicate} used to determine if the lockID is held or not at the
+   *        time of invocation. If the store is used for a {@link Fate} which runs a dead
+   *        reservation cleaner, this should be non-null, otherwise null is fine
+   */
   public MetaFateStore(String path, ZooReaderWriter zk, ZooUtil.LockID lockID,
       Predicate<ZooUtil.LockID> isLockHeld) throws KeeperException, InterruptedException {
     this(path, zk, lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
@@ -90,11 +101,6 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
   }
-
-  /**
-   * For testing only
-   */
-  MetaFateStore() {}
 
   @Override
   public FateId create() {
@@ -114,8 +120,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   public Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
-    final var reservation = FateReservation.from(lockID, UUID.randomUUID());
     final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
+    verifyLock(lockID, fateId);
+    final var reservation = FateReservation.from(lockID, UUID.randomUUID());
 
     try {
       byte[] nodeVal = zk.mutateOrCreate(getTXPath(fateId),
@@ -163,6 +170,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
+    verifyLock(lockID, fateId);
     // uniquely identify this attempt to reserve the fate operation data
     FateReservation reservation = FateReservation.from(lockID, UUID.randomUUID());
 
