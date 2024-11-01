@@ -291,7 +291,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
           // not serving tablet, so report all mutations as
           // failures
           us.failures.put(keyExtent, 0L);
-          server.updateMetrics.addUnknownTabletErrors(0);
+          server.updateMetrics.addUnknownTabletErrors(1);
         }
       } else {
         log.warn("Denying access to table {} for user {}", keyExtent.tableId(), us.getUser());
@@ -299,7 +299,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = null;
         us.authFailures.put(keyExtent, SecurityErrorCode.PERMISSION_DENIED);
-        server.updateMetrics.addPermissionErrors(0);
+        server.updateMetrics.addPermissionErrors(1);
       }
     } catch (TableNotFoundException tnfe) {
       log.error("Table " + tableId + " not found ", tnfe);
@@ -307,7 +307,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
       us.authTimes.addStat(t2 - t1);
       us.currentTablet = null;
       us.authFailures.put(keyExtent, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      server.updateMetrics.addUnknownTabletErrors(0);
+      server.updateMetrics.addUnknownTabletErrors(1);
       return;
     } catch (ThriftSecurityException e) {
       log.error("Denying permission to check user " + us.getUser() + " with user " + e.getUser(),
@@ -316,7 +316,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
       us.authTimes.addStat(t2 - t1);
       us.currentTablet = null;
       us.authFailures.put(keyExtent, e.getCode());
-      server.updateMetrics.addPermissionErrors(0);
+      server.updateMetrics.addPermissionErrors(1);
       return;
     }
   }
@@ -416,7 +416,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
               if (!prepared.getViolations().isEmpty()) {
                 us.violations.add(prepared.getViolations());
-                server.updateMetrics.addConstraintViolations(0);
+                server.updateMetrics.addConstraintViolations(1);
               }
               // Use the size of the original mutation list, regardless of how many mutations
               // did not violate constraints.
