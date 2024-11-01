@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
@@ -50,9 +52,9 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
 
     Utils.getTableNameLock().lock();
     try {
-      Utils.checkNamespaceDoesNotExist(manager.getContext(), namespaceInfo.namespaceName,
-          namespaceInfo.namespaceId, TableOperation.CREATE);
-
+      NamespaceMapping.put(manager.getContext().getZooReaderWriter(),
+          Constants.ZROOT + "/" + manager.getContext().getInstanceID() + Constants.ZNAMESPACES,
+          namespaceInfo.namespaceId, namespaceInfo.namespaceName);
       TableManager.prepareNewNamespaceState(manager.getContext(), namespaceInfo.namespaceId,
           namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 
@@ -70,7 +72,9 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
 
   @Override
   public void undo(long tid, Manager manager) throws Exception {
-    manager.getTableManager().removeNamespace(namespaceInfo.namespaceId);
+    manager.getTableManager().removeNamespace(manager.getContext().getZooReaderWriter(),
+        Constants.ZROOT + "/" + manager.getContext().getInstanceID() + Constants.ZNAMESPACES,
+        namespaceInfo.namespaceId);
     manager.getContext().clearTableListCache();
     Utils.unreserveNamespace(manager, namespaceInfo.namespaceId, tid, LockType.WRITE);
   }

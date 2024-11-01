@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -46,25 +48,55 @@ public class NamespaceMapping {
     this.context = context;
   }
 
-  public static byte[] initializeNamespaceMap() {
-    Map<String,String> map = Map.of(Namespace.DEFAULT.id().canonical(), Namespace.DEFAULT.name(),
-        Namespace.ACCUMULO.id().canonical(), Namespace.ACCUMULO.name());
-    return serialize(map);
-  }
-
-  public static void writeNamespaceToMap(ZooReaderWriter zoo, String zPath, NamespaceId namespaceId,
+  public static void put(ZooReaderWriter zoo, String zPath, NamespaceId namespaceId,
       String namespaceName)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
-    // The built-in namespaces were already added during init or upgrade and can't be changed
-    if (!Namespace.DEFAULT.id().equals(namespaceId)
-        && !Namespace.ACCUMULO.id().equals(namespaceId)) {
-      zoo.mutateExisting(zPath, data -> {
-        var namespaces = deserialize(data);
-        // TODO throw exception if namespace name already exists in map?
-        namespaces.put(namespaceId.canonical(), namespaceName);
-        return serialize(namespaces);
-      });
+    if (Namespace.DEFAULT.id().equals(namespaceId) || Namespace.ACCUMULO.id().equals(namespaceId)) {
+      throw new AssertionError(
+          "Putting built-in namespaces in map should not be possible after init");
     }
+    zoo.mutateExisting(zPath, data -> {
+      var namespaces = deserialize(data);
+      if (namespaces.containsKey(namespaceId.canonical())) {
+        throw new AcceptableThriftTableOperationException(null, namespaceId.canonical(),
+            TableOperation.CREATE, TableOperationExceptionType.NAMESPACE_EXISTS,
+            "Namespace Id already exists");
+      }
+      namespaces.put(namespaceId.canonical(), namespaceName);
+      return serialize(namespaces);
+    });
+  }
+
+  public static void remove(ZooReaderWriter zoo, String zPath, NamespaceId namespaceId)
+      throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
+    zoo.mutateExisting(zPath, data -> {
+      var namespaces = NamespaceMapping.deserialize(data);
+      if (!namespaces.containsKey(namespaceId.canonical())) {
+        throw new AcceptableThriftTableOperationException(null, namespaceId.canonical(),
+            TableOperation.DELETE, TableOperationExceptionType.NAMESPACE_NOTFOUND,
+            "Namespace already removed while processing");
+      }
+      namespaces.remove(namespaceId.canonical());
+      return NamespaceMapping.serialize(namespaces);
+    });
+  }
+
+  public static void rename(ZooReaderWriter zoo, String zPath, NamespaceId namespaceId,
+      String oldName, String newName)
+      throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
+    zoo.mutateExisting(zPath, current -> {
+      var currentNamespaceMap = NamespaceMapping.deserialize(current);
+      final String currentName = currentNamespaceMap.get(namespaceId.canonical());
+      if (currentName.equals(newName)) {
+        return null; // assume in this case the operation is running again, so we are done
+      }
+      if (!currentName.equals(oldName)) {
+        throw new AcceptableThriftTableOperationException(null, oldName, TableOperation.RENAME,
+            TableOperationExceptionType.NAMESPACE_NOTFOUND, "Name changed while processing");
+      }
+      currentNamespaceMap.put(namespaceId.canonical(), newName);
+      return NamespaceMapping.serialize(currentNamespaceMap);
+    });
   }
 
   public static byte[] serialize(Map<String,String> map) {
@@ -90,9 +122,13 @@ public class NamespaceMapping {
     byte[] data = zc.get(zPath, stat);
     if (stat.getMzxid() > lastMzxid) {
       if (data == null) {
-        throw new AssertionError("/namespaces node should not be null");
+        throw new IllegalStateException("namespaces node should not be null");
       } else {
         Map<String,String> idToName = deserialize(data);
+        if (!idToName.containsKey(Namespace.DEFAULT.id().canonical())
+            || !idToName.containsKey(Namespace.ACCUMULO.id().canonical())) {
+          throw new IllegalStateException("Built-in namespace is not present in map");
+        }
         var converted = ImmutableSortedMap.<NamespaceId,String>naturalOrder();
         var convertedReverse = ImmutableSortedMap.<String,NamespaceId>naturalOrder();
         idToName.forEach((idString, name) -> {

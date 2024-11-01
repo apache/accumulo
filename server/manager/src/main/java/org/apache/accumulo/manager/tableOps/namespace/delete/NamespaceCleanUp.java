@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.delete;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.Repo;
@@ -50,7 +51,9 @@ class NamespaceCleanUp extends ManagerRepo {
 
     // remove from zookeeper
     try {
-      manager.getTableManager().removeNamespace(namespaceId);
+      manager.getTableManager().removeNamespace(manager.getContext().getZooReaderWriter(),
+          Constants.ZROOT + "/" + manager.getContext().getInstanceID() + Constants.ZNAMESPACES,
+          namespaceId);
     } catch (Exception e) {
       log.error("Failed to find namespace in zookeeper", e);
     }

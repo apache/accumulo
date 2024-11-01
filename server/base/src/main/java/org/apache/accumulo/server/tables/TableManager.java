@@ -77,7 +77,6 @@ public class TableManager {
     String zPath = Constants.ZROOT + "/" + instanceId + Constants.ZNAMESPACES;
 
     zoo.putPersistentData(zPath + "/" + namespaceId, new byte[0], existsPolicy);
-    NamespaceMapping.writeNamespaceToMap(zoo, zPath, namespaceId, namespace);
     var propKey = NamespacePropKey.of(instanceId, namespaceId);
     if (!propStore.exists(propKey)) {
       propStore.create(propKey, Map.of());
@@ -330,8 +329,9 @@ public class TableManager {
     }
   }
 
-  public void removeNamespace(NamespaceId namespaceId)
-      throws KeeperException, InterruptedException {
+  public void removeNamespace(ZooReaderWriter zoo, String zPath, NamespaceId namespaceId)
+      throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
+    NamespaceMapping.remove(zoo, zPath, namespaceId);
     zoo.recursiveDelete(zkRoot + Constants.ZNAMESPACES + "/" + namespaceId, NodeMissingPolicy.SKIP);
   }
 
