@@ -539,6 +539,17 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       verifyReservedAndNotDeleted(true);
 
       var mutator = newMutator(fateId);
+      mutator.requireStatus(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED);
+      mutator.delete().mutate();
+      this.deleted = true;
+    }
+
+    @Override
+    public void forceDelete() {
+      verifyReservedAndNotDeleted(true);
+
+      var mutator = newMutator(fateId);
+      // allow deletion of all txns other than UNKNOWN
       mutator.requireStatus(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED,
           TStatus.FAILED_IN_PROGRESS, TStatus.IN_PROGRESS);
       mutator.delete().mutate();

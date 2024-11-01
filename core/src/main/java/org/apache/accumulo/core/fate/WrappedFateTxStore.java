@@ -87,6 +87,12 @@ public class WrappedFateTxStore<T> implements FateStore.FateTxStore<T> {
   }
 
   @Override
+  public void forceDelete() {
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " should not be calling forceDelete()");
+  }
+
+  @Override
   public long timeCreated() {
     return wrapped.timeCreated();
   }
