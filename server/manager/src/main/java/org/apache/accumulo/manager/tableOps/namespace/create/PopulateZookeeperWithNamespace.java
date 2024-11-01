@@ -52,17 +52,17 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
 
     Utils.getTableNameLock().lock();
     try {
-      NamespaceMapping.put(manager.getContext().getZooReaderWriter(),
-          Constants.ZROOT + "/" + manager.getContext().getInstanceID() + Constants.ZNAMESPACES,
+      var context = manager.getContext();
+      NamespaceMapping.put(context.getZooReaderWriter(),
+          Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNAMESPACES,
           namespaceInfo.namespaceId, namespaceInfo.namespaceName);
-      TableManager.prepareNewNamespaceState(manager.getContext(), namespaceInfo.namespaceId,
+      TableManager.prepareNewNamespaceState(context, namespaceInfo.namespaceId,
           namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 
-      PropUtil.setProperties(manager.getContext(),
-          NamespacePropKey.of(manager.getContext(), namespaceInfo.namespaceId),
+      PropUtil.setProperties(context, NamespacePropKey.of(context, namespaceInfo.namespaceId),
           namespaceInfo.props);
 
-      manager.getContext().clearTableListCache();
+      context.clearTableListCache();
 
       return new FinishCreateNamespace(namespaceInfo);
     } finally {
@@ -72,10 +72,11 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
 
   @Override
   public void undo(long tid, Manager manager) throws Exception {
-    manager.getTableManager().removeNamespace(manager.getContext().getZooReaderWriter(),
-        Constants.ZROOT + "/" + manager.getContext().getInstanceID() + Constants.ZNAMESPACES,
+    var context = manager.getContext();
+    manager.getTableManager().removeNamespace(context.getZooReaderWriter(),
+        Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNAMESPACES,
         namespaceInfo.namespaceId);
-    manager.getContext().clearTableListCache();
+    context.clearTableListCache();
     Utils.unreserveNamespace(manager, namespaceInfo.namespaceId, tid, LockType.WRITE);
   }
 

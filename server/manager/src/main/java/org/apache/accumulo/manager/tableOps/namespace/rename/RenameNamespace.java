@@ -65,9 +65,8 @@ public class RenameNamespace extends ManagerRepo {
             TableOperationExceptionType.NAMESPACE_EXISTS, "Namespace name already exists");
       }
 
-      final String tap = manager.getZooKeeperRoot() + Constants.ZNAMESPACES;
-
-      NamespaceMapping.rename(zoo, tap, namespaceId, oldName, newName);
+      NamespaceMapping.rename(zoo, manager.getZooKeeperRoot() + Constants.ZNAMESPACES, namespaceId,
+          oldName, newName);
 
       manager.getContext().clearTableListCache();
     } finally {
