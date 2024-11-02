@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
+import java.util.Collection;
+
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager.AssignmentWatcher;
 import org.apache.accumulo.tserver.tablet.Tablet;
@@ -37,66 +40,47 @@ public class TabletServerMetricsUtil {
     return AssignmentWatcher.getLongAssignments();
   }
 
-  public long getEntries() {
+  interface TabletToLong {
+    long apply(Tablet t);
+  }
+
+  private long sum(TableId tableId, TabletToLong tabletFunction) {
+    Collection<Tablet> tablets = tableId == null ? tserver.getOnlineTablets().values()
+        : tserver.getOnlineTablets(tableId).values();
+
     long result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.getNumEntries();
+    for (Tablet tablet : tablets) {
+      result += tabletFunction.apply(tablet);
     }
     return result;
   }
 
-  public long getEntriesInMemory() {
-    long result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.getNumEntriesInMemory();
-    }
-    return result;
+  public long getEntries(TableId tableId) {
+    return sum(tableId, Tablet::getNumEntries);
   }
 
-  public double getIngestCount() {
-    double result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.totalIngest();
-    }
-    return result;
+  public long getEntriesInMemory(TableId tableId) {
+    return sum(tableId, Tablet::getNumEntriesInMemory);
   }
 
-  public double getIngestByteCount() {
-    double result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.totalIngestBytes();
-    }
-    return result;
+  public double getIngestCount(TableId tableId) {
+    return sum(tableId, Tablet::totalIngest);
   }
 
-  public int getMinorCompactions() {
-    int result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      if (tablet.isMinorCompactionRunning()) {
-        result++;
-      }
-    }
-    return result;
+  public double getIngestByteCount(TableId tableId) {
+    return sum(tableId, Tablet::totalIngestBytes);
   }
 
-  public int getMinorCompactionsQueued() {
-    int result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      if (tablet.isMinorCompactionQueued()) {
-        result++;
-      }
-    }
-    return result;
+  public int getMinorCompactions(TableId tableId) {
+    return (int) sum(tableId, tablet -> tablet.isMinorCompactionRunning() ? 1 : 0);
   }
 
-  public int getOnDemandOnlineCount() {
-    int result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      if (tablet.isOnDemand()) {
-        result++;
-      }
-    }
-    return result;
+  public int getMinorCompactionsQueued(TableId tableId) {
+    return (int) sum(tableId, tablet -> tablet.isMinorCompactionQueued() ? 1 : 0);
+  }
+
+  public int getOnDemandOnlineCount(TableId tableId) {
+    return (int) sum(tableId, tablet -> tablet.isOnDemand() ? 1 : 0);
   }
 
   public int getOnDemandUnloadedLowMem() {
@@ -123,10 +107,12 @@ public class TabletServerMetricsUtil {
     return tserver.getHoldTimeMillis() / 1000.;
   }
 
-  public double getAverageFilesPerTablet() {
+  public double getAverageFilesPerTablet(TableId tableId) {
+    Collection<Tablet> tablets = tableId == null ? tserver.getOnlineTablets().values()
+        : tserver.getOnlineTablets(tableId).values();
     int count = 0;
     long result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
+    for (Tablet tablet : tablets) {
       result += tablet.getDatafiles().size();
       count++;
     }

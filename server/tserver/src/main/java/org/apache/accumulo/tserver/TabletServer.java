@@ -171,6 +171,14 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   PausedCompactionMetrics pausedMetrics;
   BlockCacheMetrics blockCacheMetrics;
 
+  public void refreshMetrics(TableId tableId) {
+    // setup per table metrics for tables if not already setup
+    metrics.getTableMetrics(tableId);
+    scanMetrics.getTableMetrics(tableId);
+    updateMetrics.getTableMetrics(tableId);
+    mincMetrics.getTableMetrics(tableId);
+  }
+
   @Override
   public TabletServerScanMetrics getScanMetrics() {
     return scanMetrics;
@@ -584,10 +592,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     MetricsInfo metricsInfo = context.getMetricsInfo();
 
     metrics = new TabletServerMetrics(this);
-    updateMetrics = new TabletServerUpdateMetrics();
-    scanMetrics = new TabletServerScanMetrics(this.resourceManager::getOpenFiles);
+    updateMetrics =
+        new TabletServerUpdateMetrics(context, () -> onlineTablets.perTableSnapshot().keySet());
+    scanMetrics = new TabletServerScanMetrics(context,
+        () -> onlineTablets.perTableSnapshot().keySet(), this.resourceManager::getOpenFiles);
     sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);
-    mincMetrics = new TabletServerMinCMetrics();
+    mincMetrics =
+        new TabletServerMinCMetrics(context, () -> onlineTablets.perTableSnapshot().keySet());
     pausedMetrics = new PausedCompactionMetrics();
     blockCacheMetrics = new BlockCacheMetrics(this.resourceManager.getIndexCache(),
         this.resourceManager.getDataCache(), this.resourceManager.getSummaryCache());
@@ -938,6 +949,14 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   public SortedMap<KeyExtent,Tablet> getOnlineTablets() {
     return onlineTablets.snapshot();
+  }
+
+  public SortedMap<KeyExtent,Tablet> getOnlineTablets(TableId tableId) {
+    return onlineTablets.perTableSnapshot().getOrDefault(tableId, Collections.emptySortedMap());
+  }
+
+  public Set<TableId> getOnlineTableIds() {
+    return onlineTablets.perTableSnapshot().keySet();
   }
 
   @Override

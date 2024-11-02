@@ -159,9 +159,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       ThriftSecurityException, org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException,
       TSampleNotPresentException, ScanServerBusyException {
 
-    server.getScanMetrics().incrementStartScan();
-
     TableId tableId = extent.tableId();
+    server.getScanMetrics().incrementStartScan(tableId);
     NamespaceId namespaceId;
     try {
       namespaceId = server.getContext().getNamespaceId(tableId);
@@ -252,7 +251,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException, TSampleNotPresentException,
       ScanServerBusyException {
 
-    server.getScanMetrics().incrementContinueScan();
+    server.getScanMetrics().incrementContinueScan(scanSession.getTableId());
 
     if (scanSession.getScanTask() == null) {
       scanSession.setScanTask(new NextBatchTask(server, scanID, scanSession.interruptFlag));
@@ -328,11 +327,10 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   @Override
   public void closeScan(TInfo tinfo, long scanID) {
 
-    server.getScanMetrics().incrementCloseScan();
-
     final SingleScanSession ss =
         (SingleScanSession) server.getSessionManager().removeSession(scanID);
     if (ss != null) {
+      server.getScanMetrics().incrementCloseScan(ss.getTableId());
       long t2 = System.currentTimeMillis();
 
       if (log.isTraceEnabled()) {
@@ -341,8 +339,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
             (t2 - ss.startTime) / 1000.0, ss.runStats.toString()));
       }
 
-      server.getScanMetrics().addScan(t2 - ss.startTime);
-      server.getScanMetrics().addResult(ss.entriesReturned);
+      server.getScanMetrics().addScan(ss.getTableId(), t2 - ss.startTime);
+      server.getScanMetrics().addResult(ss.getTableId(), ss.entriesReturned);
     }
   }
 
@@ -380,8 +378,6 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       long busyTimeout)
       throws ThriftSecurityException, TSampleNotPresentException, ScanServerBusyException {
 
-    server.getScanMetrics().incrementStartScan();
-
     // find all of the tables that need to be scanned
     final HashSet<TableId> tables = new HashSet<>();
     for (KeyExtent keyExtent : tbatch.keySet()) {
@@ -394,6 +390,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     // check if user has permission to the tables
     for (TableId tableId : tables) {
+      server.getScanMetrics().incrementStartScan(tableId);
       NamespaceId namespaceId = getNamespaceId(credentials, tableId);
       if (!security.canScan(credentials, tableId, namespaceId)) {
         throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -474,7 +471,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   private MultiScanResult continueMultiScan(long scanID, MultiScanSession session, long busyTimeout)
       throws TSampleNotPresentException, ScanServerBusyException {
 
-    server.getScanMetrics().incrementContinueScan();
+    server.getScanMetrics().incrementContinueScan(session.getTableId());
 
     if (session.getScanTask() == null) {
       session.setScanTask(new LookupTask(server, scanID));
@@ -522,12 +519,12 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   @Override
   public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException {
 
-    server.getScanMetrics().incrementCloseScan();
-
     MultiScanSession session = (MultiScanSession) server.getSessionManager().removeSession(scanID);
     if (session == null) {
       throw new NoSuchScanIDException();
     }
+
+    server.getScanMetrics().incrementCloseScan(session.getTableId());
 
     long t2 = System.currentTimeMillis();
 

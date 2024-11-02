@@ -69,7 +69,7 @@ public class SnapshotTablet extends TabletBase {
 
   @Override
   public void addToYieldMetric(int i) {
-    this.server.getScanMetrics().addYield(i);
+    this.server.getScanMetrics().addYield(getExtent().tableId(), i);
   }
 
   @Override

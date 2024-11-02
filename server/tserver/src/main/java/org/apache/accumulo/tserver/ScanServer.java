@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -55,6 +56,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -409,7 +411,12 @@ public class ScanServer extends AbstractServer
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
-    scanMetrics = new TabletServerScanMetrics(resourceManager::getOpenFiles);
+    // The following will read through everything in the cache which could update the access time of
+    // everything which is not desired for this use case, however the cache is expire after write
+    // and not expire after access so its probably ok.
+    Supplier<Set<TableId>> activeTables = () -> tabletMetadataCache.asMap().keySet().stream()
+        .map(KeyExtent::tableId).collect(Collectors.toSet());
+    scanMetrics = new TabletServerScanMetrics(context, activeTables, resourceManager::getOpenFiles);
     sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);
     scanServerMetrics = new ScanServerMetrics(tabletMetadataCache);
     blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),

@@ -170,6 +170,8 @@ class AssignmentHandler implements Runnable {
         }
       }
 
+      server.refreshMetrics(extent.tableId());
+
       tablet = null; // release this reference
       successful = true;
     } catch (Exception e) {
