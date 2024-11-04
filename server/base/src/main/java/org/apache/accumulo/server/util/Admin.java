@@ -136,6 +136,15 @@ public class Admin implements KeywordExecutable {
     boolean force = false;
   }
 
+  @Parameters(commandDescription = "Compaction Temp Files Utility")
+  static class FindCompactionTmpFilesCommand {
+    @Parameter(names = "--tables", description = "comma separated list of table names")
+    String tables;
+
+    @Parameter(names = "--delete", description = "if true, will delete tmp files")
+    boolean delete = false;
+  }
+
   @Parameters(commandDescription = "stop the tablet server on the given hosts")
   static class StopCommand {
     @Parameter(description = "<host> {<host> ... }")
@@ -445,6 +454,9 @@ public class Admin implements KeywordExecutable {
     VolumesCommand volumesCommand = new VolumesCommand();
     cl.addCommand("volumes", volumesCommand);
 
+    FindCompactionTmpFilesCommand filesCommand = new FindCompactionTmpFilesCommand();
+    cl.addCommand("compactionTempFiles", filesCommand);
+
     cl.parse(args);
 
     if (opts.help || cl.getParsedCommand() == null) {
@@ -510,6 +522,8 @@ public class Admin implements KeywordExecutable {
             tServerLocksOpts.delete);
       } else if (cl.getParsedCommand().equals("fate")) {
         executeFateOpsCommand(context, fateOpsCommand);
+      } else if (cl.getParsedCommand().equals("compactionTempFiles")) {
+        FindCompactionTmpFiles.execute(context, filesCommand.tables, filesCommand.delete);
       } else if (cl.getParsedCommand().equals("serviceStatus")) {
         printServiceStatus(context, serviceStatusCommandOpts);
       } else if (cl.getParsedCommand().equals("check")) {
