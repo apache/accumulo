@@ -21,8 +21,10 @@ package org.apache.accumulo.core.spi.compaction;
 import java.util.Collection;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
@@ -79,6 +81,9 @@ public interface CompactionPlanner {
    */
   public interface PlanningParameters {
 
+    
+    NamespaceId getNamespaceId() throws TableNotFoundException;
+    
     /**
      * @return The id of the table that compactions are being planned for.
      * @see ServiceEnvironment#getTableName(TableId)

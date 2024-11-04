@@ -19,9 +19,20 @@
 package org.apache.accumulo.core.util.compaction;
 
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.util.Pair;
+
+import com.google.common.base.Preconditions;
 
 public class CompactionJobPrioritizer {
 
@@ -32,39 +43,68 @@ public class CompactionJobPrioritizer {
   public static final Comparator<CompactionJob> JOB_COMPARATOR =
       Comparator.comparingInt(CompactionJob::getPriority)
           .thenComparingInt(job -> job.getFiles().size()).reversed();
+  
+  private static final Map<Pair<TableId, CompactionKind>, Pair<Short,Short>> SYSTEM_TABLE_RANGES = new HashMap<>();
+  private static final Map<Pair<NamespaceId, CompactionKind>, Pair<Short,Short>> ACCUMULO_NAMESPACE_RANGES = new HashMap<>();
+  
+  private static final Pair<Short, Short> TABLE_OVER_SIZE = new Pair<>((short) (Short.MAX_VALUE - 2000), Short.MAX_VALUE);
+  private static final Pair<Short, Short> ROOT_TABLE_USER = new Pair<>((short) (Short.MAX_VALUE - 4000), (short) (Short.MAX_VALUE - 2001));
+  private static final Pair<Short, Short> ROOT_TABLE_SYSTEM = new Pair<>((short) (Short.MAX_VALUE - 6000), (short) (Short.MAX_VALUE - 4001));
+  private static final Pair<Short, Short> METADATA_TABLE_USER = new Pair<>((short) (Short.MAX_VALUE - 6000), (short) (Short.MAX_VALUE - 4001));
+  private static final Pair<Short, Short> METADATA_TABLE_SYSTEM = new Pair<>((short) (Short.MAX_VALUE - 8000), (short) (Short.MAX_VALUE - 6001));
+  private static final Pair<Short, Short> SYSTEM_NS_USER = new Pair<>((short) (Short.MAX_VALUE - 10000), (short) (Short.MAX_VALUE - 8001));
+  private static final Pair<Short, Short> SYSTEM_NS_SYSTEM = new Pair<>((short) (Short.MAX_VALUE - 12000), (short) (Short.MAX_VALUE - 10001));
+  
+  private static final Pair<Short, Short> USER_TABLE_USER = new Pair<>(Short.MIN_VALUE, Short.MIN_VALUE);
+  private static final Pair<Short, Short> USER_TABLE_SYSTEM = new Pair<>(Short.MIN_VALUE, Short.MIN_VALUE);
+  
+  static {
+    // root table
+    SYSTEM_TABLE_RANGES.put(new Pair<>(RootTable.ID, CompactionKind.USER), ROOT_TABLE_USER);
+    SYSTEM_TABLE_RANGES.put(new Pair<>(RootTable.ID, CompactionKind.SYSTEM), ROOT_TABLE_SYSTEM);
 
-  public static short createPriority(CompactionKind kind, int totalFiles, int compactingFiles,
-      Condition condition) {
+    // metadata table
+    SYSTEM_TABLE_RANGES.put(new Pair<>(MetadataTable.ID, CompactionKind.USER), METADATA_TABLE_USER);
+    SYSTEM_TABLE_RANGES.put(new Pair<>(MetadataTable.ID,  CompactionKind.SYSTEM), METADATA_TABLE_SYSTEM);
 
-    int prio = totalFiles + compactingFiles;
+    // metadata table
+    ACCUMULO_NAMESPACE_RANGES.put(new Pair<>(Namespace.ACCUMULO.id(), CompactionKind.USER), SYSTEM_NS_USER);
+    ACCUMULO_NAMESPACE_RANGES.put(new Pair<>(Namespace.ACCUMULO.id(), CompactionKind.SYSTEM), SYSTEM_NS_SYSTEM);
+  }
 
-    switch (kind) {
-      case USER:
-      case CHOP:
-        // user-initiated compactions will have a positive priority
-        // based on number of files
-        if (prio > Short.MAX_VALUE) {
-          return Short.MAX_VALUE;
-        }
-        return (short) prio;
-      case SELECTOR:
-      case SYSTEM:
-        // Given that tablets with too many files cause several problems,
-        // boost their priority to the maximum allowed value.
-        if (condition == Condition.TABLET_OVER_SIZE) {
-          return Short.MAX_VALUE;
-        }
-        // system-initiated compactions will have a negative priority
-        // starting at -32768 and increasing based on number of files
-        // maxing out at -1
-        if (prio > Short.MAX_VALUE) {
-          return -1;
+  public static short createPriority(NamespaceId nsId, TableId tableId, CompactionKind kind, int totalFiles, int compactingFiles,
+      Condition condition, int maxFilesPerTablet) {
+
+    Objects.requireNonNull(nsId, "nsId cannot be null");
+    Objects.requireNonNull(tableId, "tableId cannot be null");
+    Preconditions.checkArgument(totalFiles >= 0, "totalFiles is negative %s", totalFiles);
+    Preconditions.checkArgument(compactingFiles >= 0, "compactingFiles is negative %s", compactingFiles);
+    Objects.requireNonNull(condition, "condition cannot be null");
+
+    Pair<Short,Short> range = null;
+    
+    switch (condition) {
+      case NONE:
+        if (Namespace.ACCUMULO.id() == nsId) {
+          range = SYSTEM_TABLE_RANGES.get(new Pair<>(tableId, kind));
+          if (range == null) {
+            range = ACCUMULO_NAMESPACE_RANGES.get(new Pair<>(nsId, kind));
+          }
         } else {
-          return (short) (Short.MIN_VALUE + prio);
+          if (kind == CompactionKind.SYSTEM) {
+            range = USER_TABLE_SYSTEM;
+          } else {
+            range = USER_TABLE_USER;
+          }
         }
+        return (short) Math.min(range.getSecond(), range.getFirst() + totalFiles + compactingFiles);
+      case TABLET_OVER_SIZE:
+        range = TABLE_OVER_SIZE;
+        return (short) Math.min(range.getSecond(), range.getFirst() + totalFiles + compactingFiles - maxFilesPerTablet);
       default:
-        throw new AssertionError("Unknown kind " + kind);
+        throw new IllegalStateException("Unhandled condition type: " + condition);
     }
+    
   }
 
 }

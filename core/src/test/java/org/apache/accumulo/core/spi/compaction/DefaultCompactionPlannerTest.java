@@ -35,12 +35,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
@@ -740,6 +743,12 @@ public class DefaultCompactionPlannerTest {
       Set<CompactableFile> candidates, Set<CompactionJob> compacting, double ratio,
       CompactionKind kind, Configuration conf) {
     return new CompactionPlanner.PlanningParameters() {
+
+      
+      @Override
+      public NamespaceId getNamespaceId() throws TableNotFoundException {
+        return Namespace.ACCUMULO.id();
+      }
 
       @Override
       public TableId getTableId() {
