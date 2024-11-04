@@ -20,7 +20,6 @@ package org.apache.accumulo.server.metrics;
 
 import static org.apache.hadoop.util.StringUtils.getTrimmedStrings;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,13 +32,11 @@ import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.apache.accumulo.server.ServerContext;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tag;
@@ -50,8 +47,6 @@ import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
 import io.micrometer.core.instrument.binder.logging.Log4j2Metrics;
 import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
-import io.micrometer.core.instrument.config.MeterFilter;
-import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
 
 public class MetricsInfoImpl implements MetricsInfo {
 
@@ -137,18 +132,6 @@ public class MetricsInfoImpl implements MetricsInfo {
     boolean jvmMetricsEnabled =
         context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED);
 
-    MeterFilter replicationFilter = new MeterFilter() {
-      @Override
-      public DistributionStatisticConfig configure(Meter.Id id,
-          @NonNull DistributionStatisticConfig config) {
-        if (id.getName().equals("replicationQueue")) {
-          return DistributionStatisticConfig.builder().percentiles(0.5, 0.75, 0.9, 0.95, 0.99)
-              .expiry(Duration.ofMinutes(10)).build().merge(config);
-        }
-        return config;
-      }
-    };
-
     // user specified registries
     String userRegistryFactories =
         context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY);
@@ -156,7 +139,6 @@ public class MetricsInfoImpl implements MetricsInfo {
     for (String factoryName : getTrimmedStrings(userRegistryFactories)) {
       try {
         MeterRegistry registry = getRegistryFromFactory(factoryName, context);
-        registry.config().meterFilter(replicationFilter);
         registry.config().commonTags(commonTags);
         Metrics.globalRegistry.add(registry);
       } catch (ReflectiveOperationException ex) {
