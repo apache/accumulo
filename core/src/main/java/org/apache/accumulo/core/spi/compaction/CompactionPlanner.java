@@ -81,9 +81,8 @@ public interface CompactionPlanner {
    */
   public interface PlanningParameters {
 
-    
     NamespaceId getNamespaceId() throws TableNotFoundException;
-    
+
     /**
      * @return The id of the table that compactions are being planned for.
      * @see ServiceEnvironment#getTableName(TableId)

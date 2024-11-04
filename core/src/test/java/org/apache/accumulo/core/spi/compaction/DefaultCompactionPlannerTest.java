@@ -744,7 +744,6 @@ public class DefaultCompactionPlannerTest {
       CompactionKind kind, Configuration conf) {
     return new CompactionPlanner.PlanningParameters() {
 
-      
       @Override
       public NamespaceId getNamespaceId() throws TableNotFoundException {
         return Namespace.ACCUMULO.id();
