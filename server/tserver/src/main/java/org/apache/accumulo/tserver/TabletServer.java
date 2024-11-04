@@ -585,8 +585,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       throw new RuntimeException("Failed to start the tablet client service", e1);
     }
 
-    MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), clientAddress, getResourceGroup());
+    MetricsInfo metricsInfo = context.getMetricsInfo();
+
     metrics = new TabletServerMetrics(this);
     updateMetrics = new TabletServerUpdateMetrics();
     scanMetrics = new TabletServerScanMetrics(this.resourceManager::getOpenFiles);
@@ -598,7 +598,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
         pausedMetrics, blockCacheMetrics);
-    metricsInfo.init();
+    metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
+        clientAddress, getResourceGroup()));
 
     announceExistence();
     getContext().setServiceLock(tabletServerLock);

@@ -29,6 +29,7 @@ import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -135,6 +136,7 @@ import com.google.common.net.HostAndPort;
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
 
 public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface {
 
@@ -678,6 +680,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     return sleepTime;
   }
 
+  protected Collection<Tag> getServiceTags(HostAndPort clientAddress) {
+    return MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        clientAddress, getResourceGroup());
+  }
+
   @Override
   public void run() {
 
@@ -696,10 +703,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     this.getContext().setServiceLock(compactorLock);
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), clientAddress, getResourceGroup());
 
     metricsInfo.addMetricsProducers(this, pausedMetrics);
-    metricsInfo.init();
+    metricsInfo.init(getServiceTags(clientAddress));
 
     var watcher = new CompactionWatcher(getConfiguration());
     var schedExecutor = ThreadPools.getServerThreadPools()

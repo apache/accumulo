@@ -158,6 +158,10 @@ public class QueueMetrics implements MetricsProducer {
     // read the volatile variable once so the rest of the method has consistent view
     var localRegistry = meterRegistry;
 
+    if (localRegistry == null) {
+      return;
+    }
+
     if (queueCountMeter == null) {
       queueCountMeter = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUES.getName(), compactionJobQueues,
