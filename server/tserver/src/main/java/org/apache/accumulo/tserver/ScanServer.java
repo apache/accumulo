@@ -104,6 +104,7 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.metrics.*;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -208,6 +209,8 @@ public class ScanServer extends AbstractServer
 
   private final ZooCache managerLockCache;
 
+  final PerTableMetrics.ActiveTableIdTracker activeTableIdTracker;
+
   public ScanServer(ConfigOpts opts, String[] args) {
     super("sserver", opts, ServerContext::new, args);
 
@@ -282,6 +285,13 @@ public class ScanServer extends AbstractServer
         .scheduleWithFixedDelay(() -> cleanUpReservedFiles(scanServerReservationExpiration),
             scanServerReservationExpiration, scanServerReservationExpiration,
             TimeUnit.MILLISECONDS));
+
+    // The following will read through everything in the cache which could update the access time of
+    // everything which is not desired for this use case, however the cache is expire after write
+    // and not expire after access so its probably ok.
+    Supplier<Set<TableId>> activeTables = () -> tabletMetadataCache.asMap().keySet().stream()
+        .map(KeyExtent::tableId).collect(Collectors.toUnmodifiableSet());
+    activeTableIdTracker = new PerTableMetrics.ActiveTableIdTracker(context, activeTables);
 
   }
 
@@ -411,12 +421,8 @@ public class ScanServer extends AbstractServer
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
-    // The following will read through everything in the cache which could update the access time of
-    // everything which is not desired for this use case, however the cache is expire after write
-    // and not expire after access so its probably ok.
-    Supplier<Set<TableId>> activeTables = () -> tabletMetadataCache.asMap().keySet().stream()
-        .map(KeyExtent::tableId).collect(Collectors.toSet());
-    scanMetrics = new TabletServerScanMetrics(context, activeTables, resourceManager::getOpenFiles);
+    scanMetrics =
+        new TabletServerScanMetrics(context, activeTableIdTracker, resourceManager::getOpenFiles);
     sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);
     scanServerMetrics = new ScanServerMetrics(tabletMetadataCache);
     blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),
@@ -489,12 +495,20 @@ public class ScanServer extends AbstractServer
   }
 
   @SuppressWarnings("unchecked")
-  private Map<KeyExtent,TabletMetadata> getTabletMetadata(Collection<KeyExtent> extents) {
+  private Map<KeyExtent,TabletMetadata> getTabletMetadata(Set<KeyExtent> extents) {
     if (tabletMetadataCache == null) {
+      activeTableIdTracker.tabletsLoaded(extents);
       return (Map<KeyExtent,TabletMetadata>) tabletMetadataLoader
           .loadAll((Set<? extends KeyExtent>) extents);
     } else {
-      return tabletMetadataCache.getAll(extents);
+      var tabletMetadata = tabletMetadataCache.getAll(extents);
+      // The cache does not have a mechanism to notify of things that were loaded like it does for
+      // evictions. There is a load handler passed to the cache, but this is called prior to
+      // something being loaded. Want to call the per table metrics tracking code after the new
+      // extent is loaded in the cache. The following method call is cheap if a table id for an
+      // extent is already being tracked, so its ok to call it for each cache access.
+      activeTableIdTracker.tabletsLoaded(extents);
+      return tabletMetadata;
     }
   }
 
@@ -575,7 +589,7 @@ public class ScanServer extends AbstractServer
    * All extents passed in should end up in either the returned map or the failures set, but no
    * extent should be in both.
    */
-  private Map<KeyExtent,TabletMetadata> reserveFilesInner(Collection<KeyExtent> extents,
+  private Map<KeyExtent,TabletMetadata> reserveFilesInner(Set<KeyExtent> extents,
       long myReservationId, Set<KeyExtent> failures) throws AccumuloException {
     // RFS is an acronym for Reference files for scan
     LOG.debug("RFFS {} ensuring files are referenced for scan of extents {}", myReservationId,

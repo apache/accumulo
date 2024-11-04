@@ -69,7 +69,7 @@ public class TabletServerMetrics extends PerTableMetrics<TabletServerMetrics.Tab
   }
 
   public TabletServerMetrics(TabletServer tserver) {
-    super(tserver.getContext(), tserver::getOnlineTableIds);
+    super(tserver.getContext(), tserver.getActiveTableIdTracker());
     util = new TabletServerMetricsUtil(tserver);
   }
 

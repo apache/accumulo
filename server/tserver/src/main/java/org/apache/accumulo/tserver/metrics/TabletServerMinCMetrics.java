@@ -23,9 +23,7 @@ import static org.apache.accumulo.core.metrics.Metric.MINC_RUNNING;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -49,9 +47,8 @@ public class TabletServerMinCMetrics extends PerTableMetrics<TabletServerMinCMet
     return log;
   }
 
-  public TabletServerMinCMetrics(ServerContext context,
-      Supplier<Set<TableId>> activeTableSupplier) {
-    super(context, activeTableSupplier);
+  public TabletServerMinCMetrics(ServerContext context, ActiveTableIdTracker activeTableIdTracker) {
+    super(context, activeTableIdTracker);
   }
 
   public static class TableMetrics {

@@ -24,14 +24,17 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.*;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.threads.*;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 
@@ -65,21 +68,113 @@ public abstract class PerTableMetrics<T> implements MetricsProducer {
     }
   }
 
-  private final boolean perTableActive;
-  private final Supplier<Set<TableId>> activeTables;
+  private final ActiveTableIdTracker activeTableIdTracker;
   private final ConcurrentHashMap<TableId,TableMetricsInfo<T>> perTableMetrics =
       new ConcurrentHashMap<>();
   private T allTableMetrics;
   private volatile MeterRegistry registry;
 
-  public PerTableMetrics(ServerContext context, Supplier<Set<TableId>> activeTableSupplier) {
-    activeTables = activeTableSupplier;
-    perTableActive =
-        context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_TABLE_METRICS_ENABLED);
-    this.context = context;
-    if (perTableActive) {
-      context.getScheduledExecutor().scheduleAtFixedRate(this::refresh, 30, 30, TimeUnit.SECONDS);
+  /**
+   * Tracks the active set of table ids in a scan server or tablet server for the purpose of per
+   * table metrics.
+   *
+   * <p>
+   * Each tablet or scan server should create a single instance of this object and pass it to all
+   * {@link PerTableMetrics} objects.
+   * </p>
+   *
+   * <p>
+   * This class does not offer a tabletUnloaded method because there is no efficient way to compute
+   * this. For more detail see {@link #tabletLoaded(KeyExtent)}
+   * </p>
+   *
+   */
+  public static class ActiveTableIdTracker {
+
+    private final List<PerTableMetrics<?>> listeners = new ArrayList<>();
+    private final Supplier<Set<TableId>> activeTableSupplier;
+    private final AtomicReference<Set<TableId>> currentTableIds;
+    private final boolean perTableActive;
+
+    /**
+     * @param activeTableSupplier this supplier should always return the latest set of table ids
+     *        that exist on the server. This class will take care of caching that set.
+     */
+    public ActiveTableIdTracker(ServerContext context, Supplier<Set<TableId>> activeTableSupplier) {
+      this.activeTableSupplier = activeTableSupplier;
+      this.perTableActive =
+          context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_TABLE_METRICS_ENABLED);
+      if (perTableActive) {
+        // The scan server and tablets servers will make a best effort attempt to call tabletLoaded,
+        // but may not always because of exceptions. This periodic task will ensure changes in the
+        // active set of tableIds are seen. It also handles cleanup of tablet unload for which there
+        // is no explicit notification.
+        var future = context.getScheduledExecutor()
+            .scheduleAtFixedRate(this::checkIfTableIdsChanged, 30, 30, TimeUnit.SECONDS);
+        ThreadPools.watchCriticalScheduledTask(future);
+      }
+      this.currentTableIds = new AtomicReference<>(Set.of());
     }
+
+    private synchronized void addChangeListener(PerTableMetrics<?> listener) {
+      if (perTableActive) {
+        listeners.add(listener);
+      }
+    }
+
+    private synchronized void checkIfTableIdsChanged() {
+      if (!perTableActive) {
+        return;
+      }
+
+      var latest = activeTableSupplier.get();
+      if (!latest.equals(currentTableIds.get())) {
+        currentTableIds.set(Set.copyOf(latest));
+        listeners.forEach(listener -> listener.refresh(latest));
+      }
+    }
+
+    /**
+     * If the table id for this tablet is not being tracked will notify all per table metrics
+     * implementations of the new table.
+     *
+     * <p>
+     * There is no corresponding tableUnloaded method because implementing it would be inefficient.
+     * When a scan server computes the set of table ids it iterates over all tablets. When a tablet
+     * is unloaded a scan server it could still have other tablets for the same table. On each
+     * tablet unload do not want to iterator over all other tablets to see if the table id is still
+     * active, which is what the implementation of tableUnloaded would do.
+     */
+    public void tabletLoaded(KeyExtent extent) {
+      if (perTableActive && !currentTableIds.get().contains(extent.tableId())) {
+        checkIfTableIdsChanged();
+      }
+    }
+
+    // This method avoids locking unless a table id is unknown. This is important because every scan
+    // on a scan server will call it and locking would introduce thread contention.
+    public void tabletsLoaded(Set<KeyExtent> extents) {
+      if (perTableActive) {
+        var currentSnapshot = currentTableIds.get();
+        for (var extent : extents) {
+          if (!currentSnapshot.contains(extent.tableId())) {
+            checkIfTableIdsChanged();
+            break;
+          }
+        }
+      }
+    }
+
+    public boolean isPerTableMetricsEnabled() {
+      return perTableActive;
+    }
+
+  }
+
+  public PerTableMetrics(ServerContext context, ActiveTableIdTracker activeTableIdTracker) {
+    this.context = context;
+    this.activeTableIdTracker = activeTableIdTracker;
+    this.activeTableIdTracker.addChangeListener(this);
   }
 
   /**
@@ -98,7 +193,7 @@ public abstract class PerTableMetrics<T> implements MetricsProducer {
    *        passed for consistency with
    *        {@link #newPerTableMetrics(MeterRegistry, TableId, Consumer, List)}
    * @param tags currently an empty collection of tags, this is passed for consistency with
-   *        {@link #PerTableMetrics(ServerContext, Supplier)}
+   *        {@link #newPerTableMetrics(MeterRegistry, TableId, Consumer, List)}
    * @return a new object that will be cached and later returned by
    *         {@link #getTableMetrics(TableId)}
    */
@@ -125,7 +220,7 @@ public abstract class PerTableMetrics<T> implements MetricsProducer {
       Consumer<Meter> meters, List<Tag> tags);
 
   private TableMetricsInfo<T> getOrCreateTableMetrics(TableId tableId) {
-    Preconditions.checkState(perTableActive);
+    Preconditions.checkState(activeTableIdTracker.isPerTableMetricsEnabled());
     return perTableMetrics.computeIfAbsent(tableId, tid -> {
       List<Meter> meters = new ArrayList<>();
       T tableMetrics = newPerTableMetrics(registry, tableId, meters::add,
@@ -139,7 +234,7 @@ public abstract class PerTableMetrics<T> implements MetricsProducer {
   public void registerMetrics(MeterRegistry registry) {
     Preconditions.checkState(this.registry == null);
     this.registry = registry;
-    if (!perTableActive) {
+    if (!activeTableIdTracker.isPerTableMetricsEnabled()) {
       this.allTableMetrics = newAllTablesMetrics(registry, m -> {}, List.of());
     }
   }
@@ -147,7 +242,7 @@ public abstract class PerTableMetrics<T> implements MetricsProducer {
   public T getTableMetrics(TableId tableId) {
     Preconditions.checkState(registry != null);
 
-    if (!perTableActive) {
+    if (!activeTableIdTracker.isPerTableMetricsEnabled()) {
       return allTableMetrics;
     }
 
@@ -159,12 +254,10 @@ public abstract class PerTableMetrics<T> implements MetricsProducer {
    * currently have no table metrics object in the cache. It will also remove an per table metrics
    * object from the cache that have been inactive for a while or where the table was deleted.
    */
-  public synchronized void refresh() {
-    if (!perTableActive || registry == null) {
+  private void refresh(Set<TableId> currentActive) {
+    if (!activeTableIdTracker.isPerTableMetricsEnabled() || registry == null) {
       return;
     }
-
-    var currentActive = activeTables.get();
 
     currentActive.forEach(tid -> {
       // This registers metrics for the table if none are currently registered and resets the

@@ -170,7 +170,8 @@ class AssignmentHandler implements Runnable {
         }
       }
 
-      server.refreshMetrics(extent.tableId());
+      // this must be called after server.onlineTablets is updated
+      server.getActiveTableIdTracker().tabletLoaded(extent);
 
       tablet = null; // release this reference
       successful = true;

@@ -36,12 +36,10 @@ import static org.apache.accumulo.core.metrics.Metric.SCAN_ZOMBIE_THREADS;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 import java.util.function.IntSupplier;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
@@ -180,8 +178,8 @@ public class TabletServerScanMetrics extends PerTableMetrics<TabletServerScanMet
   }
 
   public TabletServerScanMetrics(ServerContext serverContext,
-      Supplier<Set<TableId>> activeTableSupplier, IntSupplier openFileSupplier) {
-    super(serverContext, activeTableSupplier);
+      ActiveTableIdTracker activeTableIdTracker, IntSupplier openFileSupplier) {
+    super(serverContext, activeTableIdTracker);
     openFiles = openFileSupplier;
   }
 

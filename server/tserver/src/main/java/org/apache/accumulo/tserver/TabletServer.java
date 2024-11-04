@@ -122,6 +122,7 @@ import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
+import org.apache.accumulo.server.metrics.*;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -170,13 +171,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   TabletServerMinCMetrics mincMetrics;
   PausedCompactionMetrics pausedMetrics;
   BlockCacheMetrics blockCacheMetrics;
+  private final PerTableMetrics.ActiveTableIdTracker activeTableIdTracker;
 
-  public void refreshMetrics(TableId tableId) {
-    // setup per table metrics for tables if not already setup
-    metrics.getTableMetrics(tableId);
-    scanMetrics.getTableMetrics(tableId);
-    updateMetrics.getTableMetrics(tableId);
-    mincMetrics.getTableMetrics(tableId);
+  public PerTableMetrics.ActiveTableIdTracker getActiveTableIdTracker() {
+    return activeTableIdTracker;
   }
 
   @Override
@@ -348,6 +346,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       authKeyWatcher = null;
     }
     config();
+
+    activeTableIdTracker = new PerTableMetrics.ActiveTableIdTracker(context,
+        () -> onlineTablets.perTableSnapshot().keySet());
   }
 
   @Override
@@ -592,13 +593,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     MetricsInfo metricsInfo = context.getMetricsInfo();
 
     metrics = new TabletServerMetrics(this);
-    updateMetrics =
-        new TabletServerUpdateMetrics(context, () -> onlineTablets.perTableSnapshot().keySet());
-    scanMetrics = new TabletServerScanMetrics(context,
-        () -> onlineTablets.perTableSnapshot().keySet(), this.resourceManager::getOpenFiles);
+    updateMetrics = new TabletServerUpdateMetrics(context, activeTableIdTracker);
+    scanMetrics = new TabletServerScanMetrics(context, activeTableIdTracker,
+        this.resourceManager::getOpenFiles);
     sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);
-    mincMetrics =
-        new TabletServerMinCMetrics(context, () -> onlineTablets.perTableSnapshot().keySet());
+    mincMetrics = new TabletServerMinCMetrics(context, activeTableIdTracker);
     pausedMetrics = new PausedCompactionMetrics();
     blockCacheMetrics = new BlockCacheMetrics(this.resourceManager.getIndexCache(),
         this.resourceManager.getDataCache(), this.resourceManager.getSummaryCache());

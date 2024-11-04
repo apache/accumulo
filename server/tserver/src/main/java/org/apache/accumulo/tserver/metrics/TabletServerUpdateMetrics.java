@@ -26,10 +26,8 @@ import static org.apache.accumulo.core.metrics.Metric.UPDATE_WALOG_WRITE;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -61,8 +59,8 @@ public class TabletServerUpdateMetrics
   private Timer commitTimeStat = NoopMetrics.useNoopTimer();
 
   public TabletServerUpdateMetrics(ServerContext context,
-      Supplier<Set<TableId>> activeTableSupplier) {
-    super(context, activeTableSupplier);
+      ActiveTableIdTracker activeTableIdTracker) {
+    super(context, activeTableIdTracker);
   }
 
   public static class TableMetrics {
