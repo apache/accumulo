@@ -105,7 +105,8 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
     void delete();
 
     /**
-     * Force remove the transaction from the store. Only to be used by {@link AdminUtil}
+     * Force remove the transaction from the store regardless of the status. Only to be used by
+     * {@link AdminUtil}
      */
     void forceDelete();
 
