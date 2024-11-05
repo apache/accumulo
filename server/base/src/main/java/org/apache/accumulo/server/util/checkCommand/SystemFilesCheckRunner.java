@@ -33,9 +33,9 @@ public class SystemFilesCheckRunner implements CheckRunner {
     Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
     printRunning();
 
-    System.out.println("\n********** Looking for missing system files **********\n");
+    log.trace("********** Looking for missing system files **********");
     if (RemoveEntriesForMissingFiles.checkTable(context, AccumuloTable.METADATA.tableName(),
-        fixFiles) != 0) {
+        fixFiles, log::trace, log::warn) != 0) {
       status = Admin.CheckCommand.CheckStatus.FAILED;
     }
 

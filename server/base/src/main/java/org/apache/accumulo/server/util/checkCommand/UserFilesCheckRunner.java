@@ -35,12 +35,13 @@ public class UserFilesCheckRunner implements CheckRunner {
     Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
     printRunning();
 
-    System.out.println("\n********** Looking for missing user files **********\n");
+    log.trace("********** Looking for missing user files **********");
     for (String tableName : context.tableOperations().list()) {
       var tableId = context.getTableId(tableName);
       if (!AccumuloTable.allTableIds().contains(context.getTableId(tableName))) {
-        System.out.printf("Checking table %s (%s) for missing files\n", tableName, tableId);
-        if (RemoveEntriesForMissingFiles.checkTable(context, tableName, fixFiles) != 0) {
+        log.trace("Checking table {} ({}) for missing files\n", tableName, tableId);
+        if (RemoveEntriesForMissingFiles.checkTable(context, tableName, fixFiles, log::trace,
+            log::warn) != 0) {
           status = Admin.CheckCommand.CheckStatus.FAILED;
         }
       }

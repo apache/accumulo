@@ -86,6 +86,7 @@ import org.apache.accumulo.server.util.checkCommand.RootMetadataCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.RootTableCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.SystemConfigCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.SystemFilesCheckRunner;
+import org.apache.accumulo.server.util.checkCommand.TableLocksCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.UserFilesCheckRunner;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -163,6 +164,9 @@ public class Admin implements KeywordExecutable {
       // Caution should be taken when changing or adding any new checks: order is important
       SYSTEM_CONFIG(SystemConfigCheckRunner::new, "Validate the system config stored in ZooKeeper",
           Collections.emptyList()),
+      TABLE_LOCKS(TableLocksCheckRunner::new,
+          "Ensures that table and namespace locks are valid and are associated with a FATE op",
+          Collections.singletonList(SYSTEM_CONFIG)),
       ROOT_METADATA(RootMetadataCheckRunner::new,
           "Checks integrity of the root tablet metadata stored in ZooKeeper",
           Collections.singletonList(SYSTEM_CONFIG)),
@@ -1025,14 +1029,14 @@ public class Admin implements KeywordExecutable {
 
   private static void listChecks() {
     System.out.println();
-    System.out.printf("%-20s | %-80s | %-20s%n", "Check Name", "Description", "Depends on");
-    System.out.println("-".repeat(120));
+    System.out.printf("%-20s | %-90s | %-20s%n", "Check Name", "Description", "Depends on");
+    System.out.println("-".repeat(130));
     for (CheckCommand.Check check : CheckCommand.Check.values()) {
-      System.out.printf("%-20s | %-80s | %-20s%n", check.name(), check.getDescription(),
+      System.out.printf("%-20s | %-90s | %-20s%n", check.name(), check.getDescription(),
           check.getDependencies().stream().map(CheckCommand.Check::name)
               .collect(Collectors.joining(", ")));
     }
-    System.out.println("-".repeat(120));
+    System.out.println("-".repeat(130));
     System.out.println();
   }
 

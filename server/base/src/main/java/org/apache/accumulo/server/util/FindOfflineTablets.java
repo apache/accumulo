@@ -21,6 +21,7 @@ package org.apache.accumulo.server.util;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
@@ -55,14 +56,15 @@ public class FindOfflineTablets {
     Span span = TraceUtil.startSpan(FindOfflineTablets.class, "main");
     try (Scope scope = span.makeCurrent()) {
       ServerContext context = opts.getServerContext();
-      findOffline(context, null, false, false);
+      findOffline(context, null, false, false, System.out::println, System.out::println);
     } finally {
       span.end();
     }
   }
 
   public static int findOffline(ServerContext context, String tableName, boolean skipZkScan,
-      boolean skipRootScan) throws TableNotFoundException {
+      boolean skipRootScan, Consumer<String> printInfoMethod, Consumer<String> printProblemMethod)
+      throws TableNotFoundException {
 
     final AtomicBoolean scanning = new AtomicBoolean(false);
 
@@ -87,8 +89,8 @@ public class FindOfflineTablets {
     int offline = 0;
 
     if (!skipZkScan) {
-      System.out.println("Scanning zookeeper");
-      if ((offline = checkTablets(context, zooScanner, tservers)) > 0) {
+      printInfoMethod.accept("Scanning zookeeper");
+      if ((offline = checkTablets(context, zooScanner, tservers, printProblemMethod)) > 0) {
         return offline;
       }
     }
@@ -98,10 +100,10 @@ public class FindOfflineTablets {
     }
 
     if (!skipRootScan) {
-      System.out.println("Scanning " + AccumuloTable.ROOT.tableName());
+      printInfoMethod.accept("Scanning " + AccumuloTable.ROOT.tableName());
       Iterator<TabletLocationState> rootScanner = new MetaDataTableScanner(context,
           TabletsSection.getRange(), AccumuloTable.ROOT.tableName());
-      if ((offline = checkTablets(context, rootScanner, tservers)) > 0) {
+      if ((offline = checkTablets(context, rootScanner, tservers, printProblemMethod)) > 0) {
         return offline;
       }
     }
@@ -110,7 +112,7 @@ public class FindOfflineTablets {
       return 0;
     }
 
-    System.out.println("Scanning " + AccumuloTable.METADATA.tableName());
+    printInfoMethod.accept("Scanning " + AccumuloTable.METADATA.tableName());
 
     Range range = TabletsSection.getRange();
     if (tableName != null) {
@@ -120,12 +122,12 @@ public class FindOfflineTablets {
 
     try (MetaDataTableScanner metaScanner =
         new MetaDataTableScanner(context, range, AccumuloTable.METADATA.tableName())) {
-      return checkTablets(context, metaScanner, tservers);
+      return checkTablets(context, metaScanner, tservers, printProblemMethod);
     }
   }
 
   private static int checkTablets(ServerContext context, Iterator<TabletLocationState> scanner,
-      LiveTServerSet tservers) {
+      LiveTServerSet tservers, Consumer<String> printProblemMethod) {
     int offline = 0;
 
     while (scanner.hasNext() && !System.out.checkError()) {
@@ -134,8 +136,8 @@ public class FindOfflineTablets {
       if (state != null && state != TabletState.HOSTED
           && context.getTableManager().getTableState(locationState.extent.tableId())
               != TableState.OFFLINE) {
-        System.out
-            .println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
+        printProblemMethod
+            .accept(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
         offline++;
       }
     }

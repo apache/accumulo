@@ -74,17 +74,18 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
     Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
     printRunning();
 
-    System.out.println("\n********** Looking for offline tablets **********\n");
-    if (FindOfflineTablets.findOffline(context, AccumuloTable.ROOT.tableName(), false, true) != 0) {
+    log.trace("********** Looking for offline tablets **********");
+    if (FindOfflineTablets.findOffline(context, AccumuloTable.ROOT.tableName(), false, true,
+        log::trace, log::warn) != 0) {
       status = Admin.CheckCommand.CheckStatus.FAILED;
     } else {
-      System.out.println("All good... No offline tablets found");
+      log.trace("All good... No offline tablets found");
     }
 
-    System.out.println("\n********** Looking for missing columns **********\n");
+    log.trace("********** Looking for missing columns **********");
     status = checkRequiredColumns(context, status);
 
-    System.out.println("\n********** Looking for invalid columns **********\n");
+    log.trace("********** Looking for invalid columns **********");
     final String path = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
     final String json = new String(context.getZooReader().getData(path), UTF_8);
     final var rtm = new RootTabletMetadata(json);
@@ -105,7 +106,7 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
     final Set<ColumnFQ> requiredColFQs = new HashSet<>(requiredColFQs());
     final Set<Text> requiredColFams = new HashSet<>(requiredColFams());
 
-    System.out.printf("Scanning the %s for missing required columns...\n", scanning());
+    log.trace("Scanning the {} for missing required columns...\n", scanning());
     rtm.toKeyValues().forEach(e -> {
       var key = e.getKey();
       rowsSeen.add(key.getRow());
@@ -118,17 +119,15 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
 
     if (rowsSeen.size() != 1) {
       status = Admin.CheckCommand.CheckStatus.FAILED;
-      System.out.println("Did not see one tablet for the root table!");
+      log.warn("Did not see one tablet for the root table!");
     } else {
       if (!requiredColFQs.isEmpty() || !requiredColFams.isEmpty()) {
-        System.out.printf(
-            "Tablet %s is missing required columns: col FQs: %s, col fams: %s in the %s\n",
+        log.warn("Tablet {} is missing required columns: col FQs: {}, col fams: {} in the {}\n",
             rowsSeen.stream().findFirst().orElseThrow(), requiredColFQs, requiredColFams,
             scanning());
         status = Admin.CheckCommand.CheckStatus.FAILED;
       } else {
-        System.out.printf("...The %s contains all required columns for the root tablet\n",
-            scanning());
+        log.trace("...The {} contains all required columns for the root tablet\n", scanning());
       }
     }
 

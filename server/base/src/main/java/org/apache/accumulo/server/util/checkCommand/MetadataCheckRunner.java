@@ -70,11 +70,12 @@ public interface MetadataCheckRunner extends CheckRunner {
     Set<Text> requiredColFams;
     boolean missingReqCol = false;
 
-    System.out.printf("Scanning the %s for missing required columns...\n", scanning());
+    log.trace("Scanning the {} for missing required columns...\n", scanning());
     try (Scanner scanner = context.createScanner(tableName(), Authorizations.EMPTY)) {
       var is = new IteratorSetting(100, "tablets", WholeRowIterator.class);
       scanner.addScanIterator(is);
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
+      fetchRequiredColumns(scanner);
       for (var entry : scanner) {
         requiredColFQs = new HashSet<>(requiredColFQs());
         requiredColFams = new HashSet<>(requiredColFams());
@@ -93,8 +94,7 @@ public interface MetadataCheckRunner extends CheckRunner {
           }
         }
         if (!requiredColFQs.isEmpty() || !requiredColFams.isEmpty()) {
-          System.out.printf(
-              "Tablet %s is missing required columns: col FQs: %s, col fams: %s in the %s\n",
+          log.warn("Tablet {} is missing required columns: col FQs: {}, col fams: {} in the {}\n",
               entry.getKey().getRow(), requiredColFQs, requiredColFams, scanning());
           status = Admin.CheckCommand.CheckStatus.FAILED;
           missingReqCol = true;
@@ -103,7 +103,7 @@ public interface MetadataCheckRunner extends CheckRunner {
     }
 
     if (!missingReqCol) {
-      System.out.printf("...The %s contains all required columns for all tablets\n", scanning());
+      log.trace("...The {} contains all required columns for all tablets\n", scanning());
     }
     return status;
   }
@@ -114,11 +114,11 @@ public interface MetadataCheckRunner extends CheckRunner {
    */
   default Admin.CheckCommand.CheckStatus checkColumns(ServerContext context,
       Iterator<AbstractMap.SimpleImmutableEntry<Key,Value>> iter,
-      Admin.CheckCommand.CheckStatus status)
-      throws TableNotFoundException, InterruptedException, KeeperException {
+      Admin.CheckCommand.CheckStatus status) {
     boolean invalidCol = false;
+    MetadataConstraints mc = new MetadataConstraints();
 
-    System.out.printf("Scanning the %s for invalid columns...\n", scanning());
+    log.trace("Scanning the {} for invalid columns...\n", scanning());
     while (iter.hasNext()) {
       var entry = iter.next();
       Key key = entry.getKey();
@@ -127,20 +127,27 @@ public interface MetadataCheckRunner extends CheckRunner {
       m.at().family(key.getColumnFamily()).qualifier(key.getColumnQualifier())
           .visibility(key.getColumnVisibility()).timestamp(key.getTimestamp())
           .put(entry.getValue());
-      MetadataConstraints mc = new MetadataConstraints();
       var violations = mc.check(new ConstraintEnv(context), m);
       if (!violations.isEmpty()) {
-        violations.forEach(
-            violationCode -> System.out.println(mc.getViolationDescription(violationCode)));
+        violations.forEach(violationCode -> log.warn(mc.getViolationDescription(violationCode)));
         status = Admin.CheckCommand.CheckStatus.FAILED;
         invalidCol = true;
       }
     }
 
     if (!invalidCol) {
-      System.out.printf("...All columns in the %s are valid\n", scanning());
+      log.trace("...All columns in the {} are valid\n", scanning());
     }
     return status;
+  }
+
+  default void fetchRequiredColumns(Scanner scanner) {
+    for (var reqColFQ : requiredColFQs()) {
+      scanner.fetchColumn(reqColFQ.getColumnFamily(), reqColFQ.getColumnQualifier());
+    }
+    for (var reqColFam : requiredColFams()) {
+      scanner.fetchColumnFamily(reqColFam);
+    }
   }
 
   /**

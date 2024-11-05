@@ -21,8 +21,11 @@ package org.apache.accumulo.server.util.checkCommand;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public interface CheckRunner {
+  Logger log = LoggerFactory.getLogger(CheckRunner.class);
 
   /**
    * Runs the check
@@ -44,17 +47,15 @@ public interface CheckRunner {
 
   default void printRunning() {
     String running = "Running check " + getCheck();
-    System.out.println();
-    System.out.println("-".repeat(running.length()));
-    System.out.println(running);
-    System.out.println("-".repeat(running.length()));
+    log.trace("-".repeat(running.length()));
+    log.trace(running);
+    log.trace("-".repeat(running.length()));
   }
 
   default void printCompleted(Admin.CheckCommand.CheckStatus status) {
     String completed = "Check " + getCheck() + " completed with status " + status;
-    System.out.println();
-    System.out.println("-".repeat(completed.length()));
-    System.out.println(completed);
-    System.out.println("-".repeat(completed.length()));
+    log.trace("-".repeat(completed.length()));
+    log.trace(completed);
+    log.trace("-".repeat(completed.length()));
   }
 }

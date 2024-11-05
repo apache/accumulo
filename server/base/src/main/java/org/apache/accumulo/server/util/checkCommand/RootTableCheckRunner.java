@@ -66,23 +66,24 @@ public class RootTableCheckRunner implements MetadataCheckRunner {
     Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
     printRunning();
 
-    System.out.println("\n********** Looking for offline tablets **********\n");
-    if (FindOfflineTablets.findOffline(context, AccumuloTable.METADATA.tableName(), true, false)
-        != 0) {
+    log.trace("********** Looking for offline tablets **********");
+    if (FindOfflineTablets.findOffline(context, AccumuloTable.METADATA.tableName(), true, false,
+        log::trace, log::warn) != 0) {
       status = Admin.CheckCommand.CheckStatus.FAILED;
     } else {
-      System.out.println("All good... No offline tablets found");
+      log.trace("All good... No offline tablets found");
     }
 
-    System.out.println("\n********** Checking some references **********\n");
-    if (CheckForMetadataProblems.checkMetadataAndRootTableEntries(tableName(), opts)) {
+    log.trace("********** Checking some references **********");
+    if (CheckForMetadataProblems.checkMetadataAndRootTableEntries(tableName(), opts, log::trace,
+        log::warn)) {
       status = Admin.CheckCommand.CheckStatus.FAILED;
     }
 
-    System.out.println("\n********** Looking for missing columns **********\n");
+    log.trace("********** Looking for missing columns **********");
     status = checkRequiredColumns(context, status);
 
-    System.out.println("\n********** Looking for invalid columns **********\n");
+    log.trace("********** Looking for invalid columns **********");
     try (Scanner scanner = context.createScanner(tableName(), Authorizations.EMPTY)) {
       status = checkColumns(context,
           scanner.stream().map(AbstractMap.SimpleImmutableEntry::new).iterator(), status);
