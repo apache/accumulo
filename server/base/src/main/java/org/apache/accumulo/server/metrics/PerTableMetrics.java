@@ -231,6 +231,7 @@ public abstract class PerTableMetrics<T> implements MetricsProducer {
     });
   }
 
+  @Override
   public void registerMetrics(MeterRegistry registry) {
     Preconditions.checkState(this.registry == null);
     this.registry = registry;
