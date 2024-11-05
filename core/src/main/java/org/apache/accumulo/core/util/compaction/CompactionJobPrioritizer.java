@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -36,52 +37,80 @@ import com.google.common.base.Preconditions;
 
 public class CompactionJobPrioritizer {
 
+  public static class PriorityRange {
+    static PriorityRange of(Short min, Short max) {
+      return new PriorityRange(min, max);
+    }
+
+    final Short min;
+    final Short max;
+
+    private PriorityRange(Short min, Short max) {
+      this.min = min;
+      this.max = max;
+    }
+
+    public Short getMin() {
+      return this.min;
+    }
+
+    public Short getMax() {
+      return this.max;
+    }
+  }
+
   public static final Comparator<CompactionJob> JOB_COMPARATOR =
       Comparator.comparingInt(CompactionJob::getPriority)
           .thenComparingInt(job -> job.getFiles().size()).reversed();
 
-  private static final Map<Pair<TableId,CompactionKind>,Pair<Short,Short>> SYSTEM_TABLE_RANGES =
+  private static final Map<Pair<TableId,CompactionKind>,PriorityRange> SYSTEM_TABLE_RANGES =
       new HashMap<>();
   private static final Map<Pair<NamespaceId,CompactionKind>,
-      Pair<Short,Short>> ACCUMULO_NAMESPACE_RANGES = new HashMap<>();
+      PriorityRange> ACCUMULO_NAMESPACE_RANGES = new HashMap<>();
 
   // Create ranges of possible priority values where each range has
-  // 2000 possible values. Give higher priority to tables where
-  // they have more files than allowed, user compactions over system
-  // compactions, root table over metadata table, metadata table over
-  // other system tables and user tables.
-  private static final Short TABLE_OVER_SIZE_MAX = Short.MAX_VALUE;
-  private static final Short ROOT_TABLE_USER_MAX = Short.MAX_VALUE - 2001;
+  // 2000 possible values. Priority order is:
+  // root table user initiated
+  // root table system initiated
+  // metadata table user initiated
+  // metadata table system initiated
+  // other tables in accumulo namespace user initiated
+  // other tables in accumulo namespace system initiated
+  // user tables that have more files that configured system initiated
+  // user tables user initiated
+  // user tables system initiated
+  private static final Short ROOT_TABLE_USER_MAX = Short.MAX_VALUE;
   private static final Short ROOT_TABLE_SYSTEM_MAX = (short) (ROOT_TABLE_USER_MAX - 2001);
   private static final Short META_TABLE_USER_MAX = (short) (ROOT_TABLE_SYSTEM_MAX - 2001);
   private static final Short META_TABLE_SYSTEM_MAX = (short) (META_TABLE_USER_MAX - 2001);
   private static final Short SYSTEM_NS_USER_MAX = (short) (META_TABLE_SYSTEM_MAX - 2001);
   private static final Short SYSTEM_NS_SYSTEM_MAX = (short) (SYSTEM_NS_USER_MAX - 2001);
-  private static final Short USER_TABLE_USER_MAX = (short) (SYSTEM_NS_SYSTEM_MAX - 2001);
+  private static final Short TABLE_OVER_SIZE_MAX = (short) (SYSTEM_NS_SYSTEM_MAX - 2001);
+  private static final Short USER_TABLE_USER_MAX = (short) (TABLE_OVER_SIZE_MAX - 2001);
   private static final Short USER_TABLE_SYSTEM_MAX = 0;
 
-  static final Pair<Short,Short> TABLE_OVER_SIZE =
-      new Pair<>((short) (ROOT_TABLE_USER_MAX + 1), TABLE_OVER_SIZE_MAX);
+  static final PriorityRange ROOT_TABLE_USER =
+      PriorityRange.of((short) (ROOT_TABLE_SYSTEM_MAX + 1), ROOT_TABLE_USER_MAX);
+  static final PriorityRange ROOT_TABLE_SYSTEM =
+      PriorityRange.of((short) (META_TABLE_USER_MAX + 1), ROOT_TABLE_SYSTEM_MAX);
 
-  static final Pair<Short,Short> ROOT_TABLE_USER =
-      new Pair<>((short) (ROOT_TABLE_SYSTEM_MAX + 1), ROOT_TABLE_USER_MAX);
-  static final Pair<Short,Short> ROOT_TABLE_SYSTEM =
-      new Pair<>((short) (META_TABLE_USER_MAX + 1), ROOT_TABLE_SYSTEM_MAX);
+  static final PriorityRange METADATA_TABLE_USER =
+      PriorityRange.of((short) (META_TABLE_SYSTEM_MAX + 1), META_TABLE_USER_MAX);
+  static final PriorityRange METADATA_TABLE_SYSTEM =
+      PriorityRange.of((short) (SYSTEM_NS_USER_MAX + 1), META_TABLE_SYSTEM_MAX);
 
-  static final Pair<Short,Short> METADATA_TABLE_USER =
-      new Pair<>((short) (META_TABLE_SYSTEM_MAX + 1), META_TABLE_USER_MAX);
-  static final Pair<Short,Short> METADATA_TABLE_SYSTEM =
-      new Pair<>((short) (SYSTEM_NS_USER_MAX + 1), META_TABLE_SYSTEM_MAX);
+  static final PriorityRange SYSTEM_NS_USER =
+      PriorityRange.of((short) (SYSTEM_NS_SYSTEM_MAX + 1), SYSTEM_NS_USER_MAX);
+  static final PriorityRange SYSTEM_NS_SYSTEM =
+      PriorityRange.of((short) (TABLE_OVER_SIZE_MAX + 1), SYSTEM_NS_SYSTEM_MAX);
 
-  static final Pair<Short,Short> SYSTEM_NS_USER =
-      new Pair<>((short) (SYSTEM_NS_SYSTEM_MAX + 1), SYSTEM_NS_USER_MAX);
-  static final Pair<Short,Short> SYSTEM_NS_SYSTEM =
-      new Pair<>((short) (USER_TABLE_USER_MAX + 1), SYSTEM_NS_SYSTEM_MAX);
+  static final PriorityRange TABLE_OVER_SIZE =
+      PriorityRange.of((short) (USER_TABLE_USER_MAX + 1), TABLE_OVER_SIZE_MAX);
 
-  static final Pair<Short,Short> USER_TABLE_USER =
-      new Pair<>((short) (USER_TABLE_SYSTEM_MAX + 1), USER_TABLE_USER_MAX);
-  static final Pair<Short,Short> USER_TABLE_SYSTEM =
-      new Pair<>(Short.MIN_VALUE, USER_TABLE_SYSTEM_MAX);
+  static final PriorityRange USER_TABLE_USER =
+      PriorityRange.of((short) (USER_TABLE_SYSTEM_MAX + 1), USER_TABLE_USER_MAX);
+  static final PriorityRange USER_TABLE_SYSTEM =
+      PriorityRange.of(Short.MIN_VALUE, USER_TABLE_SYSTEM_MAX);
 
   static {
     // root table
@@ -100,8 +129,9 @@ public class CompactionJobPrioritizer {
         SYSTEM_NS_SYSTEM);
   }
 
-  public static short createPriority(NamespaceId nsId, TableId tableId, CompactionKind kind,
-      int totalFiles, int compactingFiles, int maxFilesPerTablet) {
+  public static short createPriority(final NamespaceId nsId, final TableId tableId,
+      final CompactionKind kind, final int totalFiles, final int compactingFiles,
+      final int maxFilesPerTablet) {
 
     Objects.requireNonNull(nsId, "nsId cannot be null");
     Objects.requireNonNull(tableId, "tableId cannot be null");
@@ -109,29 +139,46 @@ public class CompactionJobPrioritizer {
     Preconditions.checkArgument(compactingFiles >= 0, "compactingFiles is negative %s",
         compactingFiles);
 
-    if (totalFiles > maxFilesPerTablet && kind == CompactionKind.SYSTEM) {
-      int priority =
-          TABLE_OVER_SIZE.getFirst() + compactingFiles + (totalFiles - maxFilesPerTablet);
-      if (priority > Short.MAX_VALUE) {
-        return Short.MAX_VALUE;
+    final Function<PriorityRange,Short> normalPriorityFunction = new Function<>() {
+      @Override
+      public Short apply(PriorityRange f) {
+        return (short) Math.min(f.getMax(), f.getMin() + totalFiles + compactingFiles);
       }
-      return (short) priority;
+    };
+
+    final Function<PriorityRange,Short> tabletOverSizeFunction = new Function<>() {
+      @Override
+      public Short apply(PriorityRange f) {
+        return (short) Math.min(f.getMax(),
+            f.getMin() + compactingFiles + (totalFiles - maxFilesPerTablet));
+      }
+    };
+
+    PriorityRange range = null;
+    Function<PriorityRange,Short> func = normalPriorityFunction;
+    if (Namespace.ACCUMULO.id() == nsId) {
+      // Handle system tables
+      range = SYSTEM_TABLE_RANGES.get(new Pair<>(tableId, kind));
+      if (range == null) {
+        range = ACCUMULO_NAMESPACE_RANGES.get(new Pair<>(nsId, kind));
+      }
     } else {
-      Pair<Short,Short> range = null;
-      if (Namespace.ACCUMULO.id() == nsId) {
-        range = SYSTEM_TABLE_RANGES.get(new Pair<>(tableId, kind));
-        if (range == null) {
-          range = ACCUMULO_NAMESPACE_RANGES.get(new Pair<>(nsId, kind));
-        }
+      // Handle user tables
+      if (totalFiles > maxFilesPerTablet && kind == CompactionKind.SYSTEM) {
+        range = TABLE_OVER_SIZE;
+        func = tabletOverSizeFunction;
+      } else if (kind == CompactionKind.SYSTEM || kind == CompactionKind.SELECTOR) {
+        range = USER_TABLE_SYSTEM;
       } else {
-        if (kind == CompactionKind.SYSTEM) {
-          range = USER_TABLE_SYSTEM;
-        } else {
-          range = USER_TABLE_USER;
-        }
+        range = USER_TABLE_USER;
       }
-      return (short) Math.min(range.getSecond(), range.getFirst() + totalFiles + compactingFiles);
     }
+
+    if (range == null) {
+      throw new IllegalStateException(
+          "Error calculating compaction priority for table: " + tableId);
+    }
+    return func.apply(range);
 
   }
 
