@@ -38,6 +38,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import jakarta.ws.rs.NotFoundException;
+
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -72,6 +74,38 @@ import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
 public class InformationFetcher implements RemovalListener<ServerId,MetricResponse>, Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(InformationFetcher.class);
+
+  public static class InstanceSummary {
+    private final String instanceName;
+    private final String instanceUUID;
+    private final Set<String> zooKeepers;
+    private final Set<String> volumes;
+
+    public InstanceSummary(String instanceName, String instanceUUID, Set<String> zooKeepers,
+        Set<String> volumes) {
+      super();
+      this.instanceName = instanceName;
+      this.instanceUUID = instanceUUID;
+      this.zooKeepers = zooKeepers;
+      this.volumes = volumes;
+    }
+
+    public String getInstanceName() {
+      return instanceName;
+    }
+
+    public String getInstanceUUID() {
+      return instanceUUID;
+    }
+
+    public Set<String> getZooKeepers() {
+      return zooKeepers;
+    }
+
+    public Set<String> getVolumes() {
+      return volumes;
+    }
+  }
 
   private static class GcServerId extends ServerId {
     private GcServerId(String resourceGroup, String host, int port) {
@@ -294,6 +328,13 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     return summaryRef.get();
   }
 
+  private void validateResourceGroup(String resourceGroup) {
+    if (getSummary().getResourceGroups().contains(resourceGroup)) {
+      return;
+    }
+    throw new NotFoundException("Resource Group " + resourceGroup + " not found");
+  }
+
   public Set<String> getResourceGroups() {
     return getSummary().getResourceGroups();
   }
@@ -309,7 +350,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   public MetricResponse getManager() {
     final ServerId s = getSummary().getManager();
     if (s == null) {
-      return null;
+      throw new NotFoundException("Manager not found");
     }
     return allMetrics.asMap().get(s);
   }
@@ -317,41 +358,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   public MetricResponse getGarbageCollector() {
     final ServerId s = getSummary().getGarbageCollector();
     if (s == null) {
-      return null;
+      throw new NotFoundException("Garbage Collector not found");
     }
     return allMetrics.asMap().get(s);
-  }
-
-  public static class InstanceSummary {
-    private final String instanceName;
-    private final String instanceUUID;
-    private final Set<String> zooKeepers;
-    private final Set<String> volumes;
-
-    public InstanceSummary(String instanceName, String instanceUUID, Set<String> zooKeepers,
-        Set<String> volumes) {
-      super();
-      this.instanceName = instanceName;
-      this.instanceUUID = instanceUUID;
-      this.zooKeepers = zooKeepers;
-      this.volumes = volumes;
-    }
-
-    public String getInstanceName() {
-      return instanceName;
-    }
-
-    public String getInstanceUUID() {
-      return instanceUUID;
-    }
-
-    public Set<String> getZooKeepers() {
-      return zooKeepers;
-    }
-
-    public Set<String> getVolumes() {
-      return volumes;
-    }
   }
 
   public InstanceSummary getInstanceSummary() {
@@ -362,19 +371,21 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   }
 
   public Collection<MetricResponse> getCompactors(String resourceGroup) {
+    validateResourceGroup(resourceGroup);
     final Set<ServerId> servers = getSummary().getCompactorResourceGroupServers(resourceGroup);
     if (servers == null) {
-      throw new IllegalArgumentException("Resource Group " + resourceGroup + " not found.");
+      return List.of();
     }
     return allMetrics.getAllPresent(servers).values();
   }
 
   public Map<String,CumulativeDistributionSummary>
       getCompactorResourceGroupMetricSummary(String resourceGroup) {
+    validateResourceGroup(resourceGroup);
     final Map<String,CumulativeDistributionSummary> metrics =
         getSummary().getCompactorResourceGroupMetricSummary(resourceGroup);
     if (metrics == null) {
-      throw new IllegalArgumentException("Resource Group " + resourceGroup + " not found.");
+      return Map.of();
     }
     return metrics;
   }
@@ -384,19 +395,21 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   }
 
   public Collection<MetricResponse> getScanServers(String resourceGroup) {
+    validateResourceGroup(resourceGroup);
     final Set<ServerId> servers = getSummary().getSServerResourceGroupServers(resourceGroup);
     if (servers == null) {
-      throw new IllegalArgumentException("Resource Group " + resourceGroup + " not found.");
+      return List.of();
     }
     return allMetrics.getAllPresent(servers).values();
   }
 
   public Map<String,CumulativeDistributionSummary>
       getScanServerResourceGroupMetricSummary(String resourceGroup) {
+    validateResourceGroup(resourceGroup);
     final Map<String,CumulativeDistributionSummary> metrics =
         getSummary().getSServerResourceGroupMetricSummary(resourceGroup);
     if (metrics == null) {
-      throw new IllegalArgumentException("Resource Group " + resourceGroup + " not found.");
+      return Map.of();
     }
     return metrics;
   }
@@ -406,19 +419,21 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   }
 
   public Collection<MetricResponse> getTabletServers(String resourceGroup) {
+    validateResourceGroup(resourceGroup);
     final Set<ServerId> servers = getSummary().getTServerResourceGroupServers(resourceGroup);
     if (servers == null) {
-      throw new IllegalArgumentException("Resource Group " + resourceGroup + " not found.");
+      return List.of();
     }
     return allMetrics.getAllPresent(servers).values();
   }
 
   public Map<String,CumulativeDistributionSummary>
       getTabletServerResourceGroupMetricSummary(String resourceGroup) {
+    validateResourceGroup(resourceGroup);
     final Map<String,CumulativeDistributionSummary> metrics =
         getSummary().getTServerResourceGroupMetricSummary(resourceGroup);
     if (metrics == null) {
-      throw new IllegalArgumentException("Resource Group " + resourceGroup + " not found.");
+      return Map.of();
     }
     return metrics;
   }
