@@ -83,7 +83,7 @@ public interface CompactionPlanner {
 
     /**
      * @return The id of the namespace that the table is assigned to
-     * @throws TableNotFoundException
+     * @throws TableNotFoundException thrown when the namespace for a table cannot be calculated
      * @since 2.1.4
      */
     NamespaceId getNamespaceId() throws TableNotFoundException;
