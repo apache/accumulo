@@ -204,7 +204,7 @@ public class UserFateStoreIT extends SharedMiniClusterBase {
       throws TableNotFoundException {
     try (BatchWriter writer = client.createBatchWriter(table)) {
       Mutation mutation = new Mutation(new Text(fateId.getTxUUIDStr()));
-      FateSchema.TxColumnFamily.STATUS_COLUMN.put(mutation, new Value(status.name()));
+      FateSchema.StatusColumnFamily.STATUS_COLUMN.put(mutation, new Value(status.name()));
       writer.addMutation(mutation);
     } catch (MutationsRejectedException e) {
       throw new RuntimeException(e);

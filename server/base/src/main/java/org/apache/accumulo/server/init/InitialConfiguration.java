@@ -91,8 +91,12 @@ public class InitialConfiguration {
     // Create a locality group that contains status so its fast to scan. When fate looks for work is
     // scans this family.
     initialFateTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "status",
-        FateSchema.TxColumnFamily.STR_NAME);
+        FateSchema.StatusColumnFamily.STR_NAME);
     initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "status");
+
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "reservation",
+        FateSchema.ReservationColumnFamily.STR_NAME);
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "reservation");
 
     initialScanRefTableConf.putAll(commonConfig);
 
