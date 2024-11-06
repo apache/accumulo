@@ -20,7 +20,10 @@
 
 function print_usage {
   cat <<EOF
-Usage: accumulo-cluster <command> (<argument> ...)
+Usage: accumulo-cluster <command> (<argument> ...) [<option> ...]
+
+Options:
+  --dry-run                  Prints information and commands, but does not execute them
 
 Commands:
   create-config              Creates cluster config
@@ -72,6 +75,7 @@ function parse_config {
   ${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser "${conf}"/cluster.yaml "$CONFIG_FILE" || parse_fail
   #shellcheck source=/dev/null
   . "$CONFIG_FILE"
+  [[ -n $DEBUG ]] && echo "Parsed config:" && cat "$CONFIG_FILE" && echo ""
   rm -f "$CONFIG_FILE"
 
   if [[ -z $MANAGER_HOSTS ]]; then
@@ -157,16 +161,33 @@ function control_service() {
       # using the value of $host
       #
       if [[ $# -gt 3 ]]; then
-        ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-a" "$host" "${@:4}"
+        EXTRA_ARGS="${*:4}"
+        if [[ -n $DEBUG ]]; then
+          echo "ACCUMULO_SERVICE_INSTANCE=\"${ACCUMULO_SERVICE_INSTANCE}\" \"${bin}/accumulo-service\" \"$service\" \"$control_cmd\" \"-a\" \"$host\" $EXTRA_ARGS"
+        else
+          ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-a" "$host" "$EXTRA_ARGS"
+        fi
       else
-        ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-a" "$host"
+        if [[ -n $DEBUG ]]; then
+          echo "ACCUMULO_SERVICE_INSTANCE=\"${ACCUMULO_SERVICE_INSTANCE}\" \"${bin}/accumulo-service\" \"$service\" \"$control_cmd\" \"-a\" \"$host\""
+        else
+          ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-a" "$host"
+        fi
       fi
     else
       if [[ $# -gt 3 ]]; then
         EXTRA_ARGS="${*:4}"
-        $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-a\" \"$host\" $EXTRA_ARGS '"
+        if [[ -n $DEBUG ]]; then
+          echo "$SSH \"$host\" \"bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-a\" \"$host\" $EXTRA_ARGS '\""
+        else
+          $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-a\" \"$host\" $EXTRA_ARGS '"
+        fi
       else
-        $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-a\" \"$host\"'"
+        if [[ -n $DEBUG ]]; then
+          echo "$SSH \"$host\" \"bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-a\" \"$host\"'\""
+        else
+          $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-a\" \"$host\"'"
+        fi
       fi
     fi
   done
@@ -420,7 +441,9 @@ function stop_tservers() {
   done
 
   echo "Cleaning tablet server entries from zookeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -tservers
+  if [[ -z $DEBUG ]]; then
+    ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -tservers
+  fi
 }
 
 function kill_all() {
@@ -465,22 +488,25 @@ function kill_all() {
   done
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
+  if [[ -z $DEBUG ]]; then
+    ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
+  fi
 }
 
 function stop_all() {
   echo "Stopping Accumulo cluster..."
-  if ! ${accumulo_cmd} admin stopAll; then
-    echo "Invalid password or unable to connect to the manager"
-    echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
-    sleep 10
-    echo "Initiating forced shutdown in  5 seconds (Ctrl-C to abort)"
-  else
-    echo "Accumulo shut down cleanly"
-    echo "Utilities and unresponsive servers will shut down in 5 seconds (Ctrl-C to abort)"
+  if [[ -z $DEBUG ]]; then
+    if ! ${accumulo_cmd} admin stopAll; then
+      echo "Invalid password or unable to connect to the manager"
+      echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
+      sleep 10
+      echo "Initiating forced shutdown in  5 seconds (Ctrl-C to abort)"
+    else
+      echo "Accumulo shut down cleanly"
+      echo "Utilities and unresponsive servers will shut down in 5 seconds (Ctrl-C to abort)"
+    fi
+    sleep 5
   fi
-
-  sleep 5
 
   # Look for processes not killed by 'admin stopAll'
 
@@ -526,7 +552,9 @@ function stop_all() {
   stop_tservers
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
+  if [[ -z $DEBUG ]]; then
+    ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
+  fi
 }
 
 function stop_here() {
@@ -534,12 +562,20 @@ function stop_here() {
   hosts_to_check=("$(hostname -a 2>/dev/null | head -1)" "$(hostname -f)")
 
   if echo "${TSERVER_HOSTS}" | grep -Eq 'localhost|127[.]0[.]0[.]1'; then
-    ${accumulo_cmd} admin stop localhost
+    if [[ -z $DEBUG ]]; then
+      ${accumulo_cmd} admin stop localhost
+    else
+      echo "Stopping tservers on localhost via admin command"
+    fi
   else
     for host in "${hosts_to_check[@]}"; do
       for tserver in $TSERVER_HOSTS; do
         if echo "$tserver" | grep -q "$host"; then
-          ${accumulo_cmd} admin stop "$host"
+          if [[ -z $DEBUG ]]; then
+            ${accumulo_cmd} admin stop "$host"
+          else
+            echo "Stopping tservers on $host via admin command"
+          fi
         fi
       done
     done
@@ -590,7 +626,22 @@ function main() {
   accumulo_cmd="${bin}/accumulo"
   SSH='ssh -qnf -o ConnectTimeout=2'
 
-  case "$1" in
+  # Copy input arguments into new array
+  # removing any options
+  DEBUG=""
+  i=0
+  declare -a program_args
+  for arg in "$@"; do
+    if [[ "$arg" == "--dry-run" ]]; then
+      DEBUG="true"
+    else
+      program_args[((i++))]="$arg"
+    fi
+  done
+
+  [[ -n $DEBUG ]] && echo "debug: ${DEBUG} args: ${program_args[*]}"
+
+  case "${program_args[0]}" in
     create-config)
       if [[ -f "$conf"/cluster.yaml ]]; then
         echo "ERROR : ${conf}/cluster.yaml already exists, not overwriting"
@@ -684,7 +735,8 @@ EOF
       ;;
     start-servers)
       parse_config
-      case "$2" in
+      subcommand="${program_args[1]}"
+      case "$subcommand" in
         "--all" | "")
           start_all
           ;;
@@ -695,19 +747,20 @@ EOF
           start_all --no-tservers
           ;;
         "--sservers")
-          start_sservers "${@:3}"
+          start_sservers "${program_args:3}"
           ;;
         "--compactors")
-          start_compactors "${@:3}"
+          start_compactors "${program_args:3}"
           ;;
         *)
-          invalid_args "'$2' is an invalid <command>"
+          invalid_args "'$subcommand' is an invalid <command>"
           ;;
       esac
       ;;
     stop-servers)
       parse_config
-      case "$2" in
+      subcommand="${program_args[1]}"
+      case "$subcommand" in
         "--all" | "")
           stop_all
           ;;
@@ -715,18 +768,18 @@ EOF
           stop_tservers
           ;;
         "--sservers")
-          stop_sservers "${@:3}"
+          stop_sservers "${program_args:3}"
           ;;
         "--compactors")
-          stop_compactors "${@:3}"
+          stop_compactors "${program_args:3}"
           ;;
         *)
-          invalid_args "'$2' is an invalid <command>"
+          invalid_args "'$subcommand' is an invalid <command>"
           ;;
       esac
       ;;
     *)
-      invalid_args "'$1' is an invalid <command>"
+      invalid_args "${program_args[0]} is an invalid <command>"
       ;;
   esac
 }
