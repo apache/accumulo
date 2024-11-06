@@ -88,15 +88,12 @@ public class InitialConfiguration {
 
     initialFateTableConf.putAll(commonConfig);
     initialFateTableConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "256M");
-    // Create a locality group that contains status so its fast to scan. When fate looks for work is
-    // scans this family.
-    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "status",
-        FateSchema.StatusColumnFamily.STR_NAME);
-    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "status");
-
-    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "reservation",
-        FateSchema.ReservationColumnFamily.STR_NAME);
-    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "reservation");
+    // Create a locality group that contains status and reservation so its fast to scan. When fate
+    // looks for work is scans this family.
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "statusReservation",
+        String.format("%s,%s", FateSchema.StatusColumnFamily.STR_NAME,
+            FateSchema.ReservationColumnFamily.STR_NAME));
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "statusReservation");
 
     initialScanRefTableConf.putAll(commonConfig);
 
