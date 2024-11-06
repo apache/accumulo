@@ -344,7 +344,7 @@ public class Fate<T> {
    */
   public Fate(T environment, FateStore<T> store, boolean runDeadResCleaner,
       Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf) {
-    this.store = FateLogger.wrap(store, toLogStrFunc);
+    this.store = FateLogger.wrap(store, toLogStrFunc, false);
     this.environment = environment;
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
         Property.MANAGER_FATE_THREADPOOL_SIZE, true);

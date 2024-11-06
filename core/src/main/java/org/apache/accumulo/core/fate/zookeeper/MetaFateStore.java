@@ -370,6 +370,11 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     }
 
     @Override
+    public void forceDelete() {
+      delete();
+    }
+
+    @Override
     public void setTransactionInfo(Fate.TxInfo txInfo, Serializable so) {
       verifyReservedAndNotDeleted(true);
 
