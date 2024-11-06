@@ -40,23 +40,22 @@ public class ClusterConfigParser {
 
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String COMPACTOR_PREFIX = "compactor.";
-  private static final String COMPACTORS_PER_HOST_PREFIX = "compactors_per_host.";
   private static final String GC_KEY = "gc";
   private static final String MANAGER_KEY = "manager";
   private static final String MONITOR_KEY = "monitor";
   private static final String SSERVER_PREFIX = "sserver.";
-  private static final String SSERVERS_PER_HOST_PREFIX = "sservers_per_host.";
   private static final String TSERVER_PREFIX = "tserver.";
-  private static final String TSERVERS_PER_HOST_KEY = "tservers_per_host";
+
+  private static final String HOSTS_SUFFIX = ".hosts";
+  private static final String SERVERS_PER_HOST_SUFFIX = ".servers_per_host";
 
   private static final String[] UNGROUPED_SECTIONS =
       new String[] {MANAGER_KEY, MONITOR_KEY, GC_KEY};
 
-  private static final Set<String> VALID_CONFIG_KEYS =
-      Set.of(MANAGER_KEY, MONITOR_KEY, GC_KEY, TSERVERS_PER_HOST_KEY);
+  private static final Set<String> VALID_CONFIG_KEYS = Set.of(MANAGER_KEY, MONITOR_KEY, GC_KEY);
 
-  private static final Set<String> VALID_CONFIG_PREFIXES = Set.of(COMPACTOR_PREFIX, SSERVER_PREFIX,
-      TSERVER_PREFIX, SSERVERS_PER_HOST_PREFIX, COMPACTORS_PER_HOST_PREFIX);
+  private static final Set<String> VALID_CONFIG_PREFIXES =
+      Set.of(COMPACTOR_PREFIX, SSERVER_PREFIX, TSERVER_PREFIX);
 
   private static final Predicate<String> VALID_CONFIG_SECTIONS =
       section -> VALID_CONFIG_KEYS.contains(section)
@@ -125,45 +124,67 @@ public class ClusterConfigParser {
     }
 
     List<String> compactorGroups =
-        config.keySet().stream().filter(k -> k.startsWith(COMPACTOR_PREFIX))
-            .map(k -> k.substring(COMPACTOR_PREFIX.length())).sorted().collect(Collectors.toList());
+        config.keySet().stream().filter(k -> k.startsWith(COMPACTOR_PREFIX)).map(k -> {
+          if (k.contains(HOSTS_SUFFIX)) {
+            return k.substring(COMPACTOR_PREFIX.length(), k.indexOf(HOSTS_SUFFIX));
+          } else if (k.contains(SERVERS_PER_HOST_SUFFIX)) {
+            return k.substring(COMPACTOR_PREFIX.length(), k.indexOf(SERVERS_PER_HOST_SUFFIX));
+          } else {
+            return k.substring(COMPACTOR_PREFIX.length());
+          }
+        }).sorted().distinct().collect(Collectors.toList());
 
     if (!compactorGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "COMPACTOR_GROUPS",
           compactorGroups.stream().collect(Collectors.joining(" ")));
       for (String group : compactorGroups) {
         out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + group,
-            config.get(COMPACTOR_PREFIX + group));
-        String numCompactors = config.getOrDefault("compactors_per_host." + group, "1");
-        out.printf(PROPERTY_FORMAT, "NUM_COMPACTORS_" + group, numCompactors);
+            config.get(COMPACTOR_PREFIX + group + HOSTS_SUFFIX));
+        String numCompactors =
+            config.getOrDefault(COMPACTOR_PREFIX + group + SERVERS_PER_HOST_SUFFIX, "1");
+        out.printf(PROPERTY_FORMAT, "COMPACTORS_PER_HOST_" + group, numCompactors);
       }
     }
 
-    List<String> sserverGroups = config.keySet().stream().filter(k -> k.startsWith(SSERVER_PREFIX))
-        .map(k -> k.substring(SSERVER_PREFIX.length())).sorted().collect(Collectors.toList());
+    List<String> sserverGroups =
+        config.keySet().stream().filter(k -> k.startsWith(SSERVER_PREFIX)).map(k -> {
+          if (k.contains(HOSTS_SUFFIX)) {
+            return k.substring(SSERVER_PREFIX.length(), k.indexOf(HOSTS_SUFFIX));
+          } else if (k.contains(SERVERS_PER_HOST_SUFFIX)) {
+            return k.substring(SSERVER_PREFIX.length(), k.indexOf(SERVERS_PER_HOST_SUFFIX));
+          } else {
+            return k.substring(SSERVER_PREFIX.length());
+          }
+        }).sorted().distinct().collect(Collectors.toList());
 
     if (!sserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS",
           sserverGroups.stream().collect(Collectors.joining(" ")));
       sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS_" + ssg,
-          config.get(SSERVER_PREFIX + ssg)));
-      sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "NUM_SSERVERS_" + ssg,
-          config.getOrDefault("sservers_per_host." + ssg, "1")));
-
+          config.get(SSERVER_PREFIX + ssg + HOSTS_SUFFIX)));
+      sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVERS_PER_HOST_" + ssg,
+          config.getOrDefault(SSERVER_PREFIX + ssg + SERVERS_PER_HOST_SUFFIX, "1")));
     }
 
-    List<String> tserverGroups = config.keySet().stream().filter(k -> k.startsWith(TSERVER_PREFIX))
-        .map(k -> k.substring(TSERVER_PREFIX.length())).sorted().collect(Collectors.toList());
+    List<String> tserverGroups =
+        config.keySet().stream().filter(k -> k.startsWith(TSERVER_PREFIX)).map(k -> {
+          if (k.contains(HOSTS_SUFFIX)) {
+            return k.substring(TSERVER_PREFIX.length(), k.indexOf(HOSTS_SUFFIX));
+          } else if (k.contains(SERVERS_PER_HOST_SUFFIX)) {
+            return k.substring(TSERVER_PREFIX.length(), k.indexOf(SERVERS_PER_HOST_SUFFIX));
+          } else {
+            return k.substring(TSERVER_PREFIX.length());
+          }
+        }).sorted().distinct().collect(Collectors.toList());
 
     if (!tserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "TSERVER_GROUPS",
           tserverGroups.stream().collect(Collectors.joining(" ")));
       tserverGroups.forEach(tsg -> out.printf(PROPERTY_FORMAT, "TSERVER_HOSTS_" + tsg,
-          config.get(TSERVER_PREFIX + tsg)));
+          config.get(TSERVER_PREFIX + tsg + HOSTS_SUFFIX)));
+      tserverGroups.forEach(tsg -> out.printf(PROPERTY_FORMAT, "TSERVERS_PER_HOST_" + tsg,
+          config.getOrDefault(TSERVER_PREFIX + tsg + SERVERS_PER_HOST_SUFFIX, "1")));
     }
-
-    String numTservers = config.getOrDefault("tservers_per_host", "1");
-    out.print("NUM_TSERVERS=\"${NUM_TSERVERS:=" + numTservers + "}\"\n");
 
     out.flush();
   }
