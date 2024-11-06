@@ -23,6 +23,8 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.util.EnumSet;
 
+import jakarta.ws.rs.NotFoundException;
+
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -195,7 +197,7 @@ public class NewMonitor implements Connection.Listener {
         .get("/metrics/compactions", ctx -> ctx.json(metrics.getCompactions(25)))
         .get("/metrics/compactions/{num}",
             ctx -> ctx.json(metrics.getCompactions(Integer.parseInt(ctx.pathParam("num")))))
-        .start();
+        .exception(NotFoundException.class, (e, ctx) -> ctx.status(404)).start();
 
     LOG.info("New Monitor listening on port: {}", httpPort);
   }
