@@ -632,10 +632,10 @@ function main() {
   i=0
   declare -a program_args
   for arg in "$@"; do
-    if [[ "$arg" == "--dry-run" ]]; then
+    if [[ $arg == "--dry-run" ]]; then
       DEBUG="true"
     else
-      program_args[((i++))]="$arg"
+      program_args[i++]="$arg"
     fi
   done
 
