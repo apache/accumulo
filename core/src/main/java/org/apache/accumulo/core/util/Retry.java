@@ -174,7 +174,7 @@ public class Retry {
     }
     currentBackOffFactor = currentBackOffFactor * backOffFactor;
 
-    log.debug("Sleeping for {}ms before retrying operation : {} ", currentWait.toMillis(),
+    log.trace("Sleeping for {}ms before retrying operation : {} ", currentWait.toMillis(),
         operationDescription);
 
     sleep(currentWait);

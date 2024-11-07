@@ -307,7 +307,7 @@ public class SessionManager {
           }
           long idleTime = System.currentTimeMillis() - session.lastAccessTime;
           if (idleTime > configuredIdle) {
-            log.info("Closing idle session {} from user={}, client={}, idle={}ms",
+            log.trace("Closing idle session {} from user={}, client={}, idle={}ms",
                 session.getSessionId(), session.getUser(), session.client, idleTime);
             iter.remove();
             sessionsToCleanup.add(session);

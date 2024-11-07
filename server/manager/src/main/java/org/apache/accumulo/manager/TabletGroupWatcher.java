@@ -444,7 +444,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             tableMgmtParams.getCompactionHints(), tableMgmtParams.getSteadyTime());
 
     try {
-      CheckCompactionConfig.validate(manager.getConfiguration());
+      CheckCompactionConfig.validate(manager.getConfiguration(), Level.TRACE);
       this.metrics.clearCompactionServiceConfigurationError();
     } catch (RuntimeException | ReflectiveOperationException e) {
       this.metrics.setCompactionServiceConfigurationError();

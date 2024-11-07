@@ -410,7 +410,7 @@ public class CompactionCoordinator
     }
 
     if (metaJob == null) {
-      LOG.debug("No jobs found in group {} ", groupName);
+      LOG.trace("No jobs found in group {} ", groupName);
     }
 
     if (result == null) {
