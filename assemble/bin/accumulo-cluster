@@ -317,7 +317,7 @@ function start_here() {
     echo "Starting tablet servers for group $group"
     for host in $local_hosts; do
       G="TSERVER_HOSTS_${group}"
-      S="TSERVERS_PER_HOST_${group}"    
+      S="TSERVERS_PER_HOST_${group}"
       for tserver in ${!G}; do
         if echo "$tserver" | grep -q "^${host}\$"; then
           start_service "$tserver" tserver "${!S}" "-o" "tserver.group=$group"
