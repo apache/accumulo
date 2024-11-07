@@ -65,6 +65,7 @@ debug() {
 debugAndRun() {
   debug "$@"
   if ! isDebug; then
+    # shellcheck disable=SC2294
     eval "${@@P}"
   fi
 }
