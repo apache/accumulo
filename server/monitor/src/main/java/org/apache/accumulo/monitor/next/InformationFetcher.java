@@ -37,13 +37,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import jakarta.ws.rs.NotFoundException;
 
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -55,6 +59,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.ThreadPools.ExecutionError;
+import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.thrift.transport.TTransportException;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -143,6 +148,31 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       }
     }
 
+  }
+
+  private class TableInformationFetcher implements Runnable {
+    private final ServerContext ctx;
+    private final String table;
+    private final SystemInformation summary;
+
+    private TableInformationFetcher(ServerContext ctx, String tableName,
+        SystemInformation summary) {
+      this.ctx = ctx;
+      this.table = tableName;
+      this.summary = summary;
+    }
+
+    @Override
+    public void run() {
+      try (Stream<TabletInformation> tablets =
+          this.ctx.tableOperations().getTabletInformation(table, new Range())) {
+        tablets.forEach(t -> summary.processTabletInformation(table, t));
+      } catch (TableNotFoundException e) {
+        LOG.warn(
+            "TableNotFoundException thrown while trying to gather information for table: " + table,
+            e);
+      }
+    }
   }
 
   private class CompactionListFetcher implements Runnable {
@@ -283,6 +313,11 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
       // Fetch external compaction information from the Manager
       futures.add(this.pool.submit(new CompactionListFetcher()));
+
+      // Fetch Tablet / Tablet information from the metadata table
+      for (String tName : this.ctx.tableOperations().list()) {
+        futures.add(this.pool.submit(new TableInformationFetcher(this.ctx, tName, summary)));
+      }
 
       while (futures.size() > 0) {
         Iterator<Future<?>> iter = futures.iterator();
@@ -450,5 +485,13 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       results.add(compactions.get(ecids.next()));
     }
     return results;
+  }
+
+  public Map<String,TableSummary> getTables() {
+    return getSummary().getTables();
+  }
+
+  public List<TabletInformation> getTablets(String tableName) {
+    return getSummary().getTablets(tableName);
   }
 }

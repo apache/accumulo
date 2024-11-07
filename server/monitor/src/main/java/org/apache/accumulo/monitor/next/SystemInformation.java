@@ -19,13 +19,23 @@
 package org.apache.accumulo.monitor.next;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
 import org.slf4j.Logger;
@@ -41,6 +51,187 @@ import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
 import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
 
 public class SystemInformation {
+
+  public static class ObfuscatedTabletId extends TabletIdImpl {
+
+    public ObfuscatedTabletId(KeyExtent ke) {
+      super(ke);
+    }
+
+    @Override
+    public String toString() {
+      return this.toKeyExtent().obscured();
+    }
+
+  }
+
+  public static class SanitizedTabletInformation implements TabletInformation {
+    private final TabletInformation tabletInfo;
+
+    public SanitizedTabletInformation(TabletInformation tabletInfo) {
+      super();
+      this.tabletInfo = tabletInfo;
+    }
+
+    @Override
+    public TabletId getTabletId() {
+      return new ObfuscatedTabletId(((TabletIdImpl) tabletInfo.getTabletId()).toKeyExtent());
+    }
+
+    @Override
+    public int getNumFiles() {
+      return tabletInfo.getNumFiles();
+    }
+
+    @Override
+    public int getNumWalLogs() {
+      return tabletInfo.getNumWalLogs();
+    }
+
+    @Override
+    public long getEstimatedEntries() {
+      return tabletInfo.getEstimatedEntries();
+    }
+
+    @Override
+    public long getEstimatedSize() {
+      return tabletInfo.getEstimatedSize();
+    }
+
+    @Override
+    public String getTabletState() {
+      return tabletInfo.getTabletState();
+    }
+
+    @Override
+    public Optional<String> getLocation() {
+      // TODO Auto-generated method stub
+      return Optional.empty();
+    }
+
+    @Override
+    public String getTabletDir() {
+      return tabletInfo.getTabletDir();
+    }
+
+    @Override
+    public TabletAvailability getTabletAvailability() {
+      return tabletInfo.getTabletAvailability();
+    }
+
+  }
+
+  public static class TableSummary {
+
+    private final AtomicLong totalEntries = new AtomicLong();
+    private final AtomicLong totalSizeOnDisk = new AtomicLong();
+    private final AtomicLong totalFiles = new AtomicLong();
+    private final AtomicLong totalWals = new AtomicLong();
+    private final AtomicLong totalTablets = new AtomicLong();
+    private final AtomicLong availableAlways = new AtomicLong();
+    private final AtomicLong availableOnDemand = new AtomicLong();
+    private final AtomicLong availableNever = new AtomicLong();
+    private final AtomicLong totalAssignedTablets = new AtomicLong();
+    private final AtomicLong totalAssignedToDeadServerTablets = new AtomicLong();
+    private final AtomicLong totalHostedTablets = new AtomicLong();
+    private final AtomicLong totalSuspendedTablets = new AtomicLong();
+    private final AtomicLong totalUnassignedTablets = new AtomicLong();
+
+    public long getTotalEntries() {
+      return totalEntries.get();
+    }
+
+    public long getTotalSizeOnDisk() {
+      return totalSizeOnDisk.get();
+    }
+
+    public long getTotalFiles() {
+      return totalFiles.get();
+    }
+
+    public long getTotalWals() {
+      return totalWals.get();
+    }
+
+    public long getTotalTablets() {
+      return totalTablets.get();
+    }
+
+    public long getAvailableAlways() {
+      return availableAlways.get();
+    }
+
+    public long getAvailableOnDemand() {
+      return availableOnDemand.get();
+    }
+
+    public long getAvailableNever() {
+      return availableNever.get();
+    }
+
+    public long getTotalAssignedTablets() {
+      return totalAssignedTablets.get();
+    }
+
+    public long getTotalAssignedToDeadServerTablets() {
+      return totalAssignedToDeadServerTablets.get();
+    }
+
+    public long getTotalHostedTablets() {
+      return totalHostedTablets.get();
+    }
+
+    public long getTotalSuspendedTablets() {
+      return totalSuspendedTablets.get();
+    }
+
+    public long getTotalUnassignedTablets() {
+      return totalUnassignedTablets.get();
+    }
+
+    public void addTablet(TabletInformation info) {
+      totalEntries.addAndGet(info.getEstimatedEntries());
+      totalSizeOnDisk.addAndGet(info.getEstimatedSize());
+      totalFiles.addAndGet(info.getNumFiles());
+      totalWals.addAndGet(info.getNumWalLogs());
+      totalTablets.addAndGet(1);
+      switch (info.getTabletAvailability()) {
+        case HOSTED:
+          availableAlways.addAndGet(1);
+          break;
+        case ONDEMAND:
+          availableOnDemand.addAndGet(1);
+          break;
+        case UNHOSTED:
+          availableNever.addAndGet(1);
+          break;
+        default:
+          throw new RuntimeException("Error processing TabletInformation, unknown availability: "
+              + info.getTabletAvailability());
+      }
+      TabletState state = TabletState.valueOf(info.getTabletState());
+      switch (state) {
+        case ASSIGNED:
+          totalAssignedTablets.addAndGet(1);
+          break;
+        case ASSIGNED_TO_DEAD_SERVER:
+          totalAssignedToDeadServerTablets.addAndGet(1);
+          break;
+        case HOSTED:
+          totalHostedTablets.addAndGet(1);
+          break;
+        case SUSPENDED:
+          totalSuspendedTablets.addAndGet(1);
+          break;
+        case UNASSIGNED:
+          totalUnassignedTablets.addAndGet(1);
+          break;
+        default:
+          throw new RuntimeException(
+              "Error processing TabletInformation, unknown state: " + info.getTabletState());
+      }
+    }
+  }
 
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
 
@@ -78,6 +269,10 @@ public class SystemInformation {
       new ConcurrentHashMap<>();
   private final Map<String,Map<String,CumulativeDistributionSummary>> rgTServerMetrics =
       new ConcurrentHashMap<>();
+
+  // Table Information
+  private final Map<String,TableSummary> tables = new ConcurrentHashMap<>();
+  private final Map<String,List<TabletInformation>> tablets = new ConcurrentHashMap<>();
 
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics) {
     this.allMetrics = allMetrics;
@@ -162,6 +357,12 @@ public class SystemInformation {
 
   }
 
+  public void processTabletInformation(String tableName, TabletInformation info) {
+    final SanitizedTabletInformation sti = new SanitizedTabletInformation(info);
+    tablets.computeIfAbsent(tableName, (t) -> new ArrayList<>()).add(sti);
+    tables.computeIfAbsent(tableName, (t) -> new TableSummary()).addTablet(sti);
+  }
+
   public void processError(ServerId server) {
     problemHosts.add(server);
   }
@@ -219,6 +420,14 @@ public class SystemInformation {
 
   public Map<String,CumulativeDistributionSummary> getTServerAllMetricSummary() {
     return this.totalTServerMetrics;
+  }
+
+  public Map<String,TableSummary> getTables() {
+    return this.tables;
+  }
+
+  public List<TabletInformation> getTablets(String table) {
+    return this.tablets.get(table);
   }
 
 }

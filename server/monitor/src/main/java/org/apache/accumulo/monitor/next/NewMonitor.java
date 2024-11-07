@@ -28,11 +28,13 @@ import jakarta.ws.rs.NotFoundException;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.next.serializers.CumulativeDistributionSummarySerializer;
 import org.apache.accumulo.monitor.next.serializers.MetricResponseSerializer;
+import org.apache.accumulo.monitor.next.serializers.TabletIdSerializer;
 import org.apache.accumulo.monitor.next.serializers.ThriftSerializer;
 import org.apache.accumulo.server.ServerContext;
 import org.eclipse.jetty.io.Connection;
@@ -45,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.javalin.Javalin;
@@ -104,7 +107,9 @@ public class NewMonitor implements Connection.Listener {
         module.addSerializer(TExternalCompactionJob.class, new ThriftSerializer());
         module.addSerializer(CumulativeDistributionSummary.class,
             new CumulativeDistributionSummarySerializer());
+        module.addSerializer(TabletId.class, new TabletIdSerializer());
         mapper.registerModule(module);
+        mapper.registerModule(new Jdk8Module());
       }));
 
       final HttpConnectionFactory httpFactory = new HttpConnectionFactory();
@@ -197,6 +202,8 @@ public class NewMonitor implements Connection.Listener {
         .get("/metrics/compactions", ctx -> ctx.json(metrics.getCompactions(25)))
         .get("/metrics/compactions/{num}",
             ctx -> ctx.json(metrics.getCompactions(Integer.parseInt(ctx.pathParam("num")))))
+        .get("/metrics/tables", ctx -> ctx.json(metrics.getTables()))
+        .get("/metrics/tables/{name}", ctx -> ctx.json(metrics.getTablets(ctx.pathParam("name"))))
         .exception(NotFoundException.class, (e, ctx) -> ctx.status(404)).start();
 
     LOG.info("New Monitor listening on port: {}", httpPort);
