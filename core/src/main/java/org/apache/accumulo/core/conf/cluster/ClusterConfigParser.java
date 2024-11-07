@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.yaml.snakeyaml.Yaml;
@@ -37,6 +38,17 @@ import org.yaml.snakeyaml.Yaml;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClusterConfigParser {
+
+  private static final Pattern GROUP_NAME_PATTERN =
+      Pattern.compile("^[a-zA-Z_]{1,}[a-zA-Z0-9_]{0,}$");
+
+  public static void validateGroupNames(Set<String> names) {
+    for (String name : names) {
+      if (!GROUP_NAME_PATTERN.matcher(name).matches()) {
+        throw new RuntimeException("Group name: " + name + " contains invalid characters");
+      }
+    }
+  }
 
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String[] SECTIONS = new String[] {"manager", "monitor", "gc", "tserver"};
@@ -123,6 +135,7 @@ public class ClusterConfigParser {
     Set<String> compactorQueues =
         config.keySet().stream().filter(k -> k.startsWith(compactorPrefix))
             .map(k -> k.substring(compactorPrefix.length())).collect(Collectors.toSet());
+    validateGroupNames(compactorQueues);
 
     if (!compactorQueues.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "COMPACTION_QUEUES",
@@ -138,6 +151,7 @@ public class ClusterConfigParser {
     String sserverPrefix = "sserver.";
     Set<String> sserverGroups = config.keySet().stream().filter(k -> k.startsWith(sserverPrefix))
         .map(k -> k.substring(sserverPrefix.length())).collect(Collectors.toSet());
+    validateGroupNames(sserverGroups);
 
     if (!sserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS",
@@ -162,14 +176,19 @@ public class ClusterConfigParser {
       System.exit(1);
     }
 
-    if (args.length == 2) {
-      // Write to a file instead of System.out if provided as an argument
-      try (OutputStream os = Files.newOutputStream(Paths.get(args[1]), StandardOpenOption.CREATE);
-          PrintStream out = new PrintStream(os)) {
-        outputShellVariables(parseConfiguration(args[0]), new PrintStream(out));
+    try {
+      if (args.length == 2) {
+        // Write to a file instead of System.out if provided as an argument
+        try (OutputStream os = Files.newOutputStream(Paths.get(args[1]), StandardOpenOption.CREATE);
+            PrintStream out = new PrintStream(os)) {
+          outputShellVariables(parseConfiguration(args[0]), new PrintStream(out));
+        }
+      } else {
+        outputShellVariables(parseConfiguration(args[0]), System.out);
       }
-    } else {
-      outputShellVariables(parseConfiguration(args[0]), System.out);
+    } catch (Exception e) {
+      System.err.println("Processing error: " + e.getMessage());
+      System.exit(1);
     }
   }
 

@@ -35,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
@@ -270,5 +271,21 @@ public class ClusterConfigParserTest {
           () -> ClusterConfigParser.outputShellVariables(contents, ps));
       assertTrue(exception.getMessage().contains("vserver"));
     }
+  }
+
+  @Test
+  public void testGroupNamePattern() {
+    ClusterConfigParser.validateGroupNames(Set.of("a"));
+    ClusterConfigParser.validateGroupNames(Set.of("a", "b"));
+    ClusterConfigParser.validateGroupNames(Set.of("default", "reg_ular"));
+    ClusterConfigParser.validateGroupNames(Set.of("a1b2c3d4__"));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(Set.of("0abcde")));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(Set.of("a-b")));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(Set.of("a*b")));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(Set.of("a?b")));
   }
 }
