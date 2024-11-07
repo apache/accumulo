@@ -135,6 +135,7 @@ public class ClusterConfigParser {
     Set<String> compactorQueues =
         config.keySet().stream().filter(k -> k.startsWith(compactorPrefix))
             .map(k -> k.substring(compactorPrefix.length())).collect(Collectors.toSet());
+    validateGroupNames(compactorQueues);
 
     if (!compactorQueues.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "COMPACTION_QUEUES",
@@ -150,6 +151,7 @@ public class ClusterConfigParser {
     String sserverPrefix = "sserver.";
     Set<String> sserverGroups = config.keySet().stream().filter(k -> k.startsWith(sserverPrefix))
         .map(k -> k.substring(sserverPrefix.length())).collect(Collectors.toSet());
+    validateGroupNames(sserverGroups);
 
     if (!sserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS",
