@@ -20,11 +20,16 @@ package org.apache.accumulo.monitor.next;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -32,12 +37,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
+import org.apache.accumulo.monitor.next.InformationFetcher.GcServerId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,8 +113,7 @@ public class SystemInformation {
 
     @Override
     public Optional<String> getLocation() {
-      // TODO Auto-generated method stub
-      return Optional.empty();
+      return tabletInfo.getLocation();
     }
 
     @Override
@@ -233,6 +240,38 @@ public class SystemInformation {
     }
   }
 
+  public static class ProcessSummary {
+    private long configured = 0;
+    private long responded = 0;
+    private Set<String> notResponded = new HashSet<>();
+
+    public void addResponded() {
+      configured++;
+      responded++;
+    }
+
+    public void addNotResponded(ServerId server) {
+      notResponded.add(server.getHost() + ":" + server.getPort());
+    }
+
+    public long getConfigured() {
+      return this.configured;
+    }
+
+    public long getResponded() {
+      return this.responded;
+    }
+
+    public long getNotResponded() {
+      return this.notResponded.size();
+    }
+
+    public Set<String> getNotRespondedHosts() {
+      return this.notResponded;
+    }
+
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
 
   private final DistributionStatisticConfig DSC =
@@ -270,9 +309,18 @@ public class SystemInformation {
   private final Map<String,Map<String,CumulativeDistributionSummary>> rgTServerMetrics =
       new ConcurrentHashMap<>();
 
+  // Compaction Information
+  private final AtomicReference<Map<String,TExternalCompaction>> runningCompactions =
+      new AtomicReference<>();
+  private final AtomicReference<Map<Long,String>> runningCompactionsDurationIndex =
+      new AtomicReference<>();
+
   // Table Information
   private final Map<String,TableSummary> tables = new ConcurrentHashMap<>();
   private final Map<String,List<TabletInformation>> tablets = new ConcurrentHashMap<>();
+
+  // Deployment Overview
+  private final Map<String,Map<String,ProcessSummary>> deployment = new HashMap<>();
 
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics) {
     this.allMetrics = allMetrics;
@@ -357,6 +405,23 @@ public class SystemInformation {
 
   }
 
+  public void processExternalCompactionList(TExternalCompactionList running) {
+    // Create an index into the running compaction list that is
+    // sorted by duration, meaning earliest start time first. This
+    // will allow us to show topN longest running compactions.
+    Map<Long,String> timeSortedEcids = new TreeMap<>();
+    if (running.getCompactions() != null) {
+      running.getCompactions().forEach((ecid, extComp) -> {
+        if (extComp.getUpdates() != null && !extComp.getUpdates().isEmpty()) {
+          Set<Long> orderedUpdateTimes = new TreeSet<>(extComp.getUpdates().keySet());
+          timeSortedEcids.put(orderedUpdateTimes.iterator().next(), ecid);
+        }
+      });
+    }
+    runningCompactions.set(running.getCompactions());
+    runningCompactionsDurationIndex.set(timeSortedEcids);
+  }
+
   public void processTabletInformation(String tableName, TabletInformation info) {
     final SanitizedTabletInformation sti = new SanitizedTabletInformation(info);
     tablets.computeIfAbsent(tableName, (t) -> new ArrayList<>()).add(sti);
@@ -365,6 +430,26 @@ public class SystemInformation {
 
   public void processError(ServerId server) {
     problemHosts.add(server);
+  }
+
+  public void finish() {
+    // Iterate over the metrics
+    allMetrics.asMap().keySet().forEach(serverId -> {
+      String typeName = serverId.getType().name();
+      if (serverId instanceof GcServerId) {
+        typeName = "GC";
+      }
+      deployment.computeIfAbsent(serverId.getResourceGroup(), g -> new HashMap<>())
+          .computeIfAbsent(typeName, t -> new ProcessSummary()).addResponded();
+    });
+    problemHosts.forEach(serverId -> {
+      String typeName = serverId.getType().name();
+      if (serverId instanceof GcServerId) {
+        typeName = "GC";
+      }
+      deployment.computeIfAbsent(serverId.getResourceGroup(), g -> new HashMap<>())
+          .computeIfAbsent(typeName, t -> new ProcessSummary()).addNotResponded(serverId);
+    });
   }
 
   public Set<String> getResourceGroups() {
@@ -422,12 +507,26 @@ public class SystemInformation {
     return this.totalTServerMetrics;
   }
 
+  public Collection<TExternalCompaction> getCompactions(int topN) {
+    List<TExternalCompaction> results = new ArrayList<>();
+    Map<String,TExternalCompaction> compactions = runningCompactions.get();
+    Iterator<String> ecids = runningCompactionsDurationIndex.get().values().iterator();
+    for (int i = 0; i < topN && ecids.hasNext(); i++) {
+      results.add(compactions.get(ecids.next()));
+    }
+    return results;
+  }
+
   public Map<String,TableSummary> getTables() {
     return this.tables;
   }
 
   public List<TabletInformation> getTablets(String table) {
     return this.tablets.get(table);
+  }
+
+  public Map<String,Map<String,ProcessSummary>> getDeploymentOverview() {
+    return this.deployment;
   }
 
 }

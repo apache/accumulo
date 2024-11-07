@@ -69,7 +69,7 @@ public class NewMonitor implements Connection.Listener {
   private final String hostname;
   private final boolean secure;
   private final ConnectionStatistics connStats;
-  private final InformationFetcher metrics;
+  private final InformationFetcher fetcher;
 
   public NewMonitor(ServerContext ctx, String hostname) {
     this.ctx = ctx;
@@ -78,7 +78,7 @@ public class NewMonitor implements Connection.Listener {
         .allMatch(s -> s != null && !s.isEmpty());
 
     this.connStats = new ConnectionStatistics();
-    this.metrics = new InformationFetcher(ctx, connStats::getConnections);
+    this.fetcher = new InformationFetcher(ctx, connStats::getConnections);
   }
 
   @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET",
@@ -92,7 +92,7 @@ public class NewMonitor implements Connection.Listener {
     ss.close();
     final int httpPort = ss.getLocalPort();
 
-    Threads.createThread("Metric Fetcher Thread", metrics).start();
+    Threads.createThread("Metric Fetcher Thread", fetcher).start();
 
     Javalin.create(config -> {
       // TODO Make dev logging and route overview configurable based on property
@@ -175,35 +175,36 @@ public class NewMonitor implements Connection.Listener {
         });
       }
     }).get("/stats", ctx -> ctx.result(connStats.dump()))
-        .get("/metrics", ctx -> ctx.json(metrics.getAll()))
-        .get("/metrics/instance", ctx -> ctx.json(metrics.getInstanceSummary()))
-        .get("/metrics/groups", ctx -> ctx.json(metrics.getResourceGroups()))
-        .get("/metrics/manager", ctx -> ctx.json(metrics.getManager()))
-        .get("/metrics/gc", ctx -> ctx.json(metrics.getGarbageCollector()))
-        .get("/metrics/compactors/summary", ctx -> ctx.json(metrics.getCompactorAllMetricSummary()))
+        .get("/metrics", ctx -> ctx.json(fetcher.getAll()))
+        .get("/metrics/instance", ctx -> ctx.json(fetcher.getInstanceSummary()))
+        .get("/metrics/groups", ctx -> ctx.json(fetcher.getResourceGroups()))
+        .get("/metrics/manager", ctx -> ctx.json(fetcher.getManager()))
+        .get("/metrics/gc", ctx -> ctx.json(fetcher.getGarbageCollector()))
+        .get("/metrics/compactors/summary", ctx -> ctx.json(fetcher.getCompactorAllMetricSummary()))
         .get("/metrics/compactors/summary/{group}",
-            ctx -> ctx.json(metrics.getCompactorResourceGroupMetricSummary(ctx.pathParam("group"))))
+            ctx -> ctx.json(fetcher.getCompactorResourceGroupMetricSummary(ctx.pathParam("group"))))
         .get("/metrics/compactors/detail/{group}",
-            ctx -> ctx.json(metrics.getCompactors(ctx.pathParam("group"))))
-        .get("/metrics/sservers/summary", ctx -> ctx.json(metrics.getScanServerAllMetricSummary()))
+            ctx -> ctx.json(fetcher.getCompactors(ctx.pathParam("group"))))
+        .get("/metrics/sservers/summary", ctx -> ctx.json(fetcher.getScanServerAllMetricSummary()))
         .get("/metrics/sservers/summary/{group}",
             ctx -> ctx
-                .json(metrics.getScanServerResourceGroupMetricSummary(ctx.pathParam("group"))))
+                .json(fetcher.getScanServerResourceGroupMetricSummary(ctx.pathParam("group"))))
         .get("/metrics/sservers/detail/{group}",
-            ctx -> ctx.json(metrics.getScanServers(ctx.pathParam("group"))))
+            ctx -> ctx.json(fetcher.getScanServers(ctx.pathParam("group"))))
         .get("/metrics/tservers/summary",
-            ctx -> ctx.json(metrics.getTabletServerAllMetricSummary()))
+            ctx -> ctx.json(fetcher.getTabletServerAllMetricSummary()))
         .get("/metrics/tservers/summary/{group}",
             ctx -> ctx
-                .json(metrics.getTabletServerResourceGroupMetricSummary(ctx.pathParam("group"))))
+                .json(fetcher.getTabletServerResourceGroupMetricSummary(ctx.pathParam("group"))))
         .get("/metrics/tservers/detail/{group}",
-            ctx -> ctx.json(metrics.getTabletServers(ctx.pathParam("group"))))
-        .get("/metrics/problems", ctx -> ctx.json(metrics.getProblemHosts()))
-        .get("/metrics/compactions", ctx -> ctx.json(metrics.getCompactions(25)))
+            ctx -> ctx.json(fetcher.getTabletServers(ctx.pathParam("group"))))
+        .get("/metrics/problems", ctx -> ctx.json(fetcher.getProblemHosts()))
+        .get("/metrics/compactions", ctx -> ctx.json(fetcher.getCompactions(25)))
         .get("/metrics/compactions/{num}",
-            ctx -> ctx.json(metrics.getCompactions(Integer.parseInt(ctx.pathParam("num")))))
-        .get("/metrics/tables", ctx -> ctx.json(metrics.getTables()))
-        .get("/metrics/tables/{name}", ctx -> ctx.json(metrics.getTablets(ctx.pathParam("name"))))
+            ctx -> ctx.json(fetcher.getCompactions(Integer.parseInt(ctx.pathParam("num")))))
+        .get("/metrics/tables", ctx -> ctx.json(fetcher.getTables()))
+        .get("/metrics/tables/{name}", ctx -> ctx.json(fetcher.getTablets(ctx.pathParam("name"))))
+        .get("/metrics/deployment", ctx -> ctx.json(fetcher.getDeploymentOverview()))
         .exception(NotFoundException.class, (e, ctx) -> ctx.status(404)).start();
 
     LOG.info("New Monitor listening on port: {}", httpPort);
@@ -212,7 +213,7 @@ public class NewMonitor implements Connection.Listener {
   @Override
   public void onOpened(Connection connection) {
     LOG.info("New connection event");
-    metrics.newConnectionEvent();
+    fetcher.newConnectionEvent();
   }
 
   @Override

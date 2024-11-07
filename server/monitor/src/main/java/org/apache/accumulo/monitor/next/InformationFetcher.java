@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -59,6 +57,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.ThreadPools.ExecutionError;
+import org.apache.accumulo.monitor.next.SystemInformation.ProcessSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.thrift.transport.TTransportException;
@@ -112,7 +111,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
-  private static class GcServerId extends ServerId {
+  static class GcServerId extends ServerId {
     private GcServerId(String resourceGroup, String host, int port) {
       // TODO: This is a little wonky, Type.GC does not exist in the public API,
       super(ServerId.Type.MANAGER, resourceGroup, host, port);
@@ -180,6 +179,12 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     private final String coordinatorMissingMsg =
         "Error getting the compaction coordinator client. Check that the Manager is running.";
 
+    private final SystemInformation summary;
+
+    public CompactionListFetcher(SystemInformation summary) {
+      this.summary = summary;
+    }
+
     // Copied from Monitor
     private TExternalCompactionList getExternalCompactions() {
       Set<ServerId> managers = ctx.instanceOperations().getServers(ServerId.Type.MANAGER);
@@ -210,20 +215,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     public void run() {
       try {
         TExternalCompactionList running = getExternalCompactions();
-        // Create an index into the running compaction list that is
-        // sorted by duration, meaning earliest start time first. This
-        // will allow us to show topN longest running compactions.
-        Map<Long,String> timeSortedEcids = new TreeMap<>();
-        if (running.getCompactions() != null) {
-          running.getCompactions().forEach((ecid, extComp) -> {
-            if (extComp.getUpdates() != null && !extComp.getUpdates().isEmpty()) {
-              Set<Long> orderedUpdateTimes = new TreeSet<>(extComp.getUpdates().keySet());
-              timeSortedEcids.put(orderedUpdateTimes.iterator().next(), ecid);
-            }
-          });
-        }
-        runningCompactions.set(running.getCompactions());
-        runningCompactionsDurationIndex.set(timeSortedEcids);
+        summary.processExternalCompactionList(running);
       } catch (Exception e) {
         LOG.error("Error gathering running compaction information", e);
       }
@@ -239,13 +231,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   private final Supplier<Long> connectionCount;
   private final AtomicBoolean newConnectionEvent = new AtomicBoolean(false);
   private final Cache<ServerId,MetricResponse> allMetrics;
-
   private final AtomicReference<SystemInformation> summaryRef = new AtomicReference<>();
-
-  private final AtomicReference<Map<String,TExternalCompaction>> runningCompactions =
-      new AtomicReference<>();
-  private final AtomicReference<Map<Long,String>> runningCompactionsDurationIndex =
-      new AtomicReference<>();
 
   public InformationFetcher(ServerContext ctx, Supplier<Long> connectionCount) {
     this.ctx = ctx;
@@ -312,7 +298,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       }
 
       // Fetch external compaction information from the Manager
-      futures.add(this.pool.submit(new CompactionListFetcher()));
+      futures.add(this.pool.submit(new CompactionListFetcher(summary)));
 
       // Fetch Tablet / Tablet information from the metadata table
       for (String tName : this.ctx.tableOperations().list()) {
@@ -337,6 +323,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
           UtilWaitThread.sleep(3_000);
         }
       }
+
+      summary.finish();
+
       refreshTime = NanoTime.now();
       LOG.info("Finished fetching metrics from servers");
       LOG.info(
@@ -478,13 +467,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   }
 
   public Collection<TExternalCompaction> getCompactions(int topN) {
-    List<TExternalCompaction> results = new ArrayList<>();
-    Map<String,TExternalCompaction> compactions = runningCompactions.get();
-    Iterator<String> ecids = runningCompactionsDurationIndex.get().values().iterator();
-    for (int i = 0; i < topN && ecids.hasNext(); i++) {
-      results.add(compactions.get(ecids.next()));
-    }
-    return results;
+    return getSummary().getCompactions(topN);
   }
 
   public Map<String,TableSummary> getTables() {
@@ -494,4 +477,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   public List<TabletInformation> getTablets(String tableName) {
     return getSummary().getTablets(tableName);
   }
+
+  public Map<String,Map<String,ProcessSummary>> getDeploymentOverview() {
+    return getSummary().getDeploymentOverview();
+  }
+
 }
