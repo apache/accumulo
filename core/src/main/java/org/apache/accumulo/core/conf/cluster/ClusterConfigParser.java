@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.yaml.snakeyaml.Yaml;
@@ -37,6 +38,17 @@ import org.yaml.snakeyaml.Yaml;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClusterConfigParser {
+
+  private static final Pattern GROUP_NAME_PATTERN =
+      Pattern.compile("^[a-zA-Z_]{1,}[a-zA-Z0-9_]{0,}$");
+
+  public static void validateGroupNames(List<String> names) {
+    for (String name : names) {
+      if (!GROUP_NAME_PATTERN.matcher(name).matches()) {
+        throw new RuntimeException("Group name: " + name + " contains invalid characters");
+      }
+    }
+  }
 
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String COMPACTOR_PREFIX = "compactor.";
@@ -127,6 +139,7 @@ public class ClusterConfigParser {
     List<String> compactorGroups =
         config.keySet().stream().filter(k -> k.startsWith(COMPACTOR_PREFIX))
             .map(k -> k.substring(COMPACTOR_PREFIX.length())).sorted().collect(Collectors.toList());
+    validateGroupNames(compactorGroups);
 
     if (!compactorGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "COMPACTOR_GROUPS",
@@ -141,6 +154,7 @@ public class ClusterConfigParser {
 
     List<String> sserverGroups = config.keySet().stream().filter(k -> k.startsWith(SSERVER_PREFIX))
         .map(k -> k.substring(SSERVER_PREFIX.length())).sorted().collect(Collectors.toList());
+    validateGroupNames(sserverGroups);
 
     if (!sserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS",
@@ -154,6 +168,7 @@ public class ClusterConfigParser {
 
     List<String> tserverGroups = config.keySet().stream().filter(k -> k.startsWith(TSERVER_PREFIX))
         .map(k -> k.substring(TSERVER_PREFIX.length())).sorted().collect(Collectors.toList());
+    validateGroupNames(tserverGroups);
 
     if (!tserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "TSERVER_GROUPS",
@@ -176,14 +191,19 @@ public class ClusterConfigParser {
       System.exit(1);
     }
 
-    if (args.length == 2) {
-      // Write to a file instead of System.out if provided as an argument
-      try (OutputStream os = Files.newOutputStream(Paths.get(args[1]), StandardOpenOption.CREATE);
-          PrintStream out = new PrintStream(os)) {
-        outputShellVariables(parseConfiguration(args[0]), new PrintStream(out));
+    try {
+      if (args.length == 2) {
+        // Write to a file instead of System.out if provided as an argument
+        try (OutputStream os = Files.newOutputStream(Paths.get(args[1]), StandardOpenOption.CREATE);
+            PrintStream out = new PrintStream(os)) {
+          outputShellVariables(parseConfiguration(args[0]), new PrintStream(out));
+        }
+      } else {
+        outputShellVariables(parseConfiguration(args[0]), System.out);
       }
-    } else {
-      outputShellVariables(parseConfiguration(args[0]), System.out);
+    } catch (Exception e) {
+      System.err.println("Processing error: " + e.getMessage());
+      System.exit(1);
     }
   }
 

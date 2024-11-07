@@ -34,6 +34,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -275,5 +276,21 @@ public class ClusterConfigParserTest {
           () -> ClusterConfigParser.outputShellVariables(contents, ps));
       assertTrue(exception.getMessage().contains("vserver"));
     }
+  }
+
+  @Test
+  public void testGroupNamePattern() {
+    ClusterConfigParser.validateGroupNames(List.of("a"));
+    ClusterConfigParser.validateGroupNames(List.of("a", "b"));
+    ClusterConfigParser.validateGroupNames(List.of("default", "reg_ular"));
+    ClusterConfigParser.validateGroupNames(List.of("a1b2c3d4__"));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("0abcde")));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("a-b")));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("a*b")));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("a?b")));
   }
 }
