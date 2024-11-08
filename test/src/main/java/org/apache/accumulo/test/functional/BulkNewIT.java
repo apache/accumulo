@@ -37,6 +37,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -847,8 +848,10 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       var loadPlanBuilder = LoadPlan.builder();
       var rowsExpected = new HashSet<>();
-      for (int i = 2; i < 8999; i++) {
-        int data = i;
+      var imports = IntStream.range(2, 8999).boxed().collect(Collectors.toList());
+      // The order in which imports are added to the load plan should not matter so test that.
+      Collections.shuffle(imports);
+      for (var data : imports) {
         String filename = "f" + data + ".";
         loadPlanBuilder.loadFileTo(filename + RFile.EXTENSION, RangeType.TABLE, row(data - 1),
             row(data));
@@ -863,6 +866,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
       for (var future : futures) {
         future.get();
       }
+
+      executor.shutdown();
 
       var loadPlan = loadPlanBuilder.build();
 
