@@ -100,13 +100,13 @@ public class ZooSession {
   }
 
   /**
-   * @param host comma separated list of zk servers
+   * @param connectString in the form of host1:port1,host2:port2/chroot/path
    * @param timeout in milliseconds
    * @param scheme authentication type, e.g. 'digest', may be null
    * @param auth authentication-scheme-specific token, may be null
    * @param watcher ZK notifications, may be null
    */
-  static ZooKeeper connect(String host, int timeout, String scheme, byte[] auth, Watcher watcher) {
+  static ZooKeeper connect(String connectString, int timeout, String scheme, byte[] auth, Watcher watcher) {
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
     int connectTimeWait = Math.min(10_000, timeout);
     boolean tryAgain = true;
@@ -117,7 +117,7 @@ public class ZooSession {
 
     while (tryAgain) {
       try {
-        zooKeeper = new ZooKeeper(host, timeout, watcher);
+        zooKeeper = new ZooKeeper(connectString, timeout, watcher);
         // it may take some time to get connected to zookeeper if some of the servers are down
         for (int i = 0; i < connectTimeWait / TIME_BETWEEN_CONNECT_CHECKS_MS && tryAgain; i++) {
           if (zooKeeper.getState().equals(States.CONNECTED)) {
@@ -155,7 +155,7 @@ public class ZooSession {
       long duration = NANOSECONDS.toMillis(stopTime - startTime);
 
       if (duration > 2L * timeout) {
-        throw new IllegalStateException("Failed to connect to zookeeper (" + host
+        throw new IllegalStateException("Failed to connect to zookeeper (" + connectString
             + ") within 2x zookeeper timeout period " + timeout);
       }
 
@@ -177,16 +177,16 @@ public class ZooSession {
     return zooKeeper;
   }
 
-  public static ZooKeeper getAuthenticatedSession(String zooKeepers, int timeout, String scheme,
+  public static ZooKeeper getAuthenticatedSession(String connectString, int timeout, String scheme,
       byte[] auth) {
-    return getSession(zooKeepers, timeout, scheme, auth);
+    return getSession(connectString, timeout, scheme, auth);
   }
 
-  public static ZooKeeper getAnonymousSession(String zooKeepers, int timeout) {
-    return getSession(zooKeepers, timeout, null, null);
+  public static ZooKeeper getAnonymousSession(String connectString, int timeout) {
+    return getSession(connectString, timeout, null, null);
   }
 
-  private static synchronized ZooKeeper getSession(String zooKeepers, int timeout, String scheme,
+  private static synchronized ZooKeeper getSession(String connectString, int timeout, String scheme,
       byte[] auth) {
 
     if (sessions == null) {
@@ -195,13 +195,13 @@ public class ZooSession {
               + "caused by all AccumuloClients being closed or garbage collected.");
     }
 
-    String sessionKey = sessionKey(zooKeepers, timeout, scheme, auth);
+    String sessionKey = sessionKey(connectString, timeout, scheme, auth);
 
     // a read-only session can use a session with authorizations, so cache a copy for it w/out auths
-    String readOnlySessionKey = sessionKey(zooKeepers, timeout, null, null);
+    String readOnlySessionKey = sessionKey(connectString, timeout, null, null);
     ZooSessionInfo zsi = sessions.get(sessionKey);
     if (zsi != null && zsi.zooKeeper.getState() == States.CLOSED) {
-      log.debug("Removing closed ZooKeeper session to {}", zooKeepers);
+      log.debug("Removing closed ZooKeeper session to {}", connectString);
       if (auth != null && sessions.get(readOnlySessionKey) == zsi) {
         sessions.remove(readOnlySessionKey);
       }
@@ -211,8 +211,8 @@ public class ZooSession {
 
     if (zsi == null) {
       ZooWatcher watcher = new ZooWatcher();
-      log.debug("Connecting to {} with timeout {} with auth", zooKeepers, timeout);
-      zsi = new ZooSessionInfo(connect(zooKeepers, timeout, scheme, auth, watcher));
+      log.debug("Connecting to {} with timeout {} with auth", connectString, timeout);
+      zsi = new ZooSessionInfo(connect(connectString, timeout, scheme, auth, watcher));
       sessions.put(sessionKey, zsi);
       if (auth != null && !sessions.containsKey(readOnlySessionKey)) {
         sessions.put(readOnlySessionKey, zsi);

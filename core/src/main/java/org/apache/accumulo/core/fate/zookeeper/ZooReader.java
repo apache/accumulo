@@ -45,20 +45,20 @@ public class ZooReader {
           .incrementBy(Duration.ofMillis(250)).maxWait(Duration.ofMinutes(2)).backOffFactor(1.5)
           .logInterval(Duration.ofMinutes(3)).createFactory();
 
-  protected final String keepers;
+  protected final String connectString;
   protected final int timeout;
 
-  public ZooReader(String keepers, int timeout) {
-    this.keepers = requireNonNull(keepers);
+  public ZooReader(String connectString, int timeout) {
+    this.connectString = requireNonNull(connectString);
     this.timeout = timeout;
   }
 
   public ZooReaderWriter asWriter(String secret) {
-    return new ZooReaderWriter(keepers, timeout, secret);
+    return new ZooReaderWriter(connectString, timeout, secret);
   }
 
   protected ZooKeeper getZooKeeper() {
-    return ZooSession.getAnonymousSession(keepers, timeout);
+    return ZooSession.getAnonymousSession(connectString, timeout);
   }
 
   protected RetryFactory getRetryFactory() {
