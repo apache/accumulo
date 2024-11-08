@@ -75,6 +75,21 @@ public class ZooCache {
       this.children = zcn != null ? zcn.children : null;
       this.childrenSet = zcn != null ? zcn.childrenSet : false;
     }
+
+    byte[] getData() {
+      Preconditions.checkState(dataSet);
+      return data;
+    }
+
+    ZcStat getStat() {
+      Preconditions.checkState(dataSet);
+      return stat;
+    }
+
+    List<String> getChildren() {
+      Preconditions.checkState(childrenSet);
+      return children;
+    }
   }
 
   // ConcurrentHashMap will only allow one thread to run at a time for a given key and this
@@ -298,7 +313,7 @@ public class ZooCache {
 
         var zcNode = nodeCache.get(zPath);
         if (zcNode != null && zcNode.childrenSet) {
-          return zcNode.children;
+          return zcNode.getChildren();
         }
 
         try {
@@ -310,8 +325,7 @@ public class ZooCache {
 
             try {
               final ZooKeeper zooKeeper = getZooKeeper();
-              List<String> children = null;
-              // TODO zookeeper may never return null
+              List<String> children;
               children = zooKeeper.getChildren(zPath, watcher);
               if (children != null) {
                 children = List.copyOf(children);
@@ -323,12 +337,10 @@ public class ZooCache {
               throw new ZcInterruptedException(e);
             }
           });
-          // TODO was this updated when node did not exists?
           // increment this after compute call completes when the change is visible
           updateCount.incrementAndGet();
-          return zcNode.children;
+          return zcNode.getChildren();
         } catch (ZcException zce) {
-          // TODO not caching this
           if (zce.getZKException().code() == Code.NONODE) {
             return null;
           } else {
@@ -370,9 +382,9 @@ public class ZooCache {
         var zcNode = nodeCache.get(zPath);
         if (zcNode != null && zcNode.dataSet) {
           if (status != null) {
-            copyStats(status, zcNode.stat);
+            copyStats(status, zcNode.getStat());
           }
-          return zcNode.data;
+          return zcNode.getData();
         }
 
         zcNode = nodeCache.compute(zPath, (zp, zcn) -> {
@@ -424,9 +436,9 @@ public class ZooCache {
         // update this after the compute call completes when the change is visible
         updateCount.incrementAndGet();
         if (status != null) {
-          copyStats(status, zcNode.stat);
+          copyStats(status, zcNode.getStat());
         }
-        return zcNode.data;
+        return zcNode.getData();
       }
     };
 
