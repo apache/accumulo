@@ -42,7 +42,7 @@ import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.*;
+import org.slf4j.event.Level;
 
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
