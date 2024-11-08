@@ -30,13 +30,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
+
+import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClusterConfigParser {
+
+  private static final Pattern GROUP_NAME_PATTERN =
+      Pattern.compile("^[a-zA-Z_]{1,}[a-zA-Z0-9_]{0,}$");
+
+  public static void validateGroupNames(List<String> names) {
+    for (String name : names) {
+      if (!GROUP_NAME_PATTERN.matcher(name).matches()) {
+        throw new RuntimeException("Group name: " + name + " contains invalid characters");
+      }
+    }
+  }
 
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String COMPACTOR_PREFIX = "compactor.";
@@ -104,6 +119,30 @@ public class ClusterConfigParser {
     }
   }
 
+  private static List<String> parseGroup(Map<String,String> config, String prefix) {
+    Preconditions.checkArgument(prefix.equals(COMPACTOR_PREFIX) || prefix.equals(SSERVER_PREFIX)
+        || prefix.equals(TSERVER_PREFIX));
+    List<String> groups = config.keySet().stream().filter(k -> k.startsWith(prefix)).map(k -> {
+      int periods = StringUtils.countMatches(k, '.');
+      if (periods == 1) {
+        return k.substring(prefix.length());
+      } else if (periods == 2) {
+        if (k.endsWith(HOSTS_SUFFIX)) {
+          return k.substring(prefix.length(), k.indexOf(HOSTS_SUFFIX));
+        } else if (k.endsWith(SERVERS_PER_HOST_SUFFIX)) {
+          return k.substring(prefix.length(), k.indexOf(SERVERS_PER_HOST_SUFFIX));
+        } else {
+          throw new IllegalArgumentException("Unknown group suffix for: " + k + ". Only "
+              + HOSTS_SUFFIX + " or " + SERVERS_PER_HOST_SUFFIX + " are allowed.");
+        }
+      } else {
+        throw new IllegalArgumentException("Malformed configuration, has too many levels: " + k);
+      }
+    }).sorted().distinct().collect(Collectors.toList());
+    validateGroupNames(groups);
+    return groups;
+  }
+
   public static void outputShellVariables(Map<String,String> config, PrintStream out) {
 
     // find invalid config sections and point the user to the first one
@@ -123,17 +162,7 @@ public class ClusterConfigParser {
       }
     }
 
-    List<String> compactorGroups =
-        config.keySet().stream().filter(k -> k.startsWith(COMPACTOR_PREFIX)).map(k -> {
-          if (k.contains(HOSTS_SUFFIX)) {
-            return k.substring(COMPACTOR_PREFIX.length(), k.indexOf(HOSTS_SUFFIX));
-          } else if (k.contains(SERVERS_PER_HOST_SUFFIX)) {
-            return k.substring(COMPACTOR_PREFIX.length(), k.indexOf(SERVERS_PER_HOST_SUFFIX));
-          } else {
-            return k.substring(COMPACTOR_PREFIX.length());
-          }
-        }).sorted().distinct().collect(Collectors.toList());
-
+    List<String> compactorGroups = parseGroup(config, COMPACTOR_PREFIX);
     if (!compactorGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "COMPACTOR_GROUPS",
           compactorGroups.stream().collect(Collectors.joining(" ")));
@@ -146,17 +175,7 @@ public class ClusterConfigParser {
       }
     }
 
-    List<String> sserverGroups =
-        config.keySet().stream().filter(k -> k.startsWith(SSERVER_PREFIX)).map(k -> {
-          if (k.contains(HOSTS_SUFFIX)) {
-            return k.substring(SSERVER_PREFIX.length(), k.indexOf(HOSTS_SUFFIX));
-          } else if (k.contains(SERVERS_PER_HOST_SUFFIX)) {
-            return k.substring(SSERVER_PREFIX.length(), k.indexOf(SERVERS_PER_HOST_SUFFIX));
-          } else {
-            return k.substring(SSERVER_PREFIX.length());
-          }
-        }).sorted().distinct().collect(Collectors.toList());
-
+    List<String> sserverGroups = parseGroup(config, SSERVER_PREFIX);
     if (!sserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS",
           sserverGroups.stream().collect(Collectors.joining(" ")));
@@ -166,17 +185,7 @@ public class ClusterConfigParser {
           config.getOrDefault(SSERVER_PREFIX + ssg + SERVERS_PER_HOST_SUFFIX, "1")));
     }
 
-    List<String> tserverGroups =
-        config.keySet().stream().filter(k -> k.startsWith(TSERVER_PREFIX)).map(k -> {
-          if (k.contains(HOSTS_SUFFIX)) {
-            return k.substring(TSERVER_PREFIX.length(), k.indexOf(HOSTS_SUFFIX));
-          } else if (k.contains(SERVERS_PER_HOST_SUFFIX)) {
-            return k.substring(TSERVER_PREFIX.length(), k.indexOf(SERVERS_PER_HOST_SUFFIX));
-          } else {
-            return k.substring(TSERVER_PREFIX.length());
-          }
-        }).sorted().distinct().collect(Collectors.toList());
-
+    List<String> tserverGroups = parseGroup(config, TSERVER_PREFIX);
     if (!tserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "TSERVER_GROUPS",
           tserverGroups.stream().collect(Collectors.joining(" ")));
@@ -197,14 +206,19 @@ public class ClusterConfigParser {
       System.exit(1);
     }
 
-    if (args.length == 2) {
-      // Write to a file instead of System.out if provided as an argument
-      try (OutputStream os = Files.newOutputStream(Paths.get(args[1]), StandardOpenOption.CREATE);
-          PrintStream out = new PrintStream(os)) {
-        outputShellVariables(parseConfiguration(args[0]), new PrintStream(out));
+    try {
+      if (args.length == 2) {
+        // Write to a file instead of System.out if provided as an argument
+        try (OutputStream os = Files.newOutputStream(Paths.get(args[1]), StandardOpenOption.CREATE);
+            PrintStream out = new PrintStream(os)) {
+          outputShellVariables(parseConfiguration(args[0]), new PrintStream(out));
+        }
+      } else {
+        outputShellVariables(parseConfiguration(args[0]), System.out);
       }
-    } else {
-      outputShellVariables(parseConfiguration(args[0]), System.out);
+    } catch (Exception e) {
+      System.err.println("Processing error: " + e.getMessage());
+      System.exit(1);
     }
   }
 

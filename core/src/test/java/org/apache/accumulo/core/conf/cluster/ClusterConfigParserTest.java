@@ -33,6 +33,7 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
@@ -194,7 +195,7 @@ public class ClusterConfigParserTest {
   @Test
   public void testFileWithUnknownSections() throws Exception {
     URL configFile = ClusterConfigParserTest.class
-        .getResource("/org/apache/accumulo/core/conf/cluster/bad-cluster.yaml");
+        .getResource("/org/apache/accumulo/core/conf/cluster/bad-server-name.yaml");
     assertNotNull(configFile);
 
     Map<String,String> contents =
@@ -205,5 +206,69 @@ public class ClusterConfigParserTest {
           () -> ClusterConfigParser.outputShellVariables(contents, ps));
       assertTrue(exception.getMessage().contains("vserver"));
     }
+  }
+
+  @Test
+  public void testFileWithInvalidGroupName() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/bad-group-name.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(RuntimeException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("bad-group-name"));
+    }
+  }
+
+  @Test
+  public void testFileWithInvalidSuffix() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/bad-group-suffix.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("servers_per_hosts"));
+    }
+  }
+
+  @Test
+  public void testFileWithTooManyLevels() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/too-many-levels.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("too many levels"));
+    }
+  }
+
+  @Test
+  public void testGroupNamePattern() {
+    ClusterConfigParser.validateGroupNames(List.of("a"));
+    ClusterConfigParser.validateGroupNames(List.of("a", "b"));
+    ClusterConfigParser.validateGroupNames(List.of("default", "reg_ular"));
+    ClusterConfigParser.validateGroupNames(List.of("a1b2c3d4__"));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("0abcde")));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("a-b")));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("a*b")));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("a?b")));
   }
 }

@@ -18,35 +18,28 @@
 #
 
 manager:
-  - localhost1
-  - localhost2
+  - localhost
 
 monitor:
-  - localhost1
-  - localhost2
+  - localhost
 
 gc:
   - localhost
 
+compactor:
+  default:
+    servers_per_host: 1
+    hosts:
+      - localhost
+
+sserver:
+  default:
+    servers_per_hosts: 1
+    hosts:
+      - localhost
+
 tserver:
   default:
-    - localhost1
-    - localhost2
-    - localhost3
-    - localhost4
-
-# The following section name is not valid and should cause an error.
-vserver:
-  - localhost5
-  - localhost6
-  - localhost7
-  - localhost8
-
-#compaction:
-#  compactor:
-#    - q1:
-#        - localhost1
-#        - localhost2
-#    - q2:
-#        - localhost1
-#        - localhost2
+    servers_per_host: 1
+    hosts:
+      - localhost
