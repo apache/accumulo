@@ -41,9 +41,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -234,6 +236,11 @@ public class CompactionService {
     }
 
     private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
+
+    @Override
+    public NamespaceId getNamespaceId() throws TableNotFoundException {
+      return context.getNamespaceId(comp.getTableId());
+    }
 
     @Override
     public TableId getTableId() {
