@@ -119,6 +119,8 @@ public class CompactionJobPrioritizer {
     CompactionKind calculationKind = kind;
     if (kind == CompactionKind.CHOP) {
       calculationKind = CompactionKind.USER;
+    } else if (kind == CompactionKind.SELECTOR) {
+      calculationKind = CompactionKind.SYSTEM;
     }
 
     Range<Short> range = null;
@@ -134,8 +136,7 @@ public class CompactionJobPrioritizer {
       if (totalFiles > maxFilesPerTablet && calculationKind == CompactionKind.SYSTEM) {
         range = TABLE_OVER_SIZE;
         func = tabletOverSizeFunction;
-      } else if (calculationKind == CompactionKind.SYSTEM
-          || calculationKind == CompactionKind.SELECTOR) {
+      } else if (calculationKind == CompactionKind.SYSTEM) {
         range = USER_TABLE_SYSTEM;
       } else {
         range = USER_TABLE_USER;

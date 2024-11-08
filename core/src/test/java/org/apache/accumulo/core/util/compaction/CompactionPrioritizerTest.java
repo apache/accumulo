@@ -94,6 +94,8 @@ public class CompactionPrioritizerTest {
         return Short.compare(r1.getMinimum(), r2.getMinimum());
       }
     });
+    assertEquals(Short.MIN_VALUE, ranges.get(0).getMinimum());
+    assertEquals(Short.MAX_VALUE, ranges.get(ranges.size() - 1).getMaximum());
     // check that the max of the previous range is one less than the
     // minimum of the current range to make sure there are no holes.
     short lastMax = Short.MIN_VALUE;
