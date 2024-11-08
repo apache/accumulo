@@ -101,7 +101,7 @@ public class CompactionJobGenerator {
   public Collection<CompactionJob> generateJobs(TabletMetadata tablet, Set<CompactionKind> kinds) {
     Collection<CompactionJob> systemJobs = Set.of();
 
-    log.debug("Planning for {} {} {}", tablet.getExtent(), kinds, this.hashCode());
+    log.trace("Planning for {} {} {}", tablet.getExtent(), kinds, this.hashCode());
 
     if (kinds.contains(CompactionKind.SYSTEM)) {
       CompactionServiceId serviceId = dispatch(CompactionKind.SYSTEM, tablet, Map.of());
