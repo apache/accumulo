@@ -20,7 +20,10 @@
 
 function print_usage {
   cat <<EOF
-Usage: accumulo-cluster <command> (<argument> ...)
+Usage: accumulo-cluster <command> (<argument> ...) [<option> ...]
+
+Options:
+  --dry-run                  Prints information and commands, but does not execute them
 
 Commands:
   create-config              Creates cluster config
@@ -51,6 +54,22 @@ function parse_fail {
   exit 1
 }
 
+isDebug() {
+  [[ $DEBUG == 1 ]]
+}
+
+debug() {
+  isDebug && echo "${@@P}"
+}
+
+debugAndRun() {
+  debug "$@"
+  if ! isDebug; then
+    # shellcheck disable=SC2294
+    eval "${@@P}"
+  fi
+}
+
 function parse_config {
 
   if [[ ! -f ${conf}/cluster.yaml ]]; then
@@ -64,6 +83,7 @@ function parse_config {
   ${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser "${conf}"/cluster.yaml "$CONFIG_FILE" || parse_fail
   #shellcheck source=/dev/null
   . "$CONFIG_FILE"
+  debug "Parsed config:" && cat "$CONFIG_FILE"
   rm -f "$CONFIG_FILE"
 
   if [[ -z $MANAGER_HOSTS ]]; then
@@ -171,16 +191,16 @@ function control_service() {
       # using the value of $host
       #
       if [[ $# -gt 3 ]]; then
-        ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host" "${@:4}"
+        debugAndRun ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host" "${@:4}"
       else
-        ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host"
+        debugAndRun ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host"
       fi
     else
       if [[ $# -gt 3 ]]; then
         EXTRA_ARGS="${*:4}"
-        $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\" $EXTRA_ARGS '"
+        debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\" $EXTRA_ARGS '"
       else
-        $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\"'"
+        debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\"'"
       fi
     fi
   done
@@ -191,87 +211,103 @@ function start_service() {
 }
 
 function start_compactors() {
-  echo -n "Starting compactor servers ..."
-  groups=$COMPACTOR_GROUPS
-  if [[ -n $1 ]]; then
-    groups="$1"
-    echo "Only starting servers for group: ${groups}"
-  fi
-  for group in $groups; do
-    var_name="NUM_COMPACTORS_${group}"
-    [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
-    Q="COMPACTOR_HOSTS_${group}"
-    if [[ -n ${!Q} ]]; then
-      for compactor in ${!Q}; do
-        start_service "$compactor" compactor "-o" "compactor.group=$group"
-      done
-    else
-      echo "${group} is not a valid compactor group ...exiting"
+  if [[ -z $COMPACTOR_GROUPS ]]; then
+    echo "No compactor groups configured..."
+  else
+    echo -n "Starting compactor servers ..."
+    groups=$COMPACTOR_GROUPS
+    if [[ -n $1 ]]; then
+      groups="$1"
+      echo "Only starting servers for group: ${groups}"
     fi
-  done
+    for group in $groups; do
+      var_name="NUM_COMPACTORS_${group}"
+      [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
+      Q="COMPACTOR_HOSTS_${group}"
+      if [[ -n ${!Q} ]]; then
+        for compactor in ${!Q}; do
+          start_service "$compactor" compactor "-o" "compactor.group=$group"
+        done
+      else
+        echo "${group} is not a valid compactor group ...exiting"
+      fi
+    done
+  fi
 }
 
 function stop_compactors() {
-  echo "Stopping compactor servers ..."
-  groups=$COMPACTOR_GROUPS
-  if [[ -n $1 ]]; then
-    groups="$1"
-    echo "Only stopping servers for group: ${groups}"
-  fi
-  for group in $groups; do
-    var_name="NUM_COMPACTORS_${group}"
-    [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
-    Q="COMPACTOR_HOSTS_${group}"
-    if [[ -n ${!Q} ]]; then
-      for compactor in ${!Q}; do
-        stop_service "$compactor" compactor "-o" "compactor.group=$group"
-      done
-    else
-      echo "${group} is not a valid compaction group ...exiting"
+  if [[ -z $COMPACTOR_GROUPS ]]; then
+    echo "No compactor groups configured..."
+  else
+    echo "Stopping compactor servers ..."
+    groups=$COMPACTOR_GROUPS
+    if [[ -n $1 ]]; then
+      groups="$1"
+      echo "Only stopping servers for group: ${groups}"
     fi
-  done
+    for group in $groups; do
+      var_name="NUM_COMPACTORS_${group}"
+      [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
+      Q="COMPACTOR_HOSTS_${group}"
+      if [[ -n ${!Q} ]]; then
+        for compactor in ${!Q}; do
+          stop_service "$compactor" compactor "-o" "compactor.group=$group"
+        done
+      else
+        echo "${group} is not a valid compaction group ...exiting"
+      fi
+    done
+  fi
 }
 
 function start_sservers() {
-  echo "Starting scan servers ..."
-  groups=$SSERVER_GROUPS
-  if [[ -n $1 ]]; then
-    groups="$1"
-    echo "Only starting servers for group: ${groups}"
-  fi
-  for group in $groups; do
-    var_name="NUM_SSERVERS_${group}"
-    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
-    G="SSERVER_HOSTS_${group}"
-    if [[ -n ${!G} ]]; then
-      for sserver in ${!G}; do
-        start_service "$sserver" sserver "-o" "sserver.group=$group"
-      done
-    else
-      echo "${group} is not a valid resource group ...exiting"
+  if [[ -z $SSERVER_GROUPS ]]; then
+    echo "No scan server groups configured..."
+  else
+    echo "Starting scan servers ..."
+    groups=$SSERVER_GROUPS
+    if [[ -n $1 ]]; then
+      groups="$1"
+      echo "Only starting servers for group: ${groups}"
     fi
-  done
+    for group in $groups; do
+      var_name="NUM_SSERVERS_${group}"
+      [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
+      G="SSERVER_HOSTS_${group}"
+      if [[ -n ${!G} ]]; then
+        for sserver in ${!G}; do
+          start_service "$sserver" sserver "-o" "sserver.group=$group"
+        done
+      else
+        echo "${group} is not a valid resource group ...exiting"
+      fi
+    done
+  fi
 }
 
 function stop_sservers() {
-  echo "Stopping scan servers ..."
-  groups=$SSERVER_GROUPS
-  if [[ -n $1 ]]; then
-    groups="$1"
-    echo "Only stopping servers for group: ${groups}"
-  fi
-  for group in $groups; do
-    var_name="NUM_SSERVERS_${group}"
-    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
-    G="SSERVER_HOSTS_${group}"
-    if [[ -n ${!G} ]]; then
-      for sserver in ${!G}; do
-        stop_service "$sserver" sserver "-o" "sserver.group=$group"
-      done
-    else
-      echo "${group} is not a valid resource group ...exiting"
+  if [[ -z $SSERVER_GROUPS ]]; then
+    echo "No scan server groups configured..."
+  else
+    echo "Stopping scan servers ..."
+    groups=$SSERVER_GROUPS
+    if [[ -n $1 ]]; then
+      groups="$1"
+      echo "Only stopping servers for group: ${groups}"
     fi
-  done
+    for group in $groups; do
+      var_name="NUM_SSERVERS_${group}"
+      [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
+      G="SSERVER_HOSTS_${group}"
+      if [[ -n ${!G} ]]; then
+        for sserver in ${!G}; do
+          stop_service "$sserver" sserver "-o" "sserver.group=$group"
+        done
+      else
+        echo "${group} is not a valid resource group ...exiting"
+      fi
+    done
+  fi
 }
 
 function start_tservers() {
@@ -441,7 +477,9 @@ function stop_tservers() {
   done
 
   echo "Cleaning tablet server entries from zookeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -tservers
+  if ! isDebug; then
+    ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -tservers
+  fi
 }
 
 function kill_all() {
@@ -488,22 +526,25 @@ function kill_all() {
   done
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compactors -sservers
+  if ! isDebug; then
+    ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compactors -sservers
+  fi
 }
 
 function stop_all() {
   echo "Stopping Accumulo cluster..."
-  if ! ${accumulo_cmd} admin stopAll; then
-    echo "Invalid password or unable to connect to the manager"
-    echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
-    sleep 10
-    echo "Initiating forced shutdown in  5 seconds (Ctrl-C to abort)"
-  else
-    echo "Accumulo shut down cleanly"
-    echo "Utilities and unresponsive servers will shut down in 5 seconds (Ctrl-C to abort)"
+  if ! isDebug; then
+    if ! ${accumulo_cmd} admin stopAll; then
+      echo "Invalid password or unable to connect to the manager"
+      echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
+      sleep 10
+      echo "Initiating forced shutdown in  5 seconds (Ctrl-C to abort)"
+    else
+      echo "Accumulo shut down cleanly"
+      echo "Utilities and unresponsive servers will shut down in 5 seconds (Ctrl-C to abort)"
+    fi
+    sleep 5
   fi
-
-  sleep 5
 
   # Look for processes not killed by 'admin stopAll'
 
@@ -547,7 +588,9 @@ function stop_all() {
   stop_tservers
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compactors -sservers
+  if ! isDebug; then
+    ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compactors -sservers
+  fi
 }
 
 function stop_here() {
@@ -555,14 +598,22 @@ function stop_here() {
   hosts_to_check=("$(hostname -a 2>/dev/null | head -1)" "$(hostname -f)")
 
   if echo "${TSERVER_HOSTS}" | grep -Eq 'localhost|127[.]0[.]0[.]1'; then
-    ${accumulo_cmd} admin stop localhost
+    if ! isDebug; then
+      ${accumulo_cmd} admin stop localhost
+    else
+      debug "Stopping tservers on localhost via admin command"
+    fi
   else
     for host in "${hosts_to_check[@]}"; do
       for group in $TSERVER_GROUPS; do
         G="TSERVER_HOSTS_${group}"
         for tserver in ${!G}; do
           if echo "$tserver" | grep -q "$host"; then
-            ${accumulo_cmd} admin stop "$host"
+            if ! isDebug; then
+              ${accumulo_cmd} admin stop "$host"
+            else
+              debug "Stopping tservers on $host via admin command"
+            fi
           fi
         done
       done
@@ -620,7 +671,22 @@ function main() {
   accumulo_cmd="${bin}/accumulo"
   SSH='ssh -qnf -o ConnectTimeout=2'
 
-  case "$1" in
+  # Copy input arguments into new array
+  # removing any options
+  DEBUG=0
+  i=0
+  declare -a program_args
+  for arg in "$@"; do
+    if [[ $arg == "--dry-run" ]]; then
+      DEBUG=1
+    else
+      program_args[i++]="$arg"
+    fi
+  done
+
+  debug "debug: ${DEBUG} args: ${program_args[*]}"
+
+  case "${program_args[0]}" in
     create-config)
       if [[ -f "$conf"/cluster.yaml ]]; then
         echo "ERROR : ${conf}/cluster.yaml already exists, not overwriting"
@@ -709,7 +775,8 @@ EOF
       ;;
     start-servers)
       parse_config
-      case "$2" in
+      subcommand="${program_args[1]}"
+      case "$subcommand" in
         "--all" | "")
           start_all
           ;;
@@ -720,19 +787,20 @@ EOF
           start_all --no-tservers
           ;;
         "--sservers")
-          start_sservers "${@:3}"
+          start_sservers "${program_args[@]:2}"
           ;;
         "--compactors")
-          start_compactors "${@:3}"
+          start_compactors "${program_args[@]:2}"
           ;;
         *)
-          invalid_args "'$2' is an invalid <command>"
+          invalid_args "'$subcommand' is an invalid <command>"
           ;;
       esac
       ;;
     stop-servers)
       parse_config
-      case "$2" in
+      subcommand="${program_args[1]}"
+      case "$subcommand" in
         "--all" | "")
           stop_all
           ;;
@@ -740,18 +808,18 @@ EOF
           stop_tservers
           ;;
         "--sservers")
-          stop_sservers "${@:3}"
+          stop_sservers "${program_args[@]:2}"
           ;;
         "--compactors")
-          stop_compactors "${@:3}"
+          stop_compactors "${program_args[@]:2}"
           ;;
         *)
-          invalid_args "'$2' is an invalid <command>"
+          invalid_args "'$subcommand' is an invalid <command>"
           ;;
       esac
       ;;
     *)
-      invalid_args "'$1' is an invalid <command>"
+      invalid_args "${program_args[0]} is an invalid <command>"
       ;;
   esac
 }
