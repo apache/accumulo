@@ -35,6 +35,7 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,6 +50,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -825,6 +827,55 @@ public class BulkNewIT extends SharedMiniClusterBase {
         var seen = scanner.stream().map(e -> e.getKey().getRowData().toString())
             .collect(Collectors.toSet());
         assertEquals(expected, seen);
+      }
+    }
+  }
+
+  @Test
+  public void testManyTabletAndFiles() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String dir = getDir("/testBulkFile-");
+      FileSystem fs = getCluster().getFileSystem();
+      fs.mkdirs(new Path(dir));
+
+      TreeSet<Text> splits = IntStream.range(1, 9000).mapToObj(BulkNewIT::row).map(Text::new)
+          .collect(Collectors.toCollection(TreeSet::new));
+      c.tableOperations().addSplits(tableName, splits);
+
+      var executor = Executors.newFixedThreadPool(16);
+      var futures = new ArrayList<Future<?>>();
+
+      var loadPlanBuilder = LoadPlan.builder();
+      var rowsExpected = new HashSet<>();
+      for (int i = 2; i < 8999; i++) {
+        int data = i;
+        String filename = "f" + data + ".";
+        loadPlanBuilder.loadFileTo(filename + RFile.EXTENSION, RangeType.TABLE, row(data - 1),
+            row(data));
+        var future = executor.submit(() -> {
+          writeData(dir + "/" + filename, aconf, data, data);
+          return null;
+        });
+        futures.add(future);
+        rowsExpected.add(row(data));
+      }
+
+      for (var future : futures) {
+        future.get();
+      }
+
+      var loadPlan = loadPlanBuilder.build();
+
+      c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
+
+      // use a batch scanner can read from lots of tablets w/ less RPCs
+      try (var scanner = c.createBatchScanner(tableName)) {
+        // use a scan server so that tablets do not need to be hosted
+        scanner.setConsistencyLevel(ScannerBase.ConsistencyLevel.EVENTUAL);
+        scanner.setRanges(List.of(new Range()));
+        var rowsSeen = scanner.stream().map(e -> e.getKey().getRowData().toString())
+            .collect(Collectors.toSet());
+        assertEquals(rowsExpected, rowsSeen);
       }
     }
   }
