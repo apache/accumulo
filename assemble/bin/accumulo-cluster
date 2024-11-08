@@ -197,7 +197,7 @@ function start_service() {
 }
 
 function start_compactors() {
-  if [[ -z $SSERVER_GROUPS ]]; then
+  if [[ -z $COMPACTION_QUEUES ]]; then
     echo "No compactor queues configured..."
   else
     echo -n "Starting compactor servers ..."
@@ -222,7 +222,7 @@ function start_compactors() {
 }
 
 function stop_compactors() {
-  if [[ -z $SSERVER_GROUPS ]]; then
+  if [[ -z $COMPACTION_QUEUES ]]; then
     echo "No compactor queues configured..."
   else
     echo "Stopping compactor servers ..."
