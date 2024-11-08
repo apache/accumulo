@@ -30,9 +30,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.PluginEnvironment;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.logging.ConditionalLogger;
@@ -53,6 +55,7 @@ import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.time.SteadyTime;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
@@ -239,6 +242,12 @@ public class CompactionJobGenerator {
     }
 
     CompactionPlanner.PlanningParameters params = new CompactionPlanner.PlanningParameters() {
+
+      @Override
+      public NamespaceId getNamespaceId() throws TableNotFoundException {
+        return ((ServiceEnvironmentImpl) env).getContext().getNamespaceId(tablet.getTableId());
+      }
+
       @Override
       public TableId getTableId() {
         return tablet.getTableId();
