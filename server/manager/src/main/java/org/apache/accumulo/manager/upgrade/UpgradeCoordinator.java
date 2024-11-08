@@ -51,7 +51,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.*;
+import org.slf4j.event.Level;
 
 import com.google.common.base.Preconditions;
 
