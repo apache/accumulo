@@ -197,87 +197,103 @@ function start_service() {
 }
 
 function start_compactors() {
-  echo -n "Starting compactor servers ..."
-  queues=$COMPACTION_QUEUES
-  if [[ -n $1 ]]; then
-    queues="$1"
-    echo "Only starting servers for group: ${queues}"
-  fi
-  for queue in $queues; do
-    var_name="NUM_COMPACTORS_${queue}"
-    [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
-    Q="COMPACTOR_HOSTS_${queue}"
-    if [[ -n ${!Q} ]]; then
-      for compactor in ${!Q}; do
-        start_service "$compactor" compactor "-q" "$queue"
-      done
-    else
-      echo "${queue} is not a valid queue ...exiting"
+  if [[ -z $SSERVER_GROUPS ]]; then
+    echo "No compactor queues configured..."
+  else
+    echo -n "Starting compactor servers ..."
+    queues=$COMPACTION_QUEUES
+    if [[ -n $1 ]]; then
+      queues="$1"
+      echo "Only starting servers for group: ${queues}"
     fi
-  done
+    for queue in $queues; do
+      var_name="NUM_COMPACTORS_${queue}"
+      [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
+      Q="COMPACTOR_HOSTS_${queue}"
+      if [[ -n ${!Q} ]]; then
+        for compactor in ${!Q}; do
+          start_service "$compactor" compactor "-q" "$queue"
+        done
+      else
+        echo "${queue} is not a valid queue ...exiting"
+      fi
+    done
+  fi
 }
 
 function stop_compactors() {
-  echo "Stopping compactor servers ..."
-  queues=$COMPACTION_QUEUES
-  if [[ -n $1 ]]; then
-    queues="$1"
-    echo "Only stopping servers for group: ${queues}"
-  fi
-  for queue in $queues; do
-    var_name="NUM_COMPACTORS_${queue}"
-    [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
-    Q="COMPACTOR_HOSTS_${queue}"
-    if [[ -n ${!Q} ]]; then
-      for compactor in ${!Q}; do
-        stop_service "$compactor" compactor "-q" "$queue"
-      done
-    else
-      echo "${queue} is not a valid compaction queue ...exiting"
+  if [[ -z $SSERVER_GROUPS ]]; then
+    echo "No compactor queues configured..."
+  else
+    echo "Stopping compactor servers ..."
+    queues=$COMPACTION_QUEUES
+    if [[ -n $1 ]]; then
+      queues="$1"
+      echo "Only stopping servers for group: ${queues}"
     fi
-  done
+    for queue in $queues; do
+      var_name="NUM_COMPACTORS_${queue}"
+      [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
+      Q="COMPACTOR_HOSTS_${queue}"
+      if [[ -n ${!Q} ]]; then
+        for compactor in ${!Q}; do
+          stop_service "$compactor" compactor "-q" "$queue"
+        done
+      else
+        echo "${queue} is not a valid compaction queue ...exiting"
+      fi
+    done
+  fi
 }
 
 function start_sservers() {
-  echo "Starting scan servers ..."
-  groups=$SSERVER_GROUPS
-  if [[ -n $1 ]]; then
-    groups="$1"
-    echo "Only starting servers for group: ${groups}"
-  fi
-  for group in $groups; do
-    var_name="NUM_SSERVERS_${group}"
-    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
-    G="SSERVER_HOSTS_${group}"
-    if [[ -n ${!G} ]]; then
-      for sserver in ${!G}; do
-        start_service "$sserver" sserver "-g" "$group"
-      done
-    else
-      echo "${group} is not a valid resource group ...exiting"
+  if [[ -z $SSERVER_GROUPS ]]; then
+    echo "No scan server groups configured..."
+  else
+    echo "Starting scan servers ..."
+    groups=$SSERVER_GROUPS
+    if [[ -n $1 ]]; then
+      groups="$1"
+      echo "Only starting servers for group: ${groups}"
     fi
-  done
+    for group in $groups; do
+      var_name="NUM_SSERVERS_${group}"
+      [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
+      G="SSERVER_HOSTS_${group}"
+      if [[ -n ${!G} ]]; then
+        for sserver in ${!G}; do
+          start_service "$sserver" sserver "-g" "$group"
+        done
+      else
+        echo "${group} is not a valid resource group ...exiting"
+      fi
+    done
+  fi
 }
 
 function stop_sservers() {
-  echo "Stopping scan servers ..."
-  groups=$SSERVER_GROUPS
-  if [[ -n $1 ]]; then
-    groups="$1"
-    echo "Only stopping servers for group: ${groups}"
-  fi
-  for group in $groups; do
-    var_name="NUM_SSERVERS_${group}"
-    [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
-    G="SSERVER_HOSTS_${group}"
-    if [[ -n ${!G} ]]; then
-      for sserver in ${!G}; do
-        stop_service "$sserver" sserver "-g" "$group"
-      done
-    else
-      echo "${group} is not a valid resource group ...exiting"
+  if [[ -z $SSERVER_GROUPS ]]; then
+    echo "No scan server groups configured..."
+  else
+    echo "Stopping scan servers ..."
+    groups=$SSERVER_GROUPS
+    if [[ -n $1 ]]; then
+      groups="$1"
+      echo "Only stopping servers for group: ${groups}"
     fi
-  done
+    for group in $groups; do
+      var_name="NUM_SSERVERS_${group}"
+      [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
+      G="SSERVER_HOSTS_${group}"
+      if [[ -n ${!G} ]]; then
+        for sserver in ${!G}; do
+          stop_service "$sserver" sserver "-g" "$group"
+        done
+      else
+        echo "${group} is not a valid resource group ...exiting"
+      fi
+    done
+  fi
 }
 
 function start_tservers() {
@@ -746,10 +762,10 @@ EOF
           start_all --no-tservers
           ;;
         "--sservers")
-          start_sservers "${program_args:3}"
+          start_sservers "${program_args[@]:2}"
           ;;
         "--compactors")
-          start_compactors "${program_args:3}"
+          start_compactors "${program_args[@]:2}"
           ;;
         *)
           invalid_args "'$subcommand' is an invalid <command>"
@@ -767,10 +783,10 @@ EOF
           stop_tservers
           ;;
         "--sservers")
-          stop_sservers "${program_args:3}"
+          stop_sservers "${program_args[@]:2}"
           ;;
         "--compactors")
-          stop_compactors "${program_args:3}"
+          stop_compactors "${program_args[@]:2}"
           ;;
         *)
           invalid_args "'$subcommand' is an invalid <command>"
