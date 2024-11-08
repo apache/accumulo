@@ -257,6 +257,54 @@ public class ClusterConfigParserTest {
   }
 
   @Test
+  public void testFileMissingCompactor() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/cluster-missing-compactor-group.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("No compactor groups found"));
+    }
+  }
+
+  @Test
+  public void testFileMissingTabletServer() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/cluster-missing-tserver-group.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("No tserver groups found"));
+    }
+  }
+
+  @Test
+  public void testFileOlderVersion() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/2_1_cluster.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("Check the format"));
+    }
+  }
+
+  @Test
   public void testGroupNamePattern() {
     ClusterConfigParser.validateGroupNames(List.of("a"));
     ClusterConfigParser.validateGroupNames(List.of("a", "b"));

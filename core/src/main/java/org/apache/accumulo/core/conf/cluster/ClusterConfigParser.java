@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -163,6 +164,10 @@ public class ClusterConfigParser {
     }
 
     List<String> compactorGroups = parseGroup(config, COMPACTOR_PREFIX);
+    if (compactorGroups.isEmpty()) {
+      throw new IllegalArgumentException(
+          "No compactor groups found, at least one compactor group is required to compact the system tables.");
+    }
     if (!compactorGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "COMPACTOR_GROUPS",
           compactorGroups.stream().collect(Collectors.joining(" ")));
@@ -186,15 +191,27 @@ public class ClusterConfigParser {
     }
 
     List<String> tserverGroups = parseGroup(config, TSERVER_PREFIX);
+    if (tserverGroups.isEmpty()) {
+      throw new IllegalArgumentException(
+          "No tserver groups found, at least one tserver group is required to host the system tables.");
+    }
+    AtomicBoolean foundTServer = new AtomicBoolean(false);
     if (!tserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "TSERVER_GROUPS",
           tserverGroups.stream().collect(Collectors.joining(" ")));
-      tserverGroups.forEach(tsg -> out.printf(PROPERTY_FORMAT, "TSERVER_HOSTS_" + tsg,
-          config.get(TSERVER_PREFIX + tsg + HOSTS_SUFFIX)));
+      tserverGroups.forEach(tsg -> {
+        String hosts = config.get(TSERVER_PREFIX + tsg + HOSTS_SUFFIX);
+        foundTServer.compareAndSet(false, hosts != null && !hosts.isEmpty());
+        out.printf(PROPERTY_FORMAT, "TSERVER_HOSTS_" + tsg, hosts);
+      });
       tserverGroups.forEach(tsg -> out.printf(PROPERTY_FORMAT, "TSERVERS_PER_HOST_" + tsg,
           config.getOrDefault(TSERVER_PREFIX + tsg + SERVERS_PER_HOST_SUFFIX, "1")));
     }
 
+    if (!foundTServer.get()) {
+      throw new IllegalArgumentException(
+          "Tablet Server group found, but no hosts. Check the format of your cluster.yaml file.");
+    }
     out.flush();
   }
 
