@@ -340,7 +340,7 @@ class LoadFiles extends ManagerRepo {
 
       // The tablet iterator and load mapping iterator are both iterating over data that is sorted
       // in the same way. The two iterators are each independently advanced to find common points in
-      // the data.
+      // the sorted data.
       var tabletIter = tabletsMetadata.iterator();
 
       t1 = System.currentTimeMillis();

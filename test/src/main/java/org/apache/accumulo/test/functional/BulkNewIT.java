@@ -868,7 +868,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
 
-      // use a batch scanner can read from lots of tablets w/ less RPCs
+      // using a batch scanner can read from lots of tablets w/ less RPCs
       try (var scanner = c.createBatchScanner(tableName)) {
         // use a scan server so that tablets do not need to be hosted
         scanner.setConsistencyLevel(ScannerBase.ConsistencyLevel.EVENTUAL);
