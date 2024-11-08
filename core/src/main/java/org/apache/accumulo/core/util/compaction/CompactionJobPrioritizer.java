@@ -114,20 +114,28 @@ public class CompactionJobPrioritizer {
       }
     };
 
+    // Handle the case of a CHOP compaction. For the purposes of determining
+    // a priority, treat them as a USER compaction.
+    CompactionKind calculationKind = kind;
+    if (kind == CompactionKind.CHOP) {
+      calculationKind = CompactionKind.USER;
+    }
+
     Range<Short> range = null;
     Function<Range<Short>,Short> func = normalPriorityFunction;
     if (Namespace.ACCUMULO.id() == nsId) {
       // Handle system tables
-      range = SYSTEM_TABLE_RANGES.get(new Pair<>(tableId, kind));
+      range = SYSTEM_TABLE_RANGES.get(new Pair<>(tableId, calculationKind));
       if (range == null) {
-        range = ACCUMULO_NAMESPACE_RANGES.get(new Pair<>(nsId, kind));
+        range = ACCUMULO_NAMESPACE_RANGES.get(new Pair<>(nsId, calculationKind));
       }
     } else {
       // Handle user tables
-      if (totalFiles > maxFilesPerTablet && kind == CompactionKind.SYSTEM) {
+      if (totalFiles > maxFilesPerTablet && calculationKind == CompactionKind.SYSTEM) {
         range = TABLE_OVER_SIZE;
         func = tabletOverSizeFunction;
-      } else if (kind == CompactionKind.SYSTEM || kind == CompactionKind.SELECTOR) {
+      } else if (calculationKind == CompactionKind.SYSTEM
+          || calculationKind == CompactionKind.SELECTOR) {
         range = USER_TABLE_SYSTEM;
       } else {
         range = USER_TABLE_USER;

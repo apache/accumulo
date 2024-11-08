@@ -28,11 +28,14 @@ import static org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer.
 import static org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer.USER_TABLE_SYSTEM;
 import static org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer.USER_TABLE_USER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,6 +46,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.commons.lang3.Range;
 import org.junit.jupiter.api.Test;
 
 public class CompactionPrioritizerTest {
@@ -63,72 +67,137 @@ public class CompactionPrioritizerTest {
   }
 
   @Test
+  public void testNonOverlappingRanges() {
+    List<Range<Short>> ranges = new ArrayList<>();
+    ranges.add(ROOT_TABLE_USER);
+    ranges.add(ROOT_TABLE_SYSTEM);
+    ranges.add(METADATA_TABLE_USER);
+    ranges.add(METADATA_TABLE_SYSTEM);
+    ranges.add(SYSTEM_NS_USER);
+    ranges.add(SYSTEM_NS_SYSTEM);
+    ranges.add(TABLE_OVER_SIZE);
+    ranges.add(USER_TABLE_USER);
+    ranges.add(USER_TABLE_SYSTEM);
+
+    for (Range<Short> r1 : ranges) {
+      for (Range<Short> r2 : ranges) {
+        if (r1 == r2) {
+          continue;
+        }
+        assertFalse(r1.isOverlappedBy(r2), r1.toString() + " is overlapped by " + r2.toString());
+      }
+    }
+
+    Collections.sort(ranges, new Comparator<Range<Short>>() {
+      @Override
+      public int compare(Range<Short> r1, Range<Short> r2) {
+        return Short.compare(r1.getMinimum(), r2.getMinimum());
+      }
+    });
+    // check that the max of the previous range is one less than the
+    // minimum of the current range to make sure there are no holes.
+    short lastMax = Short.MIN_VALUE;
+    for (Range<Short> r : ranges) {
+      if (lastMax != Short.MIN_VALUE) {
+        assertTrue(r.getMinimum() - lastMax == 1);
+      }
+      lastMax = r.getMaximum();
+    }
+  }
+
+  @Test
   public void testRootTablePriorities() {
-    assertEquals(ROOT_TABLE_USER.getMinimum(), CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.USER, 0, 0, TABLET_FILE_MAX));
-    assertEquals(ROOT_TABLE_USER.getMinimum() + 1000, CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.USER, 1000, 0, TABLET_FILE_MAX));
+    assertEquals(ROOT_TABLE_USER.getMinimum() + 1, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.USER, 0, 1, TABLET_FILE_MAX));
+    assertEquals(ROOT_TABLE_USER.getMinimum() + 1010, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.USER, 1000, 10, TABLET_FILE_MAX));
     assertEquals(ROOT_TABLE_USER.getMaximum(), CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.USER, 3000, 0, TABLET_FILE_MAX));
-    assertEquals(ROOT_TABLE_SYSTEM.getMinimum(), CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.SYSTEM, 0, 0, TABLET_FILE_MAX));
-    assertEquals(ROOT_TABLE_SYSTEM.getMinimum() + 1000, CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.SYSTEM, 1000, 0, TABLET_FILE_MAX));
+        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.USER, 3000, 100, TABLET_FILE_MAX));
+
+    assertEquals(ROOT_TABLE_USER.getMinimum() + 2, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.CHOP, 0, 2, TABLET_FILE_MAX));
+    assertEquals(ROOT_TABLE_USER.getMinimum() + 1020, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.CHOP, 1000, 20, TABLET_FILE_MAX));
+    assertEquals(ROOT_TABLE_USER.getMaximum(), CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.CHOP, 3000, 200, TABLET_FILE_MAX));
+
+    assertEquals(ROOT_TABLE_SYSTEM.getMinimum() + 3, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.SYSTEM, 0, 3, TABLET_FILE_MAX));
+    assertEquals(ROOT_TABLE_SYSTEM.getMinimum() + 1030, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.SYSTEM, 1000, 30, TABLET_FILE_MAX));
     assertEquals(ROOT_TABLE_SYSTEM.getMaximum(), CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.SYSTEM, 3000, 0, TABLET_FILE_MAX));
+        Namespace.ACCUMULO.id(), RootTable.ID, CompactionKind.SYSTEM, 3000, 300, TABLET_FILE_MAX));
   }
 
   @Test
   public void testMetaTablePriorities() {
-    assertEquals(METADATA_TABLE_USER.getMinimum(), CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), MetadataTable.ID, CompactionKind.USER, 0, 0, TABLET_FILE_MAX));
-    assertEquals(METADATA_TABLE_USER.getMinimum() + 1000, CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), MetadataTable.ID, CompactionKind.USER, 1000, 0, TABLET_FILE_MAX));
-    assertEquals(METADATA_TABLE_USER.getMaximum(), CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), MetadataTable.ID, CompactionKind.USER, 3000, 0, TABLET_FILE_MAX));
-    assertEquals(METADATA_TABLE_SYSTEM.getMinimum(), CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), MetadataTable.ID, CompactionKind.SYSTEM, 0, 0, TABLET_FILE_MAX));
-    assertEquals(METADATA_TABLE_SYSTEM.getMinimum() + 1000,
+    assertEquals(METADATA_TABLE_USER.getMinimum() + 4, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), MetadataTable.ID, CompactionKind.USER, 0, 4, TABLET_FILE_MAX));
+    assertEquals(METADATA_TABLE_USER.getMinimum() + 1040, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), MetadataTable.ID, CompactionKind.USER, 1000, 40, TABLET_FILE_MAX));
+    assertEquals(METADATA_TABLE_USER.getMaximum(),
         CompactionJobPrioritizer.createPriority(Namespace.ACCUMULO.id(), MetadataTable.ID,
-            CompactionKind.SYSTEM, 1000, 0, TABLET_FILE_MAX));
+            CompactionKind.USER, 3000, 400, TABLET_FILE_MAX));
+
+    assertEquals(METADATA_TABLE_USER.getMinimum() + 5, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), MetadataTable.ID, CompactionKind.CHOP, 0, 5, TABLET_FILE_MAX));
+    assertEquals(METADATA_TABLE_USER.getMinimum() + 1050, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), MetadataTable.ID, CompactionKind.CHOP, 1000, 50, TABLET_FILE_MAX));
+    assertEquals(METADATA_TABLE_USER.getMaximum(),
+        CompactionJobPrioritizer.createPriority(Namespace.ACCUMULO.id(), MetadataTable.ID,
+            CompactionKind.CHOP, 3000, 500, TABLET_FILE_MAX));
+
+    assertEquals(METADATA_TABLE_SYSTEM.getMinimum() + 6, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), MetadataTable.ID, CompactionKind.SYSTEM, 0, 6, TABLET_FILE_MAX));
+    assertEquals(METADATA_TABLE_SYSTEM.getMinimum() + 1060,
+        CompactionJobPrioritizer.createPriority(Namespace.ACCUMULO.id(), MetadataTable.ID,
+            CompactionKind.SYSTEM, 1000, 60, TABLET_FILE_MAX));
     assertEquals(METADATA_TABLE_SYSTEM.getMaximum(),
         CompactionJobPrioritizer.createPriority(Namespace.ACCUMULO.id(), MetadataTable.ID,
-            CompactionKind.SYSTEM, 3000, 0, TABLET_FILE_MAX));
+            CompactionKind.SYSTEM, 3000, 600, TABLET_FILE_MAX));
   }
 
   @Test
   public void testSystemNamespacePriorities() {
     TableId tid = TableId.of("someOtherSystemTable");
-    assertEquals(SYSTEM_NS_USER.getMinimum(), CompactionJobPrioritizer
-        .createPriority(Namespace.ACCUMULO.id(), tid, CompactionKind.USER, 0, 0, TABLET_FILE_MAX));
-    assertEquals(SYSTEM_NS_USER.getMinimum() + 1000, CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), tid, CompactionKind.USER, 1000, 0, TABLET_FILE_MAX));
+    assertEquals(SYSTEM_NS_USER.getMinimum() + 7, CompactionJobPrioritizer
+        .createPriority(Namespace.ACCUMULO.id(), tid, CompactionKind.USER, 0, 7, TABLET_FILE_MAX));
+    assertEquals(SYSTEM_NS_USER.getMinimum() + 1070, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), tid, CompactionKind.USER, 1000, 70, TABLET_FILE_MAX));
     assertEquals(SYSTEM_NS_USER.getMaximum(), CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), tid, CompactionKind.USER, 3000, 0, TABLET_FILE_MAX));
-    assertEquals(SYSTEM_NS_SYSTEM.getMinimum(), CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), tid, CompactionKind.SYSTEM, 0, 0, TABLET_FILE_MAX));
-    assertEquals(SYSTEM_NS_SYSTEM.getMinimum() + 1000, CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), tid, CompactionKind.SYSTEM, 1000, 0, TABLET_FILE_MAX));
+        Namespace.ACCUMULO.id(), tid, CompactionKind.USER, 3000, 700, TABLET_FILE_MAX));
+
+    assertEquals(SYSTEM_NS_USER.getMinimum() + 8, CompactionJobPrioritizer
+        .createPriority(Namespace.ACCUMULO.id(), tid, CompactionKind.CHOP, 0, 8, TABLET_FILE_MAX));
+    assertEquals(SYSTEM_NS_USER.getMinimum() + 1080, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), tid, CompactionKind.CHOP, 1000, 80, TABLET_FILE_MAX));
+    assertEquals(SYSTEM_NS_USER.getMaximum(), CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), tid, CompactionKind.CHOP, 3000, 800, TABLET_FILE_MAX));
+
+    assertEquals(SYSTEM_NS_SYSTEM.getMinimum() + 9, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), tid, CompactionKind.SYSTEM, 0, 9, TABLET_FILE_MAX));
+    assertEquals(SYSTEM_NS_SYSTEM.getMinimum() + 1090, CompactionJobPrioritizer.createPriority(
+        Namespace.ACCUMULO.id(), tid, CompactionKind.SYSTEM, 1000, 90, TABLET_FILE_MAX));
     assertEquals(SYSTEM_NS_SYSTEM.getMaximum(), CompactionJobPrioritizer.createPriority(
-        Namespace.ACCUMULO.id(), tid, CompactionKind.SYSTEM, 3000, 0, TABLET_FILE_MAX));
+        Namespace.ACCUMULO.id(), tid, CompactionKind.SYSTEM, 3000, 900, TABLET_FILE_MAX));
   }
 
   @Test
   public void testUserTablePriorities() {
     TableId tid = TableId.of("someUserTable");
-    assertEquals(USER_TABLE_USER.getMinimum(), CompactionJobPrioritizer
-        .createPriority(Namespace.DEFAULT.id(), tid, CompactionKind.USER, 0, 0, TABLET_FILE_MAX));
-    assertEquals(USER_TABLE_USER.getMinimum() + 1000, CompactionJobPrioritizer.createPriority(
-        Namespace.DEFAULT.id(), tid, CompactionKind.USER, 1000, 0, TABLET_FILE_MAX));
-    assertEquals(USER_TABLE_USER.getMinimum() + 3000, CompactionJobPrioritizer.createPriority(
-        Namespace.DEFAULT.id(), tid, CompactionKind.USER, 3000, 0, TABLET_FILE_MAX));
+    assertEquals(USER_TABLE_USER.getMinimum() + 10, CompactionJobPrioritizer
+        .createPriority(Namespace.DEFAULT.id(), tid, CompactionKind.USER, 0, 10, TABLET_FILE_MAX));
+    assertEquals(USER_TABLE_USER.getMinimum() + 1100, CompactionJobPrioritizer.createPriority(
+        Namespace.DEFAULT.id(), tid, CompactionKind.USER, 1000, 100, TABLET_FILE_MAX));
+    assertEquals(USER_TABLE_USER.getMinimum() + 4000, CompactionJobPrioritizer.createPriority(
+        Namespace.DEFAULT.id(), tid, CompactionKind.USER, 3000, 1000, TABLET_FILE_MAX));
 
-    assertEquals(USER_TABLE_SYSTEM.getMinimum(), CompactionJobPrioritizer
-        .createPriority(Namespace.DEFAULT.id(), tid, CompactionKind.SYSTEM, 0, 0, TABLET_FILE_MAX));
-    assertEquals(USER_TABLE_SYSTEM.getMinimum() + 1000, CompactionJobPrioritizer.createPriority(
-        Namespace.DEFAULT.id(), tid, CompactionKind.SYSTEM, 1000, 0, TABLET_FILE_MAX));
-    assertEquals(USER_TABLE_SYSTEM.getMinimum() + 3000, CompactionJobPrioritizer.createPriority(
-        Namespace.DEFAULT.id(), tid, CompactionKind.SYSTEM, 3000, 0, TABLET_FILE_MAX));
+    assertEquals(USER_TABLE_SYSTEM.getMinimum() + 11, CompactionJobPrioritizer.createPriority(
+        Namespace.DEFAULT.id(), tid, CompactionKind.SYSTEM, 0, 11, TABLET_FILE_MAX));
+    assertEquals(USER_TABLE_SYSTEM.getMinimum() + 1110, CompactionJobPrioritizer.createPriority(
+        Namespace.DEFAULT.id(), tid, CompactionKind.SYSTEM, 1000, 110, TABLET_FILE_MAX));
+    assertEquals(USER_TABLE_SYSTEM.getMinimum() + 4100, CompactionJobPrioritizer.createPriority(
+        Namespace.DEFAULT.id(), tid, CompactionKind.SYSTEM, 3000, 1100, TABLET_FILE_MAX));
   }
 
   @Test
