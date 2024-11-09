@@ -449,7 +449,7 @@ function stop_tservers() {
     G="TSERVER_HOSTS_${group}"
     S="TSERVERS_PER_HOST_${group}"
     for tserver in ${!G}; do
-      kill_service "$tserver" tserver "${!S}"  "-o" "tserver.group=$group" &
+      kill_service "$tserver" tserver "${!S}" "-o" "tserver.group=$group" &
     done
   done
 
