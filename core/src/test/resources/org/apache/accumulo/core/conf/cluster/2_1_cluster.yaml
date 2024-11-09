@@ -18,51 +18,22 @@
 #
 
 manager:
-  - localhost1
-  - localhost2
+  - localhost
 
 monitor:
-  - localhost1
-  - localhost2
+  - localhost
 
 gc:
   - localhost
 
+tserver:
+  default:
+    - localhost
+
 compactor:
-  q1:
-    # servers not specified, defaults to 1
-    hosts:
-      - localhost1
-      - localhost2
-  q2:
-    servers_per_host: 4
-    hosts:
-      - localhost3
-      - localhost4
+  default:
+    - localhost
 
 sserver:
   default:
-    servers_per_host: 2
-    hosts:
-      - localhost1
-      - localhost2
-  highmem:
-    servers_per_host: 1	
-    hosts:
-      - hmvm1
-      - hmvm2
-      - hmvm3
-  cheap:
-    servers_per_host: 3	
-    hosts:
-      - burstyvm1
-      - burstyvm2
-
-tserver:
-  default:
-    servers_per_host: 2
-    hosts:
-      - localhost1
-      - localhost2
-      - localhost3
-      - localhost4
+    - localhost

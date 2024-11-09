@@ -33,9 +33,9 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
@@ -57,73 +57,54 @@ public class ClusterConfigParserTest {
 
     Map<String,String> contents =
         ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
-    assertEquals(4, contents.size());
+    assertEquals(14, contents.size());
     assertTrue(contents.containsKey("manager"));
     assertEquals("localhost1 localhost2", contents.get("manager"));
     assertTrue(contents.containsKey("monitor"));
     assertEquals("localhost1 localhost2", contents.get("monitor"));
     assertTrue(contents.containsKey("gc"));
     assertEquals("localhost", contents.get("gc"));
-    assertFalse(contents.containsKey("tserver"));
-    assertTrue(contents.containsKey("tserver.default"));
-    assertEquals("localhost1 localhost2 localhost3 localhost4", contents.get("tserver.default"));
+
     assertFalse(contents.containsKey("compactor"));
-    assertFalse(contents.containsKey("compactor.queue"));
     assertFalse(contents.containsKey("compactor.q1"));
     assertFalse(contents.containsKey("compactor.q2"));
+    assertFalse(contents.containsKey("compactor.q1.servers_per_host"));
+    assertTrue(contents.containsKey("compactor.q1.hosts"));
+    assertEquals("localhost1 localhost2", contents.get("compactor.q1.hosts"));
+    assertTrue(contents.containsKey("compactor.q2.servers_per_host"));
+    assertEquals("4", contents.get("compactor.q2.servers_per_host"));
+    assertTrue(contents.containsKey("compactor.q2.hosts"));
+    assertEquals("localhost3 localhost4", contents.get("compactor.q2.hosts"));
+
+    assertFalse(contents.containsKey("sserver"));
+    assertFalse(contents.containsKey("sserver.default"));
+    assertTrue(contents.containsKey("sserver.default.servers_per_host"));
+    assertEquals("2", contents.get("sserver.default.servers_per_host"));
+    assertTrue(contents.containsKey("sserver.default.hosts"));
+    assertEquals("localhost1 localhost2", contents.get("sserver.default.hosts"));
+    assertFalse(contents.containsKey("sserver.highmem"));
+    assertTrue(contents.containsKey("sserver.highmem.servers_per_host"));
+    assertEquals("1", contents.get("sserver.highmem.servers_per_host"));
+    assertTrue(contents.containsKey("sserver.highmem.hosts"));
+    assertEquals("hmvm1 hmvm2 hmvm3", contents.get("sserver.highmem.hosts"));
+    assertFalse(contents.containsKey("sserver.cheap"));
+    assertTrue(contents.containsKey("sserver.cheap.servers_per_host"));
+    assertEquals("3", contents.get("sserver.cheap.servers_per_host"));
+    assertTrue(contents.containsKey("sserver.cheap.hosts"));
+    assertEquals("burstyvm1 burstyvm2", contents.get("sserver.cheap.hosts"));
+
+    assertFalse(contents.containsKey("tserver"));
+    assertFalse(contents.containsKey("tserver.default"));
+    assertTrue(contents.containsKey("tserver.default.servers_per_host"));
+    assertEquals("2", contents.get("tserver.default.servers_per_host"));
+    assertTrue(contents.containsKey("tserver.default.hosts"));
+    assertEquals("localhost1 localhost2 localhost3 localhost4",
+        contents.get("tserver.default.hosts"));
+    assertFalse(contents.containsKey("compactor"));
+    assertFalse(contents.containsKey("compactor.queue"));
     assertFalse(contents.containsKey("tservers_per_host"));
     assertFalse(contents.containsKey("sservers_per_host"));
     assertFalse(contents.containsKey("compactors_per_host"));
-  }
-
-  @Test
-  public void testParseWithOptionalComponents() throws Exception {
-    URL configFile = ClusterConfigParserTest.class
-        .getResource("/org/apache/accumulo/core/conf/cluster/cluster-with-optional-services.yaml");
-    assertNotNull(configFile);
-
-    Map<String,String> contents =
-        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
-
-    assertEquals(17, contents.size());
-
-    assertTrue(contents.containsKey("manager"));
-    assertEquals("localhost1 localhost2", contents.get("manager"));
-    assertTrue(contents.containsKey("monitor"));
-    assertEquals("localhost1 localhost2", contents.get("monitor"));
-    assertTrue(contents.containsKey("gc"));
-    assertEquals("localhost", contents.get("gc"));
-    assertFalse(contents.containsKey("compactor"));
-    assertTrue(contents.containsKey("compactor.q1"));
-    assertEquals("localhost1 localhost2", contents.get("compactor.q1"));
-    assertTrue(contents.containsKey("compactor.q2"));
-    assertEquals("localhost3 localhost4", contents.get("compactor.q2"));
-    assertFalse(contents.containsKey("sserver"));
-    assertTrue(contents.containsKey("sserver.default"));
-    assertEquals("localhost1 localhost2", contents.get("sserver.default"));
-    assertTrue(contents.containsKey("sserver.highmem"));
-    assertEquals("hmvm1 hmvm2 hmvm3", contents.get("sserver.highmem"));
-    assertTrue(contents.containsKey("sserver.cheap"));
-    assertEquals("burstyvm1 burstyvm2", contents.get("sserver.cheap"));
-    assertFalse(contents.containsKey("tserver"));
-    assertTrue(contents.containsKey("tserver.default"));
-    assertEquals("localhost1 localhost2", contents.get("tserver.default"));
-    assertTrue(contents.containsKey("tserver.highmem"));
-    assertEquals("localhost3 localhost4", contents.get("tserver.highmem"));
-    assertTrue(contents.containsKey("tserver.cheap"));
-    assertEquals("localhost5 localhost6", contents.get("tserver.cheap"));
-    assertTrue(contents.containsKey("tservers_per_host"));
-    assertEquals("2", contents.get("tservers_per_host"));
-    assertTrue(contents.containsKey("sservers_per_host.default"));
-    assertEquals("1", contents.get("sservers_per_host.default"));
-    assertTrue(contents.containsKey("sservers_per_host.highmem"));
-    assertEquals("2", contents.get("sservers_per_host.highmem"));
-    assertTrue(contents.containsKey("sservers_per_host.cheap"));
-    assertEquals("3", contents.get("sservers_per_host.cheap"));
-    assertTrue(contents.containsKey("compactors_per_host.q1"));
-    assertEquals("3", contents.get("compactors_per_host.q1"));
-    assertTrue(contents.containsKey("compactors_per_host.q2"));
-    assertEquals("1", contents.get("compactors_per_host.q2"));
   }
 
   @Test
@@ -175,83 +156,32 @@ public class ClusterConfigParserTest {
 
     final File f = outputConfigFunction.apply(configFile);
 
-    Map<String,String> expected = new HashMap<>();
+    Map<String,String> expected = new TreeMap<>();
     expected.put("MANAGER_HOSTS", "localhost1 localhost2");
     expected.put("MONITOR_HOSTS", "localhost1 localhost2");
     expected.put("GC_HOSTS", "localhost");
+
+    expected.put("COMPACTOR_GROUPS", "q1 q2");
+    expected.put("COMPACTORS_PER_HOST_q1", "1");
+    expected.put("COMPACTOR_HOSTS_q1", "localhost1 localhost2");
+    expected.put("COMPACTORS_PER_HOST_q2", "4");
+    expected.put("COMPACTOR_HOSTS_q2", "localhost3 localhost4");
+
+    expected.put("SSERVER_GROUPS", "cheap default highmem");
+    expected.put("SSERVERS_PER_HOST_default", "2");
+    expected.put("SSERVER_HOSTS_default", "localhost1 localhost2");
+    expected.put("SSERVERS_PER_HOST_highmem", "1");
+    expected.put("SSERVER_HOSTS_highmem", "hmvm1 hmvm2 hmvm3");
+    expected.put("SSERVERS_PER_HOST_cheap", "3");
+    expected.put("SSERVER_HOSTS_cheap", "burstyvm1 burstyvm2");
+
     expected.put("TSERVER_GROUPS", "default");
+    expected.put("TSERVERS_PER_HOST_default", "2");
     expected.put("TSERVER_HOSTS_default", "localhost1 localhost2 localhost3 localhost4");
-    expected.put("NUM_TSERVERS", "${NUM_TSERVERS:=1}");
 
     expected.replaceAll((k, v) -> '"' + v + '"');
 
-    Map<String,String> actual = new HashMap<>();
-    try (BufferedReader rdr = Files.newBufferedReader(Paths.get(f.toURI()))) {
-      rdr.lines().forEach(l -> {
-        String[] props = l.split("=", 2);
-        actual.put(props[0], props[1]);
-      });
-    }
-
-    assertEquals(expected, actual);
-  }
-
-  @Test
-  public void testShellOutputWithOptionalComponents() throws Exception {
-
-    String userDir = System.getProperty("user.dir");
-    String targetDir = "target";
-    File dir = new File(userDir, targetDir);
-    if (!dir.exists()) {
-      if (!dir.mkdirs()) {
-        fail("Unable to make directory ${user.dir}/target");
-      }
-    }
-    File f = new File(dir, "ClusterConfigParserTest_testShellOutputWithOptionalComponents");
-    if (!f.createNewFile()) {
-      fail("Unable to create file in ${user.dir}/target");
-    }
-    f.deleteOnExit();
-
-    PrintStream ps = new PrintStream(f);
-
-    URL configFile = ClusterConfigParserTest.class
-        .getResource("/org/apache/accumulo/core/conf/cluster/cluster-with-optional-services.yaml");
-    assertNotNull(configFile);
-
-    Map<String,String> contents =
-        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
-
-    ClusterConfigParser.outputShellVariables(contents, ps);
-    ps.close();
-
-    Map<String,String> expected = new HashMap<>();
-    expected.put("MANAGER_HOSTS", "localhost1 localhost2");
-    expected.put("MONITOR_HOSTS", "localhost1 localhost2");
-    expected.put("GC_HOSTS", "localhost");
-    expected.put("COMPACTOR_GROUPS", "q1 q2");
-    expected.put("COMPACTOR_HOSTS_q1", "localhost1 localhost2");
-    expected.put("COMPACTOR_HOSTS_q2", "localhost3 localhost4");
-    expected.put("SSERVER_GROUPS", "cheap default highmem");
-    expected.put("SSERVER_HOSTS_cheap", "burstyvm1 burstyvm2");
-    expected.put("SSERVER_HOSTS_default", "localhost1 localhost2");
-    expected.put("SSERVER_HOSTS_highmem", "hmvm1 hmvm2 hmvm3");
-    expected.put("TSERVER_GROUPS", "cheap default highmem");
-    expected.put("TSERVER_HOSTS_cheap", "localhost5 localhost6");
-    expected.put("TSERVER_HOSTS_default", "localhost1 localhost2");
-    expected.put("TSERVER_HOSTS_highmem", "localhost3 localhost4");
-    expected.put("NUM_TSERVERS", "${NUM_TSERVERS:=2}");
-    expected.put("NUM_COMPACTORS_q1", "3");
-    expected.put("NUM_COMPACTORS_q2", "1");
-    expected.put("NUM_SSERVERS_default", "1");
-    expected.put("NUM_SSERVERS_highmem", "2");
-    expected.put("NUM_SSERVERS_cheap", "3");
-
-    expected.replaceAll((k, v) -> {
-      return '"' + v + '"';
-    });
-
-    Map<String,String> actual = new HashMap<>();
+    Map<String,String> actual = new TreeMap<>();
     try (BufferedReader rdr = Files.newBufferedReader(Paths.get(f.toURI()))) {
       rdr.lines().forEach(l -> {
         String[] props = l.split("=", 2);
@@ -265,7 +195,7 @@ public class ClusterConfigParserTest {
   @Test
   public void testFileWithUnknownSections() throws Exception {
     URL configFile = ClusterConfigParserTest.class
-        .getResource("/org/apache/accumulo/core/conf/cluster/bad-cluster.yaml");
+        .getResource("/org/apache/accumulo/core/conf/cluster/bad-server-name.yaml");
     assertNotNull(configFile);
 
     Map<String,String> contents =
@@ -275,6 +205,102 @@ public class ClusterConfigParserTest {
       var exception = assertThrows(IllegalArgumentException.class,
           () -> ClusterConfigParser.outputShellVariables(contents, ps));
       assertTrue(exception.getMessage().contains("vserver"));
+    }
+  }
+
+  @Test
+  public void testFileWithInvalidGroupName() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/bad-group-name.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(RuntimeException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("bad-group-name"));
+    }
+  }
+
+  @Test
+  public void testFileWithInvalidSuffix() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/bad-group-suffix.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("servers_per_hosts"));
+    }
+  }
+
+  @Test
+  public void testFileWithTooManyLevels() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/too-many-levels.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("too many levels"));
+    }
+  }
+
+  @Test
+  public void testFileMissingCompactor() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/cluster-missing-compactor-group.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("No compactor groups found"));
+    }
+  }
+
+  @Test
+  public void testFileMissingTabletServer() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/cluster-missing-tserver-group.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("No tserver groups found"));
+    }
+  }
+
+  @Test
+  public void testFileOlderVersion() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/2_1_cluster.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("Check the format"));
     }
   }
 
