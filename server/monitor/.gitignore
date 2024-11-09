@@ -34,3 +34,10 @@
 /nb-configuration.xml
 /.vscode/
 /.factorypath
+
+# Frontend ignores
+node_modules
+dist
+logs
+*.log
+npm-debug.log*

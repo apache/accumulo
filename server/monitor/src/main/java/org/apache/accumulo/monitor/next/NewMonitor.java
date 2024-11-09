@@ -51,6 +51,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.javalin.Javalin;
+import io.javalin.http.staticfiles.Location;
 import io.javalin.json.JavalinJackson;
 import io.javalin.security.RouteRole;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
@@ -95,6 +96,10 @@ public class NewMonitor implements Connection.Listener {
     Threads.createThread("Metric Fetcher Thread", fetcher).start();
 
     Javalin.create(config -> {
+      config.staticFiles.add("org/apache/accumulo/newmonitor/dist", Location.CLASSPATH);
+      config.spaRoot.addFile("/", "org/apache/accumulo/newmonitor/dist/index.html",
+          Location.CLASSPATH);
+
       // TODO Make dev logging and route overview configurable based on property
       // They are useful for development and debugging, but should probably not
       // be enabled for normal use.

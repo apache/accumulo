@@ -255,9 +255,16 @@
                 <header>${rootlocation}/src/build/license-header.txt</header>
                 <excludes>
                   <exclude>src/main/resources/org/apache/accumulo/monitor/resources/external/**/*</exclude>
+                  <exclude>src/main/resources/org/apache/accumulo/newmonitor/dist/**/*</exclude>
+                  <exclude>src/main/resources/org/apache/accumulo/newmonitor/node_modules/**/*</exclude>
                 </excludes>
               </licenseSet>
             </licenseSets>
+            <mapping>
+              <ts>SLASHSTAR_STYLE</ts>
+              <tsx>SLASHSTAR_STYLE</tsx>
+              <tsbuildinfo>NO_STYLE</tsbuildinfo>
+            </mapping>
           </configuration>
         </plugin>
         <plugin>
@@ -266,8 +273,61 @@
           <configuration>
             <excludes>
               <exclude>src/main/resources/org/apache/accumulo/monitor/resources/external/**/*</exclude>
+              <exclude>src/main/resources/org/apache/accumulo/newmonitor/dist/**/*</exclude>
+              <exclude>src/main/resources/org/apache/accumulo/newmonitor/node_modules/**/*</exclude>
+              <exclude>src/main/resources/org/apache/accumulo/newmonitor/**/*.tsbuildinfo</exclude>
             </excludes>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>com.github.eirslett</groupId>
+          <artifactId>frontend-maven-plugin</artifactId>
+          <version>1.15.1</version>
+          <configuration>
+            <workingDirectory>src/main/resources/org/apache/accumulo/newmonitor</workingDirectory>
+            <nodeVersion>v22.11.0</nodeVersion>
+            <npmVersion>10.9.0</npmVersion>
+            <installDirectory>target</installDirectory>
+          </configuration>
+          <executions>
+            <execution>
+              <id>install node and npm</id>
+              <goals>
+                <goal>install-node-and-npm</goal>
+              </goals>
+              <phase>generate-sources</phase>
+            </execution>
+            <execution>
+              <id>npm-install</id>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <phase>generate-sources</phase>
+              <configuration>
+                <arguments>install</arguments>
+              </configuration>
+            </execution>
+            <execution>
+              <id>npm-run-build</id>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <phase>generate-sources</phase>
+              <configuration>
+                <arguments>run build</arguments>
+              </configuration>
+            </execution>
+            <execution>
+              <id>npm-run-lint</id>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <phase>validate</phase>
+              <configuration>
+                <arguments>run lint</arguments>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
       </plugins>
     </pluginManagement>
