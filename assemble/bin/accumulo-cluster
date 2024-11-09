@@ -438,7 +438,7 @@ function stop_tservers() {
     G="TSERVER_HOSTS_${group}"
     S="TSERVERS_PER_HOST_${group}"
     for tserver in ${!G}; do
-      stop_service "$tserver" tserver "${!S}" &
+      stop_service "$tserver" tserver "${!S}" "-o" "tserver.group=$group" &
     done
   done
 
@@ -449,7 +449,7 @@ function stop_tservers() {
     G="TSERVER_HOSTS_${group}"
     S="TSERVERS_PER_HOST_${group}"
     for tserver in ${!G}; do
-      kill_service "$tserver" tserver "${!S}" &
+      kill_service "$tserver" tserver "${!S}"  "-o" "tserver.group=$group" &
     done
   done
 
@@ -479,7 +479,7 @@ function kill_all() {
     G="SSERVER_HOSTS_${group}"
     S="SSERVERS_PER_HOST_${group}"
     for sserver in ${!G}; do
-      kill_service "$sserver" sserver "${!S}"
+      kill_service "$sserver" sserver "${!S}" "-o" "sserver.group=$group"
     done
   done
 
@@ -488,7 +488,7 @@ function kill_all() {
     G="TSERVER_HOSTS_${group}"
     S="TSERVERS_PER_HOST_${group}"
     for tserver in ${!G}; do
-      kill_service "$tserver" tserver "${!S}"
+      kill_service "$tserver" tserver "${!S}" "-o" "tserver.group=$group"
     done
   done
 
@@ -497,7 +497,7 @@ function kill_all() {
     Q="COMPACTOR_HOSTS_${group}"
     S="COMPACTORS_PER_HOST_${group}"
     for compactor in ${!Q}; do
-      kill_service "$compactor" compactor "${!S}"
+      kill_service "$compactor" compactor "${!S}" "-o" "compactor.group=$group"
     done
   done
 
@@ -543,7 +543,7 @@ function stop_all() {
       G="SSERVER_HOSTS_${group}"
       S="SSERVERS_PER_HOST_${group}"
       for sserver in ${!G}; do
-        end_service $end_cmd "$sserver" sserver "${!S}"
+        end_service $end_cmd "$sserver" sserver "${!S}" "-o" "sserver.group=$group"
       done
     done
 
@@ -552,7 +552,7 @@ function stop_all() {
       Q="COMPACTOR_HOSTS_${group}"
       S="COMPACTORS_PER_HOST_${group}"
       for compactor in ${!Q}; do
-        end_service $end_cmd "$compactor" compactor "${!S}"
+        end_service $end_cmd "$compactor" compactor "${!S}" "-o" "compactor.group=$group"
       done
     done
 
@@ -603,21 +603,21 @@ function stop_here() {
         G="TSERVER_HOSTS_${group}"
         S="TSERVERS_PER_HOST_${group}"
         for tserver in ${!G}; do
-          end_service $end_cmd "$tserver" tserver "${!S}"
+          end_service $end_cmd "$tserver" tserver "${!S}" "-o" "tserver.group=$group"
         done
       done
       for group in $SSERVER_GROUPS; do
         G="SSERVER_HOSTS_${group}"
         S="SSERVERS_PER_HOST_${group}"
         for sserver in ${!G}; do
-          end_service $end_cmd "$sserver" sserver "${!S}"
+          end_service $end_cmd "$sserver" sserver "${!S}" "-o" "sserver.group=$group"
         done
       done
       for group in $COMPACTOR_GROUPS; do
         Q="COMPACTOR_HOSTS_${group}"
         S="COMPACTORS_PER_HOST_${group}"
         for compactor in ${!Q}; do
-          end_service $end_cmd "$host" compactor "${!S}"
+          end_service $end_cmd "$host" compactor "${!S}" "-o" "compactor.group=$group"
         done
       done
     done
