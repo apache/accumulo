@@ -382,9 +382,11 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     // Priority is the file counts + number of compactions for that tablet.
     // The lowestPriority job in the queue should have been
     // at least 1 count higher than the highest file count.
-    short highestFileCountPrio = CompactionJobPrioritizer.createPriority(
-        getCluster().getServerContext().getTableId(tableName), CompactionKind.USER,
-        (int) highestFileCount, 0);
+    TableId tid = context.getTableId(tableName);
+    short highestFileCountPrio =
+        CompactionJobPrioritizer.createPriority(getCluster().getServerContext().getNamespaceId(tid),
+            tid, CompactionKind.USER, (int) highestFileCount, 0,
+            context.getTableConfiguration(tid).getCount(Property.TABLE_FILE_MAX));
     assertTrue(lowestPriority > highestFileCountPrio,
         lowestPriority + " " + highestFileCount + " " + highestFileCountPrio);
 

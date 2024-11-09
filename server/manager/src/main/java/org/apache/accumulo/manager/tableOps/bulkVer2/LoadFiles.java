@@ -338,11 +338,15 @@ class LoadFiles extends ManagerRepo {
         TabletsMetadata.builder(manager.getContext()).forTable(tableId).overlapping(startRow, null)
             .checkConsistency().fetch(PREV_ROW, LOCATION, LOADED, TIME).build()) {
 
+      // The tablet iterator and load mapping iterator are both iterating over data that is sorted
+      // in the same way. The two iterators are each independently advanced to find common points in
+      // the sorted data.
+      var tabletIter = tabletsMetadata.iterator();
+
       t1 = System.currentTimeMillis();
       while (lmi.hasNext()) {
         loadMapEntry = lmi.next();
-        List<TabletMetadata> tablets =
-            findOverlappingTablets(loadMapEntry.getKey(), tabletsMetadata.iterator());
+        List<TabletMetadata> tablets = findOverlappingTablets(loadMapEntry.getKey(), tabletIter);
         loader.load(tablets, loadMapEntry.getValue());
       }
     }
