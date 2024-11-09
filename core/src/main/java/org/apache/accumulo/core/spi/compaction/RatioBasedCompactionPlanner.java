@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
@@ -328,6 +329,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
       }
     }
 
+    int maxTabletFiles = 0;
     if (compactionJobs.isEmpty()) {
       if (params.getKind() == CompactionKind.USER && params.getRunningCompactions().stream()
           .noneMatch(job -> job.getKind() == params.getKind())) {
@@ -338,7 +340,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
       } else if (params.getKind() == CompactionKind.SYSTEM
           && params.getRunningCompactions().isEmpty()
           && params.getAll().size() == params.getCandidates().size()) {
-        int maxTabletFiles =
+        maxTabletFiles =
             getMaxTabletFiles(params.getServiceEnvironment().getConfiguration(params.getTableId()));
         if (params.getAll().size() > maxTabletFiles) {
           // The tablet is above its max files, there are no compactions running, all files are
@@ -351,8 +353,13 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
     }
 
     var builder = params.createPlanBuilder();
-    compactionJobs.forEach(
-        jobFiles -> builder.addJob(createPriority(params, jobFiles), getGroup(jobFiles), jobFiles));
+    for (Collection<CompactableFile> job : compactionJobs) {
+      try {
+        builder.addJob(createPriority(params, job, maxTabletFiles), getGroup(job), job);
+      } catch (TableNotFoundException e) {
+        throw new RuntimeException("Error getting namespace for table: " + params.getTableId(), e);
+      }
+    }
     return builder.build();
   }
 
@@ -428,10 +435,10 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
     }
   }
 
-  private static short createPriority(PlanningParameters params,
-      Collection<CompactableFile> group) {
-    return CompactionJobPrioritizer.createPriority(params.getTableId(), params.getKind(),
-        params.getAll().size(), group.size());
+  private static short createPriority(PlanningParameters params, Collection<CompactableFile> group,
+      int maxTabletFiles) throws TableNotFoundException {
+    return CompactionJobPrioritizer.createPriority(params.getNamespaceId(), params.getTableId(),
+        params.getKind(), params.getAll().size(), group.size(), maxTabletFiles);
   }
 
   private long getMaxSizeToCompact(CompactionKind kind) {
