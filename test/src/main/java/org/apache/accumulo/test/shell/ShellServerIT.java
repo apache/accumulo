@@ -2042,11 +2042,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     File importDir = new File(rootPath, "import_" + table);
     assertTrue(importDir.mkdir());
-    File errorsDir = new File(rootPath, "errors_" + table);
-    assertTrue(errorsDir.mkdir());
 
     // expect fail - table does not exist.
-    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), false,
+    ts.exec(String.format("importdirectory -t %s %s false", table, importDir), false,
         "TableNotFoundException");
 
     ts.exec(String.format("table %s", table), false, "TableNotFoundException");
@@ -2066,7 +2064,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // expect fail - original cmd without a table.
     ts.exec("notable", true);
-    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), false,
+    ts.exec(String.format("importdirectory %s false", importDir), false,
         "java.lang.IllegalStateException: Not in a table context.");
   }
 
