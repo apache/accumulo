@@ -40,33 +40,35 @@ public class MetricResponseSerializer extends JsonSerializer<MetricResponse> {
     gen.writeStringField("resourceGroup", value.getResourceGroup());
     gen.writeStringField("host", value.getServer());
     gen.writeArrayFieldStart("metrics");
-    for (final ByteBuffer binary : value.getMetrics()) {
-      FMetric fm = FMetric.getRootAsFMetric(binary);
-      gen.writeStartObject();
-      gen.writeStringField("name", fm.name());
-      gen.writeStringField("type", fm.type());
-      gen.writeArrayFieldStart("tags");
-      for (int i = 0; i < fm.tagsLength(); i++) {
-        FTag t = fm.tags(i);
+    if (value.getMetrics() != null) {
+      for (final ByteBuffer binary : value.getMetrics()) {
+        FMetric fm = FMetric.getRootAsFMetric(binary);
         gen.writeStartObject();
-        gen.writeStringField(t.key(), t.value());
+        gen.writeStringField("name", fm.name());
+        gen.writeStringField("type", fm.type());
+        gen.writeArrayFieldStart("tags");
+        for (int i = 0; i < fm.tagsLength(); i++) {
+          FTag t = fm.tags(i);
+          gen.writeStartObject();
+          gen.writeStringField(t.key(), t.value());
+          gen.writeEndObject();
+        }
+        gen.writeEndArray();
+        // Write the non-zero number as the value
+        if (fm.lvalue() > 0) {
+          gen.writeNumberField("value", fm.lvalue());
+        } else if (fm.ivalue() > 0) {
+          gen.writeNumberField("value", fm.ivalue());
+        } else if (fm.dvalue() > 0.0d) {
+          gen.writeNumberField("value", fm.dvalue());
+        } else {
+          gen.writeNumberField("value", 0);
+        }
         gen.writeEndObject();
       }
       gen.writeEndArray();
-      // Write the non-zero number as the value
-      if (fm.lvalue() > 0) {
-        gen.writeNumberField("value", fm.lvalue());
-      } else if (fm.ivalue() > 0) {
-        gen.writeNumberField("value", fm.ivalue());
-      } else if (fm.dvalue() > 0.0d) {
-        gen.writeNumberField("value", fm.dvalue());
-      } else {
-        gen.writeNumberField("value", 0);
-      }
       gen.writeEndObject();
     }
-    gen.writeEndArray();
-    gen.writeEndObject();
   }
 
 }

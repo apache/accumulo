@@ -332,9 +332,14 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
           "All: {}, Manager: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
           allMetrics.estimatedSize(), summary.getManager() != null,
           summary.getGarbageCollector() != null,
-          summary.getCompactorAllMetricSummary().entrySet().iterator().next().getValue().count(),
-          summary.getSServerAllMetricSummary().entrySet().iterator().next().getValue().count(),
-          summary.getTServerAllMetricSummary().entrySet().iterator().next().getValue().count());
+          summary.getCompactorAllMetricSummary().isEmpty() ? 0
+              : summary.getCompactorAllMetricSummary().entrySet().iterator().next().getValue()
+                  .count(),
+          summary.getSServerAllMetricSummary().isEmpty() ? 0
+              : summary.getSServerAllMetricSummary().entrySet().iterator().next().getValue()
+                  .count(),
+          summary.getTServerAllMetricSummary().isEmpty() ? 0 : summary.getTServerAllMetricSummary()
+              .entrySet().iterator().next().getValue().count());
 
       SystemInformation oldSummary = summaryRef.getAndSet(summary);
       if (oldSummary != null) {
