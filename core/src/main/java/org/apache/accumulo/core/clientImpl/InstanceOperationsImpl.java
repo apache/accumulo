@@ -511,7 +511,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
           throw new IllegalStateException("Multiple servers matching provided address");
         }
       case TABLET_SERVER:
-        Set<ServiceLockPath> tservers = context.getServerPaths().getScanServer(rg, hp, true);
+        Set<ServiceLockPath> tservers = context.getServerPaths().getTabletServer(rg, hp, true);
         if (tservers.isEmpty()) {
           return null;
         } else if (tservers.size() == 1) {
