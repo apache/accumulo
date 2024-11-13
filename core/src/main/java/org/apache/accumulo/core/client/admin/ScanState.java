@@ -38,11 +38,15 @@ public enum ScanState {
 
   /**
    * Indicate the session is no longer accessible and is in the process of cleaning up resources
+   *
+   * @since 3.1.0
    */
   CLEANING,
   /**
    * Indicate the client session is no longer accessible and still has a thread running on the
    * server side
+   *
+   * @since 3.1.0
    */
   ZOMBIE
 }

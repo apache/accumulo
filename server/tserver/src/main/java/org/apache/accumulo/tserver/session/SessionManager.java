@@ -469,8 +469,8 @@ public class SessionManager {
   private ScanState computeScanState(ScanSession<?> session) {
     ScanState state = ScanState.RUNNING;
 
-    if (session.getScanTask() == null) {
-      state = ScanState.IDLE;
+    if (session.getState() == State.REMOVED) {
+      state = ScanState.CLEANING;
     } else {
       switch (session.getScanTask().getScanRunState()) {
         case QUEUED:
@@ -480,12 +480,8 @@ public class SessionManager {
           state = ScanState.IDLE;
           break;
         case RUNNING:
-          if (zombieCountConsumer != null) {
+          if (session.getState() == State.REMOVED) {
             state = ScanState.ZOMBIE;
-            handleZombieScan(session);
-          } else if (session.getScanTask() == null) {
-            state = ScanState.CLEANING;
-            handleCleaningScan(session);
           }
           break;
         default:
@@ -493,45 +489,7 @@ public class SessionManager {
           break;
       }
     }
-
     return state;
-  }
-
-  private void handleZombieScan(ScanSession<?> session) {
-    // Log that we have encountered a zombie scan
-    session.logZombieStackTrace();
-
-    // Perform any cleanup or resource deallocation
-    try {
-      // Stop any active tasks or threads associated with the session
-      if (session.getState() != null) {
-        session.clearScanTask();
-      }
-
-      log.info("Successfully cleaned up zombie session: "
-          + session.getScanTask().getScanThread().getId());
-    } catch (Exception e) {
-      log.error(
-          "Failed to cleanup zombie session: " + session.getScanTask().getScanThread().getId(), e);
-    }
-
-    // Mark session as being cleaned up
-    cleanup(session);
-  }
-
-  private void handleCleaningScan(ScanSession<?> session) {
-    try {
-      // Log that the cleaning process has started
-      log.info("Cleaning scan session: " + session.getScanTask().getScanThread().getId());
-
-      // Perform any final actions, like removing the session from the session map
-      removeSession(session.getScanTask().getScanThread().getId());
-
-      // Final logging for completion of the cleaning
-      log.info("Successfully cleaned scan session: " + session.getState());
-    } catch (Exception e) {
-      log.error("Failed to clean scan session: " + session.getState(), e);
-    }
   }
 
   private void addActiveScan(List<ActiveScan> activeScans, Session session, KeyExtent extent,
