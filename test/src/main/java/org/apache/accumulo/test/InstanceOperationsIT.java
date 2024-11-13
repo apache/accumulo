@@ -74,6 +74,11 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
       assertEquals(1, iops.getManagerLocations().size());
       validateAddresses(iops.getManagerLocations(), iops.getServers(ServerId.Type.MANAGER));
 
+      assertEquals(1, iops.getServers(ServerId.Type.GARBAGE_COLLECTOR).size());
+
+      // Monitor not started in MAC
+      assertEquals(0, iops.getServers(ServerId.Type.MONITOR).size());
+
       for (ServerId compactor : iops.getServers(ServerId.Type.COMPACTOR)) {
         assertNotNull(iops.getActiveCompactions(compactor));
         assertThrows(IllegalArgumentException.class, () -> iops.getActiveScans(compactor));

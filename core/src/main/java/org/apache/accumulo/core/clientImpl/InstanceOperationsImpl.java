@@ -501,6 +501,20 @@ public class InstanceOperationsImpl implements InstanceOperations {
         } else {
           return managers.iterator().next();
         }
+      case MONITOR:
+        Set<ServerId> monitors = getServers(type, rg2 -> true, hp);
+        if (monitors.isEmpty()) {
+          return null;
+        } else {
+          return monitors.iterator().next();
+        }
+      case GARBAGE_COLLECTOR:
+        Set<ServerId> gc = getServers(type, rg2 -> true, hp);
+        if (gc.isEmpty()) {
+          return null;
+        } else {
+          return gc.iterator().next();
+        }
       case SCAN_SERVER:
         Set<ServiceLockPath> sservers = context.getServerPaths().getScanServer(rg, hp, true);
         if (sservers.isEmpty()) {
@@ -561,6 +575,36 @@ public class InstanceOperationsImpl implements InstanceOperations {
           String location = null;
           if (sld.isPresent()) {
             location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
+            if (addressSelector.getPredicate().test(location)) {
+              HostAndPort hp = HostAndPort.fromString(location);
+              results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
+                  hp.getPort()));
+            }
+          }
+        }
+        break;
+      case MONITOR:
+        ServiceLockPath mon = context.getServerPaths().getMonitor(true);
+        if (mon != null) {
+          Optional<ServiceLockData> sld = context.getZooCache().getLockData(mon);
+          String location = null;
+          if (sld.isPresent()) {
+            location = sld.orElseThrow().getAddressString(ThriftService.NONE);
+            if (addressSelector.getPredicate().test(location)) {
+              HostAndPort hp = HostAndPort.fromString(location);
+              results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
+                  hp.getPort()));
+            }
+          }
+        }
+        break;
+      case GARBAGE_COLLECTOR:
+        ServiceLockPath gc = context.getServerPaths().getGarbageCollector(true);
+        if (gc != null) {
+          Optional<ServiceLockData> sld = context.getZooCache().getLockData(gc);
+          String location = null;
+          if (sld.isPresent()) {
+            location = sld.orElseThrow().getAddressString(ThriftService.GC);
             if (addressSelector.getPredicate().test(location)) {
               HostAndPort hp = HostAndPort.fromString(location);
               results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
