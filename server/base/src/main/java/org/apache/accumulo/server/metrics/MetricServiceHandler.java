@@ -78,18 +78,16 @@ public class MetricServiceHandler implements MetricService.Iface {
     response.setResourceGroup(resourceGroup);
     response.setTimestamp(System.currentTimeMillis());
 
-    if (!ctx.getMetricsInfo().isMetricsEnabled()) {
-      return response;
+    if (ctx.getMetricsInfo().isMetricsEnabled()) {
+      Metrics.globalRegistry.getMeters().forEach(m -> {
+        if (m.getId().getName().startsWith("accumulo.")) {
+          m.match(response::writeMeter, response::writeMeter, response::writeTimer,
+              response::writeDistributionSummary, response::writeLongTaskTimer,
+              response::writeMeter, response::writeMeter, response::writeFunctionTimer,
+              response::writeMeter);
+        }
+      });
     }
-
-    Metrics.globalRegistry.getMeters().forEach(m -> {
-      if (m.getId().getName().startsWith("accumulo.")) {
-        m.match(response::writeMeter, response::writeMeter, response::writeTimer,
-            response::writeDistributionSummary, response::writeLongTaskTimer, response::writeMeter,
-            response::writeMeter, response::writeFunctionTimer, response::writeMeter);
-      }
-    });
-
     builder.clear();
     return response;
   }

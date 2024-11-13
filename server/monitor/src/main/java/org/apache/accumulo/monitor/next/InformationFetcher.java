@@ -73,6 +73,7 @@ import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.net.HostAndPort;
 
+import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
 
 public class InformationFetcher implements RemovalListener<ServerId,MetricResponse>, Runnable {
@@ -408,10 +409,10 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     return allMetrics.getAllPresent(servers).values();
   }
 
-  public Map<String,CumulativeDistributionSummary>
+  public Map<Id,CumulativeDistributionSummary>
       getCompactorResourceGroupMetricSummary(String resourceGroup) {
     validateResourceGroup(resourceGroup);
-    final Map<String,CumulativeDistributionSummary> metrics =
+    final Map<Id,CumulativeDistributionSummary> metrics =
         getSummary().getCompactorResourceGroupMetricSummary(resourceGroup);
     if (metrics == null) {
       return Map.of();
@@ -419,7 +420,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     return metrics;
   }
 
-  public Map<String,CumulativeDistributionSummary> getCompactorAllMetricSummary() {
+  public Map<Id,CumulativeDistributionSummary> getCompactorAllMetricSummary() {
     return getSummary().getCompactorAllMetricSummary();
   }
 
@@ -432,10 +433,10 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     return allMetrics.getAllPresent(servers).values();
   }
 
-  public Map<String,CumulativeDistributionSummary>
+  public Map<Id,CumulativeDistributionSummary>
       getScanServerResourceGroupMetricSummary(String resourceGroup) {
     validateResourceGroup(resourceGroup);
-    final Map<String,CumulativeDistributionSummary> metrics =
+    final Map<Id,CumulativeDistributionSummary> metrics =
         getSummary().getSServerResourceGroupMetricSummary(resourceGroup);
     if (metrics == null) {
       return Map.of();
@@ -443,7 +444,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     return metrics;
   }
 
-  public Map<String,CumulativeDistributionSummary> getScanServerAllMetricSummary() {
+  public Map<Id,CumulativeDistributionSummary> getScanServerAllMetricSummary() {
     return getSummary().getSServerAllMetricSummary();
   }
 
@@ -456,10 +457,10 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     return allMetrics.getAllPresent(servers).values();
   }
 
-  public Map<String,CumulativeDistributionSummary>
+  public Map<Id,CumulativeDistributionSummary>
       getTabletServerResourceGroupMetricSummary(String resourceGroup) {
     validateResourceGroup(resourceGroup);
-    final Map<String,CumulativeDistributionSummary> metrics =
+    final Map<Id,CumulativeDistributionSummary> metrics =
         getSummary().getTServerResourceGroupMetricSummary(resourceGroup);
     if (metrics == null) {
       return Map.of();
@@ -467,7 +468,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     return metrics;
   }
 
-  public Map<String,CumulativeDistributionSummary> getTabletServerAllMetricSummary() {
+  public Map<Id,CumulativeDistributionSummary> getTabletServerAllMetricSummary() {
     return getSummary().getTServerAllMetricSummary();
   }
 

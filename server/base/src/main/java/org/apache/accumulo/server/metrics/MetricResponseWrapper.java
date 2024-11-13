@@ -67,8 +67,9 @@ public class MetricResponseWrapper extends MetricResponse {
   }
 
   private static final long serialVersionUID = 1L;
+  private static final TimeUnit UNIT = TimeUnit.SECONDS;
+  public static final String STATISTIC_TAG = "statistic";
 
-  private final TimeUnit UNIT = TimeUnit.SECONDS;
   private transient final FlatBufferBuilder builder;
   private transient final CommonRefs common = new CommonRefs();
 
@@ -169,25 +170,25 @@ public class MetricResponseWrapper extends MetricResponse {
   }
 
   public Consumer<FunctionTimer> writeFunctionTimer(FunctionTimer ft) {
-    addMetric(ft.getId(), List.of(Tag.of("statistic", "count")), ft.count());
-    addMetric(ft.getId(), List.of(Tag.of("statistic", "average")), ft.mean(UNIT));
-    addMetric(ft.getId(), List.of(Tag.of("statistic", "sum")), ft.totalTime(UNIT));
+    addMetric(ft.getId(), List.of(Tag.of(STATISTIC_TAG, "count")), ft.count());
+    addMetric(ft.getId(), List.of(Tag.of(STATISTIC_TAG, "average")), ft.mean(UNIT));
+    addMetric(ft.getId(), List.of(Tag.of(STATISTIC_TAG, "sum")), ft.totalTime(UNIT));
     return null;
   }
 
   public Consumer<Timer> writeTimer(Timer t) {
-    addMetric(t.getId(), List.of(Tag.of("statistic", "count")), t.count());
-    addMetric(t.getId(), List.of(Tag.of("statistic", "avg")), t.mean(UNIT));
-    addMetric(t.getId(), List.of(Tag.of("statistic", "max")), t.max(UNIT));
-    addMetric(t.getId(), List.of(Tag.of("statistic", "sum")), t.totalTime(UNIT));
+    addMetric(t.getId(), List.of(Tag.of(STATISTIC_TAG, "count")), t.count());
+    addMetric(t.getId(), List.of(Tag.of(STATISTIC_TAG, "avg")), t.mean(UNIT));
+    addMetric(t.getId(), List.of(Tag.of(STATISTIC_TAG, "max")), t.max(UNIT));
+    addMetric(t.getId(), List.of(Tag.of(STATISTIC_TAG, "sum")), t.totalTime(UNIT));
     return null;
   }
 
   public Consumer<LongTaskTimer> writeLongTaskTimer(LongTaskTimer t) {
-    addMetric(t.getId(), List.of(Tag.of("statistic", "avg")), t.mean(UNIT));
-    addMetric(t.getId(), List.of(Tag.of("statistic", "max")), t.max(UNIT));
-    addMetric(t.getId(), List.of(Tag.of("statistic", "duration")), t.duration(UNIT));
-    addMetric(t.getId(), List.of(Tag.of("statistic", "active")), t.activeTasks());
+    addMetric(t.getId(), List.of(Tag.of(STATISTIC_TAG, "avg")), t.mean(UNIT));
+    addMetric(t.getId(), List.of(Tag.of(STATISTIC_TAG, "max")), t.max(UNIT));
+    addMetric(t.getId(), List.of(Tag.of(STATISTIC_TAG, "duration")), t.duration(UNIT));
+    addMetric(t.getId(), List.of(Tag.of(STATISTIC_TAG, "active")), t.activeTasks());
     return null;
   }
 
@@ -198,10 +199,10 @@ public class MetricResponseWrapper extends MetricResponse {
       addMetric(d.getId(), List.of(Tag.of("percentile", Double.toString(p.percentile()))),
           p.value());
     }
-    addMetric(d.getId(), List.of(Tag.of("statistic", "count")), d.count());
-    addMetric(d.getId(), List.of(Tag.of("statistic", "avg")), d.mean());
-    addMetric(d.getId(), List.of(Tag.of("statistic", "max")), d.max());
-    addMetric(d.getId(), List.of(Tag.of("statistic", "sum")), d.totalAmount());
+    addMetric(d.getId(), List.of(Tag.of(STATISTIC_TAG, "count")), d.count());
+    addMetric(d.getId(), List.of(Tag.of(STATISTIC_TAG, "avg")), d.mean());
+    addMetric(d.getId(), List.of(Tag.of(STATISTIC_TAG, "max")), d.max());
+    addMetric(d.getId(), List.of(Tag.of(STATISTIC_TAG, "sum")), d.totalAmount());
     return null;
   }
 

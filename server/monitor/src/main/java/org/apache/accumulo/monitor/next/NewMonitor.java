@@ -33,6 +33,7 @@ import org.apache.accumulo.core.metrics.thrift.MetricResponse;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.next.serializers.CumulativeDistributionSummarySerializer;
+import org.apache.accumulo.monitor.next.serializers.IdSerializer;
 import org.apache.accumulo.monitor.next.serializers.MetricResponseSerializer;
 import org.apache.accumulo.monitor.next.serializers.TabletIdSerializer;
 import org.apache.accumulo.monitor.next.serializers.ThriftSerializer;
@@ -54,6 +55,7 @@ import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import io.javalin.json.JavalinJackson;
 import io.javalin.security.RouteRole;
+import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
 
 public class NewMonitor implements Connection.Listener {
@@ -107,6 +109,7 @@ public class NewMonitor implements Connection.Listener {
       config.bundledPlugins.enableRouteOverview("/routes", new RouteRole[] {});
       config.jsonMapper(new JavalinJackson().updateMapper(mapper -> {
         SimpleModule module = new SimpleModule();
+        module.addKeySerializer(Id.class, new IdSerializer());
         module.addSerializer(MetricResponse.class, new MetricResponseSerializer());
         module.addSerializer(TExternalCompaction.class, new ThriftSerializer());
         module.addSerializer(TExternalCompactionJob.class, new ThriftSerializer());
