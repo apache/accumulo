@@ -326,6 +326,12 @@ public enum Property {
       "Enables additional JVM metrics collection and reporting using Micrometer. Requires "
           + "property 'general.micrometer.enabled' to be set to 'true' to take effect.",
       "2.1.0"),
+  GENERAL_MICROMETER_LOG_METRICS("general.micrometer.log.metrics", "none", PropertyType.STRING,
+      "Enables additional log metrics collection and reporting using Micrometer. Requires "
+          + "property 'general.micrometer.enabled' to be set to 'true' to take effect. Micrometer "
+          + "natively instruments Log4j2 and Logback. Valid values for this property are 'none',"
+          + "'log4j2' or 'logback'.",
+      "2.1.4"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
       "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory",
       PropertyType.CLASSNAMELIST,
@@ -1166,6 +1172,12 @@ public enum Property {
   @Experimental
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
+  COMPACTOR_CANCEL_CHECK_INTERVAL("compactor.cancel.check.interval", "5m",
+      PropertyType.TIMEDURATION,
+      "Interval at which Compactors will check to see if the currently executing compaction"
+          + " should be cancelled. This checks for situations like was the tablet deleted (split "
+          + " and merge do this), was the table deleted, was a user compaction canceled, etc.",
+      "2.1.4"),
   @Experimental
   COMPACTOR_MIN_JOB_WAIT_TIME("compactor.wait.time.job.min", "1s", PropertyType.TIMEDURATION,
       "The minimum amount of time to wait between checks for the next compaction job, backing off"
