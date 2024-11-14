@@ -231,8 +231,8 @@ public interface InstanceOperations {
   ServerId getServer(ServerId.Type type, String resourceGroup, String host, int port);
 
   /**
-   * Returns all servers of the given types. For the Manager, the result will contain only one
-   * element for the current active Manager.
+   * Returns all servers of the given types. For the Manager, Monitor, and Garbage Collector, the
+   * result will contain only one element for the current active process.
    *
    * @return set of servers of the supplied type
    * @since 4.0.0
@@ -243,8 +243,7 @@ public interface InstanceOperations {
    * Returns the servers of a given type that match the given criteria
    *
    * @param resourceGroupPredicate only returns servers where the resource group matches this
-   *        predicate. For the manager it does not have a resoruce group and this parameters is not
-   *        used.
+   *        predicate. For the Manager, Monitor, and Garbage Collector, this parameter is not used.
    * @param hostPortPredicate only returns servers where its host and port match this predicate.
    * @return set of servers of the supplied type matching the supplied test
    * @since 4.0.0

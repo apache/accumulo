@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
@@ -320,6 +319,11 @@ public class ServiceLockPaths {
     }
   }
 
+  /**
+   * Note that the ServiceLockPath object returned by this method does not populate the server
+   * attribute. To get the location of the GarbageCollector you will need to parse the lock data at
+   * the ZooKeeper path.
+   */
   public ServiceLockPath getMonitor(boolean withLock) {
     Set<ServiceLockPath> results =
         get(Constants.ZMONITOR_LOCK, rg -> true, AddressSelector.all(), withLock);
