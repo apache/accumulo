@@ -18,12 +18,17 @@
  */
 package org.apache.accumulo.core.lock;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -412,7 +417,7 @@ public class ServiceLockPaths {
     Objects.requireNonNull(resourceGroupPredicate);
     Objects.requireNonNull(addressSelector);
 
-    final Set<ServiceLockPath> results = new HashSet<>();
+    final Set<ServiceLockPath> results = ConcurrentHashMap.newKeySet();
     final String typePath = ctx.getZooKeeperRoot() + serverType;
     final ZooCache cache = ctx.getZooCache();
 
@@ -451,20 +456,50 @@ public class ServiceLockPaths {
             addressPredicate = addressSelector.getPredicate();
           }
 
-          for (final String server : servers) {
-            if (addressPredicate.test(server)) {
-              final ServiceLockPath slp =
-                  parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
-              if (!withLock || slp.getType().equals(Constants.ZDEADTSERVERS)) {
-                // Dead TServers don't have lock data
-                results.add(slp);
-              } else {
-                final ZcStat stat = new ZcStat();
-                Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
-                if (!sld.isEmpty()) {
+          ExecutorService executor = null;
+          try {
+            if (withLock) {
+              int numThreads = Math.max(1, Math.min(servers.size() / 1000, 16));
+              executor = Executors.newFixedThreadPool(numThreads);
+            }
+
+            List<Future<?>> futures = new ArrayList<>();
+
+            for (final String server : servers) {
+              if (addressPredicate.test(server)) {
+                final ServiceLockPath slp =
+                    parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
+                if (!withLock || slp.getType().equals(Constants.ZDEADTSERVERS)) {
+                  // Dead TServers don't have lock data
                   results.add(slp);
+                } else {
+                  // Execute reads to zookeeper to get lock info in parallel. The zookeeper client
+                  // has a single shared connection to a server so this will not create lots of
+                  // connections, it will place multiple outgoing request on that single zookeeper
+                  // connection at the same time though.
+                  futures.add(executor.submit(() -> {
+                    final ZcStat stat = new ZcStat();
+                    Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
+                    if (sld.isPresent()) {
+                      results.add(slp);
+                    }
+                    return null;
+                  }));
                 }
               }
+            }
+
+            // wait for futures to complete and check for errors
+            for (var future : futures) {
+              try {
+                future.get();
+              } catch (InterruptedException | ExecutionException e) {
+                throw new IllegalStateException(e);
+              }
+            }
+          } finally {
+            if (executor != null) {
+              executor.shutdownNow();
             }
           }
         }
