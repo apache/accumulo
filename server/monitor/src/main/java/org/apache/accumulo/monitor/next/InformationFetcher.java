@@ -26,7 +26,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -42,13 +41,11 @@ import jakarta.ws.rs.NotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
 import org.apache.accumulo.core.metrics.thrift.MetricService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -109,13 +106,6 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
     public Set<String> getVolumes() {
       return volumes;
-    }
-  }
-
-  static class GcServerId extends ServerId {
-    private GcServerId(String resourceGroup, String host, int port) {
-      // TODO: This is a little wonky, Type.GC does not exist in the public API,
-      super(ServerId.Type.MANAGER, resourceGroup, host, port);
     }
   }
 
@@ -279,24 +269,14 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       final SystemInformation summary = new SystemInformation(allMetrics);
 
       for (ServerId.Type type : ServerId.Type.values()) {
+        if (type == Type.MONITOR) {
+          continue;
+        }
         for (ServerId server : this.ctx.instanceOperations().getServers(type)) {
           futures.add(this.pool.submit(new MetricFetcher(this.ctx, server, summary)));
         }
       }
       ThreadPools.resizePool(pool, () -> Math.max(20, (futures.size() / 20)), poolName);
-
-      // GC is not a public type, add it
-      ServiceLockPath zgcPath = this.ctx.getServerPaths().getGarbageCollector(true);
-      if (zgcPath != null) {
-        Optional<ServiceLockData> sld = this.ctx.getZooCache().getLockData(zgcPath);
-        if (sld.isPresent()) {
-          String location = sld.orElseThrow().getAddressString(ThriftService.GC);
-          String resourceGroup = sld.orElseThrow().getGroup(ThriftService.GC);
-          HostAndPort hp = HostAndPort.fromString(location);
-          futures.add(this.pool.submit(new MetricFetcher(this.ctx,
-              new GcServerId(resourceGroup, hp.getHost(), hp.getPort()), summary)));
-        }
-      }
 
       // Fetch external compaction information from the Manager
       futures.add(this.pool.submit(new CompactionListFetcher(summary)));

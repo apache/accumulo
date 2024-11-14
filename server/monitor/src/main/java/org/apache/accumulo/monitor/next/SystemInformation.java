@@ -46,7 +46,6 @@ import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
-import org.apache.accumulo.monitor.next.InformationFetcher.GcServerId;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -446,20 +445,13 @@ public class SystemInformation {
   public void finish() {
     // Iterate over the metrics
     allMetrics.asMap().keySet().forEach(serverId -> {
-      String typeName = serverId.getType().name();
-      if (serverId instanceof GcServerId) {
-        typeName = "GC";
-      }
       deployment.computeIfAbsent(serverId.getResourceGroup(), g -> new HashMap<>())
-          .computeIfAbsent(typeName, t -> new ProcessSummary()).addResponded();
+          .computeIfAbsent(serverId.getType().name(), t -> new ProcessSummary()).addResponded();
     });
     problemHosts.forEach(serverId -> {
-      String typeName = serverId.getType().name();
-      if (serverId instanceof GcServerId) {
-        typeName = "GC";
-      }
       deployment.computeIfAbsent(serverId.getResourceGroup(), g -> new HashMap<>())
-          .computeIfAbsent(typeName, t -> new ProcessSummary()).addNotResponded(serverId);
+          .computeIfAbsent(serverId.getType().name(), t -> new ProcessSummary())
+          .addNotResponded(serverId);
     });
   }
 
