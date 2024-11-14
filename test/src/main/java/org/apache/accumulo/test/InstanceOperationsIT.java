@@ -107,6 +107,22 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
         assertNotNull(actualServerId, "Expected to find manager " + expectedServerId);
         assertEquals(expectedServerId, actualServerId);
       });
+
+      // verify GC
+      final Set<ServerId> gcs = iops.getServers(ServerId.Type.GARBAGE_COLLECTOR);
+      assertEquals(1, gcs.size()); // Assuming there is only one garbage collector
+      gcs.forEach(expectedServerId -> {
+        ServerId actualServerId =
+            iops.getServer(expectedServerId.getType(), expectedServerId.getResourceGroup(),
+                expectedServerId.getHost(), expectedServerId.getPort());
+        assertNotNull(actualServerId, "Expected to find manager " + expectedServerId);
+        assertEquals(expectedServerId, actualServerId);
+      });
+
+      // monitor not started in MAC
+      final Set<ServerId> mon = iops.getServers(ServerId.Type.MONITOR);
+      assertEquals(0, mon.size());
+
     }
   }
 

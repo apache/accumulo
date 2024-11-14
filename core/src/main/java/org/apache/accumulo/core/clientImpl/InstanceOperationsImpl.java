@@ -495,25 +495,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
           throw new IllegalStateException("Multiple servers matching provided address");
         }
       case MANAGER:
-        Set<ServerId> managers = getServers(type, rg2 -> true, hp);
-        if (managers.isEmpty()) {
-          return null;
-        } else {
-          return managers.iterator().next();
-        }
       case MONITOR:
-        Set<ServerId> monitors = getServers(type, rg2 -> true, hp);
-        if (monitors.isEmpty()) {
-          return null;
-        } else {
-          return monitors.iterator().next();
-        }
       case GARBAGE_COLLECTOR:
-        Set<ServerId> gc = getServers(type, rg2 -> true, hp);
-        if (gc.isEmpty()) {
+        Set<ServerId> server = getServers(type, rg2 -> true, hp);
+        if (server.isEmpty()) {
           return null;
         } else {
-          return gc.iterator().next();
+          return server.iterator().next();
         }
       case SCAN_SERVER:
         Set<ServiceLockPath> sservers = context.getServerPaths().getScanServer(rg, hp, true);
