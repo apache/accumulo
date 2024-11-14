@@ -679,6 +679,15 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       client.tableOperations().cancelCompaction(table1);
       t.join();
+
+      // This test created a lot of files (bw.flush in a loop) which will
+      // cause system compactions to be started for this table because
+      // it will be over the max number of files for the tablets. Without
+      // deleting the table, this test method will end and another may start
+      // using the same compaction queue, causing the next test method to
+      // possibly time out.
+      client.tableOperations().delete(table1);
+
     }
   }
 
