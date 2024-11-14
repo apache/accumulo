@@ -32,13 +32,12 @@ import com.google.common.base.Preconditions;
 public class ServerId implements Comparable<ServerId> {
 
   /**
-   * Server process type names that a client can be expected to interact with. Clients are not
-   * expected to interact directly with the GarbageCollector or Monitor processes.
+   * Server process type names.
    *
    * @since 4.0.0
    */
   public enum Type {
-    MANAGER, COMPACTOR, SCAN_SERVER, TABLET_SERVER;
+    MANAGER, MONITOR, GARBAGE_COLLECTOR, COMPACTOR, SCAN_SERVER, TABLET_SERVER;
   }
 
   private final Type type;
