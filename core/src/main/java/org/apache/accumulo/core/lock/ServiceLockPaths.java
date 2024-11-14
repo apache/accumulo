@@ -453,48 +453,50 @@ public class ServiceLockPaths {
           }
 
           ExecutorService executor = null;
-          if (withLock) {
-            int numThreads = Math.max(1, Math.min(servers.size() / 1000, 16));
-            executor = Executors.newFixedThreadPool(numThreads);
-          }
+          try {
+            if (withLock) {
+              int numThreads = Math.max(1, Math.min(servers.size() / 1000, 16));
+              executor = Executors.newFixedThreadPool(numThreads);
+            }
 
-          List<Future<?>> futures = new ArrayList<>();
+            List<Future<?>> futures = new ArrayList<>();
 
-          for (final String server : servers) {
-            if (addressPredicate.test(server)) {
-              final ServiceLockPath slp =
-                  parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
-              if (!withLock || slp.getType().equals(Constants.ZDEADTSERVERS)) {
-                // Dead TServers don't have lock data
-                results.add(slp);
-              } else {
-                // Execute reads to zookeeper to get lock info in parallel. The zookeeper client has
-                // a single shared connection to a server so this will not create lots of
-                // connections, it will place multiple outgoing request on that single zookeeper
-                // connection at the same time though.
-                futures.add(executor.submit(() -> {
-                  final ZcStat stat = new ZcStat();
-                  Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
-                  if (sld.isPresent()) {
-                    results.add(slp);
-                  }
-                  return null;
-                }));
+            for (final String server : servers) {
+              if (addressPredicate.test(server)) {
+                final ServiceLockPath slp =
+                    parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
+                if (!withLock || slp.getType().equals(Constants.ZDEADTSERVERS)) {
+                  // Dead TServers don't have lock data
+                  results.add(slp);
+                } else {
+                  // Execute reads to zookeeper to get lock info in parallel. The zookeeper client
+                  // has a single shared connection to a server so this will not create lots of
+                  // connections, it will place multiple outgoing request on that single zookeeper
+                  // connection at the same time though.
+                  futures.add(executor.submit(() -> {
+                    final ZcStat stat = new ZcStat();
+                    Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
+                    if (sld.isPresent()) {
+                      results.add(slp);
+                    }
+                    return null;
+                  }));
+                }
               }
             }
-          }
 
-          // wait for futures to complete and check for errors
-          for (var future : futures) {
-            try {
-              future.get();
-            } catch (InterruptedException | ExecutionException e) {
-              throw new IllegalStateException(e);
+            // wait for futures to complete and check for errors
+            for (var future : futures) {
+              try {
+                future.get();
+              } catch (InterruptedException | ExecutionException e) {
+                throw new IllegalStateException(e);
+              }
             }
-          }
-
-          if (executor != null) {
-            executor.shutdown();
+          } finally {
+            if (executor != null) {
+              executor.shutdownNow();
+            }
           }
         }
       }
