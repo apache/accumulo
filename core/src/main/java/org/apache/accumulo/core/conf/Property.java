@@ -1118,7 +1118,7 @@ public enum Property {
       "Interval at which Compactors will check to see if the currently executing compaction"
           + " should be cancelled. This checks for situations like was the tablet deleted (split "
           + " and merge do this), was the table deleted, was a user compaction canceled, etc.",
-      "4.0.0"),
+      "2.1.4"),
   @Experimental
   COMPACTOR_PORTSEARCH("compactor.port.search", "true", PropertyType.BOOLEAN,
       "If the compactor.port.client ports are in use, search higher ports until one is available.",
