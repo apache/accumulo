@@ -73,9 +73,7 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
   @Override
   public void undo(long tid, Manager manager) throws Exception {
     var context = manager.getContext();
-    manager.getTableManager().removeNamespace(context.getZooReaderWriter(),
-        Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNAMESPACES,
-        namespaceInfo.namespaceId);
+    manager.getTableManager().removeNamespace(namespaceInfo.namespaceId);
     context.clearTableListCache();
     Utils.unreserveNamespace(manager, namespaceInfo.namespaceId, tid, LockType.WRITE);
   }

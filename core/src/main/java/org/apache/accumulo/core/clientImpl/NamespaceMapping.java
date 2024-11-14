@@ -20,10 +20,13 @@ package org.apache.accumulo.core.clientImpl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptySortedMap;
+import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -34,11 +37,12 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 public class NamespaceMapping {
-  private static final Gson gson = new Gson();
+  // type token must represent a mutable type, so it can be altered in the mutateExisting methods
+  // without needing to make a copy
+  private static final Type MAP_TYPE = new TypeToken<TreeMap<String,String>>() {}.getType();
   private final ClientContext context;
   private volatile SortedMap<NamespaceId,String> currentNamespaceMap = emptySortedMap();
   private volatile SortedMap<String,NamespaceId> currentNamespaceReverseMap = emptySortedMap();
@@ -69,23 +73,29 @@ public class NamespaceMapping {
 
   public static void remove(ZooReaderWriter zoo, String zPath, NamespaceId namespaceId)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
+    if (Namespace.DEFAULT.id().equals(namespaceId) || Namespace.ACCUMULO.id().equals(namespaceId)) {
+      throw new AssertionError("Removing built-in namespaces in map should not be possible");
+    }
     zoo.mutateExisting(zPath, data -> {
-      var namespaces = NamespaceMapping.deserialize(data);
+      var namespaces = deserialize(data);
       if (!namespaces.containsKey(namespaceId.canonical())) {
         throw new AcceptableThriftTableOperationException(null, namespaceId.canonical(),
             TableOperation.DELETE, TableOperationExceptionType.NAMESPACE_NOTFOUND,
             "Namespace already removed while processing");
       }
       namespaces.remove(namespaceId.canonical());
-      return NamespaceMapping.serialize(namespaces);
+      return serialize(namespaces);
     });
   }
 
   public static void rename(ZooReaderWriter zoo, String zPath, NamespaceId namespaceId,
       String oldName, String newName)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
+    if (Namespace.DEFAULT.id().equals(namespaceId) || Namespace.ACCUMULO.id().equals(namespaceId)) {
+      throw new AssertionError("Renaming built-in namespaces in map should not be possible");
+    }
     zoo.mutateExisting(zPath, current -> {
-      var currentNamespaceMap = NamespaceMapping.deserialize(current);
+      var currentNamespaceMap = deserialize(current);
       final String currentName = currentNamespaceMap.get(namespaceId.canonical());
       if (currentName.equals(newName)) {
         return null; // assume in this case the operation is running again, so we are done
@@ -94,24 +104,22 @@ public class NamespaceMapping {
         throw new AcceptableThriftTableOperationException(null, oldName, TableOperation.RENAME,
             TableOperationExceptionType.NAMESPACE_NOTFOUND, "Name changed while processing");
       }
+      if (currentNamespaceMap.containsValue(newName)) {
+        throw new AcceptableThriftTableOperationException(null, newName, TableOperation.RENAME,
+            TableOperationExceptionType.NAMESPACE_EXISTS, "Namespace name already exists");
+      }
       currentNamespaceMap.put(namespaceId.canonical(), newName);
-      return NamespaceMapping.serialize(currentNamespaceMap);
+      return serialize(currentNamespaceMap);
     });
   }
 
   public static byte[] serialize(Map<String,String> map) {
-    var sortedMap = ImmutableSortedMap.<String,String>naturalOrder().putAll(map).build();
-    String jsonData = gson.toJson(sortedMap);
-    return jsonData.getBytes(UTF_8);
+    return GSON.get().toJson(new TreeMap<>(map), MAP_TYPE).getBytes(UTF_8);
   }
 
   public static Map<String,String> deserialize(byte[] data) {
-    if (data == null) {
-      throw new AssertionError("/namespaces node should not be null");
-    }
-    String jsonData = new String(data, UTF_8);
-    Type type = new TypeToken<Map<String,String>>() {}.getType();
-    return gson.fromJson(jsonData, type);
+    requireNonNull(data, "/namespaces node should not be null");
+    return GSON.get().fromJson(new String(data, UTF_8), MAP_TYPE);
   }
 
   private synchronized void update() {

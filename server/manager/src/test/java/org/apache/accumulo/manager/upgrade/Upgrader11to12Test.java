@@ -357,13 +357,13 @@ public class Upgrader11to12Test {
     expect(context.getInstanceID()).andReturn(iid).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
 
-    zrw.recursiveDelete("/accumulo/" + iid.canonical() + "/tracers",
+    zrw.recursiveDelete(Constants.ZROOT + "/" + iid.canonical() + "/tracers",
         ZooUtil.NodeMissingPolicy.SKIP);
     expectLastCall().once();
 
     Capture<Stat> statCapture = newCapture();
-    expect(zrw.getData(eq("/accumulo/" + iid.canonical() + "/root_tablet"), capture(statCapture)))
-        .andAnswer(() -> {
+    expect(zrw.getData(eq(Constants.ZROOT + "/" + iid.canonical() + "/root_tablet"),
+        capture(statCapture))).andAnswer(() -> {
           Stat stat = statCapture.getValue();
           stat.setCtime(System.currentTimeMillis());
           stat.setMtime(System.currentTimeMillis());
@@ -374,26 +374,28 @@ public class Upgrader11to12Test {
         }).once();
 
     Capture<byte[]> byteCapture = newCapture();
-    expect(zrw.overwritePersistentData(eq("/accumulo/" + iid.canonical() + "/root_tablet"),
+    expect(zrw.overwritePersistentData(eq(Constants.ZROOT + "/" + iid.canonical() + "/root_tablet"),
         capture(byteCapture), eq(123))).andReturn(true).once();
 
-    expect(zrw.getData(eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES)))
+    expect(zrw.getData(eq(Constants.ZROOT + "/" + iid.canonical() + Constants.ZNAMESPACES)))
         .andReturn(new byte[0]).once();
     Map<String,String> mockNamespaces = Map.of("ns1", "ns1name", "ns2", "ns2name");
-    expect(zrw.getChildren(eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES)))
+    expect(zrw.getChildren(eq(Constants.ZROOT + "/" + iid.canonical() + Constants.ZNAMESPACES)))
         .andReturn(List.copyOf(mockNamespaces.keySet())).once();
     for (String ns : mockNamespaces.keySet()) {
-      Supplier<String> pathMatcher = () -> eq(
-          "/accumulo/" + iid.canonical() + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME);
+      Supplier<String> pathMatcher = () -> eq(Constants.ZROOT + "/" + iid.canonical()
+          + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME);
       expect(zrw.getData(pathMatcher.get())).andReturn(mockNamespaces.get(ns).getBytes(UTF_8))
           .once();
     }
     byte[] mapping = NamespaceMapping.serialize(mockNamespaces);
-    expect(zrw.putPersistentData(eq("/accumulo/" + iid.canonical() + Constants.ZNAMESPACES),
-        aryEq(mapping), eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
+    expect(
+        zrw.putPersistentData(eq(Constants.ZROOT + "/" + iid.canonical() + Constants.ZNAMESPACES),
+            aryEq(mapping), eq(ZooUtil.NodeExistsPolicy.OVERWRITE)))
+        .andReturn(true).once();
     for (String ns : mockNamespaces.keySet()) {
-      Supplier<String> pathMatcher = () -> eq(
-          "/accumulo/" + iid.canonical() + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME);
+      Supplier<String> pathMatcher = () -> eq(Constants.ZROOT + "/" + iid.canonical()
+          + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME);
       zrw.delete(pathMatcher.get());
       expectLastCall().once();
     }

@@ -25,7 +25,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.data.InstanceId;
@@ -93,7 +92,7 @@ public class ZooKeeperInitializer {
 
   void initialize(final ServerContext context, final boolean clearInstanceName,
       final String instanceNamePath, final String rootTabletDirName, final String rootTabletFileUri)
-      throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
+      throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
 
     ZooReaderWriter zoo = context.getZooReaderWriter();

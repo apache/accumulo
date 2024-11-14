@@ -84,9 +84,10 @@ public class Upgrader11to12 implements Upgrader {
   static final Set<Text> UPGRADE_FAMILIES =
       Set.of(DataFileColumnFamily.NAME, CHOPPED, ExternalCompactionColumnFamily.NAME);
 
-  public static final String ZTRACERS = "/tracers";
+  private static final String ZTRACERS = "/tracers";
 
-  public static final String ZNAMESPACE_NAME = "/name";
+  @VisibleForTesting
+  static final String ZNAMESPACE_NAME = "/name";
 
   @Override
   public void upgradeZookeeper(@NonNull ServerContext context) {

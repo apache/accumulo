@@ -19,11 +19,8 @@
 package org.apache.accumulo.manager.tableOps.namespace.rename;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
@@ -59,12 +56,6 @@ public class RenameNamespace extends ManagerRepo {
 
     Utils.getTableNameLock().lock();
     try {
-      NamespaceId n = Namespaces.lookupNamespaceId(manager.getContext(), newName);
-      if (n != null && !n.equals(namespaceId)) {
-        throw new AcceptableThriftTableOperationException(null, newName, TableOperation.RENAME,
-            TableOperationExceptionType.NAMESPACE_EXISTS, "Namespace name already exists");
-      }
-
       NamespaceMapping.rename(zoo, manager.getZooKeeperRoot() + Constants.ZNAMESPACES, namespaceId,
           oldName, newName);
 
