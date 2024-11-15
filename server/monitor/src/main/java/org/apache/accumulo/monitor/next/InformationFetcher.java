@@ -460,6 +460,10 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     return getSummary().getTables();
   }
 
+  public TableSummary getTable(String tableName) {
+    return getSummary().getTables().get(tableName);
+  }
+
   public List<TabletInformation> getTablets(String tableName) {
     return getSummary().getTablets(tableName);
   }

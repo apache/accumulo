@@ -211,7 +211,9 @@ public class NewMonitor implements Connection.Listener {
         .get("/metrics/compactions/{num}",
             ctx -> ctx.json(fetcher.getCompactions(Integer.parseInt(ctx.pathParam("num")))))
         .get("/metrics/tables", ctx -> ctx.json(fetcher.getTables()))
-        .get("/metrics/tables/{name}", ctx -> ctx.json(fetcher.getTablets(ctx.pathParam("name"))))
+        .get("/metrics/tables/{name}", ctx -> ctx.json(fetcher.getTable(ctx.pathParam("name"))))
+        .get("/metrics/tables/{name}/tablets",
+            ctx -> ctx.json(fetcher.getTablets(ctx.pathParam("name"))))
         .get("/metrics/deployment", ctx -> ctx.json(fetcher.getDeploymentOverview()))
         .exception(NotFoundException.class, (e, ctx) -> ctx.status(404)).start();
 
