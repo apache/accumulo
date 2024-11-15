@@ -87,7 +87,7 @@ function start_service() {
   group=$(get_group "$@")
 
   for ((process_num = 1; process_num <= servers_per_host; process_num++)); do
-    if [[ "${build_service_name}" == "true" ]]; then
+    if [[ ${build_service_name} == "true" ]]; then
       service_name="${service_type}_${group}_${process_num}"
     fi
     # The ACCUMULO_SERVICE_INSTANCE variable is used in
@@ -159,7 +159,7 @@ function stop_service() {
       local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
       control_process "TERM" "$process" "$pid_file"
     done
-  elif [[ -n "$ACCUMULO_CLUSTER_ARG" ]]; then
+  elif [[ -n $ACCUMULO_CLUSTER_ARG ]]; then
 
     servers_per_host=${ACCUMULO_CLUSTER_ARG:-1}
     group=$(get_group "$@")
@@ -188,7 +188,7 @@ function kill_service() {
       local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
       control_process "KILL" "$process" "$pid_file"
     done
-  elif [[ -n "$ACCUMULO_CLUSTER_ARG" ]]; then
+  elif [[ -n $ACCUMULO_CLUSTER_ARG ]]; then
 
     servers_per_host=${ACCUMULO_CLUSTER_ARG:-1}
     group=$(get_group "$@")
