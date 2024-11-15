@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.monitor.next;
 
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -311,6 +312,7 @@ public class SystemInformation {
       new ConcurrentHashMap<>();
 
   // Compaction Information
+  private final Map<String,List<FMetric>> queueMetrics = new HashMap<>();
   private final AtomicReference<Map<String,TExternalCompaction>> runningCompactions =
       new AtomicReference<>();
   private final AtomicReference<Map<Long,String>> runningCompactionsDurationIndex =
@@ -380,6 +382,20 @@ public class SystemInformation {
 
   }
 
+  private void createCompactionSummary(MetricResponse response) {
+    if (response.getMetrics() != null) {
+      for (final ByteBuffer binary : response.getMetrics()) {
+        FMetric fm = FMetric.getRootAsFMetric(binary);
+        for (int i = 0; i < fm.tagsLength(); i++) {
+          FTag t = fm.tags(i);
+          if (t.key().equals("queue.id")) {
+            queueMetrics.computeIfAbsent(t.value(), (k) -> new ArrayList<>()).add(fm);
+          }
+        }
+      }
+    }
+  }
+
   public void processResponse(final ServerId server, final MetricResponse response) {
     problemHosts.remove(server);
     allMetrics.put(server, response);
@@ -399,6 +415,7 @@ public class SystemInformation {
         if (manager.get() == null || !manager.get().equals(server)) {
           manager.set(server);
         }
+        createCompactionSummary(response);
         break;
       case SCAN_SERVER:
         sservers.computeIfAbsent(response.getResourceGroup(), (rg) -> new HashSet<>()).add(server);
@@ -508,6 +525,10 @@ public class SystemInformation {
 
   public Map<Id,CumulativeDistributionSummary> getTServerAllMetricSummary() {
     return this.totalTServerMetrics;
+  }
+
+  public Map<String,List<FMetric>> getCompactionMetricSummary() {
+    return this.queueMetrics;
   }
 
   public Collection<TExternalCompaction> getCompactions(int topN) {

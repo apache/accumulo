@@ -29,10 +29,12 @@ import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.next.serializers.CumulativeDistributionSummarySerializer;
+import org.apache.accumulo.monitor.next.serializers.FMetricSerializer;
 import org.apache.accumulo.monitor.next.serializers.IdSerializer;
 import org.apache.accumulo.monitor.next.serializers.MetricResponseSerializer;
 import org.apache.accumulo.monitor.next.serializers.TabletIdSerializer;
@@ -110,6 +112,7 @@ public class NewMonitor implements Connection.Listener {
       config.jsonMapper(new JavalinJackson().updateMapper(mapper -> {
         SimpleModule module = new SimpleModule();
         module.addKeySerializer(Id.class, new IdSerializer());
+        module.addSerializer(FMetric.class, new FMetricSerializer());
         module.addSerializer(MetricResponse.class, new MetricResponseSerializer());
         module.addSerializer(TExternalCompaction.class, new ThriftSerializer());
         module.addSerializer(TExternalCompactionJob.class, new ThriftSerializer());
@@ -207,8 +210,9 @@ public class NewMonitor implements Connection.Listener {
         .get("/metrics/tservers/detail/{group}",
             ctx -> ctx.json(fetcher.getTabletServers(ctx.pathParam("group"))))
         .get("/metrics/problems", ctx -> ctx.json(fetcher.getProblemHosts()))
-        .get("/metrics/compactions", ctx -> ctx.json(fetcher.getCompactions(25)))
-        .get("/metrics/compactions/{num}",
+        .get("/metrics/compactions/summary", ctx -> ctx.json(fetcher.getCompactionMetricSummary()))
+        .get("/metrics/compactions/detail", ctx -> ctx.json(fetcher.getCompactions(25)))
+        .get("/metrics/compactions/detail/{num}",
             ctx -> ctx.json(fetcher.getCompactions(Integer.parseInt(ctx.pathParam("num")))))
         .get("/metrics/tables", ctx -> ctx.json(fetcher.getTables()))
         .get("/metrics/tables/{name}", ctx -> ctx.json(fetcher.getTable(ctx.pathParam("name"))))

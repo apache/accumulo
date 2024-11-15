@@ -46,6 +46,7 @@ import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
 import org.apache.accumulo.core.metrics.thrift.MetricService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -450,6 +451,10 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
   public Map<Id,CumulativeDistributionSummary> getTabletServerAllMetricSummary() {
     return getSummary().getTServerAllMetricSummary();
+  }
+
+  public Map<String,List<FMetric>> getCompactionMetricSummary() {
+    return getSummary().getCompactionMetricSummary();
   }
 
   public Collection<TExternalCompaction> getCompactions(int topN) {
