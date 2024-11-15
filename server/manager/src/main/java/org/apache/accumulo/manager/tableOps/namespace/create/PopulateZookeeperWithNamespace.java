@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
@@ -51,17 +53,17 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
 
     Utils.getTableNameLock().lock();
     try {
-      Utils.checkNamespaceDoesNotExist(manager.getContext(), namespaceInfo.namespaceName,
-          namespaceInfo.namespaceId, TableOperation.CREATE);
-
-      TableManager.prepareNewNamespaceState(manager.getContext(), namespaceInfo.namespaceId,
+      var context = manager.getContext();
+      NamespaceMapping.put(context.getZooReaderWriter(),
+          Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNAMESPACES,
+          namespaceInfo.namespaceId, namespaceInfo.namespaceName);
+      TableManager.prepareNewNamespaceState(context, namespaceInfo.namespaceId,
           namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 
-      PropUtil.setProperties(manager.getContext(),
-          NamespacePropKey.of(manager.getContext(), namespaceInfo.namespaceId),
+      PropUtil.setProperties(context, NamespacePropKey.of(context, namespaceInfo.namespaceId),
           namespaceInfo.props);
 
-      manager.getContext().clearTableListCache();
+      context.clearTableListCache();
 
       return new FinishCreateNamespace(namespaceInfo);
     } finally {

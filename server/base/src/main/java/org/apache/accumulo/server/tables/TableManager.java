@@ -29,6 +29,9 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -67,26 +70,19 @@ public class TableManager {
   private final ZooReaderWriter zoo;
   private final ZooCache zooStateCache;
 
-  public static void prepareNewNamespaceState(ZooReaderWriter zoo, final PropStore propStore,
-      InstanceId instanceId, NamespaceId namespaceId, String namespace,
-      NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
+  public static void prepareNewNamespaceState(final ServerContext context, NamespaceId namespaceId,
+      String namespace, NodeExistsPolicy existsPolicy)
+      throws KeeperException, InterruptedException {
+    final PropStore propStore = context.getPropStore();
+    final InstanceId instanceId = context.getInstanceID();
     log.debug("Creating ZooKeeper entries for new namespace {} (ID: {})", namespace, namespaceId);
-    String zPath = Constants.ZROOT + "/" + instanceId + Constants.ZNAMESPACES + "/" + namespaceId;
-
-    zoo.putPersistentData(zPath, new byte[0], existsPolicy);
-    zoo.putPersistentData(zPath + Constants.ZNAMESPACE_NAME, namespace.getBytes(UTF_8),
+    context.getZooReaderWriter().putPersistentData(
+        Constants.ZROOT + "/" + instanceId + Constants.ZNAMESPACES + "/" + namespaceId, new byte[0],
         existsPolicy);
     var propKey = NamespacePropKey.of(instanceId, namespaceId);
     if (!propStore.exists(propKey)) {
       propStore.create(propKey, Map.of());
     }
-  }
-
-  public static void prepareNewNamespaceState(final ServerContext context, NamespaceId namespaceId,
-      String namespace, NodeExistsPolicy existsPolicy)
-      throws KeeperException, InterruptedException {
-    prepareNewNamespaceState(context.getZooReaderWriter(), context.getPropStore(),
-        context.getInstanceID(), namespaceId, namespace, existsPolicy);
   }
 
   public static void prepareNewTableState(ZooReaderWriter zoo, PropStore propStore,
@@ -327,7 +323,15 @@ public class TableManager {
   }
 
   public void removeNamespace(NamespaceId namespaceId)
-      throws KeeperException, InterruptedException {
+      throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
+    try {
+      NamespaceMapping.remove(zoo, zkRoot + Constants.ZNAMESPACES, namespaceId);
+    } catch (AcceptableThriftTableOperationException e) {
+      // ignore not found, because that's what we're trying to do anyway
+      if (e.getType() != TableOperationExceptionType.NAMESPACE_NOTFOUND) {
+        throw e;
+      }
+    }
     zoo.recursiveDelete(zkRoot + Constants.ZNAMESPACES + "/" + namespaceId, NodeMissingPolicy.SKIP);
   }
 
