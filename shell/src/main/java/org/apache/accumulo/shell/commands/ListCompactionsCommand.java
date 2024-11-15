@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static org.apache.accumulo.shell.commands.ListScansCommand.rgRegexPredicate;
+import static org.apache.accumulo.shell.commands.ListScansCommand.serverRegexPredicate;
+
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -30,7 +33,7 @@ import org.apache.commons.cli.Options;
 
 public class ListCompactionsCommand extends Command {
 
-  private Option tserverOption, disablePaginationOpt, filterOption;
+  private Option serverOpt, rgOpt, disablePaginationOpt, filterOption;
 
   @Override
   public String description() {
@@ -51,9 +54,11 @@ public class ListCompactionsCommand extends Command {
 
     Stream<String> activeCompactionStream;
 
-    if (cl.hasOption(tserverOption.getOpt())) {
-      activeCompactionStream = ActiveCompactionHelper
-          .activeCompactionsForServer(cl.getOptionValue(tserverOption.getOpt()), instanceOps);
+    if (cl.hasOption(serverOpt) || cl.hasOption(rgOpt)) {
+      final var serverPredicate = serverRegexPredicate(cl, serverOpt);
+      final var rgPredicate = rgRegexPredicate(cl, rgOpt);
+      activeCompactionStream =
+          ActiveCompactionHelper.activeCompactions(instanceOps, rgPredicate, serverPredicate);
     } else {
       activeCompactionStream = ActiveCompactionHelper.activeCompactions(instanceOps);
     }
@@ -85,10 +90,14 @@ public class ListCompactionsCommand extends Command {
     filterOption = new Option("f", "filter", true, "show only compactions that match the regex");
     opts.addOption(filterOption);
 
-    tserverOption = new Option("ts", "tabletServer", true,
-        "tablet server or compactor to list compactions for");
-    tserverOption.setArgName("tablet server");
-    opts.addOption(tserverOption);
+    serverOpt = new Option("s", "server", true, "tablet/scan server regex to list compactions for");
+    serverOpt.setArgName("tablet/scan server regex");
+    opts.addOption(serverOpt);
+
+    rgOpt = new Option("rg", "resourceGroup", true,
+        "tablet/scan server resource group regex to list compactions for");
+    rgOpt.setArgName("resource group");
+    opts.addOption(rgOpt);
 
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     opts.addOption(disablePaginationOpt);

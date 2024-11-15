@@ -390,12 +390,32 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  public List<ActiveCompaction> getActiveCompactions(Predicate<String> resourceGroupPredicate,
+      BiPredicate<String,Integer> hostPortPredicate)
+      throws AccumuloException, AccumuloSecurityException {
+
+    Set<ServerId> compactionServers = new HashSet<>();
+    compactionServers
+        .addAll(getServers(ServerId.Type.COMPACTOR, resourceGroupPredicate, hostPortPredicate));
+    compactionServers
+        .addAll(getServers(ServerId.Type.TABLET_SERVER, resourceGroupPredicate, hostPortPredicate));
+
+    return getActiveCompactions(compactionServers);
+  }
+
+  @Override
   public List<ActiveCompaction> getActiveCompactions()
       throws AccumuloException, AccumuloSecurityException {
 
     Set<ServerId> compactionServers = new HashSet<>();
     compactionServers.addAll(getServers(ServerId.Type.COMPACTOR));
     compactionServers.addAll(getServers(ServerId.Type.TABLET_SERVER));
+
+    return getActiveCompactions(compactionServers);
+  }
+
+  private List<ActiveCompaction> getActiveCompactions(Set<ServerId> compactionServers)
+      throws AccumuloException, AccumuloSecurityException {
 
     int numThreads = Math.max(4, Math.min((compactionServers.size()) / 10, 256));
     var executorService = context.threadPools().getPoolBuilder(INSTANCE_OPS_COMPACTIONS_FINDER_POOL)

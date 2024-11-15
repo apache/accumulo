@@ -19,7 +19,11 @@
 package org.apache.accumulo.shell.commands;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -29,11 +33,9 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import com.google.common.net.HostAndPort;
-
 public class ListScansCommand extends Command {
 
-  private Option tserverOption, disablePaginationOpt;
+  private Option serverOpt, rgOpt, disablePaginationOpt;
 
   @Override
   public String description() {
@@ -49,13 +51,13 @@ public class ListScansCommand extends Command {
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
     final Set<ServerId> servers = new HashSet<>();
 
-    if (cl.hasOption(tserverOption.getOpt())) {
-      String serverAddress = cl.getOptionValue(tserverOption.getOpt());
-      final HostAndPort hp = HostAndPort.fromString(serverAddress);
+    if (cl.hasOption(serverOpt) || cl.hasOption(rgOpt)) {
+      final var serverPredicate = serverRegexPredicate(cl, serverOpt);
+      final var rgPredicate = rgRegexPredicate(cl, rgOpt);
       servers
-          .add(instanceOps.getServer(ServerId.Type.SCAN_SERVER, null, hp.getHost(), hp.getPort()));
-      servers.add(
-          instanceOps.getServer(ServerId.Type.TABLET_SERVER, null, hp.getHost(), hp.getPort()));
+          .addAll(instanceOps.getServers(ServerId.Type.SCAN_SERVER, rgPredicate, serverPredicate));
+      servers.addAll(
+          instanceOps.getServers(ServerId.Type.TABLET_SERVER, rgPredicate, serverPredicate));
     } else {
       servers.addAll(instanceOps.getServers(ServerId.Type.SCAN_SERVER));
       servers.addAll(instanceOps.getServers(ServerId.Type.TABLET_SERVER));
@@ -75,14 +77,31 @@ public class ListScansCommand extends Command {
   public Options getOptions() {
     final Options opts = new Options();
 
-    tserverOption = new Option("ts", "tabletServer", true, "tablet server to list scans for");
-    tserverOption.setArgName("tablet server");
-    opts.addOption(tserverOption);
+    serverOpt = new Option("s", "server", true, "tablet/scan server regex to list scans for");
+    serverOpt.setArgName("tablet/scan server regex");
+    opts.addOption(serverOpt);
+
+    rgOpt = new Option("rg", "resourceGroup", true,
+        "tablet/scan server resource group regex to list scans for");
+    rgOpt.setArgName("resource group");
+    opts.addOption(rgOpt);
 
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     opts.addOption(disablePaginationOpt);
 
     return opts;
+  }
+
+  static BiPredicate<String,Integer> serverRegexPredicate(CommandLine cl, Option serverOpt) {
+    return Optional.ofNullable(cl.getOptionValue(serverOpt))
+        .map(regex -> (BiPredicate<String,
+            Integer>) (h, p) -> Pattern.compile(regex).matcher(h + ":" + p).matches())
+        .orElse((h, p) -> true);
+  }
+
+  static Predicate<String> rgRegexPredicate(CommandLine cl, Option rgOpt) {
+    return Optional.ofNullable(cl.getOptionValue(rgOpt))
+        .map(regex -> Pattern.compile(regex).asMatchPredicate()).orElse(rg -> true);
   }
 
 }

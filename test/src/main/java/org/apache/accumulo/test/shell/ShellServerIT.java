@@ -48,6 +48,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.regex.Pattern;
@@ -1528,12 +1529,23 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert d cf cq value", true);
     ts.exec("flush -t " + table, true);
     ts.exec("sleep 0.2", true);
-    ts.exec("listcompactions", true, "default_tablet");
+    verifyListCompactions("listcompactions", "default_tablet");
+    // basic regex filtering test, more tests are in ListCompactionsCommandTest
+    verifyListCompactions("listcompactions -s .*:[0-9]*", "default_tablet");
+    verifyListCompactions("listcompactions -rg def.*", "default_tablet");
+    verifyListCompactions("listcompactions -s .*:[0-9]* -rg def.*", "default_tablet");
+    // non matching
+    assertFalse(ts.exec("listcompactions -s bad.*", true).contains("default_tablet"));
+    assertFalse(ts.exec("listcompactions -rg bad.*", true).contains("default_tablet"));
+    ts.exec("deletetable -f " + table, true);
+  }
+
+  private void verifyListCompactions(String cmd, String expected) throws IOException {
+    ts.exec(cmd, true, expected);
     String[] lines = ts.output.get().split("\n");
     String last = lines[lines.length - 1];
     String[] parts = last.split("\\|");
     assertEquals(13, parts.length);
-    ts.exec("deletetable -f " + table, true);
   }
 
   @Test
@@ -1655,6 +1667,26 @@ public class ShellServerIT extends SharedMiniClusterBase {
       ts.exec("insert " + i + " cf cq value", true);
     }
 
+    // Sanity checks that the regex will match
+    // Full regex tests are done in ListScansCommandTest
+    listscans(table, null, null, true);
+    listscans(table, ".*:[0-9]*", null, true);
+    listscans(table, null, "def.*", true);
+    listscans(table, ".*:[0-9]*", "def.*", true);
+
+    // check not matching
+    listscans(table, null, "bad.*", false);
+    listscans(table, "bad.*", null, false);
+
+    ts.exec("deletetable -f " + table, true);
+  }
+
+  private void listscans(String table, String serverRegex, String rgRegex, boolean match)
+      throws Exception {
+    final StringBuilder cmd = new StringBuilder("listscans");
+    Optional.ofNullable(serverRegex).ifPresent(sr -> cmd.append(" -s ").append(sr));
+    Optional.ofNullable(rgRegex).ifPresent(rgr -> cmd.append(" -rg ").append(rgr));
+
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build();
         Scanner s = accumuloClient.createScanner(table, Authorizations.EMPTY)) {
       IteratorSetting cfg = new IteratorSetting(30, SlowIterator.class);
@@ -1667,9 +1699,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
       thread.start();
 
       List<String> scans = new ArrayList<>();
-      // Try to find the active scan for about 15seconds
-      for (int i = 0; i < 50 && scans.isEmpty(); i++) {
-        String currentScans = ts.exec("listscans", true);
+      // Try to find the active scan for about 15 seconds when should match
+      // else just 1 second to speed up test as the tests for the unmatching case
+      // come after the matching so the scan should list quickly if they will match
+      int attempts = match ? 50 : 3;
+      for (int i = 0; i < attempts && scans.isEmpty(); i++) {
+        String currentScans = ts.exec(cmd.toString(), true);
         log.info("Got output from listscans:\n{}", currentScans);
         String[] lines = currentScans.split("\n");
         for (int scanOffset = 2; scanOffset < lines.length; scanOffset++) {
@@ -1685,31 +1720,34 @@ public class ShellServerIT extends SharedMiniClusterBase {
       }
       thread.join();
 
-      assertFalse(scans.isEmpty(), "Could not find any active scans over table " + table);
+      if (match) {
+        assertFalse(scans.isEmpty(), "Could not find any active scans over table " + table);
 
-      for (String scan : scans) {
-        if (!scan.contains("RUNNING")) {
-          log.info("Ignoring scan because it doesn't contain 'RUNNING': {}", scan);
-          continue;
+        for (String scan : scans) {
+          if (!scan.contains("RUNNING")) {
+            log.info("Ignoring scan because it doesn't contain 'RUNNING': {}", scan);
+            continue;
+          }
+          String[] parts = scan.split("\\|");
+          assertEquals(15, parts.length, "Expected 15 colums, but found " + parts.length
+              + " instead for '" + Arrays.toString(parts) + "'");
+          String tserver = parts[1].trim();
+          // TODO: any way to tell if the client address is accurate? could be local IP, host,
+          // loopback...?
+          String hostPortPattern = ".+:\\d+";
+          assertMatches(tserver, hostPortPattern);
+          assertTrue(accumuloClient.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)
+              .stream().anyMatch((srv) -> srv.toHostPortString().equals(tserver)));
+          String client = parts[1].trim();
+          assertMatches(client, hostPortPattern);
+          // Scan ID should be a long (throwing an exception if it fails to parse)
+          Long r = Long.parseLong(parts[12].trim());
+          assertNotNull(r);
         }
-        String[] parts = scan.split("\\|");
-        assertEquals(15, parts.length, "Expected 15 colums, but found " + parts.length
-            + " instead for '" + Arrays.toString(parts) + "'");
-        String tserver = parts[1].trim();
-        // TODO: any way to tell if the client address is accurate? could be local IP, host,
-        // loopback...?
-        String hostPortPattern = ".+:\\d+";
-        assertMatches(tserver, hostPortPattern);
-        assertTrue(accumuloClient.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)
-            .stream().anyMatch((srv) -> srv.toHostPortString().equals(tserver)));
-        String client = parts[1].trim();
-        assertMatches(client, hostPortPattern);
-        // Scan ID should be a long (throwing an exception if it fails to parse)
-        Long r = Long.parseLong(parts[12].trim());
-        assertNotNull(r);
+      } else {
+        assertTrue(scans.isEmpty(), "Should not find any active scans over table " + table);
       }
     }
-    ts.exec("deletetable -f " + table, true);
   }
 
   @Test

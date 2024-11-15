@@ -312,6 +312,10 @@ public interface InstanceOperations {
    */
   List<ActiveCompaction> getActiveCompactions() throws AccumuloException, AccumuloSecurityException;
 
+  List<ActiveCompaction> getActiveCompactions(Predicate<String> resourceGroupPredicate,
+      BiPredicate<String,Integer> hostPortPredicate)
+      throws AccumuloException, AccumuloSecurityException;
+
   /**
    * Check to see if a server process at the host and port is up and responding to RPC requests.
    *
