@@ -217,7 +217,7 @@ public abstract class TabletBase {
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       this.lookupCount.incrementAndGet();
-      this.server.getScanMetrics().incrementLookupCount();
+      this.server.getScanMetrics().incrementLookupCount(getExtent().tableId());
       result = lookup(iter, ranges, results, scanParams, maxResultSize);
       return result;
     } catch (IOException | RuntimeException e) {
@@ -230,10 +230,12 @@ public abstract class TabletBase {
 
       synchronized (this) {
         queryResultCount.addAndGet(results.size());
-        this.server.getScanMetrics().incrementQueryResultCount(results.size());
+        this.server.getScanMetrics().incrementQueryResultCount(getExtent().tableId(),
+            results.size());
         if (result != null) {
           this.queryResultBytes.addAndGet(result.dataSize);
-          this.server.getScanMetrics().incrementQueryResultBytes(result.dataSize);
+          this.server.getScanMetrics().incrementQueryResultBytes(getExtent().tableId(),
+              result.dataSize);
         }
       }
     }
@@ -533,8 +535,8 @@ public abstract class TabletBase {
 
   public synchronized void updateQueryStats(int size, long numBytes) {
     this.queryResultCount.addAndGet(size);
-    this.server.getScanMetrics().incrementQueryResultCount(size);
+    this.server.getScanMetrics().incrementQueryResultCount(getExtent().tableId(), size);
     this.queryResultBytes.addAndGet(numBytes);
-    this.server.getScanMetrics().incrementQueryResultBytes(numBytes);
+    this.server.getScanMetrics().incrementQueryResultBytes(getExtent().tableId(), numBytes);
   }
 }

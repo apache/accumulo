@@ -63,6 +63,7 @@ import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.metrics.PerTableMetrics;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -114,7 +115,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   @Test
   public void confirmMetricsPublished() throws Exception {
-
     // meter names sorted and formatting disabled to make it easier to diff changes
     // @formatter:off
     Set<Metric> unexpectedMetrics = Set.of(
@@ -170,7 +170,10 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
         && !queueMetricsSeen.intersects(trueSet)) {
       // for each metric name not yet seen, check if it is expected, flaky, or unknown
       statsDMetrics.stream().filter(line -> line.startsWith("accumulo"))
-          .map(TestStatsDSink::parseStatsDMetric).map(metric -> Metric.fromName(metric.getName()))
+          .map(TestStatsDSink::parseStatsDMetric)
+          .peek(statsDMetric -> assertFalse(
+              statsDMetric.getTags().containsKey(PerTableMetrics.TABLE_ID_TAG_NAME)))
+          .map(metric -> Metric.fromName(metric.getName()))
           .filter(metric -> !seenMetrics.contains(metric)).forEach(metric -> {
             if (expectedMetrics.contains(metric)) {
               // record expected Metric as seen

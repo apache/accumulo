@@ -25,36 +25,81 @@ import static org.apache.accumulo.core.metrics.Metric.UPDATE_MUTATION_ARRAY_SIZE
 import static org.apache.accumulo.core.metrics.Metric.UPDATE_WALOG_WRITE;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metrics.NoopMetrics;
+import org.apache.accumulo.server.metrics.PerTableMetrics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 
-public class TabletServerUpdateMetrics implements MetricsProducer {
+public class TabletServerUpdateMetrics
+    extends PerTableMetrics<TabletServerUpdateMetrics.TableMetrics> implements MetricsProducer {
 
-  private final AtomicLong permissionErrorsCount = new AtomicLong();
-  private final AtomicLong unknownTabletErrorsCount = new AtomicLong();
-  private final AtomicLong constraintViolationsCount = new AtomicLong();
+  private static final Logger log = LoggerFactory.getLogger(TabletServerUpdateMetrics.class);
+
+  @Override
+  protected Logger getLog() {
+    return log;
+  }
+
   private Timer commitPrepStat = NoopMetrics.useNoopTimer();
   private Timer walogWriteTimeStat = NoopMetrics.useNoopTimer();
   private Timer commitTimeStat = NoopMetrics.useNoopTimer();
-  private DistributionSummary mutationArraySizeStat = NoopMetrics.useNoopDistributionSummary();
 
-  public void addPermissionErrors(long value) {
-    permissionErrorsCount.addAndGet(value);
+  public TabletServerUpdateMetrics(ServerContext context,
+      ActiveTableIdTracker activeTableIdTracker) {
+    super(context, activeTableIdTracker);
   }
 
-  public void addUnknownTabletErrors(long value) {
-    unknownTabletErrorsCount.addAndGet(value);
+  public static class TableMetrics {
+
+    private final AtomicLong permissionErrorsCount = new AtomicLong();
+    private final AtomicLong unknownTabletErrorsCount = new AtomicLong();
+    private final AtomicLong constraintViolationsCount = new AtomicLong();
+
+    private DistributionSummary mutationArraySizeStat = NoopMetrics.useNoopDistributionSummary();
+
+    TableMetrics(TableId tableId, MeterRegistry registry, Consumer<Meter> meters, List<Tag> tags) {
+      meters.accept(
+          FunctionCounter.builder(UPDATE_ERRORS.getName(), permissionErrorsCount, AtomicLong::get)
+              .tags("type", "permission").tags(tags).description(UPDATE_ERRORS.getDescription())
+              .register(registry));
+      meters.accept(FunctionCounter
+          .builder(UPDATE_ERRORS.getName(), unknownTabletErrorsCount, AtomicLong::get)
+          .tags("type", "unknown.tablet").tags(tags).description(UPDATE_ERRORS.getDescription())
+          .register(registry));
+      meters.accept(FunctionCounter
+          .builder(UPDATE_ERRORS.getName(), constraintViolationsCount, AtomicLong::get)
+          .tags("type", "constraint.violation").tags(tags)
+          .description(UPDATE_ERRORS.getDescription()).register(registry));
+      mutationArraySizeStat = DistributionSummary.builder(UPDATE_MUTATION_ARRAY_SIZE.getName())
+          .description(UPDATE_MUTATION_ARRAY_SIZE.getDescription()).tags(tags).register(registry);
+      meters.accept(mutationArraySizeStat);
+    }
   }
 
-  public void addConstraintViolations(long value) {
-    constraintViolationsCount.addAndGet(value);
+  public void addPermissionErrors(TableId tableId, long value) {
+    getTableMetrics(tableId).permissionErrorsCount.addAndGet(value);
+  }
+
+  public void addUnknownTabletErrors(TableId tableId, long value) {
+    getTableMetrics(tableId).unknownTabletErrorsCount.addAndGet(value);
+  }
+
+  public void addConstraintViolations(TableId tableId, long value) {
+    getTableMetrics(tableId).constraintViolationsCount.addAndGet(value);
   }
 
   public void addCommitPrep(long value) {
@@ -69,28 +114,30 @@ public class TabletServerUpdateMetrics implements MetricsProducer {
     commitTimeStat.record(Duration.ofMillis(value));
   }
 
-  public void addMutationArraySize(long value) {
-    mutationArraySizeStat.record(value);
+  public void addMutationArraySize(TableId tableId, long value) {
+    getTableMetrics(tableId).mutationArraySizeStat.record(value);
+  }
+
+  @Override
+  protected TableMetrics newAllTablesMetrics(MeterRegistry registry, Consumer<Meter> meters,
+      List<Tag> tags) {
+    return new TableMetrics(null, registry, meters, tags);
+  }
+
+  @Override
+  protected TableMetrics newPerTableMetrics(MeterRegistry registry, TableId tableId,
+      Consumer<Meter> meters, List<Tag> tags) {
+    return new TableMetrics(tableId, registry, meters, tags);
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    FunctionCounter.builder(UPDATE_ERRORS.getName(), permissionErrorsCount, AtomicLong::get)
-        .tags("type", "permission").description(UPDATE_ERRORS.getDescription()).register(registry);
-    FunctionCounter.builder(UPDATE_ERRORS.getName(), unknownTabletErrorsCount, AtomicLong::get)
-        .tags("type", "unknown.tablet").description(UPDATE_ERRORS.getDescription())
-        .register(registry);
-    FunctionCounter.builder(UPDATE_ERRORS.getName(), constraintViolationsCount, AtomicLong::get)
-        .tags("type", "constraint.violation").description(UPDATE_ERRORS.getDescription())
-        .register(registry);
+    super.registerMetrics(registry);
     commitPrepStat = Timer.builder(UPDATE_COMMIT_PREP.getName())
         .description(UPDATE_COMMIT_PREP.getDescription()).register(registry);
     walogWriteTimeStat = Timer.builder(UPDATE_WALOG_WRITE.getName())
         .description(UPDATE_WALOG_WRITE.getDescription()).register(registry);
     commitTimeStat = Timer.builder(UPDATE_COMMIT.getName())
         .description(UPDATE_COMMIT.getDescription()).register(registry);
-    mutationArraySizeStat = DistributionSummary.builder(UPDATE_MUTATION_ARRAY_SIZE.getName())
-        .description(UPDATE_MUTATION_ARRAY_SIZE.getDescription()).register(registry);
   }
-
 }

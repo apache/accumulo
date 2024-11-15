@@ -434,9 +434,9 @@ public class Tablet extends TabletBase {
         lastMinorCompactionFinishTime = System.currentTimeMillis();
       }
       TabletServerMinCMetrics minCMetrics = getTabletServer().getMinCMetrics();
-      minCMetrics.addActive(lastMinorCompactionFinishTime - start);
+      minCMetrics.addActive(getExtent().tableId(), lastMinorCompactionFinishTime - start);
       timer.updateTime(Operation.MINOR, queued, start, count, failed);
-      minCMetrics.addQueued(start - queued);
+      minCMetrics.addQueued(getExtent().tableId(), start - queued);
     }
   }
 
@@ -1106,7 +1106,7 @@ public class Tablet extends TabletBase {
 
   @Override
   public void addToYieldMetric(int i) {
-    getTabletServer().getScanMetrics().addYield(i);
+    getTabletServer().getScanMetrics().addYield(getExtent().tableId(), i);
   }
 
   public double queryRate() {

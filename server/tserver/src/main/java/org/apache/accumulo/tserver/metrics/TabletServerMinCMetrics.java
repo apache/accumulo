@@ -22,33 +22,72 @@ import static org.apache.accumulo.core.metrics.Metric.MINC_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.MINC_RUNNING;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.function.Consumer;
 
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.server.metrics.NoopMetrics;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.metrics.PerTableMetrics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 
-public class TabletServerMinCMetrics implements MetricsProducer {
+public class TabletServerMinCMetrics extends PerTableMetrics<TabletServerMinCMetrics.TableMetrics>
+    implements MetricsProducer {
 
-  private Timer activeMinc = NoopMetrics.useNoopTimer();
-  private Timer queuedMinc = NoopMetrics.useNoopTimer();
+  private static final Logger log = LoggerFactory.getLogger(TabletServerMinCMetrics.class);
 
-  public void addActive(long value) {
-    activeMinc.record(Duration.ofMillis(value));
+  @Override
+  protected Logger getLog() {
+    return log;
   }
 
-  public void addQueued(long value) {
-    queuedMinc.record(Duration.ofMillis(value));
+  public TabletServerMinCMetrics(ServerContext context, ActiveTableIdTracker activeTableIdTracker) {
+    super(context, activeTableIdTracker);
+  }
+
+  public static class TableMetrics {
+    private final Timer activeMinc;
+    private final Timer queuedMinc;
+
+    TableMetrics(MeterRegistry registry, Consumer<Meter> meters, List<Tag> tags) {
+      activeMinc = Timer.builder(MINC_RUNNING.getName()).description(MINC_RUNNING.getDescription())
+          .tags(tags).register(registry);
+      queuedMinc = Timer.builder(MINC_QUEUED.getName()).description(MINC_QUEUED.getDescription())
+          .tags(tags).register(registry);
+      meters.accept(activeMinc);
+      meters.accept(queuedMinc);
+    }
+  }
+
+  public void addActive(TableId tableId, long value) {
+    getTableMetrics(tableId).activeMinc.record(Duration.ofMillis(value));
+  }
+
+  public void addQueued(TableId tableId, long value) {
+    getTableMetrics(tableId).queuedMinc.record(Duration.ofMillis(value));
+  }
+
+  @Override
+  protected TableMetrics newAllTablesMetrics(MeterRegistry registry, Consumer<Meter> meters,
+      List<Tag> tags) {
+    return new TableMetrics(registry, meters, tags);
+  }
+
+  @Override
+  protected TableMetrics newPerTableMetrics(MeterRegistry registry, TableId tableId,
+      Consumer<Meter> meters, List<Tag> tags) {
+    return new TableMetrics(registry, meters, tags);
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    activeMinc = Timer.builder(MINC_RUNNING.getName()).description(MINC_RUNNING.getDescription())
-        .register(registry);
-
-    queuedMinc = Timer.builder(MINC_QUEUED.getName()).description(MINC_QUEUED.getDescription())
-        .register(registry);
+    super.registerMetrics(registry);
   }
 
 }

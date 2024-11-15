@@ -37,21 +37,39 @@ import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_ONLINE_OND
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_OPENING;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_UNOPENED;
 
+import java.util.List;
+import java.util.function.Consumer;
+
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.compaction.FileCompactor;
+import org.apache.accumulo.server.metrics.PerTableMetrics;
 import org.apache.accumulo.tserver.TabletServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
 
-public class TabletServerMetrics implements MetricsProducer {
+public class TabletServerMetrics extends PerTableMetrics<TabletServerMetrics.TableMetrics>
+    implements MetricsProducer {
 
   private final TabletServerMetricsUtil util;
 
+  private static final Logger log = LoggerFactory.getLogger(TabletServerMetrics.class);
+
+  @Override
+  protected Logger getLog() {
+    return log;
+  }
+
   public TabletServerMetrics(TabletServer tserver) {
+    super(tserver.getContext(), tserver.getActiveTableIdTracker());
     util = new TabletServerMetricsUtil(tserver);
   }
 
@@ -63,8 +81,55 @@ public class TabletServerMetrics implements MetricsProducer {
     return FileCompactor.getTotalEntriesWritten();
   }
 
+  public static class TableMetrics {
+    TableMetrics(TabletServerMetricsUtil util, TableId tableId, MeterRegistry registry,
+        Consumer<Meter> meters, List<Tag> tags) {
+
+      meters.accept(Gauge.builder(TSERVER_ENTRIES.getName(), util, tsmu -> tsmu.getEntries(tableId))
+          .description(TSERVER_ENTRIES.getDescription()).tags(tags).register(registry));
+      meters.accept(Gauge
+          .builder(TSERVER_MEM_ENTRIES.getName(), util, tsmu -> tsmu.getEntriesInMemory(tableId))
+          .description(TSERVER_MEM_ENTRIES.getDescription()).tags(tags).register(registry));
+      meters.accept(Gauge
+          .builder(TSERVER_MINC_RUNNING.getName(), util, tsmu -> tsmu.getMinorCompactions(tableId))
+          .description(TSERVER_MINC_RUNNING.getDescription()).tags(tags).register(registry));
+      meters.accept(Gauge
+          .builder(TSERVER_MINC_QUEUED.getName(), util,
+              tsmu -> tsmu.getMinorCompactionsQueued(tableId))
+          .description(TSERVER_MINC_QUEUED.getDescription()).tags(tags).register(registry));
+      meters.accept(Gauge
+          .builder(TSERVER_TABLETS_ONLINE_ONDEMAND.getName(), util,
+              tsmu -> tsmu.getOnDemandOnlineCount(tableId))
+          .description(TSERVER_TABLETS_ONLINE_ONDEMAND.getDescription()).tags(tags)
+          .register(registry));
+      meters.accept(Gauge
+          .builder(TSERVER_TABLETS_FILES.getName(), util,
+              tsmu -> tsmu.getAverageFilesPerTablet(tableId))
+          .description(TSERVER_TABLETS_FILES.getDescription()).tags(tags).register(registry));
+      meters.accept(Gauge
+          .builder(TSERVER_INGEST_MUTATIONS.getName(), util, tsmu -> tsmu.getIngestCount(tableId))
+          .description(TSERVER_INGEST_MUTATIONS.getDescription()).tags(tags).register(registry));
+      meters.accept(Gauge
+          .builder(TSERVER_INGEST_BYTES.getName(), util, tsmu -> tsmu.getIngestByteCount(tableId))
+          .description(TSERVER_INGEST_BYTES.getDescription()).tags(tags).register(registry));
+    }
+  }
+
+  @Override
+  protected TableMetrics newAllTablesMetrics(MeterRegistry registry, Consumer<Meter> meters,
+      List<Tag> tags) {
+    return new TableMetrics(util, null, registry, meters, tags);
+  }
+
+  @Override
+  protected TableMetrics newPerTableMetrics(MeterRegistry registry, TableId tableId,
+      Consumer<Meter> meters, List<Tag> tags) {
+    return new TableMetrics(util, tableId, registry, meters, tags);
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
+    super.registerMetrics(registry);
     FunctionCounter
         .builder(COMPACTOR_ENTRIES_READ.getName(), this, TabletServerMetrics::getTotalEntriesRead)
         .description(COMPACTOR_ENTRIES_READ.getDescription()).register(registry);
@@ -80,22 +145,6 @@ public class TabletServerMetrics implements MetricsProducer {
         .builder(TSERVER_TABLETS_LONG_ASSIGNMENTS.getName(), util,
             TabletServerMetricsUtil::getLongTabletAssignments)
         .description(TSERVER_TABLETS_LONG_ASSIGNMENTS.getDescription()).register(registry);
-
-    Gauge.builder(TSERVER_ENTRIES.getName(), util, TabletServerMetricsUtil::getEntries)
-        .description(TSERVER_ENTRIES.getDescription()).register(registry);
-    Gauge.builder(TSERVER_MEM_ENTRIES.getName(), util, TabletServerMetricsUtil::getEntriesInMemory)
-        .description(TSERVER_MEM_ENTRIES.getDescription()).register(registry);
-    Gauge
-        .builder(TSERVER_MINC_RUNNING.getName(), util, TabletServerMetricsUtil::getMinorCompactions)
-        .description(TSERVER_MINC_RUNNING.getDescription()).register(registry);
-    Gauge
-        .builder(TSERVER_MINC_QUEUED.getName(), util,
-            TabletServerMetricsUtil::getMinorCompactionsQueued)
-        .description(TSERVER_MINC_QUEUED.getDescription()).register(registry);
-    Gauge
-        .builder(TSERVER_TABLETS_ONLINE_ONDEMAND.getName(), util,
-            TabletServerMetricsUtil::getOnDemandOnlineCount)
-        .description(TSERVER_TABLETS_ONLINE_ONDEMAND.getDescription()).register(registry);
     Gauge
         .builder(TSERVER_TABLETS_ONDEMAND_UNLOADED_FOR_MEM.getName(), util,
             TabletServerMetricsUtil::getOnDemandUnloadedLowMem)
@@ -112,16 +161,7 @@ public class TabletServerMetrics implements MetricsProducer {
         .builder(TSERVER_MINC_TOTAL.getName(), util,
             TabletServerMetricsUtil::getTotalMinorCompactions)
         .description(TSERVER_MINC_TOTAL.getDescription()).register(registry);
-
-    Gauge
-        .builder(TSERVER_TABLETS_FILES.getName(), util,
-            TabletServerMetricsUtil::getAverageFilesPerTablet)
-        .description(TSERVER_TABLETS_FILES.getDescription()).register(registry);
     Gauge.builder(TSERVER_HOLD.getName(), util, TabletServerMetricsUtil::getHoldTime)
         .description(TSERVER_HOLD.getDescription()).register(registry);
-    Gauge.builder(TSERVER_INGEST_MUTATIONS.getName(), util, TabletServerMetricsUtil::getIngestCount)
-        .description(TSERVER_INGEST_MUTATIONS.getDescription()).register(registry);
-    Gauge.builder(TSERVER_INGEST_BYTES.getName(), util, TabletServerMetricsUtil::getIngestByteCount)
-        .description(TSERVER_INGEST_BYTES.getDescription()).register(registry);
   }
 }

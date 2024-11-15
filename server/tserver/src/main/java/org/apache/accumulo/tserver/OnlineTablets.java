@@ -19,9 +19,14 @@
 package org.apache.accumulo.tserver;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.tserver.tablet.Tablet;
 
@@ -34,19 +39,45 @@ import com.google.common.collect.ImmutableSortedMap;
  */
 public class OnlineTablets {
   private volatile SortedMap<KeyExtent,Tablet> snapshot = Collections.emptySortedMap();
+  private final AtomicReference<Map<TableId,SortedMap<KeyExtent,Tablet>>> perTableSnapshot =
+      new AtomicReference<>(null);
   private final SortedMap<KeyExtent,Tablet> onlineTablets = new TreeMap<>();
 
   public synchronized void put(KeyExtent ke, Tablet t) {
     onlineTablets.put(ke, t);
     snapshot = ImmutableSortedMap.copyOf(onlineTablets);
+    perTableSnapshot.set(null);
   }
 
   public synchronized void remove(KeyExtent ke) {
     onlineTablets.remove(ke);
     snapshot = ImmutableSortedMap.copyOf(onlineTablets);
+    perTableSnapshot.set(null);
   }
 
   SortedMap<KeyExtent,Tablet> snapshot() {
     return snapshot;
+  }
+
+  private static Map<TableId,SortedMap<KeyExtent,Tablet>>
+      createPerTableSnapshot(SortedMap<KeyExtent,Tablet> snapshot) {
+    var tables = new HashMap<TableId,Map<KeyExtent,Tablet>>();
+    snapshot.forEach(((keyExtent, tablet) -> {
+      tables.computeIfAbsent(keyExtent.tableId(), tableId -> new HashMap<>()).put(keyExtent,
+          tablet);
+    }));
+    return tables.entrySet().stream().collect(Collectors.toUnmodifiableMap(Map.Entry::getKey,
+        entry -> ImmutableSortedMap.copyOf(entry.getValue())));
+  }
+
+  Map<TableId,SortedMap<KeyExtent,Tablet>> perTableSnapshot() {
+    var snap = perTableSnapshot.get();
+    if (snap != null) {
+      return snap;
+    } else {
+      snap = createPerTableSnapshot(snapshot);
+      perTableSnapshot.compareAndSet(null, snap);
+      return snap;
+    }
   }
 }
