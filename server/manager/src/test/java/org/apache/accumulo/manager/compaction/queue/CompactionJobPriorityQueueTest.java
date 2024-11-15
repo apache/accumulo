@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.compaction.queue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -344,6 +345,10 @@ public class CompactionJobPriorityQueueTest {
     CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 100);
     assertEquals(100, queue.getMaxSize());
     queue.setMaxSize(50);
+    assertEquals(50, queue.getMaxSize());
+    assertThrows(IllegalArgumentException.class, () -> queue.setMaxSize(0));
+    assertThrows(IllegalArgumentException.class, () -> queue.setMaxSize(-1));
+    // Make sure previous value was not changed after invalid setting
     assertEquals(50, queue.getMaxSize());
   }
 
