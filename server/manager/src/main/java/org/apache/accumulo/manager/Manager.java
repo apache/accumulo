@@ -1036,6 +1036,8 @@ public class Manager extends AbstractServer
       final Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
           partitionMigrations(migrationsSnapshot());
       int levelsCompleted = 0;
+      int checkInterval =
+          getConfiguration().getCount(Property.MANAGER_TABLET_BALANCER_TSERVER_REFRESH);
 
       for (DataLevel dl : DataLevel.values()) {
         if (dl == DataLevel.USER && tabletsNotHosted > 0) {
@@ -1045,7 +1047,7 @@ public class Manager extends AbstractServer
         }
         // Create a view of the tserver status such that it only contains the tables
         // for this level in the tableMap.
-        final SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel =
+        SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel =
             createTServerStatusView(dl, tserverStatus);
         // Construct the Thrift variant of the map above for the BalancerParams
         final SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancerLevel =
@@ -1057,11 +1059,29 @@ public class Manager extends AbstractServer
         int attemptNum = 0;
         do {
           log.debug("Balancing for tables at level {}, times-in-loop: {}", dl, ++attemptNum);
-          params = BalanceParamsImpl.fromThrift(tserverStatusForBalancerLevel,
-              tserverStatusForLevel, partitionedMigrations.get(dl));
+
+          SortedMap<TabletServerId,TServerStatus> statusForBalancerLevel =
+              tserverStatusForBalancerLevel;
+          if (attemptNum % checkInterval == 0) {
+            // If we are still migrating then perform a re-check on the tablet
+            // servers to make sure non of them have failed.
+            Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
+            tserverStatus = gatherTableInformation(currentServers);
+            // Create a view of the tserver status such that it only contains the tables
+            // for this level in the tableMap.
+            tserverStatusForLevel = createTServerStatusView(dl, tserverStatus);
+            final SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancerLevel2 =
+                new TreeMap<>();
+            tserverStatusForLevel.forEach((tsi, status) -> tserverStatusForBalancerLevel2
+                .put(new TabletServerIdImpl(tsi), TServerStatusImpl.fromThrift(status)));
+            statusForBalancerLevel = tserverStatusForBalancerLevel2;
+          }
+
+          params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tserverStatusForLevel,
+              partitionedMigrations.get(dl));
           wait = Math.max(tabletBalancer.balance(params), wait);
           migrationsOutForLevel = params.migrationsOut().size();
-          for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancerLevel.keySet(),
+          for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),
               params.migrationsOut())) {
             final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
             if (migrations.containsKey(ke)) {

@@ -349,6 +349,14 @@ public enum Property {
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions.",
       "1.3.5"),
+  MANAGER_TABLET_BALANCER_TSERVER_REFRESH("manager.tablet.balancer.tserver.refresh", "10",
+      PropertyType.COUNT,
+      "The Manager will balance tablets, and in the case of the root and metadata tables, continue to balance tablets"
+          + " in a loop until all tablets are balanced. It's possible that tablet servers may be started or stopped while"
+          + " in this loop. This property indicates how many iterations should be completed before rechecking the tablet"
+          + " server state. This could be an expensive operation for large systems, so setting this too low may have a"
+          + " negative impact.",
+      "2.1.4"),
   MANAGER_TABLET_GROUP_WATCHER_INTERVAL("manager.tablet.watcher.interval", "60s",
       PropertyType.TIMEDURATION,
       "Time to wait between scanning tablet states to identify tablets that need to be assigned, un-assigned, migrated, etc.",
