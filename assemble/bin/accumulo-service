@@ -58,31 +58,65 @@ function rotate_log() {
   fi
 }
 
+function get_group() {
+  # Find the group parameter if any
+  GROUP_PATTERN="^(compactor.group|sserver.group|tserver.group)=(.*)$"
+  group="default"
+  for param in "$@"; do
+    if [[ $param =~ $GROUP_PATTERN ]]; then
+      group="${BASH_REMATCH[2]}"
+    fi
+  done
+  echo "${group}"
+}
+
 function start_service() {
   local service_type=$1
   local service_name=$2
   shift 2
 
-  local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}.pid"
-  if [[ -f $pid_file ]]; then
-    pid=$(cat "$pid_file")
-    if kill -0 "$pid" 2>/dev/null; then
-      echo "$HOST : ${service_name} already running (${pid})"
-      exit 0
+  local build_service_name="false"
+  if [[ -n $service_name ]]; then
+    # if service_name is supplied, then we are only starting one instance
+    servers_per_host=1
+  else
+    build_service_name="true"
+    servers_per_host=${ACCUMULO_CLUSTER_ARG:-1}
+  fi
+
+  group=$(get_group "$@")
+
+  for ((process_num = 1; process_num <= servers_per_host; process_num++)); do
+    if [[ ${build_service_name} == "true" ]]; then
+      service_name="${service_type}_${group}_${process_num}"
     fi
-  fi
-  echo "Starting $service_name on $HOST"
+    # The ACCUMULO_SERVICE_INSTANCE variable is used in
+    # accumulo-env.sh to set parameters on the command
+    # line.
+    export ACCUMULO_SERVICE_INSTANCE="${service_name}"
 
-  if [[ ${service_type} == "manager" ]]; then
-    "${bin}/accumulo" org.apache.accumulo.manager.state.SetGoalState NORMAL
-  fi
-  outfile="${ACCUMULO_LOG_DIR}/${service_name}_${HOST}.out"
-  errfile="${ACCUMULO_LOG_DIR}/${service_name}_${HOST}.err"
-  rotate_log "$outfile"
-  rotate_log "$errfile"
+    local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}.pid"
+    if [[ -f $pid_file ]]; then
+      pid=$(cat "$pid_file")
+      if kill -0 "$pid" 2>/dev/null; then
+        echo "$HOST : ${service_name} already running (${pid})"
+        exit 0
+      fi
+    fi
+    echo "Starting $service_name on $HOST"
 
-  nohup "${bin}/accumulo" "$service_type" "$@" >"$outfile" 2>"$errfile" </dev/null &
-  echo "$!" >"${pid_file}"
+    if [[ ${service_type} == "manager" ]]; then
+      "${bin}/accumulo" org.apache.accumulo.manager.state.SetGoalState NORMAL
+    fi
+    outfile="${ACCUMULO_LOG_DIR}/${service_name}_${HOST}.out"
+    errfile="${ACCUMULO_LOG_DIR}/${service_name}_${HOST}.err"
+    rotate_log "$outfile"
+    rotate_log "$errfile"
+
+    nohup "${bin}/accumulo" "$service_type" "$@" >"$outfile" 2>"$errfile" </dev/null &
+    echo "$!" >"${pid_file}"
+
+  done
 
   # Check the max open files limit and selectively warn
   max_files_open=$(ulimit -n)
@@ -125,6 +159,18 @@ function stop_service() {
       local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
       control_process "TERM" "$process" "$pid_file"
     done
+  elif [[ -n $ACCUMULO_CLUSTER_ARG ]]; then
+
+    servers_per_host=${ACCUMULO_CLUSTER_ARG:-1}
+    group=$(get_group "$@")
+
+    for ((process_num = 1; process_num <= servers_per_host; process_num++)); do
+      service_name="${service_type}_${group}_${process_num}"
+      echo "Stopping service process: $service_name"
+      local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}.pid"
+      control_process "TERM" "$service_name" "$pid_file"
+    done
+
   else
     echo "Stopping service process: $service_name"
     local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}.pid"
@@ -142,6 +188,18 @@ function kill_service() {
       local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
       control_process "KILL" "$process" "$pid_file"
     done
+  elif [[ -n $ACCUMULO_CLUSTER_ARG ]]; then
+
+    servers_per_host=${ACCUMULO_CLUSTER_ARG:-1}
+    group=$(get_group "$@")
+
+    for ((process_num = 1; process_num <= servers_per_host; process_num++)); do
+      service_name="${service_type}_${group}_${process_num}"
+      echo "Stopping service process: $service_name"
+      local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}.pid"
+      control_process "KILL" "$service_name" "$pid_file"
+    done
+
   else
     local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}.pid"
     control_process "KILL" "$service_name" "$pid_file"
@@ -198,11 +256,11 @@ function main() {
   local service_type="$1"
   local command_name="$2"
   shift 2
-  local service_name=$service_type
+  local service_name=""
   local all_flag=false
 
   # Check and see if accumulo-cluster is calling this script
-  if [[ -z $ACCUMULO_SERVICE_INSTANCE ]]; then
+  if [[ -z $ACCUMULO_CLUSTER_ARG ]]; then
     # The rest of the arguments are from a user
     if [[ $1 == "--all" ]]; then
       all_flag=true
@@ -212,9 +270,6 @@ function main() {
         service_name="$1"
       fi
     fi
-  # Use the special bash env var from accumulo-cluster
-  else
-    service_name="${service_type}${ACCUMULO_SERVICE_INSTANCE}"
   fi
 
   case "$service_type" in
@@ -227,10 +282,10 @@ function main() {
           start_service "$service_type" "$service_name" "$@"
           ;;
         stop)
-          stop_service "$service_type" "$service_name" $all_flag
+          stop_service "$service_type" "$service_name" $all_flag "$@"
           ;;
         kill)
-          kill_service "$service_type" "$service_name" $all_flag
+          kill_service "$service_type" "$service_name" $all_flag "$@"
           ;;
         list)
           list_processes "$service_type"

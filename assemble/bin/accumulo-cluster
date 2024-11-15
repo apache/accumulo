@@ -151,40 +151,24 @@ function control_service() {
   service="$3"
   servers_per_host="$4"
 
-  # Find the group parameter if any
-  GROUP_PATTERN="^(compactor.group|sserver.group|tserver.group)=(.*)$"
-  group="default"
-  for param in "$@"; do
-    if [[ $param =~ $GROUP_PATTERN ]]; then
-      group="${BASH_REMATCH[2]}"
-    fi
-  done
-
-  local last_instance_id
-  last_instance_id=${servers_per_host:-1}
-
-  for ((inst_id = 1; inst_id <= last_instance_id; inst_id++)); do
-    ACCUMULO_SERVICE_INSTANCE="_${group}_${inst_id}"
-
-    if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
-      #
-      # The server processes take arguments using "-o". Always add the "general.process.bind.addr" argument
-      # using the value of $host
-      #
-      if [[ $# -gt 4 ]]; then
-        debugAndRun ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host" "${@:5}"
-      else
-        debugAndRun ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host"
-      fi
+  if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
+    #
+    # The server processes take arguments using "-o". Always add the "general.process.bind.addr" argument
+    # using the value of $host
+    #
+    if [[ $# -gt 4 ]]; then
+      debugAndRun ACCUMULO_CLUSTER_ARG="${servers_per_host}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host" "${@:5}"
     else
-      if [[ $# -gt 4 ]]; then
-        EXTRA_ARGS="${*:5}"
-        debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\" $EXTRA_ARGS '"
-      else
-        debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\"'"
-      fi
+      debugAndRun ACCUMULO_CLUSTER_ARG="${servers_per_host}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host"
     fi
-  done
+  else
+    if [[ $# -gt 4 ]]; then
+      EXTRA_ARGS="${*:5}"
+      debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=${servers_per_host} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\" $EXTRA_ARGS '"
+    else
+      debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=${servers_per_host} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\"'"
+    fi
+  fi
 }
 
 function start_service() {
