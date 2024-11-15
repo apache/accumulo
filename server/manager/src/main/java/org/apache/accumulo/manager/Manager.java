@@ -1078,6 +1078,7 @@ public class Manager extends AbstractServer
           params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tserverStatusForLevel,
               partitionedMigrations.get(dl));
           wait = Math.max(tabletBalancer.balance(params), wait);
+          migrationsOutForLevel = 0;
           for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),
               params.migrationsOut(), dl)) {
             final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
