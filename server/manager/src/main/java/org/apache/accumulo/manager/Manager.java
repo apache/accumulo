@@ -1036,8 +1036,6 @@ public class Manager extends AbstractServer
       final Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
           partitionMigrations(migrationsSnapshot());
       int levelsCompleted = 0;
-      int checkInterval =
-          getConfiguration().getCount(Property.MANAGER_TABLET_BALANCER_TSERVER_REFRESH);
 
       for (DataLevel dl : DataLevel.values()) {
         if (dl == DataLevel.USER && tabletsNotHosted > 0) {
@@ -1062,7 +1060,7 @@ public class Manager extends AbstractServer
 
           SortedMap<TabletServerId,TServerStatus> statusForBalancerLevel =
               tserverStatusForBalancerLevel;
-          if (attemptNum % checkInterval == 0) {
+          if (attemptNum > 1 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA)) {
             // If we are still migrating then perform a re-check on the tablet
             // servers to make sure non of them have failed.
             Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
@@ -1080,14 +1078,14 @@ public class Manager extends AbstractServer
           params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tserverStatusForLevel,
               partitionedMigrations.get(dl));
           wait = Math.max(tabletBalancer.balance(params), wait);
-          migrationsOutForLevel = params.migrationsOut().size();
           for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),
-              params.migrationsOut())) {
+              params.migrationsOut(), dl)) {
             final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
             if (migrations.containsKey(ke)) {
               log.warn("balancer requested migration more than once, skipping {}", m);
               continue;
             }
+            migrationsOutForLevel++;
             migrations.put(ke, TabletServerIdImpl.toThrift(m.getNewTabletServer()));
             log.debug("migration {}", m);
           }
@@ -1111,11 +1109,13 @@ public class Manager extends AbstractServer
     }
 
     private List<TabletMigration> checkMigrationSanity(Set<TabletServerId> current,
-        List<TabletMigration> migrations) {
+        List<TabletMigration> migrations, DataLevel level) {
       return migrations.stream().filter(m -> {
         boolean includeMigration = false;
         if (m.getTablet() == null) {
           log.error("Balancer gave back a null tablet {}", m);
+        } else if (DataLevel.of(m.getTablet().getTable()) != level) {
+          log.warn("Balancer wants to move a tablet outside of the current processing level");
         } else if (m.getNewTabletServer() == null) {
           log.error("Balancer did not set the destination {}", m);
         } else if (m.getOldTabletServer() == null) {
