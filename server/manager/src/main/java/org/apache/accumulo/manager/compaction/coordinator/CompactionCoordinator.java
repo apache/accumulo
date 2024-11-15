@@ -1065,8 +1065,8 @@ public class CompactionCoordinator
           }
           CompactionJobPriorityQueue queue = getJobQueues().getQueue(cgid);
           if (queue != null) {
-            queue.setMaxSize(
-                Math.min((int) (aliveCompactorsForGroup * queueSizeFactor), Integer.MAX_VALUE));
+            queue.setMaxSize(Math.min(
+                Math.max(1, (int) (aliveCompactorsForGroup * queueSizeFactor)), Integer.MAX_VALUE));
           }
 
         }
