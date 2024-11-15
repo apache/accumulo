@@ -24,7 +24,7 @@ import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_ENTRIES;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_HOLD;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_INGEST_BYTES;
-import static org.apache.accumulo.core.metrics.Metric.TSERVER_INGEST_MUTATIONS;
+import static org.apache.accumulo.core.metrics.Metric.TSERVER_INGEST_ENTRIES;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_MEM_ENTRIES;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_MINC_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_MINC_RUNNING;
@@ -119,8 +119,8 @@ public class TabletServerMetrics implements MetricsProducer {
         .description(TSERVER_TABLETS_FILES.getDescription()).register(registry);
     Gauge.builder(TSERVER_HOLD.getName(), util, TabletServerMetricsUtil::getHoldTime)
         .description(TSERVER_HOLD.getDescription()).register(registry);
-    Gauge.builder(TSERVER_INGEST_MUTATIONS.getName(), util, TabletServerMetricsUtil::getIngestCount)
-        .description(TSERVER_INGEST_MUTATIONS.getDescription()).register(registry);
+    Gauge.builder(TSERVER_INGEST_ENTRIES.getName(), util, TabletServerMetricsUtil::getIngestCount)
+        .description(TSERVER_INGEST_ENTRIES.getDescription()).register(registry);
     Gauge.builder(TSERVER_INGEST_BYTES.getName(), util, TabletServerMetricsUtil::getIngestByteCount)
         .description(TSERVER_INGEST_BYTES.getDescription()).register(registry);
   }
