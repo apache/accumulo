@@ -192,7 +192,7 @@ public class Validators {
     if (id == null) {
       return Optional.of("Table id must not be null");
     }
-    if (AccumuloTable.ROOT.tableId().equals(id) || AccumuloTable.METADATA.tableId().equals(id)
+    if (AccumuloTable.allTableIds().contains(id)
         || VALID_ID_PATTERN.matcher(id.canonical()).matches()) {
       return Validator.OK;
     }

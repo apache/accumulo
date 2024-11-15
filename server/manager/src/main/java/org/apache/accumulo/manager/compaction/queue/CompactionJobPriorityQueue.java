@@ -235,6 +235,8 @@ public class CompactionJobPriorityQueue {
   }
 
   public synchronized void setMaxSize(int maxSize) {
+    Preconditions.checkArgument(maxSize > 0,
+        "Maximum size of the Compaction job priority queue must be greater than 0");
     this.maxSize.set(maxSize);
   }
 

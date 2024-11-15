@@ -101,10 +101,10 @@ esac
 
 ## JVM options set for logging. Review log4j2.properties file to see how they are used.
 JAVA_OPTS=("-Daccumulo.log.dir=${ACCUMULO_LOG_DIR}"
-  "-Daccumulo.application=${cmd}${ACCUMULO_SERVICE_INSTANCE}_$(hostname)"
-  "-Daccumulo.metrics.service.instance=${cmd}${ACCUMULO_SERVICE_INSTANCE}"
+  "-Daccumulo.application=${ACCUMULO_SERVICE_INSTANCE}_$(hostname)"
+  "-Daccumulo.metrics.service.instance=${ACCUMULO_SERVICE_INSTANCE}"
   "-Dlog4j2.contextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
-  "-Dotel.service.name=${cmd}${ACCUMULO_SERVICE_INSTANCE}"
+  "-Dotel.service.name=${ACCUMULO_SERVICE_INSTANCE}"
   "${JAVA_OPTS[@]}"
 )
 
