@@ -428,7 +428,7 @@ public class CompactionCoordinator
       }
 
       var ecj = new TNextCompactionJob(result, compactorCounts.get(groupName));
-      LOG.debug("Received next compaction job {}", ecj);
+      LOG.trace("Received next compaction job {}", ecj);
       resultHandler.onComplete(ecj);
     }).orTimeout(maxJobRequestWaitTime, MILLISECONDS).exceptionally(e -> {
       if (e instanceof TimeoutException) {

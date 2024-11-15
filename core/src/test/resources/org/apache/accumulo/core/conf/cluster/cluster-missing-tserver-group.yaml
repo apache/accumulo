@@ -28,25 +28,16 @@ monitor:
 gc:
   - localhost
 
-tserver:
+compactor:
+  q1:
+    # servers not specified, defaults to 1
+    hosts:
+      - localhost1
+      - localhost2
+
+sserver:
   default:
-    - localhost1
-    - localhost2
-    - localhost3
-    - localhost4
-
-# The following section name is not valid and should cause an error.
-vserver:
-  - localhost5
-  - localhost6
-  - localhost7
-  - localhost8
-
-#compaction:
-#  compactor:
-#    - q1:
-#        - localhost1
-#        - localhost2
-#    - q2:
-#        - localhost1
-#        - localhost2
+    servers_per_host: 2
+    hosts:
+      - localhost1
+      - localhost2

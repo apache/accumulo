@@ -47,7 +47,6 @@ public class Constants {
   public static final String ZTABLE_NAMESPACE = "/namespace";
 
   public static final String ZNAMESPACES = "/namespaces";
-  public static final String ZNAMESPACE_NAME = "/name";
 
   public static final String ZMANAGERS = "/managers";
   public static final String ZMANAGER_LOCK = ZMANAGERS + "/lock";

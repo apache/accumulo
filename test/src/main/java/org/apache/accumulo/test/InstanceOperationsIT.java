@@ -44,12 +44,86 @@ import org.junit.jupiter.api.Test;
 
 public class InstanceOperationsIT extends AccumuloClusterHarness {
 
+  final int NUM_COMPACTORS = 3;
+  final int NUM_SCANSERVERS = 2;
+  final int NUM_TABLETSERVERS = 1;
+
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
-    cfg.getClusterServerConfiguration().setNumDefaultCompactors(3);
-    cfg.getClusterServerConfiguration().setNumDefaultScanServers(2);
-    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultCompactors(NUM_COMPACTORS);
+    cfg.getClusterServerConfiguration().setNumDefaultScanServers(NUM_SCANSERVERS);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(NUM_TABLETSERVERS);
+  }
+
+  /**
+   * Verify that we get the same servers from getServers() and getServer()
+   */
+  @Test
+  public void testGetServer() {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      final InstanceOperations iops = client.instanceOperations();
+
+      // Verify scan servers
+      final Set<ServerId> sservers = iops.getServers(ServerId.Type.SCAN_SERVER);
+      assertEquals(NUM_SCANSERVERS, sservers.size());
+      sservers.forEach(expectedServerId -> {
+        ServerId actualServerId =
+            iops.getServer(expectedServerId.getType(), expectedServerId.getResourceGroup(),
+                expectedServerId.getHost(), expectedServerId.getPort());
+        assertNotNull(actualServerId, "Expected to find scan server " + expectedServerId);
+        assertEquals(expectedServerId, actualServerId);
+      });
+
+      // Verify tablet servers
+      final Set<ServerId> tservers = iops.getServers(ServerId.Type.TABLET_SERVER);
+      assertEquals(NUM_TABLETSERVERS, tservers.size());
+      tservers.forEach(expectedServerId -> {
+        ServerId actualServerId =
+            iops.getServer(expectedServerId.getType(), expectedServerId.getResourceGroup(),
+                expectedServerId.getHost(), expectedServerId.getPort());
+        assertNotNull(actualServerId, "Expected to find tablet server " + expectedServerId);
+        assertEquals(expectedServerId, actualServerId);
+      });
+
+      // Verify compactors
+      final Set<ServerId> compactors = iops.getServers(ServerId.Type.COMPACTOR);
+      assertEquals(NUM_COMPACTORS, compactors.size());
+      compactors.forEach(expectedServerId -> {
+        ServerId actualServerId =
+            iops.getServer(expectedServerId.getType(), expectedServerId.getResourceGroup(),
+                expectedServerId.getHost(), expectedServerId.getPort());
+        assertNotNull(actualServerId, "Expected to find compactor " + expectedServerId);
+        assertEquals(expectedServerId, actualServerId);
+      });
+
+      // Verify managers
+      final Set<ServerId> managers = iops.getServers(ServerId.Type.MANAGER);
+      assertEquals(1, managers.size()); // Assuming there is only one manager
+      managers.forEach(expectedServerId -> {
+        ServerId actualServerId =
+            iops.getServer(expectedServerId.getType(), expectedServerId.getResourceGroup(),
+                expectedServerId.getHost(), expectedServerId.getPort());
+        assertNotNull(actualServerId, "Expected to find manager " + expectedServerId);
+        assertEquals(expectedServerId, actualServerId);
+      });
+
+      // verify GC
+      final Set<ServerId> gcs = iops.getServers(ServerId.Type.GARBAGE_COLLECTOR);
+      assertEquals(1, gcs.size()); // Assuming there is only one garbage collector
+      gcs.forEach(expectedServerId -> {
+        ServerId actualServerId =
+            iops.getServer(expectedServerId.getType(), expectedServerId.getResourceGroup(),
+                expectedServerId.getHost(), expectedServerId.getPort());
+        assertNotNull(actualServerId, "Expected to find manager " + expectedServerId);
+        assertEquals(expectedServerId, actualServerId);
+      });
+
+      // monitor not started in MAC
+      final Set<ServerId> mon = iops.getServers(ServerId.Type.MONITOR);
+      assertEquals(0, mon.size());
+
+    }
   }
 
   @SuppressWarnings("deprecation")
@@ -58,21 +132,26 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
 
-      assertEquals(3, iops.getServers(ServerId.Type.COMPACTOR).size());
-      assertEquals(3, iops.getCompactors().size());
+      assertEquals(NUM_COMPACTORS, iops.getServers(ServerId.Type.COMPACTOR).size());
+      assertEquals(NUM_COMPACTORS, iops.getCompactors().size());
       validateAddresses(iops.getCompactors(), iops.getServers(ServerId.Type.COMPACTOR));
 
-      assertEquals(2, iops.getServers(ServerId.Type.SCAN_SERVER).size());
-      assertEquals(2, iops.getScanServers().size());
+      assertEquals(NUM_SCANSERVERS, iops.getServers(ServerId.Type.SCAN_SERVER).size());
+      assertEquals(NUM_SCANSERVERS, iops.getScanServers().size());
       validateAddresses(iops.getScanServers(), iops.getServers(ServerId.Type.SCAN_SERVER));
 
-      assertEquals(1, iops.getServers(ServerId.Type.TABLET_SERVER).size());
-      assertEquals(1, iops.getTabletServers().size());
+      assertEquals(NUM_TABLETSERVERS, iops.getServers(ServerId.Type.TABLET_SERVER).size());
+      assertEquals(NUM_TABLETSERVERS, iops.getTabletServers().size());
       validateAddresses(iops.getTabletServers(), iops.getServers(ServerId.Type.TABLET_SERVER));
 
       assertEquals(1, iops.getServers(ServerId.Type.MANAGER).size());
       assertEquals(1, iops.getManagerLocations().size());
       validateAddresses(iops.getManagerLocations(), iops.getServers(ServerId.Type.MANAGER));
+
+      assertEquals(1, iops.getServers(ServerId.Type.GARBAGE_COLLECTOR).size());
+
+      // Monitor not started in MAC
+      assertEquals(0, iops.getServers(ServerId.Type.MONITOR).size());
 
       for (ServerId compactor : iops.getServers(ServerId.Type.COMPACTOR)) {
         assertNotNull(iops.getActiveCompactions(compactor));
@@ -96,12 +175,12 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
   public void testPing() throws Exception {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      Wait.waitFor(
-          () -> client.instanceOperations().getServers(ServerId.Type.COMPACTOR).size() == 3);
-      Wait.waitFor(
-          () -> client.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).size() == 2);
-      Wait.waitFor(
-          () -> client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 1);
+      Wait.waitFor(() -> client.instanceOperations().getServers(ServerId.Type.COMPACTOR).size()
+          == NUM_COMPACTORS);
+      Wait.waitFor(() -> client.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).size()
+          == NUM_SCANSERVERS);
+      Wait.waitFor(() -> client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size()
+          == NUM_TABLETSERVERS);
 
       final InstanceOperations io = client.instanceOperations();
       Set<ServerId> servers = io.getServers(ServerId.Type.COMPACTOR);

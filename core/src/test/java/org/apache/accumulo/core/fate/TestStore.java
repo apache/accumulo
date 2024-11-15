@@ -200,6 +200,12 @@ public class TestStore implements FateStore<String> {
     }
 
     @Override
+    public void forceDelete() {
+      throw new UnsupportedOperationException(
+          this.getClass().getSimpleName() + " should not be calling forceDelete()");
+    }
+
+    @Override
     public void unreserve(Duration deferTime) {
       if (!reserved.remove(fateId)) {
         throw new IllegalStateException();

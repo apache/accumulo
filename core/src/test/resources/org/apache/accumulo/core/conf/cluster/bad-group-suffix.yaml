@@ -18,52 +18,28 @@
 #
 
 manager:
-  - localhost1
-  - localhost2
+  - localhost
 
 monitor:
-  - localhost1
-  - localhost2
+  - localhost
 
 gc:
   - localhost
 
-tserver:
+compactor:
   default:
-    - localhost1
-    - localhost2
-  highmem:
-    - localhost3
-    - localhost4
-  cheap:
-    - localhost5
-    - localhost6
+    servers_per_host: 1
+    hosts:
+      - localhost
 
 sserver:
   default:
-    - localhost1
-    - localhost2
-  highmem:
-    - hmvm1
-    - hmvm2
-    - hmvm3
-  cheap:
-    - burstyvm1
-    - burstyvm2
+    servers_per_hosts: 1
+    hosts:
+      - localhost
 
-compactor:
-  q1:
-    - localhost1
-    - localhost2
-  q2:
-    - localhost3
-    - localhost4
-
-tservers_per_host: 2
-sservers_per_host:
-  - default : 1
-  - highmem : 2
-  - cheap : 3
-compactors_per_host:
-  - q1 : 3
-  - q2 : 1
+tserver:
+  default:
+    servers_per_host: 1
+    hosts:
+      - localhost

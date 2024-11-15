@@ -495,11 +495,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
           throw new IllegalStateException("Multiple servers matching provided address");
         }
       case MANAGER:
-        Set<ServerId> managers = getServers(type, rg2 -> true, hp);
-        if (managers.isEmpty()) {
+      case MONITOR:
+      case GARBAGE_COLLECTOR:
+        Set<ServerId> server = getServers(type, rg2 -> true, hp);
+        if (server.isEmpty()) {
           return null;
         } else {
-          return managers.iterator().next();
+          return server.iterator().next();
         }
       case SCAN_SERVER:
         Set<ServiceLockPath> sservers = context.getServerPaths().getScanServer(rg, hp, true);
@@ -511,7 +513,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
           throw new IllegalStateException("Multiple servers matching provided address");
         }
       case TABLET_SERVER:
-        Set<ServiceLockPath> tservers = context.getServerPaths().getScanServer(rg, hp, true);
+        Set<ServiceLockPath> tservers = context.getServerPaths().getTabletServer(rg, hp, true);
         if (tservers.isEmpty()) {
           return null;
         } else if (tservers.size() == 1) {
@@ -561,6 +563,36 @@ public class InstanceOperationsImpl implements InstanceOperations {
           String location = null;
           if (sld.isPresent()) {
             location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
+            if (addressSelector.getPredicate().test(location)) {
+              HostAndPort hp = HostAndPort.fromString(location);
+              results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
+                  hp.getPort()));
+            }
+          }
+        }
+        break;
+      case MONITOR:
+        ServiceLockPath mon = context.getServerPaths().getMonitor(true);
+        if (mon != null) {
+          Optional<ServiceLockData> sld = context.getZooCache().getLockData(mon);
+          String location = null;
+          if (sld.isPresent()) {
+            location = sld.orElseThrow().getAddressString(ThriftService.NONE);
+            if (addressSelector.getPredicate().test(location)) {
+              HostAndPort hp = HostAndPort.fromString(location);
+              results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
+                  hp.getPort()));
+            }
+          }
+        }
+        break;
+      case GARBAGE_COLLECTOR:
+        ServiceLockPath gc = context.getServerPaths().getGarbageCollector(true);
+        if (gc != null) {
+          Optional<ServiceLockData> sld = context.getZooCache().getLockData(gc);
+          String location = null;
+          if (sld.isPresent()) {
+            location = sld.orElseThrow().getAddressString(ThriftService.GC);
             if (addressSelector.getPredicate().test(location)) {
               HostAndPort hp = HostAndPort.fromString(location);
               results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),

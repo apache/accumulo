@@ -51,8 +51,9 @@ public class FateLogger {
 
     private final Function<Repo<T>,String> toLogString;
 
-    private LoggingFateTxStore(FateTxStore<T> wrapped, Function<Repo<T>,String> toLogString) {
-      super(wrapped);
+    private LoggingFateTxStore(FateTxStore<T> wrapped, Function<Repo<T>,String> toLogString,
+        boolean allowForceDel) {
+      super(wrapped, allowForceDel);
       this.toLogString = toLogString;
     }
 
@@ -97,19 +98,21 @@ public class FateLogger {
     }
   }
 
-  public static <T> FateStore<T> wrap(FateStore<T> store, Function<Repo<T>,String> toLogString) {
+  public static <T> FateStore<T> wrap(FateStore<T> store, Function<Repo<T>,String> toLogString,
+      boolean allowForceDel) {
 
     // only logging operations that change the persisted data, not operations that only read data
     return new FateStore<>() {
 
       @Override
       public FateTxStore<T> reserve(FateId fateId) {
-        return new LoggingFateTxStore<>(store.reserve(fateId), toLogString);
+        return new LoggingFateTxStore<>(store.reserve(fateId), toLogString, allowForceDel);
       }
 
       @Override
       public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
-        return store.tryReserve(fateId).map(ftxs -> new LoggingFateTxStore<>(ftxs, toLogString));
+        return store.tryReserve(fateId)
+            .map(ftxs -> new LoggingFateTxStore<>(ftxs, toLogString, allowForceDel));
       }
 
       @Override

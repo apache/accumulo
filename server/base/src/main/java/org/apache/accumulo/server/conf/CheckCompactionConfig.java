@@ -42,6 +42,7 @@ import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
@@ -95,10 +96,10 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
 
     AccumuloConfiguration config = SiteConfiguration.fromFile(path.toFile()).build();
-    validate(config);
+    validate(config, Level.INFO);
   }
 
-  public static void validate(AccumuloConfiguration config)
+  public static void validate(AccumuloConfiguration config, Level level)
       throws ReflectiveOperationException, SecurityException, IllegalArgumentException {
     var servicesConfig = new CompactionServicesConfig(config);
     ServiceEnvironment senv = createServiceEnvironment(config);
@@ -113,8 +114,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
     for (var entry : servicesConfig.getPlanners().entrySet()) {
       String serviceId = entry.getKey();
       String plannerClassName = entry.getValue();
-
-      log.info("Service id: {}, planner class:{}", serviceId, plannerClassName);
+      log.atLevel(level).log("Service id: {}, planner class:{}", serviceId, plannerClassName);
 
       Class<? extends CompactionPlanner> plannerClass =
           Class.forName(plannerClassName).asSubclass(CompactionPlanner.class);
@@ -127,7 +127,8 @@ public class CheckCompactionConfig implements KeywordExecutable {
       planner.init(initParams);
 
       initParams.getRequestedGroups().forEach(groupId -> {
-        log.info("Compaction service '{}' requested with compactor group '{}'", serviceId, groupId);
+        log.atLevel(level).log("Compaction service '{}' requested with compactor group '{}'",
+            serviceId, groupId);
         groupToServices.computeIfAbsent(groupId, f -> new HashSet<>()).add(serviceId);
       });
     }
@@ -147,7 +148,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
               + " to undesired behavior. Please fix the configuration");
     }
 
-    log.info("Properties file has passed all checks.");
+    log.atLevel(level).log("Properties file has passed all checks.");
 
   }
 

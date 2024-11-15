@@ -117,11 +117,9 @@ public class CompactionCoordinatorTest {
 
   public MetricsInfo getMockMetrics() {
     MetricsInfo metricsInfo = createMock(MetricsInfo.class);
-    metricsInfo.addServiceTags(anyObject(), anyObject(), anyObject());
-    expectLastCall().anyTimes();
     metricsInfo.addMetricsProducers(anyObject());
     expectLastCall().anyTimes();
-    metricsInfo.init();
+    metricsInfo.init(List.of());
     expectLastCall().anyTimes();
     replay(metricsInfo);
     return metricsInfo;

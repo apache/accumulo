@@ -256,18 +256,6 @@ public class Utils {
     return Utils.getLock(env.getContext(), id, fateId, LockType.READ);
   }
 
-  public static void checkNamespaceDoesNotExist(ServerContext context, String namespace,
-      NamespaceId namespaceId, TableOperation operation)
-      throws AcceptableThriftTableOperationException {
-
-    NamespaceId n = Namespaces.lookupNamespaceId(context, namespace);
-
-    if (n != null && !n.equals(namespaceId)) {
-      throw new AcceptableThriftTableOperationException(null, namespace, operation,
-          TableOperationExceptionType.NAMESPACE_EXISTS, null);
-    }
-  }
-
   /**
    * Given a fully-qualified Path and a flag indicating if the file info is base64 encoded or not,
    * retrieve the data from a file on the file system. It is assumed that the file is textual and

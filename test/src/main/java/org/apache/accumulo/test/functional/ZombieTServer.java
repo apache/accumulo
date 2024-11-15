@@ -139,9 +139,8 @@ public class ZombieTServer {
     ServiceLock zlock = new ServiceLock(zoo.getZooKeeper(), zLockPath, UUID.randomUUID());
 
     MetricsInfo metricsInfo = context.getMetricsInfo();
-    metricsInfo.addServiceTags("zombie.server", serverPort.address,
-        Constants.DEFAULT_RESOURCE_GROUP_NAME);
-    metricsInfo.init();
+    metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), "zombie.server",
+        serverPort.address, Constants.DEFAULT_RESOURCE_GROUP_NAME));
 
     LockWatcher lw = new LockWatcher() {
 
