@@ -23,11 +23,10 @@ import {
   InstanceMetrics,
   CompactionsMetrics,
   ProblemMetrics,
-  HealthStatus,
-  Warning,
-  ResourceGroupDetails,
   TablesMetrics,
   DeploymentsMetrics,
+  TabletMetrics,
+  TableMetrics,
 } from './types';
 
 async function fetchWithHandling<T>(
@@ -123,59 +122,24 @@ export async function fetchCompactions(max?: number): Promise<CompactionsMetrics
   return await fetchWithHandling<CompactionsMetrics>(path);
 }
 
-export async function fetchTablesMetrics(name?: string): Promise<TablesMetrics> {
-  const path = name ? `/metrics/tables/${name}` : '/metrics/tables';
+export async function fetchTablesMetrics(): Promise<TablesMetrics> {
+  const path = '/metrics/tables';
   return await fetchWithHandling<TablesMetrics>(path);
+}
+
+export async function fetchTableMetrics(tableName: string): Promise<TableMetrics> {
+  const sanitizedTableName = encodeURIComponent(tableName);
+  const path = `/metrics/tables/${sanitizedTableName}`;
+  return await fetchWithHandling<TableMetrics>(path);
+}
+
+export async function fetchTableTabletInfo(tableName: string): Promise<TabletMetrics[]> {
+  const sanitizedTableName = encodeURIComponent(tableName);
+  const path = `/metrics/tables/${sanitizedTableName}/tablets`;
+  return await fetchWithHandling<TabletMetrics[]>(path, { returnEmptyOn404: true });
 }
 
 export async function fetchDeploymentMetrics(): Promise<DeploymentsMetrics> {
   const path = '/metrics/deployment';
   return await fetchWithHandling<DeploymentsMetrics>(path);
-}
-
-// TEST DATA FOR HOMEPAGE:
-
-export async function fetchHealthStatus(): Promise<HealthStatus> {
-  // Simulate fetching health status with a random value
-  const statuses: HealthStatus[] = ['healthy', 'degraded', 'unhealthy'];
-  const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-  return Promise.resolve(randomStatus);
-}
-
-export async function fetchWarnings(): Promise<Warning[]> {
-  // Return dummy warnings
-  return Promise.resolve([
-    {
-      resourceGroup: 'default',
-      message: 'There are warnings in RG default',
-    },
-    {
-      resourceGroup: 'scansgroup',
-      message: 'There are warnings in RG scansgroup',
-    },
-  ]);
-}
-
-export async function fetchResourceGroupDetails(): Promise<ResourceGroupDetails[]> {
-  // Return dummy resource group details
-  return Promise.resolve([
-    {
-      name: 'default',
-      healthStatus: 'degraded',
-      type: 'N/A',
-      componentCount: 9,
-    },
-    {
-      name: 'scansgroup',
-      healthStatus: 'healthy',
-      type: 'scan server',
-      componentCount: 5,
-    },
-    {
-      name: 'group 4',
-      healthStatus: 'unhealthy',
-      type: 'tablet server',
-      componentCount: 2,
-    },
-  ]);
 }

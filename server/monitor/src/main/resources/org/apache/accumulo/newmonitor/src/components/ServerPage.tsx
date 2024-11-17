@@ -37,6 +37,14 @@ function ServerPage() {
         const allData = await fetchAllMetrics();
         data = allData.find((s) => s.host === serverId) ?? null;
       }
+
+      // remove "accumulo." from the name of each metric
+      if (data) {
+        data.metrics.forEach((metric) => {
+          metric.name = metric.name.replace('accumulo.', '');
+        });
+      }
+
       setServerData(data);
     }
     void getServerData();

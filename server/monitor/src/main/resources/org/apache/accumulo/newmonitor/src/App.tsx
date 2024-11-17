@@ -29,6 +29,7 @@ import { useEffect, useState } from 'react';
 import { fetchInstanceMetrics } from './api';
 import ResourceGroupsOverviewPage from './components/ResourceGroupsOverviewPage';
 import TablesPage from './components/TablesPage';
+import TablePage from './components/TablePage';
 
 function App() {
   const [instanceName, setInstanceName] = useState<string>('');
@@ -58,6 +59,9 @@ function App() {
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="ms-auto">
+              <Nav.Link as={Link} to="/resource-groups">
+                Resource Groups
+              </Nav.Link>
               <NavDropdown title="Servers" id="servers-dropdown">
                 <NavDropdown.Item as={Link} to={`/servers/${ServerType.TABLET_SERVER}`}>
                   Tablet Servers
@@ -68,7 +72,7 @@ function App() {
                 <NavDropdown.Item as={Link} to={`/server/GARBAGE_COLLECTOR`}>
                   Garbage Collector
                 </NavDropdown.Item>
-                <NavDropdown.Item as={Link} to={`/servers/MANAGER`}>
+                <NavDropdown.Item as={Link} to={`/server/MANAGER`}>
                   Manager
                 </NavDropdown.Item>
                 <NavDropdown.Item as={Link} to={`/servers/${ServerType.COMPACTOR}`}>
@@ -77,9 +81,6 @@ function App() {
               </NavDropdown>
               <Nav.Link as={Link} to="/tables">
                 Tables
-              </Nav.Link>
-              <Nav.Link as={Link} to="/resource-groups">
-                Resource Groups
               </Nav.Link>
             </Nav>
           </Navbar.Collapse>
@@ -93,6 +94,7 @@ function App() {
         <Route path="/server/:serverId" element={<ServerPage />} />
         <Route path="/tables" element={<TablesPage />} />
         <Route path="/resource-groups" element={<ResourceGroupsOverviewPage />} />
+        <Route path="/table/:tableName" element={<TablePage />} />
       </Routes>
     </>
   );

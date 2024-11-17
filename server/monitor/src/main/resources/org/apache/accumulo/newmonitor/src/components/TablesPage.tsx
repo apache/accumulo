@@ -19,7 +19,7 @@
 import { useState, useEffect } from 'react';
 import { fetchTablesMetrics } from '../api';
 import { TablesMetrics } from '../types';
-import { Table } from 'react-bootstrap';
+import TablesTable from './TablesOverviewTable';
 
 function TablesPage() {
   const [tableData, setTableData] = useState<TablesMetrics>({});
@@ -42,30 +42,7 @@ function TablesPage() {
       {Object.keys(tableData).length === 0 ? (
         <p>No table data available.</p>
       ) : (
-        <Table striped bordered hover size="lg" className="mx-auto">
-          <thead>
-            <tr>
-              <th>Table Name</th>
-              <th>Total Entries</th>
-              <th>Total Size On Disk</th>
-              <th>Total Files</th>
-              <th>Total WALs</th>
-              <th>Total Tablets</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(tableData).map(([tableName, metrics]) => (
-              <tr key={tableName}>
-                <td>{tableName}</td>
-                <td>{metrics.totalEntries}</td>
-                <td>{metrics.totalSizeOnDisk}</td>
-                <td>{metrics.totalFiles}</td>
-                <td>{metrics.totalWals}</td>
-                <td>{metrics.totalTablets}</td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <TablesTable tableData={tableData} />
       )}
     </>
   );

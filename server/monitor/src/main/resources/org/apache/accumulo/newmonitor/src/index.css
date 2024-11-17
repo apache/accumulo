@@ -28,7 +28,12 @@
   margin: 0 auto;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   text-align: center;
 }
 
@@ -56,4 +61,13 @@ h1, h2, h3, h4, h5, h6 {
 
 .table {
   width: auto;
+}
+
+/* make sure StatisticGroup cards do not stretch too much */
+.statistic-group-card {
+  width: 100%;
+}
+
+.statistic-group-card .card-body {
+  padding: 1rem;
 }
