@@ -59,4 +59,8 @@ public class SeedSplitTask implements Runnable {
       log.error("Failed to split {}", extent, e);
     }
   }
+
+  public KeyExtent getExtent() {
+    return extent;
+  }
 }

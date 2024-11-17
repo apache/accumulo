@@ -18,13 +18,15 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.UPDATE_CHECK;
 import static org.apache.accumulo.core.metrics.Metric.UPDATE_COMMIT;
 import static org.apache.accumulo.core.metrics.Metric.UPDATE_COMMIT_PREP;
 import static org.apache.accumulo.core.metrics.Metric.UPDATE_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.UPDATE_LOCK;
 import static org.apache.accumulo.core.metrics.Metric.UPDATE_MUTATION_ARRAY_SIZE;
 import static org.apache.accumulo.core.metrics.Metric.UPDATE_WALOG_WRITE;
 
-import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -43,6 +45,8 @@ public class TabletServerUpdateMetrics implements MetricsProducer {
   private Timer commitPrepStat = NoopMetrics.useNoopTimer();
   private Timer walogWriteTimeStat = NoopMetrics.useNoopTimer();
   private Timer commitTimeStat = NoopMetrics.useNoopTimer();
+  private Timer checkTimeStat = NoopMetrics.useNoopTimer();
+  private Timer lockTimeStat = NoopMetrics.useNoopTimer();
   private DistributionSummary mutationArraySizeStat = NoopMetrics.useNoopDistributionSummary();
 
   public void addPermissionErrors(long value) {
@@ -58,19 +62,27 @@ public class TabletServerUpdateMetrics implements MetricsProducer {
   }
 
   public void addCommitPrep(long value) {
-    commitPrepStat.record(Duration.ofMillis(value));
+    commitPrepStat.record(value, TimeUnit.MILLISECONDS);
   }
 
   public void addWalogWriteTime(long value) {
-    walogWriteTimeStat.record(Duration.ofMillis(value));
+    walogWriteTimeStat.record(value, TimeUnit.MILLISECONDS);
   }
 
   public void addCommitTime(long value) {
-    commitTimeStat.record(Duration.ofMillis(value));
+    commitTimeStat.record(value, TimeUnit.MILLISECONDS);
   }
 
   public void addMutationArraySize(long value) {
     mutationArraySizeStat.record(value);
+  }
+
+  public void addCheckTime(long value, TimeUnit unit) {
+    checkTimeStat.record(value, unit);
+  }
+
+  public void addLockTime(long value, TimeUnit unit) {
+    lockTimeStat.record(value, unit);
   }
 
   @Override
@@ -91,6 +103,10 @@ public class TabletServerUpdateMetrics implements MetricsProducer {
         .description(UPDATE_COMMIT.getDescription()).register(registry);
     mutationArraySizeStat = DistributionSummary.builder(UPDATE_MUTATION_ARRAY_SIZE.getName())
         .description(UPDATE_MUTATION_ARRAY_SIZE.getDescription()).register(registry);
-  }
+    checkTimeStat = Timer.builder(UPDATE_CHECK.getName()).description(UPDATE_CHECK.getDescription())
+        .register(registry);
+    lockTimeStat = Timer.builder(UPDATE_LOCK.getName()).description(UPDATE_LOCK.getDescription())
+        .register(registry);
 
+  }
 }

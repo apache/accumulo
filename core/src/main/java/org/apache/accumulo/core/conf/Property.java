@@ -447,8 +447,10 @@ public enum Property {
           + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
           + "threshold is set greater than 0.",
       "1.10.0"),
-  MANAGER_SPLIT_WORKER_THREADS("manager.split.inspection.threadpool.size", "8", PropertyType.COUNT,
-      "The number of threads used to inspect tablets files to find split points.", "4.0.0"),
+  MANAGER_SPLIT_WORKER_THREADS("manager.split.seed.threadpool.size", "8", PropertyType.COUNT,
+      "The number of threads used to seed fate split task, the actual split work is done by fate"
+          + " threads.",
+      "4.0.0"),
 
   MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE(
       "manager.compaction.major.service.queue.initial.size", "10000", PropertyType.COUNT,
