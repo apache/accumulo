@@ -1116,7 +1116,10 @@ public class Manager extends AbstractServer
         if (m.getTablet() == null) {
           log.error("Balancer gave back a null tablet {}", m);
         } else if (DataLevel.of(m.getTablet().getTable()) != level) {
-          log.warn("Balancer wants to move a tablet outside of the current processing level");
+          log.debug(
+              "Balancer wants to move a tablet ({}) outside of the current processing level ({}), "
+                  + "ignoring and should be processed at the correct level ({})",
+              m.getTablet(), level, DataLevel.of(m.getTablet().getTable()));
         } else if (m.getNewTabletServer() == null) {
           log.error("Balancer did not set the destination {}", m);
         } else if (m.getOldTabletServer() == null) {
