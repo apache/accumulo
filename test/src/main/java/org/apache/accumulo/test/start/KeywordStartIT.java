@@ -55,6 +55,7 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.MonitorExecutable;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.CheckServerConfig;
+import org.apache.accumulo.server.conf.CheckServerConfigNoInstance;
 import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.server.conf.util.ZooInfoViewer;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
@@ -131,6 +132,7 @@ public class KeywordStartIT {
     expectSet.put("admin", Admin.class);
     expectSet.put("check-compaction-config", CheckCompactionConfig.class);
     expectSet.put("check-server-config", CheckServerConfig.class);
+    expectSet.put("check-server-config-no-inst", CheckServerConfigNoInstance.class);
     expectSet.put("compaction-coordinator", CoordinatorExecutable.class);
     expectSet.put("compactor", CompactorExecutable.class);
     expectSet.put("config-upgrade", ConfigPropertyUpgrader.class);
@@ -206,6 +208,7 @@ public class KeywordStartIT {
     expectSet.add(Admin.class);
     expectSet.add(CheckCompactionConfig.class);
     expectSet.add(CheckServerConfig.class);
+    expectSet.add(CheckServerConfigNoInstance.class);
     expectSet.add(ConfigPropertyUpgrader.class);
     expectSet.add(ConvertConfig.class);
     expectSet.add(CreateEmpty.class);
