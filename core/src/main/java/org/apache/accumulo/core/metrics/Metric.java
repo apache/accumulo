@@ -190,14 +190,14 @@ public enum Metric {
       "Number of scan threads that have no associated client session.", MetricCategory.SCAN_SERVER),
 
   // Major Compaction Metrics
-  MAJC_QUEUED("accumulo.tserver.compactions.majc.queued", MetricType.GAUGE,
+  MAJC_QUEUED("accumulo.coordinator.compactions.majc.queued", MetricType.GAUGE,
       "Number of queued major compactions. The compaction service information is in a tag: `id={i|e}_{compactionServiceName}_{executor_name}`.",
-      MetricCategory.TABLET_SERVER),
-  MAJC_RUNNING("accumulo.tserver.compactions.majc.running", MetricType.GAUGE,
+      MetricCategory.MANAGER),
+  MAJC_RUNNING("accumulo.coordinator.compactions.majc.running", MetricType.GAUGE,
       "Number of running major compactions. The compaction service information is in a tag: `id={i|e}_{compactionServiceName}_{executor_name}`.",
-      MetricCategory.TABLET_SERVER),
-  MAJC_PAUSED("accumulo.tserver.compactions.majc.paused", MetricType.COUNTER,
-      "Number of paused major compactions.", MetricCategory.TABLET_SERVER),
+      MetricCategory.MANAGER),
+  MAJC_PAUSED("accumulo.compactor.compactions.majc.paused", MetricType.COUNTER,
+      "Number of paused major compactions.", MetricCategory.COMPACTOR),
 
   // Minor Compaction Metrics
   MINC_QUEUED("accumulo.tserver.compactions.minc.queued", MetricType.TIMER,
