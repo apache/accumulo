@@ -168,15 +168,15 @@ public class QueueMetrics implements MetricsProducer {
               CompactionJobQueues::getQueueCount)
           .description(COMPACTOR_JOB_PRIORITY_QUEUES.getDescription()).register(localRegistry);
     }
-    LOG.debug("update - cjq queues: {}", compactionJobQueues.getQueueIds());
+    LOG.trace("update - cjq queues: {}", compactionJobQueues.getQueueIds());
 
     Set<CompactorGroupId> definedQueues = compactionJobQueues.getQueueIds();
-    LOG.debug("update - defined queues: {}", definedQueues);
+    LOG.trace("update - defined queues: {}", definedQueues);
 
     // Copy the keySet into a new Set so that changes to perQueueMetrics
     // don't affect the collection
     Set<CompactorGroupId> queuesWithMetrics = new HashSet<>(perQueueMetrics.keySet());
-    LOG.debug("update - queues with metrics: {}", queuesWithMetrics);
+    LOG.trace("update - queues with metrics: {}", queuesWithMetrics);
 
     SetView<CompactorGroupId> queuesWithoutMetrics =
         Sets.difference(definedQueues, queuesWithMetrics);
