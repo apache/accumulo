@@ -60,7 +60,7 @@ public enum Metric {
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE("accumulo.compaction.queue.jobs.avg.age",
       MetricType.GAUGE, "Average age of currently queued jobs in seconds.",
       MetricCategory.COMPACTION),
-  COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER("accumulo.COMPACTION.queue.jobs.exit.time",
+  COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER("accumulo.compaction.queue.jobs.exit.time",
       MetricType.TIMER, "Tracks time a job spent in the queue before exiting the queue.",
       MetricCategory.COMPACTION),
 
