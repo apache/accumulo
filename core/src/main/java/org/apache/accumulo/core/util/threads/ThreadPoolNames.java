@@ -36,6 +36,7 @@ public enum ThreadPoolNames {
   COORDINATOR_FINALIZER_NOTIFIER_POOL("accumulo.pool.compaction.coordinator.compaction.finalizer"),
   GC_DELETE_POOL("accumulo.pool.gc.threads.delete"),
   GENERAL_SERVER_POOL("accumulo.pool.general.server"),
+  SERVICE_LOCK_POOL("accumulo.pool.service.lock"),
   IMPORT_TABLE_RENAME_POOL("accumulo.pool.import.table.rename"),
   INSTANCE_OPS_COMPACTIONS_FINDER_POOL("accumulo.pool.instance.ops.active.compactions.finder"),
   MANAGER_FATE_POOL("accumulo.pool.manager.fate"),
