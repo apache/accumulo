@@ -994,6 +994,12 @@ public enum Property {
           + " The resources that are used by default can be seen in"
           + " `accumulo/server/monitor/src/main/resources/templates/default.ftl`.",
       "2.0.0"),
+  MONITOR_OBFUSCATE_EXTENTS("monitor.extents.obfuscate", "true", PropertyType.BOOLEAN,
+      "Obfuscates the table extent information displayed in the Monitor if true. Setting"
+          + " this to false will expose data in the row of the keys where tablets split. It"
+          + " is not recommended to set this to false if the Monitor is exposed to entities"
+          + " that should not see this information.",
+      "2.1.4"),
   @Deprecated(since = "2.1.0")
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of distributed tracing.", "1.3.5"),
