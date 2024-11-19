@@ -45,6 +45,7 @@ import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
@@ -134,7 +135,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
           ThriftUtil.returnClient(metricsClient, ctx);
         }
       } catch (Exception e) {
-        LOG.warn("Error trying to get metrics from server: {}", server);
+        LOG.warn("Error trying to get metrics from server: {}. Error message: {}", server,
+            e.getMessage());
         summary.processError(server);
       }
     }
@@ -162,6 +164,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         LOG.warn(
             "TableNotFoundException thrown while trying to gather information for table: " + table,
             e);
+      } catch (Exception e) {
+        LOG.warn("Interrupted while trying to gather information for table: {}", table);
       }
     }
   }
@@ -209,7 +213,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         TExternalCompactionList running = getExternalCompactions();
         summary.processExternalCompactionList(running);
       } catch (Exception e) {
-        LOG.error("Error gathering running compaction information", e);
+        LOG.warn("Error gathering running compaction information. Error message: {}",
+            e.getMessage());
       }
     }
 
@@ -287,11 +292,22 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         futures.add(this.pool.submit(new TableInformationFetcher(this.ctx, tName, summary)));
       }
 
+      long monitorFetchTimeout =
+          ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);
+      long allFuturesAdded = NanoTime.now();
+      boolean tookToLong = false;
       while (futures.size() > 0) {
+
+        if (NanoTime.millisElapsed(allFuturesAdded, NanoTime.now()) > monitorFetchTimeout) {
+          tookToLong = true;
+        }
+
         Iterator<Future<?>> iter = futures.iterator();
         while (iter.hasNext()) {
           Future<?> future = iter.next();
-          if (future.isDone()) {
+          if (tookToLong && !future.isCancelled()) {
+            future.cancel(true);
+          } else if (future.isDone()) {
             iter.remove();
             try {
               future.get();
