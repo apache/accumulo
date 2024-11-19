@@ -18,17 +18,47 @@
  */
 package org.apache.accumulo.server.conf;
 
+import java.io.IOException;
+
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerDirs;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
 public class CheckServerConfig implements KeywordExecutable {
+  private static final Logger log = LoggerFactory.getLogger(CheckServerConfig.class);
 
   public static void main(String[] args) {
-    try (var context = new ServerContext(SiteConfiguration.auto())) {
+    var siteConfig = SiteConfiguration.auto();
+    var hadoopConfig = new Configuration();
+    VolumeManager volumeManager;
+    try {
+      volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConfig);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+    var serverDirs = new ServerDirs(siteConfig, hadoopConfig);
+    Path instanceIdPath = serverDirs.getInstanceIdLocation(volumeManager.getFirst());
+    // Check if an instance exists. If it doesn't, we have performed all the checks we can.
+    // If it does, we can perform further checks.
+    try {
+      VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConfig);
+    } catch (Exception e) {
+      log.warn("Performed only a subset of checks (which passed). There is a problem relating to "
+          + "the instance:\n" + e.getMessage() + "\nand no further checks could be done. If this "
+          + "is unexpected, make sure an instance is running and re-run the command.");
+      System.exit(1);
+    }
+    try (var context = new ServerContext(siteConfig)) {
       context.getConfiguration();
     }
   }
