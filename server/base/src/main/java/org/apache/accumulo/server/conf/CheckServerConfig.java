@@ -28,14 +28,11 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
 public class CheckServerConfig implements KeywordExecutable {
-  private static final Logger log = LoggerFactory.getLogger(CheckServerConfig.class);
 
   public static void main(String[] args) {
     var siteConfig = SiteConfiguration.auto();
@@ -53,10 +50,11 @@ public class CheckServerConfig implements KeywordExecutable {
     try {
       VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConfig);
     } catch (Exception e) {
-      log.warn("Performed only a subset of checks (which passed). There is a problem relating to "
-          + "the instance:\n" + e.getMessage() + "\nand no further checks could be done. If this "
-          + "is unexpected, make sure an instance is running and re-run the command.");
-      System.exit(1);
+      System.out.println("WARNING : Performed only a subset of checks (which passed). There is a "
+          + "problem relating to the instance:\n" + e.getMessage()
+          + "\nand no further checks could be done. If this is unexpected, make sure an instance "
+          + "is running and re-run the command.");
+      System.exit(0);
     }
     try (var context = new ServerContext(siteConfig)) {
       context.getConfiguration();
