@@ -115,7 +115,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private static final int REFRESH_TIME = 5;
 
   private final long START_TIME;
-  private final boolean obfuscateExtents;
 
   public static void main(String[] args) throws Exception {
     try (Monitor monitor = new Monitor(new ServerOpts(), args)) {
@@ -126,12 +125,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   Monitor(ServerOpts opts, String[] args) {
     super("monitor", opts, args);
     START_TIME = System.currentTimeMillis();
-    // Using site configuration on purpose. We want to get the value from
-    // accumulo.properties file local to the Monitor. We don't want to
-    // enable someone to change this property dynamically and expose
-    // information.
-    obfuscateExtents =
-        getContext().getSiteConfiguration().getBoolean(Property.MONITOR_OBFUSCATE_EXTENTS);
   }
 
   private final AtomicLong lastRecalc = new AtomicLong(0L);
@@ -1053,9 +1046,5 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   public int getLivePort() {
     return livePort;
-  }
-
-  public boolean isObfuscateExtents() {
-    return obfuscateExtents;
   }
 }
