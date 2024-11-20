@@ -320,7 +320,8 @@ public class TabletServerResource {
 
       KeyExtent extent = KeyExtent.fromThrift(info.extent);
       TableId tableId = extent.tableId();
-      String displayExtent = String.format("[%s]", extent.obscured());
+      String displayExtent = String.format("[%s]",
+          monitor.isObfuscateExtents() ? extent.obscured() : extent.endRow().toString());
 
       String tableName = monitor.getContext().getPrintableTableInfoFromId(tableId);
 
