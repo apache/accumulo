@@ -282,7 +282,6 @@ public class SystemInformation {
           .bufferLength(3).build();
 
   private final Cache<ServerId,MetricResponse> allMetrics;
-  private final boolean obfuscateExtents;
 
   private final Set<String> resourceGroups = new HashSet<>();
   private final Set<ServerId> problemHosts = new HashSet<>();
@@ -326,9 +325,8 @@ public class SystemInformation {
   // Deployment Overview
   private final Map<String,Map<String,ProcessSummary>> deployment = new HashMap<>();
 
-  public SystemInformation(Cache<ServerId,MetricResponse> allMetrics, boolean obfuscateExtents) {
+  public SystemInformation(Cache<ServerId,MetricResponse> allMetrics) {
     this.allMetrics = allMetrics;
-    this.obfuscateExtents = obfuscateExtents;
   }
 
   public void clear() {
@@ -452,10 +450,9 @@ public class SystemInformation {
   }
 
   public void processTabletInformation(String tableName, TabletInformation info) {
-    final TabletInformation ti =
-        this.obfuscateExtents ? new SanitizedTabletInformation(info) : info;
-    tablets.computeIfAbsent(tableName, (t) -> new ArrayList<>()).add(ti);
-    tables.computeIfAbsent(tableName, (t) -> new TableSummary()).addTablet(ti);
+    final SanitizedTabletInformation sti = new SanitizedTabletInformation(info);
+    tablets.computeIfAbsent(tableName, (t) -> new ArrayList<>()).add(sti);
+    tables.computeIfAbsent(tableName, (t) -> new TableSummary()).addTablet(sti);
   }
 
   public void processError(ServerId server) {

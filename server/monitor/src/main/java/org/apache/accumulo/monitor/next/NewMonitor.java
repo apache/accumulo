@@ -75,7 +75,6 @@ public class NewMonitor implements Connection.Listener {
   private final boolean secure;
   private final ConnectionStatistics connStats;
   private final InformationFetcher fetcher;
-  private final boolean obfuscateExtents;
 
   public NewMonitor(ServerContext ctx, String hostname) {
     this.ctx = ctx;
@@ -83,14 +82,8 @@ public class NewMonitor implements Connection.Listener {
     this.secure = requireForSecure.stream().map(ctx.getConfiguration()::get)
         .allMatch(s -> s != null && !s.isEmpty());
 
-    // Using site configuration on purpose. We want to get the value from
-    // accumulo.properties file local to the Monitor. We don't want to
-    // enable someone to change this property dynamically and expose
-    // information.
-    obfuscateExtents = ctx.getSiteConfiguration().getBoolean(Property.MONITOR_OBFUSCATE_EXTENTS);
-
     this.connStats = new ConnectionStatistics();
-    this.fetcher = new InformationFetcher(ctx, obfuscateExtents, connStats::getConnections);
+    this.fetcher = new InformationFetcher(ctx, connStats::getConnections);
   }
 
   @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET",
