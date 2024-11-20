@@ -1190,12 +1190,10 @@ public class Manager extends AbstractServer
       Iterator<Future<?>> iter = tasks.iterator();
       while (iter.hasNext()) {
         Future<?> f = iter.next();
-        if (cancel) {
+        if (f.isDone()) {
+          iter.remove();
+        } else if (cancel) {
           f.cancel(true);
-        } else {
-          if (f.isDone()) {
-            iter.remove();
-          }
         }
       }
       Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
