@@ -229,9 +229,12 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   private final AtomicBoolean newConnectionEvent = new AtomicBoolean(false);
   private final Cache<ServerId,MetricResponse> allMetrics;
   private final AtomicReference<SystemInformation> summaryRef = new AtomicReference<>();
+  private final boolean obfuscateExtents;
 
-  public InformationFetcher(ServerContext ctx, Supplier<Long> connectionCount) {
+  public InformationFetcher(ServerContext ctx, boolean obfuscateExtents,
+      Supplier<Long> connectionCount) {
     this.ctx = ctx;
+    this.obfuscateExtents = obfuscateExtents;
     this.connectionCount = connectionCount;
     this.allMetrics = Caffeine.newBuilder().executor(pool).scheduler(Scheduler.systemScheduler())
         .expireAfterWrite(Duration.ofMinutes(10)).evictionListener(this::onRemoval).build();
@@ -272,7 +275,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       LOG.info("Fetching metrics from servers");
 
       final List<Future<?>> futures = new ArrayList<>();
-      final SystemInformation summary = new SystemInformation(allMetrics);
+      final SystemInformation summary = new SystemInformation(allMetrics, this.obfuscateExtents);
 
       for (ServerId.Type type : ServerId.Type.values()) {
         if (type == Type.MONITOR) {
