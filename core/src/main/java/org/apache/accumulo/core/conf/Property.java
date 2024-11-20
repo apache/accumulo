@@ -878,14 +878,6 @@ public enum Property {
           + " The resources that are used by default can be seen in"
           + " `accumulo/server/monitor/src/main/resources/templates/default.ftl`.",
       "2.0.0"),
-  MONITOR_OBFUSCATE_EXTENTS("monitor.extents.obfuscate", "true", PropertyType.BOOLEAN,
-      "Obfuscates the table extent information displayed in the Monitor if true. Setting"
-          + " this to false will expose data in the row of the keys where tablets split. It"
-          + " is not recommended to set this to false if the Monitor is exposed to entities"
-          + " that should not see this information. The Monitor process reads this property"
-          + " from the accumulo.properties file only, not ZooKeeper, so it cannot be"
-          + " changed at runtime.",
-      "2.1.4"),
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
       "Properties in this category affect tablet server treatment of tablets,"
@@ -1555,7 +1547,7 @@ public enum Property {
 
       // others
       TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME,
-      TSERV_SESSION_MAXIDLE, TSERV_UPDATE_SESSION_MAXIDLE, MONITOR_OBFUSCATE_EXTENTS);
+      TSERV_SESSION_MAXIDLE, TSERV_UPDATE_SESSION_MAXIDLE);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
