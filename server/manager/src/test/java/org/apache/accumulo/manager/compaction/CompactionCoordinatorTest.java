@@ -43,6 +43,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -54,6 +55,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -97,6 +99,7 @@ import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.async.AsyncMethodCallback;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
@@ -359,10 +362,22 @@ public class CompactionCoordinatorTest {
 
     // Get the next job
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
-    TNextCompactionJob nextJob = coordinator.getCompactionJob(new TInfo(), creds,
-        GROUP_ID.toString(), "localhost:10241", eci.toString());
-    assertEquals(3, nextJob.getCompactorCount());
-    TExternalCompactionJob createdJob = nextJob.getJob();
+    CompletableFuture<TNextCompactionJob> nextJob = new CompletableFuture<>();
+
+    coordinator.getCompactionJob(new TInfo(), creds, GROUP_ID.toString(), "localhost:10241",
+        eci.toString(), new AsyncMethodCallback<>() {
+          @Override
+          public void onComplete(TNextCompactionJob response) {
+            nextJob.complete(response);
+          }
+
+          @Override
+          public void onError(Exception exception) {
+            nextJob.completeExceptionally(exception);
+          }
+        });
+    assertEquals(3, nextJob.get().getCompactorCount());
+    TExternalCompactionJob createdJob = nextJob.get().getJob();
     assertEquals(eci.toString(), createdJob.getExternalCompactionId());
     assertEquals(ke, KeyExtent.fromThrift(createdJob.getExtent()));
 
@@ -382,7 +397,9 @@ public class CompactionCoordinatorTest {
 
     ServerContext context = EasyMock.createNiceMock(ServerContext.class);
     expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
-    expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    ConfigurationCopy cc = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    cc.set(Property.COMPACTION_COORDINATOR_MAX_JOB_REQUEST_WAIT_TIME.getKey(), "1s");
+    expect(context.getConfiguration()).andReturn(cc).anyTimes();
 
     TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
 
@@ -396,10 +413,22 @@ public class CompactionCoordinatorTest {
     EasyMock.replay(context, creds, security, manager);
 
     var coordinator = new TestCoordinator(context, security, new ArrayList<>(), manager);
-    TNextCompactionJob nextJob = coordinator.getCompactionJob(TraceUtil.traceInfo(), creds,
-        GROUP_ID.toString(), "localhost:10240", UUID.randomUUID().toString());
-    assertEquals(3, nextJob.getCompactorCount());
-    assertNull(nextJob.getJob().getExternalCompactionId());
+    CompletableFuture<TNextCompactionJob> nextJob = new CompletableFuture<>();
+
+    coordinator.getCompactionJob(TraceUtil.traceInfo(), creds, GROUP_ID.toString(),
+        "localhost:10240", UUID.randomUUID().toString(), new AsyncMethodCallback<>() {
+          @Override
+          public void onComplete(TNextCompactionJob response) {
+            nextJob.complete(response);
+          }
+
+          @Override
+          public void onError(Exception exception) {
+            nextJob.completeExceptionally(exception);
+          }
+        });
+    assertEquals(3, nextJob.get().getCompactorCount());
+    assertNull(nextJob.get().getJob().getExternalCompactionId());
 
     EasyMock.verify(context, creds, security);
   }

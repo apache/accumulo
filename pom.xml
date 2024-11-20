@@ -925,6 +925,8 @@
                 <unused>org.glassfish.jersey.ext:jersey-bean-validation:jar:*</unused>
                 <unused>org.glassfish.jersey.inject:jersey-hk2:jar:*</unused>
                 <unused>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unused>
+                <!-- Required dependency for async servlet support -->
+                <unused>org.glassfish.jersey.containers:jersey-container-servlet:jar:*</unused>
                 <unused>org.powermock:powermock-api-easymock:jar:*</unused>
                 <!-- spotbugs annotations may or may not be used in each module -->
                 <unused>com.github.spotbugs:spotbugs-annotations:jar:*</unused>

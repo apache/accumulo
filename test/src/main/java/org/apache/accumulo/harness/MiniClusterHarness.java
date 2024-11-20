@@ -45,6 +45,7 @@ import org.apache.accumulo.server.security.handler.KerberosAuthorizor;
 import org.apache.accumulo.server.security.handler.KerberosPermissionHandler;
 import org.apache.accumulo.test.functional.NativeMapIT;
 import org.apache.accumulo.test.util.CertUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.slf4j.Logger;
@@ -89,6 +90,10 @@ public class MiniClusterHarness {
     // Enable native maps by default
     cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
+
+    // Speed up testing by shortening the timeouts by setting a default to 10s
+    // TODO: Make this default configurable?
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_MAX_JOB_REQUEST_WAIT_TIME, "10s");
 
     Configuration coreSite = new Configuration(false);
 
@@ -148,6 +153,7 @@ public class MiniClusterHarness {
     }
 
     File sslDir = new File(folder, "ssl");
+    FileUtils.deleteQuietly(sslDir);
     assertTrue(sslDir.mkdirs() || sslDir.isDirectory());
     File rootKeystoreFile = new File(sslDir, "root-" + cfg.getInstanceName() + ".jks");
     File localKeystoreFile = new File(sslDir, "local-" + cfg.getInstanceName() + ".jks");

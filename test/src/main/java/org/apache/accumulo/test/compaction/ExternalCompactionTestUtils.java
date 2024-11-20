@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -77,7 +78,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 
-import com.beust.jcommander.internal.Maps;
 import com.google.common.net.HostAndPort;
 
 public class ExternalCompactionTestUtils {
@@ -187,10 +187,14 @@ public class ExternalCompactionTestUtils {
   }
 
   public static void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+    configureMiniCluster(cfg, coreSite, new HashMap<>());
+  }
+
+  public static void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite,
+      Map<String,String> clProps) {
 
     // ecomp writes from the TabletServer are not being written to the metadata
     // table, they are being queued up instead.
-    Map<String,String> clProps = Maps.newHashMap();
     clProps.put(ClientProperty.BATCH_WRITER_LATENCY_MAX.getKey(), "2s");
     cfg.setClientProps(clProps);
 

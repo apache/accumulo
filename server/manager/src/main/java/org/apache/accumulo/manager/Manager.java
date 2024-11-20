@@ -28,6 +28,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -57,6 +58,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import jakarta.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
@@ -122,6 +125,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
+import org.apache.accumulo.manager.http.EmbeddedRpcWebServer;
 import org.apache.accumulo.manager.metrics.BalancerMetrics;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
@@ -162,6 +166,13 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoAuthException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.glassfish.hk2.api.Factory;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.glassfish.jersey.jackson.JacksonFeature;
+import org.glassfish.jersey.logging.LoggingFeature;
+import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -169,6 +180,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
+import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -217,6 +229,7 @@ public class Manager extends AbstractServer
 
   ServiceLock managerLock = null;
   private TServer clientService = null;
+  private EmbeddedRpcWebServer restClientService;
   protected volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
   private final BalancerMetrics balancerMetrics = new BalancerMetrics();
@@ -332,6 +345,12 @@ public class Manager extends AbstractServer
           Manager.this.nextEvent.event("stopped event loop");
         }, 100L, 1000L, MILLISECONDS);
         ThreadPools.watchNonCriticalScheduledTask(future);
+        final var restFuture = getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
+          // This frees the main thread and will cause the manager to exit
+          restClientService.stop();
+          Manager.this.nextEvent.event("stopped event loop");
+        }, 100L, 1000L, MILLISECONDS);
+        ThreadPools.watchNonCriticalScheduledTask(restFuture);
         break;
       case HAVE_LOCK:
         if (isUpgrading()) {
@@ -1134,6 +1153,30 @@ public class Manager extends AbstractServer
     clientService = sa.server;
     log.info("Started Manager client service at {}", sa.address);
 
+    int restPort = 8999;
+    try {
+      restClientService = new EmbeddedRpcWebServer(this, restPort);
+      restClientService.addServlet(getRestServlet(), "/rest/*");
+      restClientService.start();
+
+      if (!restClientService.isRunning()) {
+        throw new RuntimeException("Unable to start rpc http server on port: " + restPort);
+      }
+    } catch (Exception e) {
+      throw new IllegalStateException("Unable to start embedded web server " + getHostname(), e);
+    }
+
+    String advertiseHost = getHostname();
+    if (advertiseHost.equals("0.0.0.0")) {
+      try {
+        advertiseHost = InetAddress.getLocalHost().getHostName();
+      } catch (UnknownHostException e) {
+        log.error("Unable to get hostname", e);
+      }
+    }
+    HostAndPort restHostAndPort = HostAndPort.fromParts(advertiseHost, restPort);
+    log.info("Started Manager rpc rest client service at {}", restHostAndPort);
+
     // block until we can obtain the ZK lock for the manager
     ServiceLockData sld;
     try {
@@ -1313,14 +1356,14 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Exception updating manager lock", e);
     }
 
-    while (!clientService.isServing()) {
+    while (!clientService.isServing() || !restClientService.isRunning()) {
       sleepUninterruptibly(100, MILLISECONDS);
     }
 
     // The manager is fully initialized. Clients are allowed to connect now.
     managerInitialized.set(true);
 
-    while (clientService.isServing()) {
+    while (clientService.isServing() && restClientService.isRunning()) {
       sleepUninterruptibly(500, MILLISECONDS);
     }
     log.info("Shutting down fate.");
@@ -1865,5 +1908,35 @@ public class Manager extends AbstractServer
     var fateRefs = this.fateRefs.get();
     Preconditions.checkState(fateRefs != null, "Unexpected null fate references map");
     return fateRefs;
+  }
+
+  public static class ManagerFactory extends AbstractBinder implements Factory<Manager> {
+
+    private final Manager manager;
+
+    public ManagerFactory(Manager manager) {
+      this.manager = manager;
+    }
+
+    @Override
+    public Manager provide() {
+      return manager;
+    }
+
+    @Override
+    public void dispose(Manager instance) {}
+
+    @Override
+    protected void configure() {
+      bindFactory(this).to(Manager.class).in(Singleton.class);
+    }
+  }
+
+  private ServletHolder getRestServlet() {
+    final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.manager.http.rest")
+        .register(new ManagerFactory(this))
+        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getName())))
+        .register(JacksonFeature.class);
+    return new ServletHolder(new ServletContainer(rc));
   }
 }
