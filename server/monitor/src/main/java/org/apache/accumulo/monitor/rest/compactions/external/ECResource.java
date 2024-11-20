@@ -60,7 +60,7 @@ public class ECResource {
   @Path("running")
   @GET
   public RunningCompactions getRunning() {
-    return monitor.getRunnningCompactions();
+    return monitor.getRunningCompactions();
   }
 
   @Path("details")
