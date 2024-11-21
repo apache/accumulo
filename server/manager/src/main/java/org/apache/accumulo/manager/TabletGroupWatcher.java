@@ -400,12 +400,21 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     var tServersSnapshot = manager.tserversSnapshot();
 
-    return new TabletManagementParameters(manager.getManagerState(), parentLevelUpgrade,
-        manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
-        store.getLevel(), manager.getCompactionHints(store.getLevel()), canSuspendTablets(),
-        lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
-            : Map.of(),
-        manager.getSteadyTime());
+    var tabletMgmtParams =
+        new TabletManagementParameters(manager.getManagerState(), parentLevelUpgrade,
+            manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
+            store.getLevel(), manager.getCompactionHints(store.getLevel()), canSuspendTablets(),
+            lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
+                : Map.of(),
+            manager.getSteadyTime());
+
+    if (LOG.isTraceEnabled()) {
+      // Log the json that will be passed to iterators to make tablet filtering decisions.
+      LOG.trace("{}:{}", TabletManagementParameters.class.getSimpleName(),
+          tabletMgmtParams.serialize());
+    }
+
+    return tabletMgmtParams;
   }
 
   private Set<TServerInstance> getFilteredServersToShutdown() {
