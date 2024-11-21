@@ -106,7 +106,8 @@ public class ZooSession {
    * @param auth authentication-scheme-specific token, may be null
    * @param watcher ZK notifications, may be null
    */
-  static ZooKeeper connect(String connectString, int timeout, String scheme, byte[] auth, Watcher watcher) {
+  static ZooKeeper connect(String connectString, int timeout, String scheme, byte[] auth,
+      Watcher watcher) {
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
     int connectTimeWait = Math.min(10_000, timeout);
     boolean tryAgain = true;
