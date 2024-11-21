@@ -49,8 +49,8 @@ public class ZooReaderWriter extends ZooReader {
   private final String secret;
   private final byte[] auth;
 
-  ZooReaderWriter(String keepers, int timeoutInMillis, String secret) {
-    super(keepers, timeoutInMillis);
+  ZooReaderWriter(String connectString, int timeoutInMillis, String secret) {
+    super(connectString, timeoutInMillis);
     this.secret = requireNonNull(secret);
     this.auth = ("accumulo:" + secret).getBytes(UTF_8);
   }
@@ -65,7 +65,7 @@ public class ZooReaderWriter extends ZooReader {
 
   @Override
   public ZooKeeper getZooKeeper() {
-    return ZooSession.getAuthenticatedSession(keepers, timeout, "digest", auth);
+    return ZooSession.getAuthenticatedSession(connectString, timeout, "digest", auth);
   }
 
   /**
