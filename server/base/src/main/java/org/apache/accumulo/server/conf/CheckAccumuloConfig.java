@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -28,21 +27,13 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
 
 @AutoService(KeywordExecutable.class)
 public class CheckAccumuloConfig implements KeywordExecutable {
 
   public static void main(String[] args) {
     var hadoopConfig = new Configuration();
-    SiteConfiguration siteConfig;
-    if (args.length == 0) {
-      siteConfig = SiteConfiguration.auto();
-    } else {
-      Preconditions.checkArgument(args.length == 1, "Expected 1 argument, got " + args.length);
-      String filePath = args[0];
-      siteConfig = SiteConfiguration.fromFile(new File(filePath)).build();
-    }
+    var siteConfig = SiteConfiguration.auto();
 
     try {
       VolumeManagerImpl.get(siteConfig, hadoopConfig);
