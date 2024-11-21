@@ -21,13 +21,13 @@ package org.apache.accumulo.server.conf;
 import java.io.File;
 import java.io.IOException;
 
-import com.google.auto.service.AutoService;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 
+import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 
 @AutoService(KeywordExecutable.class)
