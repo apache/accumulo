@@ -37,6 +37,7 @@ public class MetricsDocGen {
 
   void generate() {
     pageHeader();
+    generateTableOfContents();
 
     for (var category : Metric.MetricCategory.values()) {
       generateCategorySection(category, category.getSectionTitle());
@@ -54,8 +55,18 @@ public class MetricsDocGen {
     doc.println("Below are the metrics used to monitor various components of Accumulo.\n");
   }
 
+  void generateTableOfContents() {
+    doc.println("## Table of Contents\n");
+    for (var category : Metric.MetricCategory.values()) {
+      String sectionId = generateSectionId(category.getSectionTitle());
+      doc.println("- [" + category.getSectionTitle() + "](#" + sectionId + ")");
+    }
+    doc.println();
+  }
+
   void generateCategorySection(Metric.MetricCategory category, String sectionTitle) {
-    beginSection(sectionTitle);
+    String sectionId = generateSectionId(sectionTitle);
+    beginSection(sectionTitle, sectionId);
 
     // Enable block-level HTML parsing
     doc.println("{::options parse_block_html=\"true\" /}");
@@ -70,10 +81,17 @@ public class MetricsDocGen {
     doc.println("{::options parse_block_html=\"false\" /}\n");
   }
 
-  void beginSection(String sectionTitle) {
-    doc.println("\n## " + sectionTitle + "\n");
+  /**
+   * Starts a new section in the documentation. In this case a section is a category of metrics.
+   * Adds an anchor to the section title so we can link to it.
+   */
+  void beginSection(String sectionTitle, String sectionId) {
+    doc.println("\n## <a id=\"" + sectionId + "\"></a>" + sectionTitle + "\n");
   }
 
+  /**
+   * Generates a subsection for a metric. This includes the metric name, type, and description.
+   */
   void generateMetricSubsection(Metric metric) {
     // Open the div block with markdown enabled
     doc.println("<div markdown=\"1\" class=\"metric-section\">");
@@ -84,6 +102,14 @@ public class MetricsDocGen {
     doc.println("**Description:** " + metric.getDescription());
 
     doc.println("</div>");
+  }
+
+  /**
+   * Generates a section ID from a section title. This is used to create anchors for linking to
+   * sections.
+   */
+  String generateSectionId(String sectionTitle) {
+    return sectionTitle.toLowerCase().replace(" ", "-").replace(".", "");
   }
 
   private MetricsDocGen(PrintStream doc) {
