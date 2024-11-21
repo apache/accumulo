@@ -18,34 +18,53 @@
  */
 package org.apache.accumulo.server.conf;
 
-import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.start.spi.KeywordExecutable;
+import java.io.File;
+import java.io.IOException;
 
 import com.google.auto.service.AutoService;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.server.ServerDirs;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.hadoop.conf.Configuration;
+
+import com.google.common.base.Preconditions;
 
 @AutoService(KeywordExecutable.class)
-public class CheckServerConfig implements KeywordExecutable {
+public class CheckAccumuloConfig implements KeywordExecutable {
 
   public static void main(String[] args) {
-    try (var context = new ServerContext(SiteConfiguration.auto())) {
-      context.getConfiguration();
+    var hadoopConfig = new Configuration();
+    SiteConfiguration siteConfig;
+    if (args.length == 0) {
+      siteConfig = SiteConfiguration.auto();
+    } else {
+      Preconditions.checkArgument(args.length == 1, "Expected 1 argument, got " + args.length);
+      String filePath = args[0];
+      siteConfig = SiteConfiguration.fromFile(new File(filePath)).build();
     }
+
+    try {
+      VolumeManagerImpl.get(siteConfig, hadoopConfig);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+    new ServerDirs(siteConfig, hadoopConfig);
   }
 
   @Override
   public String keyword() {
-    return "check-server-config";
+    return "check-accumulo-config";
   }
 
   @Override
   public String description() {
-    return "Checks server config";
+    return "Checks Accumulo configuration. Optionally provide the file path. Otherwise, will "
+        + "attempt to find and check the config file";
   }
 
   @Override
-  public void execute(String[] args) {
+  public void execute(String[] args) throws Exception {
     main(args);
   }
-
 }
