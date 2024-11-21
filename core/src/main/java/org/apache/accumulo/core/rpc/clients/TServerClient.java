@@ -95,12 +95,12 @@ public interface TServerClient<C extends TServiceClient> {
           context.getServerPaths().getTabletServer(rg -> true, AddressSelector.exact(hp), true));
     } else {
       serverPaths.addAll(
-          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true));
+          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), false));
       if (type == ThriftClientTypes.CLIENT) {
-        serverPaths
-            .addAll(context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true));
         serverPaths.addAll(
-            context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true));
+            context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), false));
+        serverPaths.addAll(
+            context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), false));
       }
       if (serverPaths.isEmpty()) {
         if (warned.compareAndSet(false, true)) {

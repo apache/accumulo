@@ -476,7 +476,7 @@ public class AdminUtil<T> {
           case FAILED_IN_PROGRESS:
           case SUCCESSFUL:
             System.out.printf("Deleting transaction: %s (%s)%n", fateIdStr, ts);
-            txStore.delete();
+            txStore.forceDelete();
             state = true;
             break;
         }

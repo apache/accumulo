@@ -190,7 +190,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           // not serving tablet, so report all mutations as
           // failures
           us.failures.put(keyExtent, 0L);
-          server.updateMetrics.addUnknownTabletErrors(0);
+          server.updateMetrics.addUnknownTabletErrors(1);
         }
       } else {
         log.warn("Denying access to table {} for user {}", keyExtent.tableId(), us.getUser());
@@ -198,7 +198,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = null;
         us.authFailures.put(keyExtent, SecurityErrorCode.PERMISSION_DENIED);
-        server.updateMetrics.addPermissionErrors(0);
+        server.updateMetrics.addPermissionErrors(1);
       }
     } catch (TableNotFoundException tnfe) {
       log.error("Table " + tableId + " not found ", tnfe);
@@ -206,7 +206,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       us.authTimes.addStat(t2 - t1);
       us.currentTablet = null;
       us.authFailures.put(keyExtent, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      server.updateMetrics.addUnknownTabletErrors(0);
+      server.updateMetrics.addUnknownTabletErrors(1);
     } catch (ThriftSecurityException e) {
       log.error("Denying permission to check user " + us.getUser() + " with user " + e.getUser(),
           e);
@@ -214,7 +214,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       us.authTimes.addStat(t2 - t1);
       us.currentTablet = null;
       us.authFailures.put(keyExtent, e.getCode());
-      server.updateMetrics.addPermissionErrors(0);
+      server.updateMetrics.addPermissionErrors(1);
     }
   }
 
@@ -282,6 +282,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       server.resourceManager.waitUntilCommitsAreEnabled();
     }
 
+    int preppedMutations = 0;
+    int sendableMutations = 0;
+
     Span span = TraceUtil.startSpan(this.getClass(), "flush::prep");
     try (Scope scope = span.makeCurrent()) {
       for (Entry<Tablet,? extends List<Mutation>> entry : us.queuedMutations.entrySet()) {
@@ -291,6 +294,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
             DurabilityImpl.resolveDurabilty(us.durability, tablet.getDurability());
         List<Mutation> mutations = entry.getValue();
         if (!mutations.isEmpty()) {
+          preppedMutations += mutations.size();
           try {
             server.updateMetrics.addMutationArraySize(mutations.size());
 
@@ -309,11 +313,12 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
                   loggables.put(session, new TabletMutations(session, validMutations, durability));
                 }
                 sendables.put(session, validMutations);
+                sendableMutations += validMutations.size();
               }
 
               if (!prepared.getViolations().isEmpty()) {
                 us.violations.add(prepared.getViolations());
-                server.updateMetrics.addConstraintViolations(0);
+                server.updateMetrics.addConstraintViolations(1);
               }
               // Use the size of the original mutation list, regardless of how many mutations
               // did not violate constraints.
@@ -337,7 +342,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     long pt2 = System.currentTimeMillis();
     us.prepareTimes.addStat(pt2 - pt1);
-    updateAvgPrepTime(pt2 - pt1, us.queuedMutations.size());
+    updateAvgPrepTime(pt2 - pt1, preppedMutations);
 
     if (error != null) {
       sendables.forEach((commitSession, value) -> commitSession.abortCommit());
@@ -392,7 +397,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         us.flushTime += (t2 - pt1);
         us.commitTimes.addStat(t2 - t1);
 
-        updateAvgCommitTime(t2 - t1, sendables.size());
+        updateAvgCommitTime(t2 - t1, sendableMutations);
       } finally {
         span3.end();
       }
@@ -405,6 +410,18 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       us.queuedMutationSize = 0;
     }
     us.totalUpdates += mutationCount;
+  }
+
+  private void updateAverageLockTime(long time, TimeUnit unit, int size) {
+    if (size > 0) {
+      server.updateMetrics.addLockTime((long) (time / (double) size), unit);
+    }
+  }
+
+  private void updateAverageCheckTime(long time, TimeUnit unit, int size) {
+    if (size > 0) {
+      server.updateMetrics.addCheckTime((long) (time / (double) size), unit);
+    }
   }
 
   private void updateWalogWriteTime(long time) {
@@ -559,6 +576,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     boolean sessionCanceled = sess.interruptFlag.get();
 
     Span span = TraceUtil.startSpan(this.getClass(), "writeConditionalMutations::prep");
+    int preppedMutions = 0;
+    int sendableMutations = 0;
     try (Scope scope = span.makeCurrent()) {
       long t1 = System.currentTimeMillis();
       for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : es) {
@@ -570,6 +589,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
               DurabilityImpl.resolveDurabilty(sess.durability, tablet.getDurability());
 
           List<Mutation> mutations = Collections.unmodifiableList(entry.getValue());
+          preppedMutions += mutations.size();
           if (!mutations.isEmpty()) {
 
             PreparedMutations prepared = tablet.prepareMutationsForCommit(
@@ -587,6 +607,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
                   loggables.put(session, new TabletMutations(session, validMutations, durability));
                 }
                 sendables.put(session, validMutations);
+                sendableMutations += validMutations.size();
               }
 
               if (!prepared.getViolators().isEmpty()) {
@@ -598,7 +619,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       }
 
       long t2 = System.currentTimeMillis();
-      updateAvgPrepTime(t2 - t1, es.size());
+      updateAvgPrepTime(t2 - t1, preppedMutions);
     } catch (Exception e) {
       TraceUtil.setException(span, e, true);
       throw e;
@@ -636,7 +657,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       long t1 = System.currentTimeMillis();
       sendables.forEach(CommitSession::commit);
       long t2 = System.currentTimeMillis();
-      updateAvgCommitTime(t2 - t1, sendables.size());
+      updateAvgCommitTime(t2 - t1, sendableMutations);
     } catch (Exception e) {
       TraceUtil.setException(span3, e, true);
       throw e;
@@ -661,7 +682,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       List<String> symbols) throws IOException {
     // sort each list of mutations, this is done to avoid deadlock and doing seeks in order is
     // more efficient and detect duplicate rows.
-    ConditionalMutationSet.sortConditionalMutations(updates);
+    int numMutations = ConditionalMutationSet.sortConditionalMutations(updates);
 
     Map<KeyExtent,List<ServerConditionalMutation>> deferred = new HashMap<>();
 
@@ -670,11 +691,17 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     ConditionalMutationSet.deferDuplicatesRows(updates, deferred);
 
     // get as many locks as possible w/o blocking... defer any rows that are locked
+    long lt1 = System.nanoTime();
     List<RowLock> locks = rowLocks.acquireRowlocks(updates, deferred);
+    long lt2 = System.nanoTime();
+    updateAverageLockTime(lt2 - lt1, TimeUnit.NANOSECONDS, numMutations);
     try {
       Span span = TraceUtil.startSpan(this.getClass(), "conditionalUpdate::Check conditions");
       try (Scope scope = span.makeCurrent()) {
+        long t1 = System.nanoTime();
         checkConditions(updates, results, cs, symbols);
+        long t2 = System.nanoTime();
+        updateAverageCheckTime(t2 - t1, TimeUnit.NANOSECONDS, numMutations);
       } catch (Exception e) {
         TraceUtil.setException(span, e, true);
         throw e;

@@ -23,8 +23,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -50,6 +50,8 @@ public class Splitter {
   private static final Logger LOG = LoggerFactory.getLogger(Splitter.class);
 
   private final ThreadPoolExecutor splitExecutor;
+  // tracks which tablets are queued in splitExecutor
+  private final Set<Text> queuedTablets = ConcurrentHashMap.newKeySet();
 
   public static class FileInfo {
     final Text firstRow;
@@ -151,17 +153,10 @@ public class Splitter {
 
   public Splitter(ServerContext context) {
     int numThreads = context.getConfiguration().getCount(Property.MANAGER_SPLIT_WORKER_THREADS);
-    // Set up thread pool that constrains the amount of task it queues and when full discards task.
-    // The purpose of this is to avoid reading lots of data into memory if lots of tablets need to
-    // split.
-    BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(10000);
+
     this.splitExecutor = context.threadPools().getPoolBuilder("split_seeder")
         .numCoreThreads(numThreads).numMaxThreads(numThreads).withTimeOut(0L, TimeUnit.MILLISECONDS)
-        .withQueue(queue).enableThreadPoolMetrics().build();
-
-    // Discard task when the queue is full, this allows the TGW to continue processing task other
-    // than splits.
-    this.splitExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
+        .enableThreadPoolMetrics().build();
 
     Weigher<CacheKey,
         FileInfo> weigher = (key, info) -> key.tableId.canonical().length()
@@ -191,6 +186,29 @@ public class Splitter {
   }
 
   public void initiateSplit(SeedSplitTask seedSplitTask) {
-    splitExecutor.execute(seedSplitTask);
+    // Want to avoid queuing the same tablet multiple times, it would not cause bugs but would waste
+    // work. Use the metadata row to identify a tablet because the KeyExtent also includes the prev
+    // end row which may change when splits happen. The metaRow is conceptually tableId+endRow and
+    // that does not change for a split.
+    Text metaRow = seedSplitTask.getExtent().toMetaRow();
+    int qsize = queuedTablets.size();
+    if (qsize < 10_000 && queuedTablets.add(metaRow)) {
+      Runnable taskWrapper = () -> {
+        try {
+          seedSplitTask.run();
+        } finally {
+          queuedTablets.remove(metaRow);
+        }
+      };
+
+      try {
+        splitExecutor.execute(taskWrapper);
+      } catch (RejectedExecutionException rje) {
+        queuedTablets.remove(metaRow);
+        throw rje;
+      }
+    } else {
+      LOG.trace("Did not add {} to split queue {}", metaRow, qsize);
+    }
   }
 }

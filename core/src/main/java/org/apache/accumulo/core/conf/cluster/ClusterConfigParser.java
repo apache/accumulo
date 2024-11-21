@@ -29,34 +29,49 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
+
+import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClusterConfigParser {
 
+  private static final Pattern GROUP_NAME_PATTERN =
+      Pattern.compile("^[a-zA-Z_]{1,}[a-zA-Z0-9_]{0,}$");
+
+  public static void validateGroupNames(List<String> names) {
+    for (String name : names) {
+      if (!GROUP_NAME_PATTERN.matcher(name).matches()) {
+        throw new RuntimeException("Group name: " + name + " contains invalid characters");
+      }
+    }
+  }
+
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String COMPACTOR_PREFIX = "compactor.";
-  private static final String COMPACTORS_PER_HOST_PREFIX = "compactors_per_host.";
   private static final String GC_KEY = "gc";
   private static final String MANAGER_KEY = "manager";
   private static final String MONITOR_KEY = "monitor";
   private static final String SSERVER_PREFIX = "sserver.";
-  private static final String SSERVERS_PER_HOST_PREFIX = "sservers_per_host.";
   private static final String TSERVER_PREFIX = "tserver.";
-  private static final String TSERVERS_PER_HOST_KEY = "tservers_per_host";
+
+  private static final String HOSTS_SUFFIX = ".hosts";
+  private static final String SERVERS_PER_HOST_SUFFIX = ".servers_per_host";
 
   private static final String[] UNGROUPED_SECTIONS =
       new String[] {MANAGER_KEY, MONITOR_KEY, GC_KEY};
 
-  private static final Set<String> VALID_CONFIG_KEYS =
-      Set.of(MANAGER_KEY, MONITOR_KEY, GC_KEY, TSERVERS_PER_HOST_KEY);
+  private static final Set<String> VALID_CONFIG_KEYS = Set.of(MANAGER_KEY, MONITOR_KEY, GC_KEY);
 
-  private static final Set<String> VALID_CONFIG_PREFIXES = Set.of(COMPACTOR_PREFIX, SSERVER_PREFIX,
-      TSERVER_PREFIX, SSERVERS_PER_HOST_PREFIX, COMPACTORS_PER_HOST_PREFIX);
+  private static final Set<String> VALID_CONFIG_PREFIXES =
+      Set.of(COMPACTOR_PREFIX, SSERVER_PREFIX, TSERVER_PREFIX);
 
   private static final Predicate<String> VALID_CONFIG_SECTIONS =
       section -> VALID_CONFIG_KEYS.contains(section)
@@ -105,6 +120,30 @@ public class ClusterConfigParser {
     }
   }
 
+  private static List<String> parseGroup(Map<String,String> config, String prefix) {
+    Preconditions.checkArgument(prefix.equals(COMPACTOR_PREFIX) || prefix.equals(SSERVER_PREFIX)
+        || prefix.equals(TSERVER_PREFIX));
+    List<String> groups = config.keySet().stream().filter(k -> k.startsWith(prefix)).map(k -> {
+      int periods = StringUtils.countMatches(k, '.');
+      if (periods == 1) {
+        return k.substring(prefix.length());
+      } else if (periods == 2) {
+        if (k.endsWith(HOSTS_SUFFIX)) {
+          return k.substring(prefix.length(), k.indexOf(HOSTS_SUFFIX));
+        } else if (k.endsWith(SERVERS_PER_HOST_SUFFIX)) {
+          return k.substring(prefix.length(), k.indexOf(SERVERS_PER_HOST_SUFFIX));
+        } else {
+          throw new IllegalArgumentException("Unknown group suffix for: " + k + ". Only "
+              + HOSTS_SUFFIX + " or " + SERVERS_PER_HOST_SUFFIX + " are allowed.");
+        }
+      } else {
+        throw new IllegalArgumentException("Malformed configuration, has too many levels: " + k);
+      }
+    }).sorted().distinct().collect(Collectors.toList());
+    validateGroupNames(groups);
+    return groups;
+  }
+
   public static void outputShellVariables(Map<String,String> config, PrintStream out) {
 
     // find invalid config sections and point the user to the first one
@@ -124,47 +163,55 @@ public class ClusterConfigParser {
       }
     }
 
-    List<String> compactorGroups =
-        config.keySet().stream().filter(k -> k.startsWith(COMPACTOR_PREFIX))
-            .map(k -> k.substring(COMPACTOR_PREFIX.length())).sorted().collect(Collectors.toList());
-
+    List<String> compactorGroups = parseGroup(config, COMPACTOR_PREFIX);
+    if (compactorGroups.isEmpty()) {
+      throw new IllegalArgumentException(
+          "No compactor groups found, at least one compactor group is required to compact the system tables.");
+    }
     if (!compactorGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "COMPACTOR_GROUPS",
           compactorGroups.stream().collect(Collectors.joining(" ")));
       for (String group : compactorGroups) {
         out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + group,
-            config.get(COMPACTOR_PREFIX + group));
-        String numCompactors = config.getOrDefault("compactors_per_host." + group, "1");
-        out.printf(PROPERTY_FORMAT, "NUM_COMPACTORS_" + group, numCompactors);
+            config.get(COMPACTOR_PREFIX + group + HOSTS_SUFFIX));
+        String numCompactors =
+            config.getOrDefault(COMPACTOR_PREFIX + group + SERVERS_PER_HOST_SUFFIX, "1");
+        out.printf(PROPERTY_FORMAT, "COMPACTORS_PER_HOST_" + group, numCompactors);
       }
     }
 
-    List<String> sserverGroups = config.keySet().stream().filter(k -> k.startsWith(SSERVER_PREFIX))
-        .map(k -> k.substring(SSERVER_PREFIX.length())).sorted().collect(Collectors.toList());
-
+    List<String> sserverGroups = parseGroup(config, SSERVER_PREFIX);
     if (!sserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS",
           sserverGroups.stream().collect(Collectors.joining(" ")));
       sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS_" + ssg,
-          config.get(SSERVER_PREFIX + ssg)));
-      sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "NUM_SSERVERS_" + ssg,
-          config.getOrDefault("sservers_per_host." + ssg, "1")));
-
+          config.get(SSERVER_PREFIX + ssg + HOSTS_SUFFIX)));
+      sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVERS_PER_HOST_" + ssg,
+          config.getOrDefault(SSERVER_PREFIX + ssg + SERVERS_PER_HOST_SUFFIX, "1")));
     }
 
-    List<String> tserverGroups = config.keySet().stream().filter(k -> k.startsWith(TSERVER_PREFIX))
-        .map(k -> k.substring(TSERVER_PREFIX.length())).sorted().collect(Collectors.toList());
-
+    List<String> tserverGroups = parseGroup(config, TSERVER_PREFIX);
+    if (tserverGroups.isEmpty()) {
+      throw new IllegalArgumentException(
+          "No tserver groups found, at least one tserver group is required to host the system tables.");
+    }
+    AtomicBoolean foundTServer = new AtomicBoolean(false);
     if (!tserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "TSERVER_GROUPS",
           tserverGroups.stream().collect(Collectors.joining(" ")));
-      tserverGroups.forEach(tsg -> out.printf(PROPERTY_FORMAT, "TSERVER_HOSTS_" + tsg,
-          config.get(TSERVER_PREFIX + tsg)));
+      tserverGroups.forEach(tsg -> {
+        String hosts = config.get(TSERVER_PREFIX + tsg + HOSTS_SUFFIX);
+        foundTServer.compareAndSet(false, hosts != null && !hosts.isEmpty());
+        out.printf(PROPERTY_FORMAT, "TSERVER_HOSTS_" + tsg, hosts);
+      });
+      tserverGroups.forEach(tsg -> out.printf(PROPERTY_FORMAT, "TSERVERS_PER_HOST_" + tsg,
+          config.getOrDefault(TSERVER_PREFIX + tsg + SERVERS_PER_HOST_SUFFIX, "1")));
     }
 
-    String numTservers = config.getOrDefault("tservers_per_host", "1");
-    out.print("NUM_TSERVERS=\"${NUM_TSERVERS:=" + numTservers + "}\"\n");
-
+    if (!foundTServer.get()) {
+      throw new IllegalArgumentException(
+          "Tablet Server group found, but no hosts. Check the format of your cluster.yaml file.");
+    }
     out.flush();
   }
 
@@ -176,14 +223,19 @@ public class ClusterConfigParser {
       System.exit(1);
     }
 
-    if (args.length == 2) {
-      // Write to a file instead of System.out if provided as an argument
-      try (OutputStream os = Files.newOutputStream(Paths.get(args[1]), StandardOpenOption.CREATE);
-          PrintStream out = new PrintStream(os)) {
-        outputShellVariables(parseConfiguration(args[0]), new PrintStream(out));
+    try {
+      if (args.length == 2) {
+        // Write to a file instead of System.out if provided as an argument
+        try (OutputStream os = Files.newOutputStream(Paths.get(args[1]), StandardOpenOption.CREATE);
+            PrintStream out = new PrintStream(os)) {
+          outputShellVariables(parseConfiguration(args[0]), new PrintStream(out));
+        }
+      } else {
+        outputShellVariables(parseConfiguration(args[0]), System.out);
       }
-    } else {
-      outputShellVariables(parseConfiguration(args[0]), System.out);
+    } catch (Exception e) {
+      System.err.println("Processing error: " + e.getMessage());
+      System.exit(1);
     }
   }
 

@@ -18,22 +18,30 @@
  */
 package org.apache.accumulo.core.lock;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
+import org.apache.accumulo.core.util.threads.ThreadPoolNames;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * Class for creating and retrieving ServiceLockPath objects
@@ -175,10 +183,14 @@ public class ServiceLockPaths {
 
   }
 
+  private final ExecutorService fetchExectuor;
+
   private final ClientContext ctx;
 
   public ServiceLockPaths(ClientContext context) {
     this.ctx = context;
+    this.fetchExectuor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(ThreadPoolNames.SERVICE_LOCK_POOL).numCoreThreads(16).build();
   }
 
   private static String determineServerType(final String path) {
@@ -335,6 +347,11 @@ public class ServiceLockPaths {
     }
   }
 
+  /**
+   * Note that the ServiceLockPath object returned by this method does not populate the server
+   * attribute. To get the location of the GarbageCollector you will need to parse the lock data at
+   * the ZooKeeper path.
+   */
   public ServiceLockPath getMonitor(boolean withLock) {
     Set<ServiceLockPath> results =
         get(Constants.ZMONITOR_LOCK, rg -> true, AddressSelector.all(), withLock);
@@ -423,7 +440,7 @@ public class ServiceLockPaths {
     Objects.requireNonNull(resourceGroupPredicate);
     Objects.requireNonNull(addressSelector);
 
-    final Set<ServiceLockPath> results = new HashSet<>();
+    final Set<ServiceLockPath> results = ConcurrentHashMap.newKeySet();
     final String typePath = ctx.getZooKeeperRoot() + serverType;
     final ZooCache cache = ctx.getZooCache();
 
@@ -462,6 +479,12 @@ public class ServiceLockPaths {
             addressPredicate = addressSelector.getPredicate();
           }
 
+          // For lots of servers use a thread pool and for a small number of servers use this
+          // thread.
+          Executor executor = servers.size() > 64 ? fetchExectuor : MoreExecutors.directExecutor();
+
+          List<Future<?>> futures = new ArrayList<>();
+
           for (final String server : servers) {
             if (addressPredicate.test(server)) {
               final ServiceLockPath slp =
@@ -470,12 +493,30 @@ public class ServiceLockPaths {
                 // Dead TServers don't have lock data
                 results.add(slp);
               } else {
-                final ZcStat stat = new ZcStat();
-                Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
-                if (!sld.isEmpty()) {
-                  results.add(slp);
-                }
+                // Execute reads to zookeeper to get lock info in parallel. The zookeeper client
+                // has a single shared connection to a server so this will not create lots of
+                // connections, it will place multiple outgoing request on that single zookeeper
+                // connection at the same time though.
+                var futureTask = new FutureTask<>(() -> {
+                  final ZcStat stat = new ZcStat();
+                  Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
+                  if (sld.isPresent()) {
+                    results.add(slp);
+                  }
+                  return null;
+                });
+                executor.execute(futureTask);
+                futures.add(futureTask);
               }
+            }
+          }
+
+          // wait for futures to complete and check for errors
+          for (var future : futures) {
+            try {
+              future.get();
+            } catch (InterruptedException | ExecutionException e) {
+              throw new IllegalStateException(e);
             }
           }
         }

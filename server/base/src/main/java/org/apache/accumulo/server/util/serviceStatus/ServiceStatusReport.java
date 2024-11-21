@@ -96,7 +96,6 @@ public class ServiceStatusReport {
     fmtResourceGroups(sb, ReportKey.GC, summaries.get(ReportKey.GC), noHosts);
     fmtResourceGroups(sb, ReportKey.T_SERVER, summaries.get(ReportKey.T_SERVER), noHosts);
     fmtResourceGroups(sb, ReportKey.S_SERVER, summaries.get(ReportKey.S_SERVER), noHosts);
-    fmtResourceGroups(sb, ReportKey.COORDINATOR, summaries.get(ReportKey.COORDINATOR), noHosts);
     fmtResourceGroups(sb, ReportKey.COMPACTOR, summaries.get(ReportKey.COMPACTOR), noHosts);
 
     sb.append("\n");
@@ -185,7 +184,6 @@ public class ServiceStatusReport {
 
   public enum ReportKey {
     COMPACTOR("Compactors"),
-    COORDINATOR("Coordinators"),
     GC("Garbage Collectors"),
     MANAGER("Managers"),
     MONITOR("Monitors"),

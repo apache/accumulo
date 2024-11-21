@@ -23,8 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
@@ -149,8 +151,9 @@ public class ValidatorsTest {
   public void test_VALID_TABLE_ID() {
     Validator<TableId> v = Validators.VALID_TABLE_ID;
     checkNull(v::validate);
-    assertAllValidate(v, List.of(AccumuloTable.ROOT.tableId(), AccumuloTable.METADATA.tableId(),
-        TableId.of("111"), TableId.of("aaaa"), TableId.of("r2d2")));
+    assertAllValidate(v, Arrays.stream(AccumuloTable.values()).map(AccumuloTable::tableId)
+        .collect(Collectors.toList()));
+    assertAllValidate(v, List.of(TableId.of("111"), TableId.of("aaaa"), TableId.of("r2d2")));
     assertAllThrow(v, List.of(TableId.of(""), TableId.of("#0(U!$"), TableId.of(" #0(U!$. "),
         TableId.of("."), TableId.of(" "), TableId.of("C3P0")));
   }
