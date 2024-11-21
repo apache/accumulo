@@ -51,7 +51,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.Fate;
@@ -68,7 +67,6 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
@@ -79,7 +77,6 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.hadoop.conf.Configuration;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -90,12 +87,6 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(3);
-  }
-
-  @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    // Keeps sleep time low after initiating the shutdown for the manager
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT.getKey(), "10s");
   }
 
   @BeforeEach
@@ -301,7 +292,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
     }
 
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -329,7 +320,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
             "Fate ID Filters: [" + fateId2.canonical() + ", " + fateId1.canonical() + "]"));
     assertTrue(result.contains("Instance Types Filters: [" + store.type().name() + "]"));
 
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -431,7 +422,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       assertTrue(fateIdsFromResult.isEmpty());
     }
 
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -532,7 +523,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertEquals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW"),
         fateIdsFromSummary);
 
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -574,7 +565,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
 
     // Finish work and shutdown
     env.workersLatch.countDown();
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -609,7 +600,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
         || fateIdsFromSummary
             .equals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW")));
 
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -651,7 +642,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
 
     // Finish work and shutdown
     env.workersLatch.countDown();
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -683,7 +674,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     fateIdsFromSummary = getFateIdsFromSummary();
     assertEquals(Map.of(fateId2.canonical(), "NEW"), fateIdsFromSummary);
 
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -882,8 +873,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
    * from Manager to keep our test env separate from Manager. Admin uses the real fate data
    * locations, so our test must also use the real locations.
    */
-  protected void stopManager() throws InterruptedException, IOException {
+  protected void stopManager() throws IOException {
     getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
-    Thread.sleep(20_000);
   }
 }

@@ -98,6 +98,7 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.tables.TableMap;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -377,12 +378,16 @@ public class Admin implements KeywordExecutable {
   class AdminLockWatcher implements ServiceLock.AccumuloLockWatcher {
     @Override
     public void lostLock(ServiceLock.LockLossReason reason) {
-      log.warn("Lost lock: " + reason.toString());
+      String msg = "Admin lost lock: " + reason.toString();
+      log.warn(msg);
+      Halt.halt(msg, 1);
     }
 
     @Override
     public void unableToMonitorLockNode(Exception e) {
-      log.warn("Unable to monitor lock: " + e.getMessage());
+      String msg = "Admin unable to monitor lock: " + e.getMessage();
+      log.warn(msg);
+      Halt.halt(msg, 1);
     }
 
     @Override
@@ -1021,20 +1026,21 @@ public class Admin implements KeywordExecutable {
     ServiceLock adminLock = new ServiceLock(context.getZooReaderWriter().getZooKeeper(), slp, uuid);
     AdminLockWatcher lw = new AdminLockWatcher();
     ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
-    descriptors.addService(new ServiceLockData.ServiceDescriptor(uuid,
-        ServiceLockData.ThriftService.NONE, "localhost", Constants.DEFAULT_RESOURCE_GROUP_NAME));
+    descriptors
+        .addService(new ServiceLockData.ServiceDescriptor(uuid, ServiceLockData.ThriftService.NONE,
+            "fake_admin_util_host", Constants.DEFAULT_RESOURCE_GROUP_NAME));
     ServiceLockData sld = new ServiceLockData(descriptors);
     String lockPath = slp.toString();
-    String parentLockPath = lockPath.substring(0, lockPath.indexOf("/lock"));
+    String parentLockPath = lockPath.substring(0, lockPath.lastIndexOf("/"));
 
     try {
       if (zk.exists(parentLockPath, false) == null) {
         zk.create(parentLockPath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
-        log.info("Created: {}", parentLockPath);
+        log.info("Created: {} in ZooKeeper", parentLockPath);
       }
       if (zk.exists(lockPath, false) == null) {
         zk.create(lockPath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
-        log.info("Created: {}", lockPath);
+        log.info("Created: {} in ZooKeeper", lockPath);
       }
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Error creating path in ZooKeeper", e);

@@ -68,11 +68,12 @@ public class TestLock {
     ServiceLock lock = new ServiceLock(context.getZooReaderWriter().getZooKeeper(), slp, uuid);
     TestLockWatcher lw = new TestLockWatcher();
     ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
-    descriptors.addService(new ServiceLockData.ServiceDescriptor(uuid,
-        ServiceLockData.ThriftService.NONE, "localhost", Constants.DEFAULT_RESOURCE_GROUP_NAME));
+    descriptors
+        .addService(new ServiceLockData.ServiceDescriptor(uuid, ServiceLockData.ThriftService.NONE,
+            "fake_test_host", Constants.DEFAULT_RESOURCE_GROUP_NAME));
     ServiceLockData sld = new ServiceLockData(descriptors);
     String lockPath = slp.toString();
-    String parentLockPath = lockPath.substring(0, lockPath.indexOf("/lock"));
+    String parentLockPath = lockPath.substring(0, lockPath.lastIndexOf("/"));
 
     try {
       if (zk.exists(parentLockPath, false) == null) {

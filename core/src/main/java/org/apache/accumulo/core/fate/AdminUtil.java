@@ -564,8 +564,8 @@ public class AdminUtil<T> {
       retry.logCompletion(log, "Attempting to reserve " + fateId);
     } else {
       log.error("Could not {} {} in a reasonable time. This indicates the Manager is currently "
-          + "working on {}. If {} {} is still desired, the Manager needs to be stopped and "
-          + "the command needs to be rerun.", op, fateId, fateId, op, fateId);
+          + "working on it. The Manager may need to be stopped and the command rerun to complete "
+          + "this.", op, fateId);
     }
 
     return reserveAttempt;
