@@ -31,13 +31,19 @@ public enum Metric {
       MetricCategory.GENERAL_SERVER),
 
   // Compactor Metrics
+  COMPACTOR_MAJC_IN_PROGRESS("accumulo.compaction.majc.in_progress", MetricType.GAUGE,
+      "Indicator of whether a compaction is in-progress (value: 1) or not (value: 0). An"
+          + " in-progress compaction could also be stuck.",
+      MetricCategory.COMPACTION),
   COMPACTOR_MAJC_STUCK("accumulo.compaction.majc.stuck", MetricType.LONG_TASK_TIMER,
       "Number and duration of stuck major compactions.", MetricCategory.COMPACTION),
+  COMPACTOR_MINC_STUCK("accumulo.compaction.minc.stuck", MetricType.LONG_TASK_TIMER,
+      "Number and duration of stuck minor compactions.", MetricCategory.COMPACTION),
   COMPACTOR_ENTRIES_READ("accumulo.compactor.entries.read", MetricType.FUNCTION_COUNTER,
-      "Number of entries read by all compactions that have run on this compactor.",
+      "Number of entries read by all compactions that have run on this compactor (majc) or tserver (minc).",
       MetricCategory.COMPACTOR),
   COMPACTOR_ENTRIES_WRITTEN("accumulo.compactor.entries.written", MetricType.FUNCTION_COUNTER,
-      "Number of entries written by all compactions that have run on this compactor.",
+      "Number of entries written by all compactions that have run on this compactor (majc) or tserver (minc).",
       MetricCategory.COMPACTOR),
   COMPACTOR_JOB_PRIORITY_QUEUES("accumulo.compaction.queue.count", MetricType.GAUGE,
       "Number of priority queues for compaction jobs.", MetricCategory.COMPACTION),
@@ -188,12 +194,6 @@ public enum Metric {
       "Number of scan threads that have no associated client session.", MetricCategory.SCAN),
 
   // Major Compaction Metrics
-  MAJC_QUEUED("accumulo.compaction.majc.queued", MetricType.GAUGE,
-      "Number of queued major compactions. The compaction service information is in a tag: `id={i|e}_{compactionServiceName}_{executor_name}`.",
-      MetricCategory.COMPACTION),
-  MAJC_RUNNING("accumulo.compaction.majc.running", MetricType.GAUGE,
-      "Number of running major compactions. The compaction service information is in a tag: `id={i|e}_{compactionServiceName}_{executor_name}`.",
-      MetricCategory.COMPACTION),
   MAJC_PAUSED("accumulo.compaction.majc.paused", MetricType.COUNTER,
       "Number of paused major compactions.", MetricCategory.COMPACTOR),
 
