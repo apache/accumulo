@@ -64,12 +64,13 @@ public class LookupTask extends ScanTask<MultiScanResult> {
     MultiScanSession session = (MultiScanSession) server.getSession(scanID);
     String oldThreadName = Thread.currentThread().getName();
 
+    if (!transitionToRunning()) {
+      return;
+    }
+    // Do not add any code here. Need to ensure that transitionFromRunning() runs in the finally
+    // block when transitionToRunning() returns true.
     try {
       if (isCancelled() || session == null) {
-        return;
-      }
-
-      if (!transitionToRunning()) {
         return;
       }
 
