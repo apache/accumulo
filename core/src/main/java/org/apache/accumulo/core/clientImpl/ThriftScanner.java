@@ -980,7 +980,8 @@ public class ThriftScanner {
     if (!scanState.finished && scanState.scanID != null && scanState.prevLoc != null) {
       TInfo tinfo = TraceUtil.traceInfo();
 
-      log.debug("Closing active scan {} {}", scanState.prevLoc, scanState.scanID);
+      log.trace("Closing active scan {} {} {}", scanState.prevLoc.serverType,
+          scanState.prevLoc.serverAddress, scanState.scanID);
       HostAndPort parsedLocation = HostAndPort.fromString(scanState.prevLoc.serverAddress);
       TabletScanClientService.Client client = null;
       try {
