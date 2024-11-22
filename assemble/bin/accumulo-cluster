@@ -574,7 +574,7 @@ function stop_all() {
 
 function stop_here() {
   if echo "${TSERVER_HOSTS}" | grep -Eq 'localhost|127[.]0[.]0[.]1'; then
-    hosts_to_check="localhost";
+    hosts_to_check="localhost"
   else
     # Determine hostname without errors to user
     hosts_to_check=("$(hostname -a 2>/dev/null | head -1)" "$(hostname -f)")
@@ -583,7 +583,7 @@ function stop_here() {
   # Gracefully stop tservers via admin command
   for tserver in "${hosts_to_check[@]}"; do
     if ! isDebug; then
-     echo ${accumulo_cmd} admin stop "$tserver"
+      echo "${accumulo_cmd}" admin stop "$tserver"
     else
       debug "Stopping tservers on $tserver via admin command"
     fi
