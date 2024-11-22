@@ -35,7 +35,7 @@ import org.apache.commons.cli.Options;
 
 public class ListScansCommand extends Command {
 
-  private Option serverOpt, rgOpt, disablePaginationOpt;
+  private Option serverOpt, tserverOption, rgOpt, disablePaginationOpt;
 
   @Override
   public String description() {
@@ -51,9 +51,11 @@ public class ListScansCommand extends Command {
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
     final Set<ServerId> servers = new HashSet<>();
 
-    if (cl.hasOption(serverOpt) || cl.hasOption(rgOpt)) {
-      final var serverPredicate = serverRegexPredicate(cl, serverOpt);
-      final var rgPredicate = rgRegexPredicate(cl, rgOpt);
+    String serverValue =
+        cl.hasOption(serverOpt) ? cl.getOptionValue(serverOpt) : cl.getOptionValue(tserverOption);
+    if (serverValue != null || cl.hasOption(rgOpt)) {
+      final var serverPredicate = serverRegexPredicate(serverValue);
+      final var rgPredicate = rgRegexPredicate(cl.getOptionValue(rgOpt));
       servers
           .addAll(instanceOps.getServers(ServerId.Type.SCAN_SERVER, rgPredicate, serverPredicate));
       servers.addAll(
@@ -81,6 +83,11 @@ public class ListScansCommand extends Command {
     serverOpt.setArgName("tablet/scan server regex");
     opts.addOption(serverOpt);
 
+    // Leaving here for backwards compatibility, same as serverOpt
+    tserverOption = new Option("ts", "tabletServer", true, "tablet/scan server to list scans for");
+    tserverOption.setArgName("tablet server");
+    opts.addOption(tserverOption);
+
     rgOpt = new Option("rg", "resourceGroup", true,
         "tablet/scan server resource group regex to list scans for");
     rgOpt.setArgName("resource group");
@@ -92,16 +99,16 @@ public class ListScansCommand extends Command {
     return opts;
   }
 
-  static BiPredicate<String,Integer> serverRegexPredicate(CommandLine cl, Option serverOpt) {
-    return Optional.ofNullable(cl.getOptionValue(serverOpt))
+  static BiPredicate<String,Integer> serverRegexPredicate(String serverRegex) {
+    return Optional.ofNullable(serverRegex)
         .map(regex -> (BiPredicate<String,
             Integer>) (h, p) -> Pattern.compile(regex).matcher(h + ":" + p).matches())
         .orElse((h, p) -> true);
   }
 
-  static Predicate<String> rgRegexPredicate(CommandLine cl, Option rgOpt) {
-    return Optional.ofNullable(cl.getOptionValue(rgOpt))
-        .map(regex -> Pattern.compile(regex).asMatchPredicate()).orElse(rg -> true);
+  static Predicate<String> rgRegexPredicate(String rgRegex) {
+    return Optional.ofNullable(rgRegex).map(regex -> Pattern.compile(regex).asMatchPredicate())
+        .orElse(rg -> true);
   }
 
 }

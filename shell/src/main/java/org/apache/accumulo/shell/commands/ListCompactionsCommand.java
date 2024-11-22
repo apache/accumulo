@@ -33,7 +33,7 @@ import org.apache.commons.cli.Options;
 
 public class ListCompactionsCommand extends Command {
 
-  private Option serverOpt, rgOpt, disablePaginationOpt, filterOption;
+  private Option serverOpt, tserverOption, rgOpt, disablePaginationOpt, filterOption;
 
   @Override
   public String description() {
@@ -54,9 +54,11 @@ public class ListCompactionsCommand extends Command {
 
     Stream<String> activeCompactionStream;
 
-    if (cl.hasOption(serverOpt) || cl.hasOption(rgOpt)) {
-      final var serverPredicate = serverRegexPredicate(cl, serverOpt);
-      final var rgPredicate = rgRegexPredicate(cl, rgOpt);
+    String serverValue =
+        cl.hasOption(serverOpt) ? cl.getOptionValue(serverOpt) : cl.getOptionValue(tserverOption);
+    if (serverValue != null || cl.hasOption(rgOpt)) {
+      final var serverPredicate = serverRegexPredicate(serverValue);
+      final var rgPredicate = rgRegexPredicate(cl.getOptionValue(rgOpt));
       activeCompactionStream =
           ActiveCompactionHelper.activeCompactions(instanceOps, rgPredicate, serverPredicate);
     } else {
@@ -93,6 +95,12 @@ public class ListCompactionsCommand extends Command {
     serverOpt = new Option("s", "server", true, "tablet/scan server regex to list compactions for");
     serverOpt.setArgName("tablet/scan server regex");
     opts.addOption(serverOpt);
+
+    // Leaving here for backwards compatibility, same as serverOpt
+    tserverOption =
+        new Option("ts", "tabletServer", true, "tablet/scan server regex to list compactions forr");
+    tserverOption.setArgName("tablet server");
+    opts.addOption(tserverOption);
 
     rgOpt = new Option("rg", "resourceGroup", true,
         "tablet/scan server resource group regex to list compactions for");

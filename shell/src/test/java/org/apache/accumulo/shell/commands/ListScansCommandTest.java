@@ -53,14 +53,18 @@ public class ListScansCommandTest {
     List<String> matching =
         List.of(".*:[0-9]*", "local.*:2000", "localhost:2000", "l.*:200[0-9].*");
     for (String serverRegex : matching) {
-      var predicate = buildServerPredicate(opts, parser, serverRegex);
-      assertTrue(predicate.test("localhost", 2000));
+      for (String opt : List.of("-s", "-ts")) {
+        var predicate = buildServerPredicate(opts, parser, opt, serverRegex);
+        assertTrue(predicate.test("localhost", 2000));
+      }
     }
 
     List<String> nonMatching = List.of(".*:[0-1]*", "local.*:2100", "localhost:3000", "localhost");
     for (String serverRegex : nonMatching) {
-      var predicate = buildServerPredicate(opts, parser, serverRegex);
-      assertFalse(predicate.test("localhost", 2000));
+      for (String opt : List.of("-s", "-ts")) {
+        var predicate = buildServerPredicate(opts, parser, opt, serverRegex);
+        assertFalse(predicate.test("localhost", 2000));
+      }
     }
 
   }
@@ -83,22 +87,22 @@ public class ListScansCommandTest {
   }
 
   static BiPredicate<String,Integer> buildServerPredicate(Options opts, CommandLineParser parser,
-      String serverRegex) throws ParseException {
+      String opt, String serverRegex) throws ParseException {
 
-    String[] args = {"-s", serverRegex};
-    Option serverOpt = opts.getOption("-s");
+    // Test flags for server regex
+    String[] args = {opt, serverRegex};
+    Option serverOpt = opts.getOption(opt);
     CommandLine cli = parser.parse(opts, args);
-
-    return ListScansCommand.serverRegexPredicate(cli, serverOpt);
+    return ListScansCommand.serverRegexPredicate(cli.getOptionValue(serverOpt));
   }
 
   static Predicate<String> buildResourceGroupPredicate(Options opts, CommandLineParser parser,
       String rgRegex) throws ParseException {
 
+    // Test flag works for resource group regex
     String[] args = {"-rg", rgRegex};
     Option serverOpt = opts.getOption("-rg");
     CommandLine cli = parser.parse(opts, args);
-
-    return ListScansCommand.rgRegexPredicate(cli, serverOpt);
+    return ListScansCommand.rgRegexPredicate(cli.getOptionValue(serverOpt));
   }
 }
