@@ -50,8 +50,8 @@ public class CheckAccumuloConfig implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Checks Accumulo configuration. Optionally provide the file path. Otherwise, will "
-        + "attempt to find and check the config file";
+    return "Checks Accumulo configuration. Note that this is a subset of the checks performed "
+        + "by " + (new CheckServerConfig().keyword());
   }
 
   @Override
