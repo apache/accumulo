@@ -100,9 +100,9 @@ public class ListScansCommand extends Command {
   }
 
   static BiPredicate<String,Integer> serverRegexPredicate(String serverRegex) {
-    return Optional.ofNullable(serverRegex)
-        .map(regex -> (BiPredicate<String,
-            Integer>) (h, p) -> Pattern.compile(regex).matcher(h + ":" + p).matches())
+    return Optional.ofNullable(serverRegex).map(regex -> Pattern.compile(regex).asMatchPredicate())
+        .map(matcherPredicate -> (BiPredicate<String,
+            Integer>) (h, p) -> matcherPredicate.test(h + ":" + p))
         .orElse((h, p) -> true);
   }
 
