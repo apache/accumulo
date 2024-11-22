@@ -86,7 +86,7 @@ function parse_config {
   debug "Parsed config:" && cat "$CONFIG_FILE"
   rm -f "$CONFIG_FILE"
 
-  if [[ -z $MANAGER_HOSTS ]]; then
+  if [[ -z $MANAGER_HOSTS_default ]]; then
     echo "ERROR: managers not found in ${conf}/cluster.yaml"
     exit 1
   fi
@@ -131,16 +131,16 @@ function parse_config {
   fi
 
   unset manager1
-  manager1=$(echo "${MANAGER_HOSTS}" | cut -d" " -f1)
+  manager1=$(echo "${MANAGER_HOSTS_default}" | cut -d" " -f1)
 
-  if [[ -z $MONITOR_HOSTS ]]; then
+  if [[ -z $MONITOR_HOSTS_default ]]; then
     echo "WARN: monitors not found in ${conf}/cluster.yaml, using first manager host $manager1"
-    MONITOR_HOSTS=$manager1
+    MONITOR_HOSTS_default=$manager1
   fi
 
-  if [[ -z $GC_HOSTS ]]; then
+  if [[ -z $GC_HOSTS_default ]]; then
     echo "WARN: gc not found in ${conf}/cluster.yaml, using first manager host $manager1"
-    GC_HOSTS=$manager1
+    GC_HOSTS_default=$manager1
   fi
 
 }
@@ -149,25 +149,30 @@ function control_service() {
   control_cmd="$1"
   host="$2"
   service="$3"
-  servers_per_host="$4"
+  group="$4"
+  shift 4
+  input_args=("$*")
+
+  S="${service^^}S_PER_HOST_${group}"
+  servers_per_host="${!S}"
+
+  C="${service^^}_CONF_DIR_${group}"
+  conf_dir="${!C}"
+
+  E="${service^^}_EXTRA_ARGS_${group}"
+  extra_args="${!E}"
+
+  # Append extra_args to input_args
+  input_args+=("${extra_args[*]}")
 
   if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
     #
     # The server processes take arguments using "-o". Always add the "general.process.bind.addr" argument
     # using the value of $host
     #
-    if [[ $# -gt 4 ]]; then
-      debugAndRun ACCUMULO_CLUSTER_ARG="${servers_per_host}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host" "${@:5}"
-    else
-      debugAndRun ACCUMULO_CLUSTER_ARG="${servers_per_host}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host"
-    fi
+    debugAndRun ACCUMULO_CONF_DIR="${conf_dir}" ACCUMULO_CLUSTER_ARG="${servers_per_host}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host" "${input_args[*]}"
   else
-    if [[ $# -gt 4 ]]; then
-      EXTRA_ARGS="${*:5}"
-      debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=${servers_per_host} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\" $EXTRA_ARGS '"
-    else
-      debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=${servers_per_host} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\"'"
-    fi
+    debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_CONF_DIR=${conf_dir} ACCUMULO_CLUSTER_ARG=${servers_per_host} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\" ${input_args[*]} '"
   fi
 }
 
@@ -187,10 +192,9 @@ function start_compactors() {
     fi
     for group in $groups; do
       Q="COMPACTOR_HOSTS_${group}"
-      S="COMPACTORS_PER_HOST_${group}"
       if [[ -n ${!Q} ]]; then
         for compactor in ${!Q}; do
-          start_service "$compactor" compactor "${!S}" "-o" "compactor.group=$group"
+          start_service "$compactor" compactor "${group}" "-o" "compactor.group=$group"
         done
       else
         echo "${group} is not a valid compactor group ...exiting"
@@ -211,10 +215,9 @@ function stop_compactors() {
     fi
     for group in $groups; do
       Q="COMPACTOR_HOSTS_${group}"
-      S="COMPACTORS_PER_HOST_${group}"
       if [[ -n ${!Q} ]]; then
         for compactor in ${!Q}; do
-          stop_service "$compactor" compactor "${!S}" "-o" "compactor.group=$group"
+          stop_service "$compactor" compactor "${group}" "-o" "compactor.group=$group"
         done
       else
         echo "${group} is not a valid compaction group ...exiting"
@@ -235,10 +238,9 @@ function start_sservers() {
     fi
     for group in $groups; do
       G="SSERVER_HOSTS_${group}"
-      S="SSERVERS_PER_HOST_${group}"
       if [[ -n ${!G} ]]; then
         for sserver in ${!G}; do
-          start_service "$sserver" sserver "${!S}" "-o" "sserver.group=$group"
+          start_service "$sserver" sserver "${group}" "-o" "sserver.group=$group"
         done
       else
         echo "${group} is not a valid resource group ...exiting"
@@ -259,10 +261,9 @@ function stop_sservers() {
     fi
     for group in $groups; do
       G="SSERVER_HOSTS_${group}"
-      S="SSERVERS_PER_HOST_${group}"
       if [[ -n ${!G} ]]; then
         for sserver in ${!G}; do
-          stop_service "$sserver" sserver "${!S}" "-o" "sserver.group=$group"
+          stop_service "$sserver" sserver "${group}" "-o" "sserver.group=$group"
         done
       else
         echo "${group} is not a valid resource group ...exiting"
@@ -277,10 +278,9 @@ function start_tservers() {
     echo "Starting tablet servers for group $group"
     count=1
     G="TSERVER_HOSTS_${group}"
-    S="TSERVERS_PER_HOST_${group}"
     for tserver in ${!G}; do
       echo -n "."
-      start_service "$tserver" tserver "${!S}" "-o" "tserver.group=$group"
+      start_service "$tserver" tserver "${group}" "-o" "tserver.group=$group"
       if ((++count % 72 == 0)); then
         echo
         wait
@@ -297,33 +297,34 @@ function start_all() {
     start_tservers
   fi
 
-  for manager in $MANAGER_HOSTS; do
-    start_service "$manager" manager "1"
+  for manager in $MANAGER_HOSTS_default; do
+    echo "Starting manager for group default"
+    start_service "$manager" manager "default"
   done
 
-  for gc in $GC_HOSTS; do
-    start_service "$gc" gc "1"
+  for gc in $GC_HOSTS_default; do
+    echo "Starting gc for group default"
+    start_service "$gc" gc "default"
   done
 
-  for monitor in $MONITOR_HOSTS; do
-    start_service "$monitor" monitor "1"
+  for monitor in $MONITOR_HOSTS_default; do
+    echo "Starting monitor for group default"
+    start_service "$monitor" monitor "default"
   done
 
   for group in $SSERVER_GROUPS; do
     echo "Starting scan servers for group $group"
     G="SSERVER_HOSTS_${group}"
-    S="SSERVERS_PER_HOST_${group}"
     for sserver in ${!G}; do
-      start_service "$sserver" sserver "${!S}" "-o" "sserver.group=$group"
+      start_service "$sserver" sserver "${group}" "-o" "sserver.group=$group"
     done
   done
 
   for group in $COMPACTOR_GROUPS; do
     echo "Starting compactors for group $group"
     Q="COMPACTOR_HOSTS_${group}"
-    S="COMPACTORS_PER_HOST_${group}"
     for compactor in ${!Q}; do
-      start_service "$compactor" compactor "${!S}" "-o" "compactor.group=$group"
+      start_service "$compactor" compactor "${group}" "-o" "compactor.group=$group"
     done
   done
 
@@ -337,37 +338,36 @@ function start_here() {
     echo "Starting tablet servers for group $group"
     for host in $local_hosts; do
       G="TSERVER_HOSTS_${group}"
-      S="TSERVERS_PER_HOST_${group}"
       for tserver in ${!G}; do
         if echo "$tserver" | grep -q "^${host}\$"; then
-          start_service "$tserver" tserver "${!S}" "-o" "tserver.group=$group"
+          start_service "$tserver" tserver "${group}" "-o" "tserver.group=$group"
         fi
       done
     done
   done
 
   for host in $local_hosts; do
-    for manager in $MANAGER_HOSTS; do
+    for manager in $MANAGER_HOSTS_default; do
       if echo "$manager" | grep -q "^${host}\$"; then
-        start_service "$host" manager "1"
+        start_service "$host" manager "default"
         break
       fi
     done
   done
 
   for host in $local_hosts; do
-    for gc in $GC_HOSTS; do
+    for gc in $GC_HOSTS_default; do
       if echo "$gc" | grep -q "^${host}\$"; then
-        start_service "$host" gc "1"
+        start_service "$host" gc "default"
         break
       fi
     done
   done
 
   for host in $local_hosts; do
-    for monitor in $MONITOR_HOSTS; do
+    for monitor in $MONITOR_HOSTS_default; do
       if echo "$monitor" | grep -q "^${host}\$"; then
-        start_service "$host" monitor "1"
+        start_service "$host" monitor "default"
         break
       fi
     done
@@ -377,10 +377,9 @@ function start_here() {
     echo "Starting scan servers for group $group"
     for host in $local_hosts; do
       G="SSERVER_HOSTS_${group}"
-      S="SSERVERS_PER_HOST_${group}"
       for sserver in ${!G}; do
         if echo "$sserver" | grep -q "^${host}\$"; then
-          start_service "$sserver" sserver "${!S}" "-o" "sserver.group=$group"
+          start_service "$sserver" sserver "$group" "-o" "sserver.group=$group"
         fi
       done
     done
@@ -390,10 +389,9 @@ function start_here() {
     echo "Starting compactors for group $group"
     for host in $local_hosts; do
       Q="COMPACTOR_HOSTS_${group}"
-      S="COMPACTORS_PER_HOST_${group}"
       for compactor in ${!Q}; do
         if echo "$compactor" | grep -q "^${host}\$"; then
-          start_service "$compactor" compactor "${!S}" "-o" "compactor.group=$group"
+          start_service "$compactor" compactor "$group" "-o" "compactor.group=$group"
         fi
       done
     done
@@ -420,9 +418,8 @@ function stop_tservers() {
   for group in $TSERVER_GROUPS; do
     echo "Stopping tablet servers for group $group"
     G="TSERVER_HOSTS_${group}"
-    S="TSERVERS_PER_HOST_${group}"
     for tserver in ${!G}; do
-      stop_service "$tserver" tserver "${!S}" "-o" "tserver.group=$group" &
+      stop_service "$tserver" tserver "$group" "-o" "tserver.group=$group" &
     done
   done
 
@@ -431,9 +428,8 @@ function stop_tservers() {
   echo "Stopping unresponsive tablet servers hard (if any)..."
   for group in $TSERVER_GROUPS; do
     G="TSERVER_HOSTS_${group}"
-    S="TSERVERS_PER_HOST_${group}"
     for tserver in ${!G}; do
-      kill_service "$tserver" tserver "${!S}" "-o" "tserver.group=$group" &
+      kill_service "$tserver" tserver "$group" "-o" "tserver.group=$group" &
     done
   done
 
@@ -446,42 +442,39 @@ function stop_tservers() {
 function kill_all() {
   echo "Killing Accumulo cluster..."
 
-  for manager in $MANAGER_HOSTS; do
-    kill_service "$manager" manager "1"
+  for manager in $MANAGER_HOSTS_default; do
+    kill_service "$manager" manager "default"
   done
 
-  for gc in $GC_HOSTS; do
-    kill_service "$gc" gc "1"
+  for gc in $GC_HOSTS_default; do
+    kill_service "$gc" gc "default"
   done
 
-  for monitor in $MONITOR_HOSTS; do
-    kill_service "$monitor" monitor "1"
+  for monitor in $MONITOR_HOSTS_default; do
+    kill_service "$monitor" monitor "default"
   done
 
   for group in $SSERVER_GROUPS; do
     echo "Killing scan servers for group $group"
     G="SSERVER_HOSTS_${group}"
-    S="SSERVERS_PER_HOST_${group}"
     for sserver in ${!G}; do
-      kill_service "$sserver" sserver "${!S}" "-o" "sserver.group=$group"
+      kill_service "$sserver" sserver "$group" "-o" "sserver.group=$group"
     done
   done
 
   for group in $TSERVER_GROUPS; do
     echo "Killing tablet servers for group $group"
     G="TSERVER_HOSTS_${group}"
-    S="TSERVERS_PER_HOST_${group}"
     for tserver in ${!G}; do
-      kill_service "$tserver" tserver "${!S}" "-o" "tserver.group=$group"
+      kill_service "$tserver" tserver "$group" "-o" "tserver.group=$group"
     done
   done
 
   for group in $COMPACTOR_GROUPS; do
     echo "Killing compactors for group $group"
     Q="COMPACTOR_HOSTS_${group}"
-    S="COMPACTORS_PER_HOST_${group}"
     for compactor in ${!Q}; do
-      kill_service "$compactor" compactor "${!S}" "-o" "compactor.group=$group"
+      kill_service "$compactor" compactor "$group" "-o" "compactor.group=$group"
     done
   done
 
@@ -510,33 +503,31 @@ function stop_all() {
 
   for end_cmd in "stop" "kill"; do
 
-    for manager in $MANAGER_HOSTS; do
-      end_service $end_cmd "$manager" manager "1"
+    for manager in $MANAGER_HOSTS_default; do
+      end_service $end_cmd "$manager" manager "default"
     done
 
-    for gc in $GC_HOSTS; do
-      end_service $end_cmd "$gc" gc "1"
+    for gc in $GC_HOSTS_default; do
+      end_service $end_cmd "$gc" gc "default"
     done
 
-    for monitor in $MONITOR_HOSTS; do
-      end_service $end_cmd "$monitor" monitor "1"
+    for monitor in $MONITOR_HOSTS_default; do
+      end_service $end_cmd "$monitor" monitor "default"
     done
 
     for group in $SSERVER_GROUPS; do
       echo "Stopping scan servers for group $group"
       G="SSERVER_HOSTS_${group}"
-      S="SSERVERS_PER_HOST_${group}"
       for sserver in ${!G}; do
-        end_service $end_cmd "$sserver" sserver "${!S}" "-o" "sserver.group=$group"
+        end_service $end_cmd "$sserver" sserver "$group" "-o" "sserver.group=$group"
       done
     done
 
     for group in $COMPACTOR_GROUPS; do
       echo "Stopping compactors for group $group"
       Q="COMPACTOR_HOSTS_${group}"
-      S="COMPACTORS_PER_HOST_${group}"
       for compactor in ${!Q}; do
-        end_service $end_cmd "$compactor" compactor "${!S}" "-o" "compactor.group=$group"
+        end_service $end_cmd "$compactor" compactor "$group" "-o" "compactor.group=$group"
       done
     done
 
@@ -581,27 +572,24 @@ function stop_here() {
   for host in "${hosts_to_check[@]}"; do
     for end_cmd in "stop" "kill"; do
       for svc in gc manager monitor; do
-        end_service $end_cmd "$host" $svc "1"
+        end_service $end_cmd "$host" $svc "default"
       done
       for group in $TSERVER_GROUPS; do
         G="TSERVER_HOSTS_${group}"
-        S="TSERVERS_PER_HOST_${group}"
         for tserver in ${!G}; do
-          end_service $end_cmd "$tserver" tserver "${!S}" "-o" "tserver.group=$group"
+          end_service $end_cmd "$tserver" tserver "$group" "-o" "tserver.group=$group"
         done
       done
       for group in $SSERVER_GROUPS; do
         G="SSERVER_HOSTS_${group}"
-        S="SSERVERS_PER_HOST_${group}"
         for sserver in ${!G}; do
-          end_service $end_cmd "$sserver" sserver "${!S}" "-o" "sserver.group=$group"
+          end_service $end_cmd "$sserver" sserver "$group" "-o" "sserver.group=$group"
         done
       done
       for group in $COMPACTOR_GROUPS; do
         Q="COMPACTOR_HOSTS_${group}"
-        S="COMPACTORS_PER_HOST_${group}"
         for compactor in ${!Q}; do
-          end_service $end_cmd "$host" compactor "${!S}" "-o" "compactor.group=$group"
+          end_service $end_cmd "$host" compactor "$group" "-o" "compactor.group=$group"
         done
       done
     done
@@ -651,28 +639,46 @@ function main() {
       fi
       cat <<EOF >"$conf"/cluster.yaml
 manager:
-  - localhost
+  default:
+    conf_dir: /opt/accumulo/conf
+    extra_args: ""
+    hosts:
+      - localhost
 
 monitor:
-  - localhost
+  default:
+    conf_dir: /opt/accumulo/conf
+    extra_args: ""
+    hosts:
+      - localhost
 
 gc:
-  - localhost
+  default:
+    conf_dir: /opt/accumulo/conf
+    extra_args: ""
+    hosts:
+      - localhost
 
 tserver:
   default:
+    conf_dir: /opt/accumulo/conf
+    extra_args: ""
     servers_per_host: 1
     hosts:
       - localhost
 
 compactor:
   default:
+    conf_dir: /opt/accumulo/conf
+    extra_args: ""
     servers_per_host: 1
     hosts:
       - localhost
 
 sserver:
   default:
+    conf_dir: /opt/accumulo/conf
+    extra_args: ""
     servers_per_host: 1
     hosts:
       - localhost

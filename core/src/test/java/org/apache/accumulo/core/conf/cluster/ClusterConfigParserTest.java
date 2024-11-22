@@ -57,13 +57,16 @@ public class ClusterConfigParserTest {
 
     Map<String,String> contents =
         ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
-    assertEquals(14, contents.size());
-    assertTrue(contents.containsKey("manager"));
-    assertEquals("localhost1 localhost2", contents.get("manager"));
-    assertTrue(contents.containsKey("monitor"));
-    assertEquals("localhost1 localhost2", contents.get("monitor"));
-    assertTrue(contents.containsKey("gc"));
-    assertEquals("localhost", contents.get("gc"));
+
+    assertEquals(27, contents.size());
+    assertTrue(contents.containsKey("manager.default.hosts"));
+    assertEquals("localhost1 localhost2", contents.get("manager.default.hosts"));
+
+    assertTrue(contents.containsKey("monitor.default.hosts"));
+    assertEquals("localhost1 localhost2", contents.get("monitor.default.hosts"));
+
+    assertTrue(contents.containsKey("gc.default.hosts"));
+    assertEquals("localhost", contents.get("gc.default.hosts"));
 
     assertFalse(contents.containsKey("compactor"));
     assertFalse(contents.containsKey("compactor.q1"));
@@ -157,25 +160,56 @@ public class ClusterConfigParserTest {
     final File f = outputConfigFunction.apply(configFile);
 
     Map<String,String> expected = new TreeMap<>();
-    expected.put("MANAGER_HOSTS", "localhost1 localhost2");
-    expected.put("MONITOR_HOSTS", "localhost1 localhost2");
-    expected.put("GC_HOSTS", "localhost");
+    expected.put("MANAGER_CONF_DIR_default", ""); // not specified in file, defaults to empty string
+    expected.put("MANAGER_EXTRA_ARGS_default", ""); // not specified in file, defaults to empty
+                                                    // string
+    expected.put("MANAGERS_PER_HOST_default", "1"); // not specified, defaults to 1
+    expected.put("MANAGER_HOSTS_default", "localhost1 localhost2");
+
+    expected.put("MONITOR_CONF_DIR_default", "/opt/accumulo/conf");
+    expected.put("MONITOR_EXTRA_ARGS_default", ""); // not specified in file, defaults to empty
+                                                    // string
+    expected.put("MONITORS_PER_HOST_default", "1"); // not specified, defaults to 1
+    expected.put("MONITOR_HOSTS_default", "localhost1 localhost2");
+
+    expected.put("GC_CONF_DIR_default", ""); // not specified in file, defaults to empty string
+    expected.put("GC_EXTRA_ARGS_default", "-o foo=bar -o baz=zoo");
+    expected.put("GCS_PER_HOST_default", "1"); // not specified, defaults to 1
+    expected.put("GC_HOSTS_default", "localhost");
 
     expected.put("COMPACTOR_GROUPS", "q1 q2");
-    expected.put("COMPACTORS_PER_HOST_q1", "1");
+
+    expected.put("COMPACTOR_CONF_DIR_q1", "/opt/accumulo/conf");
+    expected.put("COMPACTOR_EXTRA_ARGS_q1", "-o foo=bar -o baz=zoo");
+    expected.put("COMPACTORS_PER_HOST_q1", "1"); // not specified, defaults to 1
     expected.put("COMPACTOR_HOSTS_q1", "localhost1 localhost2");
+
+    expected.put("COMPACTOR_CONF_DIR_q2", ""); // not specified in file, defaults to empty string
+    expected.put("COMPACTOR_EXTRA_ARGS_q2", "-o foo=bar -o baz=zoo");
     expected.put("COMPACTORS_PER_HOST_q2", "4");
     expected.put("COMPACTOR_HOSTS_q2", "localhost3 localhost4");
 
     expected.put("SSERVER_GROUPS", "cheap default highmem");
+
+    expected.put("SSERVER_CONF_DIR_default", "/opt/accumulo/conf");
+    expected.put("SSERVER_EXTRA_ARGS_default", "-o foo=bar -o baz=zoo");
     expected.put("SSERVERS_PER_HOST_default", "2");
     expected.put("SSERVER_HOSTS_default", "localhost1 localhost2");
+
+    expected.put("SSERVER_CONF_DIR_highmem", "/opt/accumulo/conf");
+    expected.put("SSERVER_EXTRA_ARGS_highmem", "-o foo=bar -o baz=zoo");
     expected.put("SSERVERS_PER_HOST_highmem", "1");
     expected.put("SSERVER_HOSTS_highmem", "hmvm1 hmvm2 hmvm3");
+
+    expected.put("SSERVER_CONF_DIR_cheap", "/opt/accumulo/conf");
+    expected.put("SSERVER_EXTRA_ARGS_cheap", "-o foo=bar -o baz=zoo");
     expected.put("SSERVERS_PER_HOST_cheap", "3");
     expected.put("SSERVER_HOSTS_cheap", "burstyvm1 burstyvm2");
 
     expected.put("TSERVER_GROUPS", "default");
+
+    expected.put("TSERVER_CONF_DIR_default", "/opt/accumulo/conf");
+    expected.put("TSERVER_EXTRA_ARGS_default", "-o foo=bar -o baz=zoo");
     expected.put("TSERVERS_PER_HOST_default", "2");
     expected.put("TSERVER_HOSTS_default", "localhost1 localhost2 localhost3 localhost4");
 
@@ -190,6 +224,22 @@ public class ClusterConfigParserTest {
     }
 
     assertEquals(expected, actual);
+  }
+
+  @Test
+  public void testFileWithBadManagerGroup() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/cluster-manager-bad-group-name.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("Group default found for MANAGER, but no hosts"));
+    }
   }
 
   @Test
@@ -300,7 +350,7 @@ public class ClusterConfigParserTest {
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
           () -> ClusterConfigParser.outputShellVariables(contents, ps));
-      assertTrue(exception.getMessage().contains("Check the format"));
+      assertTrue(exception.getMessage().contains("Unknown configuration section"));
     }
   }
 

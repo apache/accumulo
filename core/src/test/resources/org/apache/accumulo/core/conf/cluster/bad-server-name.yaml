@@ -18,15 +18,21 @@
 #
 
 manager:
-  - localhost1
-  - localhost2
+  default:
+    hosts:
+      - localhost1
+      - localhost2
 
 monitor:
-  - localhost1
-  - localhost2
+  default:
+    hosts:
+      - localhost1
+      - localhost2
 
 gc:
-  - localhost
+  default:
+    hosts:
+      - localhost
 
 tserver:
   default:

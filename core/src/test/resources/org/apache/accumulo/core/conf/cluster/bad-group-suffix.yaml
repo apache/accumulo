@@ -18,13 +18,19 @@
 #
 
 manager:
-  - localhost
+  default:
+    hosts:
+      - localhost
 
 monitor:
-  - localhost
+  default:
+    hosts:
+      - localhost
 
 gc:
-  - localhost
+  default:
+    hosts:
+      - localhost
 
 compactor:
   default:
@@ -34,6 +40,7 @@ compactor:
 
 sserver:
   default:
+    # this is bad, it has an s on the end making it plural
     servers_per_hosts: 1
     hosts:
       - localhost

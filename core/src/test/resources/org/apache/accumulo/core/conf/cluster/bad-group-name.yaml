@@ -18,13 +18,19 @@
 #
 
 manager:
-  - localhost
+  default:
+    hosts:
+      - localhost
 
 monitor:
-  - localhost
+  default:
+    hosts:
+      - localhost
 
 gc:
-  - localhost
+  default:
+    hosts:
+      - localhost
 
 compactor:
   default:

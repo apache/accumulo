@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.conf.cluster;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_RESOURCE_GROUP_NAME;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -25,11 +27,10 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.TreeMap;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -55,31 +56,28 @@ public class ClusterConfigParser {
   }
 
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
+
   private static final String COMPACTOR_PREFIX = "compactor.";
-  private static final String GC_KEY = "gc";
-  private static final String MANAGER_KEY = "manager";
-  private static final String MONITOR_KEY = "monitor";
+  private static final String GC_PREFIX = "gc.";
+  private static final String MANAGER_PREFIX = "manager.";
+  private static final String MONITOR_PREFIX = "monitor.";
   private static final String SSERVER_PREFIX = "sserver.";
   private static final String TSERVER_PREFIX = "tserver.";
 
   private static final String HOSTS_SUFFIX = ".hosts";
   private static final String SERVERS_PER_HOST_SUFFIX = ".servers_per_host";
+  private static final String CONF_DIR_SUFFIX = ".conf_dir";
+  private static final String EXTRA_ARGS_SUFFIX = ".extra_args";
 
-  private static final String[] UNGROUPED_SECTIONS =
-      new String[] {MANAGER_KEY, MONITOR_KEY, GC_KEY};
-
-  private static final Set<String> VALID_CONFIG_KEYS = Set.of(MANAGER_KEY, MONITOR_KEY, GC_KEY);
-
-  private static final Set<String> VALID_CONFIG_PREFIXES =
-      Set.of(COMPACTOR_PREFIX, SSERVER_PREFIX, TSERVER_PREFIX);
+  private static final Set<String> VALID_SECTIONS = Set.of(MANAGER_PREFIX, GC_PREFIX,
+      MONITOR_PREFIX, COMPACTOR_PREFIX, SSERVER_PREFIX, TSERVER_PREFIX);
 
   private static final Predicate<String> VALID_CONFIG_SECTIONS =
-      section -> VALID_CONFIG_KEYS.contains(section)
-          || VALID_CONFIG_PREFIXES.stream().anyMatch(section::startsWith);
+      section -> VALID_SECTIONS.stream().anyMatch(section::startsWith);
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
   public static Map<String,String> parseConfiguration(String configFile) throws IOException {
-    Map<String,String> results = new HashMap<>();
+    Map<String,String> results = new TreeMap<>();
     try (InputStream fis = Files.newInputStream(Paths.get(configFile), StandardOpenOption.READ)) {
       Yaml y = new Yaml();
       Map<String,Object> config = y.load(fis);
@@ -132,9 +130,14 @@ public class ClusterConfigParser {
           return k.substring(prefix.length(), k.indexOf(HOSTS_SUFFIX));
         } else if (k.endsWith(SERVERS_PER_HOST_SUFFIX)) {
           return k.substring(prefix.length(), k.indexOf(SERVERS_PER_HOST_SUFFIX));
+        } else if (k.endsWith(CONF_DIR_SUFFIX)) {
+          return k.substring(prefix.length(), k.indexOf(CONF_DIR_SUFFIX));
+        } else if (k.endsWith(EXTRA_ARGS_SUFFIX)) {
+          return k.substring(prefix.length(), k.indexOf(EXTRA_ARGS_SUFFIX));
         } else {
           throw new IllegalArgumentException("Unknown group suffix for: " + k + ". Only "
-              + HOSTS_SUFFIX + " or " + SERVERS_PER_HOST_SUFFIX + " are allowed.");
+              + HOSTS_SUFFIX + ", " + SERVERS_PER_HOST_SUFFIX + ", " + CONF_DIR_SUFFIX + " and "
+              + EXTRA_ARGS_SUFFIX + " are allowed.");
         }
       } else {
         throw new IllegalArgumentException("Malformed configuration, has too many levels: " + k);
@@ -142,6 +145,27 @@ public class ClusterConfigParser {
     }).sorted().distinct().collect(Collectors.toList());
     validateGroupNames(groups);
     return groups;
+  }
+
+  private static void printProcessGroup(Map<String,String> config, PrintStream out,
+      String processName, String propertyPrefix, String groupName) {
+
+    String hosts = config.get(propertyPrefix + groupName + HOSTS_SUFFIX);
+    if (hosts == null || hosts.isEmpty()) {
+      throw new IllegalArgumentException("Group " + groupName + " found for " + processName
+          + ", but no hosts. Check the format of your cluster.yaml file.");
+    }
+    out.printf(PROPERTY_FORMAT, processName + "_HOSTS_" + groupName, hosts);
+
+    out.printf(PROPERTY_FORMAT, processName + "S_PER_HOST_" + groupName,
+        config.getOrDefault(propertyPrefix + groupName + SERVERS_PER_HOST_SUFFIX, "1"));
+
+    out.printf(PROPERTY_FORMAT, processName + "_CONF_DIR_" + groupName,
+        config.getOrDefault(propertyPrefix + groupName + CONF_DIR_SUFFIX, ""));
+
+    out.printf(PROPERTY_FORMAT, processName + "_EXTRA_ARGS_" + groupName,
+        config.getOrDefault(propertyPrefix + groupName + EXTRA_ARGS_SUFFIX, ""));
+
   }
 
   public static void outputShellVariables(Map<String,String> config, PrintStream out) {
@@ -152,66 +176,51 @@ public class ClusterConfigParser {
           throw new IllegalArgumentException("Unknown configuration section : " + section);
         });
 
-    for (String section : UNGROUPED_SECTIONS) {
-      if (config.containsKey(section)) {
-        out.printf(PROPERTY_FORMAT, section.toUpperCase() + "_HOSTS", config.get(section));
-      } else {
-        if (section.equals(MANAGER_KEY)) {
-          throw new IllegalStateException("Manager is required in the configuration");
-        }
-        System.err.println("WARN: " + section + " is missing");
-      }
-    }
+    // Process Manager
+    printProcessGroup(config, out, "MANAGER", MANAGER_PREFIX, DEFAULT_RESOURCE_GROUP_NAME);
 
+    // Process Garbage Collector
+    printProcessGroup(config, out, "GC", GC_PREFIX, DEFAULT_RESOURCE_GROUP_NAME);
+
+    // Process Monitor
+    printProcessGroup(config, out, "MONITOR", MONITOR_PREFIX, DEFAULT_RESOURCE_GROUP_NAME);
+
+    // Process Compactor groups
     List<String> compactorGroups = parseGroup(config, COMPACTOR_PREFIX);
     if (compactorGroups.isEmpty()) {
       throw new IllegalArgumentException(
           "No compactor groups found, at least one compactor group is required to compact the system tables.");
-    }
-    if (!compactorGroups.isEmpty()) {
+    } else {
       out.printf(PROPERTY_FORMAT, "COMPACTOR_GROUPS",
           compactorGroups.stream().collect(Collectors.joining(" ")));
       for (String group : compactorGroups) {
-        out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + group,
-            config.get(COMPACTOR_PREFIX + group + HOSTS_SUFFIX));
-        String numCompactors =
-            config.getOrDefault(COMPACTOR_PREFIX + group + SERVERS_PER_HOST_SUFFIX, "1");
-        out.printf(PROPERTY_FORMAT, "COMPACTORS_PER_HOST_" + group, numCompactors);
+        printProcessGroup(config, out, "COMPACTOR", COMPACTOR_PREFIX, group);
       }
     }
 
+    // Process ScanServer groups
     List<String> sserverGroups = parseGroup(config, SSERVER_PREFIX);
     if (!sserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS",
           sserverGroups.stream().collect(Collectors.joining(" ")));
-      sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS_" + ssg,
-          config.get(SSERVER_PREFIX + ssg + HOSTS_SUFFIX)));
-      sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVERS_PER_HOST_" + ssg,
-          config.getOrDefault(SSERVER_PREFIX + ssg + SERVERS_PER_HOST_SUFFIX, "1")));
+      for (String group : sserverGroups) {
+        printProcessGroup(config, out, "SSERVER", SSERVER_PREFIX, group);
+      }
     }
 
+    // Process TabletServer groups
     List<String> tserverGroups = parseGroup(config, TSERVER_PREFIX);
     if (tserverGroups.isEmpty()) {
       throw new IllegalArgumentException(
           "No tserver groups found, at least one tserver group is required to host the system tables.");
-    }
-    AtomicBoolean foundTServer = new AtomicBoolean(false);
-    if (!tserverGroups.isEmpty()) {
+    } else {
       out.printf(PROPERTY_FORMAT, "TSERVER_GROUPS",
           tserverGroups.stream().collect(Collectors.joining(" ")));
-      tserverGroups.forEach(tsg -> {
-        String hosts = config.get(TSERVER_PREFIX + tsg + HOSTS_SUFFIX);
-        foundTServer.compareAndSet(false, hosts != null && !hosts.isEmpty());
-        out.printf(PROPERTY_FORMAT, "TSERVER_HOSTS_" + tsg, hosts);
-      });
-      tserverGroups.forEach(tsg -> out.printf(PROPERTY_FORMAT, "TSERVERS_PER_HOST_" + tsg,
-          config.getOrDefault(TSERVER_PREFIX + tsg + SERVERS_PER_HOST_SUFFIX, "1")));
+      for (String group : tserverGroups) {
+        printProcessGroup(config, out, "TSERVER", TSERVER_PREFIX, group);
+      }
     }
 
-    if (!foundTServer.get()) {
-      throw new IllegalArgumentException(
-          "Tablet Server group found, but no hosts. Check the format of your cluster.yaml file.");
-    }
     out.flush();
   }
 

@@ -18,35 +18,70 @@
 #
 
 manager:
-  default:
+  small:
     hosts:
       - localhost1
       - localhost2
 
 monitor:
   default:
+    conf_dir: /opt/accumulo/conf
     hosts:
       - localhost1
       - localhost2
 
 gc:
   default:
+    extra_args:
+      - "-o foo=bar"
+      - "-o baz=zoo"
     hosts:
       - localhost
 
+compactor:
+  q1:
+    # servers not specified, defaults to 1
+    conf_dir: /opt/accumulo/conf
+    extra_args:
+      - "-o foo=bar"
+      - "-o baz=zoo"
+    hosts:
+      - localhost1
+      - localhost2
+  q2:
+    extra_args:
+      - "-o foo=bar"
+      - "-o baz=zoo"
+    servers_per_host: 4
+    hosts:
+      - localhost3
+      - localhost4
+
 sserver:
   default:
+    conf_dir: /opt/accumulo/conf
+    extra_args:
+      - "-o foo=bar"
+      - "-o baz=zoo"
     servers_per_host: 2
     hosts:
       - localhost1
       - localhost2
   highmem:
+    conf_dir: /opt/accumulo/conf
+    extra_args:
+      - "-o foo=bar"
+      - "-o baz=zoo"
     servers_per_host: 1	
     hosts:
       - hmvm1
       - hmvm2
       - hmvm3
   cheap:
+    conf_dir: /opt/accumulo/conf
+    extra_args:
+      - "-o foo=bar"
+      - "-o baz=zoo"
     servers_per_host: 3	
     hosts:
       - burstyvm1
@@ -54,6 +89,10 @@ sserver:
 
 tserver:
   default:
+    conf_dir: /opt/accumulo/conf
+    extra_args:
+      - "-o foo=bar"
+      - "-o baz=zoo"
     servers_per_host: 2
     hosts:
       - localhost1

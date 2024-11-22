@@ -18,13 +18,19 @@
 #
 
 manager:
-  - localhost
+  default:
+    hosts:
+      - localhost
 
 monitor:
-  - localhost
+  default:
+    hosts:
+      - localhost
 
 gc:
-  - localhost
+  default:
+    hosts:
+      - localhost
 
 compactor:
   default:
@@ -34,10 +40,11 @@ compactor:
 
 sserver:
   default:
-    config:
-      servers_per_host: 1
-      hosts:
-      - localhost
+    servers_per_host: 1
+    hosts:
+      host:
+        host:
+          - localhost
 
 tserver:
   default:
