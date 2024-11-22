@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.core.metrics.Metric.MAJC_PAUSED;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getActiveCompactions;
 import static org.apache.accumulo.test.util.Wait.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -188,7 +189,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
       compactionThread.interrupt();
       compactionThread.join();
       assertNull(error.get());
-      assertTrue(client.instanceOperations().getActiveCompactions().stream()
+      assertTrue(getActiveCompactions(client.instanceOperations()).stream()
           .anyMatch(ac -> ac.getPausedCount() > 0));
     }
 

@@ -154,18 +154,19 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
       assertEquals(0, iops.getServers(ServerId.Type.MONITOR).size());
 
       for (ServerId compactor : iops.getServers(ServerId.Type.COMPACTOR)) {
-        assertNotNull(iops.getActiveCompactions(compactor));
-        assertThrows(IllegalArgumentException.class, () -> iops.getActiveScans(compactor));
+        assertNotNull(iops.getActiveCompactions(List.of(compactor)));
+        assertThrows(IllegalArgumentException.class, () -> iops.getActiveScans(List.of(compactor)));
       }
 
       for (ServerId tserver : iops.getServers(ServerId.Type.TABLET_SERVER)) {
-        assertNotNull(iops.getActiveCompactions(tserver));
-        assertNotNull(iops.getActiveScans(tserver));
+        assertNotNull(iops.getActiveCompactions(List.of(tserver)));
+        assertNotNull(iops.getActiveScans(List.of(tserver)));
       }
 
       for (ServerId sserver : iops.getServers(ServerId.Type.SCAN_SERVER)) {
-        assertThrows(IllegalArgumentException.class, () -> iops.getActiveCompactions(sserver));
-        assertNotNull(iops.getActiveScans(sserver));
+        assertThrows(IllegalArgumentException.class,
+            () -> iops.getActiveCompactions(List.of(sserver)));
+        assertNotNull(iops.getActiveScans(List.of(sserver)));
       }
 
     }

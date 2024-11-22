@@ -132,7 +132,8 @@ class ActiveCompactionHelper {
       return Stream.of();
     } else {
       try {
-        return instanceOps.getActiveCompactions(server).stream().sorted(COMPACTION_AGE_DESCENDING)
+        return instanceOps.getActiveCompactions(List.of(server)).stream()
+            .sorted(COMPACTION_AGE_DESCENDING)
             .map(ActiveCompactionHelper::formatActiveCompactionLine);
       } catch (Exception e) {
         LOG.debug("Failed to list active compactions for server {}", tserver, e);
@@ -160,7 +161,10 @@ class ActiveCompactionHelper {
 
   public static Stream<String> activeCompactions(InstanceOperations instanceOps) {
     try {
-      return sortActiveCompactions(instanceOps.getActiveCompactions());
+      Set<ServerId> compactionServers = new HashSet<>();
+      compactionServers.addAll(instanceOps.getServers(ServerId.Type.COMPACTOR));
+      compactionServers.addAll(instanceOps.getServers(ServerId.Type.TABLET_SERVER));
+      return sortActiveCompactions(instanceOps.getActiveCompactions(compactionServers));
     } catch (AccumuloException | AccumuloSecurityException e) {
       return Stream.of("ERROR " + e.getMessage());
     }
