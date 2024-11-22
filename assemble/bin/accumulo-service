@@ -153,7 +153,6 @@ function kill_service() {
 function list_processes() {
   local service_type=$1
   find_processes "$service_type"
-  echo "Currently running ${service_type} processes:"
   for process in "${RUNNING_PROCESSES[@]}"; do
     echo "$process"
   done

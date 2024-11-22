@@ -573,49 +573,32 @@ function stop_all() {
 }
 
 function stop_here() {
-  # Determine hostname without errors to user
-  hosts_to_check=("$(hostname -a 2>/dev/null | head -1)" "$(hostname -f)")
-
   if echo "${TSERVER_HOSTS}" | grep -Eq 'localhost|127[.]0[.]0[.]1'; then
-    if ! isDebug; then
-      ${accumulo_cmd} admin stop localhost
-    else
-      debug "Stopping tservers on localhost via admin command"
-    fi
+    hosts_to_check="localhost";
   else
-    for host in "${hosts_to_check[@]}"; do
-      for tserver in $TSERVER_HOSTS; do
-        if echo "$tserver" | grep -q "$host"; then
-          if ! isDebug; then
-            ${accumulo_cmd} admin stop "$host"
-          else
-            debug "Stopping tservers on $host via admin command"
-          fi
-        fi
-      done
-    done
+    # Determine hostname without errors to user
+    hosts_to_check=("$(hostname -a 2>/dev/null | head -1)" "$(hostname -f)")
   fi
 
-  for host in "${hosts_to_check[@]}"; do
-    for end_cmd in "stop" "kill"; do
-      for svc in tserver gc manager monitor compaction-coordinator; do
-        end_service $end_cmd "$host" $svc
-      done
-      for group in $SSERVER_GROUPS; do
-        var_name="NUM_SSERVERS_${group}"
-        [[ -n ${!var_name} ]] && NUM_SSERVERS=${!var_name}
-        G="SSERVER_HOSTS_${group}"
-        for sserver in ${!G}; do
-          end_service $end_cmd "$sserver" sserver "-g" "$group"
-        done
-      done
-      for queue in $COMPACTION_QUEUES; do
-        var_name="NUM_COMPACTORS_${queue}"
-        [[ -n ${!var_name} ]] && NUM_COMPACTORS=${!var_name}
-        Q="COMPACTOR_HOSTS_${queue}"
-        for compactor in ${!Q}; do
-          end_service $end_cmd "$host" compactor "-q" "$queue"
-        done
+  # Gracefully stop tservers via admin command
+  for tserver in "${hosts_to_check[@]}"; do
+    if ! isDebug; then
+     echo ${accumulo_cmd} admin stop "$tserver"
+    else
+      debug "Stopping tservers on $tserver via admin command"
+    fi
+  done
+
+  # Shutdown all local processes
+  for end_cmd in "stop" "kill"; do
+    for server in tserver sserver compactor gc manager monitor compaction-coordinator; do
+      LOCAL_SERVICES=$("${bin}/accumulo-service" "$server" list)
+      for svc in $LOCAL_SERVICES; do
+        if ! isDebug; then
+          "${bin}/accumulo-service" "$server" "$end_cmd" "$svc"
+        else
+          echo "${bin}/accumulo-service" "$server" "$end_cmd" "$svc"
+        fi
       done
     done
   done
