@@ -28,6 +28,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.INSTANCE_OPS
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
@@ -390,20 +391,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public List<ActiveCompaction> getActiveCompactions(Predicate<String> resourceGroupPredicate,
-      BiPredicate<String,Integer> hostPortPredicate)
-      throws AccumuloException, AccumuloSecurityException {
-
-    Set<ServerId> compactionServers = new HashSet<>();
-    compactionServers
-        .addAll(getServers(ServerId.Type.COMPACTOR, resourceGroupPredicate, hostPortPredicate));
-    compactionServers
-        .addAll(getServers(ServerId.Type.TABLET_SERVER, resourceGroupPredicate, hostPortPredicate));
-
-    return getActiveCompactions(compactionServers);
-  }
-
-  @Override
   public List<ActiveCompaction> getActiveCompactions()
       throws AccumuloException, AccumuloSecurityException {
 
@@ -414,7 +401,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     return getActiveCompactions(compactionServers);
   }
 
-  private List<ActiveCompaction> getActiveCompactions(Set<ServerId> compactionServers)
+  @Override
+  public List<ActiveCompaction> getActiveCompactions(Collection<ServerId> compactionServers)
       throws AccumuloException, AccumuloSecurityException {
 
     int numThreads = Math.max(4, Math.min((compactionServers.size()) / 10, 256));

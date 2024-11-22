@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -312,8 +313,18 @@ public interface InstanceOperations {
    */
   List<ActiveCompaction> getActiveCompactions() throws AccumuloException, AccumuloSecurityException;
 
-  List<ActiveCompaction> getActiveCompactions(Predicate<String> resourceGroupPredicate,
-      BiPredicate<String,Integer> hostPortPredicate)
+  /**
+   * List the active compaction running on a collection of TabletServers or Compactors. The server
+   * addresses can be retrieved using {@link #getCompactors()} or {@link #getTabletServers()}. Use
+   * {@link #getActiveCompactions()} to get a list of all compactions running on tservers and
+   * compactors.
+   *
+   * @param servers The collection of servers
+   * @return the list of active compactions
+   * @throws IllegalArgumentException if a type of server is not TABLET_SERVER or COMPACTOR
+   * @since 4.0.0
+   */
+  List<ActiveCompaction> getActiveCompactions(Collection<ServerId> servers)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
