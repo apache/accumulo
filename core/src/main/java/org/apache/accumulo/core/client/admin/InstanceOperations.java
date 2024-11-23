@@ -29,6 +29,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -315,9 +316,8 @@ public interface InstanceOperations {
 
   /**
    * List the active compaction running on a collection of TabletServers or Compactors. The server
-   * addresses can be retrieved using {@link #getCompactors()} or {@link #getTabletServers()}. Use
-   * {@link #getActiveCompactions()} to get a list of all compactions running on tservers and
-   * compactors.
+   * addresses can be retrieved using {@link #getServers(Type)}. Use {@link #getActiveCompactions()}
+   * to get a list of all compactions running on tservers and compactors.
    *
    * @param servers The collection of servers
    * @return the list of active compactions
