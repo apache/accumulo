@@ -33,6 +33,8 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import com.google.common.base.Preconditions;
+
 public class ListScansCommand extends Command {
 
   private Option serverOpt, tserverOption, rgOpt, disablePaginationOpt;
@@ -51,8 +53,7 @@ public class ListScansCommand extends Command {
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
     final Set<ServerId> servers = new HashSet<>();
 
-    String serverValue =
-        cl.hasOption(serverOpt) ? cl.getOptionValue(serverOpt) : cl.getOptionValue(tserverOption);
+    String serverValue = getServerOptValue(cl, serverOpt, tserverOption);
     if (serverValue != null || cl.hasOption(rgOpt)) {
       final var serverPredicate = serverRegexPredicate(serverValue);
       final var rgPredicate = rgRegexPredicate(cl.getOptionValue(rgOpt));
@@ -79,7 +80,8 @@ public class ListScansCommand extends Command {
   public Options getOptions() {
     final Options opts = new Options();
 
-    serverOpt = new Option("s", "server", true, "tablet/scan server regex to list scans for");
+    serverOpt = new Option("s", "server", true,
+        "tablet/scan server regex to list scans for. Regex will match against strings like <host>:<port>");
     serverOpt.setArgName("tablet/scan server regex");
     opts.addOption(serverOpt);
 
@@ -97,6 +99,13 @@ public class ListScansCommand extends Command {
     opts.addOption(disablePaginationOpt);
 
     return opts;
+  }
+
+  static String getServerOptValue(CommandLine cl, Option serverOpt, Option tserverOption) {
+    Preconditions.checkArgument(!(cl.hasOption(serverOpt) && cl.hasOption(tserverOption)),
+        "serverOpt and tserverOption may not be both set at the same time.");
+    return cl.hasOption(serverOpt) ? cl.getOptionValue(serverOpt)
+        : cl.getOptionValue(tserverOption);
   }
 
   static BiPredicate<String,Integer> serverRegexPredicate(String serverRegex) {

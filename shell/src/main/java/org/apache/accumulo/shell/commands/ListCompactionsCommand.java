@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static org.apache.accumulo.shell.commands.ListScansCommand.getServerOptValue;
 import static org.apache.accumulo.shell.commands.ListScansCommand.rgRegexPredicate;
 import static org.apache.accumulo.shell.commands.ListScansCommand.serverRegexPredicate;
 
@@ -54,8 +55,7 @@ public class ListCompactionsCommand extends Command {
 
     Stream<String> activeCompactionStream;
 
-    String serverValue =
-        cl.hasOption(serverOpt) ? cl.getOptionValue(serverOpt) : cl.getOptionValue(tserverOption);
+    String serverValue = getServerOptValue(cl, serverOpt, tserverOption);
     if (serverValue != null || cl.hasOption(rgOpt)) {
       final var serverPredicate = serverRegexPredicate(serverValue);
       final var rgPredicate = rgRegexPredicate(cl.getOptionValue(rgOpt));
@@ -92,18 +92,19 @@ public class ListCompactionsCommand extends Command {
     filterOption = new Option("f", "filter", true, "show only compactions that match the regex");
     opts.addOption(filterOption);
 
-    serverOpt = new Option("s", "server", true, "tablet/scan server regex to list compactions for");
-    serverOpt.setArgName("tablet/scan server regex");
+    serverOpt = new Option("s", "server", true,
+        "tablet/compactor server regex to list compactions for. Regex will match against strings like <host>:<port>");
+    serverOpt.setArgName("tablet/compactor server regex");
     opts.addOption(serverOpt);
 
     // Leaving here for backwards compatibility, same as serverOpt
-    tserverOption =
-        new Option("ts", "tabletServer", true, "tablet/scan server regex to list compactions forr");
+    tserverOption = new Option("ts", "tabletServer", true,
+        "tablet/compactor server regex to list compactions for");
     tserverOption.setArgName("tablet server");
     opts.addOption(tserverOption);
 
     rgOpt = new Option("rg", "resourceGroup", true,
-        "tablet/scan server resource group regex to list compactions for");
+        "tablet/compactor server resource group regex to list compactions for");
     rgOpt.setArgName("resource group");
     opts.addOption(rgOpt);
 

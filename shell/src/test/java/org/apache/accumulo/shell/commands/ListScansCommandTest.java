@@ -18,7 +18,10 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static org.apache.accumulo.shell.commands.ListScansCommand.getServerOptValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -35,6 +38,24 @@ import org.apache.commons.cli.ParseException;
 import org.junit.jupiter.api.Test;
 
 public class ListScansCommandTest {
+
+  @Test
+  public void testTetServerOptValue() throws ParseException {
+    var cmd = new ListScansCommand();
+    CommandLineParser parser = new DefaultParser();
+    Options opts = cmd.getOptions();
+    Option serverOpt = opts.getOption("-s");
+    Option tserverOpt = opts.getOption("-ts");
+
+    assertThrows(IllegalArgumentException.class,
+        () -> getServerOptValue(
+            parser.parse(opts, new String[] {"-s", "server:1", "-ts", "server:2"}), serverOpt,
+            tserverOpt));
+    assertEquals("server:1", getServerOptValue(parser.parse(opts, new String[] {"-s", "server:1"}),
+        serverOpt, tserverOpt));
+    assertEquals("server:2", getServerOptValue(parser.parse(opts, new String[] {"-ts", "server:2"}),
+        serverOpt, tserverOpt));
+  }
 
   @Test
   public void testServerRegexPredicate() throws ParseException {
