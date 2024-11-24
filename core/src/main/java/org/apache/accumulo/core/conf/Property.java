@@ -915,6 +915,15 @@ public enum Property {
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client.",
       "1.3.5"),
+  TABLE_BULK_MAX_TABLETS("table.bulk.max.tablets", "0", PropertyType.COUNT,
+      "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited. "
+          + "This property is only enforced in the new bulk import API.",
+      "2.1.0"),
+  TABLE_BULK_MAX_TABLET_FILES("table.bulk.max.tablet.files", "0", PropertyType.COUNT,
+      "The maximum number of files a bulk import can add to a single tablet.  When this property "
+          + "is exceeded for any tablet the entire bulk import operation will fail before any making "
+          + "changes. Value of 0 is unlimited.",
+      "4.0.0"),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.FILENAME_EXT,
       "Change the type of file a table writes.", "1.3.5"),
   TABLE_LOAD_BALANCER("table.balancer", "org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer",
@@ -941,17 +950,28 @@ public enum Property {
           + " defaults are used.",
       "1.3.5"),
   TABLE_FILE_MAX("table.file.max", "15", PropertyType.COUNT,
-      "The maximum number of RFiles each tablet in a table can have. When"
-          + " adjusting this property you may want to consider adjusting"
-          + " table.compaction.major.ratio also. Setting this property to 0 will make"
-          + " it default to tserver.scan.files.open.max-1, this will prevent a tablet"
-          + " from having more RFiles than can be opened. Prior to 2.1.0 this property"
-          + " was used to trigger merging minor compactions, but merging minor compactions"
-          + " were removed in 2.1.0. Now this property is only used by the"
-          + " DefaultCompactionStrategy and the RatioBasedCompactionPlanner."
-          + " The RatioBasedCompactionPlanner started using this property in 2.1.3, before"
-          + " that it did not use the property.",
+      "This property is used to signal to the compaction planner that it should be more "
+          + "aggressive for compacting tablets that exceed this limit. The "
+          + "RatioBasedCompactionPlanner will lower the compaction ratio and increase the "
+          + "priority for tablets that exceed this limit. When  adjusting this property you may "
+          + "want to consider adjusting table.compaction.major.ratio also. Setting this property "
+          + "to 0 will make it default to tserver.scan.files.open.max-1, this will prevent a tablet"
+          + " from having more RFiles than can be opened by a scan.",
       "1.4.0"),
+  TABLE_FILE_PAUSE("table.file.pause", "0", PropertyType.COUNT,
+      "When a tablet has more than this number of files, bulk imports and minor compactions "
+          + "will wait until the tablet has less files before proceeding.  This will cause back "
+          + "pressure on bulk imports and writes to tables when compactions are not keeping up. "
+          + "Only the number of files a tablet currently has is considered for pausing, the "
+          + "number of files a bulk import will add is not considered. This means a bulk import "
+          + "can surge above this limit once causing future bulk imports or minor compactions to "
+          + "pause until compactions can catch up.  This property plus "
+          + TABLE_BULK_MAX_TABLET_FILES.getKey()
+          + " determines the total number of files a tablet could temporarily surge to based on bulk "
+          + "imports.  Ideally this property would be set higher than " + TABLE_FILE_MAX.getKey()
+          + " so that compactions are more aggressive prior to reaching the pause point. Value of 0 is "
+          + "unlimited.",
+      "4.0.0"),
   TABLE_MERGE_FILE_MAX("table.merge.file.max", "10000", PropertyType.COUNT,
       "The maximum number of files that a merge operation will process.  Before "
           + "merging a sum of the number of files in the merge range is computed and if it "
@@ -988,10 +1008,6 @@ public enum Property {
       "1.3.5"),
   TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING,
       "The bloom filter hash type.", "1.3.5"),
-  TABLE_BULK_MAX_TABLETS("table.bulk.max.tablets", "0", PropertyType.COUNT,
-      "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited. "
-          + "This property is only enforced in the new bulk import API.",
-      "2.1.0"),
   TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY,
       "The durability used to write to the write-ahead log. Legal values are:"
           + " none, which skips the write-ahead log; log, which sends the data to the"

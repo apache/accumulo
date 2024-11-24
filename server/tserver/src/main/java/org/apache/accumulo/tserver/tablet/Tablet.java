@@ -1689,8 +1689,8 @@ public class Tablet extends TabletBase {
         // Its expected that what is persisted should be less than equal to the time that tablet has
         // in memory.
         Preconditions.checkState(tabletMetadata.getTime().getTime() <= tabletTime.getTime(),
-            "Time in metadata is ahead of tablet %s memory:%s metadata:%s", extent, tabletTime,
-            tabletMetadata.getTime());
+            "Time in metadata is ahead of tablet %s memory:%s metadata:%s", extent,
+            tabletTime.getTime(), tabletMetadata.getTime());
 
         // must update latestMetadata before computeNumEntries() is called
         Preconditions.checkState(
@@ -1766,19 +1766,12 @@ public class Tablet extends TabletBase {
     return !activeScans.isEmpty() || writesInProgress > 0;
   }
 
-  public synchronized OptionalLong allocateTimestamp(int numStamps) {
+  public synchronized OptionalLong allocateTimestamp() {
     if (isClosing() || isClosed()) {
       return OptionalLong.empty();
     }
-
-    Preconditions.checkArgument(numStamps > 0);
-    long timestamp = Long.MIN_VALUE;
-    for (int i = 0; i < numStamps; i++) {
-      timestamp = tabletTime.getAndUpdateTime();
-    }
-
-    getTabletMemory().getCommitSession().updateMaxCommittedTime(timestamp);
-
-    return OptionalLong.of(timestamp);
+    var time = tabletTime.getAndUpdateTime();
+    getTabletMemory().getCommitSession().updateMaxCommittedTime(time);
+    return OptionalLong.of(time);
   }
 }

@@ -266,7 +266,7 @@ public class NullTserver {
 
     @Override
     public Map<TKeyExtent,Long> allocateTimestamps(TInfo tinfo, TCredentials credentials,
-        List<TKeyExtent> tablets, int numStamps) throws TException {
+        List<TKeyExtent> tablets) throws TException {
       return Map.of();
     }
   }
