@@ -86,7 +86,7 @@ public class ListScansCommand extends Command {
         return instanceOps.getActiveScans(ids).stream().map(as -> {
           var dur = new DurationFormat(as.getAge(), "");
           var dur2 = new DurationFormat(as.getLastContactTime(), "");
-          var server = as.getHost();
+          var server = as.getServerId();
           return (String.format(
               "%21s |%21s |%21s |%9s |%9s |%7s |%6s |%8s |%8s |%10s |%20s |%10s |%20s |%10s | %s",
               server.getResourceGroup(), server.toHostPortString(), as.getClient(), dur, dur2,

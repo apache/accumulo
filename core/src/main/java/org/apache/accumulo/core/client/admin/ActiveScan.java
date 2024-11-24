@@ -99,9 +99,9 @@ public abstract class ActiveScan {
   public abstract long getIdleTime();
 
   /**
-   * Return the host where the compaction is running.
+   * Return the server where the scan is running.
    *
    * @since 4.0.0
    */
-  public abstract ServerId getHost();
+  public abstract ServerId getServerId();
 }

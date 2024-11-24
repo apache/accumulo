@@ -158,7 +158,7 @@ public class ActiveScanImpl extends ActiveScan {
   }
 
   @Override
-  public ServerId getHost() {
+  public ServerId getServerId() {
     return server;
   }
 }

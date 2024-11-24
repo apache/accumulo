@@ -86,7 +86,7 @@ class ActiveCompactionHelper {
     }
 
     String hostSuffix;
-    switch (ac.getHost().getType()) {
+    switch (ac.getServerId().getType()) {
       case TABLET_SERVER:
         hostSuffix = "";
         break;
@@ -94,17 +94,17 @@ class ActiveCompactionHelper {
         hostSuffix = " (ext)";
         break;
       default:
-        hostSuffix = ac.getHost().getType().name();
+        hostSuffix = ac.getServerId().getType().name();
         break;
     }
 
-    String host = ac.getHost().toHostPortString() + hostSuffix;
+    String host = ac.getServerId().toHostPortString() + hostSuffix;
 
     try {
       var dur = new DurationFormat(ac.getAge(), "");
       return String.format(
           "%21s | %21s | %9s | %5s | %6s | %5s | %5s | %15s | %-40s | %5s | %35s | %9s | %s",
-          ac.getHost().getResourceGroup(), host, dur, ac.getType(), ac.getReason(),
+          ac.getServerId().getResourceGroup(), host, dur, ac.getType(), ac.getReason(),
           shortenCount(ac.getEntriesRead()), shortenCount(ac.getEntriesWritten()), ac.getTable(),
           ac.getTablet(), ac.getInputFiles().size(), output, iterList, iterOpts);
     } catch (TableNotFoundException e) {
@@ -171,9 +171,9 @@ class ActiveCompactionHelper {
   }
 
   private static Stream<String> sortActiveCompactions(List<ActiveCompaction> activeCompactions) {
-    Comparator<ActiveCompaction> comparator =
-        Comparator.comparing((ActiveCompaction ac) -> ac.getHost().getHost())
-            .thenComparing(ac -> ac.getHost().getPort()).thenComparing(COMPACTION_AGE_DESCENDING);
+    Comparator<ActiveCompaction> comparator = Comparator
+        .comparing((ActiveCompaction ac) -> ac.getServerId().getHost())
+        .thenComparing(ac -> ac.getServerId().getPort()).thenComparing(COMPACTION_AGE_DESCENDING);
     return activeCompactions.stream().sorted(comparator)
         .map(ActiveCompactionHelper::formatActiveCompactionLine);
   }

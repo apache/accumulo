@@ -53,6 +53,7 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
@@ -269,8 +270,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException {
-    ServerId si = getServerId(tserver);
-    return si == null ? List.of() : getActiveScans(si);
+    var si = getServerId(tserver, List.of(Type.TABLET_SERVER, Type.SCAN_SERVER));
+    // getActiveScans throws exceptions so we can't use Optional.map() here
+    return si.isPresent() ? getActiveScans(si.orElseThrow()) : List.of();
   }
 
   @Override
@@ -325,8 +327,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated
   public List<ActiveCompaction> getActiveCompactions(String server)
       throws AccumuloException, AccumuloSecurityException {
-    ServerId si = getServerId(server);
-    return si == null ? List.of() : getActiveCompactions(si);
+    var si = getServerId(server, List.of(Type.COMPACTOR, Type.TABLET_SERVER));
+    // getActiveCompactions throws exceptions so we can't use Optional.map() here
+    return si.isPresent() ? getActiveCompactions(si.orElseThrow()) : List.of();
   }
 
   private List<ActiveCompaction> getActiveCompactions(ServerId server)
@@ -629,15 +632,10 @@ public class InstanceOperationsImpl implements InstanceOperations {
     return new ServerId(type, resourceGroup, host, port);
   }
 
-  private ServerId getServerId(String server) {
+  private Optional<ServerId> getServerId(String server, List<Type> types) {
     HostAndPort hp = HostAndPort.fromString(server);
-
-    ServerId si = getServer(ServerId.Type.COMPACTOR, null, hp.getHost(), hp.getPort());
-    if (si == null) {
-      si = getServer(ServerId.Type.TABLET_SERVER, null, hp.getHost(), hp.getPort());
-    }
-
-    return si;
+    return types.stream().map(type -> getServer(type, null, hp.getHost(), hp.getPort()))
+        .findFirst();
   }
 
   interface ServerQuery<T> {

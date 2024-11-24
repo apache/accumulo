@@ -1172,7 +1172,7 @@ public class CompactionIT extends CompactionBaseIT {
       } while (compactions.isEmpty());
 
       ActiveCompaction running1 = compactions.get(0);
-      ServerId host = running1.getHost();
+      ServerId host = running1.getServerId();
       assertTrue(host.getType() == ServerId.Type.COMPACTOR);
 
       compactions.clear();
