@@ -852,10 +852,14 @@ public class CompactionCoordinator
                   final FileSystem fs = vol.getFileSystem();
                   for (ExternalCompactionId ecid : ecidsForTablet) {
                     final String fileSuffix = "_tmp_" + ecid.canonical();
-                    FileStatus[] files = fs.listStatus(new Path(volPath), (path) -> {
-                      return path.getName().endsWith(fileSuffix);
-                    });
-                    if (files.length > 0) {
+                    FileStatus[] files = null;
+                    try {
+                      files = fs.listStatus(new Path(volPath),
+                          (path) -> path.getName().endsWith(fileSuffix));
+                    } catch (FileNotFoundException e) {
+                      LOG.trace("Failed to list tablet dir {}", volPath, e);
+                    }
+                    if (files != null) {
                       for (FileStatus file : files) {
                         if (!fs.delete(file.getPath(), false)) {
                           LOG.warn("Unable to delete ecid tmp file: {}: ", file.getPath());
