@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -55,7 +56,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.core.util.threads.ThreadPools.ExecutionError;
 import org.apache.accumulo.monitor.next.SystemInformation.ProcessSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.server.ServerContext;
@@ -311,9 +311,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
             iter.remove();
             try {
               future.get();
-            } catch (InterruptedException | ExecutionException e) {
-              // throwing an error so the Monitor will die
-              throw new ExecutionError("Error getting metrics from server", e);
+            } catch (CancellationException | InterruptedException | ExecutionException e) {
+              LOG.error("Error getting status from future: {}", e.getMessage());
             }
           }
         }
