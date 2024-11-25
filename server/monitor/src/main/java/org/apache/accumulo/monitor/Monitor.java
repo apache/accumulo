@@ -20,18 +20,15 @@ package org.apache.accumulo.monitor;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.HOURS;
 
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -138,35 +135,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private int totalTables = 0;
   private final AtomicBoolean monitorInitialized = new AtomicBoolean(false);
 
-  private static <T> List<Pair<Long,T>> newMaxList() {
-    return Collections.synchronizedList(new LinkedList<>() {
-
-      private static final long serialVersionUID = 1L;
-      private final long maxDelta = HOURS.toMillis(1);
-
-      @Override
-      public boolean add(Pair<Long,T> obj) {
-        boolean result = super.add(obj);
-        if (obj.getFirst() - get(0).getFirst() > maxDelta) {
-          remove(0);
-        }
-        return result;
-      }
-
-    });
-  }
-
-  private final List<Pair<Long,Double>> loadOverTime = newMaxList();
-  private final List<Pair<Long,Double>> ingestRateOverTime = newMaxList();
-  private final List<Pair<Long,Double>> ingestByteRateOverTime = newMaxList();
-  private final List<Pair<Long,Integer>> minorCompactionsOverTime = newMaxList();
-  private final List<Pair<Long,Integer>> majorCompactionsOverTime = newMaxList();
-  private final List<Pair<Long,Double>> lookupsOverTime = newMaxList();
-  private final List<Pair<Long,Long>> queryRateOverTime = newMaxList();
-  private final List<Pair<Long,Long>> scanRateOverTime = newMaxList();
-  private final List<Pair<Long,Double>> queryByteRateOverTime = newMaxList();
-  private final List<Pair<Long,Double>> indexCacheHitRateOverTime = newMaxList();
-  private final List<Pair<Long,Double>> dataCacheHitRateOverTime = newMaxList();
   private EventCounter lookupRateTracker = new EventCounter();
   private EventCounter indexCacheHitTracker = new EventCounter();
   private EventCounter indexCacheRequestTracker = new EventCounter();
@@ -251,9 +219,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   public void fetchData() {
     ServerContext context = getContext();
     double totalIngestRate = 0.;
-    double totalIngestByteRate = 0.;
     double totalQueryRate = 0.;
-    double totalQueryByteRate = 0.;
     double totalScanRate = 0.;
     long totalEntries = 0;
     int totalTabletCount = 0;
@@ -299,8 +265,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         }
       }
       if (mmi != null) {
-        int majorCompactions = 0;
-        int minorCompactions = 0;
 
         lookupRateTracker.startingUpdates();
         indexCacheHitTracker.startingUpdates();
@@ -311,15 +275,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         for (TabletServerStatus server : mmi.tServerInfo) {
           TableInfo summary = TableInfoUtil.summarizeTableStats(server);
           totalIngestRate += summary.ingestRate;
-          totalIngestByteRate += summary.ingestByteRate;
           totalQueryRate += summary.queryRate;
           totalScanRate += summary.scanRate;
-          totalQueryByteRate += summary.queryByteRate;
           totalEntries += summary.recs;
           totalHoldTime += server.holdTime;
           totalLookups += server.lookups;
-          majorCompactions += summary.majors.running;
-          minorCompactions += summary.minors.running;
           lookupRateTracker.updateTabletServer(server.name, server.lastContact, server.lookups);
           indexCacheHitTracker.updateTabletServer(server.name, server.lastContact,
               server.indexCacheHits);
@@ -344,40 +304,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         }
         this.totalIngestRate = totalIngestRate;
         this.totalTables = totalTables;
-        totalIngestByteRate = totalIngestByteRate / 1000000.0;
         this.totalQueryRate = totalQueryRate;
         this.totalScanRate = totalScanRate;
-        totalQueryByteRate = totalQueryByteRate / 1000000.0;
         this.totalEntries = totalEntries;
         this.totalTabletCount = totalTabletCount;
         this.totalHoldTime = totalHoldTime;
         this.totalLookups = totalLookups;
 
-        ingestRateOverTime.add(new Pair<>(currentTime, totalIngestRate));
-        ingestByteRateOverTime.add(new Pair<>(currentTime, totalIngestByteRate));
-
-        double totalLoad = 0.;
-        for (TabletServerStatus status : mmi.tServerInfo) {
-          if (status != null) {
-            totalLoad += status.osLoad;
-          }
-        }
-        loadOverTime.add(new Pair<>(currentTime, totalLoad));
-
-        minorCompactionsOverTime.add(new Pair<>(currentTime, minorCompactions));
-        majorCompactionsOverTime.add(new Pair<>(currentTime, majorCompactions));
-
-        lookupsOverTime.add(new Pair<>(currentTime, lookupRateTracker.calculateRate()));
-
-        queryRateOverTime.add(new Pair<>(currentTime, (long) totalQueryRate));
-        queryByteRateOverTime.add(new Pair<>(currentTime, totalQueryByteRate));
-
-        scanRateOverTime.add(new Pair<>(currentTime, (long) totalScanRate));
-
-        calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker,
-            indexCacheRequestTracker);
-        calcCacheHitRate(dataCacheHitRateOverTime, currentTime, dataCacheHitTracker,
-            dataCacheRequestTracker);
       }
       try {
         this.problemSummary = ProblemReports.getInstance(context).summarize();
@@ -409,17 +342,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       if (!fetching.compareAndSet(true, false)) {
         throw new AssertionError("Not supposed to happen; somebody broke this code");
       }
-    }
-  }
-
-  private static void calcCacheHitRate(List<Pair<Long,Double>> hitRate, long currentTime,
-      EventCounter cacheHits, EventCounter cacheReq) {
-    long req = cacheReq.calculateCount();
-    if (req > 0) {
-      hitRate.add(
-          new Pair<>(currentTime, cacheHits.calculateCount() / (double) cacheReq.calculateCount()));
-    } else {
-      hitRate.add(new Pair<>(currentTime, null));
     }
   }
 
@@ -985,52 +907,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return START_TIME;
   }
 
-  public List<Pair<Long,Double>> getLoadOverTime() {
-    return new ArrayList<>(loadOverTime);
-  }
-
-  public List<Pair<Long,Double>> getIngestRateOverTime() {
-    return new ArrayList<>(ingestRateOverTime);
-  }
-
-  public List<Pair<Long,Double>> getIngestByteRateOverTime() {
-    return new ArrayList<>(ingestByteRateOverTime);
-  }
-
-  public List<Pair<Long,Integer>> getMinorCompactionsOverTime() {
-    return new ArrayList<>(minorCompactionsOverTime);
-  }
-
-  public List<Pair<Long,Integer>> getMajorCompactionsOverTime() {
-    return new ArrayList<>(majorCompactionsOverTime);
-  }
-
-  public List<Pair<Long,Double>> getLookupsOverTime() {
-    return new ArrayList<>(lookupsOverTime);
-  }
-
   public double getLookupRate() {
     return lookupRateTracker.calculateRate();
-  }
-
-  public List<Pair<Long,Long>> getQueryRateOverTime() {
-    return new ArrayList<>(queryRateOverTime);
-  }
-
-  public List<Pair<Long,Long>> getScanRateOverTime() {
-    return new ArrayList<>(scanRateOverTime);
-  }
-
-  public List<Pair<Long,Double>> getQueryByteRateOverTime() {
-    return new ArrayList<>(queryByteRateOverTime);
-  }
-
-  public List<Pair<Long,Double>> getIndexCacheHitRateOverTime() {
-    return new ArrayList<>(indexCacheHitRateOverTime);
-  }
-
-  public List<Pair<Long,Double>> getDataCacheHitRateOverTime() {
-    return new ArrayList<>(dataCacheHitRateOverTime);
   }
 
   @Override
