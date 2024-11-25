@@ -120,24 +120,6 @@ function updateServerNotifications(statusData) {
 }
 
 /**
- * Updates the notification color for the recent logs icon within the debug dropdown
- */
-function updateRecentLogsNotification(statusData) {
-  if (statusData.logNumber > 0) {
-    if (statusData.logsHaveError) {
-      updateElementStatus('recentLogsNotifications', STATUS.ERROR);
-    } else {
-      updateElementStatus('recentLogsNotifications', STATUS.WARN);
-    }
-  } else {
-    updateElementStatus('recentLogsNotifications', STATUS.OK);
-  }
-  // Number
-  const logNumber = statusData.logNumber > 99 ? '99+' : statusData.logNumber;
-  $('#recentLogsNotifications').html(logNumber);
-}
-
-/**
  * Updates the notification color for the table problems icon within the debug dropdown
  */
 function updateTableProblemsNotification(statusData) {
@@ -155,8 +137,8 @@ function updateTableProblemsNotification(statusData) {
  * Updates the notification color for the debug dropdown icon
  */
 function updateDebugDropdownNotification(statusData) {
-  if (statusData.logNumber > 0 || statusData.problemNumber > 0) {
-    if (statusData.logsHaveError || statusData.problemNumber > 0) {
+  if (statusData.problemNumber > 0) {
+    if (statusData.problemNumber > 0) {
       updateElementStatus('errorsNotification', STATUS.ERROR);
     } else {
       updateElementStatus('errorsNotification', STATUS.WARN);
@@ -165,8 +147,8 @@ function updateDebugDropdownNotification(statusData) {
     updateElementStatus('errorsNotification', STATUS.OK);
   }
   // Number
-  var totalNumber = statusData.logNumber + statusData.problemNumber > 99 ?
-    '99+' : statusData.logNumber + statusData.problemNumber;
+  var totalNumber = statusData.problemNumber > 99 ?
+    '99+' : statusData.problemNumber;
   $('#errorsNotification').html(totalNumber);
 }
 
@@ -195,14 +177,13 @@ function refreshNavBar() {
 }
 
 /**
- * Generates the sidebar notifications for servers and logs
+ * Generates the sidebar notifications for servers
  */
 function refreshSideBarNotifications() {
 
   const statusData = sessionStorage?.status ? JSON.parse(sessionStorage.status) : undefined;
 
   updateServerNotifications(statusData);
-  updateRecentLogsNotification(statusData);
   updateTableProblemsNotification(statusData);
   updateDebugDropdownNotification(statusData);
 }
