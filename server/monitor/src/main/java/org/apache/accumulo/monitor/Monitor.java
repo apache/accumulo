@@ -78,7 +78,6 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactions;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactorDetails;
-import org.apache.accumulo.monitor.util.logging.RecentLogs;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
@@ -537,7 +536,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final Map<HostAndPort,ScanStats> tserverScans = new HashMap<>();
   private final Map<HostAndPort,ScanStats> sserverScans = new HashMap<>();
   private final Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
-  private final RecentLogs recentLogs = new RecentLogs();
   private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
 
   private long scansFetchedNanos = System.nanoTime();
@@ -914,10 +912,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   @Override
   public boolean isActiveService() {
     return monitorInitialized.get();
-  }
-
-  public RecentLogs recentLogs() {
-    return recentLogs;
   }
 
   public Optional<HostAndPort> getCoordinatorHost() {
