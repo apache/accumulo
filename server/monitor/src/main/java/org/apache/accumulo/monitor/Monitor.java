@@ -687,9 +687,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     public final RunningCompactions runningCompactions;
     public final Map<String,TExternalCompaction> ecRunningMap;
 
-    private ExternalCompactionsSnapshot(Map<String,TExternalCompaction> ecRunningMap) {
-      this.ecRunningMap = Collections.unmodifiableMap(ecRunningMap);
-      this.runningCompactions = new RunningCompactions(ecRunningMap);
+    private ExternalCompactionsSnapshot(Optional<Map<String,TExternalCompaction>> ecRunningMapOpt) {
+      this.ecRunningMap =
+          ecRunningMapOpt.map(Collections::unmodifiableMap).orElse(Collections.emptyMap());
+      this.runningCompactions = new RunningCompactions(this.ecRunningMap);
     }
   }
 
@@ -707,7 +708,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
     }
 
-    return new ExternalCompactionsSnapshot(running.getCompactions());
+    return new ExternalCompactionsSnapshot(Optional.ofNullable(running.getCompactions()));
   }
 
   public RunningCompactions getRunnningCompactions() {
