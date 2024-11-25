@@ -638,6 +638,38 @@ function main() {
         exit 1
       fi
       cat <<EOF >"$conf"/cluster.yaml
+#
+# This file describes the intended deployment of the cluster and is used
+# in conjunction with the accumulo-cluster script. Each Accumulo process
+# will have its own section, with the following structure:
+#
+# process:
+#   resource_group:
+#     conf_dir:
+#     extra_args:
+#     servers_per_host:
+#     hosts:
+#       - host1
+#       - host2
+#
+# NOTES:
+#   process - manager, monitor, gc, tserver, sserver and compactor are supported. sserver
+#             is optional. tserver and compactor are required to at least support the tables
+#             in the accumulo namespace.
+#
+#   resource_group - name must be 'default' for manager, monitor, and gc processes. Other
+#                    processes support multiple resource_groups with a name matching the
+#                    regular expression: ^[a-zA-Z_]{1,}[a-zA-Z0-9_]{0,}$
+#
+#   conf_dir - optional, path to configuration directory on the hosts
+#
+#   extra_args - optional, extra arguments to supply to the process
+#
+#   servers_per_host - optional, defaults to 1
+#
+#   hosts - list of host names on which to start the process for this resource_group
+#
+
 manager:
   default:
     conf_dir: /opt/accumulo/conf
