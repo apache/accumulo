@@ -445,20 +445,6 @@ function getTableServers(tableID) {
 }
 
 /**
- * REST GET call for the logs, stores it on a sessionStorage variable
- */
-function getLogs() {
-  return getJSONForTable('/rest/logs', 'logs');
-}
-
-/**
- * REST POST call to clear logs
- */
-function clearLogs() {
-  doLoggedPostCall('/rest/logs/clear', refresh, false);
-}
-
-/**
  * REST POST call to clear all table problems
  *
  * @param {string} tableID Table ID
