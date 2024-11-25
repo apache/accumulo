@@ -606,16 +606,24 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             state, goal, actions, tm.getLogs().size());
       }
 
-      if (actions.contains(ManagementAction.NEEDS_SPLITTING)) {
+      final boolean needsSplit = actions.contains(ManagementAction.NEEDS_SPLITTING);
+      if (needsSplit) {
         LOG.debug("{} may need splitting.", tm.getExtent());
         manager.getSplitter().initiateSplit(new SeedSplitTask(manager, tm.getExtent()));
       }
 
       if (actions.contains(ManagementAction.NEEDS_COMPACTING) && compactionGenerator != null) {
-        var jobs = compactionGenerator.generateJobs(tm,
-            TabletManagementIterator.determineCompactionKinds(actions));
-        LOG.debug("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());
-        manager.getCompactionCoordinator().addJobs(tm, jobs);
+        // Check if tablet needs splitting, priority should be giving to splits over
+        // compactions because it's best to compact after a split
+        if (!needsSplit) {
+          var jobs = compactionGenerator.generateJobs(tm,
+              TabletManagementIterator.determineCompactionKinds(actions));
+          LOG.debug("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());
+          manager.getCompactionCoordinator().addJobs(tm, jobs);
+        } else {
+          LOG.trace("skipping compaction job generation because {} may need splitting.",
+              tm.getExtent());
+        }
       }
 
       if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)

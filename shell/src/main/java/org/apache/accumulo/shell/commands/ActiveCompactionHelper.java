@@ -21,8 +21,12 @@ package org.apache.accumulo.shell.commands;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -137,16 +141,37 @@ class ActiveCompactionHelper {
     }
   }
 
-  public static Stream<String> activeCompactions(InstanceOperations instanceOps) {
-    Comparator<ActiveCompaction> comparator =
-        Comparator.comparing((ActiveCompaction ac) -> ac.getHost().getHost())
-            .thenComparing(ac -> ac.getHost().getPort()).thenComparing(COMPACTION_AGE_DESCENDING);
+  public static Stream<String> activeCompactions(InstanceOperations instanceOps,
+      Predicate<String> resourceGroupPredicate, BiPredicate<String,Integer> hostPortPredicate) {
+
     try {
-      return instanceOps.getActiveCompactions().stream().sorted(comparator)
-          .map(ActiveCompactionHelper::formatActiveCompactionLine);
+      final Set<ServerId> compactionServers = new HashSet<>();
+      compactionServers.addAll(instanceOps.getServers(ServerId.Type.COMPACTOR,
+          resourceGroupPredicate, hostPortPredicate));
+      compactionServers.addAll(instanceOps.getServers(ServerId.Type.TABLET_SERVER,
+          resourceGroupPredicate, hostPortPredicate));
+
+      return sortActiveCompactions(instanceOps.getActiveCompactions(compactionServers));
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      LOG.debug("Failed to list active compactions with resource group and server predicates", e);
+      return Stream.of("ERROR " + e.getMessage());
+    }
+  }
+
+  public static Stream<String> activeCompactions(InstanceOperations instanceOps) {
+    try {
+      return sortActiveCompactions(instanceOps.getActiveCompactions());
     } catch (AccumuloException | AccumuloSecurityException e) {
       return Stream.of("ERROR " + e.getMessage());
     }
+  }
+
+  private static Stream<String> sortActiveCompactions(List<ActiveCompaction> activeCompactions) {
+    Comparator<ActiveCompaction> comparator =
+        Comparator.comparing((ActiveCompaction ac) -> ac.getHost().getHost())
+            .thenComparing(ac -> ac.getHost().getPort()).thenComparing(COMPACTION_AGE_DESCENDING);
+    return activeCompactions.stream().sorted(comparator)
+        .map(ActiveCompactionHelper::formatActiveCompactionLine);
   }
 
 }

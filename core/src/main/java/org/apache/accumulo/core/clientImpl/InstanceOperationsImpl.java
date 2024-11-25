@@ -28,6 +28,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.INSTANCE_OPS
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
@@ -396,6 +397,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
     Set<ServerId> compactionServers = new HashSet<>();
     compactionServers.addAll(getServers(ServerId.Type.COMPACTOR));
     compactionServers.addAll(getServers(ServerId.Type.TABLET_SERVER));
+
+    return getActiveCompactions(compactionServers);
+  }
+
+  @Override
+  public List<ActiveCompaction> getActiveCompactions(Collection<ServerId> compactionServers)
+      throws AccumuloException, AccumuloSecurityException {
 
     int numThreads = Math.max(4, Math.min((compactionServers.size()) / 10, 256));
     var executorService = context.threadPools().getPoolBuilder(INSTANCE_OPS_COMPACTIONS_FINDER_POOL)
