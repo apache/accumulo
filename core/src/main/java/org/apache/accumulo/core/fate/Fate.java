@@ -62,8 +62,6 @@ import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 /**
  * Fault tolerant executor
  */
@@ -403,55 +401,14 @@ public class Fate<T> {
 
   public Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp, String goalMessage) {
-
-    Optional<FateTxStore<T>> optTxStore = store.createAndReserve(fateKey);
-
-    return optTxStore.map(txStore -> {
-      var fateId = txStore.getID();
-      try {
-        Preconditions.checkState(txStore.getStatus() == NEW);
-        seedTransaction(txName, fateId, repo, autoCleanUp, goalMessage, txStore);
-      } finally {
-        txStore.unreserve(Duration.ZERO);
-      }
-      return fateId;
-    });
-  }
-
-  private void seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp,
-      String goalMessage, FateTxStore<T> txStore) {
-    if (txStore.top() == null) {
-      try {
-        log.info("Seeding {} {}", fateId, goalMessage);
-        txStore.push(repo);
-      } catch (StackOverflowException e) {
-        // this should not happen
-        throw new IllegalStateException(e);
-      }
-    }
-
-    if (autoCleanUp) {
-      txStore.setTransactionInfo(TxInfo.AUTO_CLEAN, autoCleanUp);
-    }
-
-    txStore.setTransactionInfo(TxInfo.TX_NAME, txName);
-
-    txStore.setStatus(SUBMITTED);
+    return store.seedTransaction(txName, fateKey, repo, autoCleanUp);
   }
 
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
   public void seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp,
       String goalMessage) {
-    FateTxStore<T> txStore = store.reserve(fateId);
-    try {
-      if (txStore.getStatus() == NEW) {
-        seedTransaction(txName, fateId, repo, autoCleanUp, goalMessage, txStore);
-      }
-    } finally {
-      txStore.unreserve(Duration.ZERO);
-    }
-
+    store.seedTransaction(txName, fateId, repo, autoCleanUp);
   }
 
   // check on the transaction

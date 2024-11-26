@@ -78,6 +78,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.iterators.DevNull;
@@ -96,6 +97,7 @@ import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
@@ -332,6 +334,21 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     }
   }
 
+  public static class FakeRepo extends ManagerRepo {
+
+    private static final long serialVersionUID = 1234L;
+
+    @Override
+    public long isReady(FateId fateId, Manager environment) throws Exception {
+      return 1000;
+    }
+
+    @Override
+    public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+      return null;
+    }
+  }
+
   private FateId createCompactionCommitAndDeadMetadata(AccumuloClient c,
       FateStore<Manager> fateStore, String tableName,
       Map<TableId,List<ExternalCompactionId>> allCids) throws Exception {
@@ -345,10 +362,9 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     // Create a fate transaction for one of the compaction ids that is in the new state, it
     // should never run. Its purpose is to prevent the dead compaction detector
     // from deleting the id.
-    FateStore.FateTxStore<Manager> fateTx = fateStore
-        .createAndReserve(FateKey.forCompactionCommit(allCids.get(tableId).get(0))).orElseThrow();
-    var fateId = fateTx.getID();
-    fateTx.unreserve(Duration.ZERO);
+    Repo<Manager> repo = new FakeRepo();
+    var fateId = fateStore.seedTransaction("COMPACTION_COMMIT",
+        FateKey.forCompactionCommit(allCids.get(tableId).get(0)), repo, true).orElseThrow();
 
     // Read the tablet metadata
     var tabletsMeta = ctx.getAmple().readTablets().forTable(tableId).build().stream()

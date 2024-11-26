@@ -74,6 +74,10 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
 
     private final String data;
 
+    public TestRepo() {
+      this("test");
+    }
+
     public TestRepo(String data) {
       this.data = data;
     }
