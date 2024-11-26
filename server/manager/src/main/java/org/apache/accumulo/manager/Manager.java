@@ -371,11 +371,14 @@ public class Manager extends AbstractServer
   private int totalAssignedOrHosted() {
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
-      for (TableCounts counts : watcher.getStats().values()) {
+      for (Entry<TableId,TableCounts> entry : watcher.getStats().entrySet()) {
+        var tableId = entry.getKey();
+        var counts = entry.getValue();
         log.debug(
-            "Watcher: {}: Assigned Tablets: {}, Dead tserver assignments: {}, Suspended Tablets: {}",
-            watcher.getName(), counts.assigned(), counts.assignedToDeadServers(),
-            counts.suspended());
+            "Watcher: {}: TableId: {}, Assigned Tablets: {}, Hosted Tablets:{}, "
+                + " Unassigned Tablets: {}, Dead tserver assignments: {}, Suspended Tablets: {}",
+            watcher.getName(), tableId, counts.assigned(), counts.hosted(), counts.unassigned(),
+            counts.assignedToDeadServers(), counts.suspended());
         result += counts.assigned() + counts.hosted();
       }
     }

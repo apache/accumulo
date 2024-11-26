@@ -19,7 +19,7 @@
 package org.apache.accumulo.manager.metrics;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.accumulo.core.metrics.Metric.MANAGER_COMPACTION_SVC_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTION_SVC_ERRORS;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_META_TGW_ERRORS;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_ROOT_TGW_ERRORS;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_USER_TGW_ERRORS;
@@ -93,10 +93,8 @@ public class ManagerMetrics implements MetricsProducer {
         .description(MANAGER_META_TGW_ERRORS.getDescription()).register(registry);
     Gauge.builder(MANAGER_USER_TGW_ERRORS.getName(), userTGWErrorsGauge, AtomicLong::get)
         .description(MANAGER_USER_TGW_ERRORS.getDescription()).register(registry);
-    Gauge
-        .builder(MANAGER_COMPACTION_SVC_ERRORS.getName(), compactionConfigurationError,
-            AtomicInteger::get)
-        .description(MANAGER_COMPACTION_SVC_ERRORS.getDescription()).register(registry);
+    Gauge.builder(COMPACTION_SVC_ERRORS.getName(), compactionConfigurationError, AtomicInteger::get)
+        .description(COMPACTION_SVC_ERRORS.getDescription()).register(registry);
   }
 
   public List<MetricsProducer> getProducers(AccumuloConfiguration conf, Manager manager) {
