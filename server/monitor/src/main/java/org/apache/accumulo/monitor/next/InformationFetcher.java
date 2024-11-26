@@ -272,7 +272,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       LOG.info("Fetching metrics from servers");
 
       final List<Future<?>> futures = new ArrayList<>();
-      final SystemInformation summary = new SystemInformation(allMetrics);
+      final SystemInformation summary = new SystemInformation(allMetrics, this.ctx);
 
       for (ServerId.Type type : ServerId.Type.values()) {
         if (type == Type.MONITOR) {
@@ -490,6 +490,10 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
   public Map<String,Map<String,ProcessSummary>> getDeploymentOverview() {
     return getSummary().getDeploymentOverview();
+  }
+
+  public Set<String> getSuggestions() {
+    return getSummary().getSuggestions();
   }
 
 }

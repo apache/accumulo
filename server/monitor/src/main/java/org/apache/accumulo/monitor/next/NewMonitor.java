@@ -219,6 +219,7 @@ public class NewMonitor implements Connection.Listener {
         .get("/metrics/tables/{name}/tablets",
             ctx -> ctx.json(fetcher.getTablets(ctx.pathParam("name"))))
         .get("/metrics/deployment", ctx -> ctx.json(fetcher.getDeploymentOverview()))
+        .get("/metrics/suggestions", ctx -> ctx.json(fetcher.getSuggestions()))
         .exception(NotFoundException.class, (e, ctx) -> ctx.status(404)).start();
 
     LOG.info("New Monitor listening on port: {}", httpPort);
