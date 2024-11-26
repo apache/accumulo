@@ -34,7 +34,7 @@
 #    export ACCUMULO_JAVA_OPTS="-Xms1024m -Xmx1024m"
 #
 #    Override Accumulo properties
-#    export PROPERTY_OVERRIDES=('-o' 'rpc.backlog=1000' -o' 'tserver.hold.time.max=10m')
+#    export PROPERTY_OVERRIDES=('-o' 'rpc.backlog=1000' '-o' 'tserver.hold.time.max=10m')
 
 service=$1
 
