@@ -317,7 +317,7 @@ public enum Metric {
   }
 
   public enum MetricDocSection {
-    GENERAL_SERVER("General Server Metrics", "Metrics that are generated across all server types"),
+    GENERAL_SERVER("General Server Metrics", "Metrics that are generated across all server types."),
     COMPACTION("Compaction Metrics",
         "Metrics specific to compactions, both minor and major. Metrics for major compactions"
             + " will likely have a 'queue.id' tag. The CompactionCoordinator component in the Manager creates a queue for each CompactionService"
