@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +29,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -311,6 +313,19 @@ public interface InstanceOperations {
    * @since 2.1.0
    */
   List<ActiveCompaction> getActiveCompactions() throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * List the active compaction running on a collection of TabletServers or Compactors. The server
+   * addresses can be retrieved using {@link #getServers(Type)}. Use {@link #getActiveCompactions()}
+   * to get a list of all compactions running on tservers and compactors.
+   *
+   * @param servers The collection of servers
+   * @return the list of active compactions
+   * @throws IllegalArgumentException if a type of server is not TABLET_SERVER or COMPACTOR
+   * @since 4.0.0
+   */
+  List<ActiveCompaction> getActiveCompactions(Collection<ServerId> servers)
+      throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Check to see if a server process at the host and port is up and responding to RPC requests.

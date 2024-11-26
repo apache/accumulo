@@ -20,7 +20,7 @@ package org.apache.accumulo.tserver.metrics;
 
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
-import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MINC_STUCK;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_ENTRIES;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_HOLD;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_INGEST_BYTES;
@@ -72,8 +72,8 @@ public class TabletServerMetrics implements MetricsProducer {
         .builder(COMPACTOR_ENTRIES_WRITTEN.getName(), this,
             TabletServerMetrics::getTotalEntriesWritten)
         .description(COMPACTOR_ENTRIES_WRITTEN.getDescription()).register(registry);
-    LongTaskTimer timer = LongTaskTimer.builder(COMPACTOR_MAJC_STUCK.getName())
-        .description(COMPACTOR_MAJC_STUCK.getDescription()).register(registry);
+    LongTaskTimer timer = LongTaskTimer.builder(COMPACTOR_MINC_STUCK.getName())
+        .description(COMPACTOR_MINC_STUCK.getDescription()).register(registry);
     CompactionWatcher.setTimer(timer);
 
     Gauge
