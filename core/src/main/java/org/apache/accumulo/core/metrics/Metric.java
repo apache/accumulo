@@ -308,7 +308,7 @@ public enum Metric {
     return description;
   }
 
-  public MetricDocSection getCategory() {
+  public MetricDocSection getDocSection() {
     return section;
   }
 

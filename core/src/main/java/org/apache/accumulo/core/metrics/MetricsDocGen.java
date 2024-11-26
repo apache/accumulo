@@ -39,8 +39,8 @@ public class MetricsDocGen {
     pageHeader();
     generateTableOfContents();
 
-    for (var category : Metric.MetricDocSection.values()) {
-      generateCategorySection(category, category.getSectionTitle(), category.getDescription());
+    for (var section : Metric.MetricDocSection.values()) {
+      generateCategorySection(section);
     }
   }
 
@@ -69,16 +69,15 @@ public class MetricsDocGen {
     doc.println();
   }
 
-  void generateCategorySection(Metric.MetricDocSection category, String sectionTitle,
-      String sectionDescription) {
-    String sectionId = generateSectionId(sectionTitle);
-    beginSection(sectionTitle, sectionId, sectionDescription);
+  void generateCategorySection(Metric.MetricDocSection section) {
+    String sectionId = generateSectionId(section.getSectionTitle());
+    beginSection(section.getSectionTitle(), sectionId, section.getDescription());
 
     // Enable block-level HTML parsing
     doc.println("{::options parse_block_html=\"true\" /}");
 
     for (Metric metric : sortedMetrics) {
-      if (metric.getCategory() == category) {
+      if (metric.getDocSection() == section) {
         generateMetricSubsection(metric);
       }
     }
