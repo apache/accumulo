@@ -18,16 +18,26 @@
 # under the License.
 #
 
-# This script will export ACCUMULO_JAVA_OPTS and PROPERTY_OVERRIDES variables based
-# on the service type for the default resource group. Additional files can be created
-# based on the groups configured in cluster.yaml. The contents of ACCUMULO_JAVA_OPTS
-# will be appended to the JAVA_OPTS variable that is created in accumulo-env.sh, allowing
-# the user to override any setting for this resource group. Likewise, the contents of
-# PROPERTY_OVERRIDES will be appended to the arguments provided to the server class
-# allowing the user to override any Accumulo property for this resource group. Overriding
-# the bind address and group name properties would not be advisable as this could lead
-# to deployment issues.
-#
+# This script is called from accumulo-service and serves as a mechanism to set
+# ACCUMULO_JAVA_OPTS and provide property overrides for the server processes in
+# a resource group. This allows the user to set a base configuration in
+# accumulo-env.sh and accumulo.properties and then tailor the configuration of
+# the individual processes in a resource group. For example, when you have a
+# cluster comprised of sets of servers with different amounts of memory, then
+# the user can set default JVM heap settings in accumulo-env.sh, and then
+# increase or decrease in this file.
+# 
+# This script will export ACCUMULO_JAVA_OPTS and PROPERTY_OVERRIDES variables
+# based on the service type for the default resource group.  Additional files can
+# be created based on the groups configured in cluster.yaml and should be named
+# "{groupName}-group-env.sh". The contents of ACCUMULO_JAVA_OPTS will be appended
+# to the JAVA_OPTS variable that is created in accumulo-env.sh, allowing the user
+# to override any setting for this resource group. Likewise, the contents of 
+# PROPERTY_OVERRIDES will be appended to the arguments provided to the server
+# class allowing the user to override any Accumulo property for this resource group.
+# Overriding the bind address and group name properties would not be advisable as
+# this could lead to deployment issues.
+
 #  Examples:
 #
 #    Override JVM args
