@@ -26,13 +26,13 @@
 # cluster comprised of sets of servers with different amounts of memory, then
 # the user can set default JVM heap settings in accumulo-env.sh, and then
 # increase or decrease in this file.
-# 
+#
 # This script will export ACCUMULO_JAVA_OPTS and PROPERTY_OVERRIDES variables
 # based on the service type for the default resource group.  Additional files can
 # be created based on the groups configured in cluster.yaml and should be named
 # "{groupName}-group-env.sh". The contents of ACCUMULO_JAVA_OPTS will be appended
 # to the JAVA_OPTS variable that is created in accumulo-env.sh, allowing the user
-# to override any setting for this resource group. Likewise, the contents of 
+# to override any setting for this resource group. Likewise, the contents of
 # PROPERTY_OVERRIDES will be appended to the arguments provided to the server
 # class allowing the user to override any Accumulo property for this resource group.
 # Overriding the bind address and group name properties would not be advisable as
