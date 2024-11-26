@@ -32,9 +32,9 @@ Commands:
   stop                       Stops Accumulo cluster
   kill                       Kills Accumulo cluster
   start-non-tservers         Deprecated. Starts all services except tservers
-  start-servers [--all|--tservers|--no-tservers|--sservers [group]|--compactors [group]]
+  start-servers [--all|--tservers [group]|--no-tservers|--sservers [group]|--compactors [group]]
                              Starts various server types, can optionally specify a group
-  stop-servers [--all|--tservers| --no-tservers|--sservers [group]|--compactors [group]]
+  stop-servers [--all|--tservers [group]| --no-tservers|--sservers [group]|--compactors [group]]
                              Starts various server types, can optionally specify a group
   start-tservers             Deprecated. Starts all tservers on cluster
   stop-tservers              Deprecated. Stops all tservers on cluster
@@ -273,7 +273,12 @@ function stop_sservers() {
 
 function start_tservers() {
   echo "Starting tablet servers ..."
-  for group in $TSERVER_GROUPS; do
+  groups=$TSERVER_GROUPS
+  if [[ -n $1 ]]; then
+    groups="$1"
+    echo "Only stopping servers for group: ${groups}"
+  fi
+  for group in $groups; do
     echo "Starting tablet servers for group $group"
     count=1
     G="TSERVER_HOSTS_${group}"
@@ -416,8 +421,12 @@ function kill_service() {
 function stop_tservers() {
 
   echo "Stopping unresponsive tablet servers (if any)..."
-
-  for group in $TSERVER_GROUPS; do
+  groups=$TSERVER_GROUPS
+  if [[ -n $1 ]]; then
+    groups="$1"
+    echo "Only stopping servers for group: ${groups}"
+  fi
+  for group in $groups; do
     echo "Stopping tablet servers for group $group"
     G="TSERVER_HOSTS_${group}"
     S="TSERVERS_PER_HOST_${group}"
@@ -429,7 +438,7 @@ function stop_tservers() {
   sleep 10
 
   echo "Stopping unresponsive tablet servers hard (if any)..."
-  for group in $TSERVER_GROUPS; do
+  for group in $groups; do
     G="TSERVER_HOSTS_${group}"
     S="TSERVERS_PER_HOST_${group}"
     for tserver in ${!G}; do
@@ -439,7 +448,7 @@ function stop_tservers() {
 
   echo "Cleaning tablet server entries from zookeeper"
   if ! isDebug; then
-    ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -tservers
+    ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -tservers -group "$groups"
   fi
 }
 
@@ -729,7 +738,7 @@ EOF
           start_all
           ;;
         "--tservers")
-          start_tservers
+          start_tservers "${program_args[@]:2}"
           ;;
         "--no-tservers")
           start_all --no-tservers
@@ -753,7 +762,7 @@ EOF
           stop_all
           ;;
         "--tservers")
-          stop_tservers
+          stop_tservers "${program_args[@]:2}"
           ;;
         "--sservers")
           stop_sservers "${program_args[@]:2}"
