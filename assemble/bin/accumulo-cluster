@@ -276,7 +276,7 @@ function start_tservers() {
   groups=$TSERVER_GROUPS
   if [[ -n $1 ]]; then
     groups="$1"
-    echo "Only stopping servers for group: ${groups}"
+    echo "Only starting servers for group: ${groups}"
   fi
   for group in $groups; do
     echo "Starting tablet servers for group $group"
