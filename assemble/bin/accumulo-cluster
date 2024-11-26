@@ -31,13 +31,10 @@ Commands:
   start                      Starts Accumulo cluster
   stop                       Stops Accumulo cluster
   kill                       Kills Accumulo cluster
-  start-non-tservers         Deprecated. Starts all services except tservers
-  start-servers [--all|--tservers [group]|--no-tservers|--sservers [group]|--compactors [group]]
+  start-servers [--all|--tservers [group]|--sservers [group]|--compactors [group]]
                              Starts various server types, can optionally specify a group
-  stop-servers [--all|--tservers [group]| --no-tservers|--sservers [group]|--compactors [group]]
+  stop-servers [--all|--tservers [group]|--sservers [group]|--compactors [group]]
                              Starts various server types, can optionally specify a group
-  start-tservers             Deprecated. Starts all tservers on cluster
-  stop-tservers              Deprecated. Stops all tservers on cluster
   start-here                 Starts all services on this node
   stop-here                  Stops all services on this node
 EOF
@@ -297,10 +294,6 @@ function start_tservers() {
 
 function start_all() {
   unset DISPLAY
-
-  if [[ $1 != "--no-tservers" ]]; then
-    start_tservers
-  fi
 
   for manager in $MANAGER_HOSTS; do
     start_service "$manager" manager "1"
@@ -707,24 +700,9 @@ EOF
       parse_config
       kill_all
       ;;
-    start-non-tservers)
-      echo "$1 is deprecated. Please use \`start-servers --no-tservers\` instead"
-      parse_config
-      start_all --no-tservers
-      ;;
-    start-tservers)
-      echo "$1 is deprecated. Please use \`start-servers --tservers\` instead"
-      parse_config
-      start_tservers
-      ;;
     start-here)
       parse_config
       start_here
-      ;;
-    stop-tservers)
-      echo "$1 is deprecated. Please use \`stop-servers --tservers\` instead"
-      parse_config
-      stop_tservers
       ;;
     stop-here)
       parse_config
@@ -739,9 +717,6 @@ EOF
           ;;
         "--tservers")
           start_tservers "${program_args[@]:2}"
-          ;;
-        "--no-tservers")
-          start_all --no-tservers
           ;;
         "--sservers")
           start_sservers "${program_args[@]:2}"
