@@ -201,18 +201,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       return totalRate;
     }
 
-    synchronized long calculateCount() {
-      long count = 0;
-
-      for (Entry<String,Pair<Long,Long>> entry : prevSamples.entrySet()) {
-        Pair<Long,Long> prevSample = entry.getValue();
-        Pair<Long,Long> sample = samples.get(entry.getKey());
-
-        count += sample.getSecond() - prevSample.getSecond();
-      }
-
-      return count;
-    }
   }
 
   public void fetchData() {
