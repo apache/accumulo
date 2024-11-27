@@ -46,15 +46,13 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -308,16 +306,12 @@ public class FileManager {
             .withFileLenCache(fileLenCache).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
-
-        ProblemReports.getInstance(context)
-            .report(new ProblemReport(tablet.tableId(), ProblemType.FILE_READ, file.toString(), e));
-
+        TabletLogger.fileReadFailed(file.toString(), tablet, e);
         if (continueOnFailure) {
           // release the permit for the file that failed to open
           if (!tablet.isMeta()) {
             filePermits.release(1);
           }
-          log.warn("Failed to open file {} {} continuing...", file, e.getMessage(), e);
         } else {
           // close whatever files were opened
           closeReaders(readersReserved.keySet());
@@ -326,7 +320,6 @@ public class FileManager {
             filePermits.release(files.size());
           }
 
-          log.error("Failed to open file {} {}", file, e.getMessage());
           throw new IOException("Failed to open " + file, e);
         }
       }
@@ -519,8 +512,8 @@ public class FileManager {
           }
         }
 
-        iter = new ProblemReportingIterator(context, tablet.tableId(), file.toString(),
-            continueOnFailure, detachable ? getSsi(file, source) : source);
+        iter = new ProblemReportingIterator(tablet.tableId(), file.toString(), continueOnFailure,
+            detachable ? getSsi(file, source) : source);
 
         if (someIteratorsWillWrap) {
           // constructing FileRef is expensive so avoid if not needed

@@ -120,39 +120,6 @@ function updateServerNotifications(statusData) {
 }
 
 /**
- * Updates the notification color for the table problems icon within the debug dropdown
- */
-function updateTableProblemsNotification(statusData) {
-  if (statusData.problemNumber > 0) {
-    updateElementStatus('tableProblemsNotifications', STATUS.ERROR);
-  } else {
-    updateElementStatus('tableProblemsNotifications', STATUS.OK);
-  }
-  // Number
-  var problemNumber = statusData.problemNumber > 99 ? '99+' : statusData.problemNumber;
-  $('#tableProblemsNotifications').html(problemNumber);
-}
-
-/**
- * Updates the notification color for the debug dropdown icon
- */
-function updateDebugDropdownNotification(statusData) {
-  if (statusData.problemNumber > 0) {
-    if (statusData.problemNumber > 0) {
-      updateElementStatus('errorsNotification', STATUS.ERROR);
-    } else {
-      updateElementStatus('errorsNotification', STATUS.WARN);
-    }
-  } else {
-    updateElementStatus('errorsNotification', STATUS.OK);
-  }
-  // Number
-  var totalNumber = statusData.problemNumber > 99 ?
-    '99+' : statusData.problemNumber;
-  $('#errorsNotification').html(totalNumber);
-}
-
-/**
  * Creates the initial sidebar
  */
 $(document).ready(function () {
@@ -184,6 +151,5 @@ function refreshSideBarNotifications() {
   const statusData = sessionStorage?.status ? JSON.parse(sessionStorage.status) : undefined;
 
   updateServerNotifications(statusData);
-  updateTableProblemsNotification(statusData);
   updateDebugDropdownNotification(statusData);
 }

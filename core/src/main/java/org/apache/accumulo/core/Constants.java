@@ -75,8 +75,6 @@ public class Constants {
   public static final String ZDEAD = "/dead";
   public static final String ZDEADTSERVERS = ZDEAD + "/tservers";
 
-  public static final String ZPROBLEMS = "/problems";
-
   public static final String BULK_ARBITRATOR_TYPE = "bulkTx";
 
   public static final String ZFATE = "/fate";
