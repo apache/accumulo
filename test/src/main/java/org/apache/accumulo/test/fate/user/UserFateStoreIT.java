@@ -39,7 +39,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.user.UserFateStore;
@@ -61,8 +60,6 @@ import org.junit.jupiter.api.function.Executable;
 import com.google.common.collect.MoreCollectors;
 
 public class UserFateStoreIT extends SharedMiniClusterBase {
-
-  private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
 
   @BeforeAll
   public static void setup() throws Exception {

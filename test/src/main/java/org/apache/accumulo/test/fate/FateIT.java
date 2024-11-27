@@ -490,7 +490,6 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
 
   protected void testNoWriteAfterDelete(FateStore<TestEnv> store, ServerContext sctx)
       throws Exception {
-    final String tableName = getUniqueNames(1)[0];
     final FateId fateId = store.create();
     final Repo<TestEnv> repo = new TestRepo("testNoWriteAfterDelete");
 
