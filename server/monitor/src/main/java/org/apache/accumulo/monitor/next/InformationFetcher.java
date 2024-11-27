@@ -182,7 +182,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
 
     // Copied from Monitor
-    private TExternalCompactionList getExternalCompactions() {
+    private Map<String,TExternalCompactionList> getLongRunningCompactions() {
       Set<ServerId> managers = ctx.instanceOperations().getServers(ServerId.Type.MANAGER);
       if (managers.isEmpty()) {
         throw new IllegalStateException(coordinatorMissingMsg);
@@ -193,7 +193,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         CompactionCoordinatorService.Client client =
             ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hp, ctx);
         try {
-          return client.getRunningCompactions(TraceUtil.traceInfo(), ctx.rpcCreds());
+          return client.getLongRunningCompactions(TraceUtil.traceInfo(), ctx.rpcCreds());
         } catch (Exception e) {
           throw new IllegalStateException("Unable to get running compactions from " + hp, e);
         } finally {
@@ -210,8 +210,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     @Override
     public void run() {
       try {
-        TExternalCompactionList running = getExternalCompactions();
-        summary.processExternalCompactionList(running);
+        summary.processExternalCompactionList(getLongRunningCompactions());
       } catch (Exception e) {
         LOG.warn("Error gathering running compaction information. Error message: {}",
             e.getMessage());
@@ -472,7 +471,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     return getSummary().getCompactionMetricSummary();
   }
 
-  public Collection<TExternalCompaction> getCompactions(int topN) {
+  public Map<String,List<TExternalCompaction>> getCompactions(int topN) {
     return getSummary().getCompactions(topN);
   }
 

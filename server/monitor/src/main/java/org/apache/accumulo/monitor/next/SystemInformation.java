@@ -21,15 +21,13 @@ package org.apache.accumulo.monitor.next;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
@@ -319,9 +317,7 @@ public class SystemInformation {
 
   // Compaction Information
   private final Map<String,List<FMetric>> queueMetrics = new ConcurrentHashMap<>();
-  private final AtomicReference<Map<String,TExternalCompaction>> runningCompactions =
-      new AtomicReference<>();
-  private final AtomicReference<Map<Long,String>> runningCompactionsDurationIndex =
+  private final AtomicReference<Map<String,TExternalCompactionList>> oldestCompactions =
       new AtomicReference<>();
 
   // Table Information
@@ -452,21 +448,8 @@ public class SystemInformation {
 
   }
 
-  public void processExternalCompactionList(TExternalCompactionList running) {
-    // Create an index into the running compaction list that is
-    // sorted by duration, meaning earliest start time first. This
-    // will allow us to show topN longest running compactions.
-    Map<Long,String> timeSortedEcids = new TreeMap<>();
-    if (running.getCompactions() != null) {
-      running.getCompactions().forEach((ecid, extComp) -> {
-        if (extComp.getUpdates() != null && !extComp.getUpdates().isEmpty()) {
-          Set<Long> orderedUpdateTimes = new TreeSet<>(extComp.getUpdates().keySet());
-          timeSortedEcids.put(orderedUpdateTimes.iterator().next(), ecid);
-        }
-      });
-    }
-    runningCompactions.set(running.getCompactions());
-    runningCompactionsDurationIndex.set(timeSortedEcids);
+  public void processExternalCompactionList(Map<String,TExternalCompactionList> running) {
+    oldestCompactions.set(running);
   }
 
   public void processTabletInformation(String tableName, TabletInformation info) {
@@ -565,12 +548,19 @@ public class SystemInformation {
     return this.queueMetrics;
   }
 
-  public Collection<TExternalCompaction> getCompactions(int topN) {
-    List<TExternalCompaction> results = new ArrayList<>();
-    Map<String,TExternalCompaction> compactions = runningCompactions.get();
-    Iterator<String> ecids = runningCompactionsDurationIndex.get().values().iterator();
-    for (int i = 0; i < topN && ecids.hasNext(); i++) {
-      results.add(compactions.get(ecids.next()));
+  public Map<String,List<TExternalCompaction>> getCompactions(int topN) {
+    Map<String,List<TExternalCompaction>> results = new HashMap<>();
+
+    Map<String,TExternalCompactionList> oldest = oldestCompactions.get();
+    if (oldest == null) {
+      return results;
+    }
+
+    for (Entry<String,TExternalCompactionList> e : oldest.entrySet()) {
+      List<TExternalCompaction> compactions = e.getValue().getCompactions();
+      if (compactions != null && compactions.size() > 0) {
+        results.put(e.getKey(), compactions);
+      }
     }
     return results;
   }

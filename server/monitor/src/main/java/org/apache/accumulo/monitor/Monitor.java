@@ -52,7 +52,7 @@ import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -710,7 +710,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     try {
       CompactionCoordinatorService.Client client =
           ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, ccHost, getContext());
-      TExternalCompactionList running;
+      TExternalCompactionMap running;
       try {
         running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
         return new ExternalCompactionsSnapshot(
