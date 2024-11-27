@@ -71,7 +71,7 @@ public class ZooKeeperInitializer {
       zoo.putPersistentData(Constants.ZROOT, new byte[0], ZooUtil.NodeExistsPolicy.SKIP,
           ZooDefs.Ids.OPEN_ACL_UNSAFE);
 
-      String zkInstanceRoot = Constants.ZROOT + "/" + instanceId;
+      String zkInstanceRoot = ZooUtil.getRoot(instanceId);
       zoo.putPersistentData(zkInstanceRoot, EMPTY_BYTE_ARRAY, ZooUtil.NodeExistsPolicy.SKIP);
       var sysPropPath = SystemPropKey.of(instanceId).getPath();
       VersionedProperties vProps = new VersionedProperties();
@@ -109,7 +109,7 @@ public class ZooKeeperInitializer {
         ZooUtil.NodeExistsPolicy.FAIL);
 
     // setup the instance
-    String zkInstanceRoot = Constants.ZROOT + "/" + instanceId;
+    String zkInstanceRoot = context.getZooKeeperRoot();
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES, Constants.ZTABLES_INITIAL_ID,
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES,

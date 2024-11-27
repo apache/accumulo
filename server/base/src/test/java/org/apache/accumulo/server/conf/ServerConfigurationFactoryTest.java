@@ -37,6 +37,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -79,7 +80,7 @@ public class ServerConfigurationFactoryTest {
     expectLastCall().anyTimes();
 
     context = createMock(ServerContext.class);
-    expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + IID).anyTimes();
+    expect(context.getZooKeeperRoot()).andReturn(ZooUtil.getRoot(IID)).anyTimes();
     expect(context.getInstanceID()).andReturn(IID).anyTimes();
     expect(context.getZooKeepers()).andReturn(ZK_HOST).anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_TIMEOUT).anyTimes();
