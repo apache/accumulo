@@ -295,6 +295,8 @@ function start_tservers() {
 function start_all() {
   unset DISPLAY
 
+  start_tservers
+
   for manager in $MANAGER_HOSTS; do
     start_service "$manager" manager "1"
   done
@@ -437,12 +439,12 @@ function stop_tservers() {
     for tserver in ${!G}; do
       kill_service "$tserver" tserver "${!S}" "-o" "tserver.group=$group" &
     done
+    echo "Cleaning tablet server entries from zookeeper"
+    if ! isDebug; then
+      ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -tservers -group "$group"
+    fi
   done
 
-  echo "Cleaning tablet server entries from zookeeper"
-  if ! isDebug; then
-    ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -tservers -group "$groups"
-  fi
 }
 
 function kill_all() {
