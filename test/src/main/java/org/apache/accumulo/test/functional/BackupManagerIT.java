@@ -46,7 +46,7 @@ public class BackupManagerIT extends ConfigurableMacBase {
     Process backup = exec(Manager.class);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       ZooReaderWriter writer = getCluster().getServerContext().getZooReaderWriter();
-      String root = "/accumulo/" + client.instanceOperations().getInstanceId();
+      String root = getCluster().getServerContext().getZooKeeperRoot();
 
       // wait for 2 lock entries
       var path = ServiceLock.path(root + Constants.ZMANAGER_LOCK);

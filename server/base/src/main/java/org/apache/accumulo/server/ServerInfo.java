@@ -36,6 +36,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -79,7 +80,7 @@ public class ServerInfo implements ClientInfo {
               + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
     }
     instanceID = InstanceId.of(new String(iidb, UTF_8));
-    if (zooCache.get(Constants.ZROOT + "/" + instanceID) == null) {
+    if (zooCache.get(ZooUtil.getRoot(instanceID)) == null) {
       if (instanceName == null) {
         throw new IllegalStateException(
             "Instance id " + instanceID + " does not exist in zookeeper");

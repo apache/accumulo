@@ -38,6 +38,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.serviceStatus.ServiceStatusReport;
 import org.apache.accumulo.server.util.serviceStatus.StatusSummary;
@@ -59,7 +60,7 @@ public class ServiceStatusCmdTest {
   @BeforeEach
   public void populateContext() {
     InstanceId iid = InstanceId.of(UUID.randomUUID());
-    zRoot = "/accumulo/" + iid.canonical();
+    zRoot = ZooUtil.getRoot(iid);
     context = createMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(iid).anyTimes();
     expect(context.getZooKeeperRoot()).andReturn(zRoot).anyTimes();

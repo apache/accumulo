@@ -46,6 +46,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AgeOffStore;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
@@ -179,7 +181,8 @@ public class FateIT {
 
   private static ZooKeeperTestingServer szk = null;
   private static ZooReaderWriter zk = null;
-  private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID();
+  private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
+  private static final String ZK_ROOT = ZooUtil.getRoot(IID);
   private static final NamespaceId NS = NamespaceId.of("testNameSpace");
   private static final TableId TID = TableId.of("testTable");
 

@@ -63,7 +63,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AgeOffStore;
@@ -431,7 +430,7 @@ public class Manager extends AbstractServer
     AccumuloConfiguration aconf = context.getConfiguration();
 
     log.info("Version {}", Constants.VERSION);
-    log.info("Instance {}", getInstanceID());
+    log.info("Instance {}", context.getInstanceID());
     timeKeeper = new ManagerTime(this, aconf);
     tserverSet = new LiveTServerSet(context, this);
     initializeBalancer();
@@ -449,7 +448,7 @@ public class Manager extends AbstractServer
       final long tokenUpdateInterval =
           aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
       keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooReaderWriter(),
-          getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
+          context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
       authenticationTokenKeyManager = new AuthenticationTokenKeyManager(context.getSecretManager(),
           keyDistributor, tokenUpdateInterval, tokenLifetime);
       delegationTokensAvailable = true;
@@ -461,14 +460,6 @@ public class Manager extends AbstractServer
         aconf.getTimeInMillis(Property.MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
   }
 
-  public InstanceId getInstanceID() {
-    return getContext().getInstanceID();
-  }
-
-  public String getZooKeeperRoot() {
-    return getContext().getZooKeeperRoot();
-  }
-
   public TServerConnection getConnection(TServerInstance server) {
     return tserverSet.getConnection(server);
   }
@@ -477,7 +468,7 @@ public class Manager extends AbstractServer
     ServerContext context = getContext();
     synchronized (mergeLock) {
       try {
-        String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
+        String path = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
         if (!context.getZooReaderWriter().exists(path)) {
           return new MergeInfo();
         }
@@ -501,8 +492,8 @@ public class Manager extends AbstractServer
       throws KeeperException, InterruptedException {
     ServerContext context = getContext();
     synchronized (mergeLock) {
-      String path =
-          getZooKeeperRoot() + Constants.ZTABLES + "/" + info.getExtent().tableId() + "/merge";
+      String path = context.getZooKeeperRoot() + Constants.ZTABLES + "/"
+          + info.getExtent().tableId() + "/merge";
       info.setState(state);
       if (state.equals(MergeState.NONE)) {
         context.getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
@@ -524,7 +515,7 @@ public class Manager extends AbstractServer
 
   public void clearMergeState(TableId tableId) throws KeeperException, InterruptedException {
     synchronized (mergeLock) {
-      String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
+      String path = getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
       getContext().getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
       mergeLock.notifyAll();
     }
@@ -534,8 +525,8 @@ public class Manager extends AbstractServer
   void setManagerGoalState(ManagerGoalState state) {
     try {
       getContext().getZooReaderWriter().putPersistentData(
-          getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE, state.name().getBytes(UTF_8),
-          NodeExistsPolicy.OVERWRITE);
+          getContext().getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE,
+          state.name().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
       log.error("Unable to set manager goal state in zookeeper");
     }
@@ -545,7 +536,7 @@ public class Manager extends AbstractServer
     while (true) {
       try {
         byte[] data = getContext().getZooReaderWriter()
-            .getData(getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE);
+            .getData(getContext().getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE);
         return ManagerGoalState.valueOf(new String(data, UTF_8));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
@@ -1215,7 +1206,7 @@ public class Manager extends AbstractServer
   @Override
   public void run() {
     final ServerContext context = getContext();
-    final String zroot = getZooKeeperRoot();
+    final String zroot = context.getZooKeeperRoot();
 
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
@@ -1347,10 +1338,11 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Upgrade coordinator is unexpectedly not complete");
     }
     try {
-      final AgeOffStore<Manager> store = new AgeOffStore<>(
-          new org.apache.accumulo.core.fate.ZooStore<>(getZooKeeperRoot() + Constants.ZFATE,
-              context.getZooReaderWriter()),
-          HOURS.toMillis(8), System::currentTimeMillis);
+      final AgeOffStore<Manager> store =
+          new AgeOffStore<>(
+              new org.apache.accumulo.core.fate.ZooStore<>(
+                  context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()),
+              HOURS.toMillis(8), System::currentTimeMillis);
 
       Fate<Manager> f = initializeFateInstance(store, getConfiguration());
       fateRef.set(f);

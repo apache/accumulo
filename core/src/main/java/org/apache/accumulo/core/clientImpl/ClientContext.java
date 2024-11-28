@@ -510,8 +510,7 @@ public class ClientContext implements AccumuloClient {
    */
   public List<String> getManagerLocations() {
     ensureOpen();
-    var zLockManagerPath =
-        ServiceLock.path(Constants.ZROOT + "/" + getInstanceID() + Constants.ZMANAGER_LOCK);
+    var zLockManagerPath = ServiceLock.path(getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
 
     Timer timer = null;
 
