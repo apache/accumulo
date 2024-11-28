@@ -23,16 +23,19 @@ import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateInterleavingIT;
 
 public class MetaFateInterleavingIT extends FateInterleavingIT {
 
   // put the fate data for the test in a different location than what accumulo is using
-  private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID();
+  private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
+  private static final String ZK_ROOT = ZooUtil.getRoot(IID);
 
   @Override
   public void executeTest(FateTestExecutor<FilTestEnv> testMethod, int maxDeferred,

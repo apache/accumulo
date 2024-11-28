@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -77,7 +78,7 @@ public class TableManager {
     final InstanceId instanceId = context.getInstanceID();
     log.debug("Creating ZooKeeper entries for new namespace {} (ID: {})", namespace, namespaceId);
     context.getZooReaderWriter().putPersistentData(
-        Constants.ZROOT + "/" + instanceId + Constants.ZNAMESPACES + "/" + namespaceId, new byte[0],
+        context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId, new byte[0],
         existsPolicy);
     var propKey = NamespacePropKey.of(instanceId, namespaceId);
     if (!propStore.exists(propKey)) {
@@ -94,7 +95,7 @@ public class TableManager {
         tableName, tableId, namespaceId);
     Pair<String,String> qualifiedTableName = TableNameUtil.qualify(tableName);
     tableName = qualifiedTableName.getSecond();
-    String zTablePath = Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId;
+    String zTablePath = ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tableId;
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAMESPACE,
         namespaceId.canonical().getBytes(UTF_8), existsPolicy);
@@ -218,10 +219,10 @@ public class TableManager {
     prepareNewTableState(zoo, context.getPropStore(), instanceID, tableId, namespaceId, tableName,
         TableState.NEW, NodeExistsPolicy.OVERWRITE);
 
-    String srcTablePath = Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + srcTableId
-        + Constants.ZCONFIG;
+    String srcTablePath =
+        context.getZooKeeperRoot() + Constants.ZTABLES + "/" + srcTableId + Constants.ZCONFIG;
     String newTablePath =
-        Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + tableId + Constants.ZCONFIG;
+        context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + Constants.ZCONFIG;
     zoo.recursiveCopyPersistentOverwrite(srcTablePath, newTablePath);
 
     PropUtil.setProperties(context, TablePropKey.of(context, tableId), propertiesToSet);

@@ -57,8 +57,8 @@ public class RenameNamespace extends ManagerRepo {
 
     Utils.getTableNameLock().lock();
     try {
-      NamespaceMapping.rename(zoo, manager.getZooKeeperRoot() + Constants.ZNAMESPACES, namespaceId,
-          oldName, newName);
+      NamespaceMapping.rename(zoo, manager.getContext().getZooKeeperRoot() + Constants.ZNAMESPACES,
+          namespaceId, oldName, newName);
 
       manager.getContext().clearTableListCache();
     } finally {
