@@ -30,16 +30,29 @@ Commands:
   restart                    Restarts the Accumulo cluster
   start-here                 Starts all services on this node
   stop-here                  Stops all services on this node
-  start [--all | [--manager] [--gc] [--monitor] [--tservers [group]] [--sservers [group]] [--compactors [group]]
+  start [--local] [--all | [--manager] [--gc] [--monitor] [--tservers[=group]] [--sservers[=group]] [--compactors[=group]]
                              Starts Accumulo cluster
-  stop [--all | [--manager] [--gc] [--monitor] [--tservers [group]] [--sservers [group]] [--compactors [group]]
+  stop [--local] [--all | [--manager] [--gc] [--monitor] [--tservers[=group]] [--sservers[=group]] [--compactors[=group]]
                              Stops Accumulo cluster
-  kill [--all | [--manager] [--gc] [--monitor] [--tservers [group]] [--sservers [group]] [--compactors [group]]
+  kill [--local] [--all | [--manager] [--gc] [--monitor] [--tservers[=group]] [--sservers[=group]] [--compactors[=group]]
                              Kills Accumulo cluster
+
+  Examples:
+
+  accumulo-cluster start                                   # start all servers
+  accumulo-cluster start --dry-run                         # print debug information and commands to be executed
+  accumulo-cluster start --local                           # start all local services
+  accumulo-cluster start --local --manager                 # start local manager services
+  accumulo-cluster start --tservers=                       # start all tservers
+  accumulo-cluster start --tservers=group1                 # start all group1 tservers
+  accumulo-cluster start --local --manager --tservers=     # Start the local manager and local tservers
+
 EOF
 }
 
-function parse_sub_args {
+function parse_args {
+  DEBUG=0
+  ARG_LOCAL=0
   ARG_ALL=0
   ARG_MANAGER=0
   ARG_GC=0
@@ -51,13 +64,22 @@ function parse_sub_args {
   ARG_COMPACTOR=0
   ARG_COMPACTOR_GROUP=""
 
-  PARSE_OUTPUT=$(getopt --long "all,manager,gc,monitor,tservers:,sservers:,compactors:" -n 'accumulo-cluster' -- "$@")
+  PARSE_OUTPUT=$(getopt -o "" --long "dry-run,all,local,manager,gc,monitor,tservers::,sservers::,compactors::" -n 'accumulo-cluster' -- "$@")
   eval set -- "$PARSE_OUTPUT"
 
   while true; do
     case "$1" in
+      --dry-run)
+        DEBUG=1
+        debug "debug: ${DEBUG} args: ${PARSE_OUTPUT}"
+        shift 1
+        ;;
       --all)
         ARG_ALL=1
+        shift 1
+        ;;
+      --local)
+        ARG_LOCAL=1
         shift 1
         ;;
       --manager)
@@ -74,30 +96,24 @@ function parse_sub_args {
         ;;
       --tservers)
         ARG_TSERVER=1
-        if [ -z "$2" ]; then
-          shift 1
-        else
+        if [ -n "$2" ]; then
           ARG_TSERVER_GROUP="$2"
-          shift 2
         fi
+        shift 2
         ;;
       --sservers)
         ARG_SSERVER=1
-        if [ -z "$2" ]; then
-          shift 1
-        else
+        if [ -n "$2" ]; then
           ARG_SSERVER_GROUP="$2"
-          shift 2
         fi
+        shift 2
         ;;
       --compactors)
         ARG_COMPACTOR=1
-        if [ -z "$2" ]; then
-          shift 1
-        else
+        if [ -n "$2" ]; then
           ARG_COMPACTOR_GROUP="$2"
-          shift 2
         fi
+        shift 2
         ;;
       --)
         shift
@@ -127,16 +143,20 @@ function parse_sub_args {
     ARG_ALL=1
   fi
 
-  export ARG_ALL
-  export ARG_MANAGER
-  export ARG_GC
-  export ARG_MONITOR
-  export ARG_TSERVER
-  export ARG_TSERVER_GROUP
-  export ARG_SSERVER
-  export ARG_SSERVER_GROUP
-  export ARG_COMPACTOR
-  export ARG_COMPACTOR_GROUP
+  if isDebug; then
+    echo "DEBUG=$DEBUG"
+    echo "ARG_ALL=$ARG_ALL"
+    echo "ARG_LOCAL=$ARG_LOCAL"
+    echo "ARG_MANAGER=$ARG_MANAGER"
+    echo "ARG_GC=$ARG_GC"
+    echo "ARG_MONITOR=$ARG_MONITOR"
+    echo "ARG_TSERVER=$ARG_TSERVER"
+    echo "ARG_TSERVER_GROUP=$ARG_TSERVER_GROUP"
+    echo "ARG_SSERVER=$ARG_SSERVER"
+    echo "ARG_SSERVER_GROUP=$ARG_SSERVER_GROUP"
+    echo "ARG_COMPACTOR=$ARG_COMPACTOR"
+    echo "ARG_COMPACTOR_GROUP=$ARG_COMPACTOR_GROUP"
+  fi
 }
 
 function invalid_args {
@@ -164,6 +184,27 @@ debugAndRun() {
     # shellcheck disable=SC2294
     eval "${@@P}"
   fi
+}
+
+function canRunOnHost() {
+
+  if [[ $ARG_LOCAL == 0 ]]; then
+    return 0
+  fi
+
+  if [[ -z $1 ]]; then
+    echo "Host argument expected"
+    exit 1
+  fi
+
+  local found=0
+  for addr in "${LOCAL_HOST_ADDRESSES[@]}"; do
+    if [[ $1 == "$addr" ]]; then
+      found=1
+      break
+    fi
+  done
+  [[ $found == 1 ]]
 }
 
 function parse_config {
@@ -241,16 +282,16 @@ function parse_config {
 
 }
 
-function control_service() {
+function execute_command() {
   control_cmd="$1"
   host="$2"
   service="$3"
   group="$4"
 
   S="${service^^}S_PER_HOST_${group}"
-  servers_per_host="${!S}"
+  servers_per_host="${!S:-1}"
 
-  if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
+  if canRunOnHost "$host"; then
     #
     # The server processes take arguments using "-o". Always add the "general.process.bind.addr" argument
     # using the value of $host
@@ -270,13 +311,13 @@ function control_service() {
   fi
 }
 
-function alter_services() {
+function control_services() {
   unset DISPLAY
   operation="$1"
 
-  if [[ $operation == "start" ||
-    $operation == "stop" ||
-    $operation == "kill" ]]; then
+  if [[ $operation != "start" &&
+    $operation != "stop" &&
+    $operation != "kill" ]]; then
     echo "Invalid operation: $operation"
     exit 1
   fi
@@ -295,25 +336,46 @@ function alter_services() {
       fi
       sleep 5
     fi
+  elif [[ $ARG_LOCAL == 1 && $ARG_TSERVER == 1 && $operation == "stop" ]]; then
+    tserver_groups=$TSERVER_GROUPS
+    if [[ -n $ARG_TSERVER_GROUP ]]; then
+      tserver_groups=$ARG_TSERVER_GROUP
+    fi
+    for addr in "${LOCAL_HOST_ADDRESSES[@]}"; do
+      for group in $tserver_groups; do
+        G="TSERVER_HOSTS_${group}"
+        for tserver in ${!G}; do
+          if echo "$tserver" | grep -q "$addr"; then
+            if ! isDebug; then
+              ${accumulo_cmd} admin stop "$addr"
+            else
+              debug "Stopping tservers on $addr via admin command"
+            fi
+          fi
+        done
+      done
+    done
   elif [[ $ARG_ALL == 1 && $operation == "kill" ]]; then
     echo "Killing Accumulo cluster..."
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_TSERVER == 1 ]]; then
     tserver_groups=$TSERVER_GROUPS
-    if [[ -n $ARG_TSERVER_GROUPS ]]; then
-      tserver_groups=$ARG_TSERVER_GROUPS
+    if [[ -n $ARG_TSERVER_GROUP ]]; then
+      tserver_groups=$ARG_TSERVER_GROUP
     fi
     for group in $tserver_groups; do
-      echo "Starting tablet servers for group $group"
+      echo "${cmd}ing tablet servers for group $group"
       count=1
       hosts="TSERVER_HOSTS_${group}"
       for tserver in ${!hosts}; do
-        echo -n "."
-        control_service "$operation" "$tserver" tserver "${group}" "-o" "tserver.group=$group"
-        if ((++count % 72 == 0)); then
-          echo
-          wait
+        if canRunOnHost "$tserver"; then
+          echo -n "."
+          execute_command "$operation" "$tserver" tserver "${group}" "-o" "tserver.group=$group"
+          if ((++count % 72 == 0)); then
+            echo
+            wait
+          fi
         fi
       done
     done
@@ -322,32 +384,40 @@ function alter_services() {
 
   if [[ $ARG_ALL == 1 || $ARG_MANAGER == 1 ]]; then
     for manager in $MANAGER_HOSTS; do
-      control_service "$operation" "$manager" manager "default"
+      if canRunOnHost "$manager"; then
+        execute_command "$operation" "$manager" manager "default"
+      fi
     done
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_GC == 1 ]]; then
     for gc in $GC_HOSTS; do
-      control_service "$operation" "$gc" gc "default"
+      if canRunOnHost "$gc"; then
+        execute_command "$operation" "$gc" gc "default"
+      fi
     done
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_MONITOR == 1 ]]; then
     for monitor in $MONITOR_HOSTS; do
-      control_service "$operation" "$monitor" monitor "default"
+      if canRunOnHost "$monitor"; then
+        execute_command "$operation" "$monitor" monitor "default"
+      fi
     done
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_SSERVER == 1 ]]; then
     sserver_groups=$SSERVER_GROUPS
-    if [[ -n $ARG_SSERVER_GROUPS ]]; then
-      sserver_groups=$ARG_SSERVER_GROUPS
+    if [[ -n $ARG_SSERVER_GROUP ]]; then
+      sserver_groups=$ARG_SSERVER_GROUP
     fi
     for group in $sserver_groups; do
-      echo "Starting scan servers for group $group"
+      echo "${cmd}ing scan servers for group $group"
       hosts="SSERVER_HOSTS_${group}"
       for sserver in ${!hosts}; do
-        control_service "$operation" "$sserver" sserver "${group}" "-o" "sserver.group=$group"
+        if canRunOnHost "$sserver"; then
+          execute_command "$operation" "$sserver" sserver "${group}" "-o" "sserver.group=$group"
+        fi
       done
     done
   fi
@@ -358,144 +428,23 @@ function alter_services() {
       compactor_groups=$ARG_COMPACTOR_GROUP
     fi
     for group in $compactor_groups; do
-      echo "Starting compactors for group $group"
+      echo "${cmd}ing compactors for group $group"
       hosts="COMPACTOR_HOSTS_${group}"
       for compactor in ${!hosts}; do
-        control_service "$operation" "$compactor" compactor "${group}" "-o" "compactor.group=$group"
+        if canRunOnHost "$compactor"; then
+          execute_command "$operation" "$compactor" compactor "${group}" "-o" "compactor.group=$group"
+        fi
       done
     done
   fi
 
-  if [[ $ARG_ALL == 1 && ($operation == "stop" || $operation == "kill") ]]; then
+  if [[ $ARG_LOCAL == 0 && $ARG_ALL == 1 && ($operation == "stop" || $operation == "kill") ]]; then
     if ! isDebug; then
       echo "Cleaning all server entries in ZooKeeper"
       ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compactors -sservers
     fi
   fi
 
-}
-
-function start_here() {
-
-  local_hosts="$(hostname -a 2>/dev/null) $(hostname) localhost 127.0.0.1 $(hostname -I)"
-
-  for group in $TSERVER_GROUPS; do
-    echo "Starting tablet servers for group $group"
-    for host in $local_hosts; do
-      G="TSERVER_HOSTS_${group}"
-      for tserver in ${!G}; do
-        if echo "$tserver" | grep -q "^${host}\$"; then
-          control_service "start" "$tserver" tserver "${group}" "-o" "tserver.group=$group"
-        fi
-      done
-    done
-  done
-
-  for host in $local_hosts; do
-    for manager in $MANAGER_HOSTS; do
-      if echo "$manager" | grep -q "^${host}\$"; then
-        control_service "start" "$host" manager "default"
-        break
-      fi
-    done
-  done
-
-  for host in $local_hosts; do
-    for gc in $GC_HOSTS; do
-      if echo "$gc" | grep -q "^${host}\$"; then
-        control_service "start" "$host" gc "default"
-        break
-      fi
-    done
-  done
-
-  for host in $local_hosts; do
-    for monitor in $MONITOR_HOSTS; do
-      if echo "$monitor" | grep -q "^${host}\$"; then
-        control_service "start" "$host" monitor "default"
-        break
-      fi
-    done
-  done
-
-  for group in $SSERVER_GROUPS; do
-    echo "Starting scan servers for group $group"
-    for host in $local_hosts; do
-      G="SSERVER_HOSTS_${group}"
-      for sserver in ${!G}; do
-        if echo "$sserver" | grep -q "^${host}\$"; then
-          control_service "start" "$sserver" sserver "${group}" "-o" "sserver.group=$group"
-        fi
-      done
-    done
-  done
-
-  for group in $COMPACTOR_GROUPS; do
-    echo "Starting compactors for group $group"
-    for host in $local_hosts; do
-      Q="COMPACTOR_HOSTS_${group}"
-      for compactor in ${!Q}; do
-        if echo "$compactor" | grep -q "^${host}\$"; then
-          control_service "start" "$compactor" compactor "${group}" "-o" "compactor.group=$group"
-        fi
-      done
-    done
-  done
-
-}
-
-function stop_here() {
-  # Determine hostname without errors to user
-  hosts_to_check=("$(hostname -a 2>/dev/null | head -1)" "$(hostname -f)")
-
-  if echo "${TSERVER_HOSTS}" | grep -Eq 'localhost|127[.]0[.]0[.]1'; then
-    if ! isDebug; then
-      ${accumulo_cmd} admin stop localhost
-    else
-      debug "Stopping tservers on localhost via admin command"
-    fi
-  else
-    for host in "${hosts_to_check[@]}"; do
-      for group in $TSERVER_GROUPS; do
-        G="TSERVER_HOSTS_${group}"
-        for tserver in ${!G}; do
-          if echo "$tserver" | grep -q "$host"; then
-            if ! isDebug; then
-              ${accumulo_cmd} admin stop "$host"
-            else
-              debug "Stopping tservers on $host via admin command"
-            fi
-          fi
-        done
-      done
-    done
-  fi
-
-  for host in "${hosts_to_check[@]}"; do
-    for end_cmd in "stop" "kill"; do
-      for svc in gc manager monitor; do
-        control_service $end_cmd "$host" $svc "default"
-      done
-      for group in $TSERVER_GROUPS; do
-        G="TSERVER_HOSTS_${group}"
-        for tserver in ${!G}; do
-          control_service $end_cmd "$tserver" tserver "${group}" "-o" "tserver.group=$group"
-        done
-      done
-      for group in $SSERVER_GROUPS; do
-        G="SSERVER_HOSTS_${group}"
-        for sserver in ${!G}; do
-          control_service $end_cmd "$sserver" sserver "${group}" "-o" "sserver.group=$group"
-        done
-      done
-      for group in $COMPACTOR_GROUPS; do
-        Q="COMPACTOR_HOSTS_${group}"
-        for compactor in ${!Q}; do
-          control_service $end_cmd "$host" compactor "${group}" "-o" "compactor.group=$group"
-        done
-      done
-    done
-  done
 }
 
 function main() {
@@ -518,22 +467,16 @@ function main() {
   accumulo_cmd="${bin}/accumulo"
   SSH='ssh -qnf -o ConnectTimeout=2'
 
-  # Copy input arguments into new array
-  # removing any options
-  DEBUG=0
-  i=0
-  declare -a program_args
-  for arg in "$@"; do
-    if [[ $arg == "--dry-run" ]]; then
-      DEBUG=1
-    else
-      program_args[i++]="$arg"
-    fi
-  done
+  cmd="$1"
+  shift
+  parse_args "$@"
 
-  debug "debug: ${DEBUG} args: ${program_args[*]}"
+  localhost_names=("localhost" "127.0.0.1" "$(hostname)" "$(hostname -a 2>/dev/null | head -1)" "$(hostname -s)" "$(hostname -f)")
+  read -r -a localhost_interfaces <<<"$(hostname -I)"
+  LOCAL_HOST_ADDRESSES+=("${localhost_names[@]}" "${localhost_interfaces[@]}")
+  debug "${LOCAL_HOST_ADDRESSES[*]}"
 
-  case "${program_args[0]}" in
+  case "${cmd}" in
     create-config)
       if [[ -f "$conf"/cluster.yaml ]]; then
         echo "ERROR : ${conf}/cluster.yaml already exists, not overwriting"
@@ -572,40 +515,35 @@ EOF
     restart)
       parse_config
       ARG_ALL=1
-      alter_services stop
-      alter_services kill
+      control_services stop
+      control_services kill
       # Make sure the JVM has a chance to fully exit
       sleep 1
-      alter_services start
+      control_services start
       ;;
     start)
       parse_config
-      shift
-      parse_sub_args "${program_args:1}"
-      alter_services start
+      control_services start
       ;;
     stop)
       parse_config
-      shift
-      parse_sub_args "${program_args:1}"
-      alter_services stop
+      control_services stop
       ;;
     kill)
       parse_config
-      shift
-      parse_sub_args "${program_args:1}"
-      alter_services kill
+      control_services kill
       ;;
     start-here)
       parse_config
-      start_here
+      control_services start --local --all
       ;;
     stop-here)
       parse_config
-      stop_here
+      control_services stop --local --all
+      control_services kill --local --all
       ;;
     *)
-      invalid_args "${program_args[0]} is an invalid <command>"
+      invalid_args "${cmd} is an invalid <command>"
       ;;
   esac
 }
