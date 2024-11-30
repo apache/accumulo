@@ -31,11 +31,11 @@ Commands:
   start-here                 Starts all services on this node
   stop-here                  Stops all services on this node
   start [--local] [--all | [--manager] [--gc] [--monitor] [--tservers[=group]] [--sservers[=group]] [--compactors[=group]]
-                             Starts Accumulo cluster
+                             Starts Accumulo cluster services
   stop [--local] [--all | [--manager] [--gc] [--monitor] [--tservers[=group]] [--sservers[=group]] [--compactors[=group]]
-                             Stops Accumulo cluster
+                             Stops Accumulo cluster services
   kill [--local] [--all | [--manager] [--gc] [--monitor] [--tservers[=group]] [--sservers[=group]] [--compactors[=group]]
-                             Kills Accumulo cluster
+                             Kills Accumulo cluster services
 
   Examples:
 
@@ -43,9 +43,9 @@ Commands:
   accumulo-cluster start --dry-run                         # print debug information and commands to be executed
   accumulo-cluster start --local                           # start all local services
   accumulo-cluster start --local --manager                 # start local manager services
-  accumulo-cluster start --tservers=                       # start all tservers
+  accumulo-cluster start --tservers                        # start all tservers
   accumulo-cluster start --tservers=group1                 # start all group1 tservers
-  accumulo-cluster start --local --manager --tservers=     # Start the local manager and local tservers
+  accumulo-cluster start --local --manager --tservers      # Start the local manager and local tservers
 
 EOF
 }
