@@ -535,12 +535,16 @@ EOF
       ;;
     start-here)
       parse_config
-      control_services start --local --all
+      ARG_ALL=1
+      ARG_LOCAL=1
+      control_services start
       ;;
     stop-here)
       parse_config
-      control_services stop --local --all
-      control_services kill --local --all
+      ARG_ALL=1
+      ARG_LOCAL=1
+      control_services stop
+      control_services kill
       ;;
     *)
       invalid_args "${cmd} is an invalid <command>"
