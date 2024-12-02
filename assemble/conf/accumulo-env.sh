@@ -89,8 +89,7 @@ JAVA_OPTS=(
 ## JVM options set for individual applications
 # cmd is set by calling script that sources this env file
 #shellcheck disable=SC2154
-group="${ACCUMULO_RESOURCE_GROUP:-default}"
-case "$group" in
+case "${ACCUMULO_RESOURCE_GROUP:-default}" in
   default)
     # shellcheck disable=SC2154
     # $cmd is exported in the accumulo script, but not the accumulo-service script
