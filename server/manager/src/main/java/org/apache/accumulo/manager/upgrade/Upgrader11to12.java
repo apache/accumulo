@@ -152,6 +152,9 @@ public class Upgrader11to12 implements Upgrader {
         zrw.delete(namespaceNamePath);
       }
 
+      log.info("Removing problems reports from zookeeper");
+      removeZKProblemReports(context);
+
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException(
