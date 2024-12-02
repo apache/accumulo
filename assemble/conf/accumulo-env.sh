@@ -103,7 +103,10 @@ case "${ACCUMULO_RESOURCE_GROUP:-default}" in
       *) JAVA_OPTS=('-Xmx256m' '-Xms64m' "${JAVA_OPTS[@]}") ;;
     esac
     ;;
-  *) ;;
+  *)
+    echo "ACCUMULO_RESOURCE_GROUP named $ACCUMULO_RESOURCE_GROUP is not configured"
+    exit 1
+    ;;
 esac
 
 ## JVM options set for logging. Review log4j2.properties file to see how they are used.
