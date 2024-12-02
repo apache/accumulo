@@ -28,8 +28,8 @@ Options:
 Commands:
   create-config              Creates cluster config
   restart                    Restarts the Accumulo cluster
-  start-here                 Starts all services on this node
-  stop-here                  Stops all services on this node
+  start-here                 Starts all services on this node (deprecated, alias for "start --local --all")
+  stop-here                  Stops all services on this node (deprecated, alias for "stop --local --all")
   start [--local] [--all | [--manager] [--gc] [--monitor] [--tservers[=group]] [--sservers[=group]] [--compactors[=group]]
                              Starts Accumulo cluster services
   stop [--local] [--all | [--manager] [--gc] [--monitor] [--tservers[=group]] [--sservers[=group]] [--compactors[=group]]
@@ -186,6 +186,17 @@ debugAndRun() {
   fi
 }
 
+function isLocalHost() {
+  local found=0
+  for addr in "${LOCAL_HOST_ADDRESSES[@]}"; do
+    if [[ $1 == "$addr" ]]; then
+      found=1
+      break
+    fi
+  done
+  [[ $found == 1 ]]
+}
+
 function canRunOnHost() {
 
   if [[ $ARG_LOCAL == 0 ]]; then
@@ -197,14 +208,7 @@ function canRunOnHost() {
     exit 1
   fi
 
-  local found=0
-  for addr in "${LOCAL_HOST_ADDRESSES[@]}"; do
-    if [[ $1 == "$addr" ]]; then
-      found=1
-      break
-    fi
-  done
-  [[ $found == 1 ]]
+  [[ $(isLocalHost "$1") == 0 ]]
 }
 
 function parse_config {
@@ -287,27 +291,15 @@ function execute_command() {
   host="$2"
   service="$3"
   group="$4"
+  shift 4
 
   S="${service^^}S_PER_HOST_${group}"
   servers_per_host="${!S:-1}"
 
-  if canRunOnHost "$host"; then
-    #
-    # The server processes take arguments using "-o". Always add the "general.process.bind.addr" argument
-    # using the value of $host
-    #
-    if [[ $# -gt 4 ]]; then
-      debugAndRun ACCUMULO_CLUSTER_ARG="${servers_per_host}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host" "${@:5}"
-    else
-      debugAndRun ACCUMULO_CLUSTER_ARG="${servers_per_host}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host"
-    fi
+  if isLocalHost "$host"; then
+    debugAndRun ACCUMULO_CLUSTER_ARG="${servers_per_host}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host" "$@"
   else
-    if [[ $# -gt 4 ]]; then
-      EXTRA_ARGS="${*:5}"
-      debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=${servers_per_host} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\" $EXTRA_ARGS '"
-    else
-      debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=${servers_per_host} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\"'"
-    fi
+    debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=${servers_per_host} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\" $*'"
   fi
 }
 
