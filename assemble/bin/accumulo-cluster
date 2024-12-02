@@ -208,7 +208,11 @@ function canRunOnHost() {
     exit 1
   fi
 
-  [[ $(isLocalHost "$1") == 0 ]]
+  if isLocalHost "$1"; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 function parse_config {
@@ -299,7 +303,7 @@ function execute_command() {
   if isLocalHost "$host"; then
     debugAndRun ACCUMULO_CLUSTER_ARG="${servers_per_host}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host" "$@"
   else
-    debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=${servers_per_host} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\" $*'"
+    debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=${servers_per_host} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\" ${*@Q}'"
   fi
 }
 
