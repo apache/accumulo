@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.manager.tableOps.compact;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -37,7 +41,6 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
-import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
 public class CompactionDriverTest {
@@ -86,14 +89,14 @@ public class CompactionDriverTest {
     final byte[] startRow = new byte[0];
     final byte[] endRow = new byte[0];
 
-    Manager manager = EasyMock.createNiceMock(Manager.class);
-    ServerContext ctx = EasyMock.createNiceMock(ServerContext.class);
-    ZooReaderWriter zrw = EasyMock.createNiceMock(ZooReaderWriter.class);
-    EasyMock.expect(manager.getInstanceID()).andReturn(instance).anyTimes();
-    EasyMock.expect(manager.getContext()).andReturn(ctx);
-    EasyMock.expect(ctx.getZooReaderWriter()).andReturn(zrw);
+    Manager manager = createMock(Manager.class);
+    ServerContext ctx = createMock(ServerContext.class);
+    ZooReaderWriter zrw = createMock(ZooReaderWriter.class);
+    expect(ctx.getInstanceID()).andReturn(instance).anyTimes();
+    expect(ctx.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(manager.getContext()).andReturn(ctx).anyTimes();
 
-    EasyMock.replay(manager, ctx, zrw);
+    replay(manager, ctx, zrw);
 
     final CancelledCompactionDriver driver =
         new CancelledCompactionDriver(namespaceId, tableId, startRow, endRow);
@@ -106,7 +109,7 @@ public class CompactionDriverTest {
     assertEquals(e.getType(), TableOperationExceptionType.OTHER);
     assertEquals(TableOperationsImpl.COMPACTION_CANCELED_MSG, e.getDescription());
 
-    EasyMock.verify(manager, ctx, zrw);
+    verify(manager, ctx, zrw);
   }
 
   @Test
@@ -119,17 +122,17 @@ public class CompactionDriverTest {
     final byte[] startRow = new byte[0];
     final byte[] endRow = new byte[0];
 
-    Manager manager = EasyMock.createNiceMock(Manager.class);
-    ServerContext ctx = EasyMock.createNiceMock(ServerContext.class);
-    ZooReaderWriter zrw = EasyMock.createNiceMock(ZooReaderWriter.class);
-    EasyMock.expect(manager.getInstanceID()).andReturn(instance).anyTimes();
-    EasyMock.expect(manager.getContext()).andReturn(ctx);
-    EasyMock.expect(ctx.getZooReaderWriter()).andReturn(zrw);
+    Manager manager = createMock(Manager.class);
+    ServerContext ctx = createMock(ServerContext.class);
+    ZooReaderWriter zrw = createMock(ZooReaderWriter.class);
+    expect(ctx.getInstanceID()).andReturn(instance).anyTimes();
+    expect(ctx.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(manager.getContext()).andReturn(ctx).anyTimes();
 
     String deleteMarkerPath = PreDeleteTable.createDeleteMarkerPath(instance, tableId);
-    EasyMock.expect(zrw.exists(deleteMarkerPath)).andReturn(true);
+    expect(zrw.exists(deleteMarkerPath)).andReturn(true);
 
-    EasyMock.replay(manager, ctx, zrw);
+    replay(manager, ctx, zrw);
 
     final NotCancelledCompactionDriver driver =
         new NotCancelledCompactionDriver(namespaceId, tableId, startRow, endRow);
@@ -142,7 +145,7 @@ public class CompactionDriverTest {
     assertEquals(e.getType(), TableOperationExceptionType.OTHER);
     assertEquals(TableOperationsImpl.TABLE_DELETED_MSG, e.getDescription());
 
-    EasyMock.verify(manager, ctx, zrw);
+    verify(manager, ctx, zrw);
   }
 
 }

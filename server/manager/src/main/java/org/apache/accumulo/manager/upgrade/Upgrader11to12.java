@@ -124,7 +124,7 @@ public class Upgrader11to12 implements Upgrader {
         log.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
 
-      String zPath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNAMESPACES;
+      String zPath = context.getZooKeeperRoot() + Constants.ZNAMESPACES;
       byte[] namespacesData = zrw.getData(zPath);
       if (namespacesData.length != 0) {
         throw new IllegalStateException(

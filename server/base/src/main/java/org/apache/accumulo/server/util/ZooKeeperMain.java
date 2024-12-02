@@ -69,7 +69,7 @@ public class ZooKeeperMain implements KeywordExecutable {
       }
       System.out.println("The accumulo instance id is " + context.getInstanceID());
       if (!opts.servers.contains("/")) {
-        opts.servers += "/accumulo/" + context.getInstanceID();
+        opts.servers += context.getZooKeeperRoot();
       }
       org.apache.zookeeper.ZooKeeperMain
           .main(new String[] {"-server", opts.servers, "-timeout", "" + (opts.timeout * 1000)});
