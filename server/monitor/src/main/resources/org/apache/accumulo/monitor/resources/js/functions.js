@@ -445,20 +445,6 @@ function getTableServers(tableID) {
 }
 
 /**
- * REST GET call for the logs, stores it on a sessionStorage variable
- */
-function getLogs() {
-  return getJSONForTable('/rest/logs', 'logs');
-}
-
-/**
- * REST POST call to clear logs
- */
-function clearLogs() {
-  doLoggedPostCall('/rest/logs/clear', refresh, false);
-}
-
-/**
  * REST POST call to clear all table problems
  *
  * @param {string} tableID Table ID
@@ -493,85 +479,6 @@ function getProblemSummary() {
  */
 function getProblemDetails() {
   return getJSONForTable('/rest/problems/details', 'problemDetails');
-}
-
-//// Overview Plots Rest Calls
-
-/**
- * REST GET call for the ingest rate,
- * stores it on a sessionStorage variable
- */
-function getIngestRate() {
-  return getJSONForTable('/rest/statistics/time/ingestRate', 'ingestRate');
-}
-
-/**
- * REST GET call for the scan entries,
- * stores it on a sessionStorage variable
- */
-function getScanEntries() {
-  return getJSONForTable('/rest/statistics/time/scanEntries', 'scanEntries');
-}
-
-/**
- * REST GET call for the ingest byte rate,
- * stores it on a sessionStorage variable
- */
-function getIngestByteRate() {
-  return getJSONForTable('/rest/statistics/time/ingestByteRate', 'ingestMB');
-}
-
-/**
- * REST GET call for the query byte rate, stores it on a sessionStorage variable
- */
-function getQueryByteRate() {
-  return getJSONForTable('/rest/statistics/time/queryByteRate', 'queryMB');
-}
-
-/**
- * REST GET call for the load average, stores it on a sessionStorage variable
- */
-function getLoadAverage() {
-  return getJSONForTable('/rest/statistics/time/load', 'loadAvg');
-}
-
-/**
- * REST GET call for the lookups, stores it on a sessionStorage variable
- */
-function getLookups() {
-  return getJSONForTable('/rest/statistics/time/lookups', 'lookups');
-}
-
-/**
- * REST GET call for the minor compactions,
- * stores it on a sessionStorage variable
- */
-function getMinorCompactions() {
-  return getJSONForTable('/rest/statistics/time/minorCompactions', 'minorCompactions');
-}
-
-/**
- * REST GET call for the major compactions,
- * stores it on a sessionStorage variable
- */
-function getMajorCompactions() {
-  return getJSONForTable('/rest/statistics/time/majorCompactions', 'majorCompactions');
-}
-
-/**
- * REST GET call for the index cache hit rate,
- * stores it on a sessionStorage variable
- */
-function getIndexCacheHitRate() {
-  return getJSONForTable('/rest/statistics/time/indexCacheHitRate', 'indexCache');
-}
-
-/**
- * REST GET call for the data cache hit rate,
- * stores it on a sessionStorage variable
- */
-function getDataCacheHitRate() {
-  return getJSONForTable('/rest/statistics/time/dataCacheHitRate', 'dataCache');
 }
 
 /**

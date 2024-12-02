@@ -39,6 +39,7 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -226,7 +227,6 @@ public class CloneTestIT extends AccumuloClusterHarness {
       AccumuloCluster cluster = getCluster();
       assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
       MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
-      String rootPath = mac.getConfig().getDir().getAbsolutePath();
 
       // verify that deleting a new table removes the files
       c.tableOperations().create(table3);
@@ -234,8 +234,12 @@ public class CloneTestIT extends AccumuloClusterHarness {
       c.tableOperations().flush(table3, null, null, true);
       // check for files
       FileSystem fs = getCluster().getFileSystem();
-      String id = c.tableOperations().tableIdMap().get(table3);
-      FileStatus[] status = fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id));
+      final String id = c.tableOperations().tableIdMap().get(table3);
+
+      // the following path expects mini to be configured with a single volume
+      final Path tablePath = new Path(mac.getSiteConfiguration().get(Property.INSTANCE_VOLUMES)
+          + "/" + Constants.TABLE_DIR + "/" + id);
+      FileStatus[] status = fs.listStatus(tablePath);
       assertTrue(status.length > 0);
       // verify disk usage
       List<DiskUsage> diskUsage = c.tableOperations().getDiskUsage(Collections.singleton(table3));
@@ -244,7 +248,6 @@ public class CloneTestIT extends AccumuloClusterHarness {
       // delete the table
       c.tableOperations().delete(table3);
       // verify its gone from the file system
-      Path tablePath = new Path(rootPath + "/accumulo/tables/" + id);
       if (fs.exists(tablePath)) {
         status = fs.listStatus(tablePath);
         assertTrue(status == null || status.length == 0);

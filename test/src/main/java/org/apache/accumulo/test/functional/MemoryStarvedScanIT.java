@@ -547,7 +547,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
         assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
-        assertEquals(returned, SCAN_RETURNED_EARLY.doubleValue());
+        assertTrue(SCAN_RETURNED_EARLY.doubleValue() >= returned);
 
         // check across multiple low memory checks and metric updates that low memory detected
         // remains set

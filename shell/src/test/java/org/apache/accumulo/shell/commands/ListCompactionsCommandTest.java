@@ -16,23 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.logs;
+package org.apache.accumulo.shell.commands;
 
-import org.apache.accumulo.monitor.util.logging.AccumuloMonitorAppender;
+import org.apache.commons.cli.ParseException;
+import org.junit.jupiter.api.Test;
 
-/**
- * A basic POJO to serialize single log events as JSON for transmitting from the
- * {@link AccumuloMonitorAppender} to the REST endpoint at
- * {@link LogResource#append(SingleLogEvent)}.
- */
-public class SingleLogEvent {
+public class ListCompactionsCommandTest {
 
-  // Variable names become JSON keys
-  public long timestamp;
-  public String application;
-  public String logger;
-  public String level;
-  public String message;
-  public String stacktrace;
+  @Test
+  public void testServerRegexPredicate() throws ParseException {
+    ListScansCommandTest.testServerRegexPredicate(new ListCompactionsCommand());
+  }
+
+  @Test
+  public void testResourceGroupRegexPredicate() throws ParseException {
+    ListScansCommandTest.testResourceGroupRegexPredicate(new ListCompactionsCommand());
+  }
 
 }

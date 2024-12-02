@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.IN_PROGRESS;
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -36,6 +38,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -245,8 +248,33 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
       assertEquals(IN_PROGRESS, getTxStatus(sctx, fateId));
       // tell the op to exit the method
       finishCall.countDown();
-
-      Wait.waitFor(() -> getTxStatus(sctx, fateId) == UNKNOWN);
+      // Check that it transitions to SUCCESSFUL and then removed (UNKNOWN)
+      final var sawSuccess = new AtomicBoolean(false);
+      Wait.waitFor(() -> {
+        TStatus s;
+        switch (s = getTxStatus(sctx, fateId)) {
+          case IN_PROGRESS:
+            if (sawSuccess.get()) {
+              fail("Should never see IN_PROGRESS after seeing SUCCESSFUL");
+            }
+            break;
+          case SUCCESSFUL:
+            // expected, but might be too quick to be detected
+            if (sawSuccess.compareAndSet(false, true)) {
+              LOG.debug("Saw expected transaction status change to SUCCESSFUL");
+            }
+            break;
+          case UNKNOWN:
+            if (!sawSuccess.get()) {
+              LOG.debug("Never saw transaction status change to SUCCESSFUL, but that's okay");
+            }
+            return true;
+          default:
+            fail("Saw unexpected status: " + s);
+        }
+        // keep waiting for UNKNOWN
+        return false;
+      }, SECONDS.toMillis(30), 10);
     } finally {
       fate.shutdown(10, TimeUnit.MINUTES);
     }
@@ -490,7 +518,6 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
 
   protected void testNoWriteAfterDelete(FateStore<TestEnv> store, ServerContext sctx)
       throws Exception {
-    final String tableName = getUniqueNames(1)[0];
     final FateId fateId = store.create();
     final Repo<TestEnv> repo = new TestRepo("testNoWriteAfterDelete");
 

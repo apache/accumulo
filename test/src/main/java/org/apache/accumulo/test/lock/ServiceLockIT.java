@@ -88,7 +88,8 @@ public class ServiceLockIT {
   @BeforeAll
   public static void setup() throws Exception {
     szk = new ZooKeeperTestingServer(tempDir);
-    szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
+    final var iid = InstanceId.of(UUID.randomUUID());
+    szk.initPaths(ZooUtil.getRoot(iid));
   }
 
   @AfterAll
