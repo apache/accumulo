@@ -141,7 +141,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       TestIngest.ingest(c, cluster.getFileSystem(), params);
       log.info("Compacting the table {}", table);
       c.tableOperations().compact(table, null, null, true, true);
-      String pathString = cluster.getConfig().getDir() + "/accumulo/tables/1/*/*.rf";
+      // the following path expects mini to be configured with a single volume
+      final String pathString = cluster.getSiteConfiguration().get(Property.INSTANCE_VOLUMES) + "/"
+          + Constants.TABLE_DIR + "/1/*/*.rf";
       log.info("Counting files in path: {}", pathString);
 
       int before = countFiles(pathString);

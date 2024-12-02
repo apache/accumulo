@@ -89,7 +89,7 @@ public class ManagerTime {
   private final AtomicReference<Duration> skewAmount;
 
   public ManagerTime(Manager manager, AccumuloConfiguration conf) throws IOException {
-    this.zPath = manager.getZooKeeperRoot() + Constants.ZMANAGER_TICK;
+    this.zPath = manager.getContext().getZooKeeperRoot() + Constants.ZMANAGER_TICK;
     this.zk = manager.getContext().getZooReaderWriter();
     this.manager = manager;
 

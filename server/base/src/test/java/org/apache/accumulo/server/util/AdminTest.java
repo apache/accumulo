@@ -18,6 +18,13 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.eq;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.getCurrentArguments;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
@@ -28,69 +35,71 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
-import org.easymock.EasyMock;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.junit.jupiter.api.Test;
 
 public class AdminTest {
 
   @Test
   public void testZooKeeperTserverPath() {
-    ClientContext context = EasyMock.createMock(ClientContext.class);
+    ClientContext context = createMock(ClientContext.class);
     InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
-    EasyMock.expect(context.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/" + instanceId);
+    expect(context.getZooKeeperRoot()).andReturn(ZooUtil.getRoot(instanceId));
 
-    EasyMock.replay(context);
+    replay(context);
 
-    assertEquals(Constants.ZROOT + "/" + instanceId + Constants.ZTSERVERS,
+    assertEquals(ZooUtil.getRoot(instanceId) + Constants.ZTSERVERS,
         Admin.getTServersZkPath(context));
 
-    EasyMock.verify(context);
+    verify(context);
   }
 
   @Test
   public void testQualifySessionId() {
-    ZooCache zc = EasyMock.createMock(ZooCache.class);
+    ZooCache zc = createMock(ZooCache.class);
+    InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
-    String root = "/accumulo/id/tservers";
+    String root = ZooUtil.getRoot(instanceId) + Constants.ZTSERVERS;
     String server = "localhost:12345";
     final long session = 123456789L;
 
     String serverPath = root + "/" + server;
     String validZLockEphemeralNode = "zlock#" + UUID.randomUUID() + "#0000000000";
-    EasyMock.expect(zc.getChildren(serverPath))
+    expect(zc.getChildren(serverPath))
         .andReturn(Collections.singletonList(validZLockEphemeralNode));
-    EasyMock.expect(zc.get(EasyMock.eq(serverPath + "/" + validZLockEphemeralNode),
-        EasyMock.anyObject(ZcStat.class))).andAnswer(() -> {
-          ZcStat stat = (ZcStat) EasyMock.getCurrentArguments()[1];
+    expect(zc.get(eq(serverPath + "/" + validZLockEphemeralNode), anyObject(ZcStat.class)))
+        .andAnswer(() -> {
+          ZcStat stat = (ZcStat) getCurrentArguments()[1];
           stat.setEphemeralOwner(session);
           return new byte[0];
         });
 
-    EasyMock.replay(zc);
+    replay(zc);
 
     assertEquals(server + "[" + Long.toHexString(session) + "]",
         Admin.qualifyWithZooKeeperSessionId(root, zc, server));
 
-    EasyMock.verify(zc);
+    verify(zc);
   }
 
   @Test
   public void testCannotQualifySessionId() {
-    ZooCache zc = EasyMock.createMock(ZooCache.class);
+    ZooCache zc = createMock(ZooCache.class);
+    InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
-    String root = "/accumulo/id/tservers";
+    String root = ZooUtil.getRoot(instanceId) + Constants.ZTSERVERS;
     String server = "localhost:12345";
 
     String serverPath = root + "/" + server;
-    EasyMock.expect(zc.getChildren(serverPath)).andReturn(Collections.emptyList());
+    expect(zc.getChildren(serverPath)).andReturn(Collections.emptyList());
 
-    EasyMock.replay(zc);
+    replay(zc);
 
     // A server that isn't in ZooKeeper. Can't qualify it, should return the original
     assertEquals(server, Admin.qualifyWithZooKeeperSessionId(root, zc, server));
 
-    EasyMock.verify(zc);
+    verify(zc);
   }
 
 }

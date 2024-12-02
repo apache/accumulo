@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.ImportConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -371,9 +372,11 @@ public class ImportExportIT extends AccumuloClusterHarness {
     AccumuloCluster cluster = getCluster();
     assertTrue(cluster instanceof MiniAccumuloClusterImpl);
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
-    String rootPath = mac.getConfig().getDir().getAbsolutePath();
     FileSystem fs = getCluster().getFileSystem();
-    FileStatus[] status = fs.listStatus(new Path(rootPath + "/accumulo/tables/" + destTableId));
+    // the following path expects mini to be configured with a single volume
+    final Path tablePath = new Path(mac.getSiteConfiguration().get(Property.INSTANCE_VOLUMES) + "/"
+        + Constants.TABLE_DIR + "/" + destTableId);
+    FileStatus[] status = fs.listStatus(tablePath);
     for (FileStatus tabletDir : status) {
       var contents = fs.listStatus(tabletDir.getPath());
       for (FileStatus file : contents) {

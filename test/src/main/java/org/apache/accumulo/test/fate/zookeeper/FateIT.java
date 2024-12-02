@@ -19,12 +19,12 @@
 package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.FAILED;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.IN_PROGRESS;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.NEW;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.SUBMITTED;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.SUCCESSFUL;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -40,11 +40,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AgeOffStore;
@@ -55,6 +57,7 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
@@ -178,7 +181,8 @@ public class FateIT {
 
   private static ZooKeeperTestingServer szk = null;
   private static ZooReaderWriter zk = null;
-  private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID();
+  private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
+  private static final String ZK_ROOT = ZooUtil.getRoot(IID);
   private static final NamespaceId NS = NamespaceId.of("testNameSpace");
   private static final TableId TID = TableId.of("testTable");
 
@@ -242,27 +246,39 @@ public class FateIT {
       assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
       // tell the op to exit the method
       finishCall.countDown();
-      // Check that it transitions to SUCCESSFUL
-      TStatus s = getTxStatus(zk, txid);
-      while (s != SUCCESSFUL) {
-        s = getTxStatus(zk, txid);
-        Thread.sleep(10);
-      }
-      // Check that it gets removed
-      boolean errorSeen = false;
-      while (!errorSeen) {
+      // Check that it transitions to SUCCESSFUL and gets removed
+      final var sawSuccess = new AtomicBoolean(false);
+      Wait.waitFor(() -> {
+        TStatus s;
         try {
-          s = getTxStatus(zk, txid);
-          Thread.sleep(10);
+          switch (s = getTxStatus(zk, txid)) {
+            case IN_PROGRESS:
+              if (sawSuccess.get()) {
+                fail("Should never see IN_PROGRESS after seeing SUCCESSFUL");
+              }
+              break;
+            case SUCCESSFUL:
+              // expected, but might be too quick to be detected
+              if (sawSuccess.compareAndSet(false, true)) {
+                LOG.debug("Saw expected transaction status change to SUCCESSFUL");
+              }
+              break;
+            default:
+              fail("Saw unexpected status: " + s);
+          }
         } catch (KeeperException e) {
           if (e.code() == KeeperException.Code.NONODE) {
-            errorSeen = true;
+            if (!sawSuccess.get()) {
+              LOG.debug("Never saw transaction status change to SUCCESSFUL, but that's okay");
+            }
+            return true;
           } else {
             fail("Unexpected error thrown: " + e.getMessage());
           }
         }
-      }
-
+        // keep waiting for NoNode
+        return false;
+      }, SECONDS.toMillis(30), 10);
     } finally {
       fate.shutdown();
     }

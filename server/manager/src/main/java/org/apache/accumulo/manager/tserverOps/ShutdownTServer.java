@@ -96,11 +96,10 @@ public class ShutdownTServer extends ManagerRepo {
     // suppress assignment of tablets to the server
     if (force) {
       ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
-      var path =
-          ServiceLock.path(manager.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + hostAndPort);
+      var zRoot = manager.getContext().getZooKeeperRoot();
+      var path = ServiceLock.path(zRoot + Constants.ZTSERVERS + "/" + hostAndPort);
       ServiceLock.deleteLock(zoo, path);
-      path = ServiceLock
-          .path(manager.getZooKeeperRoot() + Constants.ZDEADTSERVERS + "/" + hostAndPort);
+      path = ServiceLock.path(zRoot + Constants.ZDEADTSERVERS + "/" + hostAndPort);
       zoo.putPersistentData(path.toString(), "forced down".getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
     }
