@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.fate.zookeeper;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.ByteArrayOutputStream;
@@ -26,14 +27,18 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Deque;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -49,7 +54,6 @@ import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -101,7 +105,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     while (true) {
       try {
         FateId fateId = FateId.from(fateInstanceType, UUID.randomUUID());
-        zk.putPersistentData(getTXPath(fateId), new NodeValue(TStatus.NEW, null).serialize(),
+        zk.putPersistentData(getTXPath(fateId),
+            new FateData<T>(TStatus.NEW, null, null, createEmptyRepoDeque(), createEmptyTxInfo())
+                .serialize(),
             NodeExistsPolicy.FAIL);
         return fateId;
       } catch (NodeExistsException nee) {
@@ -118,40 +124,43 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
 
     try {
-      byte[] nodeVal = zk.mutateOrCreate(getTXPath(fateId),
-          new NodeValue(TStatus.NEW, reservation, fateKey).serialize(), currSerNodeVal -> {
-            // We are only returning a non-null value for the following cases:
-            // 1) The existing NodeValue for fateId is exactly the same as the value set for the
-            // node if it doesn't yet exist:
-            // TStatus = TStatus.NEW, FateReservation = reservation, FateKey = fateKey
-            // This might occur if there was a ZK server fault and the same write is running a 2nd
-            // time
-            // 2) The existing NodeValue for fateId has:
-            // TStatus = TStatus.NEW, no FateReservation present, FateKey = fateKey
-            // The fateId is NEW/unseeded and not reserved, so we can allow it to be reserved
-            // Note: returning null here will not change the value to null but will return null
-            NodeValue currNodeVal = new NodeValue(currSerNodeVal);
-            if (currNodeVal.status == TStatus.NEW) {
-              verifyFateKey(fateId, currNodeVal.fateKey, fateKey);
-              if (currNodeVal.isReservedBy(reservation)) {
-                return currSerNodeVal;
-              } else if (!currNodeVal.isReserved()) {
-                // NEW/unseeded transaction and not reserved, so we can allow it to be reserved
-                return new NodeValue(TStatus.NEW, reservation, fateKey).serialize();
-              } else {
-                // NEW/unseeded transaction reserved under a different reservation
-                return null;
-              }
-            } else {
-              log.trace(
-                  "fate id {} tstatus {} fate key {} is reserved {} "
-                      + "has already been seeded with work (non-NEW status)",
-                  fateId, currNodeVal.status, currNodeVal.fateKey.orElse(null),
-                  currNodeVal.isReserved());
-              return null;
-            }
-          });
-      if (nodeVal != null) {
+      byte[] newSerFateData =
+          zk.mutateOrCreate(getTXPath(fateId), new FateData<>(TStatus.NEW, reservation, fateKey,
+              createEmptyRepoDeque(), createEmptyTxInfo()).serialize(), currSerFateData -> {
+                // We are only returning a non-null value for the following cases:
+                // 1) The existing node for fateId is exactly the same as the value set for the
+                // node if it doesn't yet exist:
+                // TStatus = TStatus.NEW, FateReservation = reservation, FateKey = fateKey
+                // This might occur if there was a ZK server fault and the same write is running a
+                // 2nd
+                // time
+                // 2) The existing node for fateId has:
+                // TStatus = TStatus.NEW, no FateReservation present, FateKey = fateKey
+                // The fateId is NEW/unseeded and not reserved, so we can allow it to be reserved
+                FateData<T> currFateData = new FateData<>(currSerFateData);
+                if (currFateData.status == TStatus.NEW) {
+                  verifyFateKey(fateId, currFateData.fateKey, fateKey);
+                  if (currFateData.isReservedBy(reservation)) {
+                    return currSerFateData;
+                  } else if (!currFateData.isReserved()) {
+                    // NEW/unseeded transaction and not reserved, so we can allow it to be reserved
+                    return new FateData<>(TStatus.NEW, reservation, fateKey, createEmptyRepoDeque(),
+                        createEmptyTxInfo()).serialize();
+                  } else {
+                    // NEW/unseeded transaction reserved under a different reservation
+                    // This will not change the value and will return null
+                    return null;
+                  }
+                } else {
+                  log.trace(
+                      "fate id {} tstatus {} fate key {} is reserved {} "
+                          + "has already been seeded with work (non-NEW status)",
+                      fateId, currFateData.status, currFateData.fateKey.orElse(null),
+                      currFateData.isReserved());
+                  return null;
+                }
+              });
+      if (newSerFateData != null) {
         return Optional.of(new FateTxStoreImpl(fateId, reservation));
       } else {
         return Optional.empty();
@@ -167,21 +176,21 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     FateReservation reservation = FateReservation.from(lockID, UUID.randomUUID());
 
     try {
-      byte[] newSerNodeVal = zk.mutateExisting(getTXPath(fateId), currSerNodeVal -> {
-        NodeValue currNodeVal = new NodeValue(currSerNodeVal);
+      byte[] newSerFateData = zk.mutateExisting(getTXPath(fateId), currSerFateData -> {
+        FateData<T> currFateData = new FateData<>(currSerFateData);
         // The uuid handles the case where there was a ZK server fault and the write for this thread
         // went through but that was not acknowledged, and we are reading our own write for 2nd
         // time.
-        if (!currNodeVal.isReserved() || currNodeVal.isReservedBy(reservation)) {
-          FateKey currFateKey = currNodeVal.fateKey.orElse(null);
+        if (!currFateData.isReserved() || currFateData.isReservedBy(reservation)) {
           // Add the FateReservation to the node to reserve
-          return new NodeValue(currNodeVal.status, reservation, currFateKey).serialize();
+          return new FateData<>(currFateData.status, reservation, currFateData.fateKey.orElse(null),
+              currFateData.repoDeque, currFateData.txInfo).serialize();
         } else {
-          // This will not change the value to null but will return null
+          // This will not change the value and will return null
           return null;
         }
       });
-      if (newSerNodeVal != null) {
+      if (newSerFateData != null) {
         return Optional.of(new FateTxStoreImpl(fateId, reservation));
       } else {
         return Optional.empty();
@@ -203,18 +212,18 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
         continue;
       }
       try {
-        zk.mutateExisting(getTXPath(fateId), currSerNodeVal -> {
-          NodeValue currNodeVal = new NodeValue(currSerNodeVal);
+        zk.mutateExisting(getTXPath(fateId), currSerFateData -> {
+          FateData<T> currFateData = new FateData<>(currSerFateData);
           // Make sure the current node is still reserved and reserved with the expected reservation
           // and it is dead
-          if (currNodeVal.isReservedBy(reservation)
-              && !isLockHeld.test(currNodeVal.reservation.orElseThrow().getLockID())) {
+          if (currFateData.isReservedBy(reservation)
+              && !isLockHeld.test(currFateData.reservation.orElseThrow().getLockID())) {
             // Delete the reservation
             log.trace("Deleted the dead reservation {} for fate id {}", reservation, fateId);
-            return new NodeValue(currNodeVal.status, null, currNodeVal.fateKey.orElse(null))
-                .serialize();
+            return new FateData<>(currFateData.status, null, currFateData.fateKey.orElse(null),
+                currFateData.repoDeque, currFateData.txInfo).serialize();
           } else {
-            // No change
+            // This will not change the value and will return null
             return null;
           }
         });
@@ -246,53 +255,25 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     @Override
     public Repo<T> top() {
       verifyReservedAndNotDeleted(false);
+      String txpath = getTXPath(fateId);
 
       for (int i = 0; i < RETRIES; i++) {
-        String txpath = getTXPath(fateId);
-        try {
-          String top = findTop(txpath);
-          if (top == null) {
-            return null;
-          }
+        FateData<T> fateData = getFateData(fateId);
 
-          byte[] ser = zk.getData(txpath + "/" + top);
-          @SuppressWarnings("unchecked")
-          var deserialized = (Repo<T>) deserialize(ser);
-          return deserialized;
-        } catch (KeeperException.NoNodeException ex) {
-          log.debug("zookeeper error reading " + txpath + ": " + ex, ex);
+        if (fateData.status == TStatus.UNKNOWN) {
+          log.debug("zookeeper error reading fate data for {} at {}", fateId, txpath);
           sleepUninterruptibly(100, MILLISECONDS);
           continue;
-        } catch (KeeperException | InterruptedException e) {
-          throw new IllegalStateException(e);
+        }
+
+        var repoDeque = fateData.repoDeque;
+        if (repoDeque.isEmpty()) {
+          return null;
+        } else {
+          return repoDeque.peek();
         }
       }
       return null;
-    }
-
-    private String findTop(String txpath) throws KeeperException, InterruptedException {
-      List<String> ops;
-      try {
-        ops = zk.getChildren(txpath);
-      } catch (NoNodeException e) {
-        return null;
-      }
-
-      ops = new ArrayList<>(ops);
-
-      String max = "";
-
-      for (String child : ops) {
-        if (child.startsWith("repo_") && child.compareTo(max) > 0) {
-          max = child;
-        }
-      }
-
-      if (max.isEmpty()) {
-        return null;
-      }
-
-      return max;
     }
 
     @Override
@@ -301,15 +282,31 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
       String txpath = getTXPath(fateId);
       try {
-        String top = findTop(txpath);
-        if (top != null && Long.parseLong(top.split("_")[1]) > 100) {
+        AtomicBoolean validDequeSize = new AtomicBoolean(false);
+
+        zk.mutateExisting(txpath, currSerFateData -> {
+          FateData<T> fateData = new FateData<>(currSerFateData);
+          Preconditions.checkState(REQ_PUSH_STATUS.contains(fateData.status),
+              "Tried to push to the repo stack for %s when the transaction status is %s", fateId,
+              fateData.status);
+          var repoDeque = fateData.repoDeque;
+          validDequeSize.set(repoDeque.size() < MAX_REPOS);
+
+          if (validDequeSize.get()) {
+            repoDeque.push(repo);
+            return fateData.serialize();
+          } else {
+            // This will not change the value and will return null
+            return null;
+          }
+        });
+
+        if (!validDequeSize.get()) {
           throw new StackOverflowException("Repo stack size too large");
         }
-
-        zk.putPersistentSequential(txpath + "/repo_", serialize(repo));
       } catch (StackOverflowException soe) {
         throw soe;
-      } catch (KeeperException | InterruptedException e) {
+      } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
         throw new IllegalStateException(e);
       }
     }
@@ -320,12 +317,22 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
       try {
         String txpath = getTXPath(fateId);
-        String top = findTop(txpath);
-        if (top == null) {
-          throw new IllegalStateException("Tried to pop when empty " + fateId);
-        }
-        zk.recursiveDelete(txpath + "/" + top, NodeMissingPolicy.SKIP);
-      } catch (KeeperException | InterruptedException e) {
+        zk.mutateExisting(txpath, currSerFateData -> {
+          FateData<T> fateData = new FateData<>(currSerFateData);
+          Preconditions.checkState(REQ_POP_STATUS.contains(fateData.status),
+              "Tried to pop from the repo stack for %s when the transaction status is %s", fateId,
+              fateData.status);
+          var repoDeque = fateData.repoDeque;
+
+          if (repoDeque.isEmpty()) {
+            throw new IllegalStateException("Tried to pop when empty " + fateId);
+          } else {
+            repoDeque.pop();
+          }
+
+          return fateData.serialize();
+        });
+      } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
         throw new IllegalStateException(e);
       }
     }
@@ -335,18 +342,17 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       verifyReservedAndNotDeleted(true);
 
       try {
-        zk.mutateExisting(getTXPath(fateId), currSerializedData -> {
-          NodeValue currNodeVal = new NodeValue(currSerializedData);
+        zk.mutateExisting(getTXPath(fateId), currSerFateData -> {
+          FateData<T> currFateData = new FateData<>(currSerFateData);
           // Ensure the FateId is reserved in ZK, and it is reserved with the expected reservation
-          if (currNodeVal.isReservedBy(this.reservation)) {
-            FateReservation currFateReservation = currNodeVal.reservation.orElseThrow();
-            FateKey currFateKey = currNodeVal.fateKey.orElse(null);
-            NodeValue newNodeValue = new NodeValue(status, currFateReservation, currFateKey);
-            return newNodeValue.serialize();
+          if (currFateData.isReservedBy(this.reservation)) {
+            return new FateData<>(status, currFateData.reservation.orElseThrow(),
+                currFateData.fateKey.orElse(null), currFateData.repoDeque, currFateData.txInfo)
+                .serialize();
           } else {
             throw new IllegalStateException("Either the FateId " + fateId
                 + " is not reserved in ZK, or it is but the reservation in ZK: "
-                + currNodeVal.reservation.orElse(null) + " differs from that in the store: "
+                + currFateData.reservation.orElse(null) + " differs from that in the store: "
                 + this.reservation);
           }
         });
@@ -359,19 +365,36 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public void delete() {
-      verifyReservedAndNotDeleted(true);
-
-      try {
-        zk.recursiveDelete(getTXPath(fateId), NodeMissingPolicy.SKIP);
-        this.deleted = true;
-      } catch (KeeperException | InterruptedException e) {
-        throw new IllegalStateException(e);
-      }
+      _delete(REQ_DELETE_STATUS);
     }
 
     @Override
     public void forceDelete() {
-      delete();
+      _delete(REQ_FORCE_DELETE_STATUS);
+    }
+
+    private void _delete(Set<TStatus> requiredStatus) {
+      verifyReservedAndNotDeleted(true);
+
+      // atomically check the txn status and delete the node
+      // retry until we either atomically delete the node or the txn status is disallowed
+      while (!this.deleted) {
+        Stat stat = new Stat();
+        FateData<T> fateData = getFateData(fateId, stat);
+        Preconditions.checkState(requiredStatus.contains(fateData.status),
+            "Tried to delete fate data for %s when the transaction status is %s", fateId,
+            fateData.status);
+        try {
+          zk.deleteStrict(getTXPath(fateId), stat.getVersion());
+          this.deleted = true;
+        } catch (KeeperException.BadVersionException e) {
+          log.trace(
+              "Deletion of ZK node fate data for {} was not able to be completed atomically... Retrying",
+              fateId);
+        } catch (InterruptedException | KeeperException e) {
+          throw new IllegalStateException(e);
+        }
+      }
     }
 
     @Override
@@ -379,9 +402,13 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       verifyReservedAndNotDeleted(true);
 
       try {
-        zk.putPersistentData(getTXPath(fateId) + "/" + txInfo, serializeTxInfo(so),
-            NodeExistsPolicy.OVERWRITE);
-      } catch (KeeperException | InterruptedException e2) {
+        zk.mutateExisting(getTXPath(fateId), currSerFateData -> {
+          FateData<T> fateData = new FateData<>(currSerFateData);
+          fateData.txInfo.put(txInfo, so);
+          return fateData.serialize();
+        });
+      } catch (KeeperException | InterruptedException
+          | AcceptableThriftTableOperationException e2) {
         throw new IllegalStateException(e2);
       }
     }
@@ -408,64 +435,32 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     @Override
     public List<ReadOnlyRepo<T>> getStack() {
       verifyReservedAndNotDeleted(false);
-      String txpath = getTXPath(fateId);
 
-      outer: while (true) {
-        List<String> ops;
-        try {
-          ops = zk.getChildren(txpath);
-        } catch (KeeperException.NoNodeException e) {
-          return Collections.emptyList();
-        } catch (KeeperException | InterruptedException e1) {
-          throw new IllegalStateException(e1);
-        }
-
-        ops = new ArrayList<>(ops);
-        ops.sort(Collections.reverseOrder());
-
-        ArrayList<ReadOnlyRepo<T>> dops = new ArrayList<>();
-
-        for (String child : ops) {
-          if (child.startsWith("repo_")) {
-            byte[] ser;
-            try {
-              ser = zk.getData(txpath + "/" + child);
-              @SuppressWarnings("unchecked")
-              var repo = (ReadOnlyRepo<T>) deserialize(ser);
-              dops.add(repo);
-            } catch (KeeperException.NoNodeException e) {
-              // children changed so start over
-              continue outer;
-            } catch (KeeperException | InterruptedException e) {
-              throw new IllegalStateException(e);
-            }
-          }
-        }
-
-        return dops;
-      }
+      FateData<T> fateData = getFateData(fateId);
+      return new ArrayList<>(fateData.repoDeque);
     }
 
     @Override
     protected void unreserve() {
       try {
         if (!this.deleted) {
-          zk.mutateExisting(getTXPath(fateId), currSerNodeVal -> {
-            NodeValue currNodeVal = new NodeValue(currSerNodeVal);
-            FateKey currFateKey = currNodeVal.fateKey.orElse(null);
-            if (currNodeVal.isReservedBy(this.reservation)) {
-              // Remove the FateReservation from the NodeValue to unreserve
-              return new NodeValue(currNodeVal.status, null, currFateKey).serialize();
+          zk.mutateExisting(getTXPath(fateId), currSerFateData -> {
+            FateData<T> currFateData = new FateData<>(currSerFateData);
+            if (currFateData.isReservedBy(this.reservation)) {
+              // Remove the FateReservation from the node to unreserve
+              return new FateData<>(currFateData.status, null, currFateData.fateKey.orElse(null),
+                  currFateData.repoDeque, currFateData.txInfo).serialize();
             } else {
               // possible this is running a 2nd time in zk server fault conditions and its first
               // write went through
-              if (!currNodeVal.isReserved()) {
+              if (!currFateData.isReserved()) {
                 log.trace("The FATE reservation for fate id {} does not exist in ZK", fateId);
-              } else if (!currNodeVal.reservation.orElseThrow().equals(this.reservation)) {
+              } else if (!currFateData.reservation.orElseThrow().equals(this.reservation)) {
                 log.debug(
                     "The FATE reservation for fate id {} in ZK differs from that in the store",
                     fateId);
               }
+              // This will not change the value and will return null
               return null;
             }
           });
@@ -478,30 +473,36 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   private Serializable getTransactionInfo(TxInfo txInfo, FateId fateId) {
+    return getFateData(fateId).txInfo.get(txInfo);
+  }
+
+  @Override
+  protected TStatus _getStatus(FateId fateId) {
+    return getFateData(fateId).status;
+  }
+
+  @Override
+  protected Optional<FateKey> getKey(FateId fateId) {
+    return getFateData(fateId).fateKey;
+  }
+
+  private FateData<T> getFateData(FateId fateId) {
     try {
-      return deserializeTxInfo(txInfo, zk.getData(getTXPath(fateId) + "/" + txInfo));
+      return new FateData<>(zk.getData(getTXPath(fateId)));
     } catch (NoNodeException nne) {
-      return null;
+      return new FateData<>(TStatus.UNKNOWN, null, null, createEmptyRepoDeque(),
+          createEmptyTxInfo());
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
   }
 
-  @Override
-  protected TStatus _getStatus(FateId fateId) {
-    return getNode(fateId).status;
-  }
-
-  @Override
-  protected Optional<FateKey> getKey(FateId fateId) {
-    return getNode(fateId).fateKey;
-  }
-
-  private NodeValue getNode(FateId fateId) {
+  private FateData<T> getFateData(FateId fateId, Stat stat) {
     try {
-      return new NodeValue(zk.getData(getTXPath(fateId)));
+      return new FateData<>(zk.getData(getTXPath(fateId), stat));
     } catch (NoNodeException nne) {
-      return new NodeValue(TStatus.UNKNOWN, null);
+      return new FateData<>(TStatus.UNKNOWN, null, null, createEmptyRepoDeque(),
+          createEmptyTxInfo());
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
@@ -521,7 +522,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
         // Memoizing for two reasons. First the status or reservation may never be requested, so
         // in that case avoid the lookup. Second, if it's requested multiple times the result will
         // always be consistent.
-        Supplier<NodeValue> nodeSupplier = Suppliers.memoize(() -> getNode(fateId));
+        Supplier<FateData<T>> nodeSupplier = Suppliers.memoize(() -> getFateData(fateId));
         return new FateIdStatusBase(fateId) {
           @Override
           public TStatus getStatus() {
@@ -551,30 +552,48 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
         .filter(fateKey -> fateKey.getType() == type);
   }
 
-  protected static class NodeValue {
+  private Deque<Repo<T>> createEmptyRepoDeque() {
+    return new ArrayDeque<>();
+  }
+
+  private Map<TxInfo,Serializable> createEmptyTxInfo() {
+    return new EnumMap<>(TxInfo.class);
+  }
+
+  protected static class FateData<T> {
     final TStatus status;
     final Optional<FateKey> fateKey;
     final Optional<FateReservation> reservation;
+    final Deque<Repo<T>> repoDeque;
+    final Map<TxInfo,Serializable> txInfo;
+    // char to indicate the end of the repo stack data
+    final static String END_REPO_DATA = "!";
 
-    private NodeValue(byte[] serializedData) {
+    /**
+     * Construct a FateData from a previously {@link #serialize()}ed FateData
+     *
+     * @param serializedData the serialized data
+     */
+    private FateData(byte[] serializedData) {
       try (DataInputBuffer buffer = new DataInputBuffer()) {
         buffer.reset(serializedData, serializedData.length);
         this.status = TStatus.valueOf(buffer.readUTF());
         this.reservation = deserializeFateReservation(buffer);
         this.fateKey = deserializeFateKey(buffer);
+        this.repoDeque = deserializeRepoDeque(buffer);
+        this.txInfo = deserializeTxInfo(buffer);
       } catch (IOException e) {
         throw new UncheckedIOException(e);
       }
     }
 
-    private NodeValue(TStatus status, FateReservation reservation) {
-      this(status, reservation, null);
-    }
-
-    private NodeValue(TStatus status, FateReservation reservation, FateKey fateKey) {
+    private FateData(TStatus status, FateReservation reservation, FateKey fateKey,
+        Deque<Repo<T>> repoDeque, Map<TxInfo,Serializable> txInfo) {
       this.status = Objects.requireNonNull(status);
       this.reservation = Optional.ofNullable(reservation);
       this.fateKey = Optional.ofNullable(fateKey);
+      this.repoDeque = Objects.requireNonNull(repoDeque);
+      this.txInfo = Objects.requireNonNull(txInfo);
     }
 
     private Optional<FateKey> deserializeFateKey(DataInputBuffer buffer) throws IOException {
@@ -596,10 +615,62 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       return Optional.empty();
     }
 
-    byte[] serialize() {
+    private Deque<Repo<T>> deserializeRepoDeque(DataInputBuffer buffer) throws IOException {
+      Deque<Repo<T>> deque = new ArrayDeque<>();
+      int length = buffer.readInt();
+
+      while (length != 0) {
+        Preconditions.checkArgument(length >= 0);
+        @SuppressWarnings("unchecked")
+        var repo = (Repo<T>) deserialize(buffer.readNBytes(length));
+        deque.add(repo);
+        // if we have reached the end of repo data
+        if (getCharAtCurrPos(buffer).equals(END_REPO_DATA)) {
+          break;
+        }
+        length = buffer.readInt();
+      }
+
+      // advance the pointer if it's pointing to END_REPO_DATA (the end)
+      if (getCharAtCurrPos(buffer).equals(END_REPO_DATA)) {
+        buffer.readByte();
+      }
+      return deque;
+    }
+
+    /**
+     * get the char at the current buffer position without advancing the buffer position
+     */
+    private String getCharAtCurrPos(DataInputBuffer buffer) {
+      // use underlying data to avoid advancing the pointer
+      return new String(new byte[] {buffer.getData()[buffer.getPosition()]}, UTF_8);
+    }
+
+    private Map<TxInfo,Serializable> deserializeTxInfo(DataInputBuffer buffer) throws IOException {
+      Map<TxInfo,Serializable> txInfo = new EnumMap<>(TxInfo.class);
+      int length = buffer.readInt();
+
+      while (length != 0) {
+        Preconditions.checkArgument(length >= 0);
+        TxInfo type = TxInfo.values()[buffer.readInt()];
+        txInfo.put(type, AbstractFateStore.deserializeTxInfo(type, buffer.readNBytes(length - 1)));
+
+        // if we have reached the end of the buffer (= reached the end of the tx info data)
+        if (buffer.getPosition() == buffer.getLength()) {
+          break;
+        }
+        length = buffer.readInt();
+      }
+
+      return txInfo;
+    }
+
+    private byte[] serialize() {
       try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
           DataOutputStream dos = new DataOutputStream(baos)) {
+        // status
         dos.writeUTF(status.name());
+        // reservation
         if (isReserved()) {
           byte[] serializedFateReservation = reservation.orElseThrow().getSerialized();
           dos.writeInt(serializedFateReservation.length);
@@ -607,6 +678,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
         } else {
           dos.writeInt(0);
         }
+        // fate key
         if (fateKey.isPresent()) {
           byte[] serializedFateKey = fateKey.orElseThrow().getSerialized();
           dos.writeInt(serializedFateKey.length);
@@ -614,6 +686,32 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
         } else {
           dos.writeInt(0);
         }
+        // repo deque
+        if (!repoDeque.isEmpty()) {
+          byte[] serializedRepo;
+          // iterates from top/first/head to bottom/last/tail
+          for (Repo<T> repo : repoDeque) {
+            serializedRepo = AbstractFateStore.serialize(repo);
+            dos.writeInt(serializedRepo.length);
+            dos.write(serializedRepo);
+          }
+          // indicate the end with a bang
+          dos.write(END_REPO_DATA.getBytes(UTF_8));
+        } else {
+          dos.writeInt(0);
+        }
+        // tx info
+        if (!txInfo.isEmpty()) {
+          for (var elt : txInfo.entrySet()) {
+            byte[] serTxInfo = serializeTxInfo(elt.getValue());
+            dos.writeInt(1 + serTxInfo.length);
+            dos.writeInt(elt.getKey().ordinal());
+            dos.write(serTxInfo);
+          }
+        } else {
+          dos.writeInt(0);
+        }
+        // done
         dos.close();
         return baos.toByteArray();
       } catch (IOException e) {

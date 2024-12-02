@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.fate.meta;
 
 import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
-import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -27,7 +26,6 @@ import static org.easymock.EasyMock.replay;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
@@ -37,46 +35,39 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT;
-import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
+import org.apache.accumulo.test.fate.FateStoreUtil;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
-@Tag(ZOOKEEPER_TESTING_SERVER)
 public class MetaFateIT extends FateIT {
-
-  private static ZooKeeperTestingServer szk = null;
-  private static ZooReaderWriter zk = null;
-  private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID();
-
   @TempDir
   private static File tempDir;
 
   @BeforeAll
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer(tempDir);
-    zk = szk.getZooReaderWriter();
-    zk.mkdirs(ZK_ROOT + Constants.ZFATE);
-    zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
+    FateStoreUtil.MetaFateZKSetup.setup(tempDir);
   }
 
   @AfterAll
   public static void teardown() throws Exception {
-    szk.close();
+    FateStoreUtil.MetaFateZKSetup.teardown();
   }
 
   @Override
   public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
       FateIdGenerator fateIdGenerator) throws Exception {
+    String zkRoot = FateStoreUtil.MetaFateZKSetup.getZkRoot();
+    var zooReaderWriter = FateStoreUtil.MetaFateZKSetup.getZooReaderWriter();
+    String fatePath = FateStoreUtil.MetaFateZKSetup.getZkFatePath();
     ServerContext sctx = createMock(ServerContext.class);
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+    expect(sctx.getZooKeeperRoot()).andReturn(zkRoot).anyTimes();
+    expect(sctx.getZooReaderWriter()).andReturn(zooReaderWriter).anyTimes();
     replay(sctx);
 
-    testMethod.execute(new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk, createDummyLockID(), null,
+    testMethod.execute(new MetaFateStore<>(fatePath, zooReaderWriter, createDummyLockID(), null,
         maxDeferred, fateIdGenerator), sctx);
   }
 
@@ -95,8 +86,9 @@ public class MetaFateIT extends FateIT {
    */
   private static TStatus getTxStatus(ZooReaderWriter zrw, FateId fateId)
       throws KeeperException, InterruptedException {
-    zrw.sync(ZK_ROOT);
-    String txdir = String.format("%s%s/tx_%s", ZK_ROOT, Constants.ZFATE, fateId.getTxUUIDStr());
+    String zkRoot = FateStoreUtil.MetaFateZKSetup.getZkRoot();
+    zrw.sync(zkRoot);
+    String txdir = String.format("%s%s/tx_%s", zkRoot, Constants.ZFATE, fateId.getTxUUIDStr());
 
     try (DataInputBuffer buffer = new DataInputBuffer()) {
       var serialized = zrw.getData(txdir);
