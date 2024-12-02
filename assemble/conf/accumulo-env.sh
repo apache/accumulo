@@ -92,6 +92,8 @@ JAVA_OPTS=(
 group="${ACCUMULO_RESOURCE_GROUP:-default}"
 case "$group" in
   default)
+    # shellcheck disable=SC2154
+    # $cmd is exported in the accumulo script, but not the accumulo-service script
     case "$cmd" in
       manager) JAVA_OPTS=('-Xmx512m' '-Xms512m' "${JAVA_OPTS[@]}") ;;
       monitor) JAVA_OPTS=('-Xmx256m' '-Xms256m' "${JAVA_OPTS[@]}") ;;
@@ -103,8 +105,6 @@ case "$group" in
     esac
     ;;
   *)
-    echo "Unhandled ACCUMULO_RESOUCE_GROUP value: $ACCUMULO_RESOUCE_GROUP"
-    exit 1
     ;;
 esac
 
