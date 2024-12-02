@@ -104,8 +104,7 @@ case "$group" in
       *) JAVA_OPTS=('-Xmx256m' '-Xms64m' "${JAVA_OPTS[@]}") ;;
     esac
     ;;
-  *)
-    ;;
+  *) ;;
 esac
 
 ## JVM options set for logging. Review log4j2.properties file to see how they are used.
