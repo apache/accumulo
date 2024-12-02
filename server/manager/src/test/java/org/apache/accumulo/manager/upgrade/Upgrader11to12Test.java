@@ -397,6 +397,8 @@ public class Upgrader11to12Test {
       expectLastCall().once();
     }
 
+    expect(zrw.exists(eq(zkRoot + "/problems"))).andReturn(false).once();
+
     replay(context, zrw);
 
     upgrader.upgradeZookeeper(context);
