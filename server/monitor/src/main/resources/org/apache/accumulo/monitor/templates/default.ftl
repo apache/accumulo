@@ -34,16 +34,6 @@
       <script src="/resources/external/bootstrap/js/bootstrap.bundle.js"></script>
       <script src="/resources/external/datatables/js/jquery.dataTables.js"></script>
       <script src="/resources/external/datatables/js/dataTables.bootstrap5.js"></script>
-      <script src="/resources/external/flot/jquery.canvaswrapper.js"></script>
-      <script src="/resources/external/flot/jquery.colorhelpers.js"></script>
-      <script src="/resources/external/flot/jquery.flot.js"></script>
-      <script src="/resources/external/flot/jquery.flot.saturated.js"></script>
-      <script src="/resources/external/flot/jquery.flot.browser.js"></script>
-      <script src="/resources/external/flot/jquery.flot.drawSeries.js"></script>
-      <script src="/resources/external/flot/jquery.flot.uiConstants.js"></script>
-      <script src="/resources/external/flot/jquery.flot.legend.js"></script>
-      <script src="/resources/external/flot/jquery.flot.time.js"></script>
-      <script src="/resources/external/flot/jquery.flot.resize.js"></script>
       <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap.css" />
       <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap-icons.css" />
       <link rel="stylesheet" href="/resources/external/datatables/css/dataTables.bootstrap5.css" />

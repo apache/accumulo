@@ -68,7 +68,6 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Fate;
@@ -470,7 +469,7 @@ public class Manager extends AbstractServer
     AccumuloConfiguration aconf = context.getConfiguration();
 
     log.info("Version {}", Constants.VERSION);
-    log.info("Instance {}", getInstanceID());
+    log.info("Instance {}", context.getInstanceID());
     timeKeeper = new ManagerTime(this, aconf);
     tserverSet = new LiveTServerSet(context, this);
     initializeBalancer();
@@ -492,7 +491,7 @@ public class Manager extends AbstractServer
       final long tokenUpdateInterval =
           aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
       keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooReaderWriter(),
-          getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
+          context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
       authenticationTokenKeyManager = new AuthenticationTokenKeyManager(context.getSecretManager(),
           keyDistributor, tokenUpdateInterval, tokenLifetime);
       delegationTokensAvailable = true;
@@ -504,14 +503,6 @@ public class Manager extends AbstractServer
         aconf.getTimeInMillis(Property.MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
   }
 
-  public InstanceId getInstanceID() {
-    return getContext().getInstanceID();
-  }
-
-  public String getZooKeeperRoot() {
-    return getContext().getZooKeeperRoot();
-  }
-
   public TServerConnection getConnection(TServerInstance server) {
     return tserverSet.getConnection(server);
   }
@@ -519,8 +510,8 @@ public class Manager extends AbstractServer
   void setManagerGoalState(ManagerGoalState state) {
     try {
       getContext().getZooReaderWriter().putPersistentData(
-          getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE, state.name().getBytes(UTF_8),
-          NodeExistsPolicy.OVERWRITE);
+          getContext().getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE,
+          state.name().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
       log.error("Unable to set manager goal state in zookeeper");
     }
@@ -530,7 +521,7 @@ public class Manager extends AbstractServer
     while (true) {
       try {
         byte[] data = getContext().getZooReaderWriter()
-            .getData(getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE);
+            .getData(getContext().getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE);
         return ManagerGoalState.valueOf(new String(data, UTF_8));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
@@ -1108,7 +1099,7 @@ public class Manager extends AbstractServer
   @Override
   public void run() {
     final ServerContext context = getContext();
-    final String zroot = getZooKeeperRoot();
+    final String zroot = context.getZooKeeperRoot();
 
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
@@ -1257,8 +1248,8 @@ public class Manager extends AbstractServer
     try {
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
-      var metaInstance =
-          initializeFateInstance(context, new MetaFateStore<>(getZooKeeperRoot() + Constants.ZFATE,
+      var metaInstance = initializeFateInstance(context,
+          new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
               context.getZooReaderWriter(), managerLock.getLockID(), isLockHeld));
       var userInstance = initializeFateInstance(context, new UserFateStore<>(context,
           AccumuloTable.FATE.tableName(), managerLock.getLockID(), isLockHeld));
