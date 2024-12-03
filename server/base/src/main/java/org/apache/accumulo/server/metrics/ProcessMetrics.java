@@ -18,26 +18,35 @@
  */
 package org.apache.accumulo.server.metrics;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class ProcessMetrics implements MetricsProducer {
 
-  private final AtomicInteger isIdle;
+  private final AtomicBoolean isIdle;
 
   public ProcessMetrics() {
-    this.isIdle = new AtomicInteger(-1);
+    this.isIdle = new AtomicBoolean(true);
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    registry.gauge(METRICS_SERVER_IDLE, isIdle, AtomicInteger::get);
+    Gauge.builder(METRICS_SERVER_IDLE, this, this::getIdleAsDouble)
+        .description("Indicates if the server is idle or not. "
+            + "The value will be 1 when idle and 0 when not idle")
+        .register(registry);
   }
 
   public void setIdleValue(boolean isIdle) {
-    this.isIdle.set(isIdle ? 1 : 0);
+    this.isIdle.set(isIdle);
   }
+
+  public double getIdleAsDouble(ProcessMetrics processMetrics) {
+    return processMetrics.isIdle.get() ? 1 : 0;
+  }
+
 }

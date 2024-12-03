@@ -237,7 +237,7 @@ public class Admin implements KeywordExecutable {
     boolean fail;
 
     @Parameter(names = {"-d", "--delete"},
-        description = "<txId>... Delete locks associated with transactions (Requires Manager to be down)")
+        description = "<txId>... Delete FaTE transaction and its associated table locks (requires Manager to be down)")
     boolean delete;
 
     @Parameter(names = {"-p", "--print", "-print", "-l", "--list", "-list"},
