@@ -187,6 +187,7 @@ public class NewMonitor implements Connection.Listener {
       }
     }).get("/stats", ctx -> ctx.result(connStats.dump()))
         .get("/metrics", ctx -> ctx.json(fetcher.getAll()))
+        .get("/metrics/lastUpdate", ctx -> ctx.json(fetcher.getTimestamp()))
         .get("/metrics/instance", ctx -> ctx.json(fetcher.getInstanceSummary()))
         .get("/metrics/groups", ctx -> ctx.json(fetcher.getResourceGroups()))
         .get("/metrics/manager", ctx -> ctx.json(fetcher.getManager()))

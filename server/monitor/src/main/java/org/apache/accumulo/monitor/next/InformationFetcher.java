@@ -495,4 +495,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     return getSummary().getSuggestions();
   }
 
+  public long getTimestamp() {
+    return getSummary().getTimestamp();
+  }
+
 }

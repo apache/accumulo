@@ -329,6 +329,8 @@ public class SystemInformation {
 
   private final Set<String> suggestions = new ConcurrentSkipListSet<>();
 
+  private long timestamp = 0;
+
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics, ServerContext ctx) {
     this.allMetrics = allMetrics;
     this.ctx = ctx;
@@ -487,6 +489,7 @@ public class SystemInformation {
             + " group " + balancerRG + ", but there are no TabletServers.");
       }
     }
+    timestamp = System.currentTimeMillis();
   }
 
   public Set<String> getResourceGroups() {
@@ -579,6 +582,10 @@ public class SystemInformation {
 
   public Set<String> getSuggestions() {
     return this.suggestions;
+  }
+
+  public long getTimestamp() {
+    return this.timestamp;
   }
 
 }
