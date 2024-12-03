@@ -34,6 +34,7 @@ import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -83,6 +84,7 @@ public class Fate<T> {
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final TransferQueue<FateId> workQueue;
   private final Thread workFinder;
+  private final ConcurrentLinkedQueue<Integer> queueSizeHistory = new ConcurrentLinkedQueue<>();
 
   public enum TxInfo {
     TX_NAME, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
@@ -355,7 +357,8 @@ public class Fate<T> {
       // resize the pool if the property changed
       ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
       // If the pool grew, then ensure that there is a TransactionRunner for each thread
-      int needed = conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE) - pool.getQueue().size();
+      final int configured = conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE);
+      final int needed = configured - pool.getQueue().size();
       if (needed > 0) {
         for (int i = 0; i < needed; i++) {
           try {
@@ -371,6 +374,42 @@ public class Fate<T> {
             }
             break;
           }
+        }
+        queueSizeHistory.clear();
+      } else {
+        // The property did not change, but should it based on the queue size? Maintain
+        // the last X minutes of queue sizes. If the queue size is always larger than the number
+        // of Fate threads multiplied by some factor, then suggest that the
+        // MANAGER_FATE_THREADPOOL_SIZE be increased.
+        final long interval = Math.min(60, TimeUnit.MILLISECONDS
+            .toMinutes(conf.getTimeInMillis(Property.MANAGER_FATE_QUEUE_CHECK_INTERVAL)));
+        if (interval == 0) {
+          queueSizeHistory.clear();
+        } else {
+          final int sizeFactor = conf.getCount(Property.MANAGER_FATE_QUEUE_CHECK_FACTOR);
+          if (queueSizeHistory.size() >= interval * 2) { // this task runs every 30s
+            final int warnThreshold = configured * sizeFactor;
+            boolean needMoreThreads = true;
+            for (Integer i : queueSizeHistory) {
+              if (i < warnThreshold) {
+                needMoreThreads = false;
+                break;
+              }
+            }
+            if (needMoreThreads) {
+              log.warn(
+                  "Fate queue size is {} times the number of Fate threads for the last {} minutes,"
+                      + " consider increasing property: {}",
+                  sizeFactor, interval, Property.MANAGER_FATE_THREADPOOL_SIZE.getKey());
+              // Clear the history so that we don't log for another 5 minutes.
+              queueSizeHistory.clear();
+            } else {
+              while (queueSizeHistory.size() >= interval * 2) {
+                queueSizeHistory.remove();
+              }
+            }
+          }
+          queueSizeHistory.add(pool.getQueue().size());
         }
       }
     }, 3, 30, SECONDS));
@@ -611,5 +650,6 @@ public class Fate<T> {
     if (deadResCleanerExecutor != null) {
       deadResCleanerExecutor.shutdownNow();
     }
+    queueSizeHistory.clear();
   }
 }
