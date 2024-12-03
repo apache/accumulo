@@ -70,15 +70,6 @@ function get_group() {
   echo "${group}"
 }
 
-function get_group_overrides() {
-  service="$1"
-  group="$2"
-  if [[ -f "${conf}/${group}-group-env.sh" ]]; then
-    #shellcheck source=../conf/default-group-env.sh
-    source "${conf}/${group}-group-env.sh" "${service}"
-  fi
-}
-
 function start_service() {
   local service_type=$1
   local service_name=$2
@@ -92,14 +83,6 @@ function start_service() {
     build_service_name="true"
     servers_per_host=${ACCUMULO_CLUSTER_ARG:-1}
   fi
-
-  group=$(get_group "$@")
-
-  #
-  # Get any resource group overrides, this should
-  # export ACCUMULO_JAVA_OPTS and PROPERTY_OVERRIDES
-  #
-  get_group_overrides "$service_type" "$group"
 
   for ((process_num = 1; process_num <= servers_per_host; process_num++)); do
     if [[ ${build_service_name} == "true" ]]; then
@@ -252,6 +235,9 @@ function main() {
   export basedir
   export conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
   export lib="${basedir}/lib"
+
+  group=$(get_group "$@")
+  export ACCUMULO_RESOURCE_GROUP="$group"
 
   if [[ -f "${conf}/accumulo-env.sh" ]]; then
     #shellcheck source=../conf/accumulo-env.sh
