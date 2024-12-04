@@ -44,6 +44,7 @@ import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
 import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -141,13 +142,13 @@ public class TableLoadBalancerTest {
     List<TabletMigration> migrationsOut = new ArrayList<>();
     TableLoadBalancer tls = new TableLoadBalancer();
     tls.init(environment);
-    tls.balance(new BalanceParamsImpl(state, migrations, migrationsOut));
+    tls.balance(new BalanceParamsImpl(state, migrations, migrationsOut, DataLevel.USER));
     assertEquals(0, migrationsOut.size());
 
     state.put(mkts("10.0.0.2", 2345, "0x02030405"), status());
     tls = new TableLoadBalancer();
     tls.init(environment);
-    tls.balance(new BalanceParamsImpl(state, migrations, migrationsOut));
+    tls.balance(new BalanceParamsImpl(state, migrations, migrationsOut, DataLevel.USER));
     int count = 0;
     Map<TableId,Integer> movedByTable = new HashMap<>();
     movedByTable.put(TableId.of(t1Id), 0);

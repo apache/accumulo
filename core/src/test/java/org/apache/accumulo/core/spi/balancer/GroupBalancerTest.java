@@ -40,6 +40,7 @@ import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -83,7 +84,8 @@ public class GroupBalancerTest {
     }
 
     public void balance(final int maxMigrations) {
-      GroupBalancer balancer = new GroupBalancer(TableId.of("1")) {
+      TableId tid = TableId.of("1");
+      GroupBalancer balancer = new GroupBalancer(tid) {
 
         @Override
         protected Map<TabletId,TabletServerId> getLocationProvider() {
@@ -106,10 +108,10 @@ public class GroupBalancerTest {
         }
       };
 
-      balance(balancer, maxMigrations);
+      balance(balancer, maxMigrations, tid);
     }
 
-    public void balance(TabletBalancer balancer, int maxMigrations) {
+    public void balance(TabletBalancer balancer, int maxMigrations, TableId tid) {
 
       while (true) {
         Set<TabletId> migrations = new HashSet<>();
@@ -121,7 +123,8 @@ public class GroupBalancerTest {
               new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
         }
 
-        balancer.balance(new BalanceParamsImpl(current, migrations, migrationsOut));
+        balancer
+            .balance(new BalanceParamsImpl(current, migrations, migrationsOut, DataLevel.of(tid)));
 
         assertTrue(migrationsOut.size() <= (maxMigrations + 5),
             "Max Migration exceeded " + maxMigrations + " " + migrationsOut.size());
