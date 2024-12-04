@@ -153,7 +153,7 @@ public class ZooCache {
     @Override
     public void process(WatchedEvent event) {
       if (log.isTraceEnabled()) {
-        log.trace("{} {}", cacheId, event);
+        log.trace("{}: {}", cacheId, event);
       }
 
       switch (event.getType()) {
