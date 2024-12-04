@@ -55,8 +55,8 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
     try {
       var context = manager.getContext();
       NamespaceMapping.put(context.getZooReaderWriter(),
-          Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNAMESPACES,
-          namespaceInfo.namespaceId, namespaceInfo.namespaceName);
+          context.getZooKeeperRoot() + Constants.ZNAMESPACES, namespaceInfo.namespaceId,
+          namespaceInfo.namespaceName);
       TableManager.prepareNewNamespaceState(context, namespaceInfo.namespaceId,
           namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 

@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
@@ -145,7 +146,7 @@ public class ChangeSecret {
         }
       }
     });
-    String path = "/accumulo/instances/" + context.getInstanceName();
+    String path = Constants.ZROOT + Constants.ZINSTANCES + "/" + context.getInstanceName();
     orig.recursiveDelete(path, NodeMissingPolicy.SKIP);
     new_.putPersistentData(path, newInstanceId.canonical().getBytes(UTF_8),
         NodeExistsPolicy.OVERWRITE);
@@ -201,6 +202,6 @@ public class ChangeSecret {
 
   private static void deleteInstance(ServerContext context, String oldPass) throws Exception {
     ZooReaderWriter orig = context.getZooReader().asWriter(oldPass);
-    orig.recursiveDelete("/accumulo/" + context.getInstanceID(), NodeMissingPolicy.SKIP);
+    orig.recursiveDelete(context.getZooKeeperRoot(), NodeMissingPolicy.SKIP);
   }
 }

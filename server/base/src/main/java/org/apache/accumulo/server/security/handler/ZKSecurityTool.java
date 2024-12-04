@@ -31,9 +31,7 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -193,7 +191,4 @@ class ZKSecurityTool {
     return toReturn;
   }
 
-  public static String getInstancePath(InstanceId instanceId) {
-    return Constants.ZROOT + "/" + instanceId;
-  }
 }

@@ -29,6 +29,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
@@ -68,6 +69,9 @@ public class ZooZap implements KeywordExecutable {
     boolean zapManager = false;
     @Parameter(names = "-tservers", description = "remove tablet server locks")
     boolean zapTservers = false;
+    @Parameter(names = "-group", description = "limit the zap to a specific resource group",
+        arity = 1)
+    String resourceGroup = "";
     @Parameter(names = "-compactors", description = "remove compactor locks")
     boolean zapCompactors = false;
     @Parameter(names = "-sservers", description = "remove scan server locks")
@@ -108,10 +112,17 @@ public class ZooZap implements KeywordExecutable {
           }
         }
 
+        ResourceGroupPredicate rgp;
+        if (!opts.resourceGroup.isEmpty()) {
+          rgp = rg -> rg.equals(opts.resourceGroup);
+        } else {
+          rgp = rg -> true;
+        }
+
         if (opts.zapTservers) {
           try {
             Set<ServiceLockPath> tserverLockPaths =
-                context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), false);
+                context.getServerPaths().getTabletServer(rgp, AddressSelector.all(), false);
             for (ServiceLockPath tserverPath : tserverLockPaths) {
 
               message("Deleting " + tserverPath + " from zookeeper", opts);
@@ -133,7 +144,7 @@ public class ZooZap implements KeywordExecutable {
 
         if (opts.zapCompactors) {
           Set<ServiceLockPath> compactorLockPaths =
-              context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), false);
+              context.getServerPaths().getCompactor(rgp, AddressSelector.all(), false);
           Set<String> compactorResourceGroupPaths = new HashSet<>();
           compactorLockPaths.forEach(p -> compactorResourceGroupPaths
               .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
@@ -151,7 +162,7 @@ public class ZooZap implements KeywordExecutable {
         if (opts.zapScanServers) {
           try {
             Set<ServiceLockPath> sserverLockPaths =
-                context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), false);
+                context.getServerPaths().getScanServer(rgp, AddressSelector.all(), false);
             for (ServiceLockPath sserverPath : sserverLockPaths) {
               message("Deleting " + sserverPath + " from zookeeper", opts);
               if (!zoo.getChildren(sserverPath.toString()).isEmpty()) {
