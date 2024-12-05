@@ -27,9 +27,10 @@ Options:
 
 Commands:
   create-config              Creates cluster config
-  restart                    Restarts the Accumulo cluster
   start-here                 Starts all services on this node (deprecated, alias for "start --local --all")
   stop-here                  Stops all services on this node (deprecated, alias for "stop --local --all")
+  restart [--local] [--all | [--manager] [--gc] [--monitor] [--tservers[=group]] [--sservers[=group]] [--compactors[=group]]
+                             Restarts the Accumulo cluster
   start [--local] [--all | [--manager] [--gc] [--monitor] [--tservers[=group]] [--sservers[=group]] [--compactors[=group]]
                              Starts Accumulo cluster services
   stop [--local] [--all | [--manager] [--gc] [--monitor] [--tservers[=group]] [--sservers[=group]] [--compactors[=group]]
@@ -506,7 +507,6 @@ EOF
       ;;
     restart)
       parse_config
-      ARG_ALL=1
       control_services stop
       control_services kill
       # Make sure the JVM has a chance to fully exit
