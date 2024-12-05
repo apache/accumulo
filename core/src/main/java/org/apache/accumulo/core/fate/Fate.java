@@ -409,7 +409,7 @@ public class Fate<T> {
               }
             }
           }
-          queueSizeHistory.add(pool.getQueue().size());
+          queueSizeHistory.add(workQueue.size());
         }
       }
     }, 3, 30, SECONDS));
