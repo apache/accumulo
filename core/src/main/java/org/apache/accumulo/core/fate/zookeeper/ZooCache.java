@@ -56,45 +56,6 @@ public class ZooCache {
   private static final AtomicLong nextCacheId = new AtomicLong(0);
   private final String cacheId = "ZC" + nextCacheId.incrementAndGet();
 
-  private static class ZcNode {
-    final byte[] data;
-    final ZcStat stat;
-    final boolean dataSet;
-    final List<String> children;
-    final boolean childrenSet;
-
-    private ZcNode(ZcNode other, List<String> children) {
-      this.data = other != null ? other.data : null;
-      this.stat = other != null ? other.stat : null;
-      this.dataSet = other != null ? other.dataSet : false;
-      this.children = children;
-      this.childrenSet = true;
-    }
-
-    public ZcNode(byte[] data, ZcStat zstat, ZcNode zcn) {
-      this.data = data;
-      this.stat = zstat;
-      this.dataSet = true;
-      this.children = zcn != null ? zcn.children : null;
-      this.childrenSet = zcn != null ? zcn.childrenSet : false;
-    }
-
-    byte[] getData() {
-      Preconditions.checkState(dataSet);
-      return data;
-    }
-
-    ZcStat getStat() {
-      Preconditions.checkState(dataSet);
-      return stat;
-    }
-
-    List<String> getChildren() {
-      Preconditions.checkState(childrenSet);
-      return children;
-    }
-  }
-
   // ConcurrentHashMap will only allow one thread to run at a time for a given key and this
   // implementation relies on that. Not all concurrent map implementations have this behavior for
   // their compute functions.
@@ -316,43 +277,46 @@ public class ZooCache {
       public List<String> run() throws KeeperException, InterruptedException {
 
         var zcNode = nodeCache.get(zPath);
-        if (zcNode != null && zcNode.childrenSet) {
+        if (zcNode != null && zcNode.cachedChildren()) {
           return zcNode.getChildren();
         }
 
         log.trace("{} {} was not in children cache, looking up in zookeeper", cacheId, zPath);
 
-        try {
-          zcNode = nodeCache.compute(zPath, (zp, zcn) -> {
-            // recheck the children now that lock is held on key
-            if (zcn != null && zcn.childrenSet) {
-              return zcn;
-            }
-
-            try {
-              final ZooKeeper zooKeeper = getZooKeeper();
-              List<String> children;
-              children = zooKeeper.getChildren(zPath, watcher);
-              if (children != null) {
-                children = List.copyOf(children);
-              }
-              return new ZcNode(zcn, children);
-            } catch (KeeperException e) {
-              throw new ZcException(e);
-            } catch (InterruptedException e) {
-              throw new ZcInterruptedException(e);
-            }
-          });
-          // increment this after compute call completes when the change is visible
-          updateCount.incrementAndGet();
-          return zcNode.getChildren();
-        } catch (ZcException zce) {
-          if (zce.getZKException().code() == Code.NONODE) {
-            return null;
-          } else {
-            throw zce;
+        zcNode = nodeCache.compute(zPath, (zp, zcn) -> {
+          // recheck the children now that lock is held on key
+          if (zcn != null && zcn.cachedChildren()) {
+            return zcn;
           }
-        }
+
+          try {
+            final ZooKeeper zooKeeper = getZooKeeper();
+            // Register a watcher on the node to monitor creation/deletion events for the node. It
+            // is possible that an event from this watch could trigger prior to calling getChildren.
+            // That is ok because the compute() call on the map has a lock and processing the event
+            // will block until compute() returns. After compute() returns the event processing
+            // would clear the map entry.
+            Stat stat = zooKeeper.exists(zPath, watcher);
+            if (stat == null) {
+              log.trace("{} getChildren saw that {} does not exists", cacheId, zPath);
+              return ZcNode.NON_EXISTENT;
+            }
+            List<String> children = zooKeeper.getChildren(zPath, watcher);
+            log.trace("{} adding {} children of {} to cache", cacheId, children.size(), zPath);
+            return new ZcNode(children, zcn);
+          } catch (KeeperException.NoNodeException nne) {
+            log.trace("{} get children saw race condition for {}, node deleted after exists call",
+                cacheId, zPath);
+            throw new ConcurrentModificationException(nne);
+          } catch (KeeperException e) {
+            throw new ZcException(e);
+          } catch (InterruptedException e) {
+            throw new ZcInterruptedException(e);
+          }
+        });
+        // increment this after compute call completes when the change is visible
+        updateCount.incrementAndGet();
+        return zcNode.getChildren();
       }
     };
 
@@ -386,7 +350,7 @@ public class ZooCache {
       public byte[] run() throws KeeperException, InterruptedException {
 
         var zcNode = nodeCache.get(zPath);
-        if (zcNode != null && zcNode.dataSet) {
+        if (zcNode != null && zcNode.cachedData()) {
           if (status != null) {
             copyStats(status, zcNode.getStat());
           }
@@ -398,7 +362,7 @@ public class ZooCache {
         zcNode = nodeCache.compute(zPath, (zp, zcn) -> {
           // recheck the now that lock is held on key, it may be present now. Could have been
           // computed while waiting for lock.
-          if (zcn != null && zcn.dataSet) {
+          if (zcn != null && zcn.cachedData()) {
             return zcn;
           }
           /*
@@ -412,18 +376,19 @@ public class ZooCache {
           try {
             final ZooKeeper zooKeeper = getZooKeeper();
             Stat stat = zooKeeper.exists(zPath, watcher);
-            byte[] data = null;
-            ZcStat zstat = null;
             if (stat == null) {
               if (log.isTraceEnabled()) {
                 log.trace("{} zookeeper did not contain {}", cacheId, zPath);
               }
+              return ZcNode.NON_EXISTENT;
             } else {
+              byte[] data = null;
+              ZcStat zstat = null;
               try {
                 data = zooKeeper.getData(zPath, watcher, stat);
                 zstat = new ZcStat(stat);
               } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
-                throw new ConcurrentModificationException();
+                throw new ConcurrentModificationException(e1);
               } catch (InterruptedException e) {
                 throw new ZcInterruptedException(e);
               }
@@ -431,8 +396,8 @@ public class ZooCache {
                 log.trace("{} zookeeper contained {} {}", cacheId, zPath,
                     (data == null ? null : new String(data, UTF_8)));
               }
+              return new ZcNode(data, zstat, zcn);
             }
-            return new ZcNode(data, zstat, zcn);
           } catch (KeeperException ke) {
             throw new ZcException(ke);
           } catch (InterruptedException e) {
@@ -504,7 +469,7 @@ public class ZooCache {
   @VisibleForTesting
   boolean dataCached(String zPath) {
     var zcn = nodeCache.get(zPath);
-    return zcn != null && zcn.dataSet;
+    return zcn != null && zcn.cachedData();
   }
 
   /**
@@ -516,7 +481,7 @@ public class ZooCache {
   @VisibleForTesting
   boolean childrenCached(String zPath) {
     var zcn = nodeCache.get(zPath);
-    return zcn != null && zcn.childrenSet;
+    return zcn != null && zcn.cachedChildren();
   }
 
   /**
