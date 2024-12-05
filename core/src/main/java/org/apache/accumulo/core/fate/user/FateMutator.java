@@ -47,7 +47,7 @@ public interface FateMutator<T> {
   FateMutator<T> requireStatus(TStatus... statuses);
 
   /**
-   * Require the transaction has not reservation.
+   * Require the transaction has no reservation.
    */
   FateMutator<T> requireUnreserved();
 
