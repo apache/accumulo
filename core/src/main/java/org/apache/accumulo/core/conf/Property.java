@@ -425,7 +425,7 @@ public enum Property {
       "The number of threads used to run fault-tolerant executions (FATE)."
           + " These are primarily table operations like merge.",
       "1.4.3"),
-  MANAGER_FATE_QUEUE_CHECK_INTERVAL("manager.fate.queue.check.interval", "0",
+  MANAGER_FATE_QUEUE_CHECK_INTERVAL("manager.fate.queue.check.interval", "60m",
       PropertyType.TIMEDURATION,
       "The interval at which to check if the queue size has consistently been larger than"
           + " MANAGER_FATE_THREADPOOL_SIZE * MANAGER_FATE_QUEUE_CHECK_FACTOR. A value of zero"
