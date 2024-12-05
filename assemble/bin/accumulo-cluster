@@ -18,6 +18,14 @@
 # under the License.
 #
 
+#
+# Environment variables that can be set to influence the behavior
+# of this script
+#
+# ACCUMULO_LOCALHOST_ADDRESSES - set to a space delimited string of localhost names
+#                                and addresses to override the default lookups
+#
+
 function print_usage {
   cat <<EOF
 Usage: accumulo-cluster <command> (<argument> ...) [<option> ...]
@@ -304,6 +312,17 @@ function execute_command() {
   fi
 }
 
+function compute_localhost_addresses() {
+  if [[ -n $ACCUMULO_LOCALHOST_ADDRESSES ]]; then
+    read -r -a LOCAL_HOST_ADDRESSES <<<"$ACCUMULO_LOCALHOST_ADDRESSES"
+  else
+    localhost_names=("localhost" "127.0.0.1" "$(hostname)" "$(hostname -a 2>/dev/null | head -1)" "$(hostname -s)" "$(hostname -f)")
+    read -r -a localhost_interfaces <<<"$(hostname -I)"
+    LOCAL_HOST_ADDRESSES+=("${localhost_names[@]}" "${localhost_interfaces[@]}")
+  fi
+  debug "${LOCAL_HOST_ADDRESSES[*]}"
+}
+
 function control_services() {
   unset DISPLAY
   operation="$1"
@@ -464,10 +483,7 @@ function main() {
   shift
   parse_args "$@"
 
-  localhost_names=("localhost" "127.0.0.1" "$(hostname)" "$(hostname -a 2>/dev/null | head -1)" "$(hostname -s)" "$(hostname -f)")
-  read -r -a localhost_interfaces <<<"$(hostname -I)"
-  LOCAL_HOST_ADDRESSES+=("${localhost_names[@]}" "${localhost_interfaces[@]}")
-  debug "${LOCAL_HOST_ADDRESSES[*]}"
+  compute_localhost_addresses
 
   case "${cmd}" in
     create-config)
