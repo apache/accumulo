@@ -161,7 +161,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     final long interval =
         getConfiguration().getTimeInMillis(Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL);
     if (interval > 0) {
-      final Thread lockVerificationThread = Threads.createThread("service-lock-verification-thread",
+      verificationThread = Threads.createThread("service-lock-verification-thread",
           OptionalInt.of(Thread.NORM_PRIORITY + 1), () -> {
             while (true && serverThread.isAlive()) {
               ServiceLock lock = getLock();
@@ -180,7 +180,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
               }
             }
           });
-      lockVerificationThread.start();
+      verificationThread.start();
     }
   }
 
