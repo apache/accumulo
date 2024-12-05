@@ -24,11 +24,10 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.curator.test.TestingServer;
-import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,89 +44,70 @@ public class ZooKeeperTestingServer implements AutoCloseable {
   public static final String SECRET = "secret";
 
   private TestingServer zkServer;
-  private final ZooKeeper zoo;
 
   /**
    * Instantiate a running zookeeper server - this call will block until the server is ready for
    * client connections. It will try three times, with a 5 second pause to connect.
    */
-  public ZooKeeperTestingServer(File tmpDir) {
-    this(tmpDir, PortUtils.getRandomFreePort());
-  }
-
-  private ZooKeeperTestingServer(File tmpDir, int port) {
-
+  public ZooKeeperTestingServer(final File tmpDir) {
     Preconditions.checkArgument(tmpDir.isDirectory());
-
+    final int port = PortUtils.getRandomFreePort();
     try {
-
-      CountDownLatch connectionLatch = new CountDownLatch(1);
-
       // using a random port. The test server allows for auto port
       // generation, but not with specifying the tmp dir path too.
       // so, generate our own.
       boolean started = false;
       int retry = 0;
       while (!started && retry++ < 3) {
-
         try {
-
           zkServer = new TestingServer(port, tmpDir);
           zkServer.start();
-
           started = true;
         } catch (Exception ex) {
           log.trace("zookeeper test server start failed attempt {}", retry);
         }
       }
-
       log.info("zookeeper connection string:'{}'", zkServer.getConnectString());
-
-      zoo = new ZooKeeper(zkServer.getConnectString(), 5_000, watchedEvent -> {
-        if (watchedEvent.getState() == Watcher.Event.KeeperState.SyncConnected) {
-          connectionLatch.countDown();
-        }
-      });
-
-      connectionLatch.await();
-
     } catch (Exception ex) {
       throw new IllegalStateException("Failed to start testing zookeeper", ex);
     }
-
   }
 
-  public ZooKeeper getZooKeeper() {
+  @FunctionalInterface
+  public interface ZooKeeperConstructor<T extends ZooKeeper> {
+    public T construct(String connectString, int sessionTimeout, Watcher watcher)
+        throws IOException;
+  }
+
+  /**
+   * Create a new instance of a ZooKeeper client that is already connected to the testing server
+   * using the provided constructor that accepts the connection string, the timeout, and a watcher
+   * used by this class to wait for the client to connect. This can be used to construct a subclass
+   * of the ZooKeeper client that implements non-standard behavior for a test.
+   */
+  public <T extends ZooKeeper> T newClient(ZooKeeperConstructor<T> f)
+      throws IOException, InterruptedException {
+    var connectionLatch = new CountDownLatch(1);
+    var zoo = f.construct(zkServer.getConnectString(), 30_000, watchedEvent -> {
+      if (watchedEvent.getState() == Watcher.Event.KeeperState.SyncConnected) {
+        connectionLatch.countDown();
+      }
+    });
+    connectionLatch.await();
+    ZooUtil.digestAuth(zoo, SECRET);
     return zoo;
   }
 
+  /**
+   * Create a new instance of a standard ZooKeeper client that is already connected to the testing
+   * server.
+   */
+  public ZooKeeper newClient() throws IOException, InterruptedException {
+    return newClient(ZooKeeper::new);
+  }
+
   public ZooReaderWriter getZooReaderWriter() {
-    return new ZooReader(getConn(), 30000).asWriter(SECRET);
-  }
-
-  public String getConn() {
-    return zkServer.getConnectString();
-  }
-
-  public void initPaths(String s) {
-    try {
-
-      String[] paths = s.split("/");
-
-      String slash = "/";
-      String path = "";
-
-      for (String p : paths) {
-        if (!p.isEmpty()) {
-          path = path + slash + p;
-          log.debug("building default paths, creating node {}", path);
-          zoo.create(path, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-        }
-      }
-
-    } catch (Exception ex) {
-      throw new IllegalStateException("Failed to create accumulo initial paths: " + s, ex);
-    }
+    return new ZooReader(zkServer.getConnectString(), 30000).asWriter(SECRET);
   }
 
   @Override
