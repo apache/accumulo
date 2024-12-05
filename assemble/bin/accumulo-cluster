@@ -208,11 +208,7 @@ function canRunOnHost() {
     exit 1
   fi
 
-  if isLocalHost "$1"; then
-    return 0
-  else
-    return 1
-  fi
+  isLocalHost "$1"
 }
 
 function parse_config {
