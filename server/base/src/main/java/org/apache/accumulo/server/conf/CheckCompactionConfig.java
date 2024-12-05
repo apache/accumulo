@@ -106,7 +106,8 @@ public class CheckCompactionConfig implements KeywordExecutable {
 
     Set<String> defaultService = Set.of(DEFAULT_COMPACTION_SERVICE_NAME);
     if (servicesConfig.getPlanners().keySet().equals(defaultService)) {
-      log.warn("Only the default compaction service was created - {}", defaultService);
+      log.atLevel(level).log("Only the default compaction service was created - {}",
+          defaultService);
       return;
     }
 
