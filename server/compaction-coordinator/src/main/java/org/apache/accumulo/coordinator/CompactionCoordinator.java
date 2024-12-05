@@ -768,6 +768,11 @@ public class CompactionCoordinator extends AbstractServer
     }
   }
 
+  @Override
+  public ServiceLock getLock() {
+    return coordinatorLock;
+  }
+
   public static void main(String[] args) throws Exception {
     try (CompactionCoordinator compactor = new CompactionCoordinator(new ServerOpts(), args)) {
       compactor.runServer();

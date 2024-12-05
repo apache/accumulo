@@ -19,6 +19,7 @@
 package org.apache.accumulo.server;
 
 import java.util.Objects;
+import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -26,8 +27,11 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
@@ -44,6 +48,8 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   private final ProcessMetrics processMetrics;
   protected final long idleReportingPeriodNanos;
   private volatile long idlePeriodStartNanos = 0L;
+  private volatile Thread serverThread;
+  private volatile Thread verificationThread;
 
   protected AbstractServer(String appName, ServerOpts opts, String[] args) {
     this.log = LoggerFactory.getLogger(getClass().getName());
@@ -99,10 +105,14 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
    */
   public void runServer() throws Exception {
     final AtomicReference<Throwable> err = new AtomicReference<>();
-    Thread service = new Thread(TraceUtil.wrap(this), applicationName);
-    service.setUncaughtExceptionHandler((thread, exception) -> err.set(exception));
-    service.start();
-    service.join();
+    serverThread = new Thread(TraceUtil.wrap(this), applicationName);
+    serverThread.setUncaughtExceptionHandler((thread, exception) -> err.set(exception));
+    serverThread.start();
+    serverThread.join();
+    if (verificationThread != null) {
+      verificationThread.interrupt();
+      verificationThread.join();
+    }
     Throwable thrown = err.get();
     if (thrown != null) {
       if (thrown instanceof Error) {
@@ -137,6 +147,41 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
 
   public String getApplicationName() {
     return applicationName;
+  }
+
+  /**
+   * Get the ServiceLock for this server process. May return null if called before the lock is
+   * acquired.
+   *
+   * @return lock ServiceLock or null
+   */
+  public abstract ServiceLock getLock();
+
+  public void startServiceLockVerificationThread() {
+    final long interval =
+        getConfiguration().getTimeInMillis(Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL);
+    if (interval > 0) {
+      final Thread lockVerificationThread = Threads.createThread("service-lock-verification-thread",
+          OptionalInt.of(Thread.NORM_PRIORITY + 1), () -> {
+            while (true && serverThread.isAlive()) {
+              ServiceLock lock = getLock();
+              try {
+                if (lock != null && !lock.verifyLockAtSource()) {
+                  Halt.halt("Lock verification thread could not find lock", -1);
+                }
+                // Need to sleep, not yield when the thread priority is greater than NORM_PRIORITY
+                // so that this thread does not get immediately rescheduled.
+                Thread.sleep(interval);
+              } catch (InterruptedException e) {
+                if (serverThread.isAlive()) {
+                  // throw an Error, which will cause this process to be terminated
+                  throw new Error("Sleep interrupted in ServiceLock verification thread");
+                }
+              }
+            }
+          });
+      lockVerificationThread.start();
+    }
   }
 
   @Override
