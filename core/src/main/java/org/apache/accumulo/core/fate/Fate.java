@@ -84,7 +84,7 @@ public class Fate<T> {
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final TransferQueue<FateId> workQueue;
   private final Thread workFinder;
-  private final ConcurrentLinkedQueue<Integer> queueSizeHistory = new ConcurrentLinkedQueue<>();
+  private final ConcurrentLinkedQueue<Integer> idleCountHistory = new ConcurrentLinkedQueue<>();
 
   public enum TxInfo {
     TX_NAME, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
@@ -375,38 +375,39 @@ public class Fate<T> {
             break;
           }
         }
-        queueSizeHistory.clear();
+        idleCountHistory.clear();
       } else {
-        // The property did not change, but should it based on available Fate threads? Maintain
-        // the last X minutes of available Fate threads. If always zero, then suggest that the
+        // The property did not change, but should it based on idle Fate threads? Maintain
+        // count of the last X minutes of idle Fate threads. If zero 95% of the time, then suggest
+        // that the
         // MANAGER_FATE_THREADPOOL_SIZE be increased.
         final long interval = Math.min(60, TimeUnit.MILLISECONDS
             .toMinutes(conf.getTimeInMillis(Property.MANAGER_FATE_QUEUE_CHECK_INTERVAL)));
         if (interval == 0) {
-          queueSizeHistory.clear();
+          idleCountHistory.clear();
         } else {
-          if (queueSizeHistory.size() >= interval * 2) { // this task runs every 30s
-            boolean needMoreThreads = true;
-            for (Integer i : queueSizeHistory) {
-              if (i > 0) {
-                needMoreThreads = false;
-                break;
+          if (idleCountHistory.size() >= interval * 2) { // this task runs every 30s
+            int zeroFateThreadsIdleCount = 0;
+            for (Integer idleConsumerCount : idleCountHistory) {
+              if (idleConsumerCount == 0) {
+                zeroFateThreadsIdleCount++;
               }
             }
+            boolean needMoreThreads = (zeroFateThreadsIdleCount / idleCountHistory.size()) >= 0.95;
             if (needMoreThreads) {
               log.warn(
                   "All Fate threads appear to be busy for the last {} minutes,"
                       + " consider increasing property: {}",
                   interval, Property.MANAGER_FATE_THREADPOOL_SIZE.getKey());
               // Clear the history so that we don't log for interval minutes.
-              queueSizeHistory.clear();
+              idleCountHistory.clear();
             } else {
-              while (queueSizeHistory.size() >= interval * 2) {
-                queueSizeHistory.remove();
+              while (idleCountHistory.size() >= interval * 2) {
+                idleCountHistory.remove();
               }
             }
           }
-          queueSizeHistory.add(workQueue.getWaitingConsumerCount());
+          idleCountHistory.add(workQueue.getWaitingConsumerCount());
         }
       }
     }, 3, 30, SECONDS));
@@ -647,6 +648,6 @@ public class Fate<T> {
     if (deadResCleanerExecutor != null) {
       deadResCleanerExecutor.shutdownNow();
     }
-    queueSizeHistory.clear();
+    idleCountHistory.clear();
   }
 }
