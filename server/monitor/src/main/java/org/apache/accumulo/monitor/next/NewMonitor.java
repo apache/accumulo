@@ -56,6 +56,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import io.javalin.json.JavalinJackson;
+import io.javalin.plugin.bundled.CorsPluginConfig;
 import io.javalin.security.RouteRole;
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
@@ -122,6 +123,10 @@ public class NewMonitor implements Connection.Listener {
         mapper.registerModule(module);
         mapper.registerModule(new Jdk8Module());
       }));
+
+      config.bundledPlugins.enableCors(cors -> {
+        cors.addRule(CorsPluginConfig.CorsRule::anyHost);
+      });
 
       final HttpConnectionFactory httpFactory = new HttpConnectionFactory();
 

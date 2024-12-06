@@ -58,6 +58,7 @@
     </#if>
     <script src="/resources/js/navbar.js"></script>
     <script src="/resources/js/systemAlert.js"></script>
+    <script src="/resources/js/modals.js"></script>
   </head>
 
   <body>

@@ -39,6 +39,7 @@ import java.util.stream.Stream;
 
 import jakarta.ws.rs.NotFoundException;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -84,14 +85,16 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     private final String instanceUUID;
     private final Set<String> zooKeepers;
     private final Set<String> volumes;
+    private final String version;
 
     public InstanceSummary(String instanceName, String instanceUUID, Set<String> zooKeepers,
-        Set<String> volumes) {
+        Set<String> volumes, String version) {
       super();
       this.instanceName = instanceName;
       this.instanceUUID = instanceUUID;
       this.zooKeepers = zooKeepers;
       this.volumes = volumes;
+      this.version = version;
     }
 
     public String getInstanceName() {
@@ -108,6 +111,10 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
     public Set<String> getVolumes() {
       return volumes;
+    }
+
+    public String getVersion() {
+      return version;
     }
   }
 
@@ -392,7 +399,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     return new InstanceSummary(ctx.getInstanceName(),
         ctx.instanceOperations().getInstanceId().canonical(),
         Set.of(ctx.getZooKeepers().split(",")), ctx.getVolumeManager().getVolumes().stream()
-            .map(v -> v.toString()).collect(Collectors.toSet()));
+            .map(v -> v.toString()).collect(Collectors.toSet()),
+        Constants.VERSION);
   }
 
   public Collection<MetricResponse> getCompactors(String resourceGroup) {

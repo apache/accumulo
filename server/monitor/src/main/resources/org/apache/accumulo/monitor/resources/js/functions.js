@@ -309,6 +309,15 @@ function getJSONForTable(call, sessionDataVar) {
 }
 
 /**
+ * Wraps the getJSONForTable function to call the new server
+ * TODO: Remove this function once the new server is fully integrated
+ */
+function getJSONfromNewServer(call, sessionDataVar) {
+  const url = 'http://localhost:43331' + call;
+  return getJSONForTable(url, sessionDataVar);
+}
+
+/**
  * Performs POST call and builds console logging message if successful
  * @param {string} call REST url called
  * @param {string} callback POST callback to execute, if available
@@ -496,4 +505,185 @@ function clearAllTableCells(tableId) {
   $("#" + tableId + " > tbody > tr > td").each(function () {
     $(this).text("");
   });
+}
+
+// NEW REST CALLS
+
+/**
+ * REST GET call for /stats,
+ * stores it on a sessionStorage variable
+ */
+function getStats() {
+  return getJSONfromNewServer('/stats', 'stats');
+}
+
+/**
+ * REST GET call for /metrics,
+ * stores it on a sessionStorage variable
+ */
+function getMetrics() {
+  return getJSONfromNewServer('/metrics', 'metrics');
+}
+
+/**
+ * REST GET call for /metrics/lastUpdate,
+ * stores it on a sessionStorage variable
+ */
+function getMetricsLastUpdate() {
+  return getJSONfromNewServer('/metrics/lastUpdate', 'metricsLastUpdate');
+}
+
+/**
+ * REST GET call for /metrics/instance,
+ * stores it on a sessionStorage variable
+ */
+function getMetricsInstance() {
+  return getJSONfromNewServer('/metrics/instance', 'metricsInstance');
+}
+
+/**
+ * REST GET call for /metrics/groups,
+ * stores it on a sessionStorage variable
+ */
+function getMetricsGroups() {
+  return getJSONfromNewServer('/metrics/groups', 'metricsGroups');
+}
+
+/**
+ * REST GET call for /metrics/manager,
+ * stores it on a sessionStorage variable
+ */
+function getMetricsManager() {
+  return getJSONfromNewServer('/metrics/manager', 'metricsManager');
+}
+
+/**
+ * REST GET call for /metrics/gc,
+ * stores it on a sessionStorage variable
+ */
+function getMetricsGc() {
+  return getJSONfromNewServer('/metrics/gc', 'metricsGc');
+}
+
+/**
+ * REST GET call for /metrics/compactors/summary and /metrics/compactors/summary/{group},
+ * stores it on a sessionStorage variable
+ * @param {string} [group] Optional group name
+ */
+function getMetricsCompactorsSummary(group) {
+  const url = group ? `/metrics/compactors/summary/${group}` : '/metrics/compactors/summary';
+  const sessionDataVar = group ? `metricsCompactorsSummary_${group}` : 'metricsCompactorsSummary';
+  return getJSONfromNewServer(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /metrics/compactors/detail/{group},
+ * stores it on a sessionStorage variable
+ * @param {string} group Group name
+ */
+function getMetricsCompactorsDetail(group) {
+  const url = `/metrics/compactors/detail/${group}`;
+  const sessionDataVar = `metricsCompactorsDetail_${group}`;
+  return getJSONfromNewServer(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /metrics/sservers/summary and /metrics/sservers/summary/{group},
+ * stores it on a sessionStorage variable
+ * @param {string} [group] Optional group name
+ */
+function getMetricsSserversSummary(group) {
+  const url = group ? `/metrics/sservers/summary/${group}` : '/metrics/sservers/summary';
+  const sessionDataVar = group ? `metricsSserversSummary_${group}` : 'metricsSserversSummary';
+  return getJSONfromNewServer(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /metrics/sservers/detail/{group},
+ * stores it on a sessionStorage variable
+ * @param {string} group Group name
+ */
+function getMetricsSserversDetail(group) {
+  const url = `/metrics/sservers/detail/${group}`;
+  const sessionDataVar = `metricsSserversDetail_${group}`;
+  return getJSONfromNewServer(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /metrics/tservers/summary and /metrics/tservers/summary/{group},
+ * stores it on a sessionStorage variable
+ * @param {string} [group] Optional group name
+ */
+function getMetricsTserversSummary(group) {
+  const url = group ? `/metrics/tservers/summary/${group}` : '/metrics/tservers/summary';
+  const sessionDataVar = group ? `metricsTserversSummary_${group}` : 'metricsTserversSummary';
+  return getJSONfromNewServer(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /metrics/tservers/detail/{group},
+ * stores it on a sessionStorage variable
+ * @param {string} group Group name
+ */
+function getMetricsTserversDetail(group) {
+  const url = `/metrics/tservers/detail/${group}`;
+  const sessionDataVar = `metricsTserversDetail_${group}`;
+  return getJSONfromNewServer(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /metrics/compactions/summary,
+ * stores it on a sessionStorage variable
+ */
+function getMetricsCompactionsSummary() {
+  return getJSONfromNewServer('/metrics/compactions/summary', 'metricsCompactionsSummary');
+}
+
+/**
+ * REST GET call for /metrics/compactions/detail and /metrics/compactions/detail/{num},
+ * stores it on a sessionStorage variable
+ * @param {number} [num] Optional detail number
+ */
+function getMetricsCompactionsDetail(num) {
+  const url = num ? `/metrics/compactions/detail/${num}` : '/metrics/compactions/detail';
+  const sessionDataVar = num ? `metricsCompactionsDetail_${num}` : 'metricsCompactionsDetail';
+  return getJSONfromNewServer(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /metrics/tables and /metrics/tables/{name},
+ * stores it on a sessionStorage variable
+ * @param {string} [name] Optional table name
+ */
+function getMetricsTables(name) {
+  const url = name ? `/metrics/tables/${name}` : '/metrics/tables';
+  const sessionDataVar = name ? `metricsTables_${name}` : 'metricsTables';
+  return getJSONfromNewServer(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /metrics/tables/{name}/tablets,
+ * stores it on a sessionStorage variable
+ * @param {string} name The table name
+ */
+function getMetricsTableTabletsByName(name) {
+  const url = `/metrics/tables/${name}/tablets`;
+  const sessionDataVar = `metricsTableTablets_${name}`;
+  return getJSONfromNewServer(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /metrics/deployment,
+ * stores it on a sessionStorage variable
+ */
+function getMetricsDeployment() {
+  return getJSONfromNewServer('/metrics/deployment', 'metricsDeployment');
+}
+
+/**
+ * REST GET call for /metrics/suggestions,
+ * stores it on a sessionStorage variable
+ */
+function getMetricsSuggestions() {
+  return getJSONfromNewServer('/metrics/suggestions', 'metricsSuggestions');
 }
