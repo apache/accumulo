@@ -269,7 +269,7 @@ public interface InstanceOperations {
    * List the active scans on a collection of servers.
    *
    * @param servers Collection of server types and addresses
-   * @return A stream of active scans on the given servers.
+   * @return A list of active scans on the given servers.
    * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or
    *         SCAN_SERVER
    * @since 4.0.0
