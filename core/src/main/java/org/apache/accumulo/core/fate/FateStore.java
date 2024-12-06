@@ -50,8 +50,16 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
   FateId create();
 
   /**
-   * Seeds a transaction with the given repo if it does not exists. Will set the status to
-   * SUBMITTED. Will set the fate key. Will set autoCleanup if true. Will set the creation time.
+   * Seeds a transaction with the given repo if it does not exists. A fateId will be derived from
+   * the fateKey. If seeded, sets the following data for the fateId in the store.
+   *
+   * <ul>
+   * <li>Set the tx name</li>
+   * <li>Set the status to SUBMITTED</li>
+   * <li>Set the fate key</li>
+   * <li>Sets autocleanup only if true</li>
+   * <li>Sets the creation time</li>
+   * </ul>
    *
    * @return optional w/ the fate id set if seeded and empty optional otherwise
    */
@@ -60,8 +68,14 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
 
   /**
    * Seeds a transaction with the given repo if its current status is NEW and it is currently
-   * unreserved. Will set the status to SUBMITTED. Will set autoCleanup if true. Will set the
-   * creation time.
+   * unreserved. If seeded, sets the following data for the fateId in the store.
+   *
+   * <ul>
+   * <li>Set the tx name</li>
+   * <li>Set the status to SUBMITTED</li>
+   * <li>Sets autocleanup only if true</li>
+   * <li>Sets the creation time</li>
+   * </ul>
    *
    * @return true if seeded and false otherwise
    */

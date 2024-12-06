@@ -332,9 +332,6 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     KeyExtent ke =
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
-    // Creating with the same key should be fine if the status is NEW
-    // A second call to createAndReserve() should just return an empty optional
-    // since it's already in reserved and in progress
     FateKey fateKey = FateKey.forSplit(ke);
     var fateId = store.seedTransaction("TEST", fateKey, new TestRepo(), true).orElseThrow();
 
