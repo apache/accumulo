@@ -425,6 +425,12 @@ public enum Property {
       "The number of threads used to run fault-tolerant executions (FATE)."
           + " These are primarily table operations like merge.",
       "1.4.3"),
+  MANAGER_FATE_IDLE_CHECK_INTERVAL("manager.fate.idle.check.interval", "60m",
+      PropertyType.TIMEDURATION,
+      "The interval at which to check if the number of idle Fate threads has consistently been zero."
+          + " The way this is checked is an approximation. Logs a warning in the Manager log to increase"
+          + " MANAGER_FATE_THREADPOOL_SIZE. A value of zero disables this check and has a maximum value of 60m.",
+      "4.0.0"),
   MANAGER_STATUS_THREAD_POOL_SIZE("manager.status.threadpool.size", "0", PropertyType.COUNT,
       "The number of threads to use when fetching the tablet server status for balancing.  Zero "
           + "indicates an unlimited number of threads will be used.",
