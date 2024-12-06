@@ -46,13 +46,13 @@ import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.junit.jupiter.api.Test;
 
 public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalancerTest {
@@ -94,7 +94,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     List<TabletMigration> migrationsOut = new ArrayList<>();
     long wait =
         this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-            migrations, migrationsOut));
+            migrations, migrationsOut, DataLevel.USER));
     assertEquals(20000, wait);
     // should balance four tablets in one of the tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -105,7 +105,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     migrationsOut.clear();
     wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut));
+        migrations, migrationsOut, DataLevel.USER));
     assertEquals(20000, wait);
     // should balance four tablets in one of the other tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -116,7 +116,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     migrationsOut.clear();
     wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut));
+        migrations, migrationsOut, DataLevel.USER));
     assertEquals(20000, wait);
     // should balance four tablets in one of the other tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -127,7 +127,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     migrationsOut.clear();
     wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut));
+        migrations, migrationsOut, DataLevel.USER));
     assertEquals(20000, wait);
     // no more balancing to do
     assertEquals(0, migrationsOut.size());
@@ -144,7 +144,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     migrations.addAll(tableTablets.get(BAR.getTableName()));
     long wait =
         this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-            migrations, migrationsOut));
+            migrations, migrationsOut, DataLevel.USER));
     assertEquals(20000, wait);
     // no migrations should have occurred as 10 is the maxOutstandingMigrations
     assertEquals(0, migrationsOut.size());
@@ -483,13 +483,16 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testOutOfBoundsTablets() {
+    // calls to balance will clear the lastOOBCheckTimes map
+    // in the HostRegexTableLoadBalancer. For this test we want
+    // to get into the out of bounds checking code, so we need to
+    // populate the map with an older time value
+    this.lastOOBCheckTimes.put(DataLevel.USER, System.currentTimeMillis() / 2);
     init(DEFAULT_TABLE_PROPERTIES);
-    // Wait to trigger the out of bounds check which will call our version of
-    // getOnlineTabletsForTable
-    UtilWaitThread.sleep(11000);
     Set<TabletId> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
-    this.balance(new BalanceParamsImpl(createCurrent(15), migrations, migrationsOut));
+    this.balance(
+        new BalanceParamsImpl(createCurrent(15), migrations, migrationsOut, DataLevel.USER));
     assertEquals(2, migrationsOut.size());
   }
 

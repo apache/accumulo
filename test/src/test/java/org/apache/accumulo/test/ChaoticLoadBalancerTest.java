@@ -40,6 +40,7 @@ import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -157,7 +158,8 @@ public class ChaoticLoadBalancerTest {
     // amount, or even expected amount
     List<TabletMigration> migrationsOut = new ArrayList<>();
     while (!migrationsOut.isEmpty()) {
-      balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut));
+      balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
+          DataLevel.USER));
     }
   }
 
