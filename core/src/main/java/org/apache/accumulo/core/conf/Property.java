@@ -427,7 +427,7 @@ public enum Property {
       "1.4.3"),
   MANAGER_FATE_QUEUE_CHECK_INTERVAL("manager.fate.queue.check.interval", "60m",
       PropertyType.TIMEDURATION,
-      "The interval at which to check if the number of available Fate threads has consistently been zero."
+      "The interval at which to check if the number of idle Fate threads has consistently been zero."
           + " The way this is checked is an approximation. Logs a warning in the Manager log to increase"
           + " MANAGER_FATE_THREADPOOL_SIZE. A value of zero disables this check and has a maximum value of 60m.",
       "4.0.0"),
