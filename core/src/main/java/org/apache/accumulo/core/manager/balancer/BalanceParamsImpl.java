@@ -126,6 +126,7 @@ public class BalanceParamsImpl implements TabletBalancer.BalanceParameters {
     return tserverResourceGroups;
   }
 
+  @Override
   public String currentLevel() {
     return currentDataLevel.name();
   }
