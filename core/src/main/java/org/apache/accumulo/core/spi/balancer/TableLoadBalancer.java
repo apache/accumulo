@@ -34,6 +34,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -210,6 +211,7 @@ public class TableLoadBalancer implements TabletBalancer {
   public long balance(BalanceParameters params) {
     long minBalanceTime = 5_000;
     // Iterate over the tables and balance each of them
+    final DataLevel currentDataLevel = DataLevel.valueOf(params.currentLevel());
     for (TableId tableId : environment.getTableIdMap().values()) {
       final String tableResourceGroup = getResourceGroupNameForTable(tableId);
       // get the group of tservers for this table
@@ -220,9 +222,9 @@ public class TableLoadBalancer implements TabletBalancer {
         continue;
       }
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      long tableBalanceTime =
-          getBalancerForTable(tableId).balance(new BalanceParamsImpl(groupedTServers,
-              params.currentResourceGroups(), params.currentMigrations(), newMigrations));
+      long tableBalanceTime = getBalancerForTable(tableId)
+          .balance(new BalanceParamsImpl(groupedTServers, params.currentResourceGroups(),
+              params.currentMigrations(), newMigrations, currentDataLevel));
       if (tableBalanceTime < minBalanceTime) {
         minBalanceTime = tableBalanceTime;
       }

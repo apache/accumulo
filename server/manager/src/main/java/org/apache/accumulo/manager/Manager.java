@@ -960,7 +960,7 @@ public class Manager extends AbstractServer
           }
 
           params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tServerGroupingForBalancer,
-              tserverStatusForLevel, partitionedMigrations.get(dl));
+              tserverStatusForLevel, partitionedMigrations.get(dl), dl);
           wait = Math.max(tabletBalancer.balance(params), wait);
           migrationsOutForLevel = 0;
           for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),

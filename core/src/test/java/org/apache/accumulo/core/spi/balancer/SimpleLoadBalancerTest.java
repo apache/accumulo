@@ -43,6 +43,7 @@ import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -205,7 +206,7 @@ public class SimpleLoadBalancerTest {
       SortedMap<TabletServerId,TServerStatus> tservers = getAssignments(servers);
       balancer.balance(new BalanceParamsImpl(tservers,
           Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers.keySet()), migrations,
-          migrationsOut));
+          migrationsOut, DataLevel.USER));
       if (migrationsOut.isEmpty()) {
         break;
       }
@@ -250,7 +251,7 @@ public class SimpleLoadBalancerTest {
       SortedMap<TabletServerId,TServerStatus> tservers = getAssignments(servers);
       balancer.balance(new BalanceParamsImpl(tservers,
           Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers.keySet()), migrations,
-          migrationsOut));
+          migrationsOut, DataLevel.USER));
       if (migrationsOut.isEmpty()) {
         break;
       }
