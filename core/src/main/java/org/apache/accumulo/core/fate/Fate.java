@@ -382,7 +382,7 @@ public class Fate<T> {
         // that the
         // MANAGER_FATE_THREADPOOL_SIZE be increased.
         final long interval = Math.min(60, TimeUnit.MILLISECONDS
-            .toMinutes(conf.getTimeInMillis(Property.MANAGER_FATE_QUEUE_CHECK_INTERVAL)));
+            .toMinutes(conf.getTimeInMillis(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL)));
         if (interval == 0) {
           idleCountHistory.clear();
         } else {
