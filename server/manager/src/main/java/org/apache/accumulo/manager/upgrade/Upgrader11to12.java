@@ -19,10 +19,15 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
 import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_ENCODING;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,6 +48,7 @@ import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -53,7 +59,9 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ch
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.init.FileSystemInitializer;
@@ -144,6 +152,9 @@ public class Upgrader11to12 implements Upgrader {
         zrw.delete(namespaceNamePath);
       }
 
+      log.info("Removing problems reports from zookeeper");
+      removeZKProblemReports(context);
+
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException(
@@ -172,6 +183,8 @@ public class Upgrader11to12 implements Upgrader {
     upgradeTabletsMetadata(context, metaName);
     removeScanServerRange(context, metaName);
     createScanServerRefTable(context);
+    log.info("Removing problems reports from metadata table");
+    removeMetadataProblemReports(context);
   }
 
   private void upgradeTabletsMetadata(@NonNull ServerContext context, String metaName) {
@@ -288,5 +301,139 @@ public class Upgrader11to12 implements Upgrader {
       log.error("Problem attempting to create ScanServerRef table", e);
     }
     log.info("Created ScanServerRef table");
+  }
+
+  private static final String ZPROBLEMS = "/problems";
+
+  private void removeZKProblemReports(ServerContext context) {
+    String zpath = context.getZooKeeperRoot() + ZPROBLEMS;
+    try {
+      if (!context.getZooReaderWriter().exists(zpath)) {
+        // could be running a second time and the node was already deleted
+        return;
+      }
+      var children = context.getZooReaderWriter().getChildren(zpath);
+      for (var child : children) {
+        var pr = ProblemReport.decodeZooKeeperEntry(context, child);
+        logProblemDeletion(pr);
+      }
+      context.getZooReaderWriter().recursiveDelete(zpath, ZooUtil.NodeMissingPolicy.SKIP);
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  /**
+   * Holds error message processing flags
+   */
+  private static class ProblemSection {
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "err_", true, RESERVED_PREFIX + "err`", false);
+
+    public static Range getRange() {
+      return section.getRange();
+    }
+
+    public static String getRowPrefix() {
+      return section.getRowPrefix();
+    }
+  }
+
+  private void removeMetadataProblemReports(ServerContext context) {
+    try (
+        var scanner =
+            context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
+        var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      scanner.setRange(ProblemSection.getRange());
+      for (Map.Entry<Key,Value> entry : scanner) {
+        var pr = ProblemReport.decodeMetadataEntry(entry.getKey(), entry.getValue());
+        logProblemDeletion(pr);
+        Mutation m = new Mutation(entry.getKey().getRow());
+        m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
+        writer.addMutation(m);
+      }
+    } catch (TableNotFoundException | MutationsRejectedException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private void logProblemDeletion(ProblemReport pr) {
+    log.info(
+        "Deleting problem report tableId:{} type:{} resource:{} server:{} time:{} exception:{}",
+        pr.tableId, pr.problemType, pr.resource, pr.server, pr.creationTime, pr.exception);
+  }
+
+  public enum ProblemType {
+    FILE_READ, FILE_WRITE, TABLET_LOAD
+  }
+
+  private static class ProblemReport {
+    private final TableId tableId;
+    private final ProblemType problemType;
+    private final String resource;
+    private String exception;
+    private String server;
+    private long creationTime;
+
+    private ProblemReport(TableId table, ProblemType problemType, String resource, byte[] enc) {
+      requireNonNull(table, "table is null");
+      requireNonNull(problemType, "problemType is null");
+      requireNonNull(resource, "resource is null");
+      this.tableId = table;
+      this.problemType = problemType;
+      this.resource = resource;
+
+      decode(enc);
+    }
+
+    private void decode(byte[] enc) {
+      try {
+        ByteArrayInputStream bais = new ByteArrayInputStream(enc);
+        DataInputStream dis = new DataInputStream(bais);
+
+        creationTime = dis.readLong();
+
+        if (dis.readBoolean()) {
+          server = dis.readUTF();
+        } else {
+          server = null;
+        }
+
+        if (dis.readBoolean()) {
+          exception = dis.readUTF();
+        } else {
+          exception = null;
+        }
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+
+    static ProblemReport decodeZooKeeperEntry(ServerContext context, String node)
+        throws IOException, KeeperException, InterruptedException {
+      byte[] bytes = Encoding.decodeBase64FileName(node);
+
+      ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+      DataInputStream dis = new DataInputStream(bais);
+
+      TableId tableId = TableId.of(dis.readUTF());
+      String problemType = dis.readUTF();
+      String resource = dis.readUTF();
+
+      String zpath = context.getZooKeeperRoot() + ZPROBLEMS + "/" + node;
+      byte[] enc = context.getZooReaderWriter().getData(zpath);
+
+      return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, enc);
+
+    }
+
+    public static ProblemReport decodeMetadataEntry(Key key, Value value) {
+      TableId tableId =
+          TableId.of(key.getRow().toString().substring(ProblemSection.getRowPrefix().length()));
+      String problemType = key.getColumnFamily().toString();
+      String resource = key.getColumnQualifier().toString();
+
+      return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, value.get());
+    }
   }
 }
