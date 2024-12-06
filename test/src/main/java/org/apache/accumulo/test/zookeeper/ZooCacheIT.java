@@ -61,7 +61,6 @@ public class ZooCacheIT {
     ZooCache zooCache = new ZooCache(zk, null);
 
     zk.mkdirs("/test2");
-    zk.mkdirs("/test3");
     zk.mkdirs("/test3/c1");
     zk.mkdirs("/test3/c2");
 
