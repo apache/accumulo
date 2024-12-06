@@ -195,17 +195,6 @@ debugAndRun() {
   fi
 }
 
-function isLocalHost() {
-  local found=0
-  for addr in "${LOCAL_HOST_ADDRESSES[@]}"; do
-    if [[ $1 == "$addr" ]]; then
-      found=1
-      break
-    fi
-  done
-  [[ $found == 1 ]]
-}
-
 function canRunOnHost() {
 
   if [[ $ARG_LOCAL == 0 ]]; then
@@ -217,7 +206,14 @@ function canRunOnHost() {
     exit 1
   fi
 
-  isLocalHost "$1"
+  local found=0
+  for addr in "${LOCAL_HOST_ADDRESSES[@]}"; do
+    if [[ $1 == "$addr" ]]; then
+      found=1
+      break
+    fi
+  done
+  [[ $found == 1 ]]
 }
 
 function parse_config {
@@ -305,7 +301,7 @@ function execute_command() {
   S="${service^^}S_PER_HOST_${group}"
   servers_per_host="${!S:-1}"
 
-  if isLocalHost "$host"; then
+  if [[ $ARG_LOCAL == 1 ]]; then
     debugAndRun ACCUMULO_CLUSTER_ARG="${servers_per_host}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host" "$@"
   else
     debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=${servers_per_host} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\" ${*@Q}'"
@@ -316,7 +312,7 @@ function compute_localhost_addresses() {
   if [[ -n $ACCUMULO_LOCALHOST_ADDRESSES ]]; then
     read -r -a LOCAL_HOST_ADDRESSES <<<"$ACCUMULO_LOCALHOST_ADDRESSES"
   else
-    localhost_names=("localhost" "127.0.0.1" "$(hostname)" "$(hostname -a 2>/dev/null | head -1)" "$(hostname -s)" "$(hostname -f)")
+    read -r -a localhost_names <<<"$(getent hosts | tr '\n' ' ' | tr -s ' ' | tr ' ' '\n' | sort -u | tr '\n' ' ')"
     read -r -a localhost_interfaces <<<"$(hostname -I)"
     LOCAL_HOST_ADDRESSES+=("${localhost_names[@]}" "${localhost_interfaces[@]}")
   fi
