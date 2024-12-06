@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getActiveCompactions;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -1158,7 +1159,7 @@ public class CompactionIT extends CompactionBaseIT {
 
       List<ActiveCompaction> compactions = new ArrayList<>();
       do {
-        client.instanceOperations().getActiveCompactions().forEach((ac) -> {
+        getActiveCompactions(client.instanceOperations()).forEach((ac) -> {
           try {
             if (ac.getTable().equals(table1)) {
               compactions.add(ac);
@@ -1171,12 +1172,12 @@ public class CompactionIT extends CompactionBaseIT {
       } while (compactions.isEmpty());
 
       ActiveCompaction running1 = compactions.get(0);
-      ServerId host = running1.getHost();
+      ServerId host = running1.getServerId();
       assertTrue(host.getType() == ServerId.Type.COMPACTOR);
 
       compactions.clear();
       do {
-        client.instanceOperations().getActiveCompactions(host).forEach((ac) -> {
+        client.instanceOperations().getActiveCompactions(List.of(host)).forEach((ac) -> {
           try {
             if (ac.getTable().equals(table1)) {
               compactions.add(ac);

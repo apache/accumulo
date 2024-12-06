@@ -145,11 +145,8 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
         }
 
         int sessionsFound = 0;
-        // we have configured 1 tserver, so we can grab the one and only
-        ServerId tserver =
-            getOnlyElement(c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER));
-
-        final List<ActiveScan> scans = c.instanceOperations().getActiveScans(tserver);
+        var tservers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
+        final List<ActiveScan> scans = c.instanceOperations().getActiveScans(tservers);
 
         for (ActiveScan scan : scans) {
           // only here to minimize chance of seeing meta extent scans

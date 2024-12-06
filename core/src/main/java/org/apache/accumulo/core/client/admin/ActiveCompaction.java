@@ -134,9 +134,9 @@ public abstract class ActiveCompaction {
   public abstract List<IteratorSetting> getIterators();
 
   /**
-   * Return the host where the compaction is running.
+   * Return the server where the compaction is running.
    *
-   * @since 2.1.0
+   * @since 4.0.0
    */
-  public abstract ServerId getHost();
+  public abstract ServerId getServerId();
 }
