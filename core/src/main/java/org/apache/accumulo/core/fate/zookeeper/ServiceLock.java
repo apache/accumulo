@@ -772,14 +772,15 @@ public class ServiceLock implements Watcher {
    * @return true if lock path still exists, false otherwise and on error
    */
   public boolean verifyLockAtSource() {
-    if (getLockPath() == null) {
+    final String lockPath = getLockPath();
+    if (lockPath == null) {
       // lock not set yet
       return false;
     }
     try {
-      return null != this.zooKeeper.exists(getLockPath(), false);
-    } catch (KeeperException | InterruptedException e) {
-      LOG.error("Error verfiying lock at {}", getLockPath(), e);
+      return null != this.zooKeeper.exists(lockPath, false);
+    } catch (KeeperException | InterruptedException | RuntimeException e) {
+      LOG.error("Error verfiying lock at {}", lockPath, e);
       return false;
     }
   }

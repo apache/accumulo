@@ -37,6 +37,8 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 import io.micrometer.core.instrument.MeterRegistry;
 
 public abstract class AbstractServer implements AutoCloseable, MetricsProducer, Runnable {
@@ -158,19 +160,26 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   public abstract ServiceLock getLock();
 
   public void startServiceLockVerificationThread() {
+    Preconditions.checkState(verificationThread == null);
+    Preconditions.checkState(serverThread != null);
     final long interval =
         getConfiguration().getTimeInMillis(Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL);
     if (interval > 0) {
       verificationThread = Threads.createThread("service-lock-verification-thread",
           OptionalInt.of(Thread.NORM_PRIORITY + 1), () -> {
-            while (true && serverThread.isAlive()) {
+            while (serverThread.isAlive()) {
               ServiceLock lock = getLock();
               try {
+                log.trace(
+                    "ServiceLockVerificationThread - checking ServiceLock existence in ZooKeeper");
                 if (lock != null && !lock.verifyLockAtSource()) {
                   Halt.halt("Lock verification thread could not find lock", -1);
                 }
                 // Need to sleep, not yield when the thread priority is greater than NORM_PRIORITY
                 // so that this thread does not get immediately rescheduled.
+                log.trace(
+                    "ServiceLockVerificationThread - ServiceLock exists in ZooKeeper, sleeping for {}ms",
+                    interval);
                 Thread.sleep(interval);
               } catch (InterruptedException e) {
                 if (serverThread.isAlive()) {
@@ -181,6 +190,9 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
             }
           });
       verificationThread.start();
+    } else {
+      log.debug(
+          "ServiceLockVerificationThread not started as GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL is zero");
     }
   }
 

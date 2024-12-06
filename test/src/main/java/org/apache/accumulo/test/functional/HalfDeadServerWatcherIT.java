@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -142,7 +141,14 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
       assertTrue(testTabletServerWithStuckWatcherDies());
     } else {
       // This test should time out
-      assertThrows(IllegalStateException.class, () -> testTabletServerWithStuckWatcherDies());
+      try {
+        testTabletServerWithStuckWatcherDies();
+        fail("Test did not time out.");
+      } catch (IllegalStateException e) {
+        if (!e.getMessage().contains("Timeout exceeded")) {
+          fail("Unexpected exception: " + e.getMessage());
+        }
+      }
     }
   }
 
@@ -155,7 +161,14 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
       assertTrue(testTabletServerWithStuckWatcherDies());
     } else {
       // This test should time out
-      assertThrows(IllegalStateException.class, () -> testTabletServerWithStuckWatcherDies());
+      try {
+        testTabletServerWithStuckWatcherDies();
+        fail("Test did not time out.");
+      } catch (IllegalStateException e) {
+        if (!e.getMessage().contains("Timeout exceeded")) {
+          fail("Unexpected exception: " + e.getMessage());
+        }
+      }
     }
   }
 
@@ -164,7 +177,7 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
-      // add splits to the table, which should set a watcher on the table node in zookeeper
+      // add splits to the table, which should set a StuckWatcher on the table node in zookeeper
       TreeSet<Text> splits = new TreeSet<>();
       splits.add(new Text("j"));
       splits.add(new Text("t"));
