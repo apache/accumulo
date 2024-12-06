@@ -774,7 +774,7 @@ public class ServiceLock implements Watcher {
   public boolean verifyLockAtSource() {
     final String lockPath = getLockPath();
     if (lockPath == null) {
-      // lock not set yet
+      // lock not set yet or lock was lost
       return false;
     }
     try {
