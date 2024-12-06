@@ -191,8 +191,8 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
           });
       verificationThread.start();
     } else {
-      log.debug(
-          "ServiceLockVerificationThread not started as GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL is zero");
+      log.info("ServiceLockVerificationThread not started as "
+          + Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL.getKey() + " is zero");
     }
   }
 
