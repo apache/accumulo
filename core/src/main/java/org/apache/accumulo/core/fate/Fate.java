@@ -377,31 +377,28 @@ public class Fate<T> {
         }
         queueSizeHistory.clear();
       } else {
-        // The property did not change, but should it based on the queue size? Maintain
-        // the last X minutes of queue sizes. If the queue size is always larger than the number
-        // of Fate threads multiplied by some factor, then suggest that the
+        // The property did not change, but should it based on available Fate threads? Maintain
+        // the last X minutes of available Fate threads. If always zero, then suggest that the
         // MANAGER_FATE_THREADPOOL_SIZE be increased.
         final long interval = Math.min(60, TimeUnit.MILLISECONDS
             .toMinutes(conf.getTimeInMillis(Property.MANAGER_FATE_QUEUE_CHECK_INTERVAL)));
         if (interval == 0) {
           queueSizeHistory.clear();
         } else {
-          final int sizeFactor = conf.getCount(Property.MANAGER_FATE_QUEUE_CHECK_FACTOR);
           if (queueSizeHistory.size() >= interval * 2) { // this task runs every 30s
-            final int warnThreshold = configured * sizeFactor;
             boolean needMoreThreads = true;
             for (Integer i : queueSizeHistory) {
-              if (i < warnThreshold) {
+              if (i > 0) {
                 needMoreThreads = false;
                 break;
               }
             }
             if (needMoreThreads) {
               log.warn(
-                  "Fate queue size is {} times the number of Fate threads for the last {} minutes,"
+                  "All Fate threads appear to be busy for the last {} minutes,"
                       + " consider increasing property: {}",
-                  sizeFactor, interval, Property.MANAGER_FATE_THREADPOOL_SIZE.getKey());
-              // Clear the history so that we don't log for another 5 minutes.
+                  interval, Property.MANAGER_FATE_THREADPOOL_SIZE.getKey());
+              // Clear the history so that we don't log for interval minutes.
               queueSizeHistory.clear();
             } else {
               while (queueSizeHistory.size() >= interval * 2) {
@@ -409,7 +406,7 @@ public class Fate<T> {
               }
             }
           }
-          queueSizeHistory.add(workQueue.size());
+          queueSizeHistory.add(workQueue.getWaitingConsumerCount());
         }
       }
     }, 3, 30, SECONDS));

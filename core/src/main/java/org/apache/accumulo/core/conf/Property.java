@@ -427,15 +427,9 @@ public enum Property {
       "1.4.3"),
   MANAGER_FATE_QUEUE_CHECK_INTERVAL("manager.fate.queue.check.interval", "60m",
       PropertyType.TIMEDURATION,
-      "The interval at which to check if the queue size has consistently been larger than"
-          + " MANAGER_FATE_THREADPOOL_SIZE * MANAGER_FATE_QUEUE_CHECK_FACTOR. A value of zero"
-          + " disables this check and has a maximum value of 60m.",
-      "4.0.0"),
-  MANAGER_FATE_QUEUE_CHECK_FACTOR("manager.fate.queue.check.factor", "4", PropertyType.COUNT,
-      "The Manager will check the Fate queue size at the MANAGER_FATE_QUEUE_CHECK_INTERVAL interval"
-          + " and log a warning if the queue size has consistently been this many times larger than"
-          + " the number of threads specified by MANAGER_FATE_THREADPOOL_SIZE to recommend to the"
-          + " user that they may need to increase MANAGER_FATE_THREADPOOL_SIZE.",
+      "The interval at which to check if the number of available Fate threads has consistently been zero."
+          + " The way this is checked is an approximation. Logs a warning in the Manager log to increase"
+          + " MANAGER_FATE_THREADPOOL_SIZE. A value of zero disables this check and has a maximum value of 60m.",
       "4.0.0"),
   MANAGER_STATUS_THREAD_POOL_SIZE("manager.status.threadpool.size", "0", PropertyType.COUNT,
       "The number of threads to use when fetching the tablet server status for balancing.  Zero "
