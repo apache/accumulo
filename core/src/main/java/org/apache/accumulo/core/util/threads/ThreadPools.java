@@ -360,7 +360,7 @@ public class ThreadPools {
   }
 
   /**
-   * Fet a fluent-style pool builder.
+   * Get a fluent-style pool builder.
    *
    * @param name the pool name - the name trimed and prepended with the ACCUMULO_POOL_PREFIX so that
    *        pool names begin with a consistent prefix.
@@ -370,7 +370,11 @@ public class ThreadPools {
     if (trimmed.startsWith(ACCUMULO_POOL_PREFIX.poolName)) {
       return new ThreadPoolExecutorBuilder(trimmed);
     } else {
-      return new ThreadPoolExecutorBuilder(ACCUMULO_POOL_PREFIX.poolName + trimmed);
+      if (trimmed.startsWith(".")) {
+        return new ThreadPoolExecutorBuilder(ACCUMULO_POOL_PREFIX.poolName + trimmed);
+      } else {
+        return new ThreadPoolExecutorBuilder(ACCUMULO_POOL_PREFIX.poolName + "." + trimmed);
+      }
     }
   }
 
