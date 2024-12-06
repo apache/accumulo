@@ -747,11 +747,8 @@ public class CompactionCoordinator
     // Start a fate transaction to commit the compaction.
     CompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
     var renameOp = new RenameCompactionFile(new CompactionCommitData(ecid, extent, ecm, stats));
-    var txid = localFate.seedTransaction("COMMIT_COMPACTION", FateKey.forCompactionCommit(ecid),
-        renameOp, true);
-
-    txid.ifPresentOrElse(fateId -> LOG.debug("initiated compaction commit {} {}", ecid, fateId),
-        () -> LOG.debug("compaction commit already initiated for {}", ecid));
+    localFate.seedTransaction("COMMIT_COMPACTION", FateKey.forCompactionCommit(ecid), renameOp,
+        true);
   }
 
   @Override

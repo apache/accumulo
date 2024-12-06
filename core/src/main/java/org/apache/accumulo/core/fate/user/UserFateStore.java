@@ -160,10 +160,18 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       if (status == FateMutator.Status.ACCEPTED) {
         // signal to the super class that a new fate transaction was seeded and is ready to run
         seededTx();
+        log.trace("Attempt to seed {} returned {}", logId, status);
         return true;
       } else if (status == FateMutator.Status.REJECTED) {
+        log.debug("Attempt to seed {} returned {}", logId, status);
         return false;
       } else if (status == FateMutator.Status.UNKNOWN) {
+        // At this point can not reliably determine if the conditional mutation was successful or
+        // not because no reservation was acquired. For example since no reservation was acquired it
+        // is possible that seeding was a success and something immediately picked it up and started
+        // operating on it and changing it. If scanning after that point can not conclude success or
+        // failure. Another situation is that maybe the fateId already existed in a seeded form
+        // prior to getting this unknown.
         log.debug("Attempt to seed {} returned {} status, retrying", logId, status);
         UtilWaitThread.sleep(250);
       }

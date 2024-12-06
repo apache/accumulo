@@ -61,7 +61,10 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    * <li>Sets the creation time</li>
    * </ul>
    *
-   * @return optional w/ the fate id set if seeded and empty optional otherwise
+   * @return The return type is only intended for testing it may not be correct in the face of
+   *         failures. When there are no failures returns optional w/ the fate id set if seeded and
+   *         empty optional otherwise. If there was a failure this could return an empty optional
+   *         when it actually succeeded.
    */
   Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp);
@@ -77,7 +80,9 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    * <li>Sets the creation time</li>
    * </ul>
    *
-   * @return true if seeded and false otherwise
+   * @return The return type is only intended for testing it may not be correct in the face of
+   *         failures. When there are no failures returns true if seeded and false otherwise. If
+   *         there was a failure this could return false when it actually succeeded.
    */
   boolean seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp);
 

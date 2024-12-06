@@ -399,9 +399,8 @@ public class Fate<T> {
     return store.create();
   }
 
-  public Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
-      boolean autoCleanUp) {
-    return store.seedTransaction(txName, fateKey, repo, autoCleanUp);
+  public void seedTransaction(String txName, FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
+    store.seedTransaction(txName, fateKey, repo, autoCleanUp);
   }
 
   // start work in the transaction.. it is safe to call this
