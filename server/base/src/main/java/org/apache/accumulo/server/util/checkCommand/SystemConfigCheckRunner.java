@@ -18,18 +18,19 @@
  */
 package org.apache.accumulo.server.util.checkCommand;
 
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
 
 public class SystemConfigCheckRunner implements CheckRunner {
   private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.SYSTEM_CONFIG;
 
   @Override
-  public Admin.CheckCommand.CheckStatus runCheck() {
+  public Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
+      boolean fixFiles) throws Exception {
     Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
-
-    System.out.println("Running check " + check);
-    // work
-    System.out.println("Check " + check + " completed with status " + status);
+    printRunning();
+    printCompleted(status);
     return status;
   }
 
