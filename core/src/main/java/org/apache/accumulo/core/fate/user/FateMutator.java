@@ -34,8 +34,8 @@ public interface FateMutator<T> {
   FateMutator<T> putCreateTime(long ctime);
 
   /**
-   * Add a conditional mutation to {@link FateSchema.TxColumnFamily#RESERVATION_COLUMN} that will
-   * put the reservation if there is not already a reservation present
+   * Add a conditional mutation to {@link FateSchema.ReservationColumnFamily#RESERVATION_COLUMN}
+   * that will put the reservation if there is not already a reservation present
    *
    * @param reservation the reservation to attempt to put
    * @return the FateMutator with this added mutation
@@ -43,8 +43,8 @@ public interface FateMutator<T> {
   FateMutator<T> putReservedTx(FateStore.FateReservation reservation);
 
   /**
-   * Add a conditional mutation to {@link FateSchema.TxColumnFamily#RESERVATION_COLUMN} that will
-   * delete the column if the column value matches the given reservation
+   * Add a conditional mutation to {@link FateSchema.ReservationColumnFamily#RESERVATION_COLUMN}
+   * that will delete the column if the column value matches the given reservation
    *
    * @param reservation the reservation to attempt to remove
    * @return the FateMutator with this added mutation
