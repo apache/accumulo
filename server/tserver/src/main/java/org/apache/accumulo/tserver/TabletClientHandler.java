@@ -1181,7 +1181,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   @Override
   public Map<TKeyExtent,Long> allocateTimestamps(TInfo tinfo, TCredentials credentials,
-      List<TKeyExtent> extents, int numStamps) throws TException {
+      List<TKeyExtent> extents) throws TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
@@ -1195,8 +1195,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       var extent = KeyExtent.fromThrift(textent);
       Tablet tablet = tabletsSnapshot.get(extent);
       if (tablet != null) {
-        tablet.allocateTimestamp(numStamps)
-            .ifPresent(timestamp -> timestamps.put(textent, timestamp));
+        tablet.allocateTimestamp().ifPresent(timestamp -> timestamps.put(textent, timestamp));
       }
     }
 
