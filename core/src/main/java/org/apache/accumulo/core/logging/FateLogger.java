@@ -158,7 +158,7 @@ public class FateLogger {
             storeLog.trace("{} seeded {} {} {}", fateId, fateKey, toLogString.apply(repo),
                 autoCleanUp);
           }, () -> {
-            storeLog.trace("Unable to seed {} {} {}", fateKey, toLogString.apply(repo),
+            storeLog.trace("Possibly unable to seed {} {} {}", fateKey, toLogString.apply(repo),
                 autoCleanUp);
           });
         }
