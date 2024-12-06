@@ -106,6 +106,13 @@ public interface TabletBalancer {
      */
     Map<String,Set<TabletServerId>> currentResourceGroups();
 
+    /**
+     * Return the DataLevel name for which the Manager is currently balancing. Balancers should
+     * return migrations for tables within the current DataLevel.
+     *
+     * @return name of current balancing iteration data level
+     */
+    String currentLevel();
   }
 
   /**
