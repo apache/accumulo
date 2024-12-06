@@ -145,7 +145,6 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
         }
 
         int sessionsFound = 0;
-        // we have configured 1 tserver, so we can grab the one and only
         var tservers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
         final List<ActiveScan> scans = c.instanceOperations().getActiveScans(tservers);
 
