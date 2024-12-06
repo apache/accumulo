@@ -24,7 +24,8 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Predicate;
@@ -41,6 +42,9 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
@@ -56,10 +60,10 @@ public class ZooCache {
   private static final AtomicLong nextCacheId = new AtomicLong(0);
   private final String cacheId = "ZC" + nextCacheId.incrementAndGet();
 
-  // ConcurrentHashMap will only allow one thread to run at a time for a given key and this
-  // implementation relies on that. Not all concurrent map implementations have this behavior for
+  // The concurrent map returned by Caffiene will only allow one thread to run at a time for a given
+  // key and ZooCache relies on that. Not all concurrent map implementations have this behavior for
   // their compute functions.
-  private final ConcurrentHashMap<String,ZcNode> nodeCache;
+  private final ConcurrentMap<String,ZcNode> nodeCache;
 
   private final ZooReader zReader;
 
@@ -168,8 +172,23 @@ public class ZooCache {
    */
   public ZooCache(ZooReader reader, Watcher watcher) {
     this.zReader = reader;
-    nodeCache = new ConcurrentHashMap<>();
     this.externalWatcher = watcher;
+    RemovalListener<String,ZcNode> removalListerner = (path, zcNode, reason) -> {
+      try {
+        log.trace("{} removing watches for {} because {}", cacheId, path, reason);
+        reader.getZooKeeper().removeWatches(path, watcher, Watcher.WatcherType.Any, false);
+      } catch (InterruptedException | KeeperException | RuntimeException e) {
+        log.warn("Failed to remove watches on path {} in zookeeper", path, e);
+      }
+    };
+    // Must register the removal listener using evictionListener inorder for removal to be mutually
+    // exclusive with any other operations on the same path. This is important for watcher
+    // consistency, concurrently adding and
+    // removing watches for the same path would leave zoocache in a really bad state. The cache
+    // builder has another way to register a removal listener that is not mutually exclusive.
+    Cache<String,ZcNode> cache = Caffeine.newBuilder().expireAfterAccess(3, TimeUnit.MINUTES)
+        .evictionListener(removalListerner).build();
+    nodeCache = cache.asMap();
     log.trace("{} created new cache", cacheId, new Exception());
   }
 
