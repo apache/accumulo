@@ -25,7 +25,6 @@ import java.util.SortedMap;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -100,6 +99,7 @@ public interface TabletBalancer {
      * return migrations for tables within the current DataLevel.
      *
      * @return name of current balancing iteration data level
+     * @since 2.1.4
      */
     String currentLevel();
   }
