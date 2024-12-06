@@ -393,7 +393,8 @@ public class Fate<T> {
                 zeroFateThreadsIdleCount++;
               }
             }
-            boolean needMoreThreads = (zeroFateThreadsIdleCount / idleCountHistory.size()) >= 0.95;
+            boolean needMoreThreads =
+                (zeroFateThreadsIdleCount / (double) idleCountHistory.size()) >= 0.95;
             if (needMoreThreads) {
               log.warn(
                   "All Fate threads appear to be busy for the last {} minutes,"
