@@ -45,9 +45,8 @@ public class SeedSplitTask implements Runnable {
     try {
       var fateInstanceType = FateInstanceType.fromTableId((extent.tableId()));
 
-      Optional<FateId> optFateId =
-          manager.fate(fateInstanceType).seedTransaction("SYSTEM_SPLIT", FateKey.forSplit(extent),
-              new FindSplits(extent), true, "System initiated split of tablet " + extent);
+      Optional<FateId> optFateId = manager.fate(fateInstanceType).seedTransaction("SYSTEM_SPLIT",
+          FateKey.forSplit(extent), new FindSplits(extent), true);
 
       optFateId.ifPresentOrElse(fateId -> {
         log.trace("System initiated a split for : {} {}", extent, fateId);

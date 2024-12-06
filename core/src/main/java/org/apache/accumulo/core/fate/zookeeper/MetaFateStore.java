@@ -188,10 +188,10 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       } finally {
         txStore.unreserve(Duration.ZERO);
       }
-    }).orElseThrow();
+    }).orElse(false);
   }
 
-  protected void seedTransaction(String txName, Repo<T> repo, boolean autoCleanUp,
+  private void seedTransaction(String txName, Repo<T> repo, boolean autoCleanUp,
       FateTxStore<T> txStore) {
     if (txStore.top() == null) {
       try {

@@ -400,7 +400,7 @@ public class Fate<T> {
   }
 
   public Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
-      boolean autoCleanUp, String goalMessage) {
+      boolean autoCleanUp) {
     return store.seedTransaction(txName, fateKey, repo, autoCleanUp);
   }
 
@@ -408,6 +408,7 @@ public class Fate<T> {
   // multiple times for a transaction... but it will only seed once
   public void seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp,
       String goalMessage) {
+    log.info("Seeding {} {}", fateId, goalMessage);
     store.seedTransaction(txName, fateId, repo, autoCleanUp);
   }
 
