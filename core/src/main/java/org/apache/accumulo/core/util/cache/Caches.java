@@ -65,7 +65,8 @@ public class Caches implements MetricsProducer {
     TSRM_FILE_LENGTHS,
     TINYLFU_BLOCK_CACHE,
     VOLUME_HDFS_CONFIGS,
-    MINC_AGE
+    MINC_AGE,
+    ZOO_CACHE
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(Caches.class);

@@ -33,6 +33,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
@@ -43,7 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -183,11 +183,12 @@ public class ZooCache {
     };
     // Must register the removal listener using evictionListener inorder for removal to be mutually
     // exclusive with any other operations on the same path. This is important for watcher
-    // consistency, concurrently adding and
-    // removing watches for the same path would leave zoocache in a really bad state. The cache
-    // builder has another way to register a removal listener that is not mutually exclusive.
-    Cache<String,ZcNode> cache = Caffeine.newBuilder().expireAfterAccess(3, TimeUnit.MINUTES)
-        .evictionListener(removalListerner).build();
+    // consistency, concurrently adding and removing watches for the same path would leave zoocache
+    // in a really bad state. The cache builder has another way to register a removal listener that
+    // is not mutually exclusive.
+    Cache<String,ZcNode> cache =
+        Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
+            .expireAfterAccess(3, TimeUnit.MINUTES).evictionListener(removalListerner).build();
     nodeCache = cache.asMap();
     log.trace("{} created new cache", cacheId, new Exception());
   }
