@@ -91,7 +91,7 @@ public class ZooUtil {
 
     @Override
     public String toString() {
-      return " path = " + path + " node = " + node + " eid = " + Long.toHexString(eid);
+      return "path = " + path + " node = " + node + " eid = " + Long.toHexString(eid);
     }
 
     @Override

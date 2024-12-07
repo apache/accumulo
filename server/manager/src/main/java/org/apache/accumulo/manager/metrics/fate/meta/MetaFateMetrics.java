@@ -24,7 +24,6 @@ import static org.apache.accumulo.core.metrics.Metric.FATE_OPS_ACTIVITY;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
@@ -62,10 +61,11 @@ public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
   }
 
   @Override
-  protected ReadOnlyFateStore<FateMetrics<MetaFateMetricValues>> buildStore(ServerContext context) {
+  protected ReadOnlyFateStore<FateMetrics<MetaFateMetricValues>>
+      buildReadOnlyStore(ServerContext context) {
     try {
-      return new MetaFateStore<>(getFateRootPath(context), context.getZooReaderWriter(),
-          AbstractFateStore.createDummyLockID(), null);
+      return new MetaFateStore<>(getFateRootPath(context), context.getZooReaderWriter(), null,
+          null);
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);
@@ -78,7 +78,7 @@ public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
 
   @Override
   protected MetaFateMetricValues getMetricValues() {
-    return MetaFateMetricValues.getMetaStoreMetrics(context, fateRootPath, fateStore);
+    return MetaFateMetricValues.getMetaStoreMetrics(context, fateRootPath, readOnlyFateStore);
   }
 
   private static String getFateRootPath(ServerContext context) {
