@@ -160,8 +160,10 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   public abstract ServiceLock getLock();
 
   public void startServiceLockVerificationThread() {
-    Preconditions.checkState(verificationThread == null);
-    Preconditions.checkState(serverThread != null);
+    Preconditions.checkState(verificationThread == null,
+        "verification thread not null, startServiceLockVerificationThread likely called twice");
+    Preconditions.checkState(serverThread != null,
+        "server thread is null, no server process is running");
     final long interval =
         getConfiguration().getTimeInMillis(Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL);
     if (interval > 0) {

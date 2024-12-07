@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -141,14 +142,9 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
       assertTrue(testTabletServerWithStuckWatcherDies());
     } else {
       // This test should time out
-      try {
-        testTabletServerWithStuckWatcherDies();
-        fail("Test did not time out.");
-      } catch (IllegalStateException e) {
-        if (!e.getMessage().contains("Timeout exceeded")) {
-          fail("Unexpected exception: " + e.getMessage());
-        }
-      }
+      IllegalStateException e =
+          assertThrows(IllegalStateException.class, () -> testTabletServerWithStuckWatcherDies());
+      assertTrue(e.getMessage().contains("Timeout exceeded"));
     }
   }
 
@@ -161,14 +157,9 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
       assertTrue(testTabletServerWithStuckWatcherDies());
     } else {
       // This test should time out
-      try {
-        testTabletServerWithStuckWatcherDies();
-        fail("Test did not time out.");
-      } catch (IllegalStateException e) {
-        if (!e.getMessage().contains("Timeout exceeded")) {
-          fail("Unexpected exception: " + e.getMessage());
-        }
-      }
+      IllegalStateException e =
+          assertThrows(IllegalStateException.class, () -> testTabletServerWithStuckWatcherDies());
+      assertTrue(e.getMessage().contains("Timeout exceeded"));
     }
   }
 
