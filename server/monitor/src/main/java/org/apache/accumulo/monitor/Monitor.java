@@ -21,6 +21,7 @@ package org.apache.accumulo.monitor;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -48,7 +49,7 @@ import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -76,6 +77,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.monitor.next.NewMonitor;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactions;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactorDetails;
@@ -434,6 +436,14 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }).start();
 
     monitorInitialized.set(true);
+
+    // Start up new Monitor
+    NewMonitor newMon = new NewMonitor(getContext(), getHostname());
+    try {
+      newMon.start();
+    } catch (IOException e) {
+      log.error("Unable to start new web server", e);
+    }
   }
 
   private ServletHolder getDefaultServlet() {
@@ -610,7 +620,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     try {
       CompactionCoordinatorService.Client client =
           ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, ccHost, getContext());
-      TExternalCompactionList running;
+      TExternalCompactionMap running;
       try {
         running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
         return new ExternalCompactionsSnapshot(Optional.ofNullable(running.getCompactions()));
