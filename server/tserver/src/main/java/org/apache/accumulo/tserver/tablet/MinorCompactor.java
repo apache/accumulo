@@ -35,9 +35,6 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.problems.ProblemReport;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.TabletServer;
@@ -86,7 +83,6 @@ public class MinorCompactor extends FileCompactor {
     int sleepTime = 100;
     double growthFactor = 4;
     int maxSleepTime = 1000 * 60 * 3; // 3 minutes
-    boolean reportedProblem = false;
     int retryCounter = 0;
 
     runningCompactions.add(this);
@@ -99,25 +95,15 @@ public class MinorCompactor extends FileCompactor {
           // %,d bytes ",map.size(), entriesCompacted,
           // (int)(map.size()/((t2 - t1)/1000.0)), (t2 - t1)/1000.0, estimatedSizeInBytes()));
 
-          if (reportedProblem) {
-            ProblemReports.getInstance(tabletServer.getContext())
-                .deleteProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName);
-          }
-
           return ret;
         } catch (IOException | UnsatisfiedLinkError e) {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
-          ProblemReports.getInstance(tabletServer.getContext()).report(
-              new ProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName, e));
-          reportedProblem = true;
         } catch (RuntimeException | NoClassDefFoundError e) {
           // if this is coming from a user iterator, it is possible that the user could change the
           // iterator config and that the minor compaction would succeed
           // If the minor compaction stalls for too long during recovery, it can interfere with
           // other tables loading
           // Throw exception if this happens so assignments can be rescheduled.
-          ProblemReports.getInstance(tabletServer.getContext()).report(
-              new ProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName, e));
           if (retryCounter >= 4 && mincReason.equals(MinorCompactionReason.RECOVERY)) {
             log.warn(
                 "MinC ({}) is stuck for too long during recovery, throwing error to reschedule.",
@@ -125,7 +111,6 @@ public class MinorCompactor extends FileCompactor {
             throw new RuntimeException(e);
           }
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName, e);
-          reportedProblem = true;
           retryCounter++;
         } catch (CompactionCanceledException e) {
           throw new IllegalStateException(e);

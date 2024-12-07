@@ -50,7 +50,6 @@ import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -82,8 +81,6 @@ import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactorDet
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
@@ -144,8 +141,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   private final AtomicBoolean fetching = new AtomicBoolean(false);
   private ManagerMonitorInfo mmi;
-  private Map<TableId,Map<ProblemType,Integer>> problemSummary = Collections.emptyMap();
-  private Exception problemException;
   private GCStatus gcStatus;
   private volatile Optional<HostAndPort> coordinatorHost = Optional.empty();
   private final String coordinatorMissingMsg =
@@ -311,14 +306,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         this.totalHoldTime = totalHoldTime;
         this.totalLookups = totalLookups;
 
-      }
-      try {
-        this.problemSummary = ProblemReports.getInstance(context).summarize();
-        this.problemException = null;
-      } catch (Exception e) {
-        log.info("Failed to obtain problem reports ", e);
-        this.problemSummary = Collections.emptyMap();
-        this.problemException = e;
       }
 
     } finally {
@@ -867,14 +854,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return totalHoldTime;
   }
 
-  public Exception getProblemException() {
-    return problemException;
-  }
-
-  public Map<TableId,Map<ProblemType,Integer>> getProblemSummary() {
-    return problemSummary;
-  }
-
   public GCStatus getGcStatus() {
     return gcStatus;
   }
@@ -902,5 +881,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   public int getLivePort() {
     return livePort;
+  }
+
+  @Override
+  public ServiceLock getLock() {
+    return monitorLock;
   }
 }

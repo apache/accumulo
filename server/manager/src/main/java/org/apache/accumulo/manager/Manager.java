@@ -1573,6 +1573,7 @@ public class Manager extends AbstractServer
       managerLockWatcher.waitForChange();
 
       if (managerLockWatcher.acquiredLock) {
+        startServiceLockVerificationThread();
         break;
       }
 
@@ -1881,5 +1882,10 @@ public class Manager extends AbstractServer
     var fateRefs = this.fateRefs.get();
     Preconditions.checkState(fateRefs != null, "Unexpected null fate references map");
     return fateRefs;
+  }
+
+  @Override
+  public ServiceLock getLock() {
+    return managerLock;
   }
 }
