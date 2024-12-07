@@ -283,6 +283,8 @@ public class SplitUtils {
       lastRow = key.getRowData();
     }
 
+    log.trace("numKeys:{} desiredSplits:{} splits:{}", numKeys, desiredSplits, splits);
+
     return splits;
   }
 

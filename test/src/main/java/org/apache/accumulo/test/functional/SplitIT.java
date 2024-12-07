@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
@@ -58,6 +59,7 @@ import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -77,6 +79,7 @@ import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -487,8 +490,12 @@ public class SplitIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      c.tableOperations().create(tableName, new NewTableConfiguration()
-          .setProperties(singletonMap(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K")));
+      SortedSet<Text> initialSplits = new TreeSet<>(List.of(new Text("r1")));
+
+      c.tableOperations().create(tableName,
+          new NewTableConfiguration()
+              .setProperties(singletonMap(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K"))
+              .withSplits(initialSplits));
 
       var random = RANDOM.get();
       byte[] val = new byte[100];
@@ -511,8 +518,20 @@ public class SplitIT extends AccumuloClusterHarness {
       // import the file
       c.tableOperations().importDirectory(dir).to(tableName).load();
 
+      // wait for the tablet to be marked unsplittable
+      var ctx = (ClientContext) c;
+      Wait.waitFor(() -> {
+        var tableId = ctx.getTableId(tableName);
+        try (var tabletsMeta = ctx.getAmple().readTablets().forTable(tableId).build()) {
+          return tabletsMeta.stream()
+              .filter(tabletMetadata -> tabletMetadata.getUnSplittable() != null).count() == 1;
+        }
+      });
+
       // tablet should not be able to split
-      assertEquals(0, c.tableOperations().listSplits(tableName).size());
+      var splits = c.tableOperations().listSplits(tableName).stream().map(Text::toString)
+          .collect(Collectors.toSet());
+      assertEquals(Set.of("r1"), splits);
 
       Thread.sleep(1000);
 
