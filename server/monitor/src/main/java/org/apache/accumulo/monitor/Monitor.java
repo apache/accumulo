@@ -1048,4 +1048,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   public int getLivePort() {
     return livePort;
   }
+
+  @Override
+  public ServiceLock getLock() {
+    return monitorLock;
+  }
 }

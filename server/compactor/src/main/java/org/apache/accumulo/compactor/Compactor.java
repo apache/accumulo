@@ -987,4 +987,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       return eci.canonical();
     }
   }
+
+  @Override
+  public ServiceLock getLock() {
+    return compactorLock;
+  }
+
 }
