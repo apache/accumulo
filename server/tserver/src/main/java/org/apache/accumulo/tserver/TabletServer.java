@@ -468,7 +468,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  TreeMap<KeyExtent,TabletData> splitTablet(Tablet tablet, byte[] splitPoint) throws IOException {
+  protected TreeMap<KeyExtent,TabletData> splitTablet(Tablet tablet, byte[] splitPoint)
+      throws IOException {
     long t1 = System.currentTimeMillis();
 
     TreeMap<KeyExtent,TabletData> tabletInfo = tablet.split(splitPoint);
@@ -665,6 +666,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           lockSessionId = tabletServerLock.getSessionId();
           log.debug("Obtained tablet server lock {} {}", tabletServerLock.getLockPath(),
               getTabletSession());
+          startServiceLockVerificationThread();
           return;
         }
         log.info("Waiting for tablet server lock");

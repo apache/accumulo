@@ -775,4 +775,27 @@ public class ServiceLock implements Watcher {
 
     return false;
   }
+
+  /**
+   * Checks that the lock still exists in ZooKeeper. The typical mechanism for determining if a lock
+   * is lost depends on a Watcher set on the lock node. There exists a case where the Watcher may
+   * not get called if another Watcher is stuck waiting on I/O or otherwise hung. In the case where
+   * this method returns false, then the typical action is to exit the server process.
+   *
+   * @return true if lock path still exists, false otherwise and on error
+   */
+  public boolean verifyLockAtSource() {
+    final String lockPath = getLockPath();
+    if (lockPath == null) {
+      // lock not set yet or lock was lost
+      return false;
+    }
+    try {
+      return null != this.zooKeeper.exists(lockPath, false);
+    } catch (KeeperException | InterruptedException | RuntimeException e) {
+      LOG.error("Error verfiying lock at {}", lockPath, e);
+      return false;
+    }
+  }
+
 }

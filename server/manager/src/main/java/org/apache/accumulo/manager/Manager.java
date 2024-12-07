@@ -1644,6 +1644,7 @@ public class Manager extends AbstractServer
       managerLockWatcher.waitForChange();
 
       if (managerLockWatcher.acquiredLock) {
+        startServiceLockVerificationThread();
         break;
       }
 
@@ -1932,4 +1933,10 @@ public class Manager extends AbstractServer
         assignedOut);
     tabletBalancer.getAssignments(params);
   }
+
+  @Override
+  public ServiceLock getLock() {
+    return managerLock;
+  }
+
 }

@@ -77,6 +77,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
+  private ServiceLock gcLock;
 
   SimpleGarbageCollector(ConfigOpts opts, String[] args) {
     super("gc", opts, args);
@@ -350,10 +351,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     };
 
     UUID zooLockUUID = UUID.randomUUID();
-    ServiceLock lock =
-        new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
+    gcLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
     while (true) {
-      if (lock.tryLock(lockWatcher,
+      if (gcLock.tryLock(lockWatcher,
           new ServiceLockData(zooLockUUID, addr.toString(), ThriftService.GC))) {
         log.debug("Got GC ZooKeeper lock");
         return;
@@ -405,6 +405,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   public GcCycleMetrics getGcCycleMetrics() {
     return gcCycleMetrics;
+  }
+
+  @Override
+  public ServiceLock getLock() {
+    return gcLock;
   }
 
 }
