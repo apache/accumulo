@@ -20,16 +20,21 @@ package org.apache.accumulo.test.zookeeper;
 
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.zookeeper.Watcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -58,7 +63,15 @@ public class ZooCacheIT {
 
   @Test
   public void testGetChildren() throws Exception {
-    ZooCache zooCache = new ZooCache(zk, null);
+
+    Set<String> watchesRemoved = Collections.synchronizedSet(new HashSet<>());
+    Watcher watcher = event -> {
+      if (event.getType() == Watcher.Event.EventType.ChildWatchRemoved
+          || event.getType() == Watcher.Event.EventType.DataWatchRemoved) {
+        watchesRemoved.add(event.getPath());
+      }
+    };
+    ZooCache zooCache = new ZooCache(zk, watcher, Duration.ofSeconds(3));
 
     zk.mkdirs("/test2");
     zk.mkdirs("/test3/c1");
@@ -166,5 +179,17 @@ public class ZooCacheIT {
     assertEquals(List.of("ca"), zooCache.getChildren("/test2"));
     assertEquals(Set.of("c3", "c5"), Set.copyOf(zooCache.getChildren("/test3")));
     assertEquals(uc10, zooCache.getUpdateCount());
+
+    // wait for the cache to evict and clear watches
+    Wait.waitFor(() -> {
+      // the cache will not run its eviction handler unless accessed, so access something that is
+      // not expected to be evicted
+      zooCache.getChildren("/test4");
+      return watchesRemoved.equals(Set.of("/test1", "/test2", "/test3"));
+    });
+
+    assertFalse(zooCache.childrenCached("/test1"));
+    assertFalse(zooCache.childrenCached("/test2"));
+    assertFalse(zooCache.childrenCached("/test3"));
   }
 }

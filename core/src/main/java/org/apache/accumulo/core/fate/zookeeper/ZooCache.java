@@ -21,11 +21,11 @@ package org.apache.accumulo.core.fate.zookeeper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
+import java.time.Duration;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Predicate;
@@ -126,6 +126,8 @@ public class ZooCache {
         case NodeChildrenChanged:
         case NodeCreated:
         case NodeDeleted:
+        case ChildWatchRemoved:
+        case DataWatchRemoved:
           remove(event.getPath());
           break;
         case None:
@@ -171,14 +173,19 @@ public class ZooCache {
    * @param watcher watcher object
    */
   public ZooCache(ZooReader reader, Watcher watcher) {
+    this(reader, watcher, Duration.ofMinutes(3));
+  }
+
+  public ZooCache(ZooReader reader, Watcher watcher, Duration timeout) {
     this.zReader = reader;
     this.externalWatcher = watcher;
     RemovalListener<String,ZcNode> removalListerner = (path, zcNode, reason) -> {
       try {
         log.trace("{} removing watches for {} because {}", cacheId, path, reason);
-        reader.getZooKeeper().removeWatches(path, watcher, Watcher.WatcherType.Any, false);
+        reader.getZooKeeper().removeWatches(path, ZooCache.this.watcher, Watcher.WatcherType.Any,
+            false);
       } catch (InterruptedException | KeeperException | RuntimeException e) {
-        log.warn("Failed to remove watches on path {} in zookeeper", path, e);
+        log.warn("{} failed to remove watches on path {} in zookeeper", cacheId, path, e);
       }
     };
     // Must register the removal listener using evictionListener inorder for removal to be mutually
@@ -188,7 +195,7 @@ public class ZooCache {
     // is not mutually exclusive.
     Cache<String,ZcNode> cache =
         Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
-            .expireAfterAccess(3, TimeUnit.MINUTES).evictionListener(removalListerner).build();
+            .expireAfterAccess(timeout).evictionListener(removalListerner).build();
     nodeCache = cache.asMap();
     log.trace("{} created new cache", cacheId, new Exception());
   }
@@ -487,7 +494,7 @@ public class ZooCache {
    * @return true if data value is cached
    */
   @VisibleForTesting
-  boolean dataCached(String zPath) {
+  public boolean dataCached(String zPath) {
     var zcn = nodeCache.get(zPath);
     return zcn != null && zcn.cachedData();
   }
@@ -499,7 +506,7 @@ public class ZooCache {
    * @return true if children are cached
    */
   @VisibleForTesting
-  boolean childrenCached(String zPath) {
+  public boolean childrenCached(String zPath) {
     var zcn = nodeCache.get(zPath);
     return zcn != null && zcn.cachedChildren();
   }
