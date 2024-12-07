@@ -922,7 +922,7 @@ public enum Property {
           + "Once this limit is reached, the buffered data is sent to the client.",
       "1.3.5"),
   TABLE_BULK_MAX_TABLETS("table.bulk.max.tablets", "100", PropertyType.COUNT,
-      "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited. ",
+      "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited.",
       "2.1.0"),
   TABLE_BULK_MAX_TABLET_FILES("table.bulk.max.tablet.files", "100", PropertyType.COUNT,
       "The maximum number of files a bulk import can add to a single tablet.  When this property "
