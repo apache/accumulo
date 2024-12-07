@@ -69,6 +69,11 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       UUID txUUID = UUID.nameUUIDFromBytes(fateKey.getSerialized());
       return FateId.from(instanceType, txUUID);
     }
+
+    @Override
+    public FateId newRandomId(FateInstanceType instanceType) {
+      return FateId.from(instanceType, UUID.randomUUID());
+    }
   };
 
   // The ZooKeeper lock for the process that's running this store instance
@@ -402,6 +407,12 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   public interface FateIdGenerator {
     FateId fromTypeAndKey(FateInstanceType instanceType, FateKey fateKey);
+
+    FateId newRandomId(FateInstanceType instanceType);
+  }
+
+  protected void seededTx() {
+    unreservedRunnableCount.increment();
   }
 
   protected byte[] serializeTxInfo(Serializable so) {

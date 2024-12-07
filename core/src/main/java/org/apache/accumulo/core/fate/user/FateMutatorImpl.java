@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -48,12 +49,16 @@ import org.apache.accumulo.core.fate.user.schema.FateSchema.TxInfoColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Preconditions;
+
 public class FateMutatorImpl<T> implements FateMutator<T> {
 
   private final ClientContext context;
   private final String tableName;
   private final FateId fateId;
   private final ConditionalMutation mutation;
+  private boolean requiredUnreserved = false;
+  public static final int INITIAL_ITERATOR_PRIO = 1000000;
 
   public FateMutatorImpl(ClientContext context, String tableName, FateId fateId) {
     this.context = Objects.requireNonNull(context);
@@ -81,10 +86,34 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   }
 
   @Override
-  public FateMutator<T> putReservedTx(FateStore.FateReservation reservation) {
+  public FateMutator<T> requireAbsent() {
+    IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, RowExistsIterator.class);
+    Condition c = new Condition("", "").setIterators(is);
+    mutation.addCondition(c);
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> requireUnreserved() {
+    Preconditions.checkState(!requiredUnreserved);
     Condition condition = new Condition(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
         TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
     mutation.addCondition(condition);
+    requiredUnreserved = true;
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> requireAbsentKey() {
+    Condition condition = new Condition(TxColumnFamily.TX_KEY_COLUMN.getColumnFamily(),
+        TxColumnFamily.TX_KEY_COLUMN.getColumnQualifier());
+    mutation.addCondition(condition);
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> putReservedTx(FateStore.FateReservation reservation) {
+    requireUnreserved();
     TxColumnFamily.RESERVATION_COLUMN.put(mutation, new Value(reservation.getSerialized()));
     return this;
   }
@@ -179,12 +208,7 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
     return this;
   }
 
-  /**
-   * Require that the transaction status is one of the given statuses. If no statuses are provided,
-   * require that the status column is absent.
-   *
-   * @param statuses The statuses to check against.
-   */
+  @Override
   public FateMutator<T> requireStatus(TStatus... statuses) {
     Condition condition = StatusMappingIterator.createCondition(statuses);
     mutation.addCondition(condition);

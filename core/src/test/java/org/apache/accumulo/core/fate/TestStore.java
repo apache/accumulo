@@ -53,8 +53,15 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public Optional<FateTxStore<String>> createAndReserve(FateKey key) {
-    throw new UnsupportedOperationException();
+  public Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<String> repo,
+      boolean autoCleanUp) {
+    return Optional.empty();
+  }
+
+  @Override
+  public boolean seedTransaction(String txName, FateId fateId, Repo<String> repo,
+      boolean autoCleanUp) {
+    return false;
   }
 
   @Override
