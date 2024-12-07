@@ -926,13 +926,12 @@ public enum Property {
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client.",
       "1.3.5"),
-  TABLE_BULK_MAX_TABLETS("table.bulk.max.tablets", "0", PropertyType.COUNT,
-      "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited. "
-          + "This property is only enforced in the new bulk import API.",
+  TABLE_BULK_MAX_TABLETS("table.bulk.max.tablets", "100", PropertyType.COUNT,
+      "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited.",
       "2.1.0"),
-  TABLE_BULK_MAX_TABLET_FILES("table.bulk.max.tablet.files", "0", PropertyType.COUNT,
+  TABLE_BULK_MAX_TABLET_FILES("table.bulk.max.tablet.files", "100", PropertyType.COUNT,
       "The maximum number of files a bulk import can add to a single tablet.  When this property "
-          + "is exceeded for any tablet the entire bulk import operation will fail before any making "
+          + "is exceeded for any tablet the entire bulk import operation will fail before making any "
           + "changes. Value of 0 is unlimited.",
       "4.0.0"),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.FILENAME_EXT,
@@ -969,7 +968,7 @@ public enum Property {
           + "to 0 will make it default to tserver.scan.files.open.max-1, this will prevent a tablet"
           + " from having more RFiles than can be opened by a scan.",
       "1.4.0"),
-  TABLE_FILE_PAUSE("table.file.pause", "0", PropertyType.COUNT,
+  TABLE_FILE_PAUSE("table.file.pause", "100", PropertyType.COUNT,
       "When a tablet has more than this number of files, bulk imports and minor compactions "
           + "will wait until the tablet has less files before proceeding.  This will cause back "
           + "pressure on bulk imports and writes to tables when compactions are not keeping up. "
