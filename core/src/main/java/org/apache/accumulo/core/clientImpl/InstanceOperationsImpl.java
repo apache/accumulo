@@ -271,13 +271,19 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException {
     var si = getServerId(tserver, List.of(Type.TABLET_SERVER, Type.SCAN_SERVER));
-    // getActiveScans throws exceptions so we can't use Optional.map() here
-    return si.isPresent() ? getActiveScans(si.orElseThrow()) : List.of();
+    // getActiveCompactions throws exceptions so we can't use Optional.map() here
+    if (si.isPresent()) {
+      var serverId = si.orElseThrow();
+      validateServerTypes(Set.of(serverId), Set.of(Type.TABLET_SERVER, Type.SCAN_SERVER));
+      return getActiveScans(serverId);
+    }
+    return List.of();
   }
 
   @Override
   public List<ActiveScan> getActiveScans(Collection<ServerId> servers)
       throws AccumuloException, AccumuloSecurityException {
+    validateServerTypes(servers, Set.of(Type.TABLET_SERVER, Type.SCAN_SERVER));
     return queryServers(servers, this::getActiveScans, INSTANCE_OPS_SCANS_FINDER_POOL);
   }
 
@@ -329,18 +335,16 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException {
     var si = getServerId(server, List.of(Type.COMPACTOR, Type.TABLET_SERVER));
     // getActiveCompactions throws exceptions so we can't use Optional.map() here
-    return si.isPresent() ? getActiveCompactions(si.orElseThrow()) : List.of();
+    if (si.isPresent()) {
+      var serverId = si.orElseThrow();
+      validateServerTypes(Set.of(serverId), Set.of(Type.COMPACTOR, Type.TABLET_SERVER));
+      return getActiveCompactions(serverId);
+    }
+    return List.of();
   }
 
   private List<ActiveCompaction> getActiveCompactions(ServerId server)
       throws AccumuloException, AccumuloSecurityException {
-
-    Objects.requireNonNull(server);
-    Preconditions.checkArgument(
-        server.getType() == ServerId.Type.COMPACTOR
-            || server.getType() == ServerId.Type.TABLET_SERVER,
-        "Server type %s is not %s or %s.", server.getType(), ServerId.Type.COMPACTOR,
-        ServerId.Type.TABLET_SERVER);
 
     final HostAndPort serverHostAndPort = HostAndPort.fromParts(server.getHost(), server.getPort());
     final List<ActiveCompaction> as = new ArrayList<>();
@@ -386,8 +390,18 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<ActiveCompaction> getActiveCompactions(Collection<ServerId> compactionServers)
       throws AccumuloException, AccumuloSecurityException {
+    validateServerTypes(compactionServers, Set.of(Type.COMPACTOR, Type.TABLET_SERVER));
     return queryServers(compactionServers, this::getActiveCompactions,
         INSTANCE_OPS_COMPACTIONS_FINDER_POOL);
+  }
+
+  private static void validateServerTypes(Collection<ServerId> servers,
+      Set<ServerId.Type> validTypes) {
+    for (ServerId server : servers) {
+      Objects.requireNonNull(server);
+      Preconditions.checkArgument(validTypes.contains(server.getType()),
+          "Server type %s must be one of %s.", server.getType(), validTypes);
+    }
   }
 
   private <T> List<T> queryServers(Collection<ServerId> servers, ServerQuery<List<T>> serverQuery,
