@@ -21,6 +21,7 @@ package org.apache.accumulo.core.metadata.schema;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -513,6 +514,11 @@ public interface Ample {
         ColumnType... otherTypes);
 
     ConditionalTabletMutator requireAbsentLogs();
+
+    /**
+     * Require that a tablet contain all the files in the set
+     */
+    ConditionalTabletMutator requireFiles(Set<StoredTabletFile> files);
 
     /**
      * <p>
