@@ -1,0 +1,111 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.accumulo.test.fate;
+
+import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.io.File;
+import java.util.UUID;
+
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletInformation;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
+import org.apache.zookeeper.ZooKeeper;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.io.TempDir;
+
+import com.google.common.collect.MoreCollectors;
+
+/**
+ * A class with utility methods for testing UserFateStore and MetaFateStore
+ */
+public class FateStoreUtil {
+  /**
+   * Create the fate table with the exact configuration as the real Fate user instance table
+   * including table properties and TabletAvailability. For use in testing UserFateStore
+   */
+  public static void createFateTable(ClientContext client, String table) throws Exception {
+    final var fateTableProps =
+        client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
+
+    TabletAvailability availability;
+    try (var tabletStream = client.tableOperations()
+        .getTabletInformation(AccumuloTable.FATE.tableName(), new Range())) {
+      availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
+          .collect(MoreCollectors.onlyElement());
+    }
+
+    var newTableConf = new NewTableConfiguration().withInitialTabletAvailability(availability)
+        .withoutDefaultIterators().setProperties(fateTableProps);
+    client.tableOperations().create(table, newTableConf);
+    var testFateTableProps = client.tableOperations().getTableProperties(table);
+
+    // ensure that create did not set any other props
+    assertEquals(fateTableProps, testFateTableProps);
+  }
+
+  /**
+   * Contains the necessary utilities for setting up (and shutting down) a ZooKeeper instance for
+   * use in testing MetaFateStore
+   */
+  @Tag(ZOOKEEPER_TESTING_SERVER)
+  public static class MetaFateZKSetup {
+    private static ZooKeeperTestingServer szk;
+    private static ZooReaderWriter zk;
+    private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID();
+    private static String ZK_FATE_PATH;
+
+    /**
+     * Sets up the ZooKeeper instance and creates the paths needed for testing MetaFateStore
+     */
+    public static void setup(@TempDir File tempDir) throws Exception {
+      szk = new ZooKeeperTestingServer(tempDir);
+      zk = szk.getZooReaderWriter();
+      ZK_FATE_PATH = ZK_ROOT + Constants.ZFATE;
+      zk.mkdirs(ZK_FATE_PATH);
+      zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
+    }
+
+    /**
+     * Tears down the ZooKeeper instance
+     */
+    public static void teardown() throws Exception {
+      szk.close();
+    }
+
+    public static String getZkRoot() {
+      return ZK_ROOT;
+    }
+
+    public static ZooReaderWriter getZooReaderWriter() {
+      return zk;
+    }
+
+    public static String getZkFatePath() {
+      return ZK_FATE_PATH;
+    }
+  }
+}
