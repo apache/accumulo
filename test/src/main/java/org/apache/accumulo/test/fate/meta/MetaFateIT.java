@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
-import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
