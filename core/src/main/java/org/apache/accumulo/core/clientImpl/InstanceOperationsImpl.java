@@ -278,18 +278,23 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<ActiveScan> getActiveScans(Collection<ServerId> servers)
       throws AccumuloException, AccumuloSecurityException {
+    servers.forEach(InstanceOperationsImpl::checkActiveScanServer);
     return queryServers(servers, this::getActiveScans, INSTANCE_OPS_SCANS_FINDER_POOL);
   }
 
-  private List<ActiveScan> getActiveScans(ServerId server)
-      throws AccumuloException, AccumuloSecurityException {
-
+  private static void checkActiveScanServer(ServerId server) {
     Objects.requireNonNull(server);
     Preconditions.checkArgument(
         server.getType() == ServerId.Type.SCAN_SERVER
             || server.getType() == ServerId.Type.TABLET_SERVER,
         "Server type %s is not %s or %s.", server.getType(), ServerId.Type.SCAN_SERVER,
         ServerId.Type.TABLET_SERVER);
+  }
+
+  private List<ActiveScan> getActiveScans(ServerId server)
+      throws AccumuloException, AccumuloSecurityException {
+
+    checkActiveScanServer(server);
 
     final var parsedTserver = HostAndPort.fromParts(server.getHost(), server.getPort());
     TabletScanClientService.Client rpcClient = null;
@@ -335,12 +340,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   private List<ActiveCompaction> getActiveCompactions(ServerId server)
       throws AccumuloException, AccumuloSecurityException {
 
-    Objects.requireNonNull(server);
-    Preconditions.checkArgument(
-        server.getType() == ServerId.Type.COMPACTOR
-            || server.getType() == ServerId.Type.TABLET_SERVER,
-        "Server type %s is not %s or %s.", server.getType(), ServerId.Type.COMPACTOR,
-        ServerId.Type.TABLET_SERVER);
+    checkActiveCompactionServer(server);
 
     final HostAndPort serverHostAndPort = HostAndPort.fromParts(server.getHost(), server.getPort());
     final List<ActiveCompaction> as = new ArrayList<>();
@@ -371,6 +371,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
     }
   }
 
+  private static void checkActiveCompactionServer(ServerId server) {
+    Objects.requireNonNull(server);
+    Preconditions.checkArgument(
+        server.getType() == Type.COMPACTOR || server.getType() == Type.TABLET_SERVER,
+        "Server type %s is not %s or %s.", server.getType(), Type.COMPACTOR, Type.TABLET_SERVER);
+  }
+
   @Override
   @Deprecated
   public List<ActiveCompaction> getActiveCompactions()
@@ -386,6 +393,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<ActiveCompaction> getActiveCompactions(Collection<ServerId> compactionServers)
       throws AccumuloException, AccumuloSecurityException {
+    compactionServers.forEach(InstanceOperationsImpl::checkActiveCompactionServer);
     return queryServers(compactionServers, this::getActiveCompactions,
         INSTANCE_OPS_COMPACTIONS_FINDER_POOL);
   }
