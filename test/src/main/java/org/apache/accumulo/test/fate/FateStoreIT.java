@@ -548,6 +548,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     txStore = store.reserve(fateId1);
     try {
       assertEquals(TStatus.IN_PROGRESS, txStore.getStatus());
+      assertNotNull(txStore.top());
       txStore.forceDelete();
     } finally {
       txStore.unreserve(Duration.ZERO);
