@@ -21,7 +21,6 @@ package org.apache.accumulo.monitor;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -76,7 +75,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.monitor.next.NewMonitor;
+import org.apache.accumulo.monitor.next.InformationFetcher;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactions;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactorDetails;
@@ -86,6 +85,8 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
+import org.eclipse.jetty.io.Connection;
+import org.eclipse.jetty.io.ConnectionStatistics;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.resource.Resource;
@@ -106,7 +107,7 @@ import com.google.common.net.HostAndPort;
 /**
  * Serve manager statistics with an embedded web server.
  */
-public class Monitor extends AbstractServer implements HighlyAvailableService {
+public class Monitor extends AbstractServer implements HighlyAvailableService, Connection.Listener {
 
   private static final Logger log = LoggerFactory.getLogger(Monitor.class);
   private static final int REFRESH_TIME = 5;
@@ -122,8 +123,12 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   Monitor(ConfigOpts opts, String[] args) {
     super("monitor", opts, ServerContext::new, args);
     START_TIME = System.currentTimeMillis();
+    this.connStats = new ConnectionStatistics();
+    this.fetcher = new InformationFetcher(getContext(), connStats::getConnections);
   }
 
+  private final ConnectionStatistics connStats;
+  private final InformationFetcher fetcher;
   private final AtomicLong lastRecalc = new AtomicLong(0L);
   private double totalIngestRate = 0.0;
   private double totalQueryRate = 0.0;
@@ -359,6 +364,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         server = new EmbeddedWebServer(this, port);
         server.addServlet(getDefaultServlet(), "/resources/*");
         server.addServlet(getRestServlet(), "/rest/*");
+        server.addServlet(getRestV2Servlet(), "/rest-v2/*");
         server.addServlet(getViewServlet(), "/*");
         server.start();
         livePort = port;
@@ -421,16 +427,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         sleepUninterruptibly(333, TimeUnit.MILLISECONDS);
       }
     }).start();
+    Threads.createThread("Metric Fetcher Thread", fetcher).start();
 
     monitorInitialized.set(true);
 
-    // Start up new Monitor
-    NewMonitor newMon = new NewMonitor(getContext(), getHostname());
-    try {
-      newMon.start();
-    } catch (IOException e) {
-      log.error("Unable to start new web server", e);
-    }
   }
 
   private ServletHolder getDefaultServlet() {
@@ -477,6 +477,14 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   private ServletHolder getRestServlet() {
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.rest")
+        .register(new MonitorFactory(this))
+        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getName())))
+        .register(JacksonFeature.class);
+    return new ServletHolder(new ServletContainer(rc));
+  }
+
+  private ServletHolder getRestV2Servlet() {
+    final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.next")
         .register(new MonitorFactory(this))
         .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getName())))
         .register(JacksonFeature.class);
@@ -897,4 +905,24 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   public ServiceLock getLock() {
     return monitorLock;
   }
+
+  public InformationFetcher getInformationFetcher() {
+    return fetcher;
+  }
+
+  @Override
+  public void onOpened(Connection connection) {
+    log.info("New connection event");
+    fetcher.newConnectionEvent();
+  }
+
+  @Override
+  public void onClosed(Connection connection) {
+    // do nothing
+  }
+
+  public ConnectionStatistics getConnectionStatisticsBean() {
+    return this.connStats;
+  }
+
 }

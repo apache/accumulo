@@ -22,7 +22,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -34,22 +33,18 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.Path;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
 import org.apache.accumulo.core.metrics.thrift.MetricService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -57,8 +52,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.monitor.next.SystemInformation.ProcessSummary;
-import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.thrift.transport.TTransportException;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -73,9 +66,7 @@ import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.net.HostAndPort;
 
-import io.micrometer.core.instrument.Meter.Id;
-import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
-
+@Path("/metrics")
 public class InformationFetcher implements RemovalListener<ServerId,MetricResponse>, Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(InformationFetcher.class);
@@ -247,6 +238,18 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     this.newConnectionEvent.compareAndSet(false, true);
   }
 
+  // Protect against NPE and wait for initial data gathering
+  public SystemInformation getSummary() {
+    while (summaryRef.get() == null) {
+      Thread.onSpinWait();
+    }
+    return summaryRef.get();
+  }
+
+  public Cache<ServerId,MetricResponse> getAllMetrics() {
+    return allMetrics;
+  }
+
   @Override
   public void onRemoval(@Nullable ServerId server, @Nullable MetricResponse response,
       RemovalCause cause) {
@@ -350,161 +353,6 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       }
     }
 
-  }
-
-  // Protect against NPE and wait for initial data gathering
-  private SystemInformation getSummary() {
-    while (summaryRef.get() == null) {
-      Thread.onSpinWait();
-    }
-    return summaryRef.get();
-  }
-
-  private void validateResourceGroup(String resourceGroup) {
-    if (getSummary().getResourceGroups().contains(resourceGroup)) {
-      return;
-    }
-    throw new NotFoundException("Resource Group " + resourceGroup + " not found");
-  }
-
-  public Set<String> getResourceGroups() {
-    return getSummary().getResourceGroups();
-  }
-
-  public Collection<ServerId> getProblemHosts() {
-    return getSummary().getProblemHosts();
-  }
-
-  public Collection<MetricResponse> getAll() {
-    return allMetrics.asMap().values();
-  }
-
-  public MetricResponse getManager() {
-    final ServerId s = getSummary().getManager();
-    if (s == null) {
-      throw new NotFoundException("Manager not found");
-    }
-    return allMetrics.asMap().get(s);
-  }
-
-  public MetricResponse getGarbageCollector() {
-    final ServerId s = getSummary().getGarbageCollector();
-    if (s == null) {
-      throw new NotFoundException("Garbage Collector not found");
-    }
-    return allMetrics.asMap().get(s);
-  }
-
-  public InstanceSummary getInstanceSummary() {
-    return new InstanceSummary(ctx.getInstanceName(),
-        ctx.instanceOperations().getInstanceId().canonical(),
-        Set.of(ctx.getZooKeepers().split(",")), ctx.getVolumeManager().getVolumes().stream()
-            .map(v -> v.toString()).collect(Collectors.toSet()),
-        Constants.VERSION);
-  }
-
-  public Collection<MetricResponse> getCompactors(String resourceGroup) {
-    validateResourceGroup(resourceGroup);
-    final Set<ServerId> servers = getSummary().getCompactorResourceGroupServers(resourceGroup);
-    if (servers == null) {
-      return List.of();
-    }
-    return allMetrics.getAllPresent(servers).values();
-  }
-
-  public Map<Id,CumulativeDistributionSummary>
-      getCompactorResourceGroupMetricSummary(String resourceGroup) {
-    validateResourceGroup(resourceGroup);
-    final Map<Id,CumulativeDistributionSummary> metrics =
-        getSummary().getCompactorResourceGroupMetricSummary(resourceGroup);
-    if (metrics == null) {
-      return Map.of();
-    }
-    return metrics;
-  }
-
-  public Map<Id,CumulativeDistributionSummary> getCompactorAllMetricSummary() {
-    return getSummary().getCompactorAllMetricSummary();
-  }
-
-  public Collection<MetricResponse> getScanServers(String resourceGroup) {
-    validateResourceGroup(resourceGroup);
-    final Set<ServerId> servers = getSummary().getSServerResourceGroupServers(resourceGroup);
-    if (servers == null) {
-      return List.of();
-    }
-    return allMetrics.getAllPresent(servers).values();
-  }
-
-  public Map<Id,CumulativeDistributionSummary>
-      getScanServerResourceGroupMetricSummary(String resourceGroup) {
-    validateResourceGroup(resourceGroup);
-    final Map<Id,CumulativeDistributionSummary> metrics =
-        getSummary().getSServerResourceGroupMetricSummary(resourceGroup);
-    if (metrics == null) {
-      return Map.of();
-    }
-    return metrics;
-  }
-
-  public Map<Id,CumulativeDistributionSummary> getScanServerAllMetricSummary() {
-    return getSummary().getSServerAllMetricSummary();
-  }
-
-  public Collection<MetricResponse> getTabletServers(String resourceGroup) {
-    validateResourceGroup(resourceGroup);
-    final Set<ServerId> servers = getSummary().getTServerResourceGroupServers(resourceGroup);
-    if (servers == null) {
-      return List.of();
-    }
-    return allMetrics.getAllPresent(servers).values();
-  }
-
-  public Map<Id,CumulativeDistributionSummary>
-      getTabletServerResourceGroupMetricSummary(String resourceGroup) {
-    validateResourceGroup(resourceGroup);
-    final Map<Id,CumulativeDistributionSummary> metrics =
-        getSummary().getTServerResourceGroupMetricSummary(resourceGroup);
-    if (metrics == null) {
-      return Map.of();
-    }
-    return metrics;
-  }
-
-  public Map<Id,CumulativeDistributionSummary> getTabletServerAllMetricSummary() {
-    return getSummary().getTServerAllMetricSummary();
-  }
-
-  public Map<String,List<FMetric>> getCompactionMetricSummary() {
-    return getSummary().getCompactionMetricSummary();
-  }
-
-  public Map<String,List<TExternalCompaction>> getCompactions(int topN) {
-    return getSummary().getCompactions(topN);
-  }
-
-  public Map<String,TableSummary> getTables() {
-    return getSummary().getTables();
-  }
-
-  public TableSummary getTable(String tableName) {
-    return getSummary().getTables().get(tableName);
-  }
-
-  public List<TabletInformation> getTablets(String tableName) {
-    return getSummary().getTablets(tableName);
-  }
-
-  public Map<String,Map<String,ProcessSummary>> getDeploymentOverview() {
-    return getSummary().getDeploymentOverview();
-  }
-
-  public Set<String> getSuggestions() {
-    return getSummary().getSuggestions();
-  }
-
-  public long getTimestamp() {
-    return getSummary().getTimestamp();
   }
 
 }

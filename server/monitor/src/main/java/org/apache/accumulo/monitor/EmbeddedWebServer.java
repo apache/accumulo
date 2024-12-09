@@ -51,6 +51,10 @@ public class EmbeddedWebServer {
     secure = requireForSecure.stream().map(conf::get).allMatch(s -> s != null && !s.isEmpty());
 
     connector = new ServerConnector(server, getConnectionFactories(conf, secure));
+    // Capture connection statistics
+    connector.addBean(monitor.getConnectionStatisticsBean());
+    // Listen for connection events
+    connector.addBean(monitor);
     connector.setHost(monitor.getHostname());
     connector.setPort(port);
 
