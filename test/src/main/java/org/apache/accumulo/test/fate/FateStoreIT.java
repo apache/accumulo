@@ -449,8 +449,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     FateKey fateKey = FateKey.forSplit(ke);
     var fateId = store.seedTransaction("TEST", fateKey, new TestRepo(), true).orElseThrow();
 
-    // After createAndReserve a fate transaction using a key we can simulate a collision with
-    // a random FateId by deleting the key out of Fate and calling createAndReserve again to
+    // After seeding a fate transaction using a key we can simulate a collision with
+    // a random FateId by deleting the key out of Fate and calling seed again to
     // verify it detects the key is missing. Then we can continue and see if we can still use
     // the existing transaction.
     deleteKey(fateId, sctx);
