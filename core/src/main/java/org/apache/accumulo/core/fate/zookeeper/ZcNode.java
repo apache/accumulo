@@ -20,6 +20,7 @@ package org.apache.accumulo.core.fate.zookeeper;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.base.Preconditions;
 
@@ -51,6 +52,8 @@ class ZcNode {
   private final List<String> children;
 
   static final ZcNode NON_EXISTENT = new ZcNode();
+
+  private final AtomicLong accessCount = new AtomicLong(0);
 
   private ZcNode() {
     this.data = null;
@@ -96,6 +99,7 @@ class ZcNode {
    */
   byte[] getData() {
     Preconditions.checkState(cachedData());
+    accessCount.incrementAndGet();
     return data;
   }
 
@@ -116,6 +120,7 @@ class ZcNode {
    */
   List<String> getChildren() {
     Preconditions.checkState(cachedChildren());
+    accessCount.incrementAndGet();
     return children;
   }
 
@@ -138,5 +143,9 @@ class ZcNode {
    */
   boolean notExists() {
     return stat == null && data == null && children == null;
+  }
+
+  public long getAccessCount() {
+    return accessCount.get();
   }
 }

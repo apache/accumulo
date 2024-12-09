@@ -181,7 +181,8 @@ public class ZooCache {
     this.externalWatcher = watcher;
     RemovalListener<String,ZcNode> removalListerner = (path, zcNode, reason) -> {
       try {
-        log.trace("{} removing watches for {} because {}", cacheId, path, reason);
+        log.trace("{} removing watches for {} because {} accesses {}", cacheId, path, reason,
+            zcNode == null ? -1 : zcNode.getAccessCount());
         reader.getZooKeeper().removeWatches(path, ZooCache.this.watcher, Watcher.WatcherType.Any,
             false);
       } catch (InterruptedException | KeeperException | RuntimeException e) {
