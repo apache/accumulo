@@ -34,22 +34,28 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -69,6 +75,7 @@ import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -152,6 +159,61 @@ import io.micrometer.core.instrument.MeterRegistry;
 public class CompactionCoordinator
     implements CompactionCoordinatorService.Iface, Runnable, MetricsProducer {
 
+  // Object that serves as a TopN view of the RunningCompactions, ordered by
+  // RunningCompaction start time. The first entry in this Set should be the
+  // oldest RunningCompaction.
+  public static class TimeOrderedRunningCompactionSet {
+
+    private static final int UPPER_LIMIT = 50;
+
+    private final ConcurrentSkipListSet<RunningCompaction> compactions =
+        new ConcurrentSkipListSet<>(new Comparator<RunningCompaction>() {
+          @Override
+          public int compare(RunningCompaction rc1, RunningCompaction rc2) {
+            int result = Long.compare(rc1.getStartTime(), rc2.getStartTime());
+            if (result == 0) {
+              result = rc1.getJob().getExternalCompactionId()
+                  .compareTo(rc2.getJob().getExternalCompactionId());
+            }
+            return result;
+          }
+        });
+
+    // Tracking size here as ConcurrentSkipListSet.size() is not constant time
+    private final AtomicInteger size = new AtomicInteger(0);
+
+    public int size() {
+      return size.get();
+    }
+
+    public boolean add(RunningCompaction e) {
+      boolean added = compactions.add(e);
+      if (added) {
+        if (size.incrementAndGet() > UPPER_LIMIT) {
+          this.remove(compactions.last());
+        }
+      }
+      return added;
+    }
+
+    public boolean remove(Object o) {
+      boolean removed = compactions.remove(o);
+      if (removed) {
+        size.decrementAndGet();
+      }
+      return removed;
+    }
+
+    public Iterator<RunningCompaction> iterator() {
+      return compactions.iterator();
+    }
+
+    public Stream<RunningCompaction> stream() {
+      return compactions.stream();
+    }
+
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
 
   public static final String RESTART_UPDATE_MSG =
@@ -165,6 +227,9 @@ public class CompactionCoordinator
    * does not have the stats that this map has.
    */
   protected final Map<ExternalCompactionId,RunningCompaction> RUNNING_CACHE =
+      new ConcurrentHashMap<>();
+
+  protected final Map<String,TimeOrderedRunningCompactionSet> LONG_RUNNING_COMPACTIONS_BY_RG =
       new ConcurrentHashMap<>();
 
   /* Map of group name to last time compactor called to get a compaction job */
@@ -292,7 +357,12 @@ public class CompactionCoordinator
         update.setState(TCompactionState.IN_PROGRESS);
         update.setMessage(RESTART_UPDATE_MSG);
         rc.addUpdate(System.currentTimeMillis(), update);
+        if (!rc.isStartTimeSet()) {
+          rc.setStartTime(this.coordinatorStartTime);
+        }
         RUNNING_CACHE.put(ExternalCompactionId.of(rc.getJob().getExternalCompactionId()), rc);
+        LONG_RUNNING_COMPACTIONS_BY_RG
+            .computeIfAbsent(rc.getGroupName(), k -> new TimeOrderedRunningCompactionSet()).add(rc);
       });
     }
 
@@ -902,6 +972,25 @@ public class CompactionCoordinator
     final RunningCompaction rc = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     if (null != rc) {
       rc.addUpdate(timestamp, update);
+      switch (update.state) {
+        case STARTED:
+          LONG_RUNNING_COMPACTIONS_BY_RG
+              .computeIfAbsent(rc.getGroupName(), k -> new TimeOrderedRunningCompactionSet())
+              .add(rc);
+          break;
+        case CANCELLED:
+        case FAILED:
+        case SUCCEEDED:
+          LONG_RUNNING_COMPACTIONS_BY_RG
+              .getOrDefault(rc.getGroupName(), new TimeOrderedRunningCompactionSet()).remove(rc);
+          break;
+        case ASSIGNED:
+        case IN_PROGRESS:
+        default:
+          // do nothing
+          break;
+
+      }
     }
   }
 
@@ -909,6 +998,8 @@ public class CompactionCoordinator
     var rc = RUNNING_CACHE.remove(ecid);
     if (rc != null) {
       completed.put(ecid, rc);
+      LONG_RUNNING_COMPACTIONS_BY_RG
+          .getOrDefault(rc.getGroupName(), new TimeOrderedRunningCompactionSet()).remove(rc);
     }
   }
 
@@ -930,7 +1021,7 @@ public class CompactionCoordinator
    * @throws ThriftSecurityException permission error
    */
   @Override
-  public TExternalCompactionList getRunningCompactions(TInfo tinfo, TCredentials credentials)
+  public TExternalCompactionMap getRunningCompactions(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
@@ -938,7 +1029,7 @@ public class CompactionCoordinator
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    final TExternalCompactionList result = new TExternalCompactionList();
+    final TExternalCompactionMap result = new TExternalCompactionMap();
     RUNNING_CACHE.forEach((ecid, rc) -> {
       TExternalCompaction trc = new TExternalCompaction();
       trc.setGroupName(rc.getGroupName());
@@ -951,6 +1042,43 @@ public class CompactionCoordinator
   }
 
   /**
+   * Return topN longest running compactions for each resource group
+   *
+   * @param tinfo trace info
+   * @param credentials tcredentials object
+   * @return map of group name to list of compactions in sorted order, oldest compaction first.
+   * @throws ThriftSecurityException permission error
+   */
+  @Override
+  public Map<String,TExternalCompactionList> getLongRunningCompactions(TInfo tinfo,
+      TCredentials credentials) throws ThriftSecurityException {
+    // do not expect users to call this directly, expect other tservers to call this method
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    final Map<String,TExternalCompactionList> result = new HashMap<>();
+
+    for (Entry<String,TimeOrderedRunningCompactionSet> e : LONG_RUNNING_COMPACTIONS_BY_RG
+        .entrySet()) {
+      final TExternalCompactionList compactions = new TExternalCompactionList();
+      Iterator<RunningCompaction> iter = e.getValue().iterator();
+      while (iter.hasNext()) {
+        RunningCompaction rc = iter.next();
+        TExternalCompaction trc = new TExternalCompaction();
+        trc.setGroupName(rc.getGroupName());
+        trc.setCompactor(rc.getCompactorAddress());
+        trc.setUpdates(rc.getUpdates());
+        trc.setJob(rc.getJob());
+        compactions.addToCompactions(trc);
+      }
+      result.put(e.getKey(), compactions);
+    }
+    return result;
+  }
+
+  /**
    * Return information about recently completed compactions
    *
    * @param tinfo trace info
@@ -959,14 +1087,14 @@ public class CompactionCoordinator
    * @throws ThriftSecurityException permission error
    */
   @Override
-  public TExternalCompactionList getCompletedCompactions(TInfo tinfo, TCredentials credentials)
+  public TExternalCompactionMap getCompletedCompactions(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    final TExternalCompactionList result = new TExternalCompactionList();
+    final TExternalCompactionMap result = new TExternalCompactionMap();
     completed.asMap().forEach((ecid, rc) -> {
       TExternalCompaction trc = new TExternalCompaction();
       trc.setGroupName(rc.getGroupName());
@@ -1111,7 +1239,8 @@ public class CompactionCoordinator
 
     // This method does the following:
     //
-    // 1. Removes entries from RUNNING_CACHE that are not really running
+    // 1. Removes entries from RUNNING_CACHE and LONG_RUNNING_COMPACTIONS_BY_RG that are not really
+    // running
     // 2. Cancels running compactions for groups that are not in the current configuration
     // 3. Remove groups not in configuration from TIME_COMPACTOR_LAST_CHECKED
     // 4. Log groups with no compactors
@@ -1120,7 +1249,11 @@ public class CompactionCoordinator
 
     // grab a snapshot of the ids in the set before reading the metadata table. This is done to
     // avoid removing things that are added while reading the metadata.
-    final Set<ExternalCompactionId> idsSnapshot = Set.copyOf(RUNNING_CACHE.keySet());
+    final Set<ExternalCompactionId> idsSnapshot = Set.copyOf(Sets.union(RUNNING_CACHE.keySet(),
+        LONG_RUNNING_COMPACTIONS_BY_RG.values().stream()
+            .flatMap(TimeOrderedRunningCompactionSet::stream)
+            .map(rc -> rc.getJob().getExternalCompactionId()).map(ExternalCompactionId::of)
+            .collect(Collectors.toSet())));
 
     // grab the ids that are listed as running in the metadata table. It important that this is done
     // after getting the snapshot.
