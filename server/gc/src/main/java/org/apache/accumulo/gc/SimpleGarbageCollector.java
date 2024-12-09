@@ -91,8 +91,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
-
   private ServiceLock gcLock;
+
   private final Timer lastCompactorCheck = Timer.startNew();
 
   SimpleGarbageCollector(ConfigOpts opts, String[] args) {
@@ -443,6 +443,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   public GcCycleMetrics getGcCycleMetrics() {
     return gcCycleMetrics;
+  }
+
+  @Override
+  public ServiceLock getLock() {
+    return gcLock;
   }
 
 }

@@ -35,6 +35,7 @@ import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.bulk.Bulk;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
@@ -116,8 +117,10 @@ public class PrepBulkImport extends ManagerRepo {
    */
   @VisibleForTesting
   static KeyExtent validateLoadMapping(String tableId, LoadMappingIterator lmi,
-      TabletIterFactory tabletIterFactory, int maxNumTablets) throws Exception {
+      TabletIterFactory tabletIterFactory, int maxNumTablets, int maxFilesPerTablet)
+      throws Exception {
     var currRange = lmi.next();
+    checkFilesPerTablet(tableId, maxFilesPerTablet, currRange);
 
     Text startRow = currRange.getKey().prevEndRow();
 
@@ -143,6 +146,7 @@ public class PrepBulkImport extends ManagerRepo {
           break;
         }
         currRange = lmi.next();
+        checkFilesPerTablet(tableId, maxFilesPerTablet, currRange);
         lastTablet = currRange.getKey();
       }
 
@@ -194,6 +198,17 @@ public class PrepBulkImport extends ManagerRepo {
     return new KeyExtent(firstTablet.tableId(), lastTablet.endRow(), firstTablet.prevEndRow());
   }
 
+  private static void checkFilesPerTablet(String tableId, int maxFilesPerTablet,
+      Map.Entry<KeyExtent,Bulk.Files> currRange) throws AcceptableThriftTableOperationException {
+    if (maxFilesPerTablet > 0 && currRange.getValue().getSize() > maxFilesPerTablet) {
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+          TableOperationExceptionType.OTHER,
+          "Attempted to import " + currRange.getValue().getSize()
+              + " files into a single tablet which exceeds the configured max of "
+              + maxFilesPerTablet);
+    }
+  }
+
   private static class TabletIterFactoryImpl implements TabletIterFactory {
     private final List<AutoCloseable> resourcesToClose = new ArrayList<>();
     private final Manager manager;
@@ -228,12 +243,15 @@ public class PrepBulkImport extends ManagerRepo {
 
     int maxTablets = manager.getContext().getTableConfiguration(bulkInfo.tableId)
         .getCount(Property.TABLE_BULK_MAX_TABLETS);
+    int maxFilesPerTablet = manager.getContext().getTableConfiguration(bulkInfo.tableId)
+        .getCount(Property.TABLE_BULK_MAX_TABLET_FILES);
 
     try (
         LoadMappingIterator lmi =
             BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open);
         TabletIterFactory tabletIterFactory = new TabletIterFactoryImpl(manager, bulkInfo)) {
-      return validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets);
+      return validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
+          maxFilesPerTablet);
     }
   }
 

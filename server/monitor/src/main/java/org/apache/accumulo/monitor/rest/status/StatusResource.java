@@ -96,7 +96,6 @@ public class StatusResource {
     }
 
     return new StatusInformation(managerStatus.toString(), gcStatus.toString(),
-        tServerStatus.toString(), coordinatorStatus.toString(),
-        monitor.getProblemSummary().entrySet().size());
+        tServerStatus.toString(), coordinatorStatus.toString());
   }
 }

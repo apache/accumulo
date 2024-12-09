@@ -199,6 +199,7 @@ public class ServiceLockIT {
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
+    assertFalse(zl.verifyLockAtSource());
 
     ZooReaderWriter zk = szk.getZooReaderWriter();
 
@@ -218,10 +219,12 @@ public class ServiceLockIT {
 
     assertTrue(lw.locked);
     assertTrue(zl.isLocked());
+    assertTrue(zl.verifyLockAtSource());
     assertNull(lw.exception);
     assertNull(lw.reason);
 
     zl.unlock();
+    assertFalse(zl.verifyLockAtSource());
   }
 
   @Test
@@ -233,6 +236,7 @@ public class ServiceLockIT {
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
+    assertFalse(zl.verifyLockAtSource());
 
     TestALW lw = new TestALW();
 
@@ -243,6 +247,7 @@ public class ServiceLockIT {
 
     assertFalse(lw.locked);
     assertFalse(zl.isLocked());
+    assertFalse(zl.verifyLockAtSource());
     assertNotNull(lw.exception);
     assertNull(lw.reason);
   }
@@ -259,6 +264,7 @@ public class ServiceLockIT {
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
+    assertFalse(zl.verifyLockAtSource());
 
     TestALW lw = new TestALW();
 
@@ -269,6 +275,7 @@ public class ServiceLockIT {
 
     assertTrue(lw.locked);
     assertTrue(zl.isLocked());
+    assertTrue(zl.verifyLockAtSource());
     assertNull(lw.exception);
     assertNull(lw.reason);
 
@@ -278,7 +285,7 @@ public class ServiceLockIT {
 
     assertEquals(LockLossReason.LOCK_DELETED, lw.reason);
     assertNull(lw.exception);
-
+    assertFalse(zl.verifyLockAtSource());
   }
 
   @Test
@@ -293,6 +300,7 @@ public class ServiceLockIT {
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
+    assertFalse(zl.verifyLockAtSource());
 
     TestALW lw = new TestALW();
 
@@ -303,6 +311,7 @@ public class ServiceLockIT {
 
     assertTrue(lw.locked);
     assertTrue(zl.isLocked());
+    assertTrue(zl.verifyLockAtSource());
     assertNull(lw.exception);
     assertNull(lw.reason);
 
@@ -315,6 +324,7 @@ public class ServiceLockIT {
 
     assertFalse(lw2.locked);
     assertFalse(zl2.isLocked());
+    assertFalse(zl2.verifyLockAtSource());
 
     ServiceLock zl3 = getZooLock(parent, UUID.randomUUID());
 
@@ -344,10 +354,12 @@ public class ServiceLockIT {
 
     assertTrue(lw3.locked);
     assertTrue(zl3.isLocked());
+    assertTrue(zl3.verifyLockAtSource());
     assertNull(lw3.exception);
     assertNull(lw3.reason);
 
     zl3.unlock();
+    assertFalse(zl3.verifyLockAtSource());
 
   }
 
@@ -364,6 +376,7 @@ public class ServiceLockIT {
       ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
       assertFalse(zl.isLocked());
+      assertFalse(zl.verifyLockAtSource());
 
       // would not expect data to be set on this node, but it should not cause problems.....
       zk.setData(parent.toString(), "foo".getBytes(UTF_8), -1);
@@ -377,6 +390,7 @@ public class ServiceLockIT {
 
       assertTrue(lw.locked);
       assertTrue(zl.isLocked());
+      assertTrue(zl.verifyLockAtSource());
       assertNull(lw.exception);
       assertNull(lw.reason);
 
@@ -389,6 +403,7 @@ public class ServiceLockIT {
 
       assertEquals(LockLossReason.LOCK_DELETED, lw.reason);
       assertNull(lw.exception);
+      assertFalse(zl.verifyLockAtSource());
     }
 
   }
@@ -455,8 +470,12 @@ public class ServiceLockIT {
       assertEquals("/zlretryLockSerial/zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000000",
           zl2.getWatching());
 
+      assertTrue(zl1.verifyLockAtSource());
+      assertFalse(zl2.verifyLockAtSource());
+
       zl1.unlock();
       assertFalse(zlw1.isLockHeld());
+      assertFalse(zl1.verifyLockAtSource());
       zk1.close();
 
       while (!zlw2.isLockHeld()) {
@@ -464,7 +483,9 @@ public class ServiceLockIT {
       }
 
       assertTrue(zlw2.isLockHeld());
+      assertTrue(zl2.verifyLockAtSource());
       zl2.unlock();
+      assertFalse(zl2.verifyLockAtSource());
     }
 
   }
