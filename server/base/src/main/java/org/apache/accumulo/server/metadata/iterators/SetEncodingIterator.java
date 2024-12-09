@@ -93,11 +93,11 @@ public class SetEncodingIterator implements SortedKeyValueIterator<Key,Value> {
         family.getLength() > 0 && range.getStartKey().getColumnQualifier().getLength() == 0);
 
     startKey = new Key(tabletRow, family);
-    Key endKey = new Key(tabletRow, family).followingKey(PartialKey.ROW_COLFAM);
+    Key endKey = startKey.followingKey(PartialKey.ROW_COLFAM);
 
     Range r = new Range(startKey, true, endKey, false);
 
-    source.seek(r, Set.of(), false);
+    source.seek(r, Set.of(startKey.getColumnFamilyData()), true);
 
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos)) {
