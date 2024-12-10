@@ -18,18 +18,56 @@
  */
 package org.apache.accumulo.test.fate.user;
 
-import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.test.fate.FateOpsCommandsIT;
+import org.apache.accumulo.test.fate.MultipleStoresIT.LatchTestEnv;
+import org.apache.accumulo.test.fate.TestLock;
 
 public class UserFateOpsCommandsIT extends FateOpsCommandsIT {
+  /**
+   * This should be used for tests that will not seed a txn with work/reserve a txn. Note that this
+   * should be used in conjunction with
+   * {@link FateOpsCommandsIT#initFateNoDeadResCleaner(FateStore)}
+   */
   @Override
-  public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
+  public void executeTest(FateTestExecutor<LatchTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
-    testMethod.execute(
-        new UserFateStore<>(getCluster().getServerContext(), createDummyLockID(), null),
-        getCluster().getServerContext());
+    var context = getCluster().getServerContext();
+    // the test should not be reserving or checking reservations, so null lockID and isLockHeld
+    testMethod.execute(new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null),
+        context);
+  }
+
+  /**
+   * This should be used for tests that will seed a txn with work/reserve a txn. Note that this
+   * should be used in conjunction with
+   * {@link FateOpsCommandsIT#initFateWithDeadResCleaner(FateStore, LatchTestEnv)}
+   */
+  @Override
+  public void stopManagerAndExecuteTest(FateTestExecutor<LatchTestEnv> testMethod)
+      throws Exception {
+    stopManager();
+    var context = getCluster().getServerContext();
+    ServiceLock testLock = null;
+    try {
+      testLock = new TestLock().createTestLock(context);
+      ZooUtil.LockID lockID = testLock.getLockID();
+      Predicate<ZooUtil.LockID> isLockHeld =
+          lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
+      testMethod.execute(
+          new UserFateStore<>(context, AccumuloTable.FATE.tableName(), lockID, isLockHeld),
+          context);
+    } finally {
+      if (testLock != null) {
+        testLock.unlock();
+      }
+    }
   }
 }
