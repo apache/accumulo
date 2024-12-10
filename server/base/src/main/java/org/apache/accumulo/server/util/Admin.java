@@ -376,8 +376,11 @@ public class Admin implements KeywordExecutable {
     @Override
     public void lostLock(ServiceLock.LockLossReason reason) {
       String msg = "Admin lost lock: " + reason.toString();
-      log.warn(msg);
-      Halt.halt(msg, 1);
+      if (reason == ServiceLock.LockLossReason.LOCK_DELETED) {
+        Halt.halt(msg, 0);
+      } else {
+        Halt.halt(msg, 1);
+      }
     }
 
     @Override

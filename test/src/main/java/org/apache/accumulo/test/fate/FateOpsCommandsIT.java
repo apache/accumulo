@@ -555,7 +555,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // This should not work as it is already reserved and being worked on by our running FATE
     // ('fate'). Admin should try to reserve it for a bit, but should fail and exit
     ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--fail");
-    assertNotEquals(0, p.getProcess().waitFor());
+    assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
 
     assertTrue(result.contains("Could not fail " + fateId1 + " in a reasonable time"));
@@ -632,7 +632,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // This should not work as it is already reserved and being worked on by our running FATE
     // ('fate'). Admin should try to reserve it for a bit, but should fail and exit
     ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--delete");
-    assertNotEquals(0, p.getProcess().waitFor());
+    assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
 
     assertTrue(result.contains("Could not delete " + fateId1 + " in a reasonable time"));
