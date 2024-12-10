@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +29,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -257,22 +259,22 @@ public interface InstanceOperations {
    * @param tserver The tablet server address. This should be of the form
    *        {@code <ip address>:<port>}
    * @return A list of active scans on tablet server.
-   * @deprecated see {@link #getActiveScans(ServerId)}
+   * @deprecated see {@link #getActiveScans(Collection)}
    */
   @Deprecated(since = "4.0.0")
   List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * List the active scans on a server.
+   * List the active scans on a collection of servers.
    *
-   * @param server server type and address
-   * @return A stream of active scans on server.
+   * @param servers Collection of server types and addresses
+   * @return A list of active scans on the given servers.
    * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or
    *         SCAN_SERVER
    * @since 4.0.0
    */
-  List<ActiveScan> getActiveScans(ServerId server)
+  List<ActiveScan> getActiveScans(Collection<ServerId> servers)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -284,24 +286,10 @@ public interface InstanceOperations {
    * @param tserver The server address. This should be of the form {@code <ip address>:<port>}
    * @return the list of active compactions
    * @since 1.5.0
-   * @deprecated see {@link #getActiveCompactions(ServerId server)}
+   * @deprecated see {@link #getActiveCompactions(Collection)}
    */
   @Deprecated(since = "4.0.0")
   List<ActiveCompaction> getActiveCompactions(String tserver)
-      throws AccumuloException, AccumuloSecurityException;
-
-  /**
-   * List the active compaction running on a TabletServer or Compactor. The server address can be
-   * retrieved using {@link #getCompactors()} or {@link #getTabletServers()}. Use
-   * {@link #getActiveCompactions()} to get a list of all compactions running on tservers and
-   * compactors.
-   *
-   * @param server The ServerId object
-   * @return the list of active compactions
-   * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or COMPACTOR
-   * @since 4.0.0
-   */
-  List<ActiveCompaction> getActiveCompactions(ServerId server)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -309,8 +297,23 @@ public interface InstanceOperations {
    *
    * @return the list of active compactions
    * @since 2.1.0
+   * @deprecated see {@link #getActiveCompactions(Collection)}
    */
+  @Deprecated(since = "4.0.0")
   List<ActiveCompaction> getActiveCompactions() throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * List the active compaction running on a collection of TabletServers or Compactors. The server
+   * addresses can be retrieved using {@link #getServers(Type)}. Use {@link #getActiveCompactions()}
+   * to get a list of all compactions running on tservers and compactors.
+   *
+   * @param servers The collection of servers
+   * @return the list of active compactions
+   * @throws IllegalArgumentException if a type of server is not TABLET_SERVER or COMPACTOR
+   * @since 4.0.0
+   */
+  List<ActiveCompaction> getActiveCompactions(Collection<ServerId> servers)
+      throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Check to see if a server process at the host and port is up and responding to RPC requests.

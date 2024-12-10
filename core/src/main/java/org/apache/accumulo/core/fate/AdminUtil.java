@@ -31,7 +31,6 @@ import java.util.Formatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -430,18 +429,6 @@ public class AdminUtil<T> {
           txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted());
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
-
-    if (!fateStatus.getDanglingHeldLocks().isEmpty()
-        || !fateStatus.getDanglingWaitingLocks().isEmpty()) {
-      fmt.format("%nThe following locks did not have an associated FATE operation%n");
-      for (Entry<FateId,List<String>> entry : fateStatus.getDanglingHeldLocks().entrySet()) {
-        fmt.format("fateId: %s  locked: %s%n", entry.getKey(), entry.getValue());
-      }
-
-      for (Entry<FateId,List<String>> entry : fateStatus.getDanglingWaitingLocks().entrySet()) {
-        fmt.format("fateId: %s  locking: %s%n", entry.getKey(), entry.getValue());
-      }
-    }
   }
 
   public boolean prepDelete(Map<FateInstanceType,FateStore<T>> stores, String fateIdStr) {

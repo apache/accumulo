@@ -39,6 +39,7 @@ public enum ThreadPoolNames {
   SERVICE_LOCK_POOL("accumulo.pool.service.lock"),
   IMPORT_TABLE_RENAME_POOL("accumulo.pool.import.table.rename"),
   INSTANCE_OPS_COMPACTIONS_FINDER_POOL("accumulo.pool.instance.ops.active.compactions.finder"),
+  INSTANCE_OPS_SCANS_FINDER_POOL("accumulo.pool.instance.ops.active.scans.finder"),
   MANAGER_FATE_POOL("accumulo.pool.manager.fate"),
   MANAGER_STATUS_POOL("accumulo.pool.manager.status"),
   MANAGER_UPGRADE_COORDINATOR_METADATA_POOL("accumulo.pool.manager.upgrade.metadata"),

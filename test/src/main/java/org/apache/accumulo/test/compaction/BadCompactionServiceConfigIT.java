@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.compaction;
 
 import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
-import static org.apache.accumulo.core.metrics.Metric.MANAGER_COMPACTION_SVC_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTION_SVC_ERRORS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
@@ -141,7 +141,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
           if (shutdownTailer.get()) {
             break;
           }
-          if (s.startsWith(MANAGER_COMPACTION_SVC_ERRORS.getName())) {
+          if (s.startsWith(COMPACTION_SVC_ERRORS.getName())) {
             Metric m = TestStatsDSink.parseStatsDMetric(s);
             Integer value = Integer.parseInt(m.getValue());
             if (value == 0) {
@@ -265,7 +265,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
           if (shutdownTailer.get()) {
             break;
           }
-          if (s.startsWith(MANAGER_COMPACTION_SVC_ERRORS.getName())) {
+          if (s.startsWith(COMPACTION_SVC_ERRORS.getName())) {
             Metric m = TestStatsDSink.parseStatsDMetric(s);
             Integer value = Integer.parseInt(m.getValue());
             if (value == 0) {

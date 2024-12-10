@@ -16,27 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.problems;
+package org.apache.accumulo.shell.commands;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.commons.cli.ParseException;
+import org.junit.jupiter.api.Test;
 
-/**
- * Stores a new problem summary object
- *
- * @since 2.0.0
- */
-public class ProblemSummary {
+public class ListCompactionsCommandTest {
 
-  // Variable names become JSON keys
-  public List<ProblemSummaryInformation> problemSummary = new ArrayList<>();
-
-  /**
-   * Adds a new problem summary to the list
-   *
-   * @param problemSummary problem summary to add
-   */
-  public void addProblemSummary(ProblemSummaryInformation problemSummary) {
-    this.problemSummary.add(problemSummary);
+  @Test
+  public void testServerRegexPredicate() throws ParseException {
+    ListScansCommandTest.testServerRegexPredicate(new ListCompactionsCommand());
   }
+
+  @Test
+  public void testResourceGroupRegexPredicate() throws ParseException {
+    ListScansCommandTest.testResourceGroupRegexPredicate(new ListCompactionsCommand());
+  }
+
 }

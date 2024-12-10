@@ -43,8 +43,11 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
@@ -388,5 +391,13 @@ public class ExternalCompactionTestUtils {
     assertNull(tabletMetadata.getSelectedFiles());
     assertEquals(Set.of(), tabletMetadata.getExternalCompactions().keySet());
     assertEquals(Set.of(), tabletMetadata.getUserCompactionsRequested());
+  }
+
+  public static List<ActiveCompaction> getActiveCompactions(InstanceOperations instanceOps)
+      throws AccumuloException, AccumuloSecurityException {
+    Set<ServerId> compactionServers = new HashSet<>();
+    compactionServers.addAll(instanceOps.getServers(ServerId.Type.COMPACTOR));
+    compactionServers.addAll(instanceOps.getServers(ServerId.Type.TABLET_SERVER));
+    return instanceOps.getActiveCompactions(compactionServers);
   }
 }

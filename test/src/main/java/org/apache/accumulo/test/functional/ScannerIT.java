@@ -226,11 +226,7 @@ public class ScannerIT extends ConfigurableMacBase {
       throw new IllegalArgumentException("Unsupported server type " + serverType);
     }
 
-    long count = 0;
-    for (ServerId tserver : servers) {
-      count += c.instanceOperations().getActiveScans(tserver).stream()
-          .filter(activeScan -> activeScan.getTable().equals(tableName)).count();
-    }
-    return count;
+    return c.instanceOperations().getActiveScans(servers).stream()
+        .filter(activeScan -> activeScan.getTable().equals(tableName)).count();
   }
 }

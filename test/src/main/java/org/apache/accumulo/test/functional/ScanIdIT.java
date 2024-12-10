@@ -189,7 +189,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
       List<ActiveScan> activeScans = null;
       for (int i = 0; i < 10; i++) {
         try {
-          activeScans = client.instanceOperations().getActiveScans(tserver);
+          activeScans = client.instanceOperations().getActiveScans(List.of(tserver));
           break;
         } catch (AccumuloException e) {
           if (e.getCause() instanceof TableNotFoundException) {

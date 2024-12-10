@@ -243,7 +243,6 @@ service TabletServerClientService {
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:list<data.TKeyExtent> tablets
-    4:i32 numStamps
   )
 }
 

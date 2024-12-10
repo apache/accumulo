@@ -79,7 +79,7 @@ public class SetEncodingIterator implements SortedKeyValueIterator<Key,Value> {
     // expecting this range to cover a single metadata row, so validate the range meets expectations
     MetadataSchema.TabletsSection.validateRow(row);
     Preconditions.checkArgument(row.equals(range.getEndKey().getRow()));
-    return range.getStartKey().getRow();
+    return row;
   }
 
   @Override

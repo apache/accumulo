@@ -150,6 +150,33 @@ public class FateLogger {
       }
 
       @Override
+      public Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
+          boolean autoCleanUp) {
+        var optional = store.seedTransaction(txName, fateKey, repo, autoCleanUp);
+        if (storeLog.isTraceEnabled()) {
+          optional.ifPresentOrElse(fateId -> {
+            storeLog.trace("{} seeded {} {} {}", fateId, fateKey, toLogString.apply(repo),
+                autoCleanUp);
+          }, () -> {
+            storeLog.trace("Possibly unable to seed {} {} {}", fateKey, toLogString.apply(repo),
+                autoCleanUp);
+          });
+        }
+        return optional;
+      }
+
+      @Override
+      public boolean seedTransaction(String txName, FateId fateId, Repo<T> repo,
+          boolean autoCleanUp) {
+        boolean seeded = store.seedTransaction(txName, fateId, repo, autoCleanUp);
+        if (storeLog.isTraceEnabled()) {
+          storeLog.trace("{} {} {} {}", fateId, seeded ? "seeded" : "unable to seed",
+              toLogString.apply(repo), autoCleanUp);
+        }
+        return seeded;
+      }
+
+      @Override
       public int getDeferredCount() {
         return store.getDeferredCount();
       }
@@ -162,22 +189,6 @@ public class FateLogger {
       @Override
       public boolean isDeferredOverflow() {
         return store.isDeferredOverflow();
-      }
-
-      @Override
-      public Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
-        Optional<FateTxStore<T>> txStore = store.createAndReserve(fateKey);
-        if (storeLog.isTraceEnabled()) {
-          if (txStore.isPresent()) {
-            storeLog.trace("{} created and reserved fate transaction using key : {}",
-                txStore.orElseThrow().getID(), fateKey);
-          } else {
-            storeLog.trace(
-                "fate transaction was not created using key : {}, existing transaction exists",
-                fateKey);
-          }
-        }
-        return txStore;
       }
 
       @Override

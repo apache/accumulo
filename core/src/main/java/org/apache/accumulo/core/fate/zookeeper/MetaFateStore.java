@@ -20,12 +20,15 @@ package org.apache.accumulo.core.fate.zookeeper;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -106,7 +109,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   public FateId create() {
     while (true) {
       try {
-        FateId fateId = FateId.from(fateInstanceType, UUID.randomUUID());
+        FateId fateId = fateIdGenerator.newRandomId(fateInstanceType);
         zk.putPersistentData(getTXPath(fateId), new NodeValue(TStatus.NEW, null).serialize(),
             NodeExistsPolicy.FAIL);
         return fateId;
@@ -118,8 +121,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     }
   }
 
-  @Override
-  public Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
+  private Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
     final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
     verifyLock(lockID, fateId);
     final var reservation = FateReservation.from(lockID, UUID.randomUUID());
@@ -166,6 +168,52 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     } catch (InterruptedException | KeeperException | AcceptableThriftTableOperationException e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  @Override
+  public Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
+      boolean autoCleanUp) {
+    return createAndReserve(fateKey).map(txStore -> {
+      try {
+        seedTransaction(txName, repo, autoCleanUp, txStore);
+        return txStore.getID();
+      } finally {
+        txStore.unreserve(Duration.ZERO);
+      }
+    });
+  }
+
+  @Override
+  public boolean seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp) {
+    return tryReserve(fateId).map(txStore -> {
+      try {
+        if (txStore.getStatus() == NEW) {
+          seedTransaction(txName, repo, autoCleanUp, txStore);
+          return true;
+        }
+        return false;
+      } finally {
+        txStore.unreserve(Duration.ZERO);
+      }
+    }).orElse(false);
+  }
+
+  private void seedTransaction(String txName, Repo<T> repo, boolean autoCleanUp,
+      FateTxStore<T> txStore) {
+    if (txStore.top() == null) {
+      try {
+        txStore.push(repo);
+      } catch (StackOverflowException e) {
+        // this should not happen
+        throw new IllegalStateException(e);
+      }
+    }
+
+    if (autoCleanUp) {
+      txStore.setTransactionInfo(TxInfo.AUTO_CLEAN, autoCleanUp);
+    }
+    txStore.setTransactionInfo(TxInfo.TX_NAME, txName);
+    txStore.setStatus(SUBMITTED);
   }
 
   @Override

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
@@ -25,6 +26,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType.CURRENT;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -54,6 +56,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -119,8 +122,10 @@ class LoadFiles extends ManagerRepo {
     private Map<KeyExtent,List<TabletFile>> loadingFiles;
 
     private long skipped = 0;
+    private long pauseLimit;
 
-    void start(Path bulkDir, Manager manager, FateId fateId, boolean setTime) throws Exception {
+    void start(Path bulkDir, Manager manager, TableId tableId, FateId fateId, boolean setTime)
+        throws Exception {
       this.bulkDir = bulkDir;
       this.manager = manager;
       this.fateId = fateId;
@@ -128,6 +133,8 @@ class LoadFiles extends ManagerRepo {
       conditionalMutator = manager.getContext().getAmple().conditionallyMutateTablets();
       this.skipped = 0;
       this.loadingFiles = new HashMap<>();
+      this.pauseLimit =
+          manager.getContext().getTableConfiguration(tableId).getCount(Property.TABLE_FILE_PAUSE);
     }
 
     void load(List<TabletMetadata> tablets, Files files) {
@@ -141,7 +148,18 @@ class LoadFiles extends ManagerRepo {
       tablets = tablets.stream().filter(tabletMeta -> {
         Set<ReferencedTabletFile> loaded = tabletMeta.getLoaded().keySet().stream()
             .map(StoredTabletFile::getTabletFile).collect(Collectors.toSet());
-        return !loaded.containsAll(toLoad.keySet());
+        boolean containsAll = loaded.containsAll(toLoad.keySet());
+        // The tablet should either contain all loaded files or none. It should never contain a
+        // subset. Loaded files are written in single mutation to accumulo, either all changes in a
+        // mutation should go through or none.
+        Preconditions.checkState(containsAll || Collections.disjoint(loaded, toLoad.keySet()),
+            "Tablet %s has a subset of loaded files %s %s", tabletMeta.getExtent(), loaded,
+            toLoad.keySet());
+        if (containsAll) {
+          log.trace("{} tablet {} has already loaded all files, nothing to do", fateId,
+              tabletMeta.getExtent());
+        }
+        return !containsAll;
       }).collect(Collectors.toList());
 
       // timestamps from tablets that are hosted on a tablet server
@@ -155,7 +173,19 @@ class LoadFiles extends ManagerRepo {
         hostedTimestamps = Map.of();
       }
 
+      List<ColumnType> rsc = new ArrayList<>();
+      rsc.add(LOCATION);
+      if (setTime) {
+        rsc.add(TIME);
+      }
+      if (pauseLimit > 0) {
+        rsc.add(FILES);
+      }
+
+      ColumnType[] requireSameCols = rsc.toArray(new ColumnType[0]);
+
       for (TabletMetadata tablet : tablets) {
+        // Skip any tablets at the beginning of the loop before any work is done.
         if (setTime && tablet.getLocation() != null
             && !hostedTimestamps.containsKey(tablet.getExtent())) {
           skipped++;
@@ -163,12 +193,27 @@ class LoadFiles extends ManagerRepo {
               tablet.getExtent());
           continue;
         }
+        if (pauseLimit > 0 && tablet.getFiles().size() > pauseLimit) {
+          skipped++;
+          log.debug(
+              "{} tablet {} has {} files which exceeds the pause limit of {}, not bulk importing and will retry later",
+              fateId, tablet.getExtent(), tablet.getFiles().size(), pauseLimit);
+          continue;
+        }
 
         Map<ReferencedTabletFile,DataFileValue> filesToLoad = new HashMap<>();
 
         var tabletTime = TabletTime.getInstance(tablet.getTime());
 
-        int timeOffset = 0;
+        Long fileTime = null;
+        if (setTime) {
+          if (tablet.getLocation() == null) {
+            fileTime = tabletTime.getAndUpdateTime();
+          } else {
+            fileTime = hostedTimestamps.get(tablet.getExtent());
+            tabletTime.updateTimeIfGreater(fileTime);
+          }
+        }
 
         for (var entry : toLoad.entrySet()) {
           ReferencedTabletFile refTabFile = entry.getKey();
@@ -177,55 +222,35 @@ class LoadFiles extends ManagerRepo {
           DataFileValue dfv;
 
           if (setTime) {
-            if (tablet.getLocation() == null) {
-              dfv = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries(),
-                  tabletTime.getAndUpdateTime());
-            } else {
-              long fileTime = hostedTimestamps.get(tablet.getExtent()) + timeOffset;
-              dfv = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries(),
-                  fileTime);
-              tabletTime.updateTimeIfGreater(fileTime);
-              timeOffset++;
-            }
+            // This should always be set outside the loop when setTime is true and should not be
+            // null at this point
+            Preconditions.checkState(fileTime != null);
+            dfv =
+                new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries(), fileTime);
           } else {
             dfv = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries());
           }
 
           filesToLoad.put(refTabFile, dfv);
-
         }
 
-        // remove any files that were already loaded
-        tablet.getLoaded().keySet().forEach(stf -> {
-          filesToLoad.keySet().remove(stf.getTabletFile());
+        var tabletMutator = conditionalMutator.mutateTablet(tablet.getExtent())
+            .requireAbsentOperation().requireSame(tablet, LOADED, requireSameCols);
+
+        filesToLoad.forEach((f, v) -> {
+          tabletMutator.putBulkFile(f, fateId);
+          tabletMutator.putFile(f, v);
         });
 
-        if (!filesToLoad.isEmpty()) {
-          var tabletMutator =
-              conditionalMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
-
-          if (setTime) {
-            tabletMutator.requireSame(tablet, LOADED, TIME, LOCATION);
-          } else {
-            tabletMutator.requireSame(tablet, LOADED, LOCATION);
-          }
-
-          filesToLoad.forEach((f, v) -> {
-            tabletMutator.putBulkFile(f, fateId);
-            tabletMutator.putFile(f, v);
-          });
-
-          if (setTime) {
-            tabletMutator.putTime(tabletTime.getMetadataTime());
-          }
-
-          // Hang on to for logging purposes in the case where the update is a
-          // success.
-          Preconditions.checkState(
-              loadingFiles.put(tablet.getExtent(), List.copyOf(filesToLoad.keySet())) == null);
-
-          tabletMutator.submit(tm -> false);
+        if (setTime) {
+          tabletMutator.putTime(tabletTime.getMetadataTime());
         }
+
+        // Hang on to loaded files for logging purposes in the case where the update is success.
+        Preconditions.checkState(
+            loadingFiles.put(tablet.getExtent(), List.copyOf(filesToLoad.keySet())) == null);
+
+        tabletMutator.submit(tm -> false);
       }
     }
 
@@ -268,8 +293,8 @@ class LoadFiles extends ManagerRepo {
         client =
             ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server, context, timeInMillis);
 
-        var timestamps = client.allocateTimestamps(TraceUtil.traceInfo(), context.rpcCreds(),
-            extents, numStamps);
+        var timestamps =
+            client.allocateTimestamps(TraceUtil.traceInfo(), context.rpcCreds(), extents);
 
         log.trace("{} allocate timestamps request to {} returned {} timestamps", fateId, server,
             timestamps.size());
@@ -333,10 +358,16 @@ class LoadFiles extends ManagerRepo {
 
     Loader loader = new Loader();
     long t1;
-    loader.start(bulkDir, manager, fateId, bulkInfo.setTime);
+    loader.start(bulkDir, manager, tableId, fateId, bulkInfo.setTime);
+
+    List<ColumnType> fetchCols = new ArrayList<>(List.of(PREV_ROW, LOCATION, LOADED, TIME));
+    if (loader.pauseLimit > 0) {
+      fetchCols.add(FILES);
+    }
+
     try (TabletsMetadata tabletsMetadata =
         TabletsMetadata.builder(manager.getContext()).forTable(tableId).overlapping(startRow, null)
-            .checkConsistency().fetch(PREV_ROW, LOCATION, LOADED, TIME).build()) {
+            .checkConsistency().fetch(fetchCols.toArray(new ColumnType[0])).build()) {
 
       // The tablet iterator and load mapping iterator are both iterating over data that is sorted
       // in the same way. The two iterators are each independently advanced to find common points in

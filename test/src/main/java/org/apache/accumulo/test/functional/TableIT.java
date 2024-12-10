@@ -28,10 +28,12 @@ import java.io.FileNotFoundException;
 import java.time.Duration;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -61,7 +63,6 @@ public class TableIT extends AccumuloClusterHarness {
 
     AccumuloCluster cluster = getCluster();
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
-    String rootPath = mac.getConfig().getDir().getAbsolutePath();
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       TableOperations to = c.tableOperations();
@@ -79,12 +80,15 @@ public class TableIT extends AccumuloClusterHarness {
         assertTrue(s.stream().findAny().isPresent());
 
         FileSystem fs = getCluster().getFileSystem();
-        assertTrue(fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length > 0);
+        // the following path expects mini to be configured with a single volume
+        final Path tablePath = new Path(mac.getSiteConfiguration().get(Property.INSTANCE_VOLUMES)
+            + "/" + Constants.TABLE_DIR + "/" + id);
+        assertTrue(fs.listStatus(tablePath).length > 0);
         to.delete(tableName);
         assertTrue(s.stream().findAny().isEmpty());
 
         try {
-          assertEquals(0, fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length);
+          assertEquals(0, fs.listStatus(tablePath).length);
         } catch (FileNotFoundException ex) {
           // that's fine, too
         }

@@ -30,11 +30,13 @@ import java.io.UncheckedIOException;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
@@ -50,7 +52,8 @@ public class MetaFateIT extends FateIT {
 
   private static ZooKeeperTestingServer szk = null;
   private static ZooReaderWriter zk = null;
-  private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID();
+  private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
+  private static final String ZK_ROOT = ZooUtil.getRoot(IID);
 
   @TempDir
   private static File tempDir;

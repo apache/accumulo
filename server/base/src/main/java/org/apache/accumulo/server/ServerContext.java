@@ -53,6 +53,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metrics.MetricsInfo;
@@ -121,7 +122,7 @@ public class ServerContext extends ClientContext {
     serverDirs = info.getServerDirs();
 
     propStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooReaderWriter()));
-    zkUserPath = memoize(() -> Constants.ZROOT + "/" + getInstanceID() + Constants.ZUSERS);
+    zkUserPath = memoize(() -> ZooUtil.getRoot(getInstanceID()) + Constants.ZUSERS);
 
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
