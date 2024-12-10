@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -75,12 +76,22 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       return FateId.from(instanceType, UUID.randomUUID());
     }
   };
+  protected static final int MAX_REPOS = 100;
 
   // The ZooKeeper lock for the process that's running this store instance
   protected final ZooUtil.LockID lockID;
   protected final Predicate<ZooUtil.LockID> isLockHeld;
   protected final Map<FateId,CountDownTimer> deferred;
   protected final FateIdGenerator fateIdGenerator;
+  // the statuses required to perform operations
+  public static final Set<TStatus> REQ_PUSH_STATUS = Set.of(TStatus.IN_PROGRESS, TStatus.NEW);
+  public static final Set<TStatus> REQ_POP_STATUS =
+      Set.of(TStatus.FAILED_IN_PROGRESS, TStatus.SUCCESSFUL);
+  public static final Set<TStatus> REQ_DELETE_STATUS =
+      Set.of(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED);
+  // all but UNKNOWN
+  public static final Set<TStatus> REQ_FORCE_DELETE_STATUS = Set.of(TStatus.NEW, TStatus.SUBMITTED,
+      TStatus.SUCCESSFUL, TStatus.FAILED, TStatus.FAILED_IN_PROGRESS, TStatus.IN_PROGRESS);
   private final int maxDeferred;
   private final AtomicBoolean deferredOverflow = new AtomicBoolean();
 
@@ -415,7 +426,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     unreservedRunnableCount.increment();
   }
 
-  protected byte[] serializeTxInfo(Serializable so) {
+  protected static byte[] serializeTxInfo(Serializable so) {
     if (so instanceof String) {
       return ("S " + so).getBytes(UTF_8);
     } else {
@@ -428,7 +439,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
   }
 
-  protected Serializable deserializeTxInfo(TxInfo txInfo, byte[] data) {
+  protected static Serializable deserializeTxInfo(TxInfo txInfo, byte[] data) {
     if (data[0] == 'O') {
       byte[] sera = new byte[data.length - 2];
       System.arraycopy(data, 2, sera, 0, sera.length);
