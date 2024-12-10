@@ -184,14 +184,14 @@ isDebug() {
 }
 
 debug() {
-  isDebug && echo "${@@P}"
+  isDebug && echo "$1"
 }
 
 debugAndRun() {
-  debug "$@"
+  # Use $* to convert all args as a single argument
+  debug "$*"
   if ! isDebug; then
-    # shellcheck disable=SC2294
-    eval "${@@P}"
+    eval "$(printf "%q " "$@")"
   fi
 }
 
@@ -304,7 +304,8 @@ function execute_command() {
   if [[ $ARG_LOCAL == 1 ]]; then
     debugAndRun ACCUMULO_CLUSTER_ARG="${servers_per_host}" "${bin}/accumulo-service" "$service" "$control_cmd" "-o" "general.process.bind.addr=$host" "$@"
   else
-    debugAndRun "$SSH" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=${servers_per_host} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\" ${*@Q}'"
+    SSH=("${INITAL_SSH[@]}" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=${servers_per_host} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-o\" \"general.process.bind.addr=$host\" $(printf "\"%q\" " "${@}")'")
+    debugAndRun "${SSH[@]}"
   fi
 }
 
@@ -473,8 +474,7 @@ function main() {
   conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
 
   accumulo_cmd="${bin}/accumulo"
-  SSH='ssh -qnf -o ConnectTimeout=2'
-
+  INITAL_SSH=('ssh' '-qnf' '-o' 'ConnectTimeout=2')
   cmd="$1"
   shift
   parse_args "$@"
