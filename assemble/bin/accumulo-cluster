@@ -59,14 +59,15 @@ isDebug() {
 }
 
 debug() {
-  isDebug && echo "${@@P}"
+  isDebug && echo "$1"
+
 }
 
 debugAndRun() {
-  debug "$@"
+  # Use $* to convert all args as a single argument
+  debug "$*"
   if ! isDebug; then
-    # shellcheck disable=SC2294
-    eval "${@@P}"
+    eval "$(printf "%q " "$@")"
   fi
 }
 
@@ -577,20 +578,14 @@ function stop_here() {
   hosts_to_check=("$(hostname -a 2>/dev/null | head -1)" "$(hostname -f)")
 
   if echo "${TSERVER_HOSTS}" | grep -Eq 'localhost|127[.]0[.]0[.]1'; then
-    if ! isDebug; then
-      ${accumulo_cmd} admin stop localhost
-    else
-      debug "Stopping tservers on localhost via admin command"
-    fi
+    echo "Stopping tservers on localhost via admin command"
+    debugAndRun "$accumulo_cmd" admin stop localhost
   else
     for host in "${hosts_to_check[@]}"; do
       for tserver in $TSERVER_HOSTS; do
         if echo "$tserver" | grep -q "$host"; then
-          if ! isDebug; then
-            ${accumulo_cmd} admin stop "$host"
-          else
-            debug "Stopping tservers on $host via admin command"
-          fi
+          echo "Stopping tservers on $host via admin command"
+          debugAndRun "$accumulo_cmd" admin stop "$host"
         fi
       done
     done
