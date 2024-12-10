@@ -98,7 +98,7 @@ function start_service() {
       pid=$(cat "$pid_file")
       if kill -0 "$pid" 2>/dev/null; then
         echo "$HOST : ${service_name} already running (${pid})"
-        exit 0
+        continue
       fi
     fi
     echo "Starting $service_name on $HOST"
@@ -114,16 +114,15 @@ function start_service() {
     nohup "${bin}/accumulo" "$service_type" "$@" "${PROPERTY_OVERRIDES[@]}" >"$outfile" 2>"$errfile" </dev/null &
     echo "$!" >"${pid_file}"
 
-  done
-
-  # Check the max open files limit and selectively warn
-  max_files_open=$(ulimit -n)
-  if [[ -n $max_files_open ]]; then
-    max_files_recommended=32768
-    if ((max_files_open < max_files_recommended)); then
-      echo "WARN : Max open files on $HOST is $max_files_open, recommend $max_files_recommended" >&2
+    # Check the max open files limit and selectively warn
+    max_files_open=$(ulimit -n)
+    if [[ -n $max_files_open ]]; then
+      max_files_recommended=32768
+      if ((max_files_open < max_files_recommended)); then
+        echo "WARN : Max open files on $HOST is $max_files_open, recommend $max_files_recommended" >&2
+      fi
     fi
-  fi
+  done
 }
 
 function control_process() {
