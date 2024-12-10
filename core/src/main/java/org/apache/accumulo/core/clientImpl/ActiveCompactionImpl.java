@@ -119,7 +119,7 @@ public class ActiveCompactionImpl extends ActiveCompaction {
   }
 
   @Override
-  public ServerId getHost() {
+  public ServerId getServerId() {
     return server;
   }
 }

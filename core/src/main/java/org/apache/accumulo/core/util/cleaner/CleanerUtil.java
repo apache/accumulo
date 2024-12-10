@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.slf4j.Logger;
 
 /**
@@ -132,12 +131,4 @@ public class CleanerUtil {
       }
     });
   }
-
-  // this is dubious; MetadataConstraints should probably use the ZooCache provided by context
-  // can be done in a follow-on action; for now, this merely replaces the previous finalizer
-  public static Cleanable zooCacheClearer(Object o, ZooCache zc) {
-    requireNonNull(zc);
-    return CLEANER.register(o, zc::clear);
-  }
-
 }

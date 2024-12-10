@@ -72,7 +72,6 @@ public class TabletRefresher {
       // request. There may also be tablets that had a location when the files were set but do not
       // have a location now, that is ok the next time that tablet loads somewhere it will see the
       // files.
-
       var tabletIterator =
           tablets.stream().filter(tabletMetadata -> tabletMetadata.getLocation() != null)
               .filter(needsRefresh).iterator();

@@ -129,7 +129,7 @@ public class PrepBulkImportTest {
         .map(Text::toString).orElse(null);
 
     try (LoadMappingIterator lmi = createLoadMappingIter(loadRanges)) {
-      var extent = PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets);
+      var extent = PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets, 0);
       assertEquals(nke(minPrevEndRow, maxPrevEndRow), extent, loadRanges + " " + tabletRanges);
     }
   }

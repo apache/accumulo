@@ -31,8 +31,6 @@ public class StatusInformation {
   public String tServerStatus = null;
   public String coordinatorStatus = null;
 
-  public Integer problemNumber = 0;
-
   public StatusInformation() {}
 
   /**
@@ -42,15 +40,13 @@ public class StatusInformation {
    * @param gcStatus Status for the GC
    * @param tServerStatus Status for the tserver
    * @param coordinatorStatus Status for the Compaction Coordinator
-   * @param problemNumber Number of problems per table
    */
   public StatusInformation(String managerStatus, String gcStatus, String tServerStatus,
-      String coordinatorStatus, Integer problemNumber) {
+      String coordinatorStatus) {
     this.managerStatus = managerStatus;
     this.gcStatus = gcStatus;
     this.tServerStatus = tServerStatus;
     this.coordinatorStatus = coordinatorStatus;
-    this.problemNumber = problemNumber;
 
   }
 }

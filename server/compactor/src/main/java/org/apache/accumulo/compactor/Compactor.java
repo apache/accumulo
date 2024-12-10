@@ -1018,4 +1018,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     }
   }
 
+  @Override
+  public ServiceLock getLock() {
+    return compactorLock;
+  }
 }

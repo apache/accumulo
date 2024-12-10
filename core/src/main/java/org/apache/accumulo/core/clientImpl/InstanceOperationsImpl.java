@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.rpc.ThriftUtil.createTransport;
 import static org.apache.accumulo.core.rpc.ThriftUtil.getClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.returnClient;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.INSTANCE_OPS_COMPACTIONS_FINDER_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.INSTANCE_OPS_SCANS_FINDER_POOL;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -51,6 +53,7 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
@@ -72,12 +75,14 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
+import org.apache.accumulo.core.util.threads.ThreadPoolNames;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * Provides a class for administering the accumulo instance
@@ -265,41 +270,31 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException {
-    final var parsedTserver = HostAndPort.fromString(tserver);
-    TabletScanClientService.Client client = null;
-    try {
-      client = getClient(ThriftClientTypes.TABLET_SCAN, parsedTserver, context);
-
-      List<ActiveScan> as = new ArrayList<>();
-      for (var activeScan : client.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
-        try {
-          as.add(new ActiveScanImpl(context, activeScan));
-        } catch (TableNotFoundException e) {
-          throw new AccumuloException(e);
-        }
-      }
-      return as;
-    } catch (ThriftSecurityException e) {
-      throw new AccumuloSecurityException(e.user, e.code, e);
-    } catch (TException e) {
-      throw new AccumuloException(e);
-    } finally {
-      if (client != null) {
-        returnClient(client, context);
-      }
-    }
+    var si = getServerId(tserver, List.of(Type.TABLET_SERVER, Type.SCAN_SERVER));
+    // getActiveScans throws exceptions so we can't use Optional.map() here
+    return si.isPresent() ? getActiveScans(si.orElseThrow()) : List.of();
   }
 
   @Override
-  public List<ActiveScan> getActiveScans(ServerId server)
+  public List<ActiveScan> getActiveScans(Collection<ServerId> servers)
       throws AccumuloException, AccumuloSecurityException {
+    servers.forEach(InstanceOperationsImpl::checkActiveScanServer);
+    return queryServers(servers, this::getActiveScans, INSTANCE_OPS_SCANS_FINDER_POOL);
+  }
 
+  private static void checkActiveScanServer(ServerId server) {
     Objects.requireNonNull(server);
     Preconditions.checkArgument(
         server.getType() == ServerId.Type.SCAN_SERVER
             || server.getType() == ServerId.Type.TABLET_SERVER,
         "Server type %s is not %s or %s.", server.getType(), ServerId.Type.SCAN_SERVER,
         ServerId.Type.TABLET_SERVER);
+  }
+
+  private List<ActiveScan> getActiveScans(ServerId server)
+      throws AccumuloException, AccumuloSecurityException {
+
+    checkActiveScanServer(server);
 
     final var parsedTserver = HostAndPort.fromParts(server.getHost(), server.getPort());
     TabletScanClientService.Client rpcClient = null;
@@ -309,7 +304,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       List<ActiveScan> as = new ArrayList<>();
       for (var activeScan : rpcClient.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
         try {
-          as.add(new ActiveScanImpl(context, activeScan));
+          as.add(new ActiveScanImpl(context, activeScan, server));
         } catch (TableNotFoundException e) {
           throw new AccumuloException(e);
         }
@@ -337,29 +332,15 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated
   public List<ActiveCompaction> getActiveCompactions(String server)
       throws AccumuloException, AccumuloSecurityException {
-
-    HostAndPort hp = HostAndPort.fromString(server);
-
-    ServerId si = getServer(ServerId.Type.COMPACTOR, null, hp.getHost(), hp.getPort());
-    if (si == null) {
-      si = getServer(ServerId.Type.TABLET_SERVER, null, hp.getHost(), hp.getPort());
-    }
-    if (si == null) {
-      return List.of();
-    }
-    return getActiveCompactions(si);
+    var si = getServerId(server, List.of(Type.COMPACTOR, Type.TABLET_SERVER));
+    // getActiveCompactions throws exceptions so we can't use Optional.map() here
+    return si.isPresent() ? getActiveCompactions(si.orElseThrow()) : List.of();
   }
 
-  @Override
-  public List<ActiveCompaction> getActiveCompactions(ServerId server)
+  private List<ActiveCompaction> getActiveCompactions(ServerId server)
       throws AccumuloException, AccumuloSecurityException {
 
-    Objects.requireNonNull(server);
-    Preconditions.checkArgument(
-        server.getType() == ServerId.Type.COMPACTOR
-            || server.getType() == ServerId.Type.TABLET_SERVER,
-        "Server type %s is not %s or %s.", server.getType(), ServerId.Type.COMPACTOR,
-        ServerId.Type.TABLET_SERVER);
+    checkActiveCompactionServer(server);
 
     final HostAndPort serverHostAndPort = HostAndPort.fromParts(server.getHost(), server.getPort());
     final List<ActiveCompaction> as = new ArrayList<>();
@@ -390,7 +371,15 @@ public class InstanceOperationsImpl implements InstanceOperations {
     }
   }
 
+  private static void checkActiveCompactionServer(ServerId server) {
+    Objects.requireNonNull(server);
+    Preconditions.checkArgument(
+        server.getType() == Type.COMPACTOR || server.getType() == Type.TABLET_SERVER,
+        "Server type %s is not %s or %s.", server.getType(), Type.COMPACTOR, Type.TABLET_SERVER);
+  }
+
   @Override
+  @Deprecated
   public List<ActiveCompaction> getActiveCompactions()
       throws AccumuloException, AccumuloSecurityException {
 
@@ -404,19 +393,35 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<ActiveCompaction> getActiveCompactions(Collection<ServerId> compactionServers)
       throws AccumuloException, AccumuloSecurityException {
+    compactionServers.forEach(InstanceOperationsImpl::checkActiveCompactionServer);
+    return queryServers(compactionServers, this::getActiveCompactions,
+        INSTANCE_OPS_COMPACTIONS_FINDER_POOL);
+  }
 
-    int numThreads = Math.max(4, Math.min((compactionServers.size()) / 10, 256));
-    var executorService = context.threadPools().getPoolBuilder(INSTANCE_OPS_COMPACTIONS_FINDER_POOL)
-        .numCoreThreads(numThreads).build();
+  private <T> List<T> queryServers(Collection<ServerId> servers, ServerQuery<List<T>> serverQuery,
+      ThreadPoolNames pool) throws AccumuloException, AccumuloSecurityException {
+
+    final ExecutorService executorService;
+    // If size 0 or 1 there's no need to create a thread pool
+    if (servers.isEmpty()) {
+      return List.of();
+    } else if (servers.size() == 1) {
+      executorService = MoreExecutors.newDirectExecutorService();
+    } else {
+      int numThreads = Math.max(4, Math.min((servers.size()) / 10, 256));
+      executorService =
+          context.threadPools().getPoolBuilder(pool).numCoreThreads(numThreads).build();
+    }
+
     try {
-      List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
+      List<Future<List<T>>> futures = new ArrayList<>();
 
-      for (ServerId server : compactionServers) {
-        futures.add(executorService.submit(() -> getActiveCompactions(server)));
+      for (ServerId server : servers) {
+        futures.add(executorService.submit(() -> serverQuery.execute(server)));
       }
 
-      List<ActiveCompaction> ret = new ArrayList<>();
-      for (Future<List<ActiveCompaction>> future : futures) {
+      List<T> ret = new ArrayList<>();
+      for (Future<List<T>> future : futures) {
         try {
           ret.addAll(future.get());
         } catch (InterruptedException | ExecutionException e) {
@@ -635,4 +640,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
     return new ServerId(type, resourceGroup, host, port);
   }
 
+  private Optional<ServerId> getServerId(String server, List<Type> types) {
+    HostAndPort hp = HostAndPort.fromString(server);
+    return types.stream().map(type -> getServer(type, null, hp.getHost(), hp.getPort()))
+        .findFirst();
+  }
+
+  interface ServerQuery<T> {
+    T execute(ServerId server) throws AccumuloException, AccumuloSecurityException;
+  }
 }

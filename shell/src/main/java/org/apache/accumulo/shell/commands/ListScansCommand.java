@@ -18,15 +18,20 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.ScanType;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.util.DurationFormat;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -34,6 +39,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 public class ListScansCommand extends Command {
 
@@ -51,7 +57,7 @@ public class ListScansCommand extends Command {
 
     final InstanceOperations instanceOps = shellState.getAccumuloClient().instanceOperations();
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
-    final Set<ServerId> servers = new HashSet<>();
+    final List<ServerId> servers = new ArrayList<>();
 
     String serverValue = getServerOptValue(cl, serverOpt, tserverOption);
     if (serverValue != null || cl.hasOption(rgOpt)) {
@@ -66,9 +72,32 @@ public class ListScansCommand extends Command {
       servers.addAll(instanceOps.getServers(ServerId.Type.TABLET_SERVER));
     }
 
-    shellState.printLines(new ActiveScanIterator(servers, instanceOps), paginate);
+    Stream<String> activeScans = getActiveScans(instanceOps, servers);
+    activeScans = appendHeader(activeScans);
+    shellState.printLines(activeScans.iterator(), paginate);
 
     return 0;
+  }
+
+  private Stream<String> getActiveScans(InstanceOperations instanceOps, List<ServerId> servers) {
+    List<List<ServerId>> partServerIds = Lists.partition(servers, 100);
+    return partServerIds.stream().flatMap(ids -> {
+      try {
+        return instanceOps.getActiveScans(ids).stream().map(as -> {
+          var dur = new DurationFormat(as.getAge(), "");
+          var dur2 = new DurationFormat(as.getLastContactTime(), "");
+          var server = as.getServerId();
+          return (String.format(
+              "%21s |%21s |%21s |%9s |%9s |%7s |%6s |%8s |%8s |%10s |%20s |%10s |%20s |%10s | %s",
+              server.getResourceGroup(), server.toHostPortString(), as.getClient(), dur, dur2,
+              as.getState(), as.getType(), as.getUser(), as.getTable(), as.getColumns(),
+              as.getAuthorizations(), (as.getType() == ScanType.SINGLE ? as.getTablet() : "N/A"),
+              as.getScanid(), as.getSsiList(), as.getSsio()));
+        });
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        return Stream.of("ERROR " + e.getMessage());
+      }
+    });
   }
 
   @Override
@@ -120,4 +149,12 @@ public class ListScansCommand extends Command {
         .orElse(rg -> true);
   }
 
+  private static Stream<String> appendHeader(Stream<String> stream) {
+    Stream<String> header = Stream.of(String.format(
+        " %-21s| %-21s| %-21s| %-9s| %-9s| %-7s| %-6s|"
+            + " %-8s| %-8s| %-10s| %-20s| %-10s| %-10s | %-20s | %s",
+        "GROUP", "SERVER", "CLIENT", "AGE", "LAST", "STATE", "TYPE", "USER", "TABLE", "COLUMNS",
+        "AUTHORIZATIONS", "TABLET", "SCAN ID", "ITERATORS", "ITERATOR OPTIONS"));
+    return Stream.concat(header, stream);
+  }
 }

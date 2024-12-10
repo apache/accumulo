@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -74,7 +75,7 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
                 .iterator().next();
             do {
               ArrayList<ActiveScan> scans =
-                  new ArrayList<>(client.instanceOperations().getActiveScans(tserver));
+                  new ArrayList<>(client.instanceOperations().getActiveScans(List.of(tserver)));
               // Remove scans not against our table and not owned by us
               scans.removeIf(scan -> !getAdminPrincipal().equals(scan.getUser())
                   || !tableName.equals(scan.getTable()));

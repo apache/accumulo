@@ -259,22 +259,22 @@ public interface InstanceOperations {
    * @param tserver The tablet server address. This should be of the form
    *        {@code <ip address>:<port>}
    * @return A list of active scans on tablet server.
-   * @deprecated see {@link #getActiveScans(ServerId)}
+   * @deprecated see {@link #getActiveScans(Collection)}
    */
   @Deprecated(since = "4.0.0")
   List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * List the active scans on a server.
+   * List the active scans on a collection of servers.
    *
-   * @param server server type and address
-   * @return A stream of active scans on server.
+   * @param servers Collection of server types and addresses
+   * @return A list of active scans on the given servers.
    * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or
    *         SCAN_SERVER
    * @since 4.0.0
    */
-  List<ActiveScan> getActiveScans(ServerId server)
+  List<ActiveScan> getActiveScans(Collection<ServerId> servers)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -286,24 +286,10 @@ public interface InstanceOperations {
    * @param tserver The server address. This should be of the form {@code <ip address>:<port>}
    * @return the list of active compactions
    * @since 1.5.0
-   * @deprecated see {@link #getActiveCompactions(ServerId server)}
+   * @deprecated see {@link #getActiveCompactions(Collection)}
    */
   @Deprecated(since = "4.0.0")
   List<ActiveCompaction> getActiveCompactions(String tserver)
-      throws AccumuloException, AccumuloSecurityException;
-
-  /**
-   * List the active compaction running on a TabletServer or Compactor. The server address can be
-   * retrieved using {@link #getCompactors()} or {@link #getTabletServers()}. Use
-   * {@link #getActiveCompactions()} to get a list of all compactions running on tservers and
-   * compactors.
-   *
-   * @param server The ServerId object
-   * @return the list of active compactions
-   * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or COMPACTOR
-   * @since 4.0.0
-   */
-  List<ActiveCompaction> getActiveCompactions(ServerId server)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -311,7 +297,9 @@ public interface InstanceOperations {
    *
    * @return the list of active compactions
    * @since 2.1.0
+   * @deprecated see {@link #getActiveCompactions(Collection)}
    */
+  @Deprecated(since = "4.0.0")
   List<ActiveCompaction> getActiveCompactions() throws AccumuloException, AccumuloSecurityException;
 
   /**

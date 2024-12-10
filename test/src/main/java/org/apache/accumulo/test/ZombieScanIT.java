@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
+import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.ScanType;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -238,7 +239,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
       // system.
       Set<ServerId> tabletServersWithZombieScans = new HashSet<>();
       for (ServerId tserver : c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)) {
-        if (c.instanceOperations().getActiveScans(tserver).stream()
+        if (c.instanceOperations().getActiveScans(List.of(tserver)).stream()
             .flatMap(activeScan -> activeScan.getSsiList().stream())
             .anyMatch(scanIters -> scanIters.contains(ZombieIterator.class.getName()))) {
           tabletServersWithZombieScans.add(tserver);
@@ -355,13 +356,9 @@ public class ZombieScanIT extends ConfigurableMacBase {
   private static long countDistinctTabletsScans(String table, AccumuloClient client)
       throws Exception {
     Set<ServerId> tservers = client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
-    long count = 0;
-    for (ServerId tserver : tservers) {
-      count += client.instanceOperations().getActiveScans(tserver).stream()
-          .filter(activeScan -> activeScan.getTable().equals(table))
-          .map(activeScan -> activeScan.getTablet()).distinct().count();
-    }
-    return count;
+    return client.instanceOperations().getActiveScans(tservers).stream()
+        .filter(activeScan -> activeScan.getTable().equals(table)).map(ActiveScan::getTablet)
+        .distinct().count();
   }
 
   private Future<String> startStuckScan(AccumuloClient c, String table, ExecutorService executor,
@@ -420,12 +417,11 @@ public class ZombieScanIT extends ConfigurableMacBase {
       throws AccumuloException, AccumuloSecurityException {
     Set<Long> scanIds = new HashSet<>();
     Set<ScanType> scanTypes = new HashSet<>();
-    for (ServerId tserver : c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)) {
-      c.instanceOperations().getActiveScans(tserver).forEach(activeScan -> {
-        scanIds.add(activeScan.getScanid());
-        scanTypes.add(activeScan.getType());
-      });
-    }
+    var tservers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
+    c.instanceOperations().getActiveScans(tservers).forEach(activeScan -> {
+      scanIds.add(activeScan.getScanid());
+      scanTypes.add(activeScan.getType());
+    });
     assertNotEquals(0, scanIds.size());
     scanIds.forEach(id -> assertTrue(id != 0L && id != -1L));
     // ensure coverage of both batch and single scans
