@@ -424,18 +424,6 @@ public class AdminUtil<T> {
           txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted());
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
-
-    if (!fateStatus.getDanglingHeldLocks().isEmpty()
-        || !fateStatus.getDanglingWaitingLocks().isEmpty()) {
-      fmt.format("%nThe following locks did not have an associated FATE operation%n");
-      for (Entry<String,List<String>> entry : fateStatus.getDanglingHeldLocks().entrySet()) {
-        fmt.format("txid: %s  locked: %s%n", entry.getKey(), entry.getValue());
-      }
-
-      for (Entry<String,List<String>> entry : fateStatus.getDanglingWaitingLocks().entrySet()) {
-        fmt.format("txid: %s  locking: %s%n", entry.getKey(), entry.getValue());
-      }
-    }
   }
 
   public boolean prepDelete(TStore<T> zs, ZooReaderWriter zk, ServiceLockPath path,
