@@ -521,6 +521,11 @@ public interface Ample {
     ConditionalTabletMutator requireFiles(Set<StoredTabletFile> files);
 
     /**
+     * Requires that a tablet not have these loaded flags set.
+     */
+    ConditionalTabletMutator requireAbsentLoaded(Set<ReferencedTabletFile> files);
+
+    /**
      * <p>
      * Ample provides the following features on top of the conditional writer to help automate
      * handling of edges cases that arise when using the conditional writer.
