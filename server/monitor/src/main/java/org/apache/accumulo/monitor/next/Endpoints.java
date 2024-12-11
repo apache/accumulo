@@ -18,18 +18,22 @@
  */
 package org.apache.accumulo.monitor.next;
 
+import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.Constants;
@@ -46,7 +50,7 @@ import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
 
-@Path("/metrics")
+@Path("/")
 public class Endpoints {
 
   @Inject
@@ -60,28 +64,46 @@ public class Endpoints {
   }
 
   @GET
-  @Path("/groups")
+  @Path("endpoints")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Set<String> getEndpoints(@Context HttpServletRequest request) {
+
+    final String basePath = request.getRequestURL().toString();
+    final Set<String> endpoints = new HashSet<>();
+
+    for (Method m : Endpoints.class.getMethods()) {
+      if (m.isAnnotationPresent(Path.class)) {
+        Path pathAnnotation = m.getAnnotation(Path.class);
+        endpoints.add(basePath + "/" + pathAnnotation.value());
+      }
+    }
+
+    return endpoints;
+  }
+
+  @GET
+  @Path("groups")
   @Produces(MediaType.APPLICATION_JSON)
   public Set<String> getResourceGroups() {
     return monitor.getInformationFetcher().getSummary().getResourceGroups();
   }
 
   @GET
-  @Path("/problems")
+  @Path("problems")
   @Produces(MediaType.APPLICATION_JSON)
   public Collection<ServerId> getProblemHosts() {
     return monitor.getInformationFetcher().getSummary().getProblemHosts();
   }
 
   @GET
-  @Path("/")
+  @Path("metrics")
   @Produces(MediaType.APPLICATION_JSON)
   public Collection<MetricResponse> getAll() {
     return monitor.getInformationFetcher().getAllMetrics().asMap().values();
   }
 
   @GET
-  @Path("/manager")
+  @Path("manager")
   @Produces(MediaType.APPLICATION_JSON)
   public MetricResponse getManager() {
     final ServerId s = monitor.getInformationFetcher().getSummary().getManager();
@@ -92,7 +114,7 @@ public class Endpoints {
   }
 
   @GET
-  @Path("/gc")
+  @Path("gc")
   @Produces(MediaType.APPLICATION_JSON)
   public MetricResponse getGarbageCollector() {
     final ServerId s = monitor.getInformationFetcher().getSummary().getGarbageCollector();
@@ -103,7 +125,7 @@ public class Endpoints {
   }
 
   @GET
-  @Path("/instance")
+  @Path("instance")
   @Produces(MediaType.APPLICATION_JSON)
   public InstanceSummary getInstanceSummary() {
     return new InstanceSummary(monitor.getContext().getInstanceName(),
@@ -115,7 +137,7 @@ public class Endpoints {
   }
 
   @GET
-  @Path("/compactors/detail/{group}")
+  @Path("compactors/detail/{group}")
   @Produces(MediaType.APPLICATION_JSON)
   public Collection<MetricResponse> getCompactors(@PathParam("group") String resourceGroup) {
     validateResourceGroup(resourceGroup);
@@ -128,7 +150,7 @@ public class Endpoints {
   }
 
   @GET
-  @Path("/compactors/summary/{group}")
+  @Path("compactors/summary/{group}")
   @Produces(MediaType.APPLICATION_JSON)
   public Map<Id,CumulativeDistributionSummary>
       getCompactorResourceGroupMetricSummary(@PathParam("group") String resourceGroup) {
@@ -142,14 +164,14 @@ public class Endpoints {
   }
 
   @GET
-  @Path("/compactors/summary")
+  @Path("compactors/summary")
   @Produces(MediaType.APPLICATION_JSON)
   public Map<Id,CumulativeDistributionSummary> getCompactorAllMetricSummary() {
     return monitor.getInformationFetcher().getSummary().getCompactorAllMetricSummary();
   }
 
   @GET
-  @Path("/sservers/detail/{group}")
+  @Path("sservers/detail/{group}")
   @Produces(MediaType.APPLICATION_JSON)
   public Collection<MetricResponse> getScanServers(@PathParam("group") String resourceGroup) {
     validateResourceGroup(resourceGroup);
@@ -162,7 +184,7 @@ public class Endpoints {
   }
 
   @GET
-  @Path("/sservers/summary/{group}")
+  @Path("sservers/summary/{group}")
   @Produces(MediaType.APPLICATION_JSON)
   public Map<Id,CumulativeDistributionSummary>
       getScanServerResourceGroupMetricSummary(@PathParam("group") String resourceGroup) {
@@ -176,14 +198,14 @@ public class Endpoints {
   }
 
   @GET
-  @Path("/sservers/summary")
+  @Path("sservers/summary")
   @Produces(MediaType.APPLICATION_JSON)
   public Map<Id,CumulativeDistributionSummary> getScanServerAllMetricSummary() {
     return monitor.getInformationFetcher().getSummary().getSServerAllMetricSummary();
   }
 
   @GET
-  @Path("/tservers/detail/{group}")
+  @Path("tservers/detail/{group}")
   @Produces(MediaType.APPLICATION_JSON)
   public Collection<MetricResponse> getTabletServers(@PathParam("group") String resourceGroup) {
     validateResourceGroup(resourceGroup);
@@ -196,7 +218,7 @@ public class Endpoints {
   }
 
   @GET
-  @Path("/tservers/summary/{group}")
+  @Path("tservers/summary/{group}")
   @Produces(MediaType.APPLICATION_JSON)
   public Map<Id,CumulativeDistributionSummary>
       getTabletServerResourceGroupMetricSummary(@PathParam("group") String resourceGroup) {
@@ -210,42 +232,42 @@ public class Endpoints {
   }
 
   @GET
-  @Path("/tservers/summary")
+  @Path("tservers/summary")
   @Produces(MediaType.APPLICATION_JSON)
   public Map<Id,CumulativeDistributionSummary> getTabletServerAllMetricSummary() {
     return monitor.getInformationFetcher().getSummary().getTServerAllMetricSummary();
   }
 
   @GET
-  @Path("/compactions/summary")
+  @Path("compactions/summary")
   @Produces(MediaType.APPLICATION_JSON)
   public Map<String,List<FMetric>> getCompactionMetricSummary() {
     return monitor.getInformationFetcher().getSummary().getCompactionMetricSummary();
   }
 
   @GET
-  @Path("/compactions/detail")
+  @Path("compactions/detail")
   @Produces(MediaType.APPLICATION_JSON)
   public Map<String,List<TExternalCompaction>> getCompactions() {
     return monitor.getInformationFetcher().getSummary().getCompactions(25);
   }
 
   @GET
-  @Path("/compactions/detail/{num}")
+  @Path("compactions/detail/{num}")
   @Produces(MediaType.APPLICATION_JSON)
   public Map<String,List<TExternalCompaction>> getCompactions(@PathParam("num") int topN) {
     return monitor.getInformationFetcher().getSummary().getCompactions(topN);
   }
 
   @GET
-  @Path("/tables")
+  @Path("tables")
   @Produces(MediaType.APPLICATION_JSON)
   public Map<String,TableSummary> getTables() {
     return monitor.getInformationFetcher().getSummary().getTables();
   }
 
   @GET
-  @Path("/tables/{name}")
+  @Path("tables/{name}")
   @Produces(MediaType.APPLICATION_JSON)
   public TableSummary getTable(@PathParam("name") String tableName) {
     TableSummary ts = monitor.getInformationFetcher().getSummary().getTables().get(tableName);
@@ -256,7 +278,7 @@ public class Endpoints {
   }
 
   @GET
-  @Path("/tables/{name}/tablets")
+  @Path("tables/{name}/tablets")
   @Produces(MediaType.APPLICATION_JSON)
   public List<TabletInformation> getTablets(@PathParam("name") String tableName) {
     List<TabletInformation> ti = monitor.getInformationFetcher().getSummary().getTablets(tableName);
@@ -267,28 +289,28 @@ public class Endpoints {
   }
 
   @GET
-  @Path("/deployment")
+  @Path("deployment")
   @Produces(MediaType.APPLICATION_JSON)
   public Map<String,Map<String,ProcessSummary>> getDeploymentOverview() {
     return monitor.getInformationFetcher().getSummary().getDeploymentOverview();
   }
 
   @GET
-  @Path("/suggestions")
+  @Path("suggestions")
   @Produces(MediaType.APPLICATION_JSON)
   public Set<String> getSuggestions() {
     return monitor.getInformationFetcher().getSummary().getSuggestions();
   }
 
   @GET
-  @Path("/lastUpdate")
+  @Path("lastUpdate")
   @Produces(MediaType.APPLICATION_JSON)
   public long getTimestamp() {
     return monitor.getInformationFetcher().getSummary().getTimestamp();
   }
 
   @GET
-  @Path("/stats")
+  @Path("stats")
   @Produces(MediaType.TEXT_PLAIN)
   public String getConnectionStatistics() {
     return monitor.getConnectionStatisticsBean().dump();

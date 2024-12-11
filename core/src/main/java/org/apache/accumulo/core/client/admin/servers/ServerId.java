@@ -29,7 +29,7 @@ import com.google.common.base.Preconditions;
  *
  * @since 4.0.0
  */
-public class ServerId implements Comparable<ServerId> {
+public final class ServerId implements Comparable<ServerId> {
 
   /**
    * Server process type names.

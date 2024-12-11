@@ -35,8 +35,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import jakarta.ws.rs.Path;
-
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -66,7 +64,6 @@ import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.net.HostAndPort;
 
-@Path("/metrics")
 public class InformationFetcher implements RemovalListener<ServerId,MetricResponse>, Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(InformationFetcher.class);
