@@ -174,7 +174,6 @@ class LoadFiles extends ManagerRepo {
       }
 
       List<ColumnType> rsc = new ArrayList<>();
-      rsc.add(LOCATION);
       if (setTime) {
         rsc.add(TIME);
       }
@@ -235,7 +234,8 @@ class LoadFiles extends ManagerRepo {
         }
 
         var tabletMutator = conditionalMutator.mutateTablet(tablet.getExtent())
-            .requireAbsentOperation().requireSame(tablet, LOADED, requireSameCols);
+            .requireAbsentOperation().requireAbsentLoaded(filesToLoad.keySet())
+            .requireSame(tablet, LOCATION, requireSameCols);
 
         filesToLoad.forEach((f, v) -> {
           tabletMutator.putBulkFile(f, fateId);
