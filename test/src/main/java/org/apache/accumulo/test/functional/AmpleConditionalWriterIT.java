@@ -1797,4 +1797,80 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     // Should be previous time still as the mutation was rejected
     assertEquals(time2, context.getAmple().readTablet(e1).getTime());
   }
+
+  @Test
+  public void testRequireNotCompacting() {
+    var context = cluster.getServerContext();
+
+    var stf1 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
+    var stf2 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
+    var stf3 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
+    var stf4 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/C0000073.rf"));
+    var dfv = new DataFileValue(100, 100);
+
+    // add all four files to tablet
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().putFile(stf1, dfv).putFile(stf2, dfv)
+          .putFile(stf3, dfv).putFile(stf4, dfv).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+
+    var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
+    var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
+    var compaction1 = createCompaction(Set.of(stf1, stf2));
+    var compaction2 = createCompaction(Set.of(stf3));
+
+    // add first compaction to tablet
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireNotCompacting(compaction1.getJobFiles())
+          .putExternalCompaction(ecid1, compaction1).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(ecid1),
+        context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+
+    // add second compaction to tablet, there is an existing compaction but the files do not overlap
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireNotCompacting(compaction2.getJobFiles())
+          .putExternalCompaction(ecid2, compaction2).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(ecid1, ecid2),
+        context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+
+    // try different adding a compaction for different subsets of files that overlap with the
+    // existing compacting files
+    for (var compactingFiles : Sets.powerSet(Set.of(stf1, stf2, stf3))) {
+      if (compactingFiles.isEmpty()) {
+        continue;
+      }
+      // attempt to add a compaction that overlaps with existing compacting files
+      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+        // This compactions overlaps files from compaction1 and compaction2
+        var compaction3 = createCompaction(compactingFiles);
+        var ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
+        ctmi.mutateTablet(e1).requireAbsentOperation()
+            .requireNotCompacting(compaction3.getJobFiles())
+            .putExternalCompaction(ecid3, compaction3).submit(tm -> false);
+        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+      }
+      assertEquals(Set.of(ecid1, ecid2),
+          context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+    }
+  }
+
+  private CompactionMetadata createCompaction(Set<StoredTabletFile> jobFiles) {
+    FateInstanceType type = FateInstanceType.fromTableId(tid);
+    FateId fateId = FateId.from(type, UUID.randomUUID());
+    ReferencedTabletFile tmpFile =
+        ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
+    CompactorGroupId ceid = CompactorGroupId.of("G1");
+    CompactionMetadata ecMeta = new CompactionMetadata(jobFiles, tmpFile, "localhost:4444",
+        CompactionKind.SYSTEM, (short) 2, ceid, false, fateId);
+    return ecMeta;
+  }
 }

@@ -64,6 +64,7 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.metadata.iterators.DisjointCompactionIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
 import org.apache.accumulo.server.metadata.iterators.SetEncodingIterator;
 import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
@@ -341,6 +342,14 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
           .setValue(PresentIterator.VALUE).setIterators(is);
       mutation.addCondition(c);
     }
+    return this;
+  }
+
+  @Override
+  public ConditionalTabletMutator requireNotCompacting(Set<StoredTabletFile> files) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition condition = DisjointCompactionIterator.createCondition(files);
+    mutation.addCondition(condition);
     return this;
   }
 
