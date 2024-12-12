@@ -428,6 +428,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
       newTableConf.setProperties(props);
       client.tableOperations().create(tableName, newTableConf);
 
+      var tableId = ((ClientContext) client).getTableId(tableName);
+
       String dir = getDir("/testBulkFileMFP-");
 
       for (int i = 4; i < 8; i++) {
@@ -450,6 +452,9 @@ public class BulkNewIT extends SharedMiniClusterBase {
       // message should contain the limit of 5 and the number of files attempted to import 6
       assertTrue(msg.contains(" 5"), msg);
       assertTrue(msg.contains(" 6"), msg);
+      // error should include range information
+      assertTrue(msg.contains(tableId + "<<"), msg);
+      assertTrue(msg.contains(" " + Property.TABLE_BULK_MAX_TABLET_FILES.getKey()), msg);
 
       // ensure no data was added to table
       verifyData(client, tableName, 40, 79, false);
@@ -476,6 +481,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
       // message should contain the limit of 5 and the number of files attempted to import 7
       assertTrue(msg.contains(" 5"), msg);
       assertTrue(msg.contains(" 7"), msg);
+      assertTrue(msg.contains(tableId + ";0100<"), msg);
+      assertTrue(msg.contains(" " + Property.TABLE_BULK_MAX_TABLET_FILES.getKey()), msg);
       verifyData(client, tableName, 40, 79, false);
 
       // try the middle tablet
@@ -496,6 +503,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
       // message should contain the limit of 5 and the number of files attempted to import 6
       assertTrue(msg.contains(" 5"), msg);
       assertTrue(msg.contains(" 6"), msg);
+      assertTrue(msg.contains(tableId + ";0200;0100"), msg);
+      assertTrue(msg.contains(" " + Property.TABLE_BULK_MAX_TABLET_FILES.getKey()), msg);
       verifyData(client, tableName, 40, 79, false);
 
       // try the last tablet
@@ -516,6 +525,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
       // message should contain the limit of 5 and the number of files attempted to import 7
       assertTrue(msg.contains(" 5"), msg);
       assertTrue(msg.contains(" 7"), msg);
+      assertTrue(msg.contains(tableId + "<;0200"), msg);
+      assertTrue(msg.contains(" " + Property.TABLE_BULK_MAX_TABLET_FILES.getKey()), msg);
       verifyData(client, tableName, 40, 79, false);
 
       // test an import that has more files than the limit, but not in a single tablet so it should
