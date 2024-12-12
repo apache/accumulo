@@ -45,6 +45,7 @@ import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedFilesIterator;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletMutator;
@@ -350,6 +351,16 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c = ColumnFamilySizeLimitIterator.createCondition(DataFileColumnFamily.NAME, limit);
     mutation.addCondition(c);
+    return this;
+  }
+
+  @Override
+  public ConditionalTabletMutator requireAbsentLoaded(Set<ReferencedTabletFile> files) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    for (ReferencedTabletFile file : files) {
+      Condition c = new Condition(BulkFileColumnFamily.STR_NAME, file.insert().getMetadata());
+      mutation.addCondition(c);
+    }
     return this;
   }
 

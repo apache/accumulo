@@ -1874,4 +1874,65 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     assertEquals(time4, context.getAmple().readTablet(e1).getTime());
 
   }
+
+  @Test
+  public void testRequireAbsentLoaded() {
+    var context = cluster.getServerContext();
+
+    var stf1 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
+    var stf2 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
+    var stf3 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
+    var dfv = new DataFileValue(100, 100);
+
+    FateId fateId1 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireAbsentLoaded(Set.of(stf1.getTabletFile(), stf2.getTabletFile()))
+          .putBulkFile(stf1.getTabletFile(), fateId1).putBulkFile(stf2.getTabletFile(), fateId1)
+          .putFile(stf1, dfv).putFile(stf2, dfv).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(stf1, stf2), context.getAmple().readTablet(e1).getFiles());
+    assertEquals(Map.of(stf1, fateId1, stf2, fateId1),
+        context.getAmple().readTablet(e1).getLoaded());
+
+    FateId fateId2 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireAbsentLoaded(Set.of(stf3.getTabletFile()))
+          .putBulkFile(stf3.getTabletFile(), fateId2).putFile(stf3, dfv).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
+    assertEquals(Map.of(stf1, fateId1, stf2, fateId1, stf3, fateId2),
+        context.getAmple().readTablet(e1).getLoaded());
+
+    // should fail because the loaded markers are present
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireAbsentLoaded(Set.of(stf1.getTabletFile(), stf2.getTabletFile()))
+          .putBulkFile(stf1.getTabletFile(), fateId1).putBulkFile(stf2.getTabletFile(), fateId1)
+          .putFile(stf1, dfv).putFile(stf2, dfv).putFlushId(99).submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+
+    // should fail because the loaded markers are present
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireAbsentLoaded(Set.of(stf3.getTabletFile()))
+          .putBulkFile(stf3.getTabletFile(), fateId2).putFile(stf3, dfv).putFlushId(99)
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+
+    assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
+    assertEquals(Map.of(stf1, fateId1, stf2, fateId1, stf3, fateId2),
+        context.getAmple().readTablet(e1).getLoaded());
+    assertTrue(context.getAmple().readTablet(e1).getFlushId().isEmpty());
+  }
 }
