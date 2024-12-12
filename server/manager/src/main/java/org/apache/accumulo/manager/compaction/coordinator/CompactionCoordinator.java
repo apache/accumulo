@@ -26,6 +26,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -625,9 +626,16 @@ public class CompactionCoordinator
             compactorAddress, externalCompactionId);
 
         // any data that is read from the tablet to make a decision about if it can compact or not
-        // must be included in the requireSame call
-        var tabletMutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
-            .requireSame(tabletMetadata, FILES, SELECTED, ECOMP);
+        // must be checked for changes in the conditional mutation.
+        var tabletMutator =
+            tabletsMutator.mutateTablet(extent).requireAbsentOperation().requireFiles(jobFiles);
+        if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
+          // For system compactions the user compaction requested column is examined when deciding
+          // if a compaction can start so need to check for changes to this column.
+          tabletMutator.requireSame(tabletMetadata, SELECTED, ECOMP, USER_COMPACTION_REQUESTED);
+        } else {
+          tabletMutator.requireSame(tabletMetadata, SELECTED, ECOMP);
+        }
 
         if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
           var selectedFiles = tabletMetadata.getSelectedFiles();
@@ -817,11 +825,8 @@ public class CompactionCoordinator
     // Start a fate transaction to commit the compaction.
     CompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
     var renameOp = new RenameCompactionFile(new CompactionCommitData(ecid, extent, ecm, stats));
-    var txid = localFate.seedTransaction("COMMIT_COMPACTION", FateKey.forCompactionCommit(ecid),
-        renameOp, true, "Commit compaction " + ecid);
-
-    txid.ifPresentOrElse(fateId -> LOG.debug("initiated compaction commit {} {}", ecid, fateId),
-        () -> LOG.debug("compaction commit already initiated for {}", ecid));
+    localFate.seedTransaction("COMMIT_COMPACTION", FateKey.forCompactionCommit(ecid), renameOp,
+        true);
   }
 
   @Override

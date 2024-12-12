@@ -18,16 +18,26 @@
  */
 package org.apache.accumulo.server.util.checkCommand;
 
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public interface CheckRunner {
+  Logger log = LoggerFactory.getLogger(CheckRunner.class);
 
   /**
    * Runs the check
    *
+   * @param context server context
+   * @param opts server util opts. Only applicable for the checks on the root and metadata tables
+   * @param fixFiles remove dangling file pointers. Only applicable for the checks on the system and
+   *        user files
    * @return the {@link Admin.CheckCommand.CheckStatus} resulting from running the check
    */
-  Admin.CheckCommand.CheckStatus runCheck();
+  Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
+      boolean fixFiles) throws Exception;
 
   /**
    *
@@ -35,4 +45,17 @@ public interface CheckRunner {
    */
   Admin.CheckCommand.Check getCheck();
 
+  default void printRunning() {
+    String running = "Running check " + getCheck();
+    log.trace("-".repeat(running.length()));
+    log.trace(running);
+    log.trace("-".repeat(running.length()));
+  }
+
+  default void printCompleted(Admin.CheckCommand.CheckStatus status) {
+    String completed = "Check " + getCheck() + " completed with status " + status;
+    log.trace("-".repeat(completed.length()));
+    log.trace(completed);
+    log.trace("-".repeat(completed.length()));
+  }
 }
