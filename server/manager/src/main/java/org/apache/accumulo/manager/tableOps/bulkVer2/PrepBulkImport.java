@@ -323,5 +323,6 @@ public class PrepBulkImport extends ManagerRepo {
     // unreserve sourceDir/error directories
     Utils.unreserveHdfsDirectory(environment, bulkInfo.sourceDir, fateId);
     Utils.getReadLock(environment, bulkInfo.tableId, fateId).unlock();
+    environment.removeBulkImportStatus(bulkInfo.sourceDir);
   }
 }
