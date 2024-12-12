@@ -521,6 +521,11 @@ public interface Ample {
     ConditionalTabletMutator requireFiles(Set<StoredTabletFile> files);
 
     /**
+     * Require that a tablet have less than or equals the specified number of files.
+     */
+    ConditionalTabletMutator requireLessOrEqualsFiles(long limit);
+
+    /**
      * <p>
      * Ample provides the following features on top of the conditional writer to help automate
      * handling of edges cases that arise when using the conditional writer.
