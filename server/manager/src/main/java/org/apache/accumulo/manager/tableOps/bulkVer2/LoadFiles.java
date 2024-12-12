@@ -174,12 +174,8 @@ class LoadFiles extends ManagerRepo {
       }
 
       List<ColumnType> rsc = new ArrayList<>();
-      rsc.add(LOCATION);
       if (setTime) {
         rsc.add(TIME);
-      }
-      if (pauseLimit > 0) {
-        rsc.add(FILES);
       }
 
       ColumnType[] requireSameCols = rsc.toArray(new ColumnType[0]);
@@ -235,7 +231,12 @@ class LoadFiles extends ManagerRepo {
         }
 
         var tabletMutator = conditionalMutator.mutateTablet(tablet.getExtent())
-            .requireAbsentOperation().requireSame(tablet, LOADED, requireSameCols);
+            .requireAbsentOperation().requireAbsentLoaded(filesToLoad.keySet())
+            .requireSame(tablet, LOCATION, requireSameCols);
+
+        if (pauseLimit > 0) {
+          tabletMutator.requireLessOrEqualsFiles(pauseLimit);
+        }
 
         filesToLoad.forEach((f, v) -> {
           tabletMutator.putBulkFile(f, fateId);
