@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.metadata.iterators;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Collections;
@@ -35,7 +37,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
-import org.apache.accumulo.core.util.LazySingletons;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
 
 import com.google.common.base.Preconditions;
@@ -90,12 +91,12 @@ public class DisjointCompactionIterator extends ColumnFamilyTransformationIterat
   private static String encode(Set<StoredTabletFile> filesToCompact) {
     var files =
         filesToCompact.stream().map(StoredTabletFile::getMetadata).collect(Collectors.toSet());
-    return LazySingletons.GSON.get().toJson(files);
+    return GSON.get().toJson(files);
   }
 
   private Set<StoredTabletFile> decode(String s) {
     Type fileSetType = new TypeToken<HashSet<String>>() {}.getType();
-    Set<String> files = LazySingletons.GSON.get().fromJson(s, fileSetType);
+    Set<String> files = GSON.get().fromJson(s, fileSetType);
     return files.stream().map(StoredTabletFile::of).collect(Collectors.toSet());
   }
 }
