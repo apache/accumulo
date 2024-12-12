@@ -521,6 +521,11 @@ public interface Ample {
     ConditionalTabletMutator requireFiles(Set<StoredTabletFile> files);
 
     /**
+     * Require that a tablet have less than or equals the specified number of files.
+     */
+    ConditionalTabletMutator requireLessOrEqualsFiles(long limit);
+
+    /**
      * Requires that a tablet not have these loaded flags set.
      */
     ConditionalTabletMutator requireAbsentLoaded(Set<ReferencedTabletFile> files);

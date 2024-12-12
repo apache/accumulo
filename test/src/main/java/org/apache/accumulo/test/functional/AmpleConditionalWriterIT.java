@@ -1788,7 +1788,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     assertEquals(time2, context.getAmple().readTablet(e1).getTime());
 
     // Test mutation is rejected when a file is given that the tablet does not have
-    var time3 = MetadataTime.parse("L60");
+    var time3 = MetadataTime.parse("L70");
     try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
       ctmi.mutateTablet(e1).requireAbsentOperation().requireFiles(Set.of(stf1, stf4)).putTime(time3)
           .submit(tm -> false);
@@ -1796,6 +1796,83 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     }
     // Should be previous time still as the mutation was rejected
     assertEquals(time2, context.getAmple().readTablet(e1).getTime());
+  }
+
+  @Test
+  public void testFilesLimit() {
+    var context = cluster.getServerContext();
+
+    var stf1 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
+    var stf2 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
+    var stf3 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
+    var stf4 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/C0000073.rf"));
+    var dfv = new DataFileValue(100, 100);
+
+    // Add 3 of the files, skip the 4th file
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().putFile(stf1, dfv).putFile(stf2, dfv)
+          .putFile(stf3, dfv).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
+
+    // Test mutation is accepted when # files in tablet equals limit
+    var time1 = MetadataTime.parse("L50");
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLessOrEqualsFiles(3).putTime(time1)
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(time1, context.getAmple().readTablet(e1).getTime());
+
+    // Test mutation is accepted when # files in tablet is less than limit
+    var time2 = MetadataTime.parse("L60");
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLessOrEqualsFiles(4).putTime(time2)
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(time2, context.getAmple().readTablet(e1).getTime());
+
+    // Test mutation is rejected when # files in tablet is greater than limit
+    var time3 = MetadataTime.parse("L70");
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLessOrEqualsFiles(2).putTime(time3)
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    // Should be previous time still as the mutation was rejected
+    assertEquals(time2, context.getAmple().readTablet(e1).getTime());
+
+    // add fourth file
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().putFile(stf4, dfv).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(stf1, stf2, stf3, stf4), context.getAmple().readTablet(e1).getFiles());
+
+    // Test mutation is rejected when # files in tablet is greater than limit
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLessOrEqualsFiles(3).putTime(time3)
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    // Should be previous time still as the mutation was rejected
+    assertEquals(time2, context.getAmple().readTablet(e1).getTime());
+
+    // Test mutation is accepted when # files in tablet equals limit
+    var time4 = MetadataTime.parse("L80");
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLessOrEqualsFiles(4).putTime(time4)
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(time4, context.getAmple().readTablet(e1).getTime());
+
   }
 
   @Test

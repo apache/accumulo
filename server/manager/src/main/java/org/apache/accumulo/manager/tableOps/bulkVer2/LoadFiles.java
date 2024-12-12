@@ -177,9 +177,6 @@ class LoadFiles extends ManagerRepo {
       if (setTime) {
         rsc.add(TIME);
       }
-      if (pauseLimit > 0) {
-        rsc.add(FILES);
-      }
 
       ColumnType[] requireSameCols = rsc.toArray(new ColumnType[0]);
 
@@ -236,6 +233,10 @@ class LoadFiles extends ManagerRepo {
         var tabletMutator = conditionalMutator.mutateTablet(tablet.getExtent())
             .requireAbsentOperation().requireAbsentLoaded(filesToLoad.keySet())
             .requireSame(tablet, LOCATION, requireSameCols);
+
+        if (pauseLimit > 0) {
+          tabletMutator.requireLessOrEqualsFiles(pauseLimit);
+        }
 
         filesToLoad.forEach((f, v) -> {
           tabletMutator.putBulkFile(f, fateId);
