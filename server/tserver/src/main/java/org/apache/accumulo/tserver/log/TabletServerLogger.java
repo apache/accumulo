@@ -458,6 +458,26 @@ public class TabletServerLogger {
       // the logs haven't changed.
       final int finalCurrent = currentLogId;
       if (!success) {
+
+        if (tserver.getLock() == null || !tserver.getLock().verifyLockAtSource()) {
+          // try to close the log, then Halt the VM
+          testLockAndRun(logIdLock, new TestCallWithWriteLock() {
+
+            @Override
+            boolean test() {
+              return true;
+            }
+
+            @Override
+            void withWriteLock() throws IOException {
+              close();
+            }
+          });
+
+          log.error("Writing to WAL has failed and TabletServer lock does not exist. Halting...");
+          Halt.halt("TabletServer lock does not exist", -1);
+        }
+
         testLockAndRun(logIdLock, new TestCallWithWriteLock() {
 
           @Override
