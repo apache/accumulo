@@ -531,6 +531,11 @@ public interface Ample {
     ConditionalTabletMutator requireAbsentLoaded(Set<ReferencedTabletFile> files);
 
     /**
+     * Requires the given set of files are not currently involved in any running compactions.
+     */
+    ConditionalTabletMutator requireNotCompacting(Set<StoredTabletFile> files);
+
+    /**
      * <p>
      * Ample provides the following features on top of the conditional writer to help automate
      * handling of edges cases that arise when using the conditional writer.

@@ -18,24 +18,15 @@
  */
 package org.apache.accumulo.server.metadata.iterators;
 
-import static org.apache.accumulo.server.metadata.iterators.SetEncodingIterator.getTabletRow;
-
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.PartialKey;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
 import org.apache.hadoop.io.Text;
 
@@ -45,15 +36,11 @@ import com.google.common.base.Preconditions;
  * Iterator that checks if a column family size is less than or equal a limit as part of a
  * conditional mutation.
  */
-public class ColumnFamilySizeLimitIterator extends WrappingIterator {
+public class ColumnFamilySizeLimitIterator extends ColumnFamilyTransformationIterator {
 
   private static final String LIMIT_OPT = "limit";
-  private static final Text EMPTY = new Text();
 
   private Long limit;
-
-  private Key startKey = null;
-  private Value topValue = null;
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
@@ -64,22 +51,7 @@ public class ColumnFamilySizeLimitIterator extends WrappingIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
-      throws IOException {
-    Text tabletRow = getTabletRow(range);
-    Text family = range.getStartKey().getColumnFamily();
-
-    Preconditions.checkArgument(
-        family.getLength() > 0 && range.getStartKey().getColumnQualifier().getLength() == 0);
-
-    startKey = new Key(tabletRow, family);
-    Key endKey = startKey.followingKey(PartialKey.ROW_COLFAM);
-
-    Range r = new Range(startKey, true, endKey, false);
-
-    var source = getSource();
-    source.seek(r, Set.of(startKey.getColumnFamilyData()), true);
-
+  protected Value transform(SortedKeyValueIterator<Key,Value> source) throws IOException {
     long count = 0;
     while (source.hasTop()) {
       source.next();
@@ -87,49 +59,10 @@ public class ColumnFamilySizeLimitIterator extends WrappingIterator {
     }
 
     if (count <= limit) {
-      topValue = new Value("1");
+      return new Value("1");
     } else {
-      topValue = null;
+      return null;
     }
-  }
-
-  @Override
-  public boolean hasTop() {
-    if (startKey == null) {
-      throw new IllegalStateException("never been seeked");
-    }
-    return topValue != null;
-  }
-
-  @Override
-  public void next() throws IOException {
-    if (startKey == null) {
-      throw new IllegalStateException("never been seeked");
-    }
-    topValue = null;
-  }
-
-  @Override
-  public Key getTopKey() {
-    if (startKey == null) {
-      throw new IllegalStateException("never been seeked");
-    }
-    if (topValue == null) {
-      throw new NoSuchElementException();
-    }
-
-    return startKey;
-  }
-
-  @Override
-  public Value getTopValue() {
-    if (startKey == null) {
-      throw new IllegalStateException("never been seeked");
-    }
-    if (topValue == null) {
-      throw new NoSuchElementException();
-    }
-    return topValue;
   }
 
   /**

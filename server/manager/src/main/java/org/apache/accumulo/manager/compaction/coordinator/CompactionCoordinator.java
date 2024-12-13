@@ -557,14 +557,14 @@ public class CompactionCoordinator
 
         // any data that is read from the tablet to make a decision about if it can compact or not
         // must be checked for changes in the conditional mutation.
-        var tabletMutator =
-            tabletsMutator.mutateTablet(extent).requireAbsentOperation().requireFiles(jobFiles);
+        var tabletMutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
+            .requireFiles(jobFiles).requireNotCompacting(jobFiles);
         if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
           // For system compactions the user compaction requested column is examined when deciding
           // if a compaction can start so need to check for changes to this column.
-          tabletMutator.requireSame(tabletMetadata, SELECTED, ECOMP, USER_COMPACTION_REQUESTED);
+          tabletMutator.requireSame(tabletMetadata, SELECTED, USER_COMPACTION_REQUESTED);
         } else {
-          tabletMutator.requireSame(tabletMetadata, SELECTED, ECOMP);
+          tabletMutator.requireSame(tabletMetadata, SELECTED);
         }
 
         if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
