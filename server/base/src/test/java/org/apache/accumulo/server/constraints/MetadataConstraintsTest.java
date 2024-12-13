@@ -26,12 +26,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -44,6 +46,7 @@ import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletMergeabilityUtil;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
@@ -637,6 +640,35 @@ public class MetadataConstraintsTest {
     assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals((short) 3102, violations.get(0));
+  }
+
+  @Test
+  public void testMergeabilityColumn() {
+    MetadataConstraints mc = new MetadataConstraints();
+    Mutation m;
+    List<Short> violations;
+
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("-2"));
+    assertViolation(mc, m, (short) 4006);
+
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
+        TabletMergeabilityUtil.toValue(TabletMergeability.NEVER));
+    violations = mc.check(createEnv(), m);
+    assertTrue(violations.isEmpty());
+
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
+        TabletMergeabilityUtil.toValue(TabletMergeability.NOW));
+    violations = mc.check(createEnv(), m);
+    assertTrue(violations.isEmpty());
+
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
+        TabletMergeabilityUtil.toValue(TabletMergeability.after(Duration.ofDays(3))));
+    violations = mc.check(createEnv(), m);
+    assertTrue(violations.isEmpty());
   }
 
   // Encode a row how it would appear in Json

@@ -33,6 +33,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -83,13 +84,13 @@ public class UpdateTabletsTest {
    * developer has determined that split code can handle that column OR has opened an issue about
    * handling it.
    */
-  private static final Set<ColumnType> COLUMNS_HANDLED_BY_SPLIT =
-      EnumSet.of(ColumnType.TIME, ColumnType.LOGS, ColumnType.FILES, ColumnType.PREV_ROW,
-          ColumnType.OPID, ColumnType.LOCATION, ColumnType.ECOMP, ColumnType.SELECTED,
-          ColumnType.LOADED, ColumnType.USER_COMPACTION_REQUESTED, ColumnType.MERGED,
-          ColumnType.LAST, ColumnType.SCANS, ColumnType.DIR, ColumnType.CLONED, ColumnType.FLUSH_ID,
-          ColumnType.FLUSH_NONCE, ColumnType.SUSPEND, ColumnType.AVAILABILITY,
-          ColumnType.HOSTING_REQUESTED, ColumnType.COMPACTED, ColumnType.UNSPLITTABLE);
+  private static final Set<ColumnType> COLUMNS_HANDLED_BY_SPLIT = EnumSet.of(ColumnType.TIME,
+      ColumnType.LOGS, ColumnType.FILES, ColumnType.PREV_ROW, ColumnType.OPID, ColumnType.LOCATION,
+      ColumnType.ECOMP, ColumnType.SELECTED, ColumnType.LOADED,
+      ColumnType.USER_COMPACTION_REQUESTED, ColumnType.MERGED, ColumnType.LAST, ColumnType.SCANS,
+      ColumnType.DIR, ColumnType.CLONED, ColumnType.FLUSH_ID, ColumnType.FLUSH_NONCE,
+      ColumnType.SUSPEND, ColumnType.AVAILABILITY, ColumnType.HOSTING_REQUESTED,
+      ColumnType.COMPACTED, ColumnType.UNSPLITTABLE, ColumnType.MERGEABILITY);
 
   /**
    * The purpose of this test is to catch new tablet metadata columns that were added w/o
@@ -294,6 +295,9 @@ public class UpdateTabletsTest {
     EasyMock.expect(tablet1Mutator.putFile(file1, new DataFileValue(333, 33, 20)))
         .andReturn(tablet1Mutator);
     EasyMock.expect(tablet1Mutator.putFile(file2, dfv2)).andReturn(tablet1Mutator);
+    // SplitInfo marked as system generated so should be set to NOW
+    EasyMock.expect(tablet1Mutator.putTabletMergeability(TabletMergeability.NOW))
+        .andReturn(tablet1Mutator);
     tablet1Mutator.submit(EasyMock.anyObject());
     EasyMock.expectLastCall().once();
     EasyMock.expect(tabletsMutator.mutateTablet(newExtent1)).andReturn(tablet1Mutator);
@@ -310,6 +314,9 @@ public class UpdateTabletsTest {
     EasyMock.expect(tablet2Mutator.putCompacted(ucfid1)).andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putCompacted(ucfid3)).andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putTabletAvailability(availability)).andReturn(tablet2Mutator);
+    // SplitInfo marked as system generated so should be set to NOW
+    EasyMock.expect(tablet2Mutator.putTabletMergeability(TabletMergeability.NOW))
+        .andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putBulkFile(loaded1.getTabletFile(), flid1))
         .andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putBulkFile(loaded2.getTabletFile(), flid2))
@@ -367,7 +374,7 @@ public class UpdateTabletsTest {
     // the original tablet
     SortedSet<Text> splits = new TreeSet<>(List.of(newExtent1.endRow(), newExtent2.endRow()));
     UpdateTablets updateTablets =
-        new UpdateTablets(new SplitInfo(origExtent, splits), List.of(dir1, dir2));
+        new UpdateTablets(new SplitInfo(origExtent, splits, true), List.of(dir1, dir2));
     updateTablets.call(fateId, manager);
 
     EasyMock.verify(manager, context, ample, tabletMeta, splitter, tabletsMutator, tablet1Mutator,
@@ -446,7 +453,7 @@ public class UpdateTabletsTest {
     // the original tablet
     SortedSet<Text> splits = new TreeSet<>(List.of(new Text("c")));
     UpdateTablets updateTablets =
-        new UpdateTablets(new SplitInfo(origExtent, splits), List.of("d1"));
+        new UpdateTablets(new SplitInfo(origExtent, splits, true), List.of("d1"));
     updateTablets.call(fateId, manager);
 
     EasyMock.verify(manager, context, ample);

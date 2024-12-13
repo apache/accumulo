@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Iterator;
@@ -28,9 +30,12 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
@@ -87,6 +92,13 @@ public class AddSplitIT extends AccumuloClusterHarness {
       }
 
       verifyData(c, tableName, 2L);
+
+      TableId id = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+      try (TabletsMetadata tm = getServerContext().getAmple().readTablets().forTable(id).build()) {
+        // Default for user created tablets should be mergeability set to NEVER
+        tm.stream().forEach(
+            tablet -> assertEquals(TabletMergeability.NEVER, tablet.getTabletMergeability()));
+      }
     }
   }
 

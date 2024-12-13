@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -149,6 +150,7 @@ public class TestAmple {
         tabletMutator.putDirName(dirName);
         tabletMutator.putTime(new MetadataTime(0, TimeType.MILLIS));
         tabletMutator.putTabletAvailability(TabletAvailability.HOSTED);
+        tabletMutator.putTabletMergeability(TabletMergeability.NEVER);
         tabletMutator.mutate();
       } catch (Exception e) {
         throw new IllegalStateException(e);

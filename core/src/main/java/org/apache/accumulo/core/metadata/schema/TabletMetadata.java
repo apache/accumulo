@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.MERGEABILITY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.REQUESTED_QUAL;
 
@@ -41,6 +42,7 @@ import java.util.OptionalLong;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -58,6 +60,7 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletMergeabilityUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
@@ -123,6 +126,7 @@ public class TabletMetadata {
   private final Set<FateId> compacted;
   private final Set<FateId> userCompactionsRequested;
   private final UnSplittableMetadata unSplittableMetadata;
+  private final TabletMergeability mergeability;
   private final Supplier<Long> fileSize;
 
   private TabletMetadata(Builder tmBuilder) {
@@ -155,6 +159,7 @@ public class TabletMetadata {
     this.compacted = tmBuilder.compacted.build();
     this.userCompactionsRequested = tmBuilder.userCompactionsRequested.build();
     this.unSplittableMetadata = tmBuilder.unSplittableMetadata;
+    this.mergeability = Objects.requireNonNull(tmBuilder.mergeability);
     this.fileSize = Suppliers.memoize(() -> {
       // This code was using a java stream. While profiling SplitMillionIT, the stream was showing
       // up as hot when scanning 1 million tablets. Converted to a for loop to improve performance.
@@ -198,7 +203,8 @@ public class TabletMetadata {
     SELECTED,
     COMPACTED,
     USER_COMPACTION_REQUESTED,
-    UNSPLITTABLE
+    UNSPLITTABLE,
+    MERGEABILITY
   }
 
   public static class Location {
@@ -439,6 +445,11 @@ public class TabletMetadata {
     return unSplittableMetadata;
   }
 
+  public TabletMergeability getTabletMergeability() {
+    ensureFetched(ColumnType.MERGEABILITY);
+    return mergeability;
+  }
+
   @Override
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("tableId", tableId)
@@ -453,7 +464,8 @@ public class TabletMetadata {
         .append("operationId", operationId).append("selectedFiles", selectedFiles)
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet)
         .append("userCompactionsRequested", userCompactionsRequested)
-        .append("unSplittableMetadata", unSplittableMetadata).toString();
+        .append("unSplittableMetadata", unSplittableMetadata).append("mergeability", mergeability)
+        .toString();
   }
 
   public List<Entry<Key,Value>> getKeyValues() {
@@ -526,6 +538,9 @@ public class TabletMetadata {
               break;
             case REQUESTED_QUAL:
               tmBuilder.onDemandHostingRequested(true);
+              break;
+            case MERGEABILITY_QUAL:
+              tmBuilder.mergeability(TabletMergeabilityUtil.fromValue(kv.getValue()));
               break;
             default:
               throw new IllegalStateException("Unexpected TabletColumnFamily qualifier: " + qual);
@@ -689,7 +704,7 @@ public class TabletMetadata {
     private final ImmutableSet.Builder<FateId> compacted = ImmutableSet.builder();
     private final ImmutableSet.Builder<FateId> userCompactionsRequested = ImmutableSet.builder();
     private UnSplittableMetadata unSplittableMetadata;
-    // private Supplier<Long> fileSize;
+    private TabletMergeability mergeability = TabletMergeability.NEVER;
 
     void table(TableId tableId) {
       this.tableId = tableId;
@@ -797,6 +812,10 @@ public class TabletMetadata {
 
     void unSplittableMetadata(UnSplittableMetadata unSplittableMetadata) {
       this.unSplittableMetadata = unSplittableMetadata;
+    }
+
+    void mergeability(TabletMergeability mergeability) {
+      this.mergeability = mergeability;
     }
 
     void keyValue(Entry<Key,Value> kv) {

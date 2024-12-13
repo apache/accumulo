@@ -42,6 +42,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -284,10 +285,12 @@ public class MetadataIT extends AccumuloClusterHarness {
     assertEquals(maxVersions,
         tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions"));
 
-    // Verify all tablets are HOSTED
+    // Verify all tablets are HOSTED and Mergeablity is NEVER
     try (var tablets = client.getAmple().readTablets().forTable(tableId).build()) {
       assertTrue(
           tablets.stream().allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
+      assertTrue(tablets.stream()
+          .allMatch(tm -> tm.getTabletMergeability().equals(TabletMergeability.NEVER)));
     }
   }
 }
