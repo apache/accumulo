@@ -39,6 +39,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.security.Authorizations;
@@ -145,15 +146,17 @@ public class ZKAuthenticatorTest {
     var instanceId = InstanceId.of("example");
     ServerContext context = MockServerContext.getWithZK(instanceId, "", 30_000);
     ZooReaderWriter zr = createMock(ZooReaderWriter.class);
+    ZooCache zc = createMock(ZooCache.class);
     expect(context.getZooReader()).andReturn(zr).anyTimes();
+    expect(context.getZooCache()).andReturn(zc).anyTimes();
     ZooKeeper zk = createMock(ZooKeeper.class);
     expect(zk.getChildren(anyObject(), anyObject())).andReturn(Arrays.asList(principal)).anyTimes();
     expect(zk.exists(matches(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal),
         anyObject(Watcher.class))).andReturn(new Stat()).anyTimes();
     expect(zr.getZooKeeper()).andReturn(zk).anyTimes();
-    expect(zk.getData(matches(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal),
-        anyObject(), anyObject())).andReturn(newHash).once();
-    replay(context, zr, zk);
+    expect(zc.get(matches(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal)))
+        .andReturn(newHash);
+    replay(context, zr, zk, zc);
 
     // creating authenticator
     ZKAuthenticator auth = new ZKAuthenticator();
@@ -162,6 +165,6 @@ public class ZKAuthenticatorTest {
     PasswordToken token = new PasswordToken(rawPass.clone());
     // verifying that if the new type of hash is stored in zk authentication works as expected
     assertTrue(auth.authenticateUser(principal, token));
-    verify(context, zr, zk);
+    verify(context, zr, zk, zc);
   }
 }

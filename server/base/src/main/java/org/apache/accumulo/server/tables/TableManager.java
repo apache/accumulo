@@ -122,7 +122,7 @@ public class TableManager {
     zkRoot = context.getZooKeeperRoot();
     instanceID = context.getInstanceID();
     zoo = context.getZooReaderWriter();
-    zooStateCache = new ZooCache(zoo, new TableStateWatcher());
+    zooStateCache = new ZooCache(zkRoot, zoo, new TableStateWatcher());
     updateTableStateCache();
   }
 
@@ -256,6 +256,7 @@ public class TableManager {
         log.trace("{}", event);
       }
       final String zPath = event.getPath();
+
       final EventType zType = event.getType();
 
       String tablesPrefix = zkRoot + Constants.ZTABLES;
@@ -270,9 +271,14 @@ public class TableManager {
           }
         }
         if (tableId == null) {
-          log.warn("Unknown path in {}", event);
+          // not a path we care about
+          log.trace("Unknown path in {}", event);
           return;
         }
+      } else {
+        // not a path we care about
+        log.trace("Event fired for path {}, not something we care about", event);
+        return;
       }
 
       switch (zType) {

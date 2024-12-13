@@ -25,15 +25,19 @@ import java.time.Duration;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Optional;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.zookeeper.AddWatchMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
@@ -44,9 +48,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.RemovalListener;
+import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
@@ -54,16 +60,38 @@ import com.google.common.base.Preconditions;
 public class ZooCache {
   private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
 
-  private final ZCacheWatcher watcher = new ZCacheWatcher();
+  protected static final String[] ALLOWED_PATHS = new String[] {Constants.ZCOMPACTORS,
+      Constants.ZDEADTSERVERS, Constants.ZGC_LOCK, Constants.ZMANAGER_LOCK, Constants.ZMONITOR_LOCK,
+      Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
+      Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET};
+
+  protected final TreeSet<String> watchedPaths = new TreeSet<>();
+  // visible for tests
+  protected final ZCacheWatcher watcher = new ZCacheWatcher();
   private final Watcher externalWatcher;
 
   private static final AtomicLong nextCacheId = new AtomicLong(0);
   private final String cacheId = "ZC" + nextCacheId.incrementAndGet();
 
-  // The concurrent map returned by Caffiene will only allow one thread to run at a time for a given
+  public static final Duration CACHE_DURATION = Duration.ofMinutes(30);
+
+  // public and non-final because this is being set
+  // in tests to test the eviction
+  @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL",
+      justification = "being set in tests for eviction test")
+  public static Ticker ticker = Ticker.systemTicker();
+
+  // Construct this here, otherwise end up with NPE in some cases
+  // when the Watcher tries to access nodeCache. Alternative would
+  // be to mark nodeCache as volatile.
+  private final Cache<String,ZcNode> cache =
+      Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false).ticker(ticker)
+          .expireAfterAccess(CACHE_DURATION).build();
+
+  // The concurrent map returned by Caffeine will only allow one thread to run at a time for a given
   // key and ZooCache relies on that. Not all concurrent map implementations have this behavior for
   // their compute functions.
-  private final ConcurrentMap<String,ZcNode> nodeCache;
+  private final ConcurrentMap<String,ZcNode> nodeCache = cache.asMap();
 
   private final ZooReader zReader;
 
@@ -114,21 +142,28 @@ public class ZooCache {
     return zReader.getZooKeeper();
   }
 
-  private class ZCacheWatcher implements Watcher {
+  public class ZCacheWatcher implements Watcher {
     @Override
     public void process(WatchedEvent event) {
       if (log.isTraceEnabled()) {
-        log.trace("{}: {}", cacheId, event);
+        log.trace("Watcher Event {} {}: {}", cacheId, event.getType(), event);
       }
 
       switch (event.getType()) {
-        case NodeDataChanged:
-        case NodeChildrenChanged:
         case NodeCreated:
+        case NodeChildrenChanged:
+        case NodeDataChanged:
         case NodeDeleted:
         case ChildWatchRemoved:
         case DataWatchRemoved:
-          remove(event.getPath());
+          // This code use to call remove(path), but that was when a Watcher was set
+          // on each node. With the Watcher being set at a higher level we need to remove
+          // the parent of the affected node and all of its children from the cache
+          // so that the parent and children node can be re-cached. If we only remove the
+          // affected node, then the cached children in the parent could be incorrect.
+          int lastSlash = event.getPath().lastIndexOf('/');
+          String parent = lastSlash == 0 ? "/" : event.getPath().substring(0, lastSlash);
+          clear((path) -> path.startsWith(parent));
           break;
         case None:
           switch (event.getState()) {
@@ -172,33 +207,43 @@ public class ZooCache {
    * @param reader ZooKeeper reader
    * @param watcher watcher object
    */
-  public ZooCache(ZooReader reader, Watcher watcher) {
-    this(reader, watcher, Duration.ofMinutes(3));
-  }
-
-  public ZooCache(ZooReader reader, Watcher watcher, Duration timeout) {
+  public ZooCache(String zooRoot, ZooReader reader, Watcher watcher) {
     this.zReader = reader;
     this.externalWatcher = watcher;
-    RemovalListener<String,ZcNode> removalListerner = (path, zcNode, reason) -> {
-      try {
-        log.trace("{} removing watches for {} because {} accesses {}", cacheId, path, reason,
-            zcNode == null ? -1 : zcNode.getAccessCount());
-        reader.getZooKeeper().removeWatches(path, ZooCache.this.watcher, Watcher.WatcherType.Any,
-            false);
-      } catch (InterruptedException | KeeperException | RuntimeException e) {
-        log.warn("{} failed to remove watches on path {} in zookeeper", cacheId, path, e);
-      }
-    };
-    // Must register the removal listener using evictionListener inorder for removal to be mutually
-    // exclusive with any other operations on the same path. This is important for watcher
-    // consistency, concurrently adding and removing watches for the same path would leave zoocache
-    // in a really bad state. The cache builder has another way to register a removal listener that
-    // is not mutually exclusive.
-    Cache<String,ZcNode> cache =
-        Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
-            .expireAfterAccess(timeout).evictionListener(removalListerner).build();
-    nodeCache = cache.asMap();
+    setupWatchers(zooRoot);
     log.trace("{} created new cache", cacheId, new Exception());
+  }
+
+  // Visible for testing
+  protected void setupWatchers(String zooRoot) {
+    try {
+      for (String path : ALLOWED_PATHS) {
+        final String zPath = zooRoot + path;
+        watchedPaths.add(zPath);
+        zReader.getZooKeeper().addWatch(zPath, this.watcher, AddWatchMode.PERSISTENT_RECURSIVE);
+        log.trace("Added persistent recursive watcher at {}", zPath);
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Error setting up persistent recursive watcher", e);
+    }
+  }
+
+  private boolean isWatchedPath(String path) {
+    // Check that the path is equal to, or a descendant of, a watched path
+    for (String watchedPath : watchedPaths) {
+      if (path.startsWith(watchedPath)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Use this instead of Preconditions.checkState(isWatchedPath, String)
+  // so that we are not creating String unnecessarily.
+  private void ensureWatched(String path) {
+    if (!isWatchedPath(path)) {
+      throw new IllegalStateException("Supplied path " + path + " is not watched by this ZooCache");
+    }
   }
 
   private abstract static class ZooRunnable<T> {
@@ -298,6 +343,7 @@ public class ZooCache {
    */
   public List<String> getChildren(final String zPath) {
     Preconditions.checkState(!closed);
+    ensureWatched(zPath);
 
     ZooRunnable<List<String>> zr = new ZooRunnable<>() {
 
@@ -324,12 +370,12 @@ public class ZooCache {
             // That is ok because the compute() call on the map has a lock and processing the event
             // will block until compute() returns. After compute() returns the event processing
             // would clear the map entry.
-            Stat stat = zooKeeper.exists(zPath, watcher);
+            Stat stat = zooKeeper.exists(zPath, null);
             if (stat == null) {
               log.trace("{} getChildren saw that {} does not exists", cacheId, zPath);
               return ZcNode.NON_EXISTENT;
             }
-            List<String> children = zooKeeper.getChildren(zPath, watcher);
+            List<String> children = zooKeeper.getChildren(zPath, null);
             log.trace("{} adding {} children of {} to cache", cacheId, children.size(), zPath);
             return new ZcNode(children, zcn);
           } catch (KeeperException.NoNodeException nne) {
@@ -372,6 +418,7 @@ public class ZooCache {
    */
   public byte[] get(final String zPath, final ZcStat status) {
     Preconditions.checkState(!closed);
+    ensureWatched(zPath);
     ZooRunnable<byte[]> zr = new ZooRunnable<>() {
 
       @Override
@@ -403,7 +450,7 @@ public class ZooCache {
            */
           try {
             final ZooKeeper zooKeeper = getZooKeeper();
-            Stat stat = zooKeeper.exists(zPath, watcher);
+            Stat stat = zooKeeper.exists(zPath, null);
             if (stat == null) {
               if (log.isTraceEnabled()) {
                 log.trace("{} zookeeper did not contain {}", cacheId, zPath);
@@ -413,7 +460,7 @@ public class ZooCache {
               byte[] data = null;
               ZcStat zstat = null;
               try {
-                data = zooKeeper.getData(zPath, watcher, stat);
+                data = zooKeeper.getData(zPath, null, stat);
                 zstat = new ZcStat(stat);
               } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
                 throw new ConcurrentModificationException(e1);
@@ -459,16 +506,10 @@ public class ZooCache {
     }
   }
 
-  private void remove(String zPath) {
-    nodeCache.remove(zPath);
-    log.trace("{} removed {} from cache", cacheId, zPath);
-    updateCount.incrementAndGet();
-  }
-
   /**
    * Clears this cache.
    */
-  public void clear() {
+  private void clear() {
     Preconditions.checkState(!closed);
     nodeCache.clear();
     updateCount.incrementAndGet();
@@ -496,6 +537,7 @@ public class ZooCache {
    */
   @VisibleForTesting
   public boolean dataCached(String zPath) {
+    ensureWatched(zPath);
     var zcn = nodeCache.get(zPath);
     return zcn != null && zcn.cachedData();
   }
@@ -508,6 +550,7 @@ public class ZooCache {
    */
   @VisibleForTesting
   public boolean childrenCached(String zPath) {
+    ensureWatched(zPath);
     var zcn = nodeCache.get(zPath);
     return zcn != null && zcn.cachedChildren();
   }
@@ -518,20 +561,15 @@ public class ZooCache {
   public void clear(Predicate<String> pathPredicate) {
     Preconditions.checkState(!closed);
 
-    Predicate<String> pathPredicateToUse;
-    if (log.isTraceEnabled()) {
-      pathPredicateToUse = path -> {
-        boolean testResult = pathPredicate.test(path);
-        if (testResult) {
-          log.trace("{} removing {} from cache", cacheId, path);
-        }
-        return testResult;
-      };
-    } else {
-      pathPredicateToUse = pathPredicate;
-    }
-    nodeCache.keySet().removeIf(pathPredicateToUse);
-    updateCount.incrementAndGet();
+    Predicate<String> pathPredicateWrapper = path -> {
+      boolean testResult = isWatchedPath(path) && pathPredicate.test(path);
+      if (testResult) {
+        updateCount.incrementAndGet();
+        log.trace("{} removing {} from cache", cacheId, path);
+      }
+      return testResult;
+    };
+    nodeCache.keySet().removeIf(pathPredicateWrapper);
   }
 
   /**
@@ -540,10 +578,12 @@ public class ZooCache {
    * @param zPath path of top node
    */
   public void clear(String zPath) {
+    ensureWatched(zPath);
     clear(path -> path.startsWith(zPath));
   }
 
   public Optional<ServiceLockData> getLockData(ServiceLockPath path) {
+    ensureWatched(path.toString());
     List<String> children = ServiceLock.validateAndSort(path, getChildren(path.toString()));
     if (children == null || children.isEmpty()) {
       return Optional.empty();

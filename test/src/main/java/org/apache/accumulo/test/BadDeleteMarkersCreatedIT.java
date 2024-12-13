@@ -96,7 +96,6 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
         ClientContext context = (ClientContext) client) {
       ZooCache zcache = context.getZooCache();
-      zcache.clear();
       var path = context.getServerPaths().createGarbageCollectorPath();
       Optional<ServiceLockData> gcLockData;
       do {

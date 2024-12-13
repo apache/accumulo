@@ -64,7 +64,6 @@ import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
@@ -204,8 +203,6 @@ public class ScanServer extends AbstractServer
   private ScanServerMetrics scanServerMetrics;
   private BlockCacheMetrics blockCacheMetrics;
 
-  private final ZooCache managerLockCache;
-
   public ScanServer(ConfigOpts opts, String[] args) {
     super("sserver", opts, ServerContext::new, args);
 
@@ -215,8 +212,6 @@ public class ScanServer extends AbstractServer
     this.sessionManager = new SessionManager(context);
 
     this.resourceManager = new TabletServerResourceManager(context, this);
-
-    this.managerLockCache = new ZooCache(context.getZooReader(), null);
 
     var readWriteLock = new ReentrantReadWriteLock();
     reservationsReadLock = readWriteLock.readLock();
@@ -1136,11 +1131,6 @@ public class ScanServer extends AbstractServer
   @Override
   public ServiceLock getLock() {
     return scanServerLock;
-  }
-
-  @Override
-  public ZooCache getManagerLockCache() {
-    return managerLockCache;
   }
 
   @Override

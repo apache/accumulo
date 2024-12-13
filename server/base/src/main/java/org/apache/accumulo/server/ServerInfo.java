@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
@@ -29,13 +30,11 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.InstanceOperationsImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
@@ -44,6 +43,7 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.zookeeper.KeeperException;
 
 public class ServerInfo implements ClientInfo {
 
@@ -54,7 +54,6 @@ public class ServerInfo implements ClientInfo {
   private final String zooKeepers;
   private final int zooKeepersSessionTimeOut;
   private final VolumeManager volumeManager;
-  private final ZooCache zooCache;
   private final ServerDirs serverDirs;
   private final Credentials credentials;
 
@@ -71,22 +70,26 @@ public class ServerInfo implements ClientInfo {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
-    zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
-    String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
-    byte[] iidb = zooCache.get(instanceNamePath);
-    if (iidb == null) {
-      throw new IllegalStateException(
-          "Instance name " + instanceName + " does not exist in zookeeper. "
-              + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
-    }
-    instanceID = InstanceId.of(new String(iidb, UTF_8));
-    if (zooCache.get(ZooUtil.getRoot(instanceID)) == null) {
-      if (instanceName == null) {
+    final ZooReader zooReader = new ZooReader(this.zooKeepers, this.zooKeepersSessionTimeOut);
+    final String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
+    try {
+      byte[] iidb = zooReader.getData(instanceNamePath);
+      if (iidb == null) {
         throw new IllegalStateException(
-            "Instance id " + instanceID + " does not exist in zookeeper");
+            "Instance name " + instanceName + " does not exist in zookeeper. "
+                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
       }
-      throw new IllegalStateException("Instance id " + instanceID + " pointed to by the name "
-          + instanceName + " does not exist in zookeeper");
+      instanceID = InstanceId.of(new String(iidb, UTF_8));
+      if (zooReader.getData(ZooUtil.getRoot(instanceID)) == null) {
+        if (instanceName == null) {
+          throw new IllegalStateException(
+              "Instance id " + instanceID + " does not exist in zookeeper");
+        }
+        throw new IllegalStateException("Instance id " + instanceID + " pointed to by the name "
+            + instanceName + " does not exist in zookeeper");
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalArgumentException("Unabled to create client, instanceId not found", e);
     }
     serverDirs = new ServerDirs(siteConfig, hadoopConf);
     credentials = SystemCredentials.get(instanceID, siteConfig);
@@ -106,9 +109,14 @@ public class ServerInfo implements ClientInfo {
     instanceID = VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
     zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
-    instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache, instanceID);
     credentials = SystemCredentials.get(instanceID, siteConfig);
+    final ZooReader zooReader = new ZooReader(this.zooKeepers, this.zooKeepersSessionTimeOut);
+    try {
+      instanceName = lookupInstanceName(zooReader, instanceID);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Unable to lookup instanceName for instanceID: " + instanceID,
+          e);
+    }
   }
 
   ServerInfo(SiteConfiguration config, String instanceName, InstanceId instanceID) {
@@ -123,10 +131,23 @@ public class ServerInfo implements ClientInfo {
     this.instanceID = instanceID;
     zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     this.instanceName = instanceName;
     serverDirs = new ServerDirs(siteConfig, hadoopConf);
     credentials = SystemCredentials.get(instanceID, siteConfig);
+  }
+
+  private String lookupInstanceName(ZooReader zr, InstanceId instanceId)
+      throws KeeperException, InterruptedException {
+    checkArgument(zr != null, "zooReader is null");
+    checkArgument(instanceId != null, "instanceId is null");
+    for (String name : zr.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
+      var bytes = zr.getData(Constants.ZROOT + Constants.ZINSTANCES + "/" + name);
+      InstanceId iid = InstanceId.of(new String(bytes, UTF_8));
+      if (iid.equals(instanceId)) {
+        return name;
+      }
+    }
+    return null;
   }
 
   public SiteConfiguration getSiteConfiguration() {

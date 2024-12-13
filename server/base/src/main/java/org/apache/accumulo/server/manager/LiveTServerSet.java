@@ -35,7 +35,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
@@ -77,7 +76,6 @@ public class LiveTServerSet implements Watcher {
 
   private final Listener cback;
   private final ServerContext context;
-  private ZooCache zooCache;
 
   public class TServerConnection {
     private final HostAndPort address;
@@ -213,13 +211,6 @@ public class LiveTServerSet implements Watcher {
     this.context = context;
   }
 
-  public synchronized ZooCache getZooCache() {
-    if (zooCache == null) {
-      zooCache = new ZooCache(context.getZooReader(), this);
-    }
-    return zooCache;
-  }
-
   public synchronized void startListeningForTabletServerChanges() {
     scanServers();
 
@@ -267,7 +258,8 @@ public class LiveTServerSet implements Watcher {
     final TServerInfo info = current.get(tserverPath.getServer());
 
     ZcStat stat = new ZcStat();
-    Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), tserverPath, stat);
+    Optional<ServiceLockData> sld =
+        ServiceLock.getLockData(this.context.getZooCache(), tserverPath, stat);
 
     if (sld.isEmpty()) {
       if (info != null) {
@@ -482,7 +474,7 @@ public class LiveTServerSet implements Watcher {
         log.error("FATAL: {}", msg, e);
         Halt.halt(msg, -1);
       }
-      getZooCache().clear(slp.toString());
+      this.context.getZooCache().clear(slp.toString());
     }
   }
 }
