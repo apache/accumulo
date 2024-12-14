@@ -767,6 +767,15 @@ public enum Property {
       "Resource group name for this TabletServer. Resource groups can be defined to dedicate resources "
           + " to specific tables (e.g. balancing tablets for table(s) within a group, see TableLoadBalancer).",
       "4.0.0"),
+  TSERV_CONDITIONAL_UPDATE_THREADS_ROOT("tserver.conditionalupdate.threads.root", "16",
+      PropertyType.COUNT, "Numbers of threads for executing conditional updates on the root table.",
+      "4.0.0"),
+  TSERV_CONDITIONAL_UPDATE_THREADS_META("tserver.conditionalupdate.threads.meta", "64",
+      PropertyType.COUNT,
+      "Numbers of threads for executing conditional updates on the metadata table.", "4.0.0"),
+  TSERV_CONDITIONAL_UPDATE_THREADS_USER("tserver.conditionalupdate.threads.user", "64",
+      PropertyType.COUNT, "Numbers of threads for executing conditional updates on user tables.",
+      "4.0.0"),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,

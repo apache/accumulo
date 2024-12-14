@@ -794,19 +794,30 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         }
       }
 
-      ArrayList<TCMResult> results = new ArrayList<>();
+      var lambdaCs = cs;
+      // Conditional updates read data into memory, examine it, and then make an update. This can be
+      // CPU, I/O, and memory intensive. Using a thread pool directly limits CPU usage and
+      // indirectly limits memory and I/O usage.
+      Future<ArrayList<TCMResult>> future =
+          server.resourceManager.executeConditionalUpdate(cs.tableId, () -> {
+            ArrayList<TCMResult> results = new ArrayList<>();
 
-      Map<KeyExtent,List<ServerConditionalMutation>> deferred =
-          conditionalUpdate(cs, updates, results, symbols);
+            Map<KeyExtent,List<ServerConditionalMutation>> deferred =
+                conditionalUpdate(lambdaCs, updates, results, symbols);
 
-      while (!deferred.isEmpty()) {
-        deferred = conditionalUpdate(cs, deferred, results, symbols);
-      }
+            while (!deferred.isEmpty()) {
+              deferred = conditionalUpdate(lambdaCs, deferred, results, symbols);
+            }
 
-      return results;
-    } catch (IOException ioe) {
-      throw new TException(ioe);
-    } catch (Exception e) {
+            return results;
+          });
+
+      return future.get();
+    } catch (ExecutionException | InterruptedException e) {
+      log.warn("Exception returned for conditionalUpdate. tableId: {}, opid: {}",
+          cs == null ? null : cs.tableId, opid, e);
+      throw new TException(e);
+    } catch (RuntimeException e) {
       log.warn("Exception returned for conditionalUpdate. tableId: {}, opid: {}",
           cs == null ? null : cs.tableId, opid, e);
       throw e;
@@ -814,6 +825,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       if (opid != null) {
         writeTracker.finishWrite(opid);
       }
+
       if (cs != null) {
         server.sessionManager.unreserveSession(sessID);
       }

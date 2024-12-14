@@ -28,6 +28,9 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_FATE
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_STATUS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCHED_FUTURE_CHECKER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_ASSIGNMENT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_META_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_ROOT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_USER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_MIGRATIONS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_MINOR_COMPACTOR_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_PARTITION_POOL;
@@ -339,6 +342,27 @@ public class ThreadPools {
       case TSERV_SUMMARY_PARTITION_THREADS:
         builder = getPoolBuilder(TSERVER_SUMMARY_PARTITION_POOL).numCoreThreads(conf.getCount(p))
             .withTimeOut(60L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
+      case TSERV_CONDITIONAL_UPDATE_THREADS_ROOT:
+        builder = getPoolBuilder(TSERVER_CONDITIONAL_UPDATE_ROOT_POOL)
+            .numCoreThreads(conf.getCount(p)).withTimeOut(60L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
+      case TSERV_CONDITIONAL_UPDATE_THREADS_META:
+        builder = getPoolBuilder(TSERVER_CONDITIONAL_UPDATE_META_POOL)
+            .numCoreThreads(conf.getCount(p)).withTimeOut(60L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
+      case TSERV_CONDITIONAL_UPDATE_THREADS_USER:
+        builder = getPoolBuilder(TSERVER_CONDITIONAL_UPDATE_USER_POOL)
+            .numCoreThreads(conf.getCount(p)).withTimeOut(60L, MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
