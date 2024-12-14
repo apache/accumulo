@@ -22,6 +22,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_RESERVATION_META_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_RESERVATION_ROOT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_RESERVATION_USER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GC_DELETE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GENERAL_SERVER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_FATE_POOL;
@@ -345,6 +348,27 @@ public class ThreadPools {
         return builder.build();
       case GC_DELETE_THREADS:
         return getPoolBuilder(GC_DELETE_POOL).numCoreThreads(conf.getCount(p)).build();
+      case COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT:
+        builder = getPoolBuilder(COORDINATOR_RESERVATION_ROOT_POOL).numCoreThreads(conf.getCount(p))
+            .withTimeOut(60L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
+      case COMPACTION_COORDINATOR_RESERVATION_THREADS_META:
+        builder = getPoolBuilder(COORDINATOR_RESERVATION_META_POOL).numCoreThreads(conf.getCount(p))
+            .withTimeOut(60L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
+      case COMPACTION_COORDINATOR_RESERVATION_THREADS_USER:
+        builder = getPoolBuilder(COORDINATOR_RESERVATION_USER_POOL).numCoreThreads(conf.getCount(p))
+            .withTimeOut(60L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
       default:
         throw new IllegalArgumentException("Unhandled thread pool property: " + p);
     }
