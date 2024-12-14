@@ -27,6 +27,9 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POO
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.METADATA_TABLET_ASSIGNMENT_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.METADATA_TABLET_MIGRATION_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TABLET_ASSIGNMENT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_META_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_ROOT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_USER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_MINOR_COMPACTOR_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_FILE_RETRIEVER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_PARTITION_POOL;
@@ -46,8 +49,10 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -62,9 +67,11 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.ScanExecutorConfig;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.impl.ScanCacheProvider;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
@@ -117,6 +124,8 @@ public class TabletServerResourceManager {
 
   private final Map<String,ThreadPoolExecutor> scanExecutors;
   private final Map<String,ScanExecutor> scanExecutorChoices;
+
+  private final Map<Ample.DataLevel,ThreadPoolExecutor> conditionalMutationExecutors;
 
   private final ConcurrentHashMap<KeyExtent,RunnableStartedAt> activeAssignments;
 
@@ -384,6 +393,27 @@ public class TabletServerResourceManager {
     memoryManager.init(context);
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
+
+    var rootConditionalPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
+        Property.TSERV_CONDITIONAL_UPDATE_THREADS_ROOT, enableMetrics);
+    modifyThreadPoolSizesAtRuntime(
+        () -> context.getConfiguration().getCount(Property.TSERV_CONDITIONAL_UPDATE_THREADS_ROOT),
+        TSERVER_CONDITIONAL_UPDATE_ROOT_POOL.poolName, rootConditionalPool);
+
+    var metaConditionalPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
+        Property.TSERV_CONDITIONAL_UPDATE_THREADS_USER, enableMetrics);
+    modifyThreadPoolSizesAtRuntime(
+        () -> context.getConfiguration().getCount(Property.TSERV_CONDITIONAL_UPDATE_THREADS_USER),
+        TSERVER_CONDITIONAL_UPDATE_META_POOL.poolName, metaConditionalPool);
+
+    var userConditionalPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
+        Property.TSERV_CONDITIONAL_UPDATE_THREADS_USER, enableMetrics);
+    modifyThreadPoolSizesAtRuntime(
+        () -> context.getConfiguration().getCount(Property.TSERV_CONDITIONAL_UPDATE_THREADS_USER),
+        TSERVER_CONDITIONAL_UPDATE_USER_POOL.poolName, userConditionalPool);
+
+    conditionalMutationExecutors = Map.of(Ample.DataLevel.ROOT, rootConditionalPool,
+        Ample.DataLevel.METADATA, metaConditionalPool, Ample.DataLevel.USER, userConditionalPool);
 
     // We can use the same map for both metadata and normal assignments since the keyspace (extent)
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
@@ -833,6 +863,10 @@ public class TabletServerResourceManager {
     } else {
       migrationPool.execute(migrationHandler);
     }
+  }
+
+  public <T> Future<T> executeConditionalUpdate(TableId tableId, Callable<T> updateTask) {
+    return conditionalMutationExecutors.get(Ample.DataLevel.of(tableId)).submit(updateTask);
   }
 
   public BlockCache getIndexCache() {

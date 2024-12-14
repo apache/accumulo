@@ -62,6 +62,9 @@ public enum ThreadPoolNames {
   TSERVER_TABLET_MIGRATION_POOL("accumulo.pool.tserver.tablet.migration"),
   TSERVER_WAL_CREATOR_POOL("accumulo.pool.tserver.wal.creator"),
   TSERVER_WAL_SORT_CONCURRENT_POOL("accumulo.pool.tserver.wal.sort.concurrent"),
+  TSERVER_CONDITIONAL_UPDATE_ROOT_POOL("accumulo.pool.tserver.conditionalupdate.root"),
+  TSERVER_CONDITIONAL_UPDATE_META_POOL("accumulo.pool.tserver.conditionalupdate.meta"),
+  TSERVER_CONDITIONAL_UPDATE_USER_POOL("accumulo.pool.tserver.conditionalupdate.user"),
   UTILITY_CHECK_FILE_TASKS("accumulo.pool.util.check.file.tasks"),
   UTILITY_VERIFY_TABLET_ASSIGNMENTS("accumulo.pool.util.check.tablet.servers");
 
