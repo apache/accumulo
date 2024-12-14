@@ -87,9 +87,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.problems.ProblemReport;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.tablets.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.accumulo.server.tablets.TabletTime;
@@ -622,8 +619,8 @@ public class Tablet extends TabletBase {
 
   public long getFlushID() throws NoNodeException {
     try {
-      String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
-          + "/" + extent.tableId() + Constants.ZTABLE_FLUSH_ID;
+      String zTablePath = tabletServer.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
+          + extent.tableId() + Constants.ZTABLE_FLUSH_ID;
       String id = new String(context.getZooReaderWriter().getData(zTablePath), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
@@ -980,8 +977,6 @@ public class Tablet extends TabletBase {
         }
       }
       if (err != null) {
-        ProblemReports.getInstance(context).report(new ProblemReport(extent.tableId(),
-            ProblemType.TABLET_LOAD, this.extent.toString(), err));
         log.error("Tablet closed consistency check has failed for {} giving up and closing",
             this.extent);
       }
@@ -1689,8 +1684,8 @@ public class Tablet extends TabletBase {
         // Its expected that what is persisted should be less than equal to the time that tablet has
         // in memory.
         Preconditions.checkState(tabletMetadata.getTime().getTime() <= tabletTime.getTime(),
-            "Time in metadata is ahead of tablet %s memory:%s metadata:%s", extent, tabletTime,
-            tabletMetadata.getTime());
+            "Time in metadata is ahead of tablet %s memory:%s metadata:%s", extent,
+            tabletTime.getTime(), tabletMetadata.getTime());
 
         // must update latestMetadata before computeNumEntries() is called
         Preconditions.checkState(
@@ -1766,19 +1761,12 @@ public class Tablet extends TabletBase {
     return !activeScans.isEmpty() || writesInProgress > 0;
   }
 
-  public synchronized OptionalLong allocateTimestamp(int numStamps) {
+  public synchronized OptionalLong allocateTimestamp() {
     if (isClosing() || isClosed()) {
       return OptionalLong.empty();
     }
-
-    Preconditions.checkArgument(numStamps > 0);
-    long timestamp = Long.MIN_VALUE;
-    for (int i = 0; i < numStamps; i++) {
-      timestamp = tabletTime.getAndUpdateTime();
-    }
-
-    getTabletMemory().getCommitSession().updateMaxCommittedTime(timestamp);
-
-    return OptionalLong.of(timestamp);
+    var time = tabletTime.getAndUpdateTime();
+    getTabletMemory().getCommitSession().updateMaxCommittedTime(time);
+    return OptionalLong.of(time);
   }
 }

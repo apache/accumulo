@@ -83,59 +83,52 @@ public class PropStoreZooKeeperIT {
   private static File tempDir;
 
   @BeforeAll
-  public static void setupZk() {
+  public static void setupZk() throws Exception {
     // using default zookeeper port - we don't have a full configuration
     testZk = new ZooKeeperTestingServer(tempDir);
-    zooKeeper = testZk.getZooKeeper();
+    zooKeeper = testZk.newClient();
     ZooUtil.digestAuth(zooKeeper, ZooKeeperTestingServer.SECRET);
   }
 
   @AfterAll
   public static void shutdownZK() throws Exception {
-    testZk.close();
+    try {
+      zooKeeper.close();
+    } finally {
+      testZk.close();
+    }
   }
 
   @BeforeEach
-  public void setupZnodes() {
+  public void setupZnodes() throws Exception {
+    var zrw = testZk.getZooReaderWriter();
     instanceId = InstanceId.of(UUID.randomUUID());
     context = EasyMock.createNiceMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(testZk.getZooReaderWriter()).anyTimes();
+    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
 
     replay(context);
 
-    testZk.initPaths(ZooUtil.getRoot(instanceId) + Constants.ZCONFIG);
-    try {
-      zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES, new byte[0],
-          ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-      zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdA.canonical(),
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-      zooKeeper.create(
-          ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdA.canonical() + "/conf",
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    zrw.mkdirs(ZooUtil.getRoot(instanceId) + Constants.ZCONFIG);
+    zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES, new byte[0],
+        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdA.canonical(),
+        new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    zooKeeper.create(
+        ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdA.canonical() + "/conf",
+        new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-      zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdB.canonical(),
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-      zooKeeper.create(
-          ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdB.canonical() + "/conf",
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-
-    } catch (KeeperException ex) {
-      log.trace("Issue during zk initialization, skipping", ex);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted during zookeeper path initialization", ex);
-    }
+    zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdB.canonical(),
+        new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    zooKeeper.create(
+        ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdB.canonical() + "/conf",
+        new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     propStore = ZooPropStore.initialize(instanceId, context.getZooReaderWriter());
   }
 
   @AfterEach
-  public void cleanupZnodes() {
-    try {
-      ZKUtil.deleteRecursive(zooKeeper, "/accumulo");
-    } catch (KeeperException | InterruptedException ex) {
-      throw new IllegalStateException("Failed to clean-up test zooKeeper nodes.", ex);
-    }
+  public void cleanupZnodes() throws Exception {
+    ZKUtil.deleteRecursive(zooKeeper, "/accumulo");
   }
 
   /**

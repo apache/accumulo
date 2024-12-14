@@ -34,6 +34,7 @@ import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -62,8 +63,6 @@ import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 /**
  * Fault tolerant executor
  */
@@ -83,6 +82,7 @@ public class Fate<T> {
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final TransferQueue<FateId> workQueue;
   private final Thread workFinder;
+  private final ConcurrentLinkedQueue<Integer> idleCountHistory = new ConcurrentLinkedQueue<>();
 
   public enum TxInfo {
     TX_NAME, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
@@ -263,8 +263,8 @@ public class Fate<T> {
       // as a warning. They're a normal, handled failure condition.
       if (e instanceof AcceptableException) {
         var tableOpEx = (AcceptableThriftTableOperationException) e;
-        log.debug(msg + " for {}({}) {}", tableOpEx.getTableName(), tableOpEx.getTableId(),
-            tableOpEx.getDescription());
+        log.info("{} for table:{}({}) saw acceptable exception: {}", msg, tableOpEx.getTableName(),
+            tableOpEx.getTableId(), tableOpEx.getDescription());
       } else {
         log.warn(msg, e);
       }
@@ -355,7 +355,8 @@ public class Fate<T> {
       // resize the pool if the property changed
       ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
       // If the pool grew, then ensure that there is a TransactionRunner for each thread
-      int needed = conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE) - pool.getQueue().size();
+      final int configured = conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE);
+      final int needed = configured - pool.getQueue().size();
       if (needed > 0) {
         for (int i = 0; i < needed; i++) {
           try {
@@ -371,6 +372,41 @@ public class Fate<T> {
             }
             break;
           }
+        }
+        idleCountHistory.clear();
+      } else {
+        // The property did not change, but should it based on idle Fate threads? Maintain
+        // count of the last X minutes of idle Fate threads. If zero 95% of the time, then suggest
+        // that the
+        // MANAGER_FATE_THREADPOOL_SIZE be increased.
+        final long interval = Math.min(60, TimeUnit.MILLISECONDS
+            .toMinutes(conf.getTimeInMillis(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL)));
+        if (interval == 0) {
+          idleCountHistory.clear();
+        } else {
+          if (idleCountHistory.size() >= interval * 2) { // this task runs every 30s
+            int zeroFateThreadsIdleCount = 0;
+            for (Integer idleConsumerCount : idleCountHistory) {
+              if (idleConsumerCount == 0) {
+                zeroFateThreadsIdleCount++;
+              }
+            }
+            boolean needMoreThreads =
+                (zeroFateThreadsIdleCount / (double) idleCountHistory.size()) >= 0.95;
+            if (needMoreThreads) {
+              log.warn(
+                  "All Fate threads appear to be busy for the last {} minutes,"
+                      + " consider increasing property: {}",
+                  interval, Property.MANAGER_FATE_THREADPOOL_SIZE.getKey());
+              // Clear the history so that we don't log for interval minutes.
+              idleCountHistory.clear();
+            } else {
+              while (idleCountHistory.size() >= interval * 2) {
+                idleCountHistory.remove();
+              }
+            }
+          }
+          idleCountHistory.add(workQueue.getWaitingConsumerCount());
         }
       }
     }, 3, 30, SECONDS));
@@ -401,57 +437,16 @@ public class Fate<T> {
     return store.create();
   }
 
-  public Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
-      boolean autoCleanUp, String goalMessage) {
-
-    Optional<FateTxStore<T>> optTxStore = store.createAndReserve(fateKey);
-
-    return optTxStore.map(txStore -> {
-      var fateId = txStore.getID();
-      try {
-        Preconditions.checkState(txStore.getStatus() == NEW);
-        seedTransaction(txName, fateId, repo, autoCleanUp, goalMessage, txStore);
-      } finally {
-        txStore.unreserve(Duration.ZERO);
-      }
-      return fateId;
-    });
-  }
-
-  private void seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp,
-      String goalMessage, FateTxStore<T> txStore) {
-    if (txStore.top() == null) {
-      try {
-        log.info("Seeding {} {}", fateId, goalMessage);
-        txStore.push(repo);
-      } catch (StackOverflowException e) {
-        // this should not happen
-        throw new IllegalStateException(e);
-      }
-    }
-
-    if (autoCleanUp) {
-      txStore.setTransactionInfo(TxInfo.AUTO_CLEAN, autoCleanUp);
-    }
-
-    txStore.setTransactionInfo(TxInfo.TX_NAME, txName);
-
-    txStore.setStatus(SUBMITTED);
+  public void seedTransaction(String txName, FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
+    store.seedTransaction(txName, fateKey, repo, autoCleanUp);
   }
 
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
   public void seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp,
       String goalMessage) {
-    FateTxStore<T> txStore = store.reserve(fateId);
-    try {
-      if (txStore.getStatus() == NEW) {
-        seedTransaction(txName, fateId, repo, autoCleanUp, goalMessage, txStore);
-      }
-    } finally {
-      txStore.unreserve(Duration.ZERO);
-    }
-
+    log.info("Seeding {} {}", fateId, goalMessage);
+    store.seedTransaction(txName, fateId, repo, autoCleanUp);
   }
 
   // check on the transaction
@@ -611,5 +606,6 @@ public class Fate<T> {
     if (deadResCleanerExecutor != null) {
       deadResCleanerExecutor.shutdownNow();
     }
+    idleCountHistory.clear();
   }
 }

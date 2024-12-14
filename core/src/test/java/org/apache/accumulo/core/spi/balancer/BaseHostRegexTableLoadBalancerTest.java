@@ -269,4 +269,12 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     }
     return current;
   }
+
+  @Override
+  public long balance(BalanceParameters params) {
+    long wait = super.balance(params);
+    super.lastOOBCheckTimes.clear();
+    return wait;
+  }
+
 }

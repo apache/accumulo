@@ -21,7 +21,7 @@ package org.apache.accumulo.server.metrics;
 import static org.apache.accumulo.core.metrics.Metric.LOW_MEMORY;
 import static org.apache.accumulo.core.metrics.Metric.SERVER_IDLE;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.server.ServerContext;
@@ -32,18 +32,18 @@ import io.micrometer.core.instrument.MeterRegistry;
 public class ProcessMetrics implements MetricsProducer {
 
   private final ServerContext context;
-  private final AtomicInteger isIdle;
+  private final AtomicBoolean isIdle;
 
   public ProcessMetrics(final ServerContext context) {
     this.context = context;
-    this.isIdle = new AtomicInteger(-1);
+    this.isIdle = new AtomicBoolean(true);
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
     Gauge.builder(LOW_MEMORY.getName(), this, this::lowMemDetected)
         .description(LOW_MEMORY.getDescription()).register(registry);
-    Gauge.builder(SERVER_IDLE.getName(), isIdle, AtomicInteger::get)
+    Gauge.builder(SERVER_IDLE.getName(), this, this::getIdleAsDouble)
         .description(SERVER_IDLE.getDescription()).register(registry);
   }
 
@@ -52,6 +52,11 @@ public class ProcessMetrics implements MetricsProducer {
   }
 
   public void setIdleValue(boolean isIdle) {
-    this.isIdle.set(isIdle ? 1 : 0);
+    this.isIdle.set(isIdle);
   }
+
+  public double getIdleAsDouble(ProcessMetrics processMetrics) {
+    return processMetrics.isIdle.get() ? 1 : 0;
+  }
+
 }

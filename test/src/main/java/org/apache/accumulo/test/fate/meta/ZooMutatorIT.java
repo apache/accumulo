@@ -26,12 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.WithTestNames;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
@@ -84,7 +82,6 @@ public class ZooMutatorIT extends WithTestNames {
     File newFolder = new File(tempDir, testName() + "/");
     assertTrue(newFolder.isDirectory() || newFolder.mkdir(), "failed to create dir: " + newFolder);
     try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer(newFolder)) {
-      szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
       ZooReaderWriter zk = szk.getZooReaderWriter();
 
       var executor = Executors.newFixedThreadPool(16);

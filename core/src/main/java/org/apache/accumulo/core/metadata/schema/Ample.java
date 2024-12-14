@@ -21,6 +21,7 @@ package org.apache.accumulo.core.metadata.schema;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -513,6 +514,26 @@ public interface Ample {
         ColumnType... otherTypes);
 
     ConditionalTabletMutator requireAbsentLogs();
+
+    /**
+     * Require that a tablet contain all the files in the set
+     */
+    ConditionalTabletMutator requireFiles(Set<StoredTabletFile> files);
+
+    /**
+     * Require that a tablet have less than or equals the specified number of files.
+     */
+    ConditionalTabletMutator requireLessOrEqualsFiles(long limit);
+
+    /**
+     * Requires that a tablet not have these loaded flags set.
+     */
+    ConditionalTabletMutator requireAbsentLoaded(Set<ReferencedTabletFile> files);
+
+    /**
+     * Requires the given set of files are not currently involved in any running compactions.
+     */
+    ConditionalTabletMutator requireNotCompacting(Set<StoredTabletFile> files);
 
     /**
      * <p>

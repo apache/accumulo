@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -70,6 +71,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -94,6 +96,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.MemoryUnit;
@@ -116,6 +119,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.collect.MoreCollectors;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -283,7 +287,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       writeData(dir + "/f1.", aconf, 0, 332);
 
       // For this import tablet should be hosted so the bulk import operation will have to
-      // coordinate getting time with the hosted tablet. The time should refect the batch writes
+      // coordinate getting time with the hosted tablet. The time should reflect the batch writes
       // just done.
       client.tableOperations().importDirectory(dir).to(tableName).tableTime(true).load();
 
@@ -345,6 +349,198 @@ public class BulkNewIT extends SharedMiniClusterBase {
       c = assertThrows(AccumuloException.class, () -> testBulkFileMax(true));
       msg = c.getMessage();
       assertTrue(msg.contains("bad-file.rf"), "Bad File not in exception: " + msg);
+    }
+  }
+
+  @Test
+  public void testPause() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      tableName = "testPause_table1";
+      NewTableConfiguration newTableConf = new NewTableConfiguration();
+      var props =
+          Map.of(Property.TABLE_FILE_PAUSE.getKey(), "5", Property.TABLE_MAJC_RATIO.getKey(), "20");
+      newTableConf.setProperties(props);
+      client.tableOperations().create(tableName, newTableConf);
+
+      addSplits(client, tableName, "0060 0120");
+      String dir = getDir("/testPause1-");
+
+      for (int i = 0; i < 18; i++) {
+        writeData(dir + "/f" + i + ".", aconf, i * 10, (i + 1) * 10 - 1);
+      }
+
+      client.tableOperations().importDirectory(dir).to(tableName).tableTime(true).load();
+      verifyData(client, tableName, 0, 179, false);
+
+      String dir2 = getDir("/testPause2-");
+
+      for (int i = 0; i < 18; i++) {
+        writeData(dir2 + "/f" + i + ".", aconf, i * 10, (i + 1) * 10 - 1, 1000);
+      }
+
+      // Start a second bulk import in background thread because it is expected this bulk import
+      // will hang because tablets are over the pause file limit.
+      ExecutorService executor = Executors.newFixedThreadPool(1);
+      var future = executor.submit(() -> {
+        client.tableOperations().importDirectory(dir2).to(tableName).tableTime(true).load();
+        return null;
+      });
+
+      // sleep a bit to give the bulk import a chance to run
+      UtilWaitThread.sleep(3000);
+      // bulk import should not have gone through it should be pausing because the tablet have too
+      // many files
+      assertFalse(future.isDone());
+      verifyData(client, tableName, 0, 179, false);
+
+      // Before the bulk import runs no tablets should have loaded flags set
+      assertEquals(Map.of("0060", 0, "0120", 0, "null", 0), countLoaded(client, tableName));
+      // compacting the first tablet should allow the import on that tablet to proceed
+      client.tableOperations().compact(tableName,
+          new CompactionConfig().setWait(true).setEndRow(new Text("0060")));
+      // Wait for the first tablets data to be updated by bulk import.
+      Wait.waitFor(
+          () -> Map.of("0060", 7, "0120", 0, "null", 0).equals(countLoaded(client, tableName)));
+
+      // The bulk imports on the other tablets should not have gone through, verify their data was
+      // not updated. Spot check a few rows in the other two tablets. The first tablet may or may
+      // not be updated on the tablet server at this point, so can not look at its data.
+      assertEquals(61L, readRowValue(client, tableName, 61));
+      assertEquals(100L, readRowValue(client, tableName, 100));
+      assertEquals(140L, readRowValue(client, tableName, 140));
+
+      // compact the entire table, should allow all bulk imports to go through
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      // wait for bulk import to complete
+      future.get();
+      // verify the values were updated by the bulk import that was paused
+      verifyData(client, tableName, 0, 179, 1000, false);
+      assertEquals(Map.of("0060", 0, "0120", 0, "null", 0), countLoaded(client, tableName));
+    }
+  }
+
+  @Test
+  public void testMaxTabletsPerFile() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      tableName = "testMaxTabletsPerFile_table1";
+      NewTableConfiguration newTableConf = new NewTableConfiguration();
+      var props = Map.of(Property.TABLE_BULK_MAX_TABLET_FILES.getKey(), "5");
+      newTableConf.setProperties(props);
+      client.tableOperations().create(tableName, newTableConf);
+
+      var tableId = ((ClientContext) client).getTableId(tableName);
+
+      String dir = getDir("/testBulkFileMFP-");
+
+      for (int i = 4; i < 8; i++) {
+        writeData(dir + "/f" + i + ".", aconf, i * 10, (i + 1) * 10 - 1);
+      }
+
+      // should be able to bulk import 4 files w/o issue
+      client.tableOperations().importDirectory(dir).to(tableName).load();
+
+      verifyData(client, tableName, 40, 79, false);
+
+      var dir2 = getDir("/testBulkFileMFP2-");
+      for (int i = 12; i < 18; i++) {
+        writeData(dir2 + "/f" + i + ".", aconf, i * 10, (i + 1) * 10 - 1);
+      }
+
+      var exception = assertThrows(AccumuloException.class,
+          () -> client.tableOperations().importDirectory(dir2).to(tableName).load());
+      var msg = ((ThriftTableOperationException) exception.getCause()).getDescription();
+      // message should contain the limit of 5 and the number of files attempted to import 6
+      assertTrue(msg.contains(" 5"), msg);
+      assertTrue(msg.contains(" 6"), msg);
+      // error should include range information
+      assertTrue(msg.contains(tableId + "<<"), msg);
+      assertTrue(msg.contains(" " + Property.TABLE_BULK_MAX_TABLET_FILES.getKey()), msg);
+
+      // ensure no data was added to table
+      verifyData(client, tableName, 40, 79, false);
+
+      // tested a table w/ single tablet, now test a table w/ three tablets and try importing into
+      // the first, middle, and last tablet
+      addSplits(client, tableName, "0100 0200");
+
+      // try the first tablet
+      var dir3 = getDir("/testBulkFileMFP3-");
+      for (int i = 0; i < 7; i++) {
+        writeData(dir3 + "/f" + i + ".", aconf, i * 10, (i + 1) * 10 - 1);
+      }
+      // add single file for the last tablet, this does not exceed the limit however it should not
+      // go through
+      writeData(dir3 + "/f_last.", aconf, 300, 400);
+      exception = assertThrows(AccumuloException.class,
+          () -> client.tableOperations().importDirectory(dir3).to(tableName).load());
+      // verify no files were moved by the failed bulk import
+      assertEquals(8, Arrays.stream(
+          getCluster().getFileSystem().listStatus(new Path(dir3), f -> f.getName().endsWith(".rf")))
+          .count());
+      msg = ((ThriftTableOperationException) exception.getCause()).getDescription();
+      // message should contain the limit of 5 and the number of files attempted to import 7
+      assertTrue(msg.contains(" 5"), msg);
+      assertTrue(msg.contains(" 7"), msg);
+      assertTrue(msg.contains(tableId + ";0100<"), msg);
+      assertTrue(msg.contains(" " + Property.TABLE_BULK_MAX_TABLET_FILES.getKey()), msg);
+      verifyData(client, tableName, 40, 79, false);
+
+      // try the middle tablet
+      var dir4 = getDir("/testBulkFileMFP4-");
+      for (int i = 11; i < 17; i++) {
+        writeData(dir4 + "/f" + i + ".", aconf, i * 10, (i + 1) * 10 - 1);
+      }
+      // add single file for the last tablet, this does not exceed the limit however it should not
+      // go through
+      writeData(dir4 + "/f_last.", aconf, 300, 400);
+      exception = assertThrows(AccumuloException.class,
+          () -> client.tableOperations().importDirectory(dir4).to(tableName).load());
+      // verify no files were moved by the failed bulk import
+      assertEquals(7, Arrays.stream(
+          getCluster().getFileSystem().listStatus(new Path(dir4), f -> f.getName().endsWith(".rf")))
+          .count());
+      msg = ((ThriftTableOperationException) exception.getCause()).getDescription();
+      // message should contain the limit of 5 and the number of files attempted to import 6
+      assertTrue(msg.contains(" 5"), msg);
+      assertTrue(msg.contains(" 6"), msg);
+      assertTrue(msg.contains(tableId + ";0200;0100"), msg);
+      assertTrue(msg.contains(" " + Property.TABLE_BULK_MAX_TABLET_FILES.getKey()), msg);
+      verifyData(client, tableName, 40, 79, false);
+
+      // try the last tablet
+      var dir5 = getDir("/testBulkFileMFP5-");
+      for (int i = 21; i < 28; i++) {
+        writeData(dir5 + "/f" + i + ".", aconf, i * 10, (i + 1) * 10 - 1);
+      }
+      // add single file for the first tablet, this does not exceed the limit however it should not
+      // go through
+      writeData(dir5 + "/f_last.", aconf, 0, 10);
+      exception = assertThrows(AccumuloException.class,
+          () -> client.tableOperations().importDirectory(dir5).to(tableName).load());
+      // verify no files were moved by the failed bulk import
+      assertEquals(8, Arrays.stream(
+          getCluster().getFileSystem().listStatus(new Path(dir5), f -> f.getName().endsWith(".rf")))
+          .count());
+      msg = ((ThriftTableOperationException) exception.getCause()).getDescription();
+      // message should contain the limit of 5 and the number of files attempted to import 7
+      assertTrue(msg.contains(" 5"), msg);
+      assertTrue(msg.contains(" 7"), msg);
+      assertTrue(msg.contains(tableId + "<;0200"), msg);
+      assertTrue(msg.contains(" " + Property.TABLE_BULK_MAX_TABLET_FILES.getKey()), msg);
+      verifyData(client, tableName, 40, 79, false);
+
+      // test an import that has more files than the limit, but not in a single tablet so it should
+      // work
+      var dir6 = getDir("/testBulkFileMFP6-");
+      for (int i = 8; i < 14; i++) {
+        writeData(dir6 + "/f" + i + ".", aconf, i * 10, (i + 1) * 10 - 1);
+      }
+      client.tableOperations().importDirectory(dir6).to(tableName).load();
+      // verify the bulk import moved the files
+      assertEquals(0, Arrays.stream(
+          getCluster().getFileSystem().listStatus(new Path(dir6), f -> f.getName().endsWith(".rf")))
+          .count());
+      verifyData(client, tableName, 40, 139, false);
     }
   }
 
@@ -926,8 +1122,32 @@ public class BulkNewIT extends SharedMiniClusterBase {
     client.tableOperations().addSplits(tableName, splits);
   }
 
-  private void verifyData(AccumuloClient client, String table, int start, int end, boolean setTime)
-      throws Exception {
+  private long readRowValue(AccumuloClient client, String table, int row) throws Exception {
+    try (var scanner = client.createScanner(table)) {
+      scanner.setRange(new Range(row(row)));
+      var value = scanner.stream().map(Entry::getValue).map(Value::toString)
+          .collect(MoreCollectors.onlyElement());
+      return Long.parseLong(value);
+    }
+  }
+
+  private Map<String,Integer> countLoaded(AccumuloClient client, String table) throws Exception {
+    var ctx = ((ClientContext) client);
+    var tableId = ctx.getTableId(table);
+
+    try (var tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId).build()) {
+      Map<String,Integer> counts = new HashMap<>();
+      for (var tabletMetadata : tabletsMetadata) {
+        String endRow =
+            tabletMetadata.getEndRow() == null ? "null" : tabletMetadata.getEndRow().toString();
+        counts.put(endRow, tabletMetadata.getLoaded().size());
+      }
+      return counts;
+    }
+  }
+
+  private void verifyData(AccumuloClient client, String table, int start, int end, int valueOffset,
+      boolean setTime) throws Exception {
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
@@ -945,7 +1165,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
           throw new Exception("unexpected row " + entry.getKey() + " " + i);
         }
 
-        if (Integer.parseInt(entry.getValue().toString()) != i) {
+        if (Integer.parseInt(entry.getValue().toString()) != valueOffset + i) {
           throw new Exception("unexpected value " + entry + " " + i);
         }
 
@@ -958,6 +1178,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
         throw new Exception("found more than expected " + iter.next());
       }
     }
+  }
+
+  private void verifyData(AccumuloClient client, String table, int start, int end, boolean setTime)
+      throws Exception {
+    verifyData(client, table, start, end, 0, setTime);
   }
 
   private void verifyMetadata(AccumuloClient client, String tableName,
@@ -1001,7 +1226,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
     return String.format("%04d", r);
   }
 
-  private String writeData(String file, AccumuloConfiguration aconf, int s, int e)
+  private String writeData(String file, AccumuloConfiguration aconf, int s, int e, int valueOffset)
       throws Exception {
     FileSystem fs = getCluster().getFileSystem();
     String filename = file + RFile.EXTENSION;
@@ -1011,11 +1236,16 @@ public class BulkNewIT extends SharedMiniClusterBase {
         .withTableConfiguration(aconf).build()) {
       writer.startDefaultLocalityGroup();
       for (int i = s; i <= e; i++) {
-        writer.append(new Key(new Text(row(i))), new Value(Integer.toString(i)));
+        writer.append(new Key(new Text(row(i))), new Value(Integer.toString(valueOffset + i)));
       }
     }
 
     return hash(filename);
+  }
+
+  private String writeData(String file, AccumuloConfiguration aconf, int s, int e)
+      throws Exception {
+    return writeData(file, aconf, s, e, 0);
   }
 
   /**

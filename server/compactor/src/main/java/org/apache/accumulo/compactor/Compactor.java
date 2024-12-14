@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_IN_PROGRESS;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
@@ -155,6 +156,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
@@ -209,16 +211,26 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     return FileCompactor.getTotalEntriesWritten();
   }
 
+  private long compactionInProgress() {
+    return compactionRunning.get() ? 1 : 0;
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
     FunctionCounter.builder(COMPACTOR_ENTRIES_READ.getName(), this, Compactor::getTotalEntriesRead)
-        .description(COMPACTOR_ENTRIES_READ.getDescription()).register(registry);
+        .description(COMPACTOR_ENTRIES_READ.getDescription())
+        .tags(List.of(Tag.of("queue.id", this.getResourceGroup()))).register(registry);
     FunctionCounter
         .builder(COMPACTOR_ENTRIES_WRITTEN.getName(), this, Compactor::getTotalEntriesWritten)
-        .description(COMPACTOR_ENTRIES_WRITTEN.getDescription()).register(registry);
+        .description(COMPACTOR_ENTRIES_WRITTEN.getDescription())
+        .tags(List.of(Tag.of("queue.id", this.getResourceGroup()))).register(registry);
+    Gauge.builder(COMPACTOR_MAJC_IN_PROGRESS.getName(), this, Compactor::compactionInProgress)
+        .description(COMPACTOR_MAJC_IN_PROGRESS.getDescription())
+        .tags(List.of(Tag.of("queue.id", this.getResourceGroup()))).register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(COMPACTOR_MAJC_STUCK.getName())
-        .description(COMPACTOR_MAJC_STUCK.getDescription()).register(registry);
+        .description(COMPACTOR_MAJC_STUCK.getDescription())
+        .tags(List.of(Tag.of("queue.id", this.getResourceGroup()))).register(registry);
     CompactionWatcher.setTimer(timer);
   }
 
@@ -1198,4 +1210,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     }
   }
 
+  @Override
+  public ServiceLock getLock() {
+    return compactorLock;
+  }
 }

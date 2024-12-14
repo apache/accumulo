@@ -26,18 +26,22 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
+import org.apache.accumulo.core.util.threads.ThreadPoolNames;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * Class for creating and retrieving ServiceLockPath objects
@@ -178,10 +182,14 @@ public class ServiceLockPaths {
 
   }
 
+  private final ExecutorService fetchExectuor;
+
   private final ClientContext ctx;
 
   public ServiceLockPaths(ClientContext context) {
     this.ctx = context;
+    this.fetchExectuor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(ThreadPoolNames.SERVICE_LOCK_POOL).numCoreThreads(16).build();
   }
 
   private static String determineServerType(final String path) {
@@ -456,50 +464,44 @@ public class ServiceLockPaths {
             addressPredicate = addressSelector.getPredicate();
           }
 
-          ExecutorService executor = null;
-          try {
-            if (withLock) {
-              int numThreads = Math.max(1, Math.min(servers.size() / 1000, 16));
-              executor = Executors.newFixedThreadPool(numThreads);
-            }
+          // For lots of servers use a thread pool and for a small number of servers use this
+          // thread.
+          Executor executor = servers.size() > 64 ? fetchExectuor : MoreExecutors.directExecutor();
 
-            List<Future<?>> futures = new ArrayList<>();
+          List<Future<?>> futures = new ArrayList<>();
 
-            for (final String server : servers) {
-              if (addressPredicate.test(server)) {
-                final ServiceLockPath slp =
-                    parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
-                if (!withLock || slp.getType().equals(Constants.ZDEADTSERVERS)) {
-                  // Dead TServers don't have lock data
-                  results.add(slp);
-                } else {
-                  // Execute reads to zookeeper to get lock info in parallel. The zookeeper client
-                  // has a single shared connection to a server so this will not create lots of
-                  // connections, it will place multiple outgoing request on that single zookeeper
-                  // connection at the same time though.
-                  futures.add(executor.submit(() -> {
-                    final ZcStat stat = new ZcStat();
-                    Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
-                    if (sld.isPresent()) {
-                      results.add(slp);
-                    }
-                    return null;
-                  }));
-                }
+          for (final String server : servers) {
+            if (addressPredicate.test(server)) {
+              final ServiceLockPath slp =
+                  parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
+              if (!withLock || slp.getType().equals(Constants.ZDEADTSERVERS)) {
+                // Dead TServers don't have lock data
+                results.add(slp);
+              } else {
+                // Execute reads to zookeeper to get lock info in parallel. The zookeeper client
+                // has a single shared connection to a server so this will not create lots of
+                // connections, it will place multiple outgoing request on that single zookeeper
+                // connection at the same time though.
+                var futureTask = new FutureTask<>(() -> {
+                  final ZcStat stat = new ZcStat();
+                  Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
+                  if (sld.isPresent()) {
+                    results.add(slp);
+                  }
+                  return null;
+                });
+                executor.execute(futureTask);
+                futures.add(futureTask);
               }
             }
+          }
 
-            // wait for futures to complete and check for errors
-            for (var future : futures) {
-              try {
-                future.get();
-              } catch (InterruptedException | ExecutionException e) {
-                throw new IllegalStateException(e);
-              }
-            }
-          } finally {
-            if (executor != null) {
-              executor.shutdownNow();
+          // wait for futures to complete and check for errors
+          for (var future : futures) {
+            try {
+              future.get();
+            } catch (InterruptedException | ExecutionException e) {
+              throw new IllegalStateException(e);
             }
           }
         }

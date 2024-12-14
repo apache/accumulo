@@ -50,19 +50,41 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
   FateId create();
 
   /**
-   * Creates and reserves a transaction using the given key. If something is already running for the
-   * given key, then Optional.empty() will be returned. When this returns a non-empty id, it will be
-   * in the new state.
+   * Seeds a transaction with the given repo if it does not exists. A fateId will be derived from
+   * the fateKey. If seeded, sets the following data for the fateId in the store.
    *
-   * <p>
-   * In the case where a process dies in the middle of a call to this. If later, another call is
-   * made with the same key and its in the new state then the FateId for that key will be returned.
-   * </p>
+   * <ul>
+   * <li>Set the tx name</li>
+   * <li>Set the status to SUBMITTED</li>
+   * <li>Set the fate key</li>
+   * <li>Sets autocleanup only if true</li>
+   * <li>Sets the creation time</li>
+   * </ul>
    *
-   * @throws IllegalStateException when there is an unexpected collision. This can occur if two key
-   *         hash to the same FateId or if a random FateId already exists.
+   * @return The return type is only intended for testing it may not be correct in the face of
+   *         failures. When there are no failures returns optional w/ the fate id set if seeded and
+   *         empty optional otherwise. If there was a failure this could return an empty optional
+   *         when it actually succeeded.
    */
-  Optional<FateTxStore<T>> createAndReserve(FateKey fateKey);
+  Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
+      boolean autoCleanUp);
+
+  /**
+   * Seeds a transaction with the given repo if its current status is NEW and it is currently
+   * unreserved. If seeded, sets the following data for the fateId in the store.
+   *
+   * <ul>
+   * <li>Set the tx name</li>
+   * <li>Set the status to SUBMITTED</li>
+   * <li>Sets autocleanup only if true</li>
+   * <li>Sets the creation time</li>
+   * </ul>
+   *
+   * @return The return type is only intended for testing it may not be correct in the face of
+   *         failures. When there are no failures returns true if seeded and false otherwise. If
+   *         there was a failure this could return false when it actually succeeded.
+   */
+  boolean seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp);
 
   /**
    * An interface that allows read/write access to the data related to a single fate operation.

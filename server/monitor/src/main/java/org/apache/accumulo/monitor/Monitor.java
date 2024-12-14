@@ -20,18 +20,15 @@ package org.apache.accumulo.monitor;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.HOURS;
 
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -53,7 +50,6 @@ import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -82,12 +78,9 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactions;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactorDetails;
-import org.apache.accumulo.monitor.util.logging.RecentLogs;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
@@ -140,35 +133,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private int totalTables = 0;
   private final AtomicBoolean monitorInitialized = new AtomicBoolean(false);
 
-  private static <T> List<Pair<Long,T>> newMaxList() {
-    return Collections.synchronizedList(new LinkedList<>() {
-
-      private static final long serialVersionUID = 1L;
-      private final long maxDelta = HOURS.toMillis(1);
-
-      @Override
-      public boolean add(Pair<Long,T> obj) {
-        boolean result = super.add(obj);
-        if (obj.getFirst() - get(0).getFirst() > maxDelta) {
-          remove(0);
-        }
-        return result;
-      }
-
-    });
-  }
-
-  private final List<Pair<Long,Double>> loadOverTime = newMaxList();
-  private final List<Pair<Long,Double>> ingestRateOverTime = newMaxList();
-  private final List<Pair<Long,Double>> ingestByteRateOverTime = newMaxList();
-  private final List<Pair<Long,Integer>> minorCompactionsOverTime = newMaxList();
-  private final List<Pair<Long,Integer>> majorCompactionsOverTime = newMaxList();
-  private final List<Pair<Long,Double>> lookupsOverTime = newMaxList();
-  private final List<Pair<Long,Long>> queryRateOverTime = newMaxList();
-  private final List<Pair<Long,Long>> scanRateOverTime = newMaxList();
-  private final List<Pair<Long,Double>> queryByteRateOverTime = newMaxList();
-  private final List<Pair<Long,Double>> indexCacheHitRateOverTime = newMaxList();
-  private final List<Pair<Long,Double>> dataCacheHitRateOverTime = newMaxList();
   private EventCounter lookupRateTracker = new EventCounter();
   private EventCounter indexCacheHitTracker = new EventCounter();
   private EventCounter indexCacheRequestTracker = new EventCounter();
@@ -177,8 +141,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   private final AtomicBoolean fetching = new AtomicBoolean(false);
   private ManagerMonitorInfo mmi;
-  private Map<TableId,Map<ProblemType,Integer>> problemSummary = Collections.emptyMap();
-  private Exception problemException;
   private GCStatus gcStatus;
   private volatile Optional<HostAndPort> coordinatorHost = Optional.empty();
   private final String coordinatorMissingMsg =
@@ -232,26 +194,12 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       return totalRate;
     }
 
-    synchronized long calculateCount() {
-      long count = 0;
-
-      for (Entry<String,Pair<Long,Long>> entry : prevSamples.entrySet()) {
-        Pair<Long,Long> prevSample = entry.getValue();
-        Pair<Long,Long> sample = samples.get(entry.getKey());
-
-        count += sample.getSecond() - prevSample.getSecond();
-      }
-
-      return count;
-    }
   }
 
   public void fetchData() {
     ServerContext context = getContext();
     double totalIngestRate = 0.;
-    double totalIngestByteRate = 0.;
     double totalQueryRate = 0.;
-    double totalQueryByteRate = 0.;
     double totalScanRate = 0.;
     long totalEntries = 0;
     int totalTabletCount = 0;
@@ -312,7 +260,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       }
 
       if (mmi != null) {
-        int minorCompactions = 0;
 
         lookupRateTracker.startingUpdates();
         indexCacheHitTracker.startingUpdates();
@@ -323,14 +270,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         for (TabletServerStatus server : mmi.tServerInfo) {
           TableInfo summary = TableInfoUtil.summarizeTableStats(server);
           totalIngestRate += summary.ingestRate;
-          totalIngestByteRate += summary.ingestByteRate;
           totalQueryRate += summary.queryRate;
           totalScanRate += summary.scanRate;
-          totalQueryByteRate += summary.queryByteRate;
           totalEntries += summary.recs;
           totalHoldTime += server.holdTime;
           totalLookups += server.lookups;
-          minorCompactions += summary.minors.running;
           lookupRateTracker.updateTabletServer(server.name, server.lastContact, server.lookups);
           indexCacheHitTracker.updateTabletServer(server.name, server.lastContact,
               server.indexCacheHits);
@@ -355,49 +299,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         }
         this.totalIngestRate = totalIngestRate;
         this.totalTables = totalTables;
-        totalIngestByteRate = totalIngestByteRate / 1000000.0;
         this.totalQueryRate = totalQueryRate;
         this.totalScanRate = totalScanRate;
-        totalQueryByteRate = totalQueryByteRate / 1000000.0;
         this.totalEntries = totalEntries;
         this.totalTabletCount = totalTabletCount;
         this.totalHoldTime = totalHoldTime;
         this.totalLookups = totalLookups;
 
-        ingestRateOverTime.add(new Pair<>(currentTime, totalIngestRate));
-        ingestByteRateOverTime.add(new Pair<>(currentTime, totalIngestByteRate));
-
-        double totalLoad = 0.;
-        for (TabletServerStatus status : mmi.tServerInfo) {
-          if (status != null) {
-            totalLoad += status.osLoad;
-          }
-        }
-        loadOverTime.add(new Pair<>(currentTime, totalLoad));
-
-        minorCompactionsOverTime.add(new Pair<>(currentTime, minorCompactions));
-        majorCompactionsOverTime
-            .add(new Pair<>(currentTime, getRunnningCompactions().running.size()));
-
-        lookupsOverTime.add(new Pair<>(currentTime, lookupRateTracker.calculateRate()));
-
-        queryRateOverTime.add(new Pair<>(currentTime, (long) totalQueryRate));
-        queryByteRateOverTime.add(new Pair<>(currentTime, totalQueryByteRate));
-
-        scanRateOverTime.add(new Pair<>(currentTime, (long) totalScanRate));
-
-        calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker,
-            indexCacheRequestTracker);
-        calcCacheHitRate(dataCacheHitRateOverTime, currentTime, dataCacheHitTracker,
-            dataCacheRequestTracker);
-      }
-      try {
-        this.problemSummary = ProblemReports.getInstance(context).summarize();
-        this.problemException = null;
-      } catch (Exception e) {
-        log.info("Failed to obtain problem reports ", e);
-        this.problemSummary = Collections.emptyMap();
-        this.problemException = e;
       }
 
     } finally {
@@ -406,17 +314,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       if (!fetching.compareAndSet(true, false)) {
         throw new AssertionError("Not supposed to happen; somebody broke this code");
       }
-    }
-  }
-
-  private static void calcCacheHitRate(List<Pair<Long,Double>> hitRate, long currentTime,
-      EventCounter cacheHits, EventCounter cacheReq) {
-    long req = cacheReq.calculateCount();
-    if (req > 0) {
-      hitRate.add(
-          new Pair<>(currentTime, cacheHits.calculateCount() / (double) cacheReq.calculateCount()));
-    } else {
-      hitRate.add(new Pair<>(currentTime, null));
     }
   }
 
@@ -613,7 +510,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final Map<HostAndPort,ScanStats> tserverScans = new HashMap<>();
   private final Map<HostAndPort,ScanStats> sserverScans = new HashMap<>();
   private final Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
-  private final RecentLogs recentLogs = new RecentLogs();
   private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
 
   private long scansFetchedNanos = System.nanoTime();
@@ -685,9 +581,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     public final RunningCompactions runningCompactions;
     public final Map<String,TExternalCompaction> ecRunningMap;
 
-    private ExternalCompactionsSnapshot(Map<String,TExternalCompaction> ecRunningMap) {
-      this.ecRunningMap = Collections.unmodifiableMap(ecRunningMap);
-      this.runningCompactions = new RunningCompactions(ecRunningMap);
+    private ExternalCompactionsSnapshot(Optional<Map<String,TExternalCompaction>> ecRunningMapOpt) {
+      this.ecRunningMap =
+          ecRunningMapOpt.map(Collections::unmodifiableMap).orElse(Collections.emptyMap());
+      this.runningCompactions = new RunningCompactions(this.ecRunningMap);
     }
   }
 
@@ -703,8 +600,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       TExternalCompactionList running;
       try {
         running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
-        return new ExternalCompactionsSnapshot(
-            running.getCompactions() == null ? Map.of() : running.getCompactions());
+        return new ExternalCompactionsSnapshot(Optional.ofNullable(running.getCompactions()));
       } catch (Exception e) {
         throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
       } finally {
@@ -958,14 +854,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return totalHoldTime;
   }
 
-  public Exception getProblemException() {
-    return problemException;
-  }
-
-  public Map<TableId,Map<ProblemType,Integer>> getProblemSummary() {
-    return problemSummary;
-  }
-
   public GCStatus getGcStatus() {
     return gcStatus;
   }
@@ -978,61 +866,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return START_TIME;
   }
 
-  public List<Pair<Long,Double>> getLoadOverTime() {
-    return new ArrayList<>(loadOverTime);
-  }
-
-  public List<Pair<Long,Double>> getIngestRateOverTime() {
-    return new ArrayList<>(ingestRateOverTime);
-  }
-
-  public List<Pair<Long,Double>> getIngestByteRateOverTime() {
-    return new ArrayList<>(ingestByteRateOverTime);
-  }
-
-  public List<Pair<Long,Integer>> getMinorCompactionsOverTime() {
-    return new ArrayList<>(minorCompactionsOverTime);
-  }
-
-  public List<Pair<Long,Integer>> getMajorCompactionsOverTime() {
-    return new ArrayList<>(majorCompactionsOverTime);
-  }
-
-  public List<Pair<Long,Double>> getLookupsOverTime() {
-    return new ArrayList<>(lookupsOverTime);
-  }
-
   public double getLookupRate() {
     return lookupRateTracker.calculateRate();
-  }
-
-  public List<Pair<Long,Long>> getQueryRateOverTime() {
-    return new ArrayList<>(queryRateOverTime);
-  }
-
-  public List<Pair<Long,Long>> getScanRateOverTime() {
-    return new ArrayList<>(scanRateOverTime);
-  }
-
-  public List<Pair<Long,Double>> getQueryByteRateOverTime() {
-    return new ArrayList<>(queryByteRateOverTime);
-  }
-
-  public List<Pair<Long,Double>> getIndexCacheHitRateOverTime() {
-    return new ArrayList<>(indexCacheHitRateOverTime);
-  }
-
-  public List<Pair<Long,Double>> getDataCacheHitRateOverTime() {
-    return new ArrayList<>(dataCacheHitRateOverTime);
   }
 
   @Override
   public boolean isActiveService() {
     return monitorInitialized.get();
-  }
-
-  public RecentLogs recentLogs() {
-    return recentLogs;
   }
 
   public Optional<HostAndPort> getCoordinatorHost() {
@@ -1041,5 +881,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   public int getLivePort() {
     return livePort;
+  }
+
+  @Override
+  public ServiceLock getLock() {
+    return monitorLock;
   }
 }
