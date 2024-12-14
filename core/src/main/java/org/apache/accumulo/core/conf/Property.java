@@ -771,7 +771,7 @@ public enum Property {
       PropertyType.COUNT, "Numbers of threads for executing conditional updates on the root table.",
       "4.0.0"),
   TSERV_CONDITIONAL_UPDATE_THREADS_META("tserver.conditionalupdate.threads.meta", "16",
-      PropertyType.COUNT, "Numbers of threads for executing conditional updates on the root table.",
+      PropertyType.COUNT, "Numbers of threads for executing conditional updates on the metadata table.",
       "4.0.0"),
   TSERV_CONDITIONAL_UPDATE_THREADS_USER("tserver.conditionalupdate.threads.user", "16",
       PropertyType.COUNT, "Numbers of threads for executing conditional updates on the root table.",
