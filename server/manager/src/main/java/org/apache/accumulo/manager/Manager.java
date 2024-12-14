@@ -1931,7 +1931,7 @@ public class Manager extends AbstractServer
   public ServiceLock getLock() {
     return managerLock;
   }
-  
+
   public static class ManagerFactory extends AbstractBinder implements Factory<Manager> {
 
     private final Manager manager;
