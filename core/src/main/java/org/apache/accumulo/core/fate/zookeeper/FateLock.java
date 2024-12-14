@@ -103,9 +103,9 @@ public class FateLock implements QueueLock {
       for (String name : children) {
         // this try catch must be done inside the loop because some subset of the children may exist
         try {
-          byte[] data = zoo.getData(path + "/" + name);
           long order = Long.parseLong(name.substring(PREFIX.length()));
           if (order <= entry) {
+            byte[] data = zoo.getData(path + "/" + name);
             result.put(order, data);
           }
         } catch (KeeperException.NoNodeException ex) {
