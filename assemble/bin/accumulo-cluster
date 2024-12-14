@@ -253,7 +253,7 @@ function parse_config {
   fi
 
   trap 'rm -f "$CONFIG_FILE"' EXIT
-  CONFIG_FILE=$(mktemp) || exit 1
+  CONFIG_FILE=$(mktemp --tmpdir "ClusterConfigParser-XXXXXXXX.out") || exit 1
   $accumulo_cmd org.apache.accumulo.core.conf.cluster.ClusterConfigParser "$conf/cluster.yaml" "$CONFIG_FILE" || parse_fail
   #shellcheck source=/dev/null
   . "$CONFIG_FILE"
@@ -271,7 +271,7 @@ function parse_config {
   # indirectly by group name.
   TSERVER_GROUPS="default"
   #shellcheck disable=SC2034
-  TSERVERS_PER_HOST_default=$NUM_TSERVERS
+  TSERVERS_PER_HOST_default=${NUM_TSERVERS:-1}
   #shellcheck disable=SC2034
   TSERVER_HOSTS_default=$TSERVER_HOSTS
 
@@ -283,12 +283,16 @@ function parse_config {
     var_name="NUM_SSERVERS_$group"
     if [[ -n ${!var_name} ]]; then
       declare "SSERVERS_PER_HOST_$group"="${!var_name}"
+    else
+      declare "SSERVERS_PER_HOST_$group"="${NUM_SSERVERS:-1}"
     fi
   done
   for group in $COMPACTOR_GROUPS; do
     var_name="NUM_COMPACTORS_$group"
     if [[ -n ${!var_name} ]]; then
       declare "COMPACTORS_PER_HOST_$group"="${!var_name}"
+    else
+      declare "COMPACTORS_PER_HOST_$group"="${NUM_COMPACTORS:-1}"
     fi
   done
 
@@ -359,8 +363,10 @@ function execute_command() {
   shift 4
 
   local S
+  local servers_per_host
 
   S="${service^^}S_PER_HOST_$group"
+  S="${S//-/_}" # replace dashes in service/group name with underscores
   servers_per_host="${!S:-1}"
 
   if [[ $ARG_LOCAL == 1 ]]; then
