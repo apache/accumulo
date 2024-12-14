@@ -46,8 +46,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class VerifySerialRecoveryIT extends ConfigurableMacBase {
+
+  private static final Logger log = LoggerFactory.getLogger(VerifySerialRecoveryIT.class);
 
   private static final byte[] HEXCHARS = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
       0x39, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66};
@@ -114,32 +118,31 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       ts.getProcess().waitFor();
       String result = ts.readStdOut();
-      for (String line : result.split("\n")) {
-        System.out.println(line);
-      }
+      log.info(result);
+
       // walk through the output, verifying that only a single normal recovery was running at one
       // time
-      boolean started = false;
+      boolean ongoingRecovery = false;
       int recoveries = 0;
       var pattern =
           Pattern.compile(".*recovered \\d+ mutations creating \\d+ entries from \\d+ walogs.*");
       for (String line : result.split("\n")) {
-        // ignore metadata tables
+        // ignore metadata and root tables
         if (line.contains("!0") || line.contains("+r")) {
           continue;
         }
         if (line.contains("recovering data from walogs")) {
-          assertFalse(started);
-          started = true;
+          assertFalse(ongoingRecovery, "Saw recovery start before previous recovery finished");
+          ongoingRecovery = true;
           recoveries++;
         }
         if (pattern.matcher(line).matches()) {
-          assertTrue(started);
-          started = false;
+          assertTrue(ongoingRecovery, "Saw recovery end without recovery start");
+          ongoingRecovery = false;
         }
       }
-      assertFalse(started);
-      assertTrue(recoveries > 0);
+      assertFalse(ongoingRecovery, "Expected no ongoing recovery at end of test");
+      assertTrue(recoveries > 0, "Expected at least one recovery to have occurred");
     }
   }
 }
