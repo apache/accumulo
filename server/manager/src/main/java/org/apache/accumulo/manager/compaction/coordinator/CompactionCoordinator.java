@@ -555,7 +555,8 @@ public class CompactionCoordinator
 
     // Use a soft reference for this in case free memory gets low while this is sitting in the queue
     // waiting to process. This object can contain the tablets list of files and if there are lots
-    // of tablet with lots of files then that could start to cause memory problems.
+    // of tablet with lots of files then that could start to cause memory problems. This hack could
+    // be removed if #5188 were implemented.
     private final SoftReference<CompactionJobQueues.MetaJob> metaJobRef;
     private final String compactorAddress;
     private final ExternalCompactionId externalCompactionId;
