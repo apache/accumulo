@@ -28,12 +28,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -139,7 +145,8 @@ public class UpdateTabletsTest {
 
     var expected = Map.of(ke1, ke1Expected, ke2, ke2Expected, ke3, ke3Expected, ke4, ke4Expected);
 
-    Set<KeyExtent> newExtents = Set.of(ke1, ke2, ke3, ke4);
+    SortedMap<KeyExtent,TabletMergeability> newExtents = new TreeMap<>(Set.of(ke1, ke2, ke3, ke4)
+        .stream().collect(Collectors.toMap(Function.identity(), e -> TabletMergeability.never())));
 
     TabletMetadata tabletMeta = EasyMock.createMock(TabletMetadata.class);
     EasyMock.expect(tabletMeta.getFilesMap()).andReturn(tabletFiles).anyTimes();
@@ -382,8 +389,9 @@ public class UpdateTabletsTest {
     // Now we can actually test the split code that writes the new tablets with a bunch columns in
     // the original tablet
     SortedSet<Text> splits = new TreeSet<>(List.of(newExtent1.endRow(), newExtent2.endRow()));
-    UpdateTablets updateTablets =
-        new UpdateTablets(new SplitInfo(origExtent, splits, true), List.of(dir1, dir2));
+    UpdateTablets updateTablets = new UpdateTablets(
+        new SplitInfo(origExtent, TabletMergeabilityUtil.systemDefaultSplits(splits)),
+        List.of(dir1, dir2));
     updateTablets.call(fateId, manager);
 
     EasyMock.verify(manager, context, ample, tabletMeta, splitter, tabletsMutator, tablet1Mutator,
@@ -461,8 +469,9 @@ public class UpdateTabletsTest {
     // Now we can actually test the split code that writes the new tablets with a bunch columns in
     // the original tablet
     SortedSet<Text> splits = new TreeSet<>(List.of(new Text("c")));
-    UpdateTablets updateTablets =
-        new UpdateTablets(new SplitInfo(origExtent, splits, true), List.of("d1"));
+    UpdateTablets updateTablets = new UpdateTablets(
+        new SplitInfo(origExtent, TabletMergeabilityUtil.systemDefaultSplits(splits)),
+        List.of("d1"));
     updateTablets.call(fateId, manager);
 
     EasyMock.verify(manager, context, ample);

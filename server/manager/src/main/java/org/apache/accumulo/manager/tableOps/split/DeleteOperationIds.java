@@ -52,7 +52,7 @@ public class DeleteOperationIds extends ManagerRepo {
       Ample.RejectionHandler rejectionHandler =
           tabletMetadata -> !opid.equals(tabletMetadata.getOperationId());
 
-      splitInfo.getTablets().forEach(extent -> {
+      splitInfo.getTablets().keySet().forEach(extent -> {
         tabletsMutator.mutateTablet(extent).requireOperation(opid).requireAbsentLocation()
             .requireAbsentLogs().deleteOperation().submit(rejectionHandler);
       });
@@ -72,7 +72,7 @@ public class DeleteOperationIds extends ManagerRepo {
       manager.getEventCoordinator().event(splitInfo.getOriginal(), "Added %d splits to %s",
           splitInfo.getSplits().size(), splitInfo.getOriginal());
 
-      TabletLogger.split(splitInfo.getOriginal(), splitInfo.getSplits());
+      TabletLogger.split(splitInfo.getOriginal(), splitInfo.getSplits().navigableKeySet());
     }
 
     return null;

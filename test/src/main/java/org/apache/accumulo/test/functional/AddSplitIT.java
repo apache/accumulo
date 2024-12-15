@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -30,6 +31,8 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -98,6 +101,31 @@ public class AddSplitIT extends AccumuloClusterHarness {
         // Default for user created tablets should be mergeability set to NEVER
         tm.stream().forEach(tablet -> assertEquals(TabletMergeabilityMetadata.never(),
             tablet.getTabletMergeability()));
+      }
+    }
+  }
+
+  @Test
+  public void addSplitWithMergeabilityTest() throws Exception {
+
+    String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().create(tableName);
+
+      TreeSet<Text> splits = new TreeSet<>();
+      splits.add(new Text(String.format("%09d", 333)));
+      splits.add(new Text(String.format("%09d", 666)));
+
+      c.tableOperations().putSplits(tableName,
+          TabletMergeabilityUtil.splitsWithDefault(splits, TabletMergeability.always()));
+      Thread.sleep(100);
+      assertEquals(splits, new TreeSet<>(c.tableOperations().listSplits(tableName)));
+
+      TableId id = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+      try (TabletsMetadata tm = getServerContext().getAmple().readTablets().forTable(id).build()) {
+        // New splits should be set to always
+        assertTrue(tm.stream().filter(t -> t.getEndRow() != null).allMatch(t -> TabletMergeability
+            .always().equals(t.getTabletMergeability().getTabletMergeability())));
       }
     }
   }

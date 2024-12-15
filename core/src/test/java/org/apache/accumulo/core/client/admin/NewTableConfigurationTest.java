@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.hadoop.io.Text;
@@ -74,7 +75,19 @@ public class NewTableConfigurationTest {
   @Test
   public void testWithAndGetSplits() {
     NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
-    Collection<Text> ntcSplits = ntc.getSplits();
+    verifySplits(ntc.getSplits());
+  }
+
+  @Test
+  public void testWithSplitsMap() {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    ntc.withSplits(TabletMergeabilityUtil.splitsWithDefault(splits, TabletMergeability.never()));
+    verifySplits(ntc.getSplits());
+    assertTrue(
+        ntc.getSplitsMap().values().stream().allMatch(tm -> tm.equals(TabletMergeability.never())));
+  }
+
+  private void verifySplits(Collection<Text> ntcSplits) {
     Iterator<Text> splitIt = splits.iterator();
     Iterator<Text> ntcIt = ntcSplits.iterator();
     while (splitIt.hasNext() && ntcIt.hasNext()) {
@@ -100,7 +113,6 @@ public class NewTableConfigurationTest {
     NewTableConfiguration ntc2 = new NewTableConfiguration();
     Collection<Text> splits = ntc2.getSplits();
     assertTrue(splits.isEmpty());
-
   }
 
   @Test
