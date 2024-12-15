@@ -568,7 +568,9 @@ public class CompactionCoordinator
       this.metaJobRef = new SoftReference<>(Objects.requireNonNull(metaJob));
       this.compactorAddress = Objects.requireNonNull(compactorAddress);
       this.externalCompactionId = Objects.requireNonNull(externalCompactionId);
-      Preconditions.checkState(activeCompactorReservationRequest.add(compactorAddress));
+      Preconditions.checkState(activeCompactorReservationRequest.add(compactorAddress),
+          "compactor %s already on has a reservation in flight, cannot process %s",
+          compactorAddress, externalCompactionId);
     }
 
     @Override
@@ -656,7 +658,8 @@ public class CompactionCoordinator
 
         return null;
       } finally {
-        Preconditions.checkState(activeCompactorReservationRequest.remove(compactorAddress));
+        Preconditions.checkState(activeCompactorReservationRequest.remove(compactorAddress),
+            "compactorAddress:%s", compactorAddress);
       }
     }
   }
