@@ -39,6 +39,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
@@ -388,6 +389,7 @@ public class TabletServerLogger {
 
     boolean success = false;
     while (!success) {
+      boolean sawWriteFailure = false;
       try {
         // get a reference to the loggers that no other thread can touch
         AtomicInteger currentId = new AtomicInteger(-1);
@@ -442,7 +444,7 @@ public class TabletServerLogger {
         writeRetry.logRetry(log, "Logs closed while writing", ex);
       } catch (Exception t) {
         writeRetry.logRetry(log, "Failed to write to WAL", t);
-
+        sawWriteFailure = true;
         try {
           // Backoff
           writeRetry.waitForNextAttempt(log, "write to WAL");
@@ -458,24 +460,27 @@ public class TabletServerLogger {
       // the logs haven't changed.
       final int finalCurrent = currentLogId;
       if (!success) {
+        final ServiceLock tabletServerLock = tserver.getLock();
+        if (sawWriteFailure && tabletServerLock != null) {
+          log.info("WAL write failure, validating server lock in ZooKeeper");
+          if (!tabletServerLock.verifyLockAtSource()) {
+            // try to close the log, then Halt the VM
+            testLockAndRun(logIdLock, new TestCallWithWriteLock() {
 
-        if (tserver.getLock() == null || !tserver.getLock().verifyLockAtSource()) {
-          // try to close the log, then Halt the VM
-          testLockAndRun(logIdLock, new TestCallWithWriteLock() {
+              @Override
+              boolean test() {
+                return true;
+              }
 
-            @Override
-            boolean test() {
-              return true;
-            }
+              @Override
+              void withWriteLock() throws IOException {
+                close();
+              }
+            });
 
-            @Override
-            void withWriteLock() throws IOException {
-              close();
-            }
-          });
-
-          log.error("Writing to WAL has failed and TabletServer lock does not exist. Halting...");
-          Halt.halt("TabletServer lock does not exist", -1);
+            log.error("Writing to WAL has failed and TabletServer lock does not exist. Halting...");
+            Halt.halt("TabletServer lock does not exist", -1);
+          }
         }
 
         testLockAndRun(logIdLock, new TestCallWithWriteLock() {
