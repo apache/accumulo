@@ -61,9 +61,9 @@ public class ZooCache {
   private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
 
   protected static final String[] ALLOWED_PATHS = new String[] {Constants.ZCOMPACTORS,
-      Constants.ZDEADTSERVERS, Constants.ZGC_LOCK, Constants.ZMANAGER_LOCK, Constants.ZMONITOR_LOCK,
-      Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
-      Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET};
+      Constants.ZDEADTSERVERS, Constants.ZGC_LOCK, Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK,
+      Constants.ZMONITOR_LOCK, Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS,
+      Constants.ZTABLES, Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET};
 
   protected final TreeSet<String> watchedPaths = new TreeSet<>();
   // visible for tests
