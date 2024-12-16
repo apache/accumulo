@@ -42,7 +42,6 @@ import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceMan
 import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +99,6 @@ class AssignmentHandler implements Runnable {
     }
 
     // check Metadata table before accepting assignment
-    Text locationToOpen = null;
     TabletMetadata tabletMetadata = null;
     boolean canLoad = false;
     try {
