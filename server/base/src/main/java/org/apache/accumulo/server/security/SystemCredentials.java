@@ -103,7 +103,7 @@ public final class SystemCredentials extends Credentials {
      */
     public SystemToken() {}
 
-    private SystemToken(byte[] systemPassword) {
+    public SystemToken(byte[] systemPassword) {
       super(systemPassword);
     }
 

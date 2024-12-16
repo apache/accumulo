@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
@@ -52,6 +53,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -140,6 +142,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
+import org.apache.thrift.async.AsyncMethodCallback;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -197,6 +200,7 @@ public class CompactionCoordinator
   private final int jobQueueInitialSize;
 
   private volatile long coordinatorStartTime;
+  private final long maxJobRequestWaitTime;
 
   private final Map<DataLevel,ThreadPoolExecutor> reservationPools;
   private final Set<String> activeCompactorReservationRequest = ConcurrentHashMap.newKeySet();
@@ -216,6 +220,9 @@ public class CompactionCoordinator
     this.queueMetrics = new QueueMetrics(jobQueues);
 
     this.fateInstances = fateInstances;
+
+    this.maxJobRequestWaitTime = ctx.getConfiguration()
+        .getTimeInMillis(Property.COMPACTION_COORDINATOR_MAX_JOB_REQUEST_WAIT_TIME);
 
     completed = ctx.getCaches().createNewBuilder(CacheName.COMPACTIONS_COMPLETED, true)
         .maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
@@ -380,31 +387,43 @@ public class CompactionCoordinator
   public TNextCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
       String groupName, String compactorAddress, String externalCompactionId)
       throws ThriftSecurityException {
+    // TODO, this is the only RPC currently converted to use Jetty
+    // when all are converted we can just remove the thrift RPC service
+    // for CompactionCoordinator
+    throw new UnsupportedOperationException("getCompactionJob not supported");
+  }
+
+  public void getCompactionJob(TInfo tinfo, TCredentials credentials, String groupName,
+      String compactorAddress, String externalCompactionId,
+      AsyncMethodCallback<TNextCompactionJob> resultHandler) throws TException {
 
     // do not expect users to call this directly, expect compactors to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
+
+    // Get the next job as a future as we need to wait until something is available
     CompactorGroupId groupId = CompactorGroupId.of(groupName);
     LOG.trace("getCompactionJob called for group {} by compactor {}", groupId, compactorAddress);
     TIME_COMPACTOR_LAST_CHECKED.put(groupId, System.currentTimeMillis());
 
-    TExternalCompactionJob result = null;
-
-    CompactionJobQueues.MetaJob metaJob = jobQueues.poll(groupId);
-
-    while (metaJob != null) {
-
+    // TODO: Use a thread pool and use thenAcceptAsync and exceptionallyAsync()
+    // Async send back to the compactor when a new job is ready
+    // Need the unused var for errorprone
+    var unused = jobQueues.getAsync(groupId).thenAccept(metaJob -> {
+      LOG.trace("Next metaJob is ready {}", metaJob.getJob());
       Optional<CompactionConfig> compactionConfig = getCompactionConfig(metaJob);
 
-      // this method may reread the metadata, do not use the metadata in metaJob for anything after
+      // this method may reread the metadata, do not use the metadata in metaJob for anything
+      // after
       // this method
       CompactionMetadata ecm = null;
 
       var kind = metaJob.getJob().getKind();
 
-      // Only reserve user compactions when the config is present. When compactions are canceled the
+      // Only reserve user compactions when the config is present. When compactions are canceled
+      // the
       // config is deleted.
       var cid = ExternalCompactionId.from(externalCompactionId);
       if (kind == CompactionKind.SYSTEM
@@ -412,34 +431,37 @@ public class CompactionCoordinator
         ecm = reserveCompaction(metaJob, compactorAddress, cid);
       }
 
+      final TExternalCompactionJob result;
       if (ecm != null) {
         result = createThriftJob(externalCompactionId, ecm, metaJob, compactionConfig);
-        // It is possible that by the time this added that the the compactor that made this request
+        // It is possible that by the time this added that the the compactor that made this
+        // request
         // is dead. In this cases the compaction is not actually running.
         RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
             new RunningCompaction(result, compactorAddress, groupName));
         TabletLogger.compacting(metaJob.getTabletMetadata(), cid, compactorAddress,
             metaJob.getJob());
-        break;
       } else {
-        LOG.debug(
-            "Unable to reserve compaction job for {}, pulling another off the queue for group {}",
-            metaJob.getTabletMetadata().getExtent(), groupName);
-        metaJob = jobQueues.poll(CompactorGroupId.of(groupName));
+        LOG.debug("Unable to reserve compaction job for {} {}, returning empty job to compactor {}",
+            groupName, metaJob.getTabletMetadata().getExtent(), compactorAddress);
+        result = new TExternalCompactionJob();
       }
-    }
 
-    if (metaJob == null) {
-      LOG.trace("No jobs found in group {} ", groupName);
-    }
-
-    if (result == null) {
-      LOG.trace("No jobs found for group {}, returning empty job to compactor {}", groupName,
-          compactorAddress);
-      result = new TExternalCompactionJob();
-    }
-
-    return new TNextCompactionJob(result, compactorCounts.get(groupName));
+      var ecj = new TNextCompactionJob(result, compactorCounts.get(groupName));
+      LOG.trace("Received next compaction job {}", ecj);
+      resultHandler.onComplete(ecj);
+    }).orTimeout(maxJobRequestWaitTime, MILLISECONDS).exceptionally(e -> {
+      if (e instanceof TimeoutException) {
+        LOG.trace("Compaction job request with ecid {} timed out.", externalCompactionId);
+        resultHandler.onComplete(
+            new TNextCompactionJob(new TExternalCompactionJob(), compactorCounts.get(groupName)));
+      } else {
+        LOG.warn("Received exception processing compaction job {}", e.getMessage());
+        LOG.debug(e.getMessage(), e);
+        resultHandler.onError(new RuntimeException(e));
+      }
+      return null;
+    });
   }
 
   @VisibleForTesting
