@@ -33,7 +33,7 @@ import com.google.common.base.Preconditions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @AutoService(KeywordExecutable.class)
-public class CheckAccumuloConfig implements KeywordExecutable {
+public class CheckAccumuloProperties implements KeywordExecutable {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "intentional user-provided path")
   public static void main(String[] args) throws IOException {
