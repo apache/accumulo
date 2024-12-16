@@ -1788,7 +1788,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     assertEquals(time2, context.getAmple().readTablet(e1).getTime());
 
     // Test mutation is rejected when a file is given that the tablet does not have
-    var time3 = MetadataTime.parse("L60");
+    var time3 = MetadataTime.parse("L70");
     try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
       ctmi.mutateTablet(e1).requireAbsentOperation().requireFiles(Set.of(stf1, stf4)).putTime(time3)
           .submit(tm -> false);
@@ -1796,5 +1796,219 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     }
     // Should be previous time still as the mutation was rejected
     assertEquals(time2, context.getAmple().readTablet(e1).getTime());
+  }
+
+  @Test
+  public void testFilesLimit() {
+    var context = cluster.getServerContext();
+
+    var stf1 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
+    var stf2 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
+    var stf3 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
+    var stf4 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/C0000073.rf"));
+    var dfv = new DataFileValue(100, 100);
+
+    // Add 3 of the files, skip the 4th file
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().putFile(stf1, dfv).putFile(stf2, dfv)
+          .putFile(stf3, dfv).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
+
+    // Test mutation is accepted when # files in tablet equals limit
+    var time1 = MetadataTime.parse("L50");
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLessOrEqualsFiles(3).putTime(time1)
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(time1, context.getAmple().readTablet(e1).getTime());
+
+    // Test mutation is accepted when # files in tablet is less than limit
+    var time2 = MetadataTime.parse("L60");
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLessOrEqualsFiles(4).putTime(time2)
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(time2, context.getAmple().readTablet(e1).getTime());
+
+    // Test mutation is rejected when # files in tablet is greater than limit
+    var time3 = MetadataTime.parse("L70");
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLessOrEqualsFiles(2).putTime(time3)
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    // Should be previous time still as the mutation was rejected
+    assertEquals(time2, context.getAmple().readTablet(e1).getTime());
+
+    // add fourth file
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().putFile(stf4, dfv).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(stf1, stf2, stf3, stf4), context.getAmple().readTablet(e1).getFiles());
+
+    // Test mutation is rejected when # files in tablet is greater than limit
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLessOrEqualsFiles(3).putTime(time3)
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    // Should be previous time still as the mutation was rejected
+    assertEquals(time2, context.getAmple().readTablet(e1).getTime());
+
+    // Test mutation is accepted when # files in tablet equals limit
+    var time4 = MetadataTime.parse("L80");
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLessOrEqualsFiles(4).putTime(time4)
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(time4, context.getAmple().readTablet(e1).getTime());
+
+  }
+
+  @Test
+  public void testRequireAbsentLoaded() {
+    var context = cluster.getServerContext();
+
+    var stf1 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
+    var stf2 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
+    var stf3 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
+    var dfv = new DataFileValue(100, 100);
+
+    FateId fateId1 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireAbsentLoaded(Set.of(stf1.getTabletFile(), stf2.getTabletFile()))
+          .putBulkFile(stf1.getTabletFile(), fateId1).putBulkFile(stf2.getTabletFile(), fateId1)
+          .putFile(stf1, dfv).putFile(stf2, dfv).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(stf1, stf2), context.getAmple().readTablet(e1).getFiles());
+    assertEquals(Map.of(stf1, fateId1, stf2, fateId1),
+        context.getAmple().readTablet(e1).getLoaded());
+
+    FateId fateId2 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireAbsentLoaded(Set.of(stf3.getTabletFile()))
+          .putBulkFile(stf3.getTabletFile(), fateId2).putFile(stf3, dfv).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
+    assertEquals(Map.of(stf1, fateId1, stf2, fateId1, stf3, fateId2),
+        context.getAmple().readTablet(e1).getLoaded());
+
+    // should fail because the loaded markers are present
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireAbsentLoaded(Set.of(stf1.getTabletFile(), stf2.getTabletFile()))
+          .putBulkFile(stf1.getTabletFile(), fateId1).putBulkFile(stf2.getTabletFile(), fateId1)
+          .putFile(stf1, dfv).putFile(stf2, dfv).putFlushId(99).submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+
+    // should fail because the loaded markers are present
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireAbsentLoaded(Set.of(stf3.getTabletFile()))
+          .putBulkFile(stf3.getTabletFile(), fateId2).putFile(stf3, dfv).putFlushId(99)
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+
+    assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
+    assertEquals(Map.of(stf1, fateId1, stf2, fateId1, stf3, fateId2),
+        context.getAmple().readTablet(e1).getLoaded());
+    assertTrue(context.getAmple().readTablet(e1).getFlushId().isEmpty());
+  }
+
+  @Test
+  public void testRequireNotCompacting() {
+    var context = cluster.getServerContext();
+
+    var stf1 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
+    var stf2 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
+    var stf3 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
+    var stf4 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/C0000073.rf"));
+    var dfv = new DataFileValue(100, 100);
+
+    // add all four files to tablet
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().putFile(stf1, dfv).putFile(stf2, dfv)
+          .putFile(stf3, dfv).putFile(stf4, dfv).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+
+    var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
+    var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
+    var compaction1 = createCompaction(Set.of(stf1, stf2));
+    var compaction2 = createCompaction(Set.of(stf3));
+
+    // add first compaction to tablet
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireNotCompacting(compaction1.getJobFiles())
+          .putExternalCompaction(ecid1, compaction1).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(ecid1),
+        context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+
+    // add second compaction to tablet, there is an existing compaction but the files do not overlap
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireNotCompacting(compaction2.getJobFiles())
+          .putExternalCompaction(ecid2, compaction2).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(ecid1, ecid2),
+        context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+
+    // try different adding a compaction for different subsets of files that overlap with the
+    // existing compacting files
+    for (var compactingFiles : Sets.powerSet(Set.of(stf1, stf2, stf3))) {
+      if (compactingFiles.isEmpty()) {
+        continue;
+      }
+      // attempt to add a compaction that overlaps with existing compacting files
+      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+        // This compactions overlaps files from compaction1 and compaction2
+        var compaction3 = createCompaction(compactingFiles);
+        var ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
+        ctmi.mutateTablet(e1).requireAbsentOperation()
+            .requireNotCompacting(compaction3.getJobFiles())
+            .putExternalCompaction(ecid3, compaction3).submit(tm -> false);
+        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+      }
+      assertEquals(Set.of(ecid1, ecid2),
+          context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+    }
+  }
+
+  private CompactionMetadata createCompaction(Set<StoredTabletFile> jobFiles) {
+    FateInstanceType type = FateInstanceType.fromTableId(tid);
+    FateId fateId = FateId.from(type, UUID.randomUUID());
+    ReferencedTabletFile tmpFile =
+        ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
+    CompactorGroupId ceid = CompactorGroupId.of("G1");
+    CompactionMetadata ecMeta = new CompactionMetadata(jobFiles, tmpFile, "localhost:4444",
+        CompactionKind.SYSTEM, (short) 2, ceid, false, fateId);
+    return ecMeta;
   }
 }

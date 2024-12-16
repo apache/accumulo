@@ -203,9 +203,9 @@ public class PrepBulkImport extends ManagerRepo {
     if (maxFilesPerTablet > 0 && currRange.getValue().getSize() > maxFilesPerTablet) {
       throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
           TableOperationExceptionType.OTHER,
-          "Attempted to import " + currRange.getValue().getSize()
-              + " files into a single tablet which exceeds the configured max of "
-              + maxFilesPerTablet);
+          "Attempted to import " + currRange.getValue().getSize() + " files into tablets in range "
+              + currRange.getKey() + " which exceeds the configured max files per tablet of "
+              + maxFilesPerTablet + " from " + Property.TABLE_BULK_MAX_TABLET_FILES.getKey());
     }
   }
 
@@ -323,5 +323,6 @@ public class PrepBulkImport extends ManagerRepo {
     // unreserve sourceDir/error directories
     Utils.unreserveHdfsDirectory(environment, bulkInfo.sourceDir, fateId);
     Utils.getReadLock(environment, bulkInfo.tableId, fateId).unlock();
+    environment.removeBulkImportStatus(bulkInfo.sourceDir);
   }
 }
