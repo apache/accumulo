@@ -26,25 +26,26 @@ import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
+import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Deque;
+import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateStoreIT;
-import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
+import org.apache.accumulo.test.fate.FateStoreUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -52,37 +53,31 @@ import org.junit.jupiter.api.io.TempDir;
 
 @Tag(ZOOKEEPER_TESTING_SERVER)
 public class MetaFateStoreFateIT extends FateStoreIT {
-
-  private static ZooKeeperTestingServer szk = null;
-  private static ZooReaderWriter zk = null;
-  private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
-  private static final String ZK_ROOT = ZooUtil.getRoot(IID);
-
   @TempDir
   private static File tempDir;
 
   @BeforeAll
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer(tempDir);
-    zk = szk.getZooReaderWriter();
-    zk.mkdirs(ZK_ROOT + Constants.ZFATE);
-    zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
+    FateStoreUtil.MetaFateZKSetup.setup(tempDir);
   }
 
   @AfterAll
   public static void teardown() throws Exception {
-    szk.close();
+    FateStoreUtil.MetaFateZKSetup.teardown();
   }
 
   @Override
   public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
       FateIdGenerator fateIdGenerator) throws Exception {
     ServerContext sctx = createMock(ServerContext.class);
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+    expect(sctx.getZooKeeperRoot()).andReturn(FateStoreUtil.MetaFateZKSetup.getZkRoot()).anyTimes();
+    expect(sctx.getZooReaderWriter()).andReturn(FateStoreUtil.MetaFateZKSetup.getZooReaderWriter())
+        .anyTimes();
     replay(sctx);
-    MetaFateStore<TestEnv> store = new MetaFateStore<>(ZK_ROOT + Constants.ZFATE, zk,
-        createDummyLockID(), null, maxDeferred, fateIdGenerator);
+    MetaFateStore<TestEnv> store =
+        new MetaFateStore<>(FateStoreUtil.MetaFateZKSetup.getZkFatePath(),
+            FateStoreUtil.MetaFateZKSetup.getZooReaderWriter(), createDummyLockID(), null,
+            maxDeferred, fateIdGenerator);
 
     // Check that the store has no transactions before and after each test
     assertEquals(0, store.list().count());
@@ -93,38 +88,49 @@ public class MetaFateStoreFateIT extends FateStoreIT {
   @Override
   protected void deleteKey(FateId fateId, ServerContext sctx) {
     try {
-      // We have to use reflection since the NodeValue is internal to the store
+      // We have to use reflection since the FateData is internal to the store
 
-      // Grab both the constructors that use the serialized bytes and status, reservation
-      Class<?> nodeClass = Class.forName(MetaFateStore.class.getName() + "$NodeValue");
-      Constructor<?> statusReservationCons =
-          nodeClass.getDeclaredConstructor(TStatus.class, FateStore.FateReservation.class);
-      Constructor<?> serializedCons = nodeClass.getDeclaredConstructor(byte[].class);
-      statusReservationCons.setAccessible(true);
+      Class<?> fateDataClass = Class.forName(MetaFateStore.class.getName() + "$FateData");
+      // Constructor for constructing FateData
+      Constructor<?> fateDataCons = fateDataClass.getDeclaredConstructor(TStatus.class,
+          FateStore.FateReservation.class, FateKey.class, Deque.class, Map.class);
+      // Constructor for constructing FateData from a byte array (the serialized form of FateData)
+      Constructor<?> serializedCons = fateDataClass.getDeclaredConstructor(byte[].class);
+      fateDataCons.setAccessible(true);
       serializedCons.setAccessible(true);
 
-      // Get the status and reservation fields so they can be read and get the serialize method
-      Field nodeStatus = nodeClass.getDeclaredField("status");
-      Field nodeReservation = nodeClass.getDeclaredField("reservation");
-      Method nodeSerialize = nodeClass.getDeclaredMethod("serialize");
-      nodeStatus.setAccessible(true);
-      nodeReservation.setAccessible(true);
+      // Get the status, reservation, repoDeque, txInfo fields so that they can be read and get the
+      // serialize method
+      Field status = fateDataClass.getDeclaredField("status");
+      Field reservation = fateDataClass.getDeclaredField("reservation");
+      Field repoDeque = fateDataClass.getDeclaredField("repoDeque");
+      Field txInfo = fateDataClass.getDeclaredField("txInfo");
+      Method nodeSerialize = fateDataClass.getDeclaredMethod("serialize");
+      status.setAccessible(true);
+      reservation.setAccessible(true);
+      repoDeque.setAccessible(true);
+      txInfo.setAccessible(true);
       nodeSerialize.setAccessible(true);
 
-      // Get the existing status and reservation for the node and build a new node with an empty key
-      // but uses the existing tid
-      String txPath = ZK_ROOT + Constants.ZFATE + "/tx_" + fateId.getTxUUIDStr();
-      Object currentNode = serializedCons.newInstance(new Object[] {zk.getData(txPath)});
-      TStatus currentStatus = (TStatus) nodeStatus.get(currentNode);
+      // Gather the existing fields, create a new FateData object with those existing fields
+      // (excluding the FateKey in the new object), and replace the zk node with this new FateData
+      String txPath =
+          FateStoreUtil.MetaFateZKSetup.getZkFatePath() + "/tx_" + fateId.getTxUUIDStr();
+      Object currentNode = serializedCons.newInstance(
+          new Object[] {FateStoreUtil.MetaFateZKSetup.getZooReaderWriter().getData(txPath)});
+      TStatus currentStatus = (TStatus) status.get(currentNode);
       Optional<FateStore.FateReservation> currentReservation =
-          getCurrentReservation(nodeReservation, currentNode);
-      // replace the node with no key and just a tid and existing status and reservation
-      Object newNode =
-          statusReservationCons.newInstance(currentStatus, currentReservation.orElse(null));
+          getCurrentReservation(reservation, currentNode);
+      @SuppressWarnings("unchecked")
+      Deque<Repo<TestEnv>> currentRepoDeque = (Deque<Repo<TestEnv>>) repoDeque.get(currentNode);
+      @SuppressWarnings("unchecked")
+      Map<Fate.TxInfo,Serializable> currentTxInfo =
+          (Map<Fate.TxInfo,Serializable>) txInfo.get(currentNode);
+      Object newNode = fateDataCons.newInstance(currentStatus, currentReservation.orElse(null),
+          null, currentRepoDeque, currentTxInfo);
 
-      // Replace the transaction with the same status and reservation but no key
-      zk.putPersistentData(txPath, (byte[]) nodeSerialize.invoke(newNode),
-          NodeExistsPolicy.OVERWRITE);
+      FateStoreUtil.MetaFateZKSetup.getZooReaderWriter().putPersistentData(txPath,
+          (byte[]) nodeSerialize.invoke(newNode), NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }
