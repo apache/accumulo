@@ -38,7 +38,7 @@ function refresh() {
 /**
  * Initializes the bulk import DataTables
  */
-$(document).ready(function () {
+$(function () {
 
   const url = '/rest/bulkImports';
   console.debug('REST url used to fetch data for the DataTables in bulkImport.js: ' + url);

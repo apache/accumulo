@@ -23,7 +23,7 @@ var scansList;
 /**
  * Creates scans initial table
  */
-$(document).ready(function () {
+$(function () {
   // Create a table for scans list
   scansList = $('#scansList').DataTable({
     "ajax": {
