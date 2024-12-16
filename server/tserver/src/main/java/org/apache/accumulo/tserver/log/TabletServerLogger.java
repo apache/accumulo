@@ -473,8 +473,7 @@ public class TabletServerLogger {
               }
 
               @Override
-              void withWriteLock() throws IOException {
-              }
+              void withWriteLock() throws IOException {}
             });
 
             log.error("Writing to WAL has failed and TabletServer lock does not exist. Halting...");
