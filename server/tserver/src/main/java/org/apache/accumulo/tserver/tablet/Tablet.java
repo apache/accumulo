@@ -71,8 +71,6 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
-import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletMutator;
-import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletsMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -136,6 +134,7 @@ public class Tablet extends TabletBase {
 
   private final TabletTime tabletTime;
 
+  private final List<LogEntry> walogsToDelete = new ArrayList<LogEntry>();
   private final Set<Path> checkedTabletDirs = new ConcurrentSkipListSet<>();
 
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
@@ -302,23 +301,8 @@ public class Tablet extends TabletBase {
         if (entriesUsedOnTablet.get() == 0) {
           log.debug("No replayed mutations applied, removing unused walog entries for {}", extent);
 
-          final Location expectedLocation = Location.future(this.tabletServer.getTabletSession());
-          try (ConditionalTabletsMutator mutator =
-              getContext().getAmple().conditionallyMutateTablets()) {
-            ConditionalTabletMutator mut = mutator.mutateTablet(extent).requireAbsentOperation()
-                .requireLocation(expectedLocation);
-            logEntries.forEach(mut::deleteWal);
-            mut.submit(tabletMetadata -> tabletMetadata.getLogs().isEmpty());
+          walogsToDelete.addAll(logEntries);
 
-            ConditionalResult res = mutator.process().get(extent);
-            if (res.getStatus() == Status.REJECTED) {
-              throw new IllegalStateException(
-                  "Unable to remove logs in metadata for extent: " + extent);
-            }
-          }
-
-          // intentionally not rereading metadata here because walogs are only used in the
-          // constructor
           logEntries.clear();
         }
 
@@ -1348,6 +1332,10 @@ public class Tablet extends TabletBase {
         logLock.unlock();
       }
     }
+  }
+
+  public List<LogEntry> getWALogsToDelete() {
+    return walogsToDelete;
   }
 
   public void finishUpdatingLogsUsed() {
