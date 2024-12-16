@@ -474,7 +474,6 @@ public class TabletServerLogger {
 
               @Override
               void withWriteLock() throws IOException {
-                close();
               }
             });
 
