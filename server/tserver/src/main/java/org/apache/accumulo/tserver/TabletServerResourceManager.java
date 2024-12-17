@@ -401,9 +401,9 @@ public class TabletServerResourceManager {
         TSERVER_CONDITIONAL_UPDATE_ROOT_POOL.poolName, rootConditionalPool);
 
     var metaConditionalPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
-        Property.TSERV_CONDITIONAL_UPDATE_THREADS_USER, enableMetrics);
+        Property.TSERV_CONDITIONAL_UPDATE_THREADS_META, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
-        () -> context.getConfiguration().getCount(Property.TSERV_CONDITIONAL_UPDATE_THREADS_USER),
+        () -> context.getConfiguration().getCount(Property.TSERV_CONDITIONAL_UPDATE_THREADS_META),
         TSERVER_CONDITIONAL_UPDATE_META_POOL.poolName, metaConditionalPool);
 
     var userConditionalPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
