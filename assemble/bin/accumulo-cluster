@@ -80,6 +80,11 @@ function parse_args {
   ARG_COMPACTOR_GROUP=""
 
   PARSE_OUTPUT=$(getopt -o "" --long "dry-run,all,local,manager,gc,monitor,compaction-coordinator,no-tservers,tservers,sservers::,compactors::" -n 'accumulo-cluster' -- "$@")
+  if [[ "$?" != 0 ]]; then
+    print_usage
+    exit 1
+  fi
+
   eval set -- "$PARSE_OUTPUT"
 
   while true; do
@@ -405,7 +410,7 @@ function control_services() {
   local group
   local tserver
   local G
-  if [[ $ARG_ALL == 1 && $operation == "stop" ]]; then
+  if [[ $ARG_ALL == 1 && $ARG_LOCAL == 0 && $operation == "stop" ]]; then
     echo "Stopping Accumulo cluster..."
     if ! isDebug; then
       if ! $accumulo_cmd admin stopAll; then
