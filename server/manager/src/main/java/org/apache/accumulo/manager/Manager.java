@@ -999,20 +999,20 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         final Map<String,TableInfo> newTableMap =
             new HashMap<>(dl == DataLevel.USER ? oldTableMap.size() : 1);
         if (dl == DataLevel.ROOT) {
-          if (oldTableMap.containsKey(RootTable.NAME)) {
-            newTableMap.put(RootTable.NAME, oldTableMap.get(RootTable.NAME));
+          if (oldTableMap.containsKey(RootTable.ID.canonical())) {
+            newTableMap.put(RootTable.ID.canonical(), oldTableMap.get(RootTable.ID.canonical()));
           }
         } else if (dl == DataLevel.METADATA) {
-          if (oldTableMap.containsKey(MetadataTable.NAME)) {
-            newTableMap.put(MetadataTable.NAME, oldTableMap.get(MetadataTable.NAME));
+          if (oldTableMap.containsKey(MetadataTable.ID.canonical())) {
+            newTableMap.put(MetadataTable.ID.canonical(), oldTableMap.get(MetadataTable.ID.canonical()));
           }
         } else if (dl == DataLevel.USER) {
-          if (!oldTableMap.containsKey(MetadataTable.NAME)
-              && !oldTableMap.containsKey(RootTable.NAME)) {
+          if (!oldTableMap.containsKey(MetadataTable.ID.canonical())
+              && !oldTableMap.containsKey(RootTable.ID.canonical())) {
             newTableMap.putAll(oldTableMap);
           } else {
             oldTableMap.forEach((table, info) -> {
-              if (!table.equals(RootTable.NAME) && !table.equals(MetadataTable.NAME)) {
+              if (!table.equals(RootTable.ID.canonical()) && !table.equals(MetadataTable.ID.canonical())) {
                 newTableMap.put(table, info);
               }
             });
