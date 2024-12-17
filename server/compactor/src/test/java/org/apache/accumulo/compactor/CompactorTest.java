@@ -33,6 +33,7 @@ import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -195,6 +196,7 @@ public class CompactorTest {
     private volatile boolean completedCalled = false;
     private volatile boolean failedCalled = false;
     private TCompactionStatusUpdate latestState = null;
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci, CompactorServerOpts compactorServerOpts) {
@@ -227,8 +229,18 @@ public class CompactorTest {
     protected TNextCompactionJob getNextJob(Supplier<UUID> uuid) throws RetriesExceededException {
       LOG.info("Attempting to get next job, eci = {}", eci);
       currentCompactionId.set(eci);
-      this.shutdown = true;
+      requestShutdown();
       return new TNextCompactionJob(job, 1);
+    }
+
+    @Override
+    public void requestShutdown() {
+      shutdown.set(true);
+    }
+
+    @Override
+    public boolean isShutdownRequested() {
+      return shutdown.get();
     }
 
     @Override

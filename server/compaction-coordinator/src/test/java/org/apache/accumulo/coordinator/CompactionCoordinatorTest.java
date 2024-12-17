@@ -38,6 +38,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -96,6 +97,7 @@ public class CompactionCoordinatorTest {
     private final ServerContext context;
     private final ServerAddress client;
     private final TabletClientService.Client tabletServerClient;
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
     private Set<ExternalCompactionId> metadataCompactionIds = null;
 
@@ -116,8 +118,18 @@ public class CompactionCoordinatorTest {
 
     @Override
     protected long getTServerCheckInterval() {
-      this.shutdown = true;
+      requestShutdown();
       return 0L;
+    }
+
+    @Override
+    public void requestShutdown() {
+      shutdown.set(true);
+    }
+
+    @Override
+    public boolean isShutdownRequested() {
+      return shutdown.get();
     }
 
     @Override

@@ -74,7 +74,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -135,9 +134,6 @@ public class CompactionCoordinator extends AbstractServer
   protected LiveTServerSet tserverSet;
 
   private ServiceLock coordinatorLock;
-
-  // Exposed for tests
-  protected volatile Boolean shutdown = false;
 
   private final ScheduledThreadPoolExecutor schedExecutor;
 
@@ -309,31 +305,40 @@ public class CompactionCoordinator extends AbstractServer
     startDeadCompactionDetector();
 
     LOG.info("Starting loop to check tservers for compaction summaries");
-    while (!shutdown) {
-      long start = System.currentTimeMillis();
+    while (!isShutdownRequested()) {
+      try {
+        long start = System.currentTimeMillis();
 
-      updateSummaries();
+        updateSummaries();
 
-      long now = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
 
-      Map<String,List<HostAndPort>> idleCompactors = getIdleCompactors();
-      TIME_COMPACTOR_LAST_CHECKED.forEach((queue, lastCheckTime) -> {
-        if ((now - lastCheckTime) > getMissingCompactorWarningTime()
-            && QUEUE_SUMMARIES.isCompactionsQueued(queue) && idleCompactors.containsKey(queue)) {
-          LOG.warn("No compactors have checked in with coordinator for queue {} in {}ms", queue,
-              getMissingCompactorWarningTime());
+        Map<String,List<HostAndPort>> idleCompactors = getIdleCompactors();
+        TIME_COMPACTOR_LAST_CHECKED.forEach((queue, lastCheckTime) -> {
+          if ((now - lastCheckTime) > getMissingCompactorWarningTime()
+              && QUEUE_SUMMARIES.isCompactionsQueued(queue) && idleCompactors.containsKey(queue)) {
+            LOG.warn("No compactors have checked in with coordinator for queue {} in {}ms", queue,
+                getMissingCompactorWarningTime());
+          }
+        });
+
+        long checkInterval = getTServerCheckInterval();
+        long duration = (System.currentTimeMillis() - start);
+        if (checkInterval - duration > 0) {
+          LOG.debug("Waiting {}ms for next tserver check", (checkInterval - duration));
+          Thread.sleep(checkInterval - duration);
         }
-      });
-
-      long checkInterval = getTServerCheckInterval();
-      long duration = (System.currentTimeMillis() - start);
-      if (checkInterval - duration > 0) {
-        LOG.debug("Waiting {}ms for next tserver check", (checkInterval - duration));
-        UtilWaitThread.sleep(checkInterval - duration);
+      } catch (InterruptedException e) {
+        LOG.info("Interrupt Exception received, shutting down");
+        requestShutdown();
       }
     }
 
-    LOG.info("Shutting down");
+    LOG.debug("Stopping Thrift Servers");
+    if (coordinatorAddress.server != null) {
+      coordinatorAddress.server.stop();
+    }
+    LOG.info("stop requested. exiting ... ");
   }
 
   private Map<String,List<HostAndPort>> getIdleCompactors() {

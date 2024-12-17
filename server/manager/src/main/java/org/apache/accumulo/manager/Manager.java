@@ -1443,10 +1443,19 @@ public class Manager extends AbstractServer
     // The manager is fully initialized. Clients are allowed to connect now.
     managerInitialized.set(true);
 
-    while (clientService.isServing()) {
-      sleepUninterruptibly(500, MILLISECONDS);
+    while (!isShutdownRequested() && clientService.isServing()) {
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        log.info("Interrupt Exception received, shutting down");
+        requestShutdown();
+      }
     }
-    log.info("Shutting down fate.");
+
+    LOG.debug("Stopping Thrift Servers");
+    sa.server.stop();
+
+    log.debug("Shutting down fate.");
     fate().shutdown();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
@@ -1487,7 +1496,7 @@ public class Manager extends AbstractServer
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
-    log.info("exiting");
+    log.info("stop requested. exiting ... ");
   }
 
   @Deprecated

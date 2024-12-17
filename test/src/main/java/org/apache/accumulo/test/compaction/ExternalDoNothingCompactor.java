@@ -60,7 +60,7 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
       CountDownLatch stopped, AtomicReference<Throwable> err) {
 
     // Set this to true so that only 1 external compaction is run
-    this.shutdown = true;
+    requestShutdown();
 
     return new FileCompactorRunnable() {
 

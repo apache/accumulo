@@ -21,6 +21,7 @@ package org.apache.accumulo.server;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
@@ -34,6 +35,7 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.hadoop.util.ShutdownHookManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +54,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   private volatile long idlePeriodStartNanos = 0L;
   private volatile Thread serverThread;
   private volatile Thread verificationThread;
+  private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
 
   protected AbstractServer(String appName, ServerOpts opts, String[] args) {
     this.log = LoggerFactory.getLogger(getClass().getName());
@@ -102,14 +105,47 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     }
   }
 
+  private void attemptGracefulStop() {
+    if (serverThread != null) {
+      serverThread.interrupt();
+    }
+    requestShutdown();
+  }
+
+  public void requestShutdown() {
+    shutdownRequested.compareAndSet(false, true);
+  }
+
+  public boolean isShutdownRequested() {
+    return shutdownRequested.get();
+  }
+
   /**
-   * Run this server in a main thread
+   * Run this server in a main thread. The server's run method should set up the server, then wait
+   * on isShutdownRequested() to return false, like so:
+   *
+   * <pre>
+   * public void run() {
+   *   // setup server and start threads
+   *   while (!isShutdownRequested()) {
+   *     try {
+   *       // sleep or other things
+   *     } catch (InterruptedException e) {
+   *       requestShutdown();
+   *     }
+   *   }
+   *   // shut down server
+   * }
+   * </pre>
    */
   public void runServer() throws Exception {
     final AtomicReference<Throwable> err = new AtomicReference<>();
     serverThread = new Thread(TraceUtil.wrap(this), applicationName);
     serverThread.setUncaughtExceptionHandler((thread, exception) -> err.set(exception));
     serverThread.start();
+
+    ShutdownHookManager.get().addShutdownHook(() -> attemptGracefulStop(), 100);
+
     serverThread.join();
     if (verificationThread != null) {
       verificationThread.interrupt();
