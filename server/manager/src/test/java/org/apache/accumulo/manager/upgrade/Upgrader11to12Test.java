@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -63,6 +62,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -352,11 +352,13 @@ public class Upgrader11to12Test {
     Upgrader11to12 upgrader = new Upgrader11to12();
 
     ServerContext context = createMock(ServerContext.class);
+    ZooSession zk = createStrictMock(ZooSession.class);
     ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
     final var zkRoot = ZooUtil.getRoot(iid);
 
     expect(context.getInstanceID()).andReturn(iid).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(context.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
     expect(context.getZooKeeperRoot()).andReturn(zkRoot).anyTimes();
 
     zrw.recursiveDelete(zkRoot + "/tracers", ZooUtil.NodeMissingPolicy.SKIP);
@@ -382,30 +384,26 @@ public class Upgrader11to12Test {
     expect(zrw.getChildren(eq(zkRoot + Constants.ZNAMESPACES)))
         .andReturn(List.copyOf(mockNamespaces.keySet())).once();
     for (String ns : mockNamespaces.keySet()) {
-      Supplier<String> pathMatcher =
-          () -> eq(zkRoot + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME);
-      expect(zrw.getData(pathMatcher.get())).andReturn(mockNamespaces.get(ns).getBytes(UTF_8))
-          .once();
+      expect(zrw.getData(zkRoot + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME))
+          .andReturn(mockNamespaces.get(ns).getBytes(UTF_8)).once();
     }
     byte[] mapping = NamespaceMapping.serialize(mockNamespaces);
     expect(zrw.putPersistentData(eq(zkRoot + Constants.ZNAMESPACES), aryEq(mapping),
         eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
     for (String ns : mockNamespaces.keySet()) {
-      Supplier<String> pathMatcher =
-          () -> eq(zkRoot + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME);
-      zrw.delete(pathMatcher.get());
+      zrw.delete(zkRoot + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME);
       expectLastCall().once();
     }
 
-    expect(zrw.exists(eq(zkRoot + "/problems"))).andReturn(false).once();
+    expect(zrw.exists(zkRoot + "/problems")).andReturn(false).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
     upgrader.upgradeZookeeper(context);
 
     assertEquals(zKRootV2, new String(byteCapture.getValue(), UTF_8));
 
-    verify(context, zrw);
+    verify(context, zk, zrw);
   }
 
   @Test

@@ -59,7 +59,7 @@ public class KerberosAuthenticator implements Authenticator {
   @Override
   public void initialize(ServerContext context) {
     this.context = context;
-    zooCache = new ZooCache(context.getZooReader(), null);
+    zooCache = new ZooCache(context.getZooSession());
     impersonation = new UserImpersonation(context.getConfiguration());
     zkAuthenticator.initialize(context);
     zkUserPath = context.zkUserPath();
@@ -73,7 +73,7 @@ public class KerberosAuthenticator implements Authenticator {
   private void createUserNodeInZk(String principal) throws KeeperException, InterruptedException {
     synchronized (zooCache) {
       zooCache.clear();
-      ZooReaderWriter zoo = context.getZooReaderWriter();
+      ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       zoo.putPrivatePersistentData(zkUserPath + "/" + principal, new byte[0],
           NodeExistsPolicy.FAIL);
     }
@@ -83,7 +83,7 @@ public class KerberosAuthenticator implements Authenticator {
   public void initializeSecurity(String principal, byte[] token) {
     try {
       // remove old settings from zookeeper first, if any
-      ZooReaderWriter zoo = context.getZooReaderWriter();
+      ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       synchronized (zooCache) {
         zooCache.clear();
         if (zoo.exists(zkUserPath)) {

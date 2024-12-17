@@ -59,7 +59,7 @@ public class ServiceStatusCmd {
    */
   public void execute(final ServerContext context, final Opts opts) {
 
-    ZooReader zooReader = context.getZooReader();
+    ZooReader zooReader = context.getZooSession().asReader();
 
     final String zooRoot = context.getZooKeeperRoot();
     LOG.trace("zooRoot: {}", zooRoot);

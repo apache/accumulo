@@ -234,7 +234,7 @@ public class MergeStats {
     try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         Map<String,String> tableIdMap = client.tableOperations().tableIdMap();
-        ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooReaderWriter();
+        ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooSession().asReaderWriter();
         for (Entry<String,String> entry : tableIdMap.entrySet()) {
           final String table = entry.getKey(), tableId = entry.getValue();
           String path = opts.getServerContext().getZooKeeperRoot() + Constants.ZTABLES + "/"

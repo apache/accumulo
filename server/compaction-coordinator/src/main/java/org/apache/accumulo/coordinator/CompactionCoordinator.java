@@ -215,8 +215,8 @@ public class CompactionCoordinator extends AbstractServer
     final String lockPath = getContext().getZooKeeperRoot() + Constants.ZCOORDINATOR_LOCK;
     final UUID zooLockUUID = UUID.randomUUID();
 
-    coordinatorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
-        ServiceLock.path(lockPath), zooLockUUID);
+    coordinatorLock =
+        new ServiceLock(getContext().getZooSession(), ServiceLock.path(lockPath), zooLockUUID);
     while (true) {
 
       CoordinatorLockWatcher coordinatorLockWatcher = new CoordinatorLockWatcher();
@@ -732,7 +732,7 @@ public class CompactionCoordinator extends AbstractServer
   private void cleanUpCompactors() {
     final String compactorQueuesPath = getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS;
 
-    var zoorw = getContext().getZooReaderWriter();
+    var zoorw = getContext().getZooSession().asReaderWriter();
 
     try {
       var queues = zoorw.getChildren(compactorQueuesPath);

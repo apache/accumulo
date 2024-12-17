@@ -27,7 +27,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
@@ -41,9 +40,8 @@ public class DeleteZooInstance {
   public static void execute(final ServerContext context, final boolean clean,
       final String instance, final String auth) throws InterruptedException, KeeperException {
 
-    final ZooReaderWriter zk = context.getZooReaderWriter();
     if (auth != null) {
-      ZooUtil.digestAuth(zk.getZooKeeper(), auth);
+      context.getZooSession().addAccumuloDigestAuth(auth);
     }
 
     if (clean) {
@@ -52,28 +50,29 @@ public class DeleteZooInstance {
         throw new IllegalArgumentException(
             "Cannot set clean flag to true and also an instance name");
       }
-      cleanAllOld(context, zk);
+      cleanAllOld(context);
     } else {
       // If all old is false then we require a specific instance
       Objects.requireNonNull(instance, "Instance name must not be null");
-      removeInstance(context, zk, instance);
+      removeInstance(context, instance);
     }
   }
 
-  private static void removeInstance(ServerContext context, final ZooReaderWriter zk,
-      final String instance) throws InterruptedException, KeeperException {
+  private static void removeInstance(ServerContext context, final String instance)
+      throws InterruptedException, KeeperException {
+    var zrw = context.getZooSession().asReaderWriter();
     // try instance name:
-    Set<String> instances = new HashSet<>(getInstances(zk));
-    Set<String> uuids = new HashSet<>(zk.getChildren(Constants.ZROOT));
+    Set<String> instances = new HashSet<>(getInstances(zrw));
+    Set<String> uuids = new HashSet<>(zrw.getChildren(Constants.ZROOT));
     uuids.remove("instances");
     if (instances.contains(instance)) {
       String path = getInstancePath(instance);
-      byte[] data = zk.getData(path);
+      byte[] data = zrw.getData(path);
       if (data != null) {
         final String instanceId = new String(data, UTF_8);
         if (checkCurrentInstance(context, instance, instanceId)) {
-          deleteRetry(zk, path);
-          deleteRetry(zk, getRootChildPath(instanceId));
+          deleteRetry(zrw, path);
+          deleteRetry(zrw, getRootChildPath(instanceId));
           System.out.println("Deleted instance: " + instance);
         }
       }
@@ -81,33 +80,34 @@ public class DeleteZooInstance {
       // look for the real instance name
       for (String zkInstance : instances) {
         String path = getInstancePath(zkInstance);
-        byte[] data = zk.getData(path);
+        byte[] data = zrw.getData(path);
         if (data != null) {
           final String instanceId = new String(data, UTF_8);
           if (instance.equals(instanceId) && checkCurrentInstance(context, instance, instanceId)) {
-            deleteRetry(zk, path);
+            deleteRetry(zrw, path);
             System.out.println("Deleted instance: " + instance);
           }
         }
       }
-      deleteRetry(zk, getRootChildPath(instance));
+      deleteRetry(zrw, getRootChildPath(instance));
     }
   }
 
-  private static void cleanAllOld(ServerContext context, final ZooReaderWriter zk)
+  private static void cleanAllOld(ServerContext context)
       throws InterruptedException, KeeperException {
-    for (String child : zk.getChildren(Constants.ZROOT)) {
+    var zrw = context.getZooSession().asReaderWriter();
+    for (String child : zrw.getChildren(Constants.ZROOT)) {
       if (Constants.ZINSTANCES.equals("/" + child)) {
-        for (String instanceName : getInstances(zk)) {
+        for (String instanceName : getInstances(zrw)) {
           String instanceNamePath = getInstancePath(instanceName);
-          byte[] id = zk.getData(instanceNamePath);
+          byte[] id = zrw.getData(instanceNamePath);
           if (id != null && !new String(id, UTF_8).equals(context.getInstanceID().canonical())) {
-            deleteRetry(zk, instanceNamePath);
+            deleteRetry(zrw, instanceNamePath);
             System.out.println("Deleted instance: " + instanceName);
           }
         }
       } else if (!child.equals(context.getInstanceID().canonical())) {
-        deleteRetry(zk, getRootChildPath(child));
+        deleteRetry(zrw, getRootChildPath(child));
       }
     }
   }

@@ -62,7 +62,6 @@ import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.ReadOnlyTStore;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -856,7 +855,7 @@ public class Admin implements KeywordExecutable {
     var zLockManagerPath = ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK);
     var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
     String fateZkPath = zkRoot + Constants.ZFATE;
-    ZooReaderWriter zk = context.getZooReaderWriter();
+    var zk = context.getZooSession();
     ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
 
     if (fateOpsCommand.cancel) {
@@ -934,7 +933,7 @@ public class Admin implements KeywordExecutable {
       ReadOnlyTStore<Admin> zs, ServiceLock.ServiceLockPath tableLocksPath)
       throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
 
-    ZooReaderWriter zk = context.getZooReaderWriter();
+    var zk = context.getZooSession();
     var transactions = admin.getStatus(zs, zk, tableLocksPath, null, null);
 
     // build id map - relies on unique ids for tables and namespaces
