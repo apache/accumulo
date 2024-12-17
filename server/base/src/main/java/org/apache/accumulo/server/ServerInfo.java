@@ -18,24 +18,23 @@
  */
 package org.apache.accumulo.server;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Properties;
+import java.util.function.Supplier;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.InstanceOperationsImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
@@ -43,7 +42,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
+import org.apache.zookeeper.ZooKeeper;
 
 public class ServerInfo implements ClientInfo {
 
@@ -54,79 +53,70 @@ public class ServerInfo implements ClientInfo {
   private final String zooKeepers;
   private final int zooKeepersSessionTimeOut;
   private final VolumeManager volumeManager;
-  private final ZooCache zooCache;
   private final ServerDirs serverDirs;
   private final Credentials credentials;
 
-  ServerInfo(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
+  static ServerInfo fromHdfsAndZooKeeper(SiteConfiguration siteConfig) {
+    // pass in enough information in the site configuration to connect to HDFS and ZooKeeper
+    // then get the instanceId from HDFS, and use it to look up the instanceName from ZooKeeper
+    return new ServerInfo(siteConfig, Optional.empty(), Optional.empty(), Optional.empty(),
+        OptionalInt.empty());
+  }
+
+  static ServerInfo forUtilities(SiteConfiguration siteConfig, ClientInfo info) {
+    // get everything from the ClientInfo, which itself would look up the instanceId from the
+    // configured name
+    return new ServerInfo(siteConfig, Optional.of(info.getInstanceName()),
+        Optional.of(info.getInstanceId()), Optional.of(info.getZooKeepers()),
+        OptionalInt.of(info.getZooKeepersSessionTimeOut()));
+  }
+
+  static ServerInfo initialize(SiteConfiguration siteConfig, String instanceName,
+      InstanceId instanceId) {
+    // get the ZK hosts and timeout from the site config, but pass the name and ID directly
+    return new ServerInfo(siteConfig, Optional.of(instanceName), Optional.of(instanceId),
+        Optional.empty(), OptionalInt.empty());
+  }
+
+  static ServerInfo forTesting(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
       int zooKeepersSessionTimeOut) {
+    return new ServerInfo(siteConfig, Optional.ofNullable(instanceName), Optional.empty(),
+        Optional.ofNullable(zooKeepers), OptionalInt.of(zooKeepersSessionTimeOut));
+  }
+
+  private ServerInfo(SiteConfiguration siteConfig, Optional<String> instanceNameOpt,
+      Optional<InstanceId> instanceIdOpt, Optional<String> zkHostsOpt,
+      OptionalInt zkSessionTimeoutOpt) {
     SingletonManager.setMode(Mode.SERVER);
-    this.siteConfig = siteConfig;
+    this.siteConfig = requireNonNull(siteConfig);
+    requireNonNull(instanceNameOpt);
+    requireNonNull(instanceIdOpt);
+    requireNonNull(zkHostsOpt);
+    requireNonNull(zkSessionTimeoutOpt);
+
     this.hadoopConf = new Configuration();
-    this.instanceName = instanceName;
-    this.zooKeepers = zooKeepers;
-    this.zooKeepersSessionTimeOut = zooKeepersSessionTimeOut;
     try {
-      volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConf);
+      this.volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConf);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
-    zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
-    String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
-    byte[] iidb = zooCache.get(instanceNamePath);
-    if (iidb == null) {
-      throw new IllegalStateException(
-          "Instance name " + instanceName + " does not exist in zookeeper. "
-              + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
-    }
-    instanceID = InstanceId.of(new String(iidb, UTF_8));
-    if (zooCache.get(ZooUtil.getRoot(instanceID)) == null) {
-      if (instanceName == null) {
-        throw new IllegalStateException(
-            "Instance id " + instanceID + " does not exist in zookeeper");
-      }
-      throw new IllegalStateException("Instance id " + instanceID + " pointed to by the name "
-          + instanceName + " does not exist in zookeeper");
-    }
-    serverDirs = new ServerDirs(siteConfig, hadoopConf);
-    credentials = SystemCredentials.get(instanceID, siteConfig);
-  }
+    this.serverDirs = new ServerDirs(siteConfig, hadoopConf);
 
-  ServerInfo(SiteConfiguration config) {
-    SingletonManager.setMode(Mode.SERVER);
-    siteConfig = config;
-    hadoopConf = new Configuration();
-    try {
-      volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConf);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-    serverDirs = new ServerDirs(siteConfig, hadoopConf);
-    Path instanceIdPath = serverDirs.getInstanceIdLocation(volumeManager.getFirst());
-    instanceID = VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
-    zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
-    zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
-    instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache, instanceID);
-    credentials = SystemCredentials.get(instanceID, siteConfig);
-  }
+    this.zooKeepers = zkHostsOpt.orElseGet(() -> siteConfig.get(Property.INSTANCE_ZK_HOST));
+    this.zooKeepersSessionTimeOut = zkSessionTimeoutOpt
+        .orElseGet(() -> (int) siteConfig.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
 
-  ServerInfo(SiteConfiguration config, String instanceName, InstanceId instanceID) {
-    SingletonManager.setMode(Mode.SERVER);
-    siteConfig = config;
-    hadoopConf = new Configuration();
-    try {
-      volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConf);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-    this.instanceID = instanceID;
-    zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
-    zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
-    this.instanceName = instanceName;
-    serverDirs = new ServerDirs(siteConfig, hadoopConf);
-    credentials = SystemCredentials.get(instanceID, siteConfig);
+    // if not provided, look up the instanceId from ZK if the name was provided, HDFS otherwise
+    this.instanceID = instanceIdOpt.orElseGet(() -> instanceNameOpt.isPresent()
+        ? ZooUtil.getInstanceID(this.zooKeepers, this.zooKeepersSessionTimeOut,
+            instanceNameOpt.orElseThrow())
+        : VolumeManager.getInstanceIDFromHdfs(
+            serverDirs.getInstanceIdLocation(volumeManager.getFirst()), hadoopConf));
+    // if not provided, look up the instanceName from ZooKeeper, using the instanceId
+    this.instanceName = instanceNameOpt.orElseGet(() -> ZooUtil.getInstanceName(this.zooKeepers,
+        this.zooKeepersSessionTimeOut, this.instanceID));
+
+    this.credentials = SystemCredentials.get(instanceID, siteConfig);
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -137,8 +127,15 @@ public class ServerInfo implements ClientInfo {
     return volumeManager;
   }
 
-  public InstanceId getInstanceID() {
+  @Override
+  public InstanceId getInstanceId() {
     return instanceID;
+  }
+
+  @Override
+  public Supplier<ZooKeeper> getZooKeeperSupplier() {
+    return () -> ZooUtil.connect(getClass().getSimpleName(), getZooKeepers(),
+        getZooKeepersSessionTimeOut(), getSiteConfiguration().get(Property.INSTANCE_SECRET));
   }
 
   @Override
@@ -195,4 +192,5 @@ public class ServerInfo implements ClientInfo {
   public ServerDirs getServerDirs() {
     return serverDirs;
   }
+
 }

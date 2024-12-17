@@ -105,7 +105,7 @@ public class SecurityOperation {
       PermissionHandler pm) {
     this.context = context;
     zkUserPath = context.zkUserPath();
-    zooCache = new ZooCache(context.getZooReader(), null);
+    zooCache = context.getZooCache();
     rootUserName = Suppliers.memoize(() -> new String(zooCache.get(zkUserPath), UTF_8));
     authorizor = author;
     authenticator = authent;

@@ -82,7 +82,7 @@ public class ZooBasedConfigIT {
   private static final InstanceId INSTANCE_ID = InstanceId.of(UUID.randomUUID());
   private static ZooKeeperTestingServer testZk = null;
   private static ZooReaderWriter zrw;
-  private static ZooKeeper zooKeeper;
+  private static ZooKeeper zk;
   private ServerContext context;
 
   // fake ids
@@ -99,17 +99,15 @@ public class ZooBasedConfigIT {
 
   @BeforeAll
   public static void setupZk() throws Exception {
-    // using default zookeeper port - we don't have a full configuration
     testZk = new ZooKeeperTestingServer(tempDir);
-    zooKeeper = testZk.newClient();
-    ZooUtil.digestAuth(zooKeeper, ZooKeeperTestingServer.SECRET);
-    zrw = testZk.getZooReaderWriter();
+    zk = testZk.newClient();
+    zrw = new ZooReaderWriter(zk);
   }
 
   @AfterAll
   public static void shutdownZK() throws Exception {
     try {
-      zooKeeper.close();
+      zk.close();
     } finally {
       testZk.close();
     }
@@ -120,17 +118,17 @@ public class ZooBasedConfigIT {
     context = createMock(ServerContext.class);
     zrw.mkdirs(ZooUtil.getRoot(INSTANCE_ID));
 
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES, new byte[0],
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES, new byte[0],
         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidA.canonical(),
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidA.canonical(),
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidB.canonical(),
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidB.canonical(),
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES, new byte[0],
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES, new byte[0],
         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES + "/" + nsId.canonical(),
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES + "/" + nsId.canonical(),
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
     ticker = new TestTicker();
@@ -140,7 +138,6 @@ public class ZooBasedConfigIT {
     // setup context mock with enough to create prop store
     expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(zrw.getSessionTimeout()).anyTimes();
 
     replay(context);
 
@@ -154,8 +151,7 @@ public class ZooBasedConfigIT {
     // setup context mock with prop store and the rest of the env needed.
     expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(zooKeeper.getSessionTimeout())
-        .anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(zk.getSessionTimeout()).anyTimes();
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
     expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.empty().build()).anyTimes();
 
@@ -163,7 +159,7 @@ public class ZooBasedConfigIT {
 
   @AfterEach
   public void cleanupZnodes() throws Exception {
-    ZKUtil.deleteRecursive(zooKeeper, "/accumulo");
+    ZKUtil.deleteRecursive(zk, "/accumulo");
     verify(context);
   }
 
@@ -175,7 +171,7 @@ public class ZooBasedConfigIT {
   public void upgradeSysTestNoProps() throws Exception {
     replay(context);
     // force create empty sys config node.
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG, new byte[0],
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG, new byte[0],
         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     var propKey = SystemPropKey.of(INSTANCE_ID);
     ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);

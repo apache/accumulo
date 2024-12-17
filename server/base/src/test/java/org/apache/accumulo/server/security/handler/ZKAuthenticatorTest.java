@@ -39,6 +39,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.security.Authorizations;
@@ -147,10 +148,12 @@ public class ZKAuthenticatorTest {
     ZooReaderWriter zr = createMock(ZooReaderWriter.class);
     expect(context.getZooReader()).andReturn(zr).anyTimes();
     ZooKeeper zk = createMock(ZooKeeper.class);
+    ZooCache zc = new ZooCache(zk);
     expect(zk.getChildren(anyObject(), anyObject())).andReturn(Arrays.asList(principal)).anyTimes();
     expect(zk.exists(matches(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal),
         anyObject(Watcher.class))).andReturn(new Stat()).anyTimes();
-    expect(zr.getZooKeeper()).andReturn(zk).anyTimes();
+    expect(context.getZooKeeper()).andReturn(zk).anyTimes();
+    expect(context.getZooCache()).andReturn(zc).anyTimes();
     expect(zk.getData(matches(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal),
         anyObject(), anyObject())).andReturn(newHash).once();
     replay(context, zr, zk);

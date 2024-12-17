@@ -22,8 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.curator.test.TestingServer;
@@ -100,14 +98,10 @@ public class ZooKeeperTestingServer implements AutoCloseable {
 
   /**
    * Create a new instance of a standard ZooKeeper client that is already connected to the testing
-   * server.
+   * server. The caller is responsible for closing the object.
    */
   public ZooKeeper newClient() throws IOException, InterruptedException {
     return newClient(ZooKeeper::new);
-  }
-
-  public ZooReaderWriter getZooReaderWriter() {
-    return new ZooReader(zkServer.getConnectString(), 30000).asWriter(SECRET);
   }
 
   @Override

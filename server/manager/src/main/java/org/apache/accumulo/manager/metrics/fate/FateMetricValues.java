@@ -146,7 +146,7 @@ class FateMetricValues {
       builder.withTxStateCounters(states);
       builder.withOpTypeCounters(opTypeCounters);
 
-      Stat node = context.getZooReaderWriter().getZooKeeper().exists(fateRootPath, false);
+      Stat node = context.getZooKeeper().exists(fateRootPath, false);
       builder.withZkFateChildOpsTotal(node.getCversion());
 
       if (log.isTraceEnabled()) {

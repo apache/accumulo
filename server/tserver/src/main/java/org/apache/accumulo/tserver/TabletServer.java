@@ -245,7 +245,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   protected TabletServer(ConfigOpts opts, String[] args) {
     super("tserver", opts, args);
     context = super.getContext();
-    this.managerLockCache = new ZooCache(context.getZooReader(), null);
+    this.managerLockCache = context.getZooCache();
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
@@ -628,7 +628,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
 
       UUID tabletServerUUID = UUID.randomUUID();
-      tabletServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, tabletServerUUID);
+      tabletServerLock = new ServiceLock(getContext().getZooKeeper(), zLockPath, tabletServerUUID);
 
       LockWatcher lw = new LockWatcher() {
 

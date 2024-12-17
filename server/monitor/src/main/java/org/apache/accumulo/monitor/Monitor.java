@@ -751,7 +751,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
     // Get a ZooLock for the monitor
     UUID zooLockUUID = UUID.randomUUID();
-    monitorLock = new ServiceLock(zoo.getZooKeeper(), monitorLockPath, zooLockUUID);
+    monitorLock = new ServiceLock(context.getZooKeeper(), monitorLockPath, zooLockUUID);
 
     while (true) {
       MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();

@@ -57,16 +57,6 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   private final ReadyMonitor zkReadyMon;
 
   /**
-   * Create instance using ZooPropStore.Builder
-   *
-   * @param instanceId the instance id
-   * @param zrw a wrapper set of utilities for accessing ZooKeeper.
-   */
-  private ZooPropStore(final InstanceId instanceId, final ZooReaderWriter zrw) {
-    this(instanceId, zrw, null, null, null);
-  }
-
-  /**
    * For testing create an instance with the optionally pass synthetic clock (Ticker), a
    * ReadyMonitor and a PropStore watcher allowing them to be mocked. If the optional components are
    * passed as null an internal instance is created.
@@ -82,8 +72,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
 
     this.zrw = zrw;
 
-    this.zkReadyMon = requireNonNullElseGet(monitor,
-        () -> new ReadyMonitor("prop-store", Math.round(zrw.getSessionTimeout() * 1.75)));
+    this.zkReadyMon = requireNonNullElseGet(monitor, () -> new ReadyMonitor("prop-store",
+        Math.round(zrw.getZooKeeper().getSessionTimeout() * 1.75)));
 
     this.propStoreWatcher = requireNonNullElseGet(watcher, () -> new PropStoreWatcher(zkReadyMon));
 
@@ -116,7 +106,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
 
   public static ZooPropStore initialize(@NonNull final InstanceId instanceId,
       @NonNull final ZooReaderWriter zrw) {
-    return new ZooPropStore(instanceId, zrw);
+    return new ZooPropStore(instanceId, zrw, null, null, null);
   }
 
   @Override

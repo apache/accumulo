@@ -19,30 +19,73 @@
 package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
+import java.io.IOException;
 import java.math.BigInteger;
-import java.security.NoSuchAlgorithmException;
+import java.net.UnknownHostException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooDefs.Perms;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
-import org.apache.zookeeper.data.Id;
 import org.apache.zookeeper.data.Stat;
-import org.apache.zookeeper.server.auth.DigestAuthenticationProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZooUtil {
+
+  private static final Logger log = LoggerFactory.getLogger(ZooUtil.class);
+
+  private ZooUtil() {}
+
+  private static class ZooSessionWatcher implements Watcher {
+
+    private static final Logger watcherLog = LoggerFactory.getLogger(ZooSessionWatcher.class);
+    private final AtomicReference<KeeperState> lastState = new AtomicReference<>(null);
+    private final String clientName;
+
+    public ZooSessionWatcher(String clientName) {
+      this.clientName = clientName;
+    }
+
+    @Override
+    public void process(WatchedEvent event) {
+      final var newState = event.getState();
+      var oldState = lastState.getAndUpdate(s -> newState);
+      if (oldState == null) {
+        watcherLog.debug("ZooKeeper[{}] state changed to {}", clientName, newState);
+      } else if (newState != oldState) {
+        watcherLog.debug("ZooKeeper[{}] state changed from {} to {}", clientName, oldState,
+            newState);
+      }
+    }
+  }
 
   public enum NodeExistsPolicy {
     SKIP, OVERWRITE, FAIL
@@ -169,27 +212,198 @@ public class ZooUtil {
     return fmt.format(timestamp);
   }
 
-  /**
-   * Get the ZooKeeper digest based on the instance secret that is used within ZooKeeper for
-   * authentication. This method is primary intended to be used to validate ZooKeeper ACLs. Use
-   * {@link #digestAuth(ZooKeeper, String)} to add authorizations to ZooKeeper.
-   */
-  public static Id getZkDigestAuthId(final String secret) {
-    try {
-      final String scheme = "digest";
-      String auth = DigestAuthenticationProvider.generateDigest("accumulo:" + secret);
-      return new Id(scheme, auth);
-    } catch (NoSuchAlgorithmException ex) {
-      throw new IllegalArgumentException("Could not generate ZooKeeper digest string", ex);
-    }
-  }
-
   public static void digestAuth(ZooKeeper zoo, String secret) {
-    auth(zoo, "digest", ("accumulo:" + secret).getBytes(UTF_8));
+    zoo.addAuthInfo("digest", ("accumulo:" + secret).getBytes(UTF_8));
   }
 
-  public static void auth(ZooKeeper zoo, String scheme, byte[] auth) {
-    zoo.addAuthInfo(scheme, auth);
+  /**
+   * Construct a new ZooKeeper client, retrying if it doesn't work right away. The caller is
+   * responsible for closing instances returned from this method.
+   *
+   * @param clientName a convenient name for logging its connection state changes
+   * @param conf a convenient carrier of ZK connection information using Accumulo properties
+   */
+  public static ZooKeeper connect(String clientName, AccumuloConfiguration conf) {
+    return ZooUtil.connect(clientName, conf.get(Property.INSTANCE_ZK_HOST),
+        (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
+        conf.get(Property.INSTANCE_SECRET));
+  }
+
+  /**
+   * Construct a new ZooKeeper client, retrying if it doesn't work right away. The caller is
+   * responsible for closing instances returned from this method.
+   *
+   * @param clientName a convenient name for logging its connection state changes
+   * @param connectString in the form of host1:port1,host2:port2/chroot/path
+   * @param timeout in milliseconds
+   * @param instanceSecret instance secret (may be null)
+   */
+  public static ZooKeeper connect(String clientName, String connectString, int timeout,
+      String instanceSecret) {
+    log.debug("Connecting to {} with timeout {} with auth", connectString, timeout);
+    final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
+    int connectTimeWait = Math.min(10_000, timeout);
+    boolean tryAgain = true;
+    long sleepTime = 100;
+    ZooKeeper zk = null;
+
+    var watcher = new ZooSessionWatcher(clientName);
+
+    long startTime = System.nanoTime();
+
+    while (tryAgain) {
+      try {
+        zk = new ZooKeeper(connectString, timeout, watcher);
+        // it may take some time to get connected to zookeeper if some of the servers are down
+        for (int i = 0; i < connectTimeWait / TIME_BETWEEN_CONNECT_CHECKS_MS && tryAgain; i++) {
+          if (zk.getState().isConnected()) {
+            if (instanceSecret != null) {
+              ZooUtil.digestAuth(zk, instanceSecret);
+            }
+            tryAgain = false;
+          } else {
+            UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
+          }
+        }
+
+      } catch (IOException e) {
+        if (e instanceof UnknownHostException) {
+          /*
+           * Make sure we wait at least as long as the JVM TTL for negative DNS responses
+           */
+          int ttl = AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e);
+          sleepTime = Math.max(sleepTime, (ttl + 1) * 1000L);
+        }
+        log.warn("Connection to zooKeeper failed, will try again in "
+            + String.format("%.2f secs", sleepTime / 1000.0), e);
+      } finally {
+        if (tryAgain && zk != null) {
+          try {
+            zk.close();
+            zk = null;
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("interrupted", e);
+          }
+        }
+      }
+
+      long stopTime = System.nanoTime();
+      long duration = NANOSECONDS.toMillis(stopTime - startTime);
+
+      if (duration > 2L * timeout) {
+        throw new IllegalStateException("Failed to connect to zookeeper (" + connectString
+            + ") within 2x zookeeper timeout period " + timeout);
+      }
+
+      if (tryAgain) {
+        if (2L * timeout < duration + sleepTime + connectTimeWait) {
+          sleepTime = 2L * timeout - duration - connectTimeWait;
+        }
+        if (sleepTime < 0) {
+          connectTimeWait -= sleepTime;
+          sleepTime = 0;
+        }
+        UtilWaitThread.sleep(sleepTime);
+        if (sleepTime < 10000) {
+          sleepTime = sleepTime + (long) (sleepTime * RANDOM.get().nextDouble());
+        }
+      }
+    }
+
+    return zk;
+  }
+
+  /**
+   * Given a zooCache and instanceId, look up the instance name.
+   */
+  public static String getInstanceName(String zooKeepers, int zkSessionTimeout,
+      InstanceId instanceId) {
+    requireNonNull(zooKeepers);
+    var instanceIdBytes = requireNonNull(instanceId).canonical().getBytes(UTF_8);
+    try (var zk = connect("ZooUtil.getInstanceName", zooKeepers, zkSessionTimeout, null)) {
+      for (String name : zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES, false)) {
+        var bytes = zk.getData(Constants.ZROOT + Constants.ZINSTANCES + "/" + name, false, null);
+        if (Arrays.equals(bytes, instanceIdBytes)) {
+          return name;
+        }
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(
+          "Interrupted reading instance name for the instanceId " + instanceId, e);
+    } catch (KeeperException e) {
+      throw new IllegalStateException(
+          "Unable to get instance name for the instanceId " + instanceId, e);
+    }
+    return null;
+  }
+
+  /**
+   * Read the instance names and instance ids from ZooKeeper. The storage structure in ZooKeeper is:
+   *
+   * <pre>
+   *   /accumulo/instances/instance_name  - with the instance id stored as data.
+   * </pre>
+   *
+   * @return a map of (instance name, instance id) entries
+   */
+  public static Map<String,InstanceId> readInstancesFromZk(final ZooReader zooReader) {
+    // TODO clean up
+    Map<String,InstanceId> idMap = new TreeMap<>();
+    try {
+      List<String> names = zooReader.getChildren(Constants.ZROOT + Constants.ZINSTANCES);
+      names.forEach(name -> {
+        try {
+          byte[] uuid = zooReader.getData(Constants.ZROOT + Constants.ZINSTANCES + "/" + name);
+          idMap.put(name, InstanceId.of(UUID.fromString(new String(uuid, UTF_8))));
+        } catch (InterruptedException ex) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException("Interrupted reading instance id from ZooKeeper", ex);
+        } catch (KeeperException ex) {
+          log.warn("Failed to read instance id for " + ex.getPath());
+        }
+      });
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted reading instance name info from ZooKeeper", ex);
+    } catch (KeeperException ex) {
+      throw new IllegalStateException("Failed to read instance name info from ZooKeeper", ex);
+    }
+    return idMap;
+  }
+
+  /**
+   * Returns a unique string that identifies this instance of accumulo.
+   */
+  public static InstanceId getInstanceID(String zooKeepers, int zkSessionTimeout,
+      String instanceName) {
+    requireNonNull(zooKeepers);
+    requireNonNull(instanceName);
+    // lookup by name
+    String instanceIdString = null;
+    try (var zk = connect("ZooUtil.getInstanceID", zooKeepers, zkSessionTimeout, null)) {
+      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
+      byte[] data = zk.getData(instanceNamePath, false, null);
+      if (data == null) {
+        throw new IllegalStateException(
+            "Instance name " + instanceName + " does not exist in zookeeper. "
+                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+      }
+      instanceIdString = new String(data, UTF_8);
+      // verify that the instanceId found via the instanceName actually exists as an instance
+      if (zk.getData(Constants.ZROOT + "/" + instanceIdString, false, null) == null) {
+        throw new IllegalStateException("Instance id " + instanceIdString
+            + " pointed to by the name " + instanceName + " does not exist in zookeeper");
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted reading instance id from ZooKeeper", e);
+    } catch (KeeperException e) {
+      throw new IllegalStateException(
+          "Unable to get instanceId for the instance name " + instanceName, e);
+    }
+    return InstanceId.of(instanceIdString);
   }
 
 }

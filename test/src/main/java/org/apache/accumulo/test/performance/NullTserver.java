@@ -314,7 +314,7 @@ public class NullTserver {
     int zkTimeOut =
         (int) DefaultConfiguration.getInstance().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     var siteConfig = SiteConfiguration.auto();
-    ServerContext context = ServerContext.override(siteConfig, opts.iname, opts.keepers, zkTimeOut);
+    var context = ServerContext.overrideForTesting(siteConfig, opts.iname, opts.keepers, zkTimeOut);
     ClientServiceHandler csh = new ClientServiceHandler(context, new TransactionWatcher(context));
     NullTServerTabletClientHandler tch = new NullTServerTabletClientHandler();
 

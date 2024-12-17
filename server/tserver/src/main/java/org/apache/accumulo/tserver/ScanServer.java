@@ -218,7 +218,7 @@ public class ScanServer extends AbstractServer
 
     this.resourceManager = new TabletServerResourceManager(context, this);
 
-    this.managerLockCache = new ZooCache(context.getZooReader(), null);
+    this.managerLockCache = context.getZooCache();
 
     var readWriteLock = new ReentrantReadWriteLock();
     reservationsReadLock = readWriteLock.readLock();
@@ -343,7 +343,7 @@ public class ScanServer extends AbstractServer
       }
 
       serverLockUUID = UUID.randomUUID();
-      scanServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, serverLockUUID);
+      scanServerLock = new ServiceLock(getContext().getZooKeeper(), zLockPath, serverLockUUID);
 
       LockWatcher lw = new LockWatcher() {
 

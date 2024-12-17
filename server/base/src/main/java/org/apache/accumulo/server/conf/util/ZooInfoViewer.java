@@ -21,7 +21,6 @@ package org.apache.accumulo.server.conf.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZINSTANCES;
 import static org.apache.accumulo.core.Constants.ZROOT;
-import static org.apache.accumulo.server.conf.util.ZooPropUtils.readInstancesFromZk;
 import static org.apache.accumulo.server.zookeeper.ZooAclUtil.checkWritableAuth;
 import static org.apache.accumulo.server.zookeeper.ZooAclUtil.extractAuthName;
 import static org.apache.accumulo.server.zookeeper.ZooAclUtil.translateZooPerm;
@@ -50,7 +49,6 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
@@ -139,7 +137,7 @@ public class ZooInfoViewer implements KeywordExecutable {
       writer.println("Report Time: " + tsFormat.format(Instant.now()));
       writer.println("-----------------------------------------------");
       if (opts.printInstanceIds) {
-        Map<String,InstanceId> instanceMap = readInstancesFromZk(context.getZooReader());
+        Map<String,InstanceId> instanceMap = ZooUtil.readInstancesFromZk(context.getZooReader());
         printInstanceIds(instanceMap, writer);
       }
 
@@ -218,7 +216,8 @@ public class ZooInfoViewer implements KeywordExecutable {
     writer.println();
   }
 
-  private void printAcls(final ServerContext context, final Opts opts, final PrintWriter writer) {
+  private void printAcls(final ServerContext context, final Opts opts, final PrintWriter writer)
+      throws InterruptedException {
     var iid = context.getInstanceID();
 
     Map<String,List<ACL>> aclMap = new TreeMap<>();
@@ -228,52 +227,54 @@ public class ZooInfoViewer implements KeywordExecutable {
 
     writer.printf("ZooKeeper acls for instance ID: %s\n\n", iid.canonical());
 
-    ZooKeeper zooKeeper = new ZooReaderWriter(opts.getSiteConfiguration()).getZooKeeper();
+    var conf = opts.getSiteConfiguration();
+    try (var zk = ZooUtil.connect(ZooInfoViewer.class.getSimpleName(), conf)) {
 
-    String instanceRoot = ZooUtil.getRoot(iid);
+      String instanceRoot = ZooUtil.getRoot(iid);
 
-    final Stat stat = new Stat();
+      final Stat stat = new Stat();
 
-    recursiveAclRead(zooKeeper, ZROOT + ZINSTANCES, stat, aclMap);
+      recursiveAclRead(zk, ZROOT + ZINSTANCES, stat, aclMap);
 
-    recursiveAclRead(zooKeeper, instanceRoot, stat, aclMap);
+      recursiveAclRead(zk, instanceRoot, stat, aclMap);
 
-    // print formatting
-    aclMap.forEach((path, acl) -> {
-      if (acl == null) {
-        writer.printf("ERROR_ACCUMULO_MISSING_SOME: '%s' : none\n", path);
-      } else {
-        // sort for consistent presentation
-        acl.sort(Comparator.comparing(a -> a.getId().getId()));
-        ZooAclUtil.ZkAccumuloAclStatus aclStatus = checkWritableAuth(acl);
-
-        String authStatus;
-        if (aclStatus.accumuloHasFull()) {
-          authStatus = "ACCUMULO_OKAY";
+      // print formatting
+      aclMap.forEach((path, acl) -> {
+        if (acl == null) {
+          writer.printf("ERROR_ACCUMULO_MISSING_SOME: '%s' : none\n", path);
         } else {
-          authStatus = "ERROR_ACCUMULO_MISSING_SOME";
-        }
+          // sort for consistent presentation
+          acl.sort(Comparator.comparing(a -> a.getId().getId()));
+          ZooAclUtil.ZkAccumuloAclStatus aclStatus = checkWritableAuth(acl);
 
-        String otherUpdate;
-        if (aclStatus.othersMayUpdate() || aclStatus.anyCanRead()) {
-          otherUpdate = "NOT_PRIVATE";
-        } else {
-          otherUpdate = "PRIVATE";
-        }
-
-        writer.printf("%s:%s %s", authStatus, otherUpdate, path);
-        boolean addSeparator = false;
-        for (ACL a : acl) {
-          if (addSeparator) {
-            writer.printf(",");
+          String authStatus;
+          if (aclStatus.accumuloHasFull()) {
+            authStatus = "ACCUMULO_OKAY";
+          } else {
+            authStatus = "ERROR_ACCUMULO_MISSING_SOME";
           }
-          writer.printf(" %s:%s", translateZooPerm(a.getPerms()), extractAuthName(a));
-          addSeparator = true;
+
+          String otherUpdate;
+          if (aclStatus.othersMayUpdate() || aclStatus.anyCanRead()) {
+            otherUpdate = "NOT_PRIVATE";
+          } else {
+            otherUpdate = "PRIVATE";
+          }
+
+          writer.printf("%s:%s %s", authStatus, otherUpdate, path);
+          boolean addSeparator = false;
+          for (ACL a : acl) {
+            if (addSeparator) {
+              writer.printf(",");
+            }
+            writer.printf(" %s:%s", translateZooPerm(a.getPerms()), extractAuthName(a));
+            addSeparator = true;
+          }
         }
-      }
-      writer.println("");
-    });
-    writer.flush();
+        writer.println("");
+      });
+      writer.flush();
+    }
   }
 
   private void recursiveAclRead(final ZooKeeper zooKeeper, final String rootPath, final Stat stat,

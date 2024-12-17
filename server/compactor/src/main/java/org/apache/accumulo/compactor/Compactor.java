@@ -268,8 +268,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       throw e;
     }
 
-    compactorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
-        ServiceLock.path(zPath), compactorId);
+    compactorLock =
+        new ServiceLock(getContext().getZooKeeper(), ServiceLock.path(zPath), compactorId);
     LockWatcher lw = new LockWatcher() {
       @Override
       public void lostLock(final LockLossReason reason) {

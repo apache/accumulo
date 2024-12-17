@@ -52,6 +52,7 @@ import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
 import org.junit.jupiter.api.AfterEach;
@@ -65,15 +66,18 @@ public class ZooPropStoreTest {
 
   // mocks
   private ServerContext context;
+  private ZooKeeper zk;
   private ZooReaderWriter zrw;
 
   @BeforeEach
   public void init() throws Exception {
     instanceId = InstanceId.of(UUID.randomUUID());
     context = createMock(ServerContext.class);
+    zk = createMock(ZooKeeper.class);
     zrw = createMock(ZooReaderWriter.class);
+    expect(zk.getSessionTimeout()).andReturn(30_000).anyTimes();
+    expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(zrw.getSessionTimeout()).andReturn(2_000).anyTimes();
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
     expect(zrw.exists(eq(ZooUtil.getRoot(instanceId)), anyObject())).andReturn(true).anyTimes();
@@ -81,7 +85,7 @@ public class ZooPropStoreTest {
 
   @AfterEach
   public void verifyMock() {
-    verify(context, zrw);
+    verify(context, zk, zrw);
   }
 
   @Test
@@ -93,7 +97,7 @@ public class ZooPropStoreTest {
     expect(zrw.putPrivatePersistentData(eq(propStoreKey.getPath()), capture(bytes), anyObject()))
         .andReturn(true).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
 
@@ -132,7 +136,7 @@ public class ZooPropStoreTest {
           return propCodec.toBytes(vProps);
         }).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
 
@@ -167,7 +171,7 @@ public class ZooPropStoreTest {
           return propCodec.toBytes(new VersionedProperties(props));
         }).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
     var vProps = propStore.get(propStoreKey);
@@ -215,7 +219,7 @@ public class ZooPropStoreTest {
           return true;
         }).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
 
@@ -260,7 +264,7 @@ public class ZooPropStoreTest {
           return true;
         }).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
 
@@ -295,7 +299,7 @@ public class ZooPropStoreTest {
     expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(Stat.class)))
         .andThrow(new InterruptedException("mock forced interrupt exception")).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
 
@@ -345,7 +349,7 @@ public class ZooPropStoreTest {
           return propCodec.toBytes(new VersionedProperties(13, Instant.now(), props));
         }).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
     ReadyMonitor monitor = new TestReadyMonitor("testmon", 2000);
     PropStoreWatcher watcher = new TestWatcher(monitor);
@@ -408,7 +412,7 @@ public class ZooPropStoreTest {
     zrw.delete(eq(propStoreKey.getPath()));
     expectLastCall().once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
 

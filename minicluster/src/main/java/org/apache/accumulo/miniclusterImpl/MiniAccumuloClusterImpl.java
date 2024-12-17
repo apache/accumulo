@@ -104,7 +104,6 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -644,18 +643,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       waitForProcessStart(tsp, "TabletServer" + tsExpectedCount);
     }
 
-    try (ZooKeeper zk = new ZooKeeper(getZooKeepers(), 60000, event -> log.warn("{}", event))) {
+    try (var zk = new ZooKeeper(getZooKeepers(), 60000, event -> log.warn("{}", event))) {
 
       String secret = getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
-      while (!(zk.getState() == States.CONNECTED)) {
+      while (!zk.getState().isConnected()) {
         log.info("Waiting for ZK client to connect, state: {} - will retry", zk.getState());
         Thread.sleep(1000);
       }
 
       String instanceId = null;
       for (int i = 0; i < numTries; i++) {
-        if (zk.getState() == States.CONNECTED) {
+        if (zk.getState().isConnected()) {
           ZooUtil.digestAuth(zk, secret);
           try {
             final AtomicInteger rc = new AtomicInteger();
@@ -686,7 +685,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       if (instanceId == null) {
         for (int i = 0; i < numTries; i++) {
-          if (zk.getState() == States.CONNECTED) {
+          if (zk.getState().isConnected()) {
             ZooUtil.digestAuth(zk, secret);
             try {
               log.warn("******* COULD NOT FIND INSTANCE ID - DUMPING ZK ************");
