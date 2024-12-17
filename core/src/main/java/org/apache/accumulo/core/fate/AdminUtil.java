@@ -212,7 +212,7 @@ public class AdminUtil<T> {
   /**
    * Returns a list of the FATE transactions, optionally filtered by transaction id and status. This
    * method does not process lock information, if lock information is desired, use
-   * {@link #getStatus(ReadOnlyTStore, ZooReader, ServiceLockPath, Set, EnumSet)}
+   * {@link #getStatus(ReadOnlyTStore, ZooKeeper, ServiceLockPath, Set, EnumSet)}
    *
    * @param zs read-only zoostore
    * @param filterTxid filter results to include for provided transaction ids.
