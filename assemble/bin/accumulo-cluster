@@ -79,8 +79,7 @@ function parse_args {
   ARG_COMPACTOR=0
   ARG_COMPACTOR_GROUP=""
 
-  PARSE_OUTPUT=$(getopt -o "" --long "dry-run,all,local,manager,gc,monitor,compaction-coordinator,no-tservers,tservers,sservers::,compactors::" -n 'accumulo-cluster' -- "$@")
-  if [[ "$?" != 0 ]]; then
+  if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,all,local,manager,gc,monitor,compaction-coordinator,no-tservers,tservers,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
     print_usage
     exit 1
   fi
