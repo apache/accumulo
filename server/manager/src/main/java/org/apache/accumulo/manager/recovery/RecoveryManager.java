@@ -75,7 +75,7 @@ public class RecoveryManager {
 
     executor =
         ThreadPools.getServerThreadPools().createScheduledExecutorService(4, "Walog sort starter");
-    zooCache = manager.getContext().getZooCache();
+    zooCache = new ZooCache(manager.getContext().getZooKeeper());
     try {
       List<String> workIDs =
           new DistributedWorkQueue(manager.getContext().getZooKeeperRoot() + Constants.ZRECOVERY,

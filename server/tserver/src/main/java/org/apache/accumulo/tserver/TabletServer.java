@@ -245,7 +245,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   protected TabletServer(ConfigOpts opts, String[] args) {
     super("tserver", opts, args);
     context = super.getContext();
-    this.managerLockCache = context.getZooCache();
+    this.managerLockCache = new ZooCache(context.getZooKeeper());
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());

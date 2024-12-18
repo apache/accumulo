@@ -218,7 +218,7 @@ public class ScanServer extends AbstractServer
 
     this.resourceManager = new TabletServerResourceManager(context, this);
 
-    this.managerLockCache = context.getZooCache();
+    this.managerLockCache = new ZooCache(context.getZooKeeper());
 
     var readWriteLock = new ReentrantReadWriteLock();
     reservationsReadLock = readWriteLock.readLock();
