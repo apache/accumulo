@@ -46,7 +46,7 @@ public class CacheTestReader {
     File myfile = new File(reportDir + "/" + UUID.randomUUID());
     myfile.deleteOnExit();
 
-    ZooCache zc = new ZooCache(new ZooReader(keepers, 30000), null);
+    ZooCache zc = new ZooCache("/", new ZooReader(keepers, 30000), null);
 
     while (true) {
       if (myfile.exists() && !myfile.delete()) {

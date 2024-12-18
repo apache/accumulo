@@ -79,7 +79,6 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
-import org.apache.accumulo.core.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -106,6 +105,7 @@ import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,9 +127,9 @@ public class ClientContext implements AccumuloClient {
   private static final Logger log = LoggerFactory.getLogger(ClientContext.class);
 
   private final ClientInfo info;
-  private InstanceId instanceId;
+  private final Supplier<InstanceId> instanceId;
   private final ZooReader zooReader;
-  private final ZooCache zooCache;
+  private final Supplier<ZooCache> zooCache;
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
@@ -229,8 +229,38 @@ public class ClientContext implements AccumuloClient {
     this.info = info;
     this.hadoopConf = info.getHadoopConf();
     zooReader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
-    zooCache =
-        new ZooCacheFactory().getZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
+
+    // Get the instanceID using ZooKeeper, not ZooCache as we will need
+    // the instanceID to create the ZooKeeper root path when creating
+    // ZooCache. If the instanceId cannot be found, this is a good
+    // time to find out.
+    final String instanceName = info.getInstanceName();
+    final String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
+
+    instanceId = memoize(() -> {
+      try {
+        // Call getZooReader() instead of using the local variable because
+        // ServerContext overrides getZooReader() to return a connection
+        // that has been set with the secret.
+        byte[] data = getZooReader().getData(instanceNamePath);
+        if (data == null) {
+          throw new IllegalArgumentException("Instance name " + instanceName
+              + " does not exist in zookeeper. "
+              + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+        }
+        final String instanceIdString = new String(data, UTF_8);
+        // verify that the instanceId found via the instanceName actually exists as an instance
+        if (getZooReader().getData(Constants.ZROOT + "/" + instanceIdString) == null) {
+          throw new IllegalArgumentException("Instance id " + instanceIdString
+              + (instanceName == null ? "" : " pointed to by the name " + instanceName)
+              + " does not exist in zookeeper");
+        }
+        return InstanceId.of(instanceIdString);
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalArgumentException("Unable to create client, instanceId not found", e);
+      }
+    });
+    zooCache = memoize(() -> new ZooCache(ZooUtil.getRoot(getInstanceID()), getZooReader(), null));
     this.serverConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), 100, MILLISECONDS);
@@ -484,26 +514,7 @@ public class ClientContext implements AccumuloClient {
    * @return a UUID
    */
   public InstanceId getInstanceID() {
-    if (instanceId == null) {
-      // lookup by name
-      final String instanceName = info.getInstanceName();
-      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
-      byte[] data = zooCache.get(instanceNamePath);
-      if (data == null) {
-        throw new RuntimeException(
-            "Instance name " + instanceName + " does not exist in zookeeper. "
-                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
-      }
-      String instanceIdString = new String(data, UTF_8);
-      // verify that the instanceId found via the instanceName actually exists as an instance
-      if (zooCache.get(Constants.ZROOT + "/" + instanceIdString) == null) {
-        throw new RuntimeException("Instance id " + instanceIdString
-            + (instanceName == null ? "" : " pointed to by the name " + instanceName)
-            + " does not exist in zookeeper");
-      }
-      instanceId = InstanceId.of(instanceIdString);
-    }
-    return instanceId;
+    return instanceId.get();
   }
 
   public String getZooKeeperRoot() {
@@ -541,7 +552,7 @@ public class ClientContext implements AccumuloClient {
   }
 
   public ZooCache getZooCache() {
-    return zooCache;
+    return zooCache.get();
   }
 
   private TableZooHelper tableZooHelper;

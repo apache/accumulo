@@ -19,12 +19,10 @@
 package org.apache.accumulo.core.fate.zookeeper;
 
 import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createStrictMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -35,36 +33,62 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
-import org.easymock.Capture;
-import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ZooCacheTest {
-  private static final String ZPATH = "/some/path/in/zk";
+
+  private static class TestZooCache extends ZooCache {
+
+    /**
+     * Test class that extends ZooCache to suppress the creation of the persistent recursive
+     * watchers that are created in the constructor and to provide access to the watcher.
+     */
+    public TestZooCache(String zooRoot, ZooReader reader, Watcher watcher) {
+      super(zooRoot, reader, watcher);
+    }
+
+    @Override
+    protected void setupWatchers(String zooRoot) {
+      for (String path : ALLOWED_PATHS) {
+        final String zPath = zooRoot + path;
+        watchedPaths.add(zPath);
+      }
+    }
+
+    public void executeWatcher(WatchedEvent event) {
+      // simulate ZooKeeper calling our Watcher
+      watcher.process(event);
+    }
+
+  }
+
+  private static final String instancePath = Constants.ZROOT + "/" + UUID.randomUUID().toString();
+  private static final String root = instancePath + Constants.ZTSERVERS;
+  private static final String ZPATH = root + "/testPath";
   private static final byte[] DATA = {(byte) 1, (byte) 2, (byte) 3, (byte) 4};
   private static final List<String> CHILDREN = java.util.Arrays.asList("huey", "dewey", "louie");
 
   private ZooReader zr;
   private ZooKeeper zk;
-  private ZooCache zc;
+  private TestZooCache zc;
 
   @BeforeEach
-  public void setUp() {
+  public void setUp() throws KeeperException, InterruptedException {
     zr = createMock(ZooReader.class);
     zk = createStrictMock(ZooKeeper.class);
-    expect(zr.getZooKeeper()).andReturn(zk);
-    expectLastCall().anyTimes();
+    expect(zr.getZooKeeper()).andReturn(zk).anyTimes();
     replay(zr);
-
-    zc = new ZooCache(zr, null);
+    zc = new TestZooCache(instancePath, zr, null);
   }
 
   @Test
@@ -85,8 +109,8 @@ public class ZooCacheTest {
     final long ephemeralOwner = 123456789L;
     Stat existsStat = new Stat();
     existsStat.setEphemeralOwner(ephemeralOwner);
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-    expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat))).andReturn(DATA);
+    expect(zk.exists(eq(ZPATH), eq(null))).andReturn(existsStat);
+    expect(zk.getData(eq(ZPATH), eq(null), eq(existsStat))).andReturn(DATA);
     replay(zk);
 
     assertFalse(zc.dataCached(ZPATH));
@@ -294,29 +318,25 @@ public class ZooCacheTest {
     WatchedEvent event =
         new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
-    zc = new ZooCache(zr, exw);
+    zc = new TestZooCache(instancePath, zr, exw);
 
-    Watcher w = watchData(initialData);
-    w.process(event);
+    watchData(initialData);
+    zc.executeWatcher(event);
     assertTrue(exw.wasCalled());
     assertEquals(stillCached, zc.dataCached(ZPATH));
   }
 
-  private Watcher watchData(byte[] initialData) throws Exception {
-    Capture<Watcher> cw = EasyMock.newCapture();
+  private void watchData(byte[] initialData) throws Exception {
     Stat existsStat = new Stat();
     if (initialData != null) {
-      expect(zk.exists(eq(ZPATH), capture(cw))).andReturn(existsStat);
-      expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat)))
-          .andReturn(initialData);
+      expect(zk.exists(eq(ZPATH), eq(null))).andReturn(existsStat);
+      expect(zk.getData(eq(ZPATH), eq(null), eq(existsStat))).andReturn(initialData);
     } else {
-      expect(zk.exists(eq(ZPATH), capture(cw))).andReturn(null);
+      expect(zk.exists(eq(ZPATH), eq(null))).andReturn(null);
     }
     replay(zk);
     zc.get(ZPATH);
     assertTrue(zc.dataCached(ZPATH));
-
-    return cw.getValue();
   }
 
   @Test
@@ -408,11 +428,11 @@ public class ZooCacheTest {
   private void testWatchDataNode_Clear(Watcher.Event.KeeperState state) throws Exception {
     WatchedEvent event = new WatchedEvent(Watcher.Event.EventType.None, state, null);
     TestWatcher exw = new TestWatcher(event);
-    zc = new ZooCache(zr, exw);
+    zc = new TestZooCache(instancePath, zr, exw);
 
-    Watcher w = watchData(DATA);
+    watchData(DATA);
     assertTrue(zc.dataCached(ZPATH));
-    w.process(event);
+    zc.executeWatcher(event);
     assertTrue(exw.wasCalled());
     assertFalse(zc.dataCached(ZPATH));
   }
@@ -442,27 +462,24 @@ public class ZooCacheTest {
     WatchedEvent event =
         new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
-    zc = new ZooCache(zr, exw);
+    zc = new TestZooCache(instancePath, zr, exw);
 
-    Watcher w = watchChildren(initialChildren);
-    w.process(event);
+    watchChildren(initialChildren);
+    zc.executeWatcher(event);
     assertTrue(exw.wasCalled());
     assertEquals(stillCached, zc.childrenCached(ZPATH));
   }
 
-  private Watcher watchChildren(List<String> initialChildren) throws Exception {
-    Capture<Watcher> cw = EasyMock.newCapture();
+  private void watchChildren(List<String> initialChildren) throws Exception {
     if (initialChildren == null) {
-      expect(zk.exists(eq(ZPATH), capture(cw))).andReturn(null);
+      expect(zk.exists(eq(ZPATH), eq(null))).andReturn(null);
     } else {
       Stat existsStat = new Stat();
-      expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-      expect(zk.getChildren(eq(ZPATH), capture(cw))).andReturn(initialChildren);
+      expect(zk.exists(eq(ZPATH), eq(null))).andReturn(existsStat);
+      expect(zk.getChildren(eq(ZPATH), eq(null))).andReturn(initialChildren);
     }
     replay(zk);
     zc.getChildren(ZPATH);
     assertTrue(zc.childrenCached(ZPATH));
-
-    return cw.getValue();
   }
 }
