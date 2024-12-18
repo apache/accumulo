@@ -28,6 +28,7 @@ import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -44,9 +45,9 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
   // used to set watcher, does not react to events.
   private final PropStoreWatcher propStoreWatcher;
 
-  public ZooPropLoader(final ZooReaderWriter zrw, final VersionedPropCodec propCodec,
+  public ZooPropLoader(final ZooKeeper zk, final VersionedPropCodec propCodec,
       final PropStoreWatcher propStoreWatcher) {
-    this.zrw = zrw;
+    this.zrw = new ZooReaderWriter(zk);
     this.propCodec = propCodec;
     this.propStoreWatcher = propStoreWatcher;
   }

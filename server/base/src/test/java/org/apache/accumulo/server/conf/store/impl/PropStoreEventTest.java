@@ -38,7 +38,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
@@ -257,7 +256,7 @@ public class PropStoreEventTest {
 
     replay(context, zk, readyMonitor);
 
-    ZooPropLoader loader = new ZooPropLoader(new ZooReaderWriter(zk), propCodec, watcher);
+    ZooPropLoader loader = new ZooPropLoader(zk, propCodec, watcher);
 
     PropCacheCaffeineImpl cache = new PropCacheCaffeineImpl.Builder(loader).build();
 

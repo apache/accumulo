@@ -78,7 +78,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
 
     this.propStoreWatcher = requireNonNullElseGet(watcher, () -> new PropStoreWatcher(zkReadyMon));
 
-    ZooPropLoader propLoader = new ZooPropLoader(zrw, codec, this.propStoreWatcher);
+    ZooPropLoader propLoader = new ZooPropLoader(zk, codec, this.propStoreWatcher);
 
     if (ticker == null) {
       this.cache = new PropCacheCaffeineImpl.Builder(propLoader).build();

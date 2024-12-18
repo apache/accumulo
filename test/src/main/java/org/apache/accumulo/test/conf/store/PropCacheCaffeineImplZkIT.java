@@ -24,10 +24,6 @@ import static org.apache.accumulo.core.conf.Property.TSERV_CLIENTPORT;
 import static org.apache.accumulo.core.conf.Property.TSERV_NATIVEMAP_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TSERV_SCAN_MAX_OPENFILES;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
-import static org.easymock.EasyMock.createNiceMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -41,7 +37,6 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.TablePropKey;
@@ -76,7 +71,6 @@ public class PropCacheCaffeineImplZkIT {
 
   private final TableId tIdA = TableId.of("A");
   private final TableId tIdB = TableId.of("B");
-  private static ServerContext context;
 
   @TempDir
   private static File tempDir;
@@ -85,18 +79,11 @@ public class PropCacheCaffeineImplZkIT {
   public static void setupZk() throws Exception {
     testZk = new ZooKeeperTestingServer(tempDir);
     zk = testZk.newClient();
-
     zrw = new ZooReaderWriter(zk);
-    context = createNiceMock(ServerContext.class);
-    expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-
-    replay(context);
   }
 
   @AfterAll
   public static void shutdownZK() throws Exception {
-    verify(context);
     try {
       zk.close();
     } finally {
@@ -146,8 +133,7 @@ public class PropCacheCaffeineImplZkIT {
 
     PropStoreWatcher propStoreWatcher = new PropStoreWatcher(readyMonitor);
 
-    ZooPropLoader propLoader =
-        new ZooPropLoader(zrw, VersionedPropCodec.getDefault(), propStoreWatcher);
+    var propLoader = new ZooPropLoader(zk, VersionedPropCodec.getDefault(), propStoreWatcher);
     PropCacheCaffeineImpl cache = new PropCacheCaffeineImpl.Builder(propLoader).build();
 
     VersionedProperties readProps = cache.get(propStoreKey);
