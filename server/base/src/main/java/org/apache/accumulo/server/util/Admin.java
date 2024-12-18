@@ -38,14 +38,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -83,7 +80,6 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -116,8 +112,6 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -1046,78 +1040,6 @@ public class Admin implements KeywordExecutable {
       }
     }
     return typesFilter;
-  }
-
-  private static long printDanglingFateOperations(ServerContext context, String tableName)
-      throws Exception {
-    long totalDanglingSeen = 0;
-    if (tableName == null) {
-      for (var dataLevel : Ample.DataLevel.values()) {
-        try (var tablets = context.getAmple().readTablets().forLevel(dataLevel).build()) {
-          totalDanglingSeen += printDanglingFateOperations(context, tablets);
-        }
-      }
-    } else {
-      var tableId = context.getTableId(tableName);
-      try (var tablets = context.getAmple().readTablets().forTable(tableId).build()) {
-        totalDanglingSeen += printDanglingFateOperations(context, tablets);
-      }
-    }
-
-    System.out.printf("\nFound %,d dangling references to fate operations\n", totalDanglingSeen);
-
-    return totalDanglingSeen;
-  }
-
-  private static long printDanglingFateOperations(ServerContext context,
-      Iterable<TabletMetadata> tablets) throws Exception {
-    Function<Collection<KeyExtent>,Map<KeyExtent,TabletMetadata>> tabletLookup = extents -> {
-      try (var lookedupTablets =
-          context.getAmple().readTablets().forTablets(extents, Optional.empty()).build()) {
-        Map<KeyExtent,TabletMetadata> tabletMap = new HashMap<>();
-        lookedupTablets
-            .forEach(tabletMetadata -> tabletMap.put(tabletMetadata.getExtent(), tabletMetadata));
-        return tabletMap;
-      }
-    };
-
-    UserFateStore<?> ufs = new UserFateStore<>(context, createDummyLockID(), null);
-    MetaFateStore<?> mfs = new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
-        context.getZooReaderWriter(), createDummyLockID(), null);
-    LoadingCache<FateId,ReadOnlyFateStore.TStatus> fateStatusCache = Caffeine.newBuilder()
-        .maximumSize(100_000).expireAfterWrite(10, TimeUnit.SECONDS).build(fateId -> {
-          if (fateId.getType() == FateInstanceType.META) {
-            return mfs.read(fateId).getStatus();
-          } else {
-            return ufs.read(fateId).getStatus();
-          }
-        });
-
-    Predicate<FateId> activePredicate = fateId -> {
-      var status = fateStatusCache.get(fateId);
-      switch (status) {
-        case NEW:
-        case IN_PROGRESS:
-        case SUBMITTED:
-        case FAILED_IN_PROGRESS:
-          return true;
-        case FAILED:
-        case SUCCESSFUL:
-        case UNKNOWN:
-          return false;
-        default:
-          throw new IllegalStateException("Unexpected status: " + status);
-      }
-    };
-
-    AtomicLong danglingSeen = new AtomicLong();
-    BiConsumer<KeyExtent,Set<FateId>> danglingConsumer = (extent, fateIds) -> {
-      danglingSeen.addAndGet(fateIds.size());
-      fateIds.forEach(fateId -> System.out.println(fateId + " " + extent));
-    };
-
-    findDanglingFateOperations(tablets, tabletLookup, activePredicate, danglingConsumer, 10_000);
-    return danglingSeen.get();
   }
 
   /**

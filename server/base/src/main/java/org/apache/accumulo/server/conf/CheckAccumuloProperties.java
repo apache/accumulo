@@ -35,17 +35,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @AutoService(KeywordExecutable.class)
 public class CheckAccumuloProperties implements KeywordExecutable {
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "intentional user-provided path")
-  public static void main(String[] args) throws IOException {
-    Preconditions.checkArgument(args.length == 1,
-        "Expected 1 argument (the properties file path), got " + args.length);
-    var hadoopConfig = new Configuration();
-    var siteConfig = SiteConfiguration.fromFile(new File(args[0])).build();
-
-    VolumeManagerImpl.get(siteConfig, hadoopConfig);
-    new ServerDirs(siteConfig, hadoopConfig);
-  }
-
   @Override
   public String keyword() {
     return "check-accumulo-properties";
@@ -59,8 +48,16 @@ public class CheckAccumuloProperties implements KeywordExecutable {
         + (new CheckServerConfig().keyword());
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "intentional user-provided path")
   @Override
-  public void execute(String[] args) throws Exception {
-    main(args);
+  public void execute(String[] args) throws IOException {
+    Preconditions.checkArgument(args.length == 1,
+        "Expected 1 argument (the properties file path), got " + args.length);
+    var hadoopConfig = new Configuration();
+    var siteConfig = SiteConfiguration.fromFile(new File(args[0])).build();
+
+    VolumeManagerImpl.get(siteConfig, hadoopConfig);
+    new ServerDirs(siteConfig, hadoopConfig);
   }
+
 }
