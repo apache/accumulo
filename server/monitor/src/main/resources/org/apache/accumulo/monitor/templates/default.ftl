@@ -49,7 +49,7 @@
       /**
        * Sets up autorefresh on initial load
        */
-      $(document).ready(function() {
+      $(function() {
         setupAutoRefresh();
       });
     </script>

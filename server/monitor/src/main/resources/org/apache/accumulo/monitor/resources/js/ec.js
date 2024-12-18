@@ -27,7 +27,7 @@ var runningTableData;
 /**
  * Creates active compactions table
  */
-$(document).ready(function () {
+$(function () {
   if (sessionStorage.ecDetailsJSON === undefined) {
     sessionStorage.ecDetailsJSON = JSON.stringify([]);
   }

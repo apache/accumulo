@@ -122,7 +122,7 @@ function updateServerNotifications(statusData) {
 /**
  * Creates the initial sidebar
  */
-$(document).ready(function () {
+$(function () {
   refreshSidebar();
 });
 

@@ -129,7 +129,7 @@ function clearDeadTServers(server) {
 /**
  * Creates initial tables
  */
-$(document).ready(function () {
+$(function () {
 
   refreshRecoveryList();
 

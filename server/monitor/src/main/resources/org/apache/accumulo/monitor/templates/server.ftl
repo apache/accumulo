@@ -19,7 +19,7 @@
 
 -->
       <script>
-        $(document).ready(function () {
+        $(function () {
           // initialize DataTables
           initServerTables('${server}');
         });
