@@ -105,7 +105,7 @@ case "${ACCUMULO_RESOURCE_GROUP:-default}" in
     esac
     ;;
   *)
-    echo "ACCUMULO_RESOURCE_GROUP named $ACCUMULO_RESOURCE_GROUP is not configured"
+    echo "ACCUMULO_RESOURCE_GROUP named $ACCUMULO_RESOURCE_GROUP is not configured in accumulo-env.sh"
     exit 1
     ;;
 esac
