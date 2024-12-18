@@ -1004,7 +1004,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
           }
         } else if (dl == DataLevel.METADATA) {
           if (oldTableMap.containsKey(MetadataTable.ID.canonical())) {
-            newTableMap.put(MetadataTable.ID.canonical(), oldTableMap.get(MetadataTable.ID.canonical()));
+            newTableMap.put(MetadataTable.ID.canonical(),
+                oldTableMap.get(MetadataTable.ID.canonical()));
           }
         } else if (dl == DataLevel.USER) {
           if (!oldTableMap.containsKey(MetadataTable.ID.canonical())
@@ -1012,7 +1013,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
             newTableMap.putAll(oldTableMap);
           } else {
             oldTableMap.forEach((table, info) -> {
-              if (!table.equals(RootTable.ID.canonical()) && !table.equals(MetadataTable.ID.canonical())) {
+              if (!table.equals(RootTable.ID.canonical())
+                  && !table.equals(MetadataTable.ID.canonical())) {
                 newTableMap.put(table, info);
               }
             });
