@@ -117,7 +117,10 @@ public class ServerContext extends ClientContext {
     this.info = info;
     serverDirs = info.getServerDirs();
 
-    propStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooReaderWriter()));
+    // the PropStore shouldn't close the ZooKeeper, since ServerContext is responsible for that
+    @SuppressWarnings("resource")
+    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooKeeper()));
+    propStore = tmpPropStore;
     zkUserPath = memoize(() -> ZooUtil.getRoot(getInstanceID()) + Constants.ZUSERS);
 
     tableManager = memoize(() -> new TableManager(this));

@@ -141,7 +141,7 @@ public class ZooBasedConfigIT {
 
     replay(context);
 
-    propStore = ZooPropStore.initialize(context.getInstanceID(), zrw);
+    propStore = ZooPropStore.initialize(context.getInstanceID(), zk);
 
     reset(context);
 

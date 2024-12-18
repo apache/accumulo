@@ -57,7 +57,7 @@ public class ZooReader {
     this.zk = requireNonNull(zk);
   }
 
-  public ZooKeeper getZooKeeper() {
+  protected ZooKeeper getZooKeeper() {
     return zk;
   }
 

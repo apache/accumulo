@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.conf.store;
 
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,7 +57,6 @@ import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
-import org.easymock.EasyMock;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -102,9 +102,10 @@ public class PropStoreZooKeeperIT {
   public void setupZnodes() throws Exception {
     var zrw = new ZooReaderWriter(zk);
     instanceId = InstanceId.of(UUID.randomUUID());
-    context = EasyMock.createNiceMock(ServerContext.class);
+    context = createMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(context.getZooKeeper()).andReturn(zk).anyTimes();
+    expect(context.getZooReaderWriter()).andReturn(new ZooReaderWriter(zk)).anyTimes();
 
     replay(context);
 
@@ -120,7 +121,7 @@ public class PropStoreZooKeeperIT {
         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     zk.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdB.canonical() + "/conf",
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    propStore = ZooPropStore.initialize(instanceId, context.getZooReaderWriter());
+    propStore = ZooPropStore.initialize(instanceId, context.getZooKeeper());
   }
 
   @AfterEach
@@ -289,7 +290,7 @@ public class PropStoreZooKeeperIT {
     assertEquals("true", propsA.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
     // use alternate prop store - change will propagate via ZooKeeper
-    PropStore propStore2 = ZooPropStore.initialize(instanceId, context.getZooReaderWriter());
+    PropStore propStore2 = ZooPropStore.initialize(instanceId, context.getZooKeeper());
 
     propStore2.delete(tableAPropKey);
 

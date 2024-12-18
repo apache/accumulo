@@ -40,7 +40,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -144,19 +143,18 @@ public class ZKAuthenticatorTest {
 
     // mocking zk interaction
     var instanceId = InstanceId.of("example");
-    ServerContext context = MockServerContext.getWithZK(instanceId, "", 30_000);
-    ZooReaderWriter zr = createMock(ZooReaderWriter.class);
-    expect(context.getZooReader()).andReturn(zr).anyTimes();
     ZooKeeper zk = createMock(ZooKeeper.class);
+    ServerContext context = MockServerContext.getWithZK(zk);
+    expect(context.zkUserPath()).andReturn(ZooUtil.getRoot(instanceId) + Constants.ZUSERS)
+        .anyTimes();
     ZooCache zc = new ZooCache(zk);
     expect(zk.getChildren(anyObject(), anyObject())).andReturn(Arrays.asList(principal)).anyTimes();
     expect(zk.exists(matches(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal),
         anyObject(Watcher.class))).andReturn(new Stat()).anyTimes();
-    expect(context.getZooKeeper()).andReturn(zk).anyTimes();
     expect(context.getZooCache()).andReturn(zc).anyTimes();
     expect(zk.getData(matches(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal),
         anyObject(), anyObject())).andReturn(newHash).once();
-    replay(context, zr, zk);
+    replay(context, zk);
 
     // creating authenticator
     ZKAuthenticator auth = new ZKAuthenticator();
@@ -165,6 +163,6 @@ public class ZKAuthenticatorTest {
     PasswordToken token = new PasswordToken(rawPass.clone());
     // verifying that if the new type of hash is stored in zk authentication works as expected
     assertTrue(auth.authenticateUser(principal, token));
-    verify(context, zr, zk);
+    verify(context, zk);
   }
 }
