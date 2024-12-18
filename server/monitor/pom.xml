@@ -217,8 +217,6 @@
                 <header>${rootlocation}/src/build/license-header.txt</header>
                 <excludes>
                   <exclude>src/main/resources/org/apache/accumulo/monitor/resources/external/**/*</exclude>
-                  <exclude>src/main/resources/org/apache/accumulo/newmonitor/dist/**/*</exclude>
-                  <exclude>src/main/resources/org/apache/accumulo/newmonitor/node_modules/**/*</exclude>
                 </excludes>
               </licenseSet>
             </licenseSets>

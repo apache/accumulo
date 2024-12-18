@@ -2234,7 +2234,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     Set<TServerInstance> liveTserverSet = TabletMetadata.getLiveTServers(context);
 
-    return tabletsMetadata.stream().onClose(() -> tabletsMetadata.close()).peek(tm -> {
+    return tabletsMetadata.stream().peek(tm -> {
       if (scanRangeStart != null && tm.getEndRow() != null
           && tm.getEndRow().compareTo(scanRangeStart) < 0) {
         log.debug("tablet {} is before scan start range: {}", tm.getExtent(), scanRangeStart);
