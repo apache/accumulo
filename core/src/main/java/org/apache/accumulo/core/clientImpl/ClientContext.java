@@ -110,8 +110,6 @@ import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Suppliers;
-
 /**
  * This class represents any essential configuration and credentials needed to initiate RPC
  * operations throughout the code. It is intended to represent a shared object that contains these
@@ -158,6 +156,7 @@ public class ClientContext implements AccumuloClient {
 
   private final AtomicBoolean zooKeeperOpened = new AtomicBoolean(false);
   private final Supplier<ZooKeeper> zooKeeper;
+  private final Supplier<ZooReader> zooReaderSupplier;
 
   private void ensureOpen() {
     if (closed) {
@@ -226,17 +225,19 @@ public class ClientContext implements AccumuloClient {
     this.info = info;
     this.hadoopConf = info.getHadoopConf();
 
-    this.zooKeeper = Suppliers.memoize(() -> {
+    this.zooKeeper = memoize(() -> {
       var zk = info.getZooKeeperSupplier().get();
       zooKeeperOpened.set(true);
       return zk;
     });
 
-    this.zooCache = Suppliers.memoize(() -> new ZooCache(getZooKeeper()));
+    this.zooReaderSupplier = memoize(() -> new ZooReader(getZooKeeper()));
+
+    this.zooCache = memoize(() -> new ZooCache(getZooKeeper()));
     this.serverConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), 100, MILLISECONDS);
-    sslSupplier = Suppliers.memoize(() -> SslConnectionParams.forClient(getConfiguration()));
+    sslSupplier = memoize(() -> SslConnectionParams.forClient(getConfiguration()));
     saslSupplier = memoizeWithExpiration(
         () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()), 100,
         MILLISECONDS);
@@ -1083,7 +1084,7 @@ public class ClientContext implements AccumuloClient {
 
   public ZooReader getZooReader() {
     ensureOpen();
-    return new ZooReader(getZooKeeper());
+    return zooReaderSupplier.get();
   }
 
   protected long getTransportPoolMaxAgeMillis() {

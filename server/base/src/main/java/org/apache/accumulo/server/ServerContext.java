@@ -107,6 +107,7 @@ public class ServerContext extends ClientContext {
   private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
   private final Supplier<LowMemoryDetector> lowMemoryDetector;
   private final Supplier<MetricsInfo> metricsInfoSupplier;
+  private final Supplier<ZooReaderWriter> zrwSupplier;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(ServerInfo.fromServerConfig(siteConfig));
@@ -116,6 +117,11 @@ public class ServerContext extends ClientContext {
     super(SingletonReservation.noop(), info, info.getSiteConfiguration(), Threads.UEH);
     this.info = info;
     serverDirs = info.getServerDirs();
+
+    // getZooKeeper() doesn't need closed here because the context will close it when it closes
+    @SuppressWarnings("resource")
+    var tmpZrwSupplier = memoize(() -> new ZooReaderWriter(getZooKeeper()));
+    zrwSupplier = tmpZrwSupplier;
 
     // the PropStore shouldn't close the ZooKeeper, since ServerContext is responsible for that
     @SuppressWarnings("resource")
@@ -222,7 +228,7 @@ public class ServerContext extends ClientContext {
   }
 
   public ZooReaderWriter getZooReaderWriter() {
-    return new ZooReaderWriter(getZooKeeper());
+    return zrwSupplier.get();
   }
 
   /**
