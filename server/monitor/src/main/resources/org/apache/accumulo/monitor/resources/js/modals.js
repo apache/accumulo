@@ -19,8 +19,8 @@
 
 
 $(document).ready(function () {
-  getMetricsInstance().then(function () {
-    const data = JSON.parse(sessionStorage.metricsInstance);
+  getInstanceInfo().then(function () {
+    const data = JSON.parse(sessionStorage.instance);
     $('#modal-version').text(data.version);
     $('#modal-instance-name').text(data.instanceName);
     $('#modal-instance-id').text(data.instanceUUID);
