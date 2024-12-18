@@ -526,7 +526,7 @@ public class Initialize implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs("accumulo init", args);
     var siteConfig = SiteConfiguration.auto();
-    try (var zk = ZooUtil.connect(Initialize.class.getSimpleName(), siteConfig)) {
+    try (var zk = ZooUtil.connect(getClass().getSimpleName(), siteConfig)) {
       var zrw = new ZooReaderWriter(zk);
       SecurityUtil.serverLogin(siteConfig);
       Configuration hadoopConfig = new Configuration();

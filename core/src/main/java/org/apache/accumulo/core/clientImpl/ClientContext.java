@@ -848,12 +848,7 @@ public class ClientContext implements AccumuloClient {
   public synchronized void close() {
     closed = true;
     if (zooKeeperOpened.get()) {
-      try {
-        zooKeeper.get().close();
-      } catch (InterruptedException e) {
-        // reset the interrupt flag and continue closing
-        Thread.currentThread().interrupt();
-      }
+      ZooUtil.close(zooKeeper.get());
     }
     if (thriftTransportPool != null) {
       thriftTransportPool.shutdown();

@@ -109,7 +109,7 @@ public class ServerContext extends ClientContext {
   private final Supplier<MetricsInfo> metricsInfoSupplier;
 
   public ServerContext(SiteConfiguration siteConfig) {
-    this(ServerInfo.fromHdfsAndZooKeeper(siteConfig));
+    this(ServerInfo.fromServerConfig(siteConfig));
   }
 
   private ServerContext(ServerInfo info) {
@@ -148,13 +148,13 @@ public class ServerContext extends ClientContext {
    * from the client configuration, and the instanceId is looked up in ZooKeeper from the name.
    */
   public static ServerContext withClientInfo(SiteConfiguration siteConfig, ClientInfo info) {
-    return new ServerContext(ServerInfo.forUtilities(siteConfig, info));
+    return new ServerContext(ServerInfo.fromServerAndClientConfig(siteConfig, info));
   }
 
   /**
    * Override properties for testing
    */
-  public static ServerContext overrideForTesting(SiteConfiguration siteConfig, String instanceName,
+  public static ServerContext forTesting(SiteConfiguration siteConfig, String instanceName,
       String zooKeepers, int zkSessionTimeOut) {
     return new ServerContext(
         ServerInfo.forTesting(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));

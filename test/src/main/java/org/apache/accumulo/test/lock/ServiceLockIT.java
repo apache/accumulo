@@ -521,17 +521,15 @@ public class ServiceLockIT {
 
     @Override
     public void run() {
-      try {
-        try (ZooKeeperWrapper zk = testZk.newClient(ZooKeeperWrapper::new)) {
-          ServiceLock zl = getZooLock(zk, parent, uuid);
-          getLockLatch.countDown(); // signal we are done
-          getLockLatch.await(); // wait for others to finish
-          zl.lock(lockWatcher, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-              ServiceDescriptor.DEFAULT_GROUP_NAME)); // race to the lock
-          lockCompletedLatch.countDown();
-          unlockLatch.await();
-          zl.unlock();
-        }
+      try (ZooKeeperWrapper zk = testZk.newClient(ZooKeeperWrapper::new)) {
+        ServiceLock zl = getZooLock(zk, parent, uuid);
+        getLockLatch.countDown(); // signal we are done
+        getLockLatch.await(); // wait for others to finish
+        zl.lock(lockWatcher, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
+            ServiceDescriptor.DEFAULT_GROUP_NAME)); // race to the lock
+        lockCompletedLatch.countDown();
+        unlockLatch.await();
+        zl.unlock();
       } catch (Exception e) {
         LOG.error("Error in LockWorker.run() for {}", uuid, e);
         ex = e;

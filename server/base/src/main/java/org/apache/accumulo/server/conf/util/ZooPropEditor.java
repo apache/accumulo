@@ -84,7 +84,7 @@ public class ZooPropEditor implements KeywordExecutable {
     opts.parseArgs(ZooPropEditor.class.getName(), args);
 
     var siteConfig = opts.getSiteConfiguration();
-    try (var zk = ZooUtil.connect(ZooPropEditor.class.getSimpleName(), siteConfig)) {
+    try (var zk = ZooUtil.connect(getClass().getSimpleName(), siteConfig)) {
       var zrw = new ZooReaderWriter(zk);
 
       try (ServerContext context = new ServerContext(siteConfig)) {

@@ -96,7 +96,7 @@ public class ZooZap implements KeywordExecutable {
     }
 
     var siteConf = SiteConfiguration.auto();
-    try (var zk = ZooUtil.connect(ZooZap.class.getSimpleName(), siteConf)) {
+    try (var zk = ZooUtil.connect(getClass().getSimpleName(), siteConf)) {
       // Login as the server on secure HDFS
       if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
         SecurityUtil.serverLogin(siteConf);

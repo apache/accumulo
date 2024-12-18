@@ -137,7 +137,7 @@ public class ZooInfoViewer implements KeywordExecutable {
       writer.println("Report Time: " + tsFormat.format(Instant.now()));
       writer.println("-----------------------------------------------");
       if (opts.printInstanceIds) {
-        Map<String,InstanceId> instanceMap = ZooUtil.readInstancesFromZk(context.getZooReader());
+        Map<String,InstanceId> instanceMap = ZooUtil.getInstanceMap(context.getZooKeeper());
         printInstanceIds(instanceMap, writer);
       }
 
@@ -228,7 +228,7 @@ public class ZooInfoViewer implements KeywordExecutable {
     writer.printf("ZooKeeper acls for instance ID: %s\n\n", iid.canonical());
 
     var conf = opts.getSiteConfiguration();
-    try (var zk = ZooUtil.connect(ZooInfoViewer.class.getSimpleName(), conf)) {
+    try (var zk = ZooUtil.connect(getClass().getSimpleName(), conf)) {
 
       String instanceRoot = ZooUtil.getRoot(iid);
 

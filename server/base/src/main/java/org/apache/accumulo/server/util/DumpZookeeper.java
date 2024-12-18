@@ -74,7 +74,7 @@ public class DumpZookeeper implements KeywordExecutable {
 
     PrintStream out = System.out;
     var conf = opts.getSiteConfiguration();
-    try (var zk = ZooUtil.connect(DumpZookeeper.class.getSimpleName(), conf)) {
+    try (var zk = ZooUtil.connect(getClass().getSimpleName(), conf)) {
       zrw = new ZooReaderWriter(zk);
       if (opts.xml) {
         writeXml(out, opts.root);

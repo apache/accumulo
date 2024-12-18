@@ -36,7 +36,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
@@ -217,8 +216,8 @@ public class ZooUtil {
   }
 
   /**
-   * Construct a new ZooKeeper client, retrying if it doesn't work right away. The caller is
-   * responsible for closing instances returned from this method.
+   * Construct a new ZooKeeper client, retrying indefinitely if it doesn't work right away. The
+   * caller is responsible for closing instances returned from this method.
    *
    * @param clientName a convenient name for logging its connection state changes
    * @param conf a convenient carrier of ZK connection information using Accumulo properties
@@ -230,8 +229,8 @@ public class ZooUtil {
   }
 
   /**
-   * Construct a new ZooKeeper client, retrying if it doesn't work right away. The caller is
-   * responsible for closing instances returned from this method.
+   * Construct a new ZooKeeper client, retrying indefinitely if it doesn't work right away. The
+   * caller is responsible for closing instances returned from this method.
    *
    * @param clientName a convenient name for logging its connection state changes
    * @param connectString in the form of host1:port1,host2:port2/chroot/path
@@ -280,11 +279,12 @@ public class ZooUtil {
         if (tryAgain && zk != null) {
           try {
             zk.close();
-            zk = null;
           } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("interrupted", e);
+            throw new AssertionError(
+                "ZooKeeper.close() shouldn't throw this; it exists only for backwards compatibility",
+                e);
           }
+          zk = null;
         }
       }
 
@@ -314,94 +314,88 @@ public class ZooUtil {
     return zk;
   }
 
+  public static void close(ZooKeeper zk) {
+    try {
+      if (zk != null) {
+        zk.close();
+      }
+    } catch (InterruptedException e) {
+      throw new AssertionError(
+          "ZooKeeper.close() shouldn't throw this; it exists only for backwards compatibility", e);
+    }
+  }
+
   /**
    * Given a zooCache and instanceId, look up the instance name.
    */
-  public static String getInstanceName(String zooKeepers, int zkSessionTimeout,
-      InstanceId instanceId) {
-    requireNonNull(zooKeepers);
+  public static String getInstanceName(ZooKeeper zk, InstanceId instanceId) {
+    requireNonNull(zk);
     var instanceIdBytes = requireNonNull(instanceId).canonical().getBytes(UTF_8);
-    try (var zk = connect("ZooUtil.getInstanceName", zooKeepers, zkSessionTimeout, null)) {
-      for (String name : zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES, false)) {
-        var bytes = zk.getData(Constants.ZROOT + Constants.ZINSTANCES + "/" + name, false, null);
-        if (Arrays.equals(bytes, instanceIdBytes)) {
-          return name;
-        }
+    for (String name : getInstanceNames(zk)) {
+      var bytes = getInstanceIdBytesFromName(zk, name);
+      if (Arrays.equals(bytes, instanceIdBytes)) {
+        return name;
       }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException(
-          "Interrupted reading instance name for the instanceId " + instanceId, e);
-    } catch (KeeperException e) {
-      throw new IllegalStateException(
-          "Unable to get instance name for the instanceId " + instanceId, e);
     }
     return null;
   }
 
-  /**
-   * Read the instance names and instance ids from ZooKeeper. The storage structure in ZooKeeper is:
-   *
-   * <pre>
-   *   /accumulo/instances/instance_name  - with the instance id stored as data.
-   * </pre>
-   *
-   * @return a map of (instance name, instance id) entries
-   */
-  public static Map<String,InstanceId> readInstancesFromZk(final ZooReader zooReader) {
-    // TODO clean up
-    Map<String,InstanceId> idMap = new TreeMap<>();
+  private static List<String> getInstanceNames(ZooKeeper zk) {
     try {
-      List<String> names = zooReader.getChildren(Constants.ZROOT + Constants.ZINSTANCES);
-      names.forEach(name -> {
-        try {
-          byte[] uuid = zooReader.getData(Constants.ZROOT + Constants.ZINSTANCES + "/" + name);
-          idMap.put(name, InstanceId.of(UUID.fromString(new String(uuid, UTF_8))));
-        } catch (InterruptedException ex) {
-          Thread.currentThread().interrupt();
-          throw new IllegalStateException("Interrupted reading instance id from ZooKeeper", ex);
-        } catch (KeeperException ex) {
-          log.warn("Failed to read instance id for " + ex.getPath());
-        }
-      });
-    } catch (InterruptedException ex) {
+      return new ZooReader(zk).getChildren(Constants.ZROOT + Constants.ZINSTANCES);
+    } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted reading instance name info from ZooKeeper", ex);
-    } catch (KeeperException ex) {
-      throw new IllegalStateException("Failed to read instance name info from ZooKeeper", ex);
+      throw new IllegalStateException("Interrupted reading instance names from ZooKeeper", e);
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Failed to read instance names from ZooKeeper", e);
     }
+  }
+
+  private static byte[] getInstanceIdBytesFromName(ZooKeeper zk, String name) {
+    try {
+      return new ZooReader(zk)
+          .getData(Constants.ZROOT + Constants.ZINSTANCES + "/" + requireNonNull(name));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(
+          "Interrupted reading InstanceId from ZooKeeper for instance named " + name, e);
+    } catch (KeeperException e) {
+      log.warn("Failed to read InstanceId from ZooKeeper for instance named {}", name, e);
+      return null;
+    }
+  }
+
+  public static Map<String,InstanceId> getInstanceMap(ZooKeeper zk) {
+    Map<String,InstanceId> idMap = new TreeMap<>();
+    getInstanceNames(zk).forEach(name -> {
+      byte[] instanceId = getInstanceIdBytesFromName(zk, name);
+      if (instanceId != null) {
+        idMap.put(name, InstanceId.of(new String(instanceId, UTF_8)));
+      }
+    });
     return idMap;
   }
 
-  /**
-   * Returns a unique string that identifies this instance of accumulo.
-   */
-  public static InstanceId getInstanceID(String zooKeepers, int zkSessionTimeout,
-      String instanceName) {
-    requireNonNull(zooKeepers);
-    requireNonNull(instanceName);
-    // lookup by name
-    String instanceIdString = null;
-    try (var zk = connect("ZooUtil.getInstanceID", zooKeepers, zkSessionTimeout, null)) {
-      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
-      byte[] data = zk.getData(instanceNamePath, false, null);
-      if (data == null) {
-        throw new IllegalStateException(
-            "Instance name " + instanceName + " does not exist in zookeeper. "
-                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
-      }
-      instanceIdString = new String(data, UTF_8);
-      // verify that the instanceId found via the instanceName actually exists as an instance
-      if (zk.getData(Constants.ZROOT + "/" + instanceIdString, false, null) == null) {
-        throw new IllegalStateException("Instance id " + instanceIdString
-            + " pointed to by the name " + instanceName + " does not exist in zookeeper");
+  public static InstanceId getInstanceId(ZooKeeper zk, String name) {
+    byte[] data = getInstanceIdBytesFromName(zk, name);
+    if (data == null) {
+      throw new IllegalStateException("Instance name " + name + " does not exist in ZooKeeper. "
+          + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+    }
+    String instanceIdString = new String(data, UTF_8);
+    try {
+      // verify that the instanceId found via the name actually exists
+      if (new ZooReader(zk).getData(Constants.ZROOT + "/" + instanceIdString) == null) {
+        throw new IllegalStateException("InstanceId " + instanceIdString
+            + " pointed to by the name " + name + " does not exist in ZooKeeper");
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted reading instance id from ZooKeeper", e);
+      throw new IllegalStateException("Interrupted verifying InstanceId " + instanceIdString
+          + " pointed to by instance named " + name + " actually exists in ZooKeeper", e);
     } catch (KeeperException e) {
-      throw new IllegalStateException(
-          "Unable to get instanceId for the instance name " + instanceName, e);
+      throw new IllegalStateException("Failed to verify InstanceId " + instanceIdString
+          + " pointed to by instance named " + name + " actually exists in ZooKeeper", e);
     }
     return InstanceId.of(instanceIdString);
   }

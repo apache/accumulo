@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static com.google.common.base.Suppliers.memoize;
 import static java.util.Objects.requireNonNull;
 
 import java.io.FileInputStream;
@@ -44,19 +45,30 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClientInfoImpl implements ClientInfo {
 
-  private final Supplier<InstanceId> instanceIdSupplier;
   private final Properties properties;
+
+  // suppliers for lazily loading
   private final Supplier<AuthenticationToken> tokenSupplier;
-  private final Configuration hadoopConf;
+  private final Supplier<Configuration> hadoopConf;
+  private final Supplier<InstanceId> instanceId;
+  private final Supplier<ZooKeeper> zkSupplier;
 
   public ClientInfoImpl(Properties properties, Optional<AuthenticationToken> tokenOpt) {
     this.properties = requireNonNull(properties);
     // convert the optional to a supplier to delay retrieval from the properties unless needed
     this.tokenSupplier = requireNonNull(tokenOpt).map(Suppliers::ofInstance)
-        .orElse(Suppliers.memoize(() -> ClientProperty.getAuthenticationToken(properties)));
-    this.hadoopConf = new Configuration();
-    this.instanceIdSupplier = Suppliers.memoize(() -> ZooUtil.getInstanceID(getZooKeepers(),
-        getZooKeepersSessionTimeOut(), getInstanceName()));
+        .orElse(memoize(() -> ClientProperty.getAuthenticationToken(properties)));
+    this.hadoopConf = memoize(Configuration::new);
+    this.zkSupplier = () -> ZooUtil.connect(getClass().getSimpleName(), getZooKeepers(),
+        getZooKeepersSessionTimeOut(), null);
+    this.instanceId = memoize(() -> {
+      var zk = getZooKeeperSupplier().get();
+      try {
+        return ZooUtil.getInstanceId(zk, getInstanceName());
+      } finally {
+        ZooUtil.close(zk);
+      }
+    });
   }
 
   @Override
@@ -66,13 +78,12 @@ public class ClientInfoImpl implements ClientInfo {
 
   @Override
   public InstanceId getInstanceId() {
-    return instanceIdSupplier.get();
+    return instanceId.get();
   }
 
   @Override
   public Supplier<ZooKeeper> getZooKeeperSupplier() {
-    return () -> ZooUtil.connect(ClientInfo.class.getSimpleName(), getZooKeepers(),
-        getZooKeepersSessionTimeOut(), null);
+    return zkSupplier;
   }
 
   @Override
@@ -144,6 +155,6 @@ public class ClientInfoImpl implements ClientInfo {
 
   @Override
   public Configuration getHadoopConf() {
-    return this.hadoopConf;
+    return hadoopConf.get();
   }
 }
