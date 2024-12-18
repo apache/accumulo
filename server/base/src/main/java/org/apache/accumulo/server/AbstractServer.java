@@ -21,6 +21,7 @@ package org.apache.accumulo.server;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
@@ -29,6 +30,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -41,7 +43,8 @@ import com.google.common.base.Preconditions;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
-public abstract class AbstractServer implements AutoCloseable, MetricsProducer, Runnable {
+public abstract class AbstractServer
+    implements AutoCloseable, MetricsProducer, Runnable, ServerProcessService.Iface {
 
   private final ServerContext context;
   protected final String applicationName;
@@ -52,6 +55,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   private volatile long idlePeriodStartNanos = 0L;
   private volatile Thread serverThread;
   private volatile Thread verificationThread;
+  private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
 
   protected AbstractServer(String appName, ServerOpts opts, String[] args) {
     this.log = LoggerFactory.getLogger(getClass().getName());
@@ -102,8 +106,40 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     }
   }
 
+  @Override
+  public void gracefulShutdown() {
+    log.info("Graceful shutdown initiated.");
+    if (serverThread != null) {
+      serverThread.interrupt();
+    }
+    requestShutdown();
+  }
+
+  protected void requestShutdown() {
+    shutdownRequested.compareAndSet(false, true);
+  }
+
+  protected boolean isShutdownRequested() {
+    return shutdownRequested.get();
+  }
+
   /**
-   * Run this server in a main thread
+   * Run this server in a main thread. The server's run method should set up the server, then wait
+   * on isShutdownRequested() to return false, like so:
+   *
+   * <pre>
+   * public void run() {
+   *   // setup server and start threads
+   *   while (!isShutdownRequested()) {
+   *     try {
+   *       // sleep or other things
+   *     } catch (InterruptedException e) {
+   *       requestShutdown();
+   *     }
+   *   }
+   *   // shut down server
+   * }
+   * </pre>
    */
   public void runServer() throws Exception {
     final AtomicReference<Throwable> err = new AtomicReference<>();

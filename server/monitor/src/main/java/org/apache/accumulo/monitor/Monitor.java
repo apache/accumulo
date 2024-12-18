@@ -526,6 +526,18 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }).start();
 
     monitorInitialized.set(true);
+
+    while (!isShutdownRequested()) {
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        LOG.info("Interrupt Exception received, shutting down");
+        requestShutdown();
+      }
+    }
+
+    server.stop();
+    log.info("stop requested. exiting ... ");
   }
 
   private ServletHolder getDefaultServlet() {
