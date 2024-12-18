@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -47,7 +48,8 @@ public class CreateTable extends ManagerRepo {
 
   public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props,
       Path splitPath, int splitCount, Path splitDirsPath, InitialTableState initialTableState,
-      TabletAvailability initialTabletAvailability, NamespaceId namespaceId) {
+      TabletAvailability initialTabletAvailability, NamespaceId namespaceId,
+      TabletMergeability initialTabletMergeability) {
     tableInfo = new TableInfo();
     tableInfo.setTableName(tableName);
     tableInfo.setTimeType(timeType);
@@ -59,6 +61,7 @@ public class CreateTable extends ManagerRepo {
     tableInfo.setInitialTableState(initialTableState);
     tableInfo.setSplitDirsPath(splitDirsPath);
     tableInfo.setInitialTabletAvailability(initialTabletAvailability);
+    tableInfo.setInitialTabletMergeability(initialTabletMergeability);
   }
 
   @Override
