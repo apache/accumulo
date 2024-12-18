@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -62,6 +63,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
@@ -79,6 +81,7 @@ import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,6 +90,7 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 
@@ -100,6 +104,16 @@ public class Admin implements KeywordExecutable {
     @Parameter(names = {"-f", "--force"},
         description = "force the given server to stop by removing its lock")
     boolean force = false;
+  }
+
+  @Parameters(
+      commandDescription = "signal the server process to shutdown normally, finishing anything it might be working on, but not starting any new tasks")
+  static class GracefulShutdownCommand {
+    @Parameter(names = {"-h", "--host"}, description = "<host>")
+    String hostname = null;
+
+    @Parameter(names = {"-p", "--port"}, description = "<port>")
+    int port = 0;
   }
 
   @Parameters(commandDescription = "stop the tablet server on the given hosts")
@@ -301,6 +315,9 @@ public class Admin implements KeywordExecutable {
     FateOpsCommand fateOpsCommand = new FateOpsCommand();
     cl.addCommand("fate", fateOpsCommand);
 
+    GracefulShutdownCommand gracefulShutdownCommand = new GracefulShutdownCommand();
+    cl.addCommand("signalShutdown", gracefulShutdownCommand);
+
     ListInstancesCommand listInstancesOpts = new ListInstancesCommand();
     cl.addCommand("listInstances", listInstancesOpts);
 
@@ -381,6 +398,9 @@ public class Admin implements KeywordExecutable {
 
       } else if (cl.getParsedCommand().equals("stop")) {
         stopTabletServer(context, stopOpts.args, opts.force);
+      } else if (cl.getParsedCommand().equals("signalShutdown")) {
+        signalGracefulShutdown(context, gracefulShutdownCommand.hostname,
+            gracefulShutdownCommand.port);
       } else if (cl.getParsedCommand().equals("dumpConfig")) {
         printConfig(context, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
@@ -517,6 +537,27 @@ public class Admin implements KeywordExecutable {
 
     ThriftClientTypes.MANAGER.executeVoid(context,
         client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
+  }
+
+  // Visible for tests
+  public static void signalGracefulShutdown(final ClientContext context, String hostname,
+      int port) {
+
+    Objects.requireNonNull(hostname, "host name not set");
+    Preconditions.checkArgument(port > 0, "port number not set");
+    ServerProcessService.Client client = null;
+    try {
+      client =
+          ThriftClientTypes.SERVER_PROCESS.getServerProcessConnection(context, log, hostname, port);
+      client.gracefulShutdown();
+    } catch (TException e) {
+      throw new RuntimeException(
+          "Error invoking graceful shutdown for server: " + hostname + ":" + port, e);
+    } finally {
+      if (client != null) {
+        ThriftUtil.returnClient(client, context);
+      }
+    }
   }
 
   private static void stopTabletServer(final ClientContext context, List<String> servers,

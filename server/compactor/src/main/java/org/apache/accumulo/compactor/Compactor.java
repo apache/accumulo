@@ -79,6 +79,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -126,7 +127,8 @@ import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 
-public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface {
+public class Compactor extends AbstractServer
+    implements MetricsProducer, CompactorService.Iface, ServerProcessService.Iface {
 
   public interface FileCompactorRunnable extends Runnable {
     /**
@@ -326,7 +328,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    * @throws UnknownHostException host unknown
    */
   protected ServerAddress startCompactorClientService() throws UnknownHostException {
-    var processor = ThriftProcessorTypes.getCompactorTProcessor(this, getContext());
+    var processor = ThriftProcessorTypes.getCompactorTProcessor(this, this, getContext());
     @SuppressWarnings("deprecation")
     var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
         Property.GENERAL_MAX_MESSAGE_SIZE);

@@ -64,6 +64,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -101,8 +102,8 @@ import com.google.common.collect.Sets;
 
 import io.micrometer.core.instrument.Tag;
 
-public class CompactionCoordinator extends AbstractServer
-    implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
+public class CompactionCoordinator extends AbstractServer implements
+    CompactionCoordinatorService.Iface, LiveTServerSet.Listener, ServerProcessService.Iface {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
 
@@ -242,7 +243,7 @@ public class CompactionCoordinator extends AbstractServer
    * @throws UnknownHostException host unknown
    */
   protected ServerAddress startCoordinatorClientService() throws UnknownHostException {
-    var processor = ThriftProcessorTypes.getCoordinatorTProcessor(this, getContext());
+    var processor = ThriftProcessorTypes.getCoordinatorTProcessor(this, this, getContext());
     @SuppressWarnings("deprecation")
     var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
         Property.GENERAL_MAX_MESSAGE_SIZE);

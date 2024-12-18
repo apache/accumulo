@@ -24,10 +24,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -522,4 +524,87 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     stop(server, hostname);
   }
 
+  public void refreshProcesses(ServerType type) {
+    switch (type) {
+      case COMPACTION_COORDINATOR:
+        if (!coordinatorProcess.isAlive()) {
+          coordinatorProcess = null;
+        }
+        break;
+      case COMPACTOR:
+        Iterator<Process> iterC = compactorProcesses.iterator();
+        while (iterC.hasNext()) {
+          if (!iterC.next().isAlive()) {
+            iterC.remove();
+          }
+        }
+        break;
+      case GARBAGE_COLLECTOR:
+        if (!gcProcess.isAlive()) {
+          gcProcess = null;
+        }
+        break;
+      case MANAGER:
+      case MASTER:
+        if (!managerProcess.isAlive()) {
+          managerProcess = null;
+        }
+        break;
+      case MONITOR:
+        if (!monitor.isAlive()) {
+          monitor = null;
+        }
+        break;
+      case SCAN_SERVER:
+        Iterator<Process> iterS = scanServerProcesses.iterator();
+        while (iterS.hasNext()) {
+          if (!iterS.next().isAlive()) {
+            iterS.remove();
+          }
+        }
+        break;
+      case TABLET_SERVER:
+        Iterator<Process> iterT = tabletServerProcesses.iterator();
+        while (iterT.hasNext()) {
+          if (!iterT.next().isAlive()) {
+            iterT.remove();
+          }
+        }
+        break;
+      case ZOOKEEPER:
+        if (!zooKeeperProcess.isAlive()) {
+          zooKeeperProcess = null;
+        }
+        break;
+      default:
+        throw new IllegalArgumentException("Unhandled type: " + type);
+    }
+  }
+
+  public Set<Process> getProcesses(ServerType type) {
+    switch (type) {
+      case COMPACTION_COORDINATOR:
+        return coordinatorProcess == null ? Set.of() : Set.of(coordinatorProcess);
+      case COMPACTOR:
+        return compactorProcesses == null ? Set.of()
+            : Set.of(compactorProcesses.toArray(new Process[] {}));
+      case GARBAGE_COLLECTOR:
+        return gcProcess == null ? Set.of() : Set.of(gcProcess);
+      case MANAGER:
+      case MASTER:
+        return managerProcess == null ? Set.of() : Set.of(managerProcess);
+      case MONITOR:
+        return monitor == null ? Set.of() : Set.of(monitor);
+      case SCAN_SERVER:
+        return scanServerProcesses == null ? Set.of()
+            : Set.of(scanServerProcesses.toArray(new Process[] {}));
+      case TABLET_SERVER:
+        return tabletServerProcesses == null ? Set.of()
+            : Set.of(tabletServerProcesses.toArray(new Process[] {}));
+      case ZOOKEEPER:
+        return zooKeeperProcess == null ? Set.of() : Set.of(zooKeeperProcess);
+      default:
+        throw new IllegalArgumentException("Unhandled type: " + type);
+    }
+  }
 }

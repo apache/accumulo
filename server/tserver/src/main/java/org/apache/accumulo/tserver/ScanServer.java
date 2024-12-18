@@ -74,6 +74,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
@@ -127,7 +128,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 public class ScanServer extends AbstractServer
-    implements TabletScanClientService.Iface, TabletHostingServer {
+    implements TabletScanClientService.Iface, TabletHostingServer, ServerProcessService.Iface {
 
   public static class ScanServerOpts extends ServerOpts {
     @Parameter(required = false, names = {"-g", "--group"},
@@ -302,7 +303,7 @@ public class ScanServer extends AbstractServer
 
     // This class implements TabletClientService.Iface and then delegates calls. Be sure
     // to set up the ThriftProcessor using this class, not the delegate.
-    TProcessor processor = ThriftProcessorTypes.getScanServerTProcessor(this, getContext());
+    TProcessor processor = ThriftProcessorTypes.getScanServerTProcessor(this, this, getContext());
 
     @SuppressWarnings("deprecation")
     var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,

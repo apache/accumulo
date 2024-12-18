@@ -91,6 +91,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
@@ -174,7 +175,8 @@ import com.google.common.collect.Iterators;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class TabletServer extends AbstractServer implements TabletHostingServer {
+public class TabletServer extends AbstractServer
+    implements TabletHostingServer, ServerProcessService.Iface {
 
   private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
@@ -613,7 +615,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     thriftClientHandler = newTabletClientHandler(watcher, writeTracker);
     scanClientHandler = newThriftScanClientHandler(writeTracker);
 
-    TProcessor processor = ThriftProcessorTypes.getTabletServerTProcessor(clientHandler,
+    TProcessor processor = ThriftProcessorTypes.getTabletServerTProcessor(this, clientHandler,
         thriftClientHandler, scanClientHandler, getContext());
     HostAndPort address = startServer(clientAddress.getHost(), processor);
     log.info("address = {}", address);
@@ -944,11 +946,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       this.replServer.stop();
     }
 
-    log.debug("Stopping Thrift Servers");
-    if (server != null) {
-      server.stop();
-    }
-
     // Best-effort attempt at unloading tablets.
     log.debug("Unloading tablets");
     final List<Future<?>> futures = new ArrayList<>();
@@ -986,6 +983,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             }
           }
           log.debug("Waiting on {} {} tablets to close.", futures.size(), level);
+          UtilWaitThread.sleep(1000);
         }
       }
     } finally {
@@ -993,7 +991,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         try {
           ManagerMessage mm = managerMessages.poll();
           do {
-            mm.send(getContext().rpcCreds(), getClientAddressString(), iface);
+            if (mm != null) {
+              mm.send(getContext().rpcCreds(), getClientAddressString(), iface);
+            }
             mm = managerMessages.poll();
           } while (mm != null);
         } catch (TException e) {
@@ -1003,6 +1003,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
       returnManagerConnection(iface);
       tpe.shutdown();
+    }
+
+    log.debug("Stopping Thrift Servers");
+    if (server != null) {
+      server.stop();
     }
 
     try {

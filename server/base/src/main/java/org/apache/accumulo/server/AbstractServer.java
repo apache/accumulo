@@ -30,12 +30,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.hadoop.util.ShutdownHookManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +43,8 @@ import com.google.common.base.Preconditions;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
-public abstract class AbstractServer implements AutoCloseable, MetricsProducer, Runnable {
+public abstract class AbstractServer
+    implements AutoCloseable, MetricsProducer, Runnable, ServerProcessService.Iface {
 
   private final ServerContext context;
   protected final String applicationName;
@@ -105,18 +106,20 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     }
   }
 
-  private void attemptGracefulStop() {
+  @Override
+  public void gracefulShutdown() {
+    log.info("Graceful shutdown initiated.");
     if (serverThread != null) {
       serverThread.interrupt();
     }
     requestShutdown();
   }
 
-  public void requestShutdown() {
+  protected void requestShutdown() {
     shutdownRequested.compareAndSet(false, true);
   }
 
-  public boolean isShutdownRequested() {
+  protected boolean isShutdownRequested() {
     return shutdownRequested.get();
   }
 
@@ -143,9 +146,6 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     serverThread = new Thread(TraceUtil.wrap(this), applicationName);
     serverThread.setUncaughtExceptionHandler((thread, exception) -> err.set(exception));
     serverThread.start();
-
-    ShutdownHookManager.get().addShutdownHook(() -> attemptGracefulStop(), 100);
-
     serverThread.join();
     if (verificationThread != null) {
       verificationThread.interrupt();
