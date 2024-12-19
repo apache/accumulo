@@ -48,7 +48,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil;
@@ -327,7 +327,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
 
-    TExternalCompactionList ecList = getRunningCompactions(ctx, coordinatorHost);
+    TExternalCompactionMap ecList = getRunningCompactions(ctx, coordinatorHost);
     Map<String,TExternalCompaction> ecMap = ecList.getCompactions();
     if (ecMap != null) {
       ecMap.forEach((ecid, ec) -> {
