@@ -33,12 +33,14 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.metrics.thrift.MetricSource;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
+import org.apache.accumulo.server.metrics.MetricServiceHandler;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
@@ -176,6 +178,10 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
 
   public String getApplicationName() {
     return applicationName;
+  }
+
+  protected MetricServiceHandler createMetricServiceHandler(MetricSource serverType) {
+    return new MetricServiceHandler(serverType, getResourceGroup(), context);
   }
 
   /**
