@@ -151,6 +151,7 @@ public abstract class AbstractServer
       verificationThread.interrupt();
       verificationThread.join();
     }
+    log.info(getClass() + " process shut down.");
     Throwable thrown = err.get();
     if (thrown != null) {
       if (thrown instanceof Error) {
