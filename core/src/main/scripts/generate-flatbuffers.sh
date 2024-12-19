@@ -29,10 +29,10 @@
 if ! flatc --version 2>/dev/null | grep -qF "${REQUIRED_FB_VERSION}"; then
   echo "****************************************************"
   echo "*** flatc ${REQUIRED_FB_VERSION} is not available, check PATH"
-  echo "*** and ensure that `flatc` is resolvable or install correct"
+  echo "*** and ensure that 'flatc' is resolvable or install correct"
   echo "*** version. Generated code will not be updated"
   fail "****************************************************"
-  
+
   # git clone git@github.com:google/flatbuffers.git
   # cd flatbuffers
   # git checkout v24.3.25
@@ -47,6 +47,6 @@ fi
 #
 # src/main/scripts/generate-flatbuffers.sh
 
-flatc --java -o src/main/flatbuffers-gen-java src/main/flatbuffers/metric.fbs 
+flatc --java -o src/main/flatbuffers-gen-java src/main/flatbuffers/metric.fbs
 
 # Be sure to run `mvn package` after generating the files to add the LICENSE headers
