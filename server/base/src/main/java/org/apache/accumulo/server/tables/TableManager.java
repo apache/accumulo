@@ -124,7 +124,7 @@ public class TableManager {
     zkRoot = context.getZooKeeperRoot();
     instanceID = context.getInstanceID();
     zoo = context.getZooReaderWriter();
-    zooStateCache = new ZooCache(zoo, new TableStateWatcher());
+    zooStateCache = new ZooCache(context.getZooKeeper(), new TableStateWatcher());
     updateTableStateCache();
   }
 

@@ -45,34 +45,24 @@ public class ZooReader {
           .incrementBy(Duration.ofMillis(250)).maxWait(Duration.ofMinutes(2)).backOffFactor(1.5)
           .logInterval(Duration.ofMinutes(3)).createFactory();
 
-  protected final String connectString;
-  protected final int timeout;
+  private final ZooKeeper zk;
 
-  public ZooReader(String connectString, int timeout) {
-    this.connectString = requireNonNull(connectString);
-    this.timeout = timeout;
-  }
-
-  public ZooReaderWriter asWriter(String secret) {
-    return new ZooReaderWriter(connectString, timeout, secret);
+  /**
+   * Decorate a ZooKeeper with additional, more convenient functionality.
+   *
+   * @param zk the ZooKeeper instance
+   * @throws NullPointerException if zk is {@code null}
+   */
+  public ZooReader(ZooKeeper zk) {
+    this.zk = requireNonNull(zk);
   }
 
   protected ZooKeeper getZooKeeper() {
-    return ZooSession.getAnonymousSession(connectString, timeout);
+    return zk;
   }
 
   protected RetryFactory getRetryFactory() {
     return RETRY_FACTORY;
-  }
-
-  /**
-   * Returns the requested ZooKeeper client session timeout. The client may negotiate a different
-   * value and the actual negotiated value may change after a re-connect.
-   *
-   * @return the timeout in milliseconds
-   */
-  public int getSessionTimeout() {
-    return timeout;
   }
 
   public byte[] getData(String zPath) throws KeeperException, InterruptedException {

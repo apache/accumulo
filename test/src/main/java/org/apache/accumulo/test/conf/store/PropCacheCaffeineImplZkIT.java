@@ -24,10 +24,6 @@ import static org.apache.accumulo.core.conf.Property.TSERV_CLIENTPORT;
 import static org.apache.accumulo.core.conf.Property.TSERV_NATIVEMAP_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TSERV_SCAN_MAX_OPENFILES;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
-import static org.easymock.EasyMock.createNiceMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -41,7 +37,6 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.TablePropKey;
@@ -72,34 +67,25 @@ public class PropCacheCaffeineImplZkIT {
 
   private static ZooKeeperTestingServer testZk = null;
   private static ZooReaderWriter zrw;
-  private static ZooKeeper zooKeeper;
+  private static ZooKeeper zk;
 
   private final TableId tIdA = TableId.of("A");
   private final TableId tIdB = TableId.of("B");
-  private static ServerContext context;
 
   @TempDir
   private static File tempDir;
 
   @BeforeAll
   public static void setupZk() throws Exception {
-    // using default zookeeper port - we don't have a full configuration
     testZk = new ZooKeeperTestingServer(tempDir);
-    zooKeeper = testZk.newClient();
-
-    zrw = testZk.getZooReaderWriter();
-    context = createNiceMock(ServerContext.class);
-    expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-
-    replay(context);
+    zk = testZk.newClient();
+    zrw = new ZooReaderWriter(zk);
   }
 
   @AfterAll
   public static void shutdownZK() throws Exception {
-    verify(context);
     try {
-      zooKeeper.close();
+      zk.close();
     } finally {
       testZk.close();
     }
@@ -108,24 +94,22 @@ public class PropCacheCaffeineImplZkIT {
   @BeforeEach
   public void setupZnodes() throws Exception {
     zrw.mkdirs(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG);
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES, new byte[0],
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES, new byte[0],
         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tIdA.canonical(),
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tIdA.canonical(),
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    zooKeeper.create(
-        ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tIdA.canonical() + "/conf",
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tIdA.canonical() + "/conf",
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tIdB.canonical(),
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tIdB.canonical(),
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    zooKeeper.create(
-        ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tIdB.canonical() + "/conf",
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tIdB.canonical() + "/conf",
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
   }
 
   @AfterEach
   public void cleanupZnodes() throws Exception {
-    ZKUtil.deleteRecursive(zooKeeper, "/accumulo");
+    ZKUtil.deleteRecursive(zk, "/accumulo");
   }
 
   @Test
@@ -145,12 +129,11 @@ public class PropCacheCaffeineImplZkIT {
 
     assertTrue(created, "expected properties to be created");
 
-    ReadyMonitor readyMonitor = new ReadyMonitor("test", zooKeeper.getSessionTimeout());
+    ReadyMonitor readyMonitor = new ReadyMonitor("test", zk.getSessionTimeout());
 
     PropStoreWatcher propStoreWatcher = new PropStoreWatcher(readyMonitor);
 
-    ZooPropLoader propLoader =
-        new ZooPropLoader(zrw, VersionedPropCodec.getDefault(), propStoreWatcher);
+    var propLoader = new ZooPropLoader(zk, VersionedPropCodec.getDefault(), propStoreWatcher);
     PropCacheCaffeineImpl cache = new PropCacheCaffeineImpl.Builder(propLoader).build();
 
     VersionedProperties readProps = cache.get(propStoreKey);

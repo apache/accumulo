@@ -21,7 +21,6 @@ package org.apache.accumulo.core.clientImpl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.base.Suppliers.memoizeWithExpiration;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -44,6 +43,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -79,7 +79,6 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
-import org.apache.accumulo.core.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -107,10 +106,9 @@ import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Suppliers;
 
 /**
  * This class represents any essential configuration and credentials needed to initiate RPC
@@ -126,9 +124,7 @@ public class ClientContext implements AccumuloClient {
   private static final Logger log = LoggerFactory.getLogger(ClientContext.class);
 
   private final ClientInfo info;
-  private InstanceId instanceId;
-  private final ZooReader zooReader;
-  private final ZooCache zooCache;
+  private final Supplier<ZooCache> zooCache;
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
@@ -157,6 +153,10 @@ public class ClientContext implements AccumuloClient {
   private final ThreadPools clientThreadPools;
   private ThreadPoolExecutor cleanupThreadPool;
   private ThreadPoolExecutor scannerReadaheadPool;
+
+  private final AtomicBoolean zooKeeperOpened = new AtomicBoolean(false);
+  private final Supplier<ZooKeeper> zooKeeper;
+  private final Supplier<ZooReader> zooReaderSupplier;
 
   private void ensureOpen() {
     if (closed) {
@@ -224,13 +224,20 @@ public class ClientContext implements AccumuloClient {
       AccumuloConfiguration serverConf, UncaughtExceptionHandler ueh) {
     this.info = info;
     this.hadoopConf = info.getHadoopConf();
-    zooReader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
-    zooCache =
-        new ZooCacheFactory().getZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
+
+    this.zooKeeper = memoize(() -> {
+      var zk = info.getZooKeeperSupplier().get();
+      zooKeeperOpened.set(true);
+      return zk;
+    });
+
+    this.zooReaderSupplier = memoize(() -> new ZooReader(getZooKeeper()));
+
+    this.zooCache = memoize(() -> new ZooCache(getZooKeeper()));
     this.serverConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), 100, MILLISECONDS);
-    sslSupplier = Suppliers.memoize(() -> SslConnectionParams.forClient(getConfiguration()));
+    sslSupplier = memoize(() -> SslConnectionParams.forClient(getConfiguration()));
     saslSupplier = memoizeWithExpiration(
         () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()), 100,
         MILLISECONDS);
@@ -520,7 +527,7 @@ public class ClientContext implements AccumuloClient {
       timer = Timer.startNew();
     }
 
-    Optional<ServiceLockData> sld = zooCache.getLockData(zLockManagerPath);
+    Optional<ServiceLockData> sld = getZooCache().getLockData(zLockManagerPath);
     String location = null;
     if (sld.isPresent()) {
       location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
@@ -546,26 +553,7 @@ public class ClientContext implements AccumuloClient {
    */
   public InstanceId getInstanceID() {
     ensureOpen();
-    if (instanceId == null) {
-      // lookup by name
-      final String instanceName = info.getInstanceName();
-      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
-      byte[] data = zooCache.get(instanceNamePath);
-      if (data == null) {
-        throw new RuntimeException(
-            "Instance name " + instanceName + " does not exist in zookeeper. "
-                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
-      }
-      String instanceIdString = new String(data, UTF_8);
-      // verify that the instanceId found via the instanceName actually exists as an instance
-      if (zooCache.get(Constants.ZROOT + "/" + instanceIdString) == null) {
-        throw new RuntimeException("Instance id " + instanceIdString
-            + (instanceName == null ? "" : " pointed to by the name " + instanceName)
-            + " does not exist in zookeeper");
-      }
-      instanceId = InstanceId.of(instanceIdString);
-    }
-    return instanceId;
+    return info.getInstanceId();
   }
 
   public String getZooKeeperRoot() {
@@ -605,7 +593,7 @@ public class ClientContext implements AccumuloClient {
 
   public ZooCache getZooCache() {
     ensureOpen();
-    return zooCache;
+    return zooCache.get();
   }
 
   private TableZooHelper tableZooHelper;
@@ -860,6 +848,9 @@ public class ClientContext implements AccumuloClient {
   @Override
   public synchronized void close() {
     closed = true;
+    if (zooKeeperOpened.get()) {
+      ZooUtil.close(zooKeeper.get());
+    }
     if (thriftTransportPool != null) {
       thriftTransportPool.shutdown();
     }
@@ -880,7 +871,7 @@ public class ClientContext implements AccumuloClient {
       SslOptions<T>, SaslOptions<T>, ClientFactory<T>, FromOptions<T> {
 
     private Properties properties = new Properties();
-    private AuthenticationToken token = null;
+    private Optional<AuthenticationToken> tokenOpt = Optional.empty();
     private final Function<ClientBuilderImpl<T>,T> builderFunction;
     private UncaughtExceptionHandler ueh = null;
 
@@ -889,12 +880,9 @@ public class ClientContext implements AccumuloClient {
     }
 
     private ClientInfo getClientInfo() {
-      if (token != null) {
-        ClientProperty.validate(properties, false);
-        return new ClientInfoImpl(properties, token);
-      }
-      ClientProperty.validate(properties);
-      return new ClientInfoImpl(properties);
+      // validate the token in the properties if not provided here
+      ClientProperty.validate(properties, tokenOpt.isEmpty());
+      return new ClientInfoImpl(properties, tokenOpt);
     }
 
     private UncaughtExceptionHandler getUncaughtExceptionHandler() {
@@ -1065,7 +1053,7 @@ public class ClientContext implements AccumuloClient {
       }
       setProperty(ClientProperty.AUTH_PRINCIPAL, principal.toString());
       ClientProperty.setAuthenticationToken(properties, token);
-      this.token = token;
+      this.tokenOpt = Optional.of(token);
       return this;
     }
 
@@ -1089,9 +1077,14 @@ public class ClientContext implements AccumuloClient {
 
   }
 
+  public ZooKeeper getZooKeeper() {
+    ensureOpen();
+    return zooKeeper.get();
+  }
+
   public ZooReader getZooReader() {
     ensureOpen();
-    return zooReader;
+    return zooReaderSupplier.get();
   }
 
   protected long getTransportPoolMaxAgeMillis() {

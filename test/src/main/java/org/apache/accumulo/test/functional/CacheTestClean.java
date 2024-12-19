@@ -23,6 +23,7 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.commons.io.FileUtils;
 
@@ -36,15 +37,17 @@ public class CacheTestClean {
     File reportDir = new File(args[1]);
 
     var siteConfig = SiteConfiguration.auto();
-    ZooReaderWriter zoo = new ZooReaderWriter(siteConfig);
+    try (var zk = ZooUtil.connect(CacheTestClean.class.getSimpleName(), siteConfig)) {
+      var zrw = new ZooReaderWriter(zk);
 
-    if (zoo.exists(rootDir)) {
-      zoo.recursiveDelete(rootDir, NodeMissingPolicy.FAIL);
-    }
+      if (zrw.exists(rootDir)) {
+        zrw.recursiveDelete(rootDir, NodeMissingPolicy.FAIL);
+      }
 
-    FileUtils.deleteQuietly(reportDir);
-    if (!reportDir.mkdirs()) {
-      throw new IOException("Unable to (re-)create " + reportDir);
+      FileUtils.deleteQuietly(reportDir);
+      if (!reportDir.mkdirs()) {
+        throw new IOException("Unable to (re-)create " + reportDir);
+      }
     }
   }
 }

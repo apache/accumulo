@@ -42,6 +42,7 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -92,7 +93,6 @@ public class ServerContext extends ClientContext {
   private static final Logger log = LoggerFactory.getLogger(ServerContext.class);
 
   private final ServerInfo info;
-  private final ZooReaderWriter zooReaderWriter;
   private final ServerDirs serverDirs;
   private final Supplier<ZooPropStore> propStore;
   private final Supplier<String> zkUserPath;
@@ -107,18 +107,26 @@ public class ServerContext extends ClientContext {
   private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
   private final Supplier<LowMemoryDetector> lowMemoryDetector;
   private final Supplier<MetricsInfo> metricsInfoSupplier;
+  private final Supplier<ZooReaderWriter> zrwSupplier;
 
   public ServerContext(SiteConfiguration siteConfig) {
-    this(new ServerInfo(siteConfig));
+    this(ServerInfo.fromServerConfig(siteConfig));
   }
 
   private ServerContext(ServerInfo info) {
     super(SingletonReservation.noop(), info, info.getSiteConfiguration(), Threads.UEH);
     this.info = info;
-    zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
     serverDirs = info.getServerDirs();
 
-    propStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooReaderWriter()));
+    // getZooKeeper() doesn't need closed here because the context will close it when it closes
+    @SuppressWarnings("resource")
+    var tmpZrwSupplier = memoize(() -> new ZooReaderWriter(getZooKeeper()));
+    zrwSupplier = tmpZrwSupplier;
+
+    // the PropStore shouldn't close the ZooKeeper, since ServerContext is responsible for that
+    @SuppressWarnings("resource")
+    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooKeeper()));
+    propStore = tmpPropStore;
     zkUserPath = memoize(() -> ZooUtil.getRoot(getInstanceID()) + Constants.ZUSERS);
 
     tableManager = memoize(() -> new TableManager(this));
@@ -141,21 +149,24 @@ public class ServerContext extends ClientContext {
    */
   public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
       InstanceId instanceID) {
-    return new ServerContext(new ServerInfo(siteConfig, instanceName, instanceID));
+    return new ServerContext(ServerInfo.initialize(siteConfig, instanceName, instanceID));
+  }
+
+  /**
+   * Used by server-side utilities that have a client configuration. The instance name is obtained
+   * from the client configuration, and the instanceId is looked up in ZooKeeper from the name.
+   */
+  public static ServerContext withClientInfo(SiteConfiguration siteConfig, ClientInfo info) {
+    return new ServerContext(ServerInfo.fromServerAndClientConfig(siteConfig, info));
   }
 
   /**
    * Override properties for testing
    */
-  public static ServerContext override(SiteConfiguration siteConfig, String instanceName,
+  public static ServerContext forTesting(SiteConfiguration siteConfig, String instanceName,
       String zooKeepers, int zkSessionTimeOut) {
     return new ServerContext(
-        new ServerInfo(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));
-  }
-
-  @Override
-  public InstanceId getInstanceID() {
-    return info.getInstanceID();
+        ServerInfo.forTesting(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -217,7 +228,7 @@ public class ServerContext extends ClientContext {
   }
 
   public ZooReaderWriter getZooReaderWriter() {
-    return zooReaderWriter;
+    return zrwSupplier.get();
   }
 
   /**

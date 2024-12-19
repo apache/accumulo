@@ -21,7 +21,6 @@ package org.apache.accumulo.core.fate.zookeeper;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.createMockBuilder;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
@@ -54,14 +53,15 @@ public class ZooReaderWriterTest {
   @BeforeEach
   public void setup() {
     zk = createMock(ZooKeeper.class);
-    zrw = createMockBuilder(ZooReaderWriter.class)
-        .addMockedMethods("getRetryFactory", "getZooKeeper").createMock();
     retryFactory = createMock(RetryFactory.class);
     retry = createMock(Retry.class);
-
-    expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
-    expect(zrw.getRetryFactory()).andReturn(retryFactory).anyTimes();
     expect(retryFactory.createRetry()).andReturn(retry).anyTimes();
+    zrw = new ZooReaderWriter(zk) {
+      @Override
+      protected RetryFactory getRetryFactory() {
+        return retryFactory;
+      }
+    };
   }
 
   @Test
@@ -71,11 +71,11 @@ public class ZooReaderWriterTest {
     zk.delete(path, -1);
     expectLastCall().andThrow(KeeperException.create(Code.NONODE));
 
-    replay(zk, zrw, retryFactory, retry);
+    replay(zk, retryFactory, retry);
 
     zrw.delete(path);
 
-    verify(zk, zrw, retryFactory, retry);
+    verify(zk, retryFactory, retry);
   }
 
   @Test
@@ -92,11 +92,11 @@ public class ZooReaderWriterTest {
     zk.delete(path, -1);
     expectLastCall().andThrow(KeeperException.create(Code.NONODE));
 
-    replay(zk, zrw, retryFactory, retry);
+    replay(zk, retryFactory, retry);
 
     zrw.delete(path);
 
-    verify(zk, zrw, retryFactory, retry);
+    verify(zk, retryFactory, retry);
   }
 
   @Test
@@ -110,11 +110,11 @@ public class ZooReaderWriterTest {
     expect(retry.canRetry()).andReturn(false);
     expect(retry.retriesCompleted()).andReturn(1L).once();
 
-    replay(zk, zrw, retryFactory, retry);
+    replay(zk, retryFactory, retry);
 
     assertThrows(SessionExpiredException.class, () -> zrw.mutateOrCreate(path, value, mutator));
 
-    verify(zk, zrw, retryFactory, retry);
+    verify(zk, retryFactory, retry);
   }
 
   @Test
@@ -137,11 +137,11 @@ public class ZooReaderWriterTest {
     retry.waitForNextAttempt(anyObject(), anyObject());
     expectLastCall().once();
 
-    replay(zk, zrw, retryFactory, retry);
+    replay(zk, retryFactory, retry);
 
     assertArrayEquals(new byte[] {1}, zrw.mutateOrCreate(path, value, mutator));
 
-    verify(zk, zrw, retryFactory, retry);
+    verify(zk, retryFactory, retry);
   }
 
   @Test
@@ -167,10 +167,10 @@ public class ZooReaderWriterTest {
     // Let 2nd setData succeed
     expect(zk.setData(path, mutatedBytes, 0)).andReturn(null);
 
-    replay(zk, zrw, retryFactory, retry);
+    replay(zk, retryFactory, retry);
 
     assertArrayEquals(new byte[] {1}, zrw.mutateOrCreate(path, value, mutator));
 
-    verify(zk, zrw, retryFactory, retry);
+    verify(zk, retryFactory, retry);
   }
 }

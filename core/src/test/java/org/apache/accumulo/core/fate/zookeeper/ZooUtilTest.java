@@ -18,16 +18,33 @@
  */
 package org.apache.accumulo.core.fate.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.eq;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.isNull;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,4 +83,46 @@ class ZooUtilTest {
     }
     return true;
   }
+
+  private static final int ZK_TIMEOUT_SECONDS = 5;
+
+  @Test
+  @Timeout(ZK_TIMEOUT_SECONDS * 4)
+  public void testConnectUnknownHost() {
+    String UNKNOWN_HOST = "hostname.that.should.not.exist.example.com:2181";
+    int millisTimeout = (int) SECONDS.toMillis(ZK_TIMEOUT_SECONDS);
+
+    AtomicReference<ZooKeeper> ref = new AtomicReference<>();
+    var e = assertThrows(IllegalStateException.class, () -> {
+      ref.set(ZooUtil.connect(getClass().getSimpleName(), UNKNOWN_HOST, millisTimeout, null));
+    });
+    assertNull(ref.get());
+    assertTrue(e.getMessage().contains("Failed to connect to zookeeper (" + UNKNOWN_HOST
+        + ") within 2x zookeeper timeout period " + millisTimeout));
+  }
+
+  @Test
+  public void fetchInstancesFromZk() throws Exception {
+
+    String instAName = "INST_A";
+    InstanceId instA = InstanceId.of(UUID.randomUUID());
+    String instBName = "INST_B";
+    InstanceId instB = InstanceId.of(UUID.randomUUID());
+
+    ZooKeeper zk = createMock(ZooKeeper.class);
+    String namePath = Constants.ZROOT + Constants.ZINSTANCES;
+    expect(zk.getChildren(eq(namePath), isNull())).andReturn(List.of(instAName, instBName)).once();
+    expect(zk.getData(eq(namePath + "/" + instAName), isNull(), isNull()))
+        .andReturn(instA.canonical().getBytes(UTF_8)).once();
+    expect(zk.getData(eq(namePath + "/" + instBName), isNull(), isNull()))
+        .andReturn(instB.canonical().getBytes(UTF_8)).once();
+    replay(zk);
+
+    Map<String,InstanceId> instanceMap = ZooUtil.getInstanceMap(zk);
+
+    log.trace("id map returned: {}", instanceMap);
+    assertEquals(Map.of(instAName, instA, instBName, instB), instanceMap);
+    verify(zk);
+  }
+
 }

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
@@ -61,6 +62,7 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Suppliers;
 import com.google.common.net.HostAndPort;
 
 public class LiveTServerSet implements Watcher {
@@ -73,7 +75,6 @@ public class LiveTServerSet implements Watcher {
 
   private final Listener cback;
   private final ServerContext context;
-  private ZooCache zooCache;
 
   public class TServerConnection {
     private final HostAndPort address;
@@ -236,16 +237,16 @@ public class LiveTServerSet implements Watcher {
   // The set of entries in zookeeper without locks, and the first time each was noticed
   private final Map<String,Long> locklessServers = new HashMap<>();
 
+  private final Supplier<ZooCache> zcSupplier;
+
   public LiveTServerSet(ServerContext context, Listener cback) {
     this.cback = cback;
     this.context = context;
+    this.zcSupplier = Suppliers.memoize(() -> new ZooCache(context.getZooKeeper(), this));
   }
 
-  public synchronized ZooCache getZooCache() {
-    if (zooCache == null) {
-      zooCache = new ZooCache(context.getZooReader(), this);
-    }
-    return zooCache;
+  public ZooCache getZooCache() {
+    return zcSupplier.get();
   }
 
   public synchronized void startListeningForTabletServerChanges() {

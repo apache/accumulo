@@ -127,7 +127,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
   public void testClientConfiguration() throws Exception {
 
     final String zooRoot = getCluster().getServerContext().getZooKeeperRoot();
-    final ZooKeeper zk = getCluster().getServerContext().getZooReaderWriter().getZooKeeper();
+    final ZooKeeper zk = getCluster().getServerContext().getZooKeeper();
     final String scanServerRoot = zooRoot + Constants.ZSSERVERS;
 
     // Ensure no scan servers running

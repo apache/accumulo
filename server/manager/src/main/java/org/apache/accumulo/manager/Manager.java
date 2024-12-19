@@ -447,7 +447,7 @@ public class Manager extends AbstractServer
       log.info("SASL is enabled, creating delegation token key manager and distributor");
       final long tokenUpdateInterval =
           aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
-      keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooReaderWriter(),
+      keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooKeeper(),
           context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
       authenticationTokenKeyManager = new AuthenticationTokenKeyManager(context.getSecretManager(),
           keyDistributor, tokenUpdateInterval, tokenLifetime);
@@ -1365,7 +1365,7 @@ public class Manager extends AbstractServer
       final AgeOffStore<Manager> store =
           new AgeOffStore<>(
               new org.apache.accumulo.core.fate.ZooStore<>(
-                  context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()),
+                  context.getZooKeeperRoot() + Constants.ZFATE, context.getZooKeeper()),
               HOURS.toMillis(8), System::currentTimeMillis);
 
       Fate<Manager> f = initializeFateInstance(store, getConfiguration());
@@ -1625,7 +1625,7 @@ public class Manager extends AbstractServer
 
   private ServiceLockData getManagerLock(final ServiceLockPath zManagerLoc)
       throws KeeperException, InterruptedException {
-    var zooKeeper = getContext().getZooReaderWriter().getZooKeeper();
+    var zooKeeper = getContext().getZooKeeper();
     log.info("trying to get manager lock");
 
     final String managerClientAddress =

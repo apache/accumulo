@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.Collections;
@@ -54,7 +55,7 @@ public class ZooCache {
   private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
 
   private final ZCacheWatcher watcher = new ZCacheWatcher();
-  private final Watcher externalWatcher;
+  private final Optional<Watcher> externalWatcher;
 
   private final ReadWriteLock cacheLock = new ReentrantReadWriteLock(false);
   private final Lock cacheWriteLock = cacheLock.writeLock();
@@ -64,7 +65,7 @@ public class ZooCache {
   private final HashMap<String,ZcStat> statCache;
   private final HashMap<String,List<String>> childrenCache;
 
-  private final ZooReader zReader;
+  private final ZooKeeper zk;
 
   private volatile boolean closed = false;
 
@@ -139,19 +140,6 @@ public class ZooCache {
   private volatile ImmutableCacheCopies immutableCache = new ImmutableCacheCopies(0);
   private long updateCount = 0;
 
-  /**
-   * Returns a ZooKeeper session. Calls should be made within run of ZooRunnable after caches are
-   * checked. This will be performed at each retry of the run method. Calls to this method should be
-   * made, ideally, after cache checks since other threads may have succeeded when updating the
-   * cache. Doing this will ensure that we don't pay the cost of retrieving a ZooKeeper session on
-   * each retry until we've ensured the caches aren't populated for a given node.
-   *
-   * @return ZooKeeper session.
-   */
-  private ZooKeeper getZooKeeper() {
-    return zReader.getZooKeeper();
-  }
-
   private class ZCacheWatcher implements Watcher {
     @Override
     public void process(WatchedEvent event) {
@@ -196,20 +184,33 @@ public class ZooCache {
           break;
       }
 
-      if (externalWatcher != null) {
-        externalWatcher.process(event);
-      }
+      externalWatcher.ifPresent(w -> w.process(event));
     }
+  }
+
+  /**
+   * Creates a new cache without an external watcher.
+   *
+   * @param zk the ZooKeeper instance
+   * @throws NullPointerException if zk is {@code null}
+   */
+  public ZooCache(ZooKeeper zk) {
+    this(zk, Optional.empty());
   }
 
   /**
    * Creates a new cache. The given watcher is called whenever a watched node changes.
    *
-   * @param reader ZooKeeper reader
+   * @param zk the ZooKeeper instance
    * @param watcher watcher object
+   * @throws NullPointerException if zk or watcher is {@code null}
    */
-  public ZooCache(ZooReader reader, Watcher watcher) {
-    this.zReader = reader;
+  public ZooCache(ZooKeeper zk, Watcher watcher) {
+    this(zk, Optional.of(watcher));
+  }
+
+  private ZooCache(ZooKeeper zk, Optional<Watcher> watcher) {
+    this.zk = requireNonNull(zk);
     this.cache = new HashMap<>();
     this.statCache = new HashMap<>();
     this.childrenCache = new HashMap<>();
@@ -305,9 +306,7 @@ public class ZooCache {
             return childrenCache.get(zPath);
           }
 
-          final ZooKeeper zooKeeper = getZooKeeper();
-
-          List<String> children = zooKeeper.getChildren(zPath, watcher);
+          List<String> children = zk.getChildren(zPath, watcher);
           if (children != null) {
             children = List.copyOf(children);
           }
@@ -377,8 +376,7 @@ public class ZooCache {
          */
         cacheWriteLock.lock();
         try {
-          final ZooKeeper zooKeeper = getZooKeeper();
-          Stat stat = zooKeeper.exists(zPath, watcher);
+          Stat stat = zk.exists(zPath, watcher);
           byte[] data = null;
           if (stat == null) {
             if (log.isTraceEnabled()) {
@@ -386,7 +384,7 @@ public class ZooCache {
             }
           } else {
             try {
-              data = zooKeeper.getData(zPath, watcher, stat);
+              data = zk.getData(zPath, watcher, stat);
               zstat = new ZcStat(stat);
             } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
               throw new ConcurrentModificationException();

@@ -18,48 +18,72 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static com.google.common.base.Suppliers.memoize;
+import static java.util.Objects.requireNonNull;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.zookeeper.ZooKeeper;
+
+import com.google.common.base.Suppliers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClientInfoImpl implements ClientInfo {
 
   private final Properties properties;
-  private AuthenticationToken token;
-  private final Configuration hadoopConf;
 
-  public ClientInfoImpl(Path propertiesFile) {
-    this(ClientInfoImpl.toProperties(propertiesFile));
-  }
+  // suppliers for lazily loading
+  private final Supplier<AuthenticationToken> tokenSupplier;
+  private final Supplier<Configuration> hadoopConf;
+  private final Supplier<InstanceId> instanceId;
+  private final Supplier<ZooKeeper> zkSupplier;
 
-  public ClientInfoImpl(URL propertiesURL) {
-    this(ClientInfoImpl.toProperties(propertiesURL));
-  }
-
-  public ClientInfoImpl(Properties properties) {
-    this(properties, null);
-  }
-
-  public ClientInfoImpl(Properties properties, AuthenticationToken token) {
-    this.properties = properties;
-    this.token = token;
-    this.hadoopConf = new Configuration();
+  public ClientInfoImpl(Properties properties, Optional<AuthenticationToken> tokenOpt) {
+    this.properties = requireNonNull(properties);
+    // convert the optional to a supplier to delay retrieval from the properties unless needed
+    this.tokenSupplier = requireNonNull(tokenOpt).map(Suppliers::ofInstance)
+        .orElse(memoize(() -> ClientProperty.getAuthenticationToken(properties)));
+    this.hadoopConf = memoize(Configuration::new);
+    this.zkSupplier = () -> ZooUtil.connect(getClass().getSimpleName(), getZooKeepers(),
+        getZooKeepersSessionTimeOut(), null);
+    this.instanceId = memoize(() -> {
+      var zk = getZooKeeperSupplier().get();
+      try {
+        return ZooUtil.getInstanceId(zk, getInstanceName());
+      } finally {
+        ZooUtil.close(zk);
+      }
+    });
   }
 
   @Override
   public String getInstanceName() {
     return getString(ClientProperty.INSTANCE_NAME);
+  }
+
+  @Override
+  public InstanceId getInstanceId() {
+    return instanceId.get();
+  }
+
+  @Override
+  public Supplier<ZooKeeper> getZooKeeperSupplier() {
+    return zkSupplier;
   }
 
   @Override
@@ -87,10 +111,7 @@ public class ClientInfoImpl implements ClientInfo {
 
   @Override
   public AuthenticationToken getAuthenticationToken() {
-    if (token == null) {
-      token = ClientProperty.getAuthenticationToken(properties);
-    }
-    return token;
+    return tokenSupplier.get();
   }
 
   @Override
@@ -134,6 +155,6 @@ public class ClientInfoImpl implements ClientInfo {
 
   @Override
   public Configuration getHadoopConf() {
-    return this.hadoopConf;
+    return hadoopConf.get();
   }
 }
