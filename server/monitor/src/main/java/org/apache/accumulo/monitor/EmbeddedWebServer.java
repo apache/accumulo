@@ -127,7 +127,7 @@ public class EmbeddedWebServer {
     }
   }
 
-  private void stop() {
+  public void stop() {
     try {
       server.stop();
       server.join();
