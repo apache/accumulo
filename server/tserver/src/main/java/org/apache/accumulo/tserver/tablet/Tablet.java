@@ -1146,65 +1146,60 @@ public class Tablet extends TabletBase {
       throw new RuntimeException(msg);
     }
 
-    // If we are closing a root or metadata tablet, then we won't be able to
-    // scan the metadata table to perform the following checks.
-    if (!extent.isMeta()) {
-      try {
-        var tabletMeta = context.getAmple().readTablet(extent, ColumnType.FILES, ColumnType.LOGS,
-            ColumnType.ECOMP, ColumnType.PREV_ROW, ColumnType.FLUSH_ID, ColumnType.COMPACT_ID);
+    try {
+      var tabletMeta = context.getAmple().readTablet(extent, ColumnType.FILES, ColumnType.LOGS,
+          ColumnType.ECOMP, ColumnType.PREV_ROW, ColumnType.FLUSH_ID, ColumnType.COMPACT_ID);
 
-        if (tabletMeta == null) {
-          String msg = "Closed tablet " + extent + " not found in metadata";
-          log.error(msg);
-          throw new RuntimeException(msg);
-        }
-
-        HashSet<ExternalCompactionId> ecids = new HashSet<>();
-        compactable.getExternalCompactionIds(ecids::add);
-        if (!tabletMeta.getExternalCompactions().keySet().equals(ecids)) {
-          String msg = "Closed tablet " + extent + " external compaction ids differ " + ecids
-              + " != " + tabletMeta.getExternalCompactions().keySet();
-          log.error(msg);
-          throw new RuntimeException(msg);
-        }
-
-        if (!tabletMeta.getLogs().isEmpty()) {
-          String msg = "Closed tablet " + extent + " has walog entries in " + MetadataTable.NAME
-              + " " + tabletMeta.getLogs();
-          log.error(msg);
-          throw new RuntimeException(msg);
-        }
-
-        tabletMeta.getFlushId().ifPresent(flushId -> {
-          if (flushId != lastFlushID.get()) {
-            String msg = "Closed tablet " + extent + " lastFlushID is inconsistent with metadata : "
-                + flushId + " != " + lastFlushID;
-            log.error(msg);
-            throw new RuntimeException(msg);
-          }
-        });
-
-        tabletMeta.getCompactId().ifPresent(compactId -> {
-          if (compactId != lastCompactID.get()) {
-            String msg =
-                "Closed tablet " + extent + " lastCompactID is inconsistent with metadata : "
-                    + compactId + " != " + lastCompactID;
-            log.error(msg);
-            throw new RuntimeException(msg);
-          }
-        });
-
-        if (!tabletMeta.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
-          String msg = "Data files in " + extent + " differ from in-memory data "
-              + tabletMeta.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
-          log.error(msg);
-        }
-      } catch (Exception e) {
-        String msg = "Failed to do close consistency check for tablet " + extent;
-        log.error(msg, e);
-        throw new RuntimeException(msg, e);
-
+      if (tabletMeta == null) {
+        String msg = "Closed tablet " + extent + " not found in metadata";
+        log.error(msg);
+        throw new RuntimeException(msg);
       }
+
+      HashSet<ExternalCompactionId> ecids = new HashSet<>();
+      compactable.getExternalCompactionIds(ecids::add);
+      if (!tabletMeta.getExternalCompactions().keySet().equals(ecids)) {
+        String msg = "Closed tablet " + extent + " external compaction ids differ " + ecids + " != "
+            + tabletMeta.getExternalCompactions().keySet();
+        log.error(msg);
+        throw new RuntimeException(msg);
+      }
+
+      if (!tabletMeta.getLogs().isEmpty()) {
+        String msg = "Closed tablet " + extent + " has walog entries in " + MetadataTable.NAME + " "
+            + tabletMeta.getLogs();
+        log.error(msg);
+        throw new RuntimeException(msg);
+      }
+
+      tabletMeta.getFlushId().ifPresent(flushId -> {
+        if (flushId != lastFlushID.get()) {
+          String msg = "Closed tablet " + extent + " lastFlushID is inconsistent with metadata : "
+              + flushId + " != " + lastFlushID;
+          log.error(msg);
+          throw new RuntimeException(msg);
+        }
+      });
+
+      tabletMeta.getCompactId().ifPresent(compactId -> {
+        if (compactId != lastCompactID.get()) {
+          String msg = "Closed tablet " + extent + " lastCompactID is inconsistent with metadata : "
+              + compactId + " != " + lastCompactID;
+          log.error(msg);
+          throw new RuntimeException(msg);
+        }
+      });
+
+      if (!tabletMeta.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
+        String msg = "Data files in " + extent + " differ from in-memory data "
+            + tabletMeta.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
+        log.error(msg);
+      }
+    } catch (Exception e) {
+      String msg = "Failed to do close consistency check for tablet " + extent;
+      log.error(msg, e);
+      throw new RuntimeException(msg, e);
+
     }
 
     if (!otherLogs.isEmpty() || !currentLogs.isEmpty() || !referencedLogs.isEmpty()) {

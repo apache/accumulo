@@ -220,7 +220,8 @@ public class CompactionCoordinator extends AbstractServer implements
         ServiceLock.path(lockPath), zooLockUUID);
     while (true) {
 
-      CoordinatorLockWatcher coordinatorLockWatcher = new CoordinatorLockWatcher();
+      CoordinatorLockWatcher coordinatorLockWatcher =
+          new CoordinatorLockWatcher(() -> isShutdownRequested());
       coordinatorLock.lock(coordinatorLockWatcher, coordinatorClientAddress.getBytes(UTF_8));
 
       coordinatorLockWatcher.waitForChange();

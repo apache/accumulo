@@ -1647,14 +1647,19 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return managerLock;
   }
 
-  private static class ManagerLockWatcher implements ServiceLock.AccumuloLockWatcher {
+  private class ManagerLockWatcher implements ServiceLock.AccumuloLockWatcher {
 
     boolean acquiredLock = false;
     boolean failedToAcquireLock = false;
 
     @Override
     public void lostLock(LockLossReason reason) {
-      Halt.halt("Manager lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+      if (isShutdownRequested()) {
+        LOG.warn("ScanServer lost lock (reason = {}), not exiting because shutdown requested.",
+            reason);
+      } else {
+        Halt.halt("Manager lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+      }
     }
 
     @Override

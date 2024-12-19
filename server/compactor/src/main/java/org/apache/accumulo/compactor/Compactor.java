@@ -287,10 +287,15 @@ public class Compactor extends AbstractServer
     LockWatcher lw = new LockWatcher() {
       @Override
       public void lostLock(final LockLossReason reason) {
-        Halt.halt(1, () -> {
-          LOG.error("Compactor lost lock (reason = {}), exiting.", reason);
-          gcLogger.logGCInfo(getConfiguration());
-        });
+        if (isShutdownRequested()) {
+          LOG.warn("Compactor lost lock (reason = {}), not exiting because shutdown requested.",
+              reason);
+        } else {
+          Halt.halt(1, () -> {
+            LOG.error("Compactor lost lock (reason = {}), exiting.", reason);
+            gcLogger.logGCInfo(getConfiguration());
+          });
+        }
       }
 
       @Override

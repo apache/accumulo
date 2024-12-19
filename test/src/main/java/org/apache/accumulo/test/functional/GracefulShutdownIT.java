@@ -55,7 +55,6 @@ import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -63,6 +62,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterControl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.test.compaction.ExternalCompactionTestUtils;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.tserver.ScanServer;
 import org.apache.hadoop.conf.Configuration;
@@ -154,11 +154,11 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
         m.put(val, val, val);
         writer.addMutation(m);
         writer.flush();
-        client.tableOperations().flush(tableName);
+        client.tableOperations().flush(tableName, null, null, true);
       }
       final long numFiles = ctx.getAmple().readTablets().forTable(tid).build().stream()
           .mapToLong(tm -> tm.getFiles().size()).sum();
-      assertTrue(numFiles > 1);
+      assertEquals(10, numFiles);
       client.instanceOperations().waitForBalance();
 
       // Restart Garbage Collector
@@ -217,14 +217,16 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       final IteratorSetting is = new IteratorSetting(100, SlowIterator.class);
       SlowIterator.setSeekSleepTime(is, 1000);
       SlowIterator.setSleepTime(is, 1000);
-      cc.setIterators(List.of());
+      cc.setIterators(List.of(is));
       cc.setWait(false);
 
       final long numFiles2 = ctx.getAmple().readTablets().forTable(tid).build().stream()
           .mapToLong(tm -> tm.getFiles().size()).sum();
-      assertTrue(numFiles2 >= numFiles);
+      assertTrue(numFiles2 == numFiles);
+      assertEquals(0, ExternalCompactionTestUtils.getRunningCompactions(ctx).getCompactionsSize());
       client.tableOperations().compact(tableName, cc);
-      UtilWaitThread.sleep(2000); // wait for compaction to start
+      Wait.waitFor(
+          () -> ExternalCompactionTestUtils.getRunningCompactions(ctx).getCompactionsSize() > 0);
       Admin.signalGracefulShutdown(ctx, compactorAddress.getHost(), compactorAddress.getPort());
       Wait.waitFor(() -> {
         control.refreshProcesses(ServerType.COMPACTOR);
@@ -232,6 +234,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       });
       final long numFiles3 = ctx.getAmple().readTablets().forTable(tid).build().stream()
           .mapToLong(tm -> tm.getFiles().size()).sum();
+      assertTrue(numFiles3 < numFiles2);
       assertEquals(1, numFiles3);
 
       getCluster().getConfig().setNumScanServers(1);
@@ -243,6 +246,8 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         scanner.setExecutionHints(Map.of("scan_type", "graceful"));
+        scanner.addScanIterator(is); // add the slow iterator
+        scanner.setBatchSize(1);
         int count = 0;
         for (Entry<Key,Value> e : scanner) {
           count++;

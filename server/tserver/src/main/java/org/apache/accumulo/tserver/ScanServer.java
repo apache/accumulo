@@ -352,12 +352,17 @@ public class ScanServer extends AbstractServer
 
         @Override
         public void lostLock(final LockLossReason reason) {
-          Halt.halt(isShutdownRequested() ? 0 : 1, () -> {
-            if (!isShutdownRequested()) {
-              LOG.error("Lost tablet server lock (reason = {}), exiting.", reason);
-            }
-            gcLogger.logGCInfo(getConfiguration());
-          });
+          if (isShutdownRequested()) {
+            LOG.warn("ScanServer lost lock (reason = {}), not exiting because shutdown requested.",
+                reason);
+          } else {
+            Halt.halt(isShutdownRequested() ? 0 : 1, () -> {
+              if (!isShutdownRequested()) {
+                LOG.error("Lost scan server lock (reason = {}), exiting.", reason);
+              }
+              gcLogger.logGCInfo(getConfiguration());
+            });
+          }
         }
 
         @Override

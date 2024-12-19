@@ -109,9 +109,9 @@ public abstract class AbstractServer
   @Override
   public void gracefulShutdown() {
     log.info("Graceful shutdown initiated.");
-    if (serverThread != null) {
-      serverThread.interrupt();
-    }
+    // Don't interrupt the server thread, that will cause
+    // IO operations to fail as the servers are finishing
+    // their work.
     requestShutdown();
   }
 
@@ -151,7 +151,7 @@ public abstract class AbstractServer
       verificationThread.interrupt();
       verificationThread.join();
     }
-    log.info(getClass() + " process shut down.");
+    log.info(getClass().getSimpleName() + " process shut down.");
     Throwable thrown = err.get();
     if (thrown != null) {
       if (thrown instanceof Error) {
