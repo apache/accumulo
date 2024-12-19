@@ -45,7 +45,7 @@ public class ServerProcessServiceThriftClient extends ThriftClientTypes<Client> 
         // do not expect to recover from this
         throw new RuntimeException(tte);
       }
-      log.debug("Failed to connect to manager=" + serverProcess + ", will retry... ", tte);
+      log.debug("Failed to connect to process at " + serverProcess + ", will retry... ", tte);
       return null;
     }
 
