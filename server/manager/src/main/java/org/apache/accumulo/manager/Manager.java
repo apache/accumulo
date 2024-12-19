@@ -447,7 +447,7 @@ public class Manager extends AbstractServer
       log.info("SASL is enabled, creating delegation token key manager and distributor");
       final long tokenUpdateInterval =
           aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
-      keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooReaderWriter(),
+      keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooKeeper(),
           context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
       authenticationTokenKeyManager = new AuthenticationTokenKeyManager(context.getSecretManager(),
           keyDistributor, tokenUpdateInterval, tokenLifetime);

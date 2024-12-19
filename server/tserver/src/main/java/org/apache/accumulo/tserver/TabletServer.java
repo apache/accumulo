@@ -347,9 +347,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       log.info("SASL is enabled, creating ZooKeeper watcher for AuthenticationKeys");
       // Watcher to notice new AuthenticationKeys which enable delegation tokens
-      authKeyWatcher =
-          new ZooAuthenticationKeyWatcher(context.getSecretManager(), context.getZooReaderWriter(),
-              context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
+      authKeyWatcher = new ZooAuthenticationKeyWatcher(context.getSecretManager(),
+          context.getZooKeeper(), context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
     } else {
       authKeyWatcher = null;
     }

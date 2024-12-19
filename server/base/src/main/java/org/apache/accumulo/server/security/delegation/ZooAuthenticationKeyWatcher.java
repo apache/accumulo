@@ -28,6 +28,7 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,10 +43,10 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
   private final ZooReader zk;
   private final String baseNode;
 
-  public ZooAuthenticationKeyWatcher(AuthenticationTokenSecretManager secretManager, ZooReader zk,
+  public ZooAuthenticationKeyWatcher(AuthenticationTokenSecretManager secretManager, ZooKeeper zk,
       String baseNode) {
     this.secretManager = secretManager;
-    this.zk = zk;
+    this.zk = new ZooReader(zk);
     this.baseNode = baseNode;
   }
 
