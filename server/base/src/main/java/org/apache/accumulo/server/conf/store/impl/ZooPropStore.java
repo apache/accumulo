@@ -63,7 +63,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * passed as null an internal instance is created.
    *
    * @param instanceId the instance id
-   * @param zrw a wrapper set of utilities for accessing ZooKeeper.
+   * @param zk a ZooKeeper client
    * @param monitor a ready monitor. Optional, if null, one is created.
    * @param watcher a watcher. Optional, if null, one is created.
    * @param ticker a synthetic clock used for testing. Optional, if null, one is created.
