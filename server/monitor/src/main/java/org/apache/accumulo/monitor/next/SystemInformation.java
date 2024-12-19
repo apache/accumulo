@@ -551,14 +551,14 @@ public class SystemInformation {
     return this.queueMetrics;
   }
 
-  public Map<String,List<TExternalCompaction>> getCompactions(int topN) {
-    Map<String,List<TExternalCompaction>> results = new HashMap<>();
+  public Map<String,List<TExternalCompaction>> getCompactions() {
 
     Map<String,TExternalCompactionList> oldest = oldestCompactions.get();
     if (oldest == null) {
-      return results;
+      return null;
     }
 
+    Map<String,List<TExternalCompaction>> results = new HashMap<>();
     for (Entry<String,TExternalCompactionList> e : oldest.entrySet()) {
       List<TExternalCompaction> compactions = e.getValue().getCompactions();
       if (compactions != null && compactions.size() > 0) {
@@ -566,6 +566,14 @@ public class SystemInformation {
       }
     }
     return results;
+  }
+
+  public List<TExternalCompaction> getCompactions(String group) {
+    TExternalCompactionList list = oldestCompactions.get().get(group);
+    if (list == null) {
+      return null;
+    }
+    return list.getCompactions();
   }
 
   public Map<String,TableSummary> getTables() {

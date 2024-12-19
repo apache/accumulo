@@ -1130,11 +1130,12 @@ public class CompactionCoordinator
   }
 
   /**
-   * Return topN longest running compactions for each resource group
+   * Return top 50 longest running compactions for each resource group
    *
    * @param tinfo trace info
    * @param credentials tcredentials object
-   * @return map of group name to list of compactions in sorted order, oldest compaction first.
+   * @return map of group name to list of up to 50 compactions in sorted order, oldest compaction
+   *         first.
    * @throws ThriftSecurityException permission error
    */
   @Override
