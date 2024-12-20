@@ -461,23 +461,10 @@ public class TabletServerLogger {
       final int finalCurrent = currentLogId;
       if (!success) {
         final ServiceLock tabletServerLock = tserver.getLock();
-        if (sawWriteFailure && tabletServerLock != null) {
+        if (sawWriteFailure) {
           log.info("WAL write failure, validating server lock in ZooKeeper");
-          if (!tabletServerLock.verifyLockAtSource()) {
-            // try to close the log, then Halt the VM
-            testLockAndRun(logIdLock, new TestCallWithWriteLock() {
-
-              @Override
-              boolean test() {
-                return true;
-              }
-
-              @Override
-              void withWriteLock() throws IOException {}
-            });
-
-            log.error("Writing to WAL has failed and TabletServer lock does not exist. Halting...");
-            Halt.halt("TabletServer lock does not exist", -1);
+          if (tabletServerLock == null || !tabletServerLock.verifyLockAtSource()) {
+            Halt.halt("Writing to WAL has failed and TabletServer lock does not exist", -1);
           }
         }
 
