@@ -87,8 +87,8 @@ public class Utils {
 
           String namespaceName = Namespace.DEFAULT.name();
           if (namespaceInTableName) {
-            final byte[] nId = context.getZooSession().asReader()
-                .getData(zTablePath + Constants.ZTABLE_NAMESPACE);
+            final byte[] nId =
+                context.getZooSession().asReader().getData(zTablePath + Constants.ZTABLE_NAMESPACE);
             if (nId != null) {
               final NamespaceId namespaceId = NamespaceId.of(new String(nId, UTF_8));
               if (!namespaceId.equals(Namespace.DEFAULT.id())) {

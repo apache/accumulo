@@ -516,8 +516,7 @@ public class Manager extends AbstractServer
   public void clearMergeState(TableId tableId) throws KeeperException, InterruptedException {
     synchronized (mergeLock) {
       String path = getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
-      getContext().getZooSession().asReaderWriter().recursiveDelete(path,
-          NodeMissingPolicy.SKIP);
+      getContext().getZooSession().asReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
       mergeLock.notifyAll();
     }
     nextEvent.event("Merge state of %s cleared", tableId);
