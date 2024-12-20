@@ -50,12 +50,16 @@ public class PreSplit extends ManagerRepo {
 
   private final SplitInfo splitInfo;
 
-  public PreSplit(KeyExtent expectedExtent, SortedSet<Text> splits) {
+  public PreSplit(KeyExtent expectedExtent, SortedSet<Text> splits, boolean systemCreated) {
     Objects.requireNonNull(expectedExtent);
     Objects.requireNonNull(splits);
     Preconditions.checkArgument(!splits.isEmpty());
     Preconditions.checkArgument(!expectedExtent.isRootTablet());
-    this.splitInfo = new SplitInfo(expectedExtent, splits);
+    this.splitInfo = new SplitInfo(expectedExtent, splits, systemCreated);
+  }
+
+  public PreSplit(KeyExtent expectedExtent, SortedSet<Text> splits) {
+    this(expectedExtent, splits, false);
   }
 
   @Override
