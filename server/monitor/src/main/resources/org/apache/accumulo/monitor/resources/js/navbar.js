@@ -151,5 +151,4 @@ function refreshSideBarNotifications() {
   const statusData = sessionStorage?.status ? JSON.parse(sessionStorage.status) : undefined;
 
   updateServerNotifications(statusData);
-  updateDebugDropdownNotification(statusData);
 }

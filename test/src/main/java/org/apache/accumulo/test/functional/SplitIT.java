@@ -60,7 +60,6 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -530,7 +529,7 @@ public class SplitIT extends AccumuloClusterHarness {
       c.tableOperations().importDirectory(dir).to(tableName).load();
 
       // wait for the tablet to be marked unsplittable
-      var ctx = (ClientContext) c;
+      var ctx = getServerContext();
       Wait.waitFor(() -> {
         var tableId = ctx.getTableId(tableName);
         try (var tabletsMeta = ctx.getAmple().readTablets().forTable(tableId).build()) {
