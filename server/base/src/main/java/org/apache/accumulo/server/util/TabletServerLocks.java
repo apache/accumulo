@@ -36,7 +36,7 @@ public class TabletServerLocks {
     String tserverPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
 
     ZooCache cache = context.getZooCache();
-    ZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
 
     if (delete == null) {
       List<String> tabletServers = zoo.getChildren(tserverPath);

@@ -29,13 +29,9 @@ public class ServerUtilOpts extends ClientOpts {
 
   public synchronized ServerContext getServerContext() {
     if (context == null) {
-      if (getClientConfigFile() == null) {
-        context = new ServerContext(SiteConfiguration.auto());
-      } else {
-        ClientInfo info = ClientInfo.from(getClientProps());
-        context = ServerContext.override(SiteConfiguration.auto(), info.getInstanceName(),
-            info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
-      }
+      context = getClientConfigFile() == null ? new ServerContext(SiteConfiguration.auto())
+          : ServerContext.withClientInfo(SiteConfiguration.auto(),
+              ClientInfo.from(getClientProps()));
     }
     return context;
   }

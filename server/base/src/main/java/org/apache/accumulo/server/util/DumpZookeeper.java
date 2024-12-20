@@ -25,6 +25,7 @@ import java.util.Base64;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -35,7 +36,7 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class DumpZookeeper implements KeywordExecutable {
 
-  private static ZooReaderWriter zk = null;
+  private static ZooReaderWriter zrw = null;
 
   @Override
   public String keyword() {
@@ -72,11 +73,14 @@ public class DumpZookeeper implements KeywordExecutable {
     opts.parseArgs(DumpZookeeper.class.getName(), args);
 
     PrintStream out = System.out;
-    zk = new ZooReaderWriter(opts.getSiteConfiguration());
-    if (opts.xml) {
-      writeXml(out, opts.root);
-    } else {
-      writeHumanReadable(out, opts.root);
+    var conf = opts.getSiteConfiguration();
+    try (var zk = new ZooSession(getClass().getSimpleName(), conf)) {
+      zrw = zk.asReaderWriter();
+      if (opts.xml) {
+        writeXml(out, opts.root);
+      } else {
+        writeHumanReadable(out, opts.root);
+      }
     }
   }
 
@@ -87,7 +91,7 @@ public class DumpZookeeper implements KeywordExecutable {
   private static void writeXml(PrintStream out, String root)
       throws KeeperException, InterruptedException {
     write(out, 0, "<dump root='%s'>", root);
-    for (String child : zk.getChildren(root)) {
+    for (String child : zrw.getChildren(root)) {
       if (!child.equals("zookeeper")) {
         childXml(out, root, child, 1);
       }
@@ -101,7 +105,7 @@ public class DumpZookeeper implements KeywordExecutable {
     if (root.endsWith("/")) {
       path = root + child;
     }
-    Stat stat = zk.getStatus(path);
+    Stat stat = zrw.getStatus(path);
     if (stat == null) {
       return;
     }
@@ -125,7 +129,7 @@ public class DumpZookeeper implements KeywordExecutable {
         write(out, indent, "<%s name='%s' encoding='%s' value='%s'>", type, child, value.encoding,
             value.value);
       }
-      for (String c : zk.getChildren(path)) {
+      for (String c : zrw.getChildren(path)) {
         childXml(out, path, c, indent + 1);
       }
       write(out, indent, "</node>");
@@ -133,7 +137,7 @@ public class DumpZookeeper implements KeywordExecutable {
   }
 
   private static Encoded value(String path) throws KeeperException, InterruptedException {
-    byte[] data = zk.getData(path);
+    byte[] data = zrw.getData(path);
     for (byte element : data) {
       // does this look like simple ascii?
       if (element < ' ' || element > '~') {
@@ -153,7 +157,7 @@ public class DumpZookeeper implements KeywordExecutable {
   private static void writeHumanReadable(PrintStream out, String root)
       throws KeeperException, InterruptedException {
     write(out, 0, "%s:", root);
-    for (String child : zk.getChildren(root)) {
+    for (String child : zrw.getChildren(root)) {
       if (!child.equals("zookeeper")) {
         childHumanReadable(out, root, child, 1);
       }
@@ -166,7 +170,7 @@ public class DumpZookeeper implements KeywordExecutable {
     if (root.endsWith("/")) {
       path = root + child;
     }
-    Stat stat = zk.getStatus(path);
+    Stat stat = zrw.getStatus(path);
     if (stat == null) {
       return;
     }
@@ -180,7 +184,7 @@ public class DumpZookeeper implements KeywordExecutable {
       write(out, indent, "%s:  %s", node, value(path).value);
     }
     if (stat.getNumChildren() > 0) {
-      for (String c : zk.getChildren(path)) {
+      for (String c : zrw.getChildren(path)) {
         childHumanReadable(out, path, c, indent + 1);
       }
     }

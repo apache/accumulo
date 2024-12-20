@@ -95,7 +95,7 @@ public class ShutdownTServer extends ManagerRepo {
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
     // suppress assignment of tablets to the server
     if (force) {
-      ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
+      ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
       var zRoot = manager.getContext().getZooKeeperRoot();
       var path = ServiceLock.path(zRoot + Constants.ZTSERVERS + "/" + hostAndPort);
       ServiceLock.deleteLock(zoo, path);

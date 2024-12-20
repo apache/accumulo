@@ -84,7 +84,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
         "localhost");
 
     String zooRoot = getCluster().getServerContext().getZooKeeperRoot();
-    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
+    ZooReaderWriter zrw = getCluster().getServerContext().getZooSession().asReaderWriter();
     String scanServerRoot = zooRoot + Constants.ZSSERVERS;
 
     while (zrw.getChildren(scanServerRoot).size() == 0) {

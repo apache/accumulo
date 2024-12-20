@@ -50,9 +50,9 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -199,10 +199,10 @@ public class FateSummaryIT extends ConfigurableMacBase {
     // This error was occurring in AdminUtil.getTransactionStatus(). One of the methods that is
     // called which may throw the NNE is top(), so we will mock this method to sometimes throw a
     // NNE and ensure it is handled/ignored within getTransactionStatus()
-    ZooStore<String> zs = EasyMock.createMockBuilder(ZooStore.class)
-        .withConstructor(String.class, ZooReaderWriter.class)
-        .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter())
-        .addMockedMethod("top").addMockedMethod("list").createMock();
+    ZooStore<String> zs =
+        EasyMock.createMockBuilder(ZooStore.class).withConstructor(String.class, ZooSession.class)
+            .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooSession())
+            .addMockedMethod("top").addMockedMethod("list").createMock();
     // Create 3 transactions, when iterating through the list of transactions in
     // getTransactionStatus(), the 2nd transaction should cause a NNE which should be
     // handled/ignored in getTransactionStatus(). The other two transactions should still

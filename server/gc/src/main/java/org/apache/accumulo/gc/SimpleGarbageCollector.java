@@ -351,7 +351,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     };
 
     UUID zooLockUUID = UUID.randomUUID();
-    gcLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
+    gcLock = new ServiceLock(getContext().getZooSession(), path, zooLockUUID);
     while (true) {
       if (gcLock.tryLock(lockWatcher,
           new ServiceLockData(zooLockUUID, addr.toString(), ThriftService.GC))) {

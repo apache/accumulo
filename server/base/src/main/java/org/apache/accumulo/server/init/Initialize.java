@@ -47,6 +47,7 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
@@ -525,7 +526,6 @@ public class Initialize implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs("accumulo init", args);
     var siteConfig = SiteConfiguration.auto();
-    ZooReaderWriter zoo = new ZooReaderWriter(siteConfig);
     SecurityUtil.serverLogin(siteConfig);
     Configuration hadoopConfig = new Configuration();
     InitialConfiguration initConfig = new InitialConfiguration(hadoopConfig, siteConfig);
@@ -539,7 +539,9 @@ public class Initialize implements KeywordExecutable {
         success = addVolumes(fs, initConfig, serverDirs);
       }
       if (!opts.resetSecurity && !opts.addVolumes) {
-        success = doInit(zoo, opts, fs, initConfig);
+        try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
+          success = doInit(zk.asReaderWriter(), opts, fs, initConfig);
+        }
       }
     } catch (IOException e) {
       log.error("Problem trying to get Volume configuration", e);

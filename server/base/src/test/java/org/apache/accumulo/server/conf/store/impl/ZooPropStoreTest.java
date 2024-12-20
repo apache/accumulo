@@ -46,6 +46,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
@@ -65,15 +66,18 @@ public class ZooPropStoreTest {
 
   // mocks
   private ServerContext context;
+  private ZooSession zk;
   private ZooReaderWriter zrw;
 
   @BeforeEach
   public void init() throws Exception {
     instanceId = InstanceId.of(UUID.randomUUID());
     context = createMock(ServerContext.class);
+    zk = createMock(ZooSession.class);
     zrw = createMock(ZooReaderWriter.class);
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(zrw.getSessionTimeout()).andReturn(2_000).anyTimes();
+    expect(context.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
+    expect(zk.getSessionTimeout()).andReturn(2_000).anyTimes();
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
     expect(zrw.exists(eq(ZooUtil.getRoot(instanceId)), anyObject())).andReturn(true).anyTimes();
@@ -81,7 +85,7 @@ public class ZooPropStoreTest {
 
   @AfterEach
   public void verifyMock() {
-    verify(context, zrw);
+    verify(context, zk, zrw);
   }
 
   @Test
@@ -93,9 +97,9 @@ public class ZooPropStoreTest {
     expect(zrw.putPrivatePersistentData(eq(propStoreKey.getPath()), capture(bytes), anyObject()))
         .andReturn(true).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
-    PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
+    PropStore propStore = ZooPropStore.initialize(instanceId, zk);
 
     propStore.create(propStoreKey,
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
@@ -132,9 +136,9 @@ public class ZooPropStoreTest {
           return propCodec.toBytes(vProps);
         }).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
-    PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
+    PropStore propStore = ZooPropStore.initialize(instanceId, zk);
 
     assertNotNull(propStore.get(propStoreKey)); // first call will fetch from ZooKeeper
     assertNotNull(propStore.get(propStoreKey)); // next call will fetch from cache.
@@ -167,9 +171,9 @@ public class ZooPropStoreTest {
           return propCodec.toBytes(new VersionedProperties(props));
         }).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
-    PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
+    PropStore propStore = ZooPropStore.initialize(instanceId, zk);
     var vProps = propStore.get(propStoreKey);
     assertNotNull(vProps);
     assertEquals(expectedVersion, vProps.getDataVersion());
@@ -215,16 +219,14 @@ public class ZooPropStoreTest {
           return true;
         }).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
-    PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
+    PropStore propStore = ZooPropStore.initialize(instanceId, zk);
 
     Map<String,String> updateProps =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "4321", TABLE_SPLIT_THRESHOLD.getKey(), "123M");
 
     propStore.putAll(propStoreKey, updateProps);
-
-    verify(zrw);
   }
 
   @Test
@@ -260,15 +262,14 @@ public class ZooPropStoreTest {
           return true;
         }).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
-    PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
+    PropStore propStore = ZooPropStore.initialize(instanceId, zk);
 
     Set<String> deleteNames =
         Set.of(TABLE_BULK_MAX_TABLETS.getKey(), TABLE_SPLIT_THRESHOLD.getKey());
 
     propStore.removeProperties(propStoreKey, deleteNames);
-    verify(zrw);
   }
 
   @Test
@@ -295,9 +296,9 @@ public class ZooPropStoreTest {
     expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(Stat.class)))
         .andThrow(new InterruptedException("mock forced interrupt exception")).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
-    PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
+    PropStore propStore = ZooPropStore.initialize(instanceId, zk);
 
     Set<String> deleteNames =
         Set.of(TABLE_BULK_MAX_TABLETS.getKey(), TABLE_SPLIT_THRESHOLD.getKey());
@@ -345,12 +346,12 @@ public class ZooPropStoreTest {
           return propCodec.toBytes(new VersionedProperties(13, Instant.now(), props));
         }).once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
     ReadyMonitor monitor = new TestReadyMonitor("testmon", 2000);
     PropStoreWatcher watcher = new TestWatcher(monitor);
 
-    ZooPropStore propStore = new ZooPropStore(instanceId, zrw, monitor, watcher, null);
+    ZooPropStore propStore = new ZooPropStore(instanceId, zk, monitor, watcher, null);
 
     assertNotNull(propStore.get(tablePropKey));
 
@@ -408,9 +409,9 @@ public class ZooPropStoreTest {
     zrw.delete(eq(propStoreKey.getPath()));
     expectLastCall().once();
 
-    replay(context, zrw);
+    replay(context, zk, zrw);
 
-    PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
+    PropStore propStore = ZooPropStore.initialize(instanceId, zk);
 
     assertNotNull(propStore.get(propStoreKey)); // first call will fetch from ZooKeeper
     assertNotNull(propStore.get(propStoreKey)); // next call will fetch from cache.

@@ -49,7 +49,7 @@ public final class ZKAuthenticator implements Authenticator {
   @Override
   public void initialize(ServerContext context) {
     this.context = context;
-    zooCache = new ZooCache(context.getZooReader(), null);
+    zooCache = new ZooCache(context.getZooSession());
     zkUserPath = context.zkUserPath();
   }
 
@@ -57,7 +57,7 @@ public final class ZKAuthenticator implements Authenticator {
   public void initializeSecurity(String principal, byte[] token) {
     try {
       // remove old settings from zookeeper first, if any
-      ZooReaderWriter zoo = context.getZooReaderWriter();
+      ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       synchronized (zooCache) {
         zooCache.clear();
         if (zoo.exists(zkUserPath)) {
@@ -84,7 +84,7 @@ public final class ZKAuthenticator implements Authenticator {
       throws KeeperException, InterruptedException {
     synchronized (zooCache) {
       zooCache.clear();
-      ZooReaderWriter zoo = context.getZooReaderWriter();
+      ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       zoo.putPrivatePersistentData(zkUserPath + "/" + user, pass, NodeExistsPolicy.FAIL);
     }
   }
@@ -122,7 +122,7 @@ public final class ZKAuthenticator implements Authenticator {
     try {
       synchronized (zooCache) {
         zooCache.clear();
-        context.getZooReaderWriter().recursiveDelete(zkUserPath + "/" + user,
+        context.getZooSession().asReaderWriter().recursiveDelete(zkUserPath + "/" + user,
             NodeMissingPolicy.FAIL);
       }
     } catch (InterruptedException e) {
@@ -148,8 +148,9 @@ public final class ZKAuthenticator implements Authenticator {
       try {
         synchronized (zooCache) {
           zooCache.clear(zkUserPath + "/" + principal);
-          context.getZooReaderWriter().putPrivatePersistentData(zkUserPath + "/" + principal,
-              ZKSecurityTool.createPass(pt.getPassword()), NodeExistsPolicy.OVERWRITE);
+          context.getZooSession().asReaderWriter().putPrivatePersistentData(
+              zkUserPath + "/" + principal, ZKSecurityTool.createPass(pt.getPassword()),
+              NodeExistsPolicy.OVERWRITE);
         }
       } catch (KeeperException e) {
         log.error("{}", e.getMessage(), e);

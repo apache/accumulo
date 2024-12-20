@@ -20,11 +20,9 @@ package org.apache.accumulo.core.fate.zookeeper;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
-import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createStrictMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -37,10 +35,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZooCacheWatcher;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
@@ -52,19 +51,13 @@ public class ZooCacheTest {
   private static final byte[] DATA = {(byte) 1, (byte) 2, (byte) 3, (byte) 4};
   private static final List<String> CHILDREN = java.util.Arrays.asList("huey", "dewey", "louie");
 
-  private ZooReader zr;
-  private ZooKeeper zk;
+  private ZooSession zk;
   private ZooCache zc;
 
   @BeforeEach
   public void setUp() {
-    zr = createMock(ZooReader.class);
-    zk = createStrictMock(ZooKeeper.class);
-    expect(zr.getZooKeeper()).andReturn(zk);
-    expectLastCall().anyTimes();
-    replay(zr);
-
-    zc = new ZooCache(zr, null);
+    zk = createStrictMock(ZooSession.class);
+    zc = new ZooCache(zk);
   }
 
   @Test
@@ -220,7 +213,7 @@ public class ZooCacheTest {
     verify(zk);
   }
 
-  private static class TestWatcher implements Watcher {
+  private static class TestWatcher implements ZooCacheWatcher {
     private final WatchedEvent expectedEvent;
     private boolean wasCalled;
 
@@ -230,7 +223,7 @@ public class ZooCacheTest {
     }
 
     @Override
-    public void process(WatchedEvent event) {
+    public void accept(WatchedEvent event) {
       assertSame(expectedEvent, event);
       wasCalled = true;
     }
@@ -265,7 +258,7 @@ public class ZooCacheTest {
     WatchedEvent event =
         new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
-    zc = new ZooCache(zr, exw);
+    zc = new ZooCache(zk, exw);
 
     Watcher w = watchData(initialData);
     w.process(event);
@@ -303,7 +296,7 @@ public class ZooCacheTest {
   private void testWatchDataNode_Clear(Watcher.Event.KeeperState state) throws Exception {
     WatchedEvent event = new WatchedEvent(Watcher.Event.EventType.None, state, null);
     TestWatcher exw = new TestWatcher(event);
-    zc = new ZooCache(zr, exw);
+    zc = new ZooCache(zk, exw);
 
     Watcher w = watchData(DATA);
     assertTrue(zc.dataCached(ZPATH));
@@ -337,7 +330,7 @@ public class ZooCacheTest {
     WatchedEvent event =
         new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
-    zc = new ZooCache(zr, exw);
+    zc = new ZooCache(zk, exw);
 
     Watcher w = watchChildren(initialChildren);
     w.process(event);

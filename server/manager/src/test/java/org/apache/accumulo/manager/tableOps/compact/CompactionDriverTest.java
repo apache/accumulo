@@ -36,90 +36,70 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.zookeeper.data.Stat;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class CompactionDriverTest {
 
+  private final InstanceId instance = InstanceId.of(UUID.randomUUID());
+  private final NamespaceId namespaceId = NamespaceId.of("testNamespace");
+  private final TableId tableId = TableId.of("testTable");
+  private final byte[] startRow = new byte[0];
+  private final byte[] endRow = new byte[0];
+  private final long compactId = 123; // arbitrary
+
+  private Manager manager;
+  private ServerContext ctx;
+  private ZooSession zk;
+
+  @BeforeEach
+  public void setup() {
+    manager = createMock(Manager.class);
+    ctx = createMock(ServerContext.class);
+    zk = createMock(ZooSession.class);
+    expect(ctx.getInstanceID()).andReturn(instance).anyTimes();
+    expect(ctx.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(new ZooReaderWriter(zk)).anyTimes();
+    expect(manager.getContext()).andReturn(ctx).anyTimes();
+  }
+
+  @AfterEach
+  public void teardown() {
+    verify(manager, ctx, zk);
+  }
+
   @Test
   public void testCancelId() throws Exception {
-
-    final InstanceId instance = InstanceId.of(UUID.randomUUID());
-    final long compactId = 123;
-    final long cancelId = 124;
-    final NamespaceId namespaceId = NamespaceId.of("13");
-    final TableId tableId = TableId.of("42");
-    final byte[] startRow = new byte[0];
-    final byte[] endRow = new byte[0];
-
-    Manager manager = createMock(Manager.class);
-    ServerContext ctx = createMock(ServerContext.class);
-    ZooReaderWriter zrw = createMock(ZooReaderWriter.class);
-    expect(ctx.getInstanceID()).andReturn(instance).anyTimes();
-    expect(ctx.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(manager.getContext()).andReturn(ctx).anyTimes();
-
-    final String zCancelID = CompactionDriver.createCompactionCancellationPath(instance, tableId);
-    expect(zrw.getData(zCancelID)).andReturn(Long.toString(cancelId).getBytes(UTF_8));
-
-    replay(manager, ctx, zrw);
-
-    final CompactionDriver driver =
-        new CompactionDriver(compactId, namespaceId, tableId, startRow, endRow);
-    final long tableIdLong = Long.parseLong(tableId.toString());
-
-    var e = assertThrows(AcceptableThriftTableOperationException.class,
-        () -> driver.isReady(tableIdLong, manager));
-
-    assertEquals(e.getTableId(), tableId.toString());
-    assertEquals(e.getOp(), TableOperation.COMPACT);
-    assertEquals(e.getType(), TableOperationExceptionType.OTHER);
-    assertEquals(TableOperationsImpl.COMPACTION_CANCELED_MSG, e.getDescription());
-
-    verify(manager, ctx, zrw);
+    runDriver(compactId + 1, TableOperationsImpl.COMPACTION_CANCELED_MSG);
   }
 
   @Test
   public void testTableBeingDeleted() throws Exception {
-
-    final InstanceId instance = InstanceId.of(UUID.randomUUID());
-    final long compactId = 123;
-    final long cancelId = 122;
-    final NamespaceId namespaceId = NamespaceId.of("14");
-    final TableId tableId = TableId.of("43");
-    final byte[] startRow = new byte[0];
-    final byte[] endRow = new byte[0];
-
-    Manager manager = createMock(Manager.class);
-    ServerContext ctx = createMock(ServerContext.class);
-    ZooReaderWriter zrw = createMock(ZooReaderWriter.class);
-    expect(ctx.getInstanceID()).andReturn(instance).anyTimes();
-    expect(ctx.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(manager.getContext()).andReturn(ctx).anyTimes();
-
-    final String zCancelID = CompactionDriver.createCompactionCancellationPath(instance, tableId);
-    expect(zrw.getData(zCancelID)).andReturn(Long.toString(cancelId).getBytes(UTF_8));
-
     String deleteMarkerPath = PreDeleteTable.createDeleteMarkerPath(instance, tableId);
-    expect(zrw.exists(deleteMarkerPath)).andReturn(true);
+    expect(zk.exists(deleteMarkerPath, null)).andReturn(new Stat()).once();
+    runDriver(compactId - 1, TableOperationsImpl.TABLE_DELETED_MSG);
+  }
 
-    replay(manager, ctx, zrw);
+  private void runDriver(long cancelId, String expectedMessage) throws Exception {
+    final String zCancelID = CompactionDriver.createCompactionCancellationPath(instance, tableId);
+    expect(zk.getData(zCancelID, null, null)).andReturn(Long.toString(cancelId).getBytes(UTF_8));
 
-    final CompactionDriver driver =
-        new CompactionDriver(compactId, namespaceId, tableId, startRow, endRow);
-    final long tableIdLong = Long.parseLong(tableId.toString());
+    final var driver = new CompactionDriver(compactId, namespaceId, tableId, startRow, endRow);
+    final long mockTxId = tableId.hashCode();
 
+    replay(manager, ctx, zk);
     var e = assertThrows(AcceptableThriftTableOperationException.class,
-        () -> driver.isReady(tableIdLong, manager));
-
+        () -> driver.isReady(mockTxId, manager));
     assertEquals(e.getTableId(), tableId.toString());
     assertEquals(e.getOp(), TableOperation.COMPACT);
     assertEquals(e.getType(), TableOperationExceptionType.OTHER);
-    assertEquals(TableOperationsImpl.TABLE_DELETED_MSG, e.getDescription());
-
-    verify(manager, ctx, zrw);
+    assertEquals(expectedMessage, e.getDescription());
   }
 
 }

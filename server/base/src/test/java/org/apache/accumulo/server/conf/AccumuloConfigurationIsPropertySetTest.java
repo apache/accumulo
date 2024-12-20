@@ -98,7 +98,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    context = getMockContextWithPropStore(instanceId, null, propStore);
+    context = getMockContextWithPropStore(instanceId, propStore);
     SiteConfiguration siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
   }
