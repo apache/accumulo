@@ -51,6 +51,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
@@ -92,7 +93,7 @@ import io.micrometer.core.instrument.Tag;
     "com.sun.org.apache.xerces.*"})
 public class CompactionCoordinatorTest {
 
-  public class TestCoordinator extends CompactionCoordinator {
+  public class TestCoordinator extends CompactionCoordinator implements ServerProcessService.Iface {
 
     private final ServerContext context;
     private final ServerAddress client;
