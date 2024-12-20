@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -36,8 +37,8 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.zookeeper.ZooKeeper;
 
 import com.google.common.base.Suppliers;
 
@@ -51,7 +52,7 @@ public class ClientInfoImpl implements ClientInfo {
   private final Supplier<AuthenticationToken> tokenSupplier;
   private final Supplier<Configuration> hadoopConf;
   private final Supplier<InstanceId> instanceId;
-  private final Supplier<ZooKeeper> zkSupplier;
+  private final Function<String,ZooSession> zooSessionForName;
 
   public ClientInfoImpl(Properties properties, Optional<AuthenticationToken> tokenOpt) {
     this.properties = requireNonNull(properties);
@@ -59,14 +60,11 @@ public class ClientInfoImpl implements ClientInfo {
     this.tokenSupplier = requireNonNull(tokenOpt).map(Suppliers::ofInstance)
         .orElse(memoize(() -> ClientProperty.getAuthenticationToken(properties)));
     this.hadoopConf = memoize(Configuration::new);
-    this.zkSupplier = () -> ZooUtil.connect(getClass().getSimpleName(), getZooKeepers(),
-        getZooKeepersSessionTimeOut(), null);
+    this.zooSessionForName =
+        name -> new ZooSession(name, getZooKeepers(), getZooKeepersSessionTimeOut(), null);
     this.instanceId = memoize(() -> {
-      var zk = getZooKeeperSupplier().get();
-      try {
+      try (var zk = getZooKeeperSupplier(getClass().getSimpleName() + ".getInstanceName()").get()) {
         return ZooUtil.getInstanceId(zk, getInstanceName());
-      } finally {
-        ZooUtil.close(zk);
       }
     });
   }
@@ -82,8 +80,8 @@ public class ClientInfoImpl implements ClientInfo {
   }
 
   @Override
-  public Supplier<ZooKeeper> getZooKeeperSupplier() {
-    return zkSupplier;
+  public Supplier<ZooSession> getZooKeeperSupplier(String clientName) {
+    return () -> zooSessionForName.apply(clientName);
   }
 
   @Override

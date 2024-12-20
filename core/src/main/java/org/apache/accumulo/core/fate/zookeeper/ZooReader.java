@@ -29,10 +29,10 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.RetryFactory;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +45,7 @@ public class ZooReader {
           .incrementBy(Duration.ofMillis(250)).maxWait(Duration.ofMinutes(2)).backOffFactor(1.5)
           .logInterval(Duration.ofMinutes(3)).createFactory();
 
-  private final ZooKeeper zk;
+  private final ZooSession zk;
 
   /**
    * Decorate a ZooKeeper with additional, more convenient functionality.
@@ -53,11 +53,11 @@ public class ZooReader {
    * @param zk the ZooKeeper instance
    * @throws NullPointerException if zk is {@code null}
    */
-  public ZooReader(ZooKeeper zk) {
+  public ZooReader(ZooSession zk) {
     this.zk = requireNonNull(zk);
   }
 
-  protected ZooKeeper getZooKeeper() {
+  protected ZooSession getZooKeeper() {
     return zk;
   }
 
@@ -125,11 +125,11 @@ public class ZooReader {
   }
 
   protected interface ZKFunction<R> {
-    R apply(ZooKeeper zk) throws KeeperException, InterruptedException;
+    R apply(ZooSession zk) throws KeeperException, InterruptedException;
   }
 
   protected interface ZKFunctionMutator<R> {
-    R apply(ZooKeeper zk)
+    R apply(ZooSession zk)
         throws KeeperException, InterruptedException, AcceptableThriftTableOperationException;
   }
 

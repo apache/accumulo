@@ -37,6 +37,8 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.TablePropKey;
@@ -46,9 +48,7 @@ import org.apache.accumulo.server.conf.store.impl.ReadyMonitor;
 import org.apache.accumulo.server.conf.store.impl.ZooPropLoader;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -67,7 +67,7 @@ public class PropCacheCaffeineImplZkIT {
 
   private static ZooKeeperTestingServer testZk = null;
   private static ZooReaderWriter zrw;
-  private static ZooKeeper zk;
+  private static ZooSession zk;
 
   private final TableId tIdA = TableId.of("A");
   private final TableId tIdB = TableId.of("B");
@@ -79,7 +79,7 @@ public class PropCacheCaffeineImplZkIT {
   public static void setupZk() throws Exception {
     testZk = new ZooKeeperTestingServer(tempDir);
     zk = testZk.newClient();
-    zrw = new ZooReaderWriter(zk);
+    zrw = zk.asReaderWriter();
   }
 
   @AfterAll

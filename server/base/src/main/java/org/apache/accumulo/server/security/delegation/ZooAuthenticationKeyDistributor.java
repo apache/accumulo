@@ -34,8 +34,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
 import org.slf4j.Logger;
@@ -52,8 +52,8 @@ public class ZooAuthenticationKeyDistributor {
   private final String baseNode;
   private final AtomicBoolean initialized = new AtomicBoolean(false);
 
-  public ZooAuthenticationKeyDistributor(ZooKeeper zk, String baseNode) {
-    this.zrw = new ZooReaderWriter(zk);
+  public ZooAuthenticationKeyDistributor(ZooSession zk, String baseNode) {
+    this.zrw = zk.asReaderWriter();
     this.baseNode = requireNonNull(baseNode);
   }
 

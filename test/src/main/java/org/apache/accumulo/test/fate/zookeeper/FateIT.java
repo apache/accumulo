@@ -58,6 +58,7 @@ import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
@@ -66,7 +67,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -181,7 +181,7 @@ public class FateIT {
   private static File tempDir;
 
   private static ZooKeeperTestingServer testZk = null;
-  private static ZooKeeper zk = null;
+  private static ZooSession zk = null;
   private static ZooReaderWriter zrw = null;
   private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
   private static final String ZK_ROOT = ZooUtil.getRoot(IID);
@@ -200,7 +200,7 @@ public class FateIT {
   public static void setup() throws Exception {
     testZk = new ZooKeeperTestingServer(tempDir);
     zk = testZk.newClient();
-    zrw = new ZooReaderWriter(zk);
+    zrw = zk.asReaderWriter();
     zrw.mkdirs(ZK_ROOT + Constants.ZFATE);
     zrw.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
     zrw.mkdirs(ZK_ROOT + Constants.ZNAMESPACES + "/" + NS.canonical());
@@ -228,7 +228,7 @@ public class FateIT {
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(sctx.getZooSession().asReaderWriter()).andReturn(zrw).anyTimes();
     replay(manager, sctx);
 
     ConfigurationCopy config = new ConfigurationCopy();
@@ -300,7 +300,7 @@ public class FateIT {
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(sctx.getZooSession().asReaderWriter()).andReturn(zrw).anyTimes();
     replay(manager, sctx);
 
     ConfigurationCopy config = new ConfigurationCopy();
@@ -340,7 +340,7 @@ public class FateIT {
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(sctx.getZooSession().asReaderWriter()).andReturn(zrw).anyTimes();
     replay(manager, sctx);
 
     ConfigurationCopy config = new ConfigurationCopy();
@@ -382,7 +382,7 @@ public class FateIT {
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(sctx.getZooSession().asReaderWriter()).andReturn(zrw).anyTimes();
     replay(manager, sctx);
 
     ConfigurationCopy config = new ConfigurationCopy();
@@ -429,7 +429,7 @@ public class FateIT {
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(sctx.getZooSession().asReaderWriter()).andReturn(zrw).anyTimes();
     replay(manager, sctx);
 
     ConfigurationCopy config = new ConfigurationCopy();

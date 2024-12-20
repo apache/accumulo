@@ -28,7 +28,6 @@ import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.isA;
-import static org.easymock.EasyMock.isNull;
 import static org.easymock.EasyMock.newCapture;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -45,14 +44,15 @@ import java.util.UUID;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
 import org.junit.jupiter.api.AfterEach;
@@ -66,23 +66,26 @@ public class ZooPropStoreTest {
 
   // mocks
   private ServerContext context;
-  private ZooKeeper zk;
+  private ZooSession zk;
+  private ZooReaderWriter zrw;
 
   @BeforeEach
   public void init() throws Exception {
     instanceId = InstanceId.of(UUID.randomUUID());
     context = createMock(ServerContext.class);
-    zk = createMock(ZooKeeper.class);
-    expect(zk.getSessionTimeout()).andReturn(30_000).anyTimes();
+    zk = createMock(ZooSession.class);
+    zrw = createMock(ZooReaderWriter.class);
+    expect(context.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
+    expect(zk.getSessionTimeout()).andReturn(2_000).anyTimes();
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
-    expect(zk.exists(eq(ZooUtil.getRoot(instanceId)), anyObject())).andReturn(new Stat())
-        .anyTimes();
+    expect(zrw.exists(eq(ZooUtil.getRoot(instanceId)), anyObject())).andReturn(true).anyTimes();
   }
 
   @AfterEach
   public void verifyMock() {
-    verify(context, zk);
+    verify(context, zk, zrw);
   }
 
   @Test
@@ -91,10 +94,10 @@ public class ZooPropStoreTest {
     var propStoreKey = TablePropKey.of(instanceId, TableId.of("propStoreKey"));
 
     Capture<byte[]> bytes = newCapture();
-    expect(zk.create(eq(propStoreKey.getPath()), capture(bytes), anyObject(), anyObject()))
-        .andReturn(propStoreKey.getPath()).once();
+    expect(zrw.putPrivatePersistentData(eq(propStoreKey.getPath()), capture(bytes), anyObject()))
+        .andReturn(true).once();
 
-    replay(context, zk);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zk);
 
@@ -122,7 +125,7 @@ public class ZooPropStoreTest {
 
     // expect one ZooKeeper call - subsequent calls should load from cache.
     Capture<Stat> stat = newCapture();
-    expect(zk.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+    expect(zrw.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -133,7 +136,7 @@ public class ZooPropStoreTest {
           return propCodec.toBytes(vProps);
         }).once();
 
-    replay(context, zk);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zk);
 
@@ -157,7 +160,7 @@ public class ZooPropStoreTest {
 
     // force version mismatch between zk and props.
     var expectedVersion = 99;
-    expect(zk.getData(eq(propStoreKey.getPath()), capture(propStoreWatcherCapture), capture(stat)))
+    expect(zrw.getData(eq(propStoreKey.getPath()), capture(propStoreWatcherCapture), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -168,7 +171,7 @@ public class ZooPropStoreTest {
           return propCodec.toBytes(new VersionedProperties(props));
         }).once();
 
-    replay(context, zk);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zk);
     var vProps = propStore.get(propStoreKey);
@@ -191,7 +194,8 @@ public class ZooPropStoreTest {
 
     // not cached - first will load from ZooKeeper
     Capture<Stat> stat = newCapture();
-    expect(zk.getData(eq(propStoreKey.getPath()), isNull(), capture(stat))).andAnswer(() -> {
+
+    expect(zrw.getData(eq(propStoreKey.getPath()), capture(stat))).andAnswer(() -> {
       Stat s = stat.getValue();
       s.setCtime(System.currentTimeMillis());
       s.setMtime(System.currentTimeMillis());
@@ -202,19 +206,20 @@ public class ZooPropStoreTest {
     }).once();
 
     Capture<byte[]> bytes = newCapture();
-    expect(zk.setData(eq(propStoreKey.getPath()), capture(bytes), eq(0))).andAnswer(() -> {
-      var stored = propCodec.fromBytes(0, bytes.getValue());
-      assertEquals(3, stored.asMap().size());
-      // overwritten
-      assertEquals("4321", stored.asMap().get(TABLE_BULK_MAX_TABLETS.getKey()));
-      // unchanged
-      assertEquals("512M", stored.asMap().get(TABLE_FILE_BLOCK_SIZE.getKey()));
-      // new
-      assertEquals("123M", stored.asMap().get(TABLE_SPLIT_THRESHOLD.getKey()));
-      return null;
-    }).once();
+    expect(zrw.overwritePersistentData(eq(propStoreKey.getPath()), capture(bytes), eq(0)))
+        .andAnswer(() -> {
+          var stored = propCodec.fromBytes(0, bytes.getValue());
+          assertEquals(3, stored.asMap().size());
+          // overwritten
+          assertEquals("4321", stored.asMap().get(TABLE_BULK_MAX_TABLETS.getKey()));
+          // unchanged
+          assertEquals("512M", stored.asMap().get(TABLE_FILE_BLOCK_SIZE.getKey()));
+          // new
+          assertEquals("123M", stored.asMap().get(TABLE_SPLIT_THRESHOLD.getKey()));
+          return true;
+        }).once();
 
-    replay(context, zk);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zk);
 
@@ -235,7 +240,7 @@ public class ZooPropStoreTest {
     // not cached - will load from ZooKeeper
     Capture<Stat> stat = newCapture();
 
-    expect(zk.getData(eq(propStoreKey.getPath()), isNull(), capture(stat))).andAnswer(() -> {
+    expect(zrw.getData(eq(propStoreKey.getPath()), capture(stat))).andAnswer(() -> {
       Stat s = stat.getValue();
       s.setVersion(123);
       s.setDataLength(propCodec.toBytes(initialProps).length);
@@ -244,19 +249,20 @@ public class ZooPropStoreTest {
     }).once();
 
     Capture<byte[]> bytes = newCapture();
-    expect(zk.setData(eq(propStoreKey.getPath()), capture(bytes), eq(123))).andAnswer(() -> {
-      var stored = propCodec.fromBytes(124, bytes.getValue());
-      assertEquals(1, stored.asMap().size());
-      // deleted
-      assertNull(stored.asMap().get(TABLE_BULK_MAX_TABLETS.getKey()));
-      // unchanged
-      assertEquals("512M", stored.asMap().get(TABLE_FILE_BLOCK_SIZE.getKey()));
-      // never existed
-      assertNull(stored.asMap().get(TABLE_SPLIT_THRESHOLD.getKey()));
-      return null;
-    }).once();
+    expect(zrw.overwritePersistentData(eq(propStoreKey.getPath()), capture(bytes), eq(123)))
+        .andAnswer(() -> {
+          var stored = propCodec.fromBytes(124, bytes.getValue());
+          assertEquals(1, stored.asMap().size());
+          // deleted
+          assertNull(stored.asMap().get(TABLE_BULK_MAX_TABLETS.getKey()));
+          // unchanged
+          assertEquals("512M", stored.asMap().get(TABLE_FILE_BLOCK_SIZE.getKey()));
+          // never existed
+          assertNull(stored.asMap().get(TABLE_SPLIT_THRESHOLD.getKey()));
+          return true;
+        }).once();
 
-    replay(context, zk);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zk);
 
@@ -273,7 +279,7 @@ public class ZooPropStoreTest {
 
     // return "bad data"
     Capture<Stat> stat = newCapture();
-    expect(zk.getData(eq(propStoreKey.getPath()), isNull(), capture(stat))).andAnswer(() -> {
+    expect(zrw.getData(eq(propStoreKey.getPath()), capture(stat))).andAnswer(() -> {
       Stat s = stat.getValue();
       s.setCtime(System.currentTimeMillis());
       s.setMtime(System.currentTimeMillis());
@@ -285,12 +291,12 @@ public class ZooPropStoreTest {
     }).once();
 
     // mock throwing exceptions
-    expect(zk.getData(eq(propStoreKey.getPath()), isNull(), anyObject(Stat.class)))
+    expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(Stat.class)))
         .andThrow(new KeeperException.NoNodeException("mock forced no node")).once();
-    expect(zk.getData(eq(propStoreKey.getPath()), isNull(), anyObject(Stat.class)))
+    expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(Stat.class)))
         .andThrow(new InterruptedException("mock forced interrupt exception")).once();
 
-    replay(context, zk);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zk);
 
@@ -319,7 +325,7 @@ public class ZooPropStoreTest {
     Capture<Stat> stat = newCapture();
 
     // first call loads cache
-    expect(zk.getData(eq(tablePropKey.getPath()), capture(propStoreWatcherCapture), capture(stat)))
+    expect(zrw.getData(eq(tablePropKey.getPath()), capture(propStoreWatcherCapture), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -330,7 +336,7 @@ public class ZooPropStoreTest {
         }).once();
 
     // watcher change (re)loads cache on next get call.
-    expect(zk.getData(eq(tablePropKey.getPath()), capture(propStoreWatcherCapture), capture(stat)))
+    expect(zrw.getData(eq(tablePropKey.getPath()), capture(propStoreWatcherCapture), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -340,7 +346,7 @@ public class ZooPropStoreTest {
           return propCodec.toBytes(new VersionedProperties(13, Instant.now(), props));
         }).once();
 
-    replay(context, zk);
+    replay(context, zk, zrw);
 
     ReadyMonitor monitor = new TestReadyMonitor("testmon", 2000);
     PropStoreWatcher watcher = new TestWatcher(monitor);
@@ -389,7 +395,7 @@ public class ZooPropStoreTest {
     // expect first call to load cache.
     // expect one ZooKeeper call - subsequent calls should load from cache.
     Capture<Stat> stat = newCapture();
-    expect(zk.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+    expect(zrw.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -400,10 +406,10 @@ public class ZooPropStoreTest {
           return propCodec.toBytes(vProps);
         }).once();
 
-    zk.delete(eq(propStoreKey.getPath()), eq(-1));
+    zrw.delete(eq(propStoreKey.getPath()));
     expectLastCall().once();
 
-    replay(context, zk);
+    replay(context, zk, zrw);
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zk);
 

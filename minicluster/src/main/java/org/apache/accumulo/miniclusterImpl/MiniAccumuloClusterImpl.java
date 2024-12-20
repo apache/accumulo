@@ -80,6 +80,8 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
@@ -100,7 +102,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZKUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -483,7 +484,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       InstanceId instanceIdFromFile =
           VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
-      ZooReaderWriter zrw = getServerContext().getZooReaderWriter();
+      ZooReaderWriter zrw = getServerContext().getZooSession().asReaderWriter();
 
       String rootPath = ZooUtil.getRoot(instanceIdFromFile);
 
@@ -642,7 +643,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     String secret = getSiteConfiguration().get(Property.INSTANCE_SECRET);
     String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + getInstanceName();
-    try (var zk = ZooUtil.connect(MiniAccumuloClusterImpl.class.getSimpleName() + ".verifyUp()",
+    try (var zk = new ZooSession(MiniAccumuloClusterImpl.class.getSimpleName() + ".verifyUp()",
         getZooKeepers(), 60000, secret)) {
       var rdr = new ZooReader(zk);
       InstanceId instanceId = null;

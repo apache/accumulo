@@ -35,8 +35,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -84,8 +83,8 @@ public class ZooPropEditor implements KeywordExecutable {
     opts.parseArgs(ZooPropEditor.class.getName(), args);
 
     var siteConfig = opts.getSiteConfiguration();
-    try (var zk = ZooUtil.connect(getClass().getSimpleName(), siteConfig)) {
-      var zrw = new ZooReaderWriter(zk);
+    try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
+      var zrw = zk.asReaderWriter();
 
       try (ServerContext context = new ServerContext(siteConfig)) {
         PropStoreKey<?> propKey = getPropKey(context, opts);

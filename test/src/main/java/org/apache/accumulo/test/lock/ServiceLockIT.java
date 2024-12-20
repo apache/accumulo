@@ -38,7 +38,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
@@ -46,12 +45,11 @@ import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -71,7 +69,7 @@ public class ServiceLockIT {
   private static File tempDir;
 
   private static ZooKeeperTestingServer testZk = null;
-  private static ZooKeeper zk = null;
+  private static ZooSession zk = null;
 
   @BeforeAll
   public static void setup() throws Exception {
@@ -88,11 +86,11 @@ public class ServiceLockIT {
     }
   }
 
-  static class ZooKeeperWrapper extends ZooKeeper {
+  static class ZooKeeperWrapper extends ZooSession {
 
-    public ZooKeeperWrapper(String connectString, int sessionTimeout, Watcher watcher)
-        throws IOException {
-      super(connectString, sessionTimeout, watcher);
+    public ZooKeeperWrapper(String clientName, String connectString, int sessionTimeout,
+        String auth) throws IOException {
+      super(clientName, connectString, sessionTimeout, auth);
     }
 
     public void createOnce(String path, byte[] data, List<ACL> acl, CreateMode createMode)
@@ -201,7 +199,7 @@ public class ServiceLockIT {
     assertFalse(zl.isLocked());
     assertFalse(zl.verifyLockAtSource());
 
-    var zrw = new ZooReaderWriter(zk);
+    var zrw = zk.asReaderWriter();
 
     // intentionally created parent after lock
     zrw.mkdirs(parent.toString());
@@ -258,7 +256,7 @@ public class ServiceLockIT {
     var parent =
         ServiceLock.path("/zltestDeleteLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
-    var zrw = new ZooReaderWriter(zk);
+    var zrw = zk.asReaderWriter();
     zrw.mkdirs(parent.toString());
 
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
@@ -294,7 +292,7 @@ public class ServiceLockIT {
     var parent = ServiceLock
         .path("/zltestDeleteWaiting-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
-    var zrw = new ZooReaderWriter(zk);
+    var zrw = zk.asReaderWriter();
     zrw.mkdirs(parent.toString());
 
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
@@ -458,7 +456,7 @@ public class ServiceLockIT {
       assertTrue(zlw1.isLockHeld());
       assertFalse(zlw2.isLockHeld());
 
-      List<String> children = zk1.getChildren(parent.toString(), false);
+      List<String> children = zk1.getChildren(parent.toString(), null);
       assertTrue(children.contains("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000000"));
       assertFalse(children.contains("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001"),
           "this node should have been deleted");
@@ -597,7 +595,7 @@ public class ServiceLockIT {
             ServiceLock.validateAndSort(parent, zk.getChildren(parent.toString(), null));
         while (children.size() != i) {
           Thread.sleep(100);
-          children = zk.getChildren(parent.toString(), false);
+          children = zk.getChildren(parent.toString(), null);
         }
         assertEquals(i, children.size());
         String first = children.get(0);
@@ -616,7 +614,7 @@ public class ServiceLockIT {
 
       workers.forEach(w -> assertFalse(w.holdsLock()));
       workers.forEach(w -> assertNull(w.getException()));
-      assertEquals(0, zk.getChildren(parent.toString(), false).size());
+      assertEquals(0, zk.getChildren(parent.toString(), null).size());
 
       threads.forEach(Uninterruptibles::joinUninterruptibly);
     }

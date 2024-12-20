@@ -82,7 +82,7 @@ public class ZooMutatorIT extends WithTestNames {
     File newFolder = new File(tempDir, testName() + "/");
     assertTrue(newFolder.isDirectory() || newFolder.mkdir(), "failed to create dir: " + newFolder);
     try (var testZk = new ZooKeeperTestingServer(newFolder); var zk = testZk.newClient()) {
-      var zrw = new ZooReaderWriter(zk);
+      var zrw = zk.asReaderWriter();
 
       var executor = Executors.newFixedThreadPool(16);
 

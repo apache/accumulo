@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCache;
@@ -38,7 +39,6 @@ import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -68,10 +68,10 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * @param watcher a watcher. Optional, if null, one is created.
    * @param ticker a synthetic clock used for testing. Optional, if null, one is created.
    */
-  ZooPropStore(final InstanceId instanceId, final ZooKeeper zk, final ReadyMonitor monitor,
+  ZooPropStore(final InstanceId instanceId, final ZooSession zk, final ReadyMonitor monitor,
       final PropStoreWatcher watcher, final Ticker ticker) {
 
-    this.zrw = new ZooReaderWriter(zk);
+    this.zrw = zk.asReaderWriter();
 
     this.zkReadyMon = requireNonNullElseGet(monitor,
         () -> new ReadyMonitor("prop-store", Math.round(zk.getSessionTimeout() * 1.75)));
@@ -106,7 +106,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   public static ZooPropStore initialize(@NonNull final InstanceId instanceId,
-      @NonNull final ZooKeeper zk) {
+      @NonNull final ZooSession zk) {
     return new ZooPropStore(instanceId, zk, null, null, null);
   }
 

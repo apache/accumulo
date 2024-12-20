@@ -40,12 +40,12 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,17 +58,18 @@ class Upgrader10to11Test {
 
   private InstanceId instanceId;
   private ServerContext context;
-  private ZooKeeper zk;
+  private ZooSession zk;
   private PropStore propStore;
 
   @BeforeEach
   public void initMocks() {
     instanceId = InstanceId.of(UUID.randomUUID());
     context = createMock(ServerContext.class);
-    zk = createMock(ZooKeeper.class);
+    zk = createMock(ZooSession.class);
     propStore = createMock(PropStore.class);
 
-    expect(context.getZooReaderWriter()).andReturn(new ZooReaderWriter(zk)).anyTimes();
+    expect(context.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(new ZooReaderWriter(zk)).anyTimes();
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
   }
 

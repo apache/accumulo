@@ -31,10 +31,10 @@ import java.io.IOException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +47,7 @@ public class InitializeTest {
   private Configuration conf;
   private VolumeManager fs;
   private SiteConfiguration sconf;
-  private ZooKeeper zk;
+  private ZooSession zk;
   private ZooReaderWriter zrw;
   private InitialConfiguration initConfig;
 
@@ -62,7 +62,7 @@ public class InitializeTest {
     expect(sconf.get(Property.INSTANCE_SECRET))
         .andReturn(Property.INSTANCE_SECRET.getDefaultValue()).anyTimes();
     expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1").anyTimes();
-    zk = createMock(ZooKeeper.class);
+    zk = createMock(ZooSession.class);
     zrw = new ZooReaderWriter(zk);
   }
 

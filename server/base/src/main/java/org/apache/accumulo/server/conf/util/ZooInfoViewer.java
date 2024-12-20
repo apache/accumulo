@@ -50,6 +50,8 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -61,8 +63,6 @@ import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.zookeeper.ZooAclUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZKUtil;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -137,7 +137,7 @@ public class ZooInfoViewer implements KeywordExecutable {
       writer.println("Report Time: " + tsFormat.format(Instant.now()));
       writer.println("-----------------------------------------------");
       if (opts.printInstanceIds) {
-        Map<String,InstanceId> instanceMap = ZooUtil.getInstanceMap(context.getZooKeeper());
+        Map<String,InstanceId> instanceMap = ZooUtil.getInstanceMap(context.getZooSession());
         printInstanceIds(instanceMap, writer);
       }
 
@@ -159,7 +159,7 @@ public class ZooInfoViewer implements KeywordExecutable {
   private void printProps(final ServerContext context, final Opts opts, final PrintWriter writer)
       throws Exception {
     var iid = context.getInstanceID();
-    var zooReader = context.getZooReader();
+    var zooReader = context.getZooSession().asReader();
 
     if (opts.printAllProps()) {
       log.info("all: {}", opts.printAllProps());
@@ -216,8 +216,7 @@ public class ZooInfoViewer implements KeywordExecutable {
     writer.println();
   }
 
-  private void printAcls(final ServerContext context, final Opts opts, final PrintWriter writer)
-      throws InterruptedException {
+  private void printAcls(final ServerContext context, final Opts opts, final PrintWriter writer) {
     var iid = context.getInstanceID();
 
     Map<String,List<ACL>> aclMap = new TreeMap<>();
@@ -228,7 +227,7 @@ public class ZooInfoViewer implements KeywordExecutable {
     writer.printf("ZooKeeper acls for instance ID: %s\n\n", iid.canonical());
 
     var conf = opts.getSiteConfiguration();
-    try (var zk = ZooUtil.connect(getClass().getSimpleName(), conf)) {
+    try (var zk = new ZooSession(getClass().getSimpleName(), conf)) {
 
       String instanceRoot = ZooUtil.getRoot(iid);
 
@@ -277,7 +276,7 @@ public class ZooInfoViewer implements KeywordExecutable {
     }
   }
 
-  private void recursiveAclRead(final ZooKeeper zooKeeper, final String rootPath, final Stat stat,
+  private void recursiveAclRead(final ZooSession zooKeeper, final String rootPath, final Stat stat,
       final Map<String,List<ACL>> aclMap) {
     try {
       ZKUtil.visitSubTreeDFS(zooKeeper, rootPath, false, (rc, path, ctx, name) -> {
@@ -346,7 +345,7 @@ public class ZooInfoViewer implements KeywordExecutable {
   private Map<String,VersionedProperties> fetchTableProps(final ServerContext context,
       final List<String> tables) {
     var iid = context.getInstanceID();
-    var zooReader = context.getZooReader();
+    var zooReader = context.getZooSession().asReader();
 
     Set<String> cmdOptTables = new TreeSet<>(tables);
 

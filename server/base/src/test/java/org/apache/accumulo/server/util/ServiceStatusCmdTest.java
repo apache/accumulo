@@ -38,10 +38,10 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.util.serviceStatus.ServiceStatusReport;
 import org.apache.accumulo.server.util.serviceStatus.StatusSummary;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,12 +53,12 @@ public class ServiceStatusCmdTest {
   private static final Logger LOG = LoggerFactory.getLogger(ServiceStatusCmdTest.class);
 
   private final String zRoot = ZooUtil.getRoot(InstanceId.of(UUID.randomUUID()));
-  private ZooKeeper zk;
+  private ZooSession zk;
   private ZooReader zooReader;
 
   @BeforeEach
   public void populateContext() {
-    zk = createMock(ZooKeeper.class);
+    zk = createMock(ZooSession.class);
     zooReader = new ZooReader(zk);
   }
 

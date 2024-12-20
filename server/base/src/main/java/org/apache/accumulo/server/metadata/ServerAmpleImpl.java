@@ -96,7 +96,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {
     String zpath = context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES;
     try {
-      context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
+      context.getZooSession().asReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
         RootGcCandidates rgcc = new RootGcCandidates(currJson);
         log.debug("Root GC candidates before change : {}", currJson);
@@ -247,7 +247,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public Iterator<GcCandidate> getGcCandidates(DataLevel level) {
     if (level == DataLevel.ROOT) {
-      var zooReader = context.getZooReader();
+      var zooReader = context.getZooSession().asReader();
       byte[] jsonBytes;
       try {
         jsonBytes =

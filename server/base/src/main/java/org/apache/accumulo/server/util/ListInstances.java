@@ -39,6 +39,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +88,7 @@ public class ListInstances {
     errors = 0;
 
     System.out.println("INFO : Using ZooKeepers " + keepers);
-    try (var zk = ZooUtil.connect(ListInstances.class.getSimpleName(), keepers,
+    try (var zk = new ZooSession(ListInstances.class.getSimpleName(), keepers,
         ZOOKEEPER_TIMER_MILLIS, null)) {
       ZooReader rdr = new ZooReader(zk);
       ZooCache cache = new ZooCache(zk);

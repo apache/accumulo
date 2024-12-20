@@ -44,10 +44,10 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ByteArraySet;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.Test;
 
@@ -142,8 +142,8 @@ public class ZKAuthenticatorTest {
 
     // mocking zk interaction
     var instanceId = InstanceId.of("example");
-    ZooKeeper zk = createMock(ZooKeeper.class);
-    ServerContext context = MockServerContext.getWithZK(zk);
+    ZooSession zk = createMock(ZooSession.class);
+    ServerContext context = MockServerContext.getWithMockZK(zk);
     expect(context.zkUserPath()).andReturn(ZooUtil.getRoot(instanceId) + Constants.ZUSERS)
         .anyTimes();
     expect(zk.getChildren(anyObject(), anyObject())).andReturn(Arrays.asList(principal)).anyTimes();

@@ -40,7 +40,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -48,6 +47,7 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
@@ -521,36 +521,35 @@ public class Initialize implements KeywordExecutable {
   }
 
   @Override
-  public void execute(final String[] args) throws InterruptedException {
+  public void execute(final String[] args) {
     boolean success = true;
     Opts opts = new Opts();
     opts.parseArgs("accumulo init", args);
     var siteConfig = SiteConfiguration.auto();
-    try (var zk = ZooUtil.connect(getClass().getSimpleName(), siteConfig)) {
-      var zrw = new ZooReaderWriter(zk);
-      SecurityUtil.serverLogin(siteConfig);
-      Configuration hadoopConfig = new Configuration();
-      InitialConfiguration initConfig = new InitialConfiguration(hadoopConfig, siteConfig);
-      ServerDirs serverDirs = new ServerDirs(siteConfig, hadoopConfig);
+    SecurityUtil.serverLogin(siteConfig);
+    Configuration hadoopConfig = new Configuration();
+    InitialConfiguration initConfig = new InitialConfiguration(hadoopConfig, siteConfig);
+    ServerDirs serverDirs = new ServerDirs(siteConfig, hadoopConfig);
 
-      try (var fs = VolumeManagerImpl.get(siteConfig, hadoopConfig)) {
-        if (opts.resetSecurity) {
-          success = resetSecurity(initConfig, opts, fs);
+    try (var fs = VolumeManagerImpl.get(siteConfig, hadoopConfig)) {
+      if (opts.resetSecurity) {
+        success = resetSecurity(initConfig, opts, fs);
+      }
+      if (success && opts.addVolumes) {
+        success = addVolumes(fs, initConfig, serverDirs);
+      }
+      if (!opts.resetSecurity && !opts.addVolumes) {
+        try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
+          success = doInit(zk.asReaderWriter(), opts, fs, initConfig);
         }
-        if (success && opts.addVolumes) {
-          success = addVolumes(fs, initConfig, serverDirs);
-        }
-        if (!opts.resetSecurity && !opts.addVolumes) {
-          success = doInit(zrw, opts, fs, initConfig);
-        }
-      } catch (IOException e) {
-        log.error("Problem trying to get Volume configuration", e);
-        success = false;
-      } finally {
-        SingletonManager.setMode(Mode.CLOSED);
-        if (!success) {
-          System.exit(-1);
-        }
+      }
+    } catch (IOException e) {
+      log.error("Problem trying to get Volume configuration", e);
+      success = false;
+    } finally {
+      SingletonManager.setMode(Mode.CLOSED);
+      if (!success) {
+        System.exit(-1);
       }
     }
   }
@@ -581,7 +580,7 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) {
     new Initialize().execute(args);
   }
 }

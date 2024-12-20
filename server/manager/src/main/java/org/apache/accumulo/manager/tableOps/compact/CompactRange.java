@@ -100,7 +100,7 @@ public class CompactRange extends ManagerRepo {
     String zTablePath = env.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId
         + Constants.ZTABLE_COMPACT_ID;
 
-    ZooReaderWriter zoo = env.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = env.getContext().getZooSession().asReaderWriter();
     byte[] cid;
     try {
       cid = zoo.mutateExisting(zTablePath, currentValue -> {
@@ -150,7 +150,7 @@ public class CompactRange extends ManagerRepo {
     String zTablePath = environment.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_COMPACT_ID;
 
-    ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = environment.getContext().getZooSession().asReaderWriter();
 
     try {
       zoo.mutateExisting(zTablePath, currentValue -> {

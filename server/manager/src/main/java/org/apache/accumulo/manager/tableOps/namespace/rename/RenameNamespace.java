@@ -52,7 +52,7 @@ public class RenameNamespace extends ManagerRepo {
   @Override
   public Repo<Manager> call(long id, Manager manager) throws Exception {
 
-    ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
 
     Utils.getTableNameLock().lock();
     try {

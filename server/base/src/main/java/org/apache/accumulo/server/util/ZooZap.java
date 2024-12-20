@@ -32,6 +32,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -96,7 +97,7 @@ public class ZooZap implements KeywordExecutable {
     }
 
     var siteConf = SiteConfiguration.auto();
-    try (var zk = ZooUtil.connect(getClass().getSimpleName(), siteConf)) {
+    try (var zk = new ZooSession(getClass().getSimpleName(), siteConf)) {
       // Login as the server on secure HDFS
       if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
         SecurityUtil.serverLogin(siteConf);
@@ -105,7 +106,7 @@ public class ZooZap implements KeywordExecutable {
       String volDir = VolumeConfiguration.getVolumeUris(siteConf).iterator().next();
       Path instanceDir = new Path(volDir, "instance_id");
       InstanceId iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
-      var zrw = new ZooReaderWriter(zk);
+      var zrw = zk.asReaderWriter();
 
       if (opts.zapManager) {
         String managerLockPath = ZooUtil.getRoot(iid) + Constants.ZMANAGER_LOCK;

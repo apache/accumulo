@@ -31,10 +31,9 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -46,8 +45,8 @@ public class CacheTestWriter {
       justification = "path provided by test; object deserialization is okay for test")
   public static void main(String[] args) throws Exception {
     var conf = SiteConfiguration.auto();
-    try (var zk = ZooUtil.connect(CacheTestWriter.class.getSimpleName(), conf)) {
-      var zrw = new ZooReaderWriter(zk);
+    try (var zk = new ZooSession(CacheTestWriter.class.getSimpleName(), conf)) {
+      var zrw = zk.asReaderWriter();
 
       String rootDir = args[0];
       File reportDir = new File(args[1]);

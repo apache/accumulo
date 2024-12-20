@@ -57,10 +57,11 @@ public class UniqueNameAllocator {
     while (next >= maxAllocated) {
       final int allocate = getAllocation();
       try {
-        byte[] max = context.getZooReaderWriter().mutateExisting(nextNamePath, currentValue -> {
-          long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
-          return Long.toString(l + allocate, Character.MAX_RADIX).getBytes(UTF_8);
-        });
+        byte[] max =
+            context.getZooSession().asReaderWriter().mutateExisting(nextNamePath, currentValue -> {
+              long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
+              return Long.toString(l + allocate, Character.MAX_RADIX).getBytes(UTF_8);
+            });
 
         maxAllocated = Long.parseLong(new String(max, UTF_8), Character.MAX_RADIX);
         next = maxAllocated - allocate;

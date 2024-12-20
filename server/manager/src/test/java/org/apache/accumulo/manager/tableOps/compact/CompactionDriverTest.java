@@ -36,10 +36,10 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,15 +56,16 @@ public class CompactionDriverTest {
 
   private Manager manager;
   private ServerContext ctx;
-  private ZooKeeper zk;
+  private ZooSession zk;
 
   @BeforeEach
   public void setup() {
     manager = createMock(Manager.class);
     ctx = createMock(ServerContext.class);
-    zk = createMock(ZooKeeper.class);
+    zk = createMock(ZooSession.class);
     expect(ctx.getInstanceID()).andReturn(instance).anyTimes();
-    expect(ctx.getZooReaderWriter()).andReturn(new ZooReaderWriter(zk)).anyTimes();
+    expect(ctx.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(new ZooReaderWriter(zk)).anyTimes();
     expect(manager.getContext()).andReturn(ctx).anyTimes();
   }
 

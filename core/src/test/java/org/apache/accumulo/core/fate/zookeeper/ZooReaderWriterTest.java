@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.RetryFactory;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.BadVersionException;
@@ -38,7 +39,6 @@ import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,13 +46,13 @@ import org.junit.jupiter.api.Test;
 public class ZooReaderWriterTest {
 
   private ZooReaderWriter zrw;
-  private ZooKeeper zk;
+  private ZooSession zk;
   private RetryFactory retryFactory;
   private Retry retry;
 
   @BeforeEach
   public void setup() {
-    zk = createMock(ZooKeeper.class);
+    zk = createMock(ZooSession.class);
     retryFactory = createMock(RetryFactory.class);
     retry = createMock(Retry.class);
     expect(retryFactory.createRetry()).andReturn(retry).anyTimes();
@@ -62,6 +62,7 @@ public class ZooReaderWriterTest {
         return retryFactory;
       }
     };
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
   }
 
   @Test

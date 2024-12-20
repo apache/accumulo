@@ -247,7 +247,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
         InstanceId instanceId = context.getInstanceID();
 
-        var zk = context.getZooKeeper();
+        var zk = context.getZooSession();
         ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
         var lockPath =
             ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
@@ -337,7 +337,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       log.trace("tid: {}", tableId);
 
       InstanceId instanceId = context.getInstanceID();
-      var zk = context.getZooKeeper();
+      var zk = context.getZooSession();
       ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
       var lockPath =
           ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);

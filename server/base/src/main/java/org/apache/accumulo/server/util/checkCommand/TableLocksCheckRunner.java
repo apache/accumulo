@@ -60,14 +60,15 @@ public class TableLocksCheckRunner implements CheckRunner {
     final String zkRoot = context.getZooKeeperRoot();
     final var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
     final String fateZkPath = zkRoot + Constants.ZFATE;
-    final var zk = context.getZooKeeper();
+    final var zk = context.getZooSession();
     final ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
 
     log.trace("Ensuring table and namespace locks are valid...");
 
     var tableIds = context.tableOperations().tableIdMap().values();
     var namespaceIds = context.namespaceOperations().namespaceIdMap().values();
-    List<String> lockedIds = context.getZooReader().getChildren(zTableLocksPath.toString());
+    List<String> lockedIds =
+        context.getZooSession().asReader().getChildren(zTableLocksPath.toString());
     boolean locksExist = !lockedIds.isEmpty();
 
     if (locksExist) {

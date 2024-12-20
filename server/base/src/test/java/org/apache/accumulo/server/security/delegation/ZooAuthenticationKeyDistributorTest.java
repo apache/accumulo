@@ -24,7 +24,6 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.isNull;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,13 +38,13 @@ import java.util.List;
 import javax.crypto.KeyGenerator;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.zookeeper.CreateMode;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException.AuthFailedException;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
-import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,61 +64,67 @@ public class ZooAuthenticationKeyDistributorTest {
     keyGen.init(KEY_LENGTH);
   }
 
-  private ZooKeeper zk;
-  private final String baseNode = Constants.ZDELEGATION_TOKEN_KEYS;
-  private ZooAuthenticationKeyDistributor distributor;
+  private ZooSession zk;
+  private ZooReaderWriter zrw;
+  private String baseNode = Constants.ZDELEGATION_TOKEN_KEYS;
 
   @BeforeEach
   public void setupMocks() {
-    zk = createMock(ZooKeeper.class);
-    distributor = new ZooAuthenticationKeyDistributor(zk, baseNode);
+    zrw = createMock(ZooReaderWriter.class);
+    zk = createMock(ZooSession.class);
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
   }
 
   @AfterEach
   public void verifyMocks() {
-    verify(zk);
+    verify(zk, zrw);
   }
 
   @Test
   public void testInitialize() throws Exception {
     // Attempt to create the directory and fail
-    expect(zk.exists(baseNode, null)).andReturn(null);
-    expect(zk.create(eq(baseNode), aryEq(new byte[0]), anyObject(), eq(CreateMode.PERSISTENT)))
+    expect(zrw.exists(baseNode)).andReturn(false);
+    expect(zrw.putPrivatePersistentData(baseNode, new byte[0], NodeExistsPolicy.FAIL))
         .andThrow(new AuthFailedException());
 
-    replay(zk);
+    replay(zk, zrw);
 
+    var distributor = new ZooAuthenticationKeyDistributor(zk, baseNode);
     assertThrows(AuthFailedException.class, distributor::initialize);
   }
 
   @Test
   public void testInitializeCreatesParentNode() throws Exception {
     // Attempt to create the directory and fail
-    expect(zk.exists(baseNode, null)).andReturn(null);
-    expect(zk.create(eq(baseNode), anyObject(), anyObject(), eq(CreateMode.PERSISTENT)))
-        .andReturn(baseNode);
+    expect(zrw.exists(baseNode)).andReturn(false);
+    expect(zrw.putPrivatePersistentData(eq(baseNode), anyObject(), eq(NodeExistsPolicy.FAIL)))
+        .andReturn(true);
 
-    replay(zk);
+    replay(zk, zrw);
 
+    var distributor = new ZooAuthenticationKeyDistributor(zk, baseNode);
     distributor.initialize();
   }
 
   @Test
   public void testInitializedNotCalledAdvertise() {
-    replay(zk);
+    replay(zk, zrw);
+    var distributor = new ZooAuthenticationKeyDistributor(zk, baseNode);
     assertThrows(IllegalStateException.class,
         () -> distributor.advertise(new AuthenticationKey(1, 0L, 5L, keyGen.generateKey())));
   }
 
   @Test
   public void testInitializedNotCalledCurrentKeys() {
-    replay(zk);
+    replay(zk, zrw);
+    var distributor = new ZooAuthenticationKeyDistributor(zk, baseNode);
     assertThrows(IllegalStateException.class, distributor::getCurrentKeys);
   }
 
   @Test
   public void testInitializedNotCalledRemove() {
-    replay(zk);
+    replay(zk, zrw);
+    var distributor = new ZooAuthenticationKeyDistributor(zk, baseNode);
     assertThrows(IllegalStateException.class,
         () -> distributor.remove(new AuthenticationKey(1, 0L, 5L, keyGen.generateKey())));
   }
@@ -127,21 +132,23 @@ public class ZooAuthenticationKeyDistributorTest {
   @Test
   public void testMissingAcl() throws Exception {
     // Attempt to create the directory and fail
-    expect(zk.exists(baseNode, null)).andReturn(new Stat());
-    expect(zk.getACL(eq(baseNode), isNull())).andReturn(Collections.emptyList());
+    expect(zrw.exists(baseNode)).andReturn(true);
+    expect(zrw.getACL(eq(baseNode))).andReturn(Collections.emptyList());
 
-    replay(zk);
+    replay(zk, zrw);
+    var distributor = new ZooAuthenticationKeyDistributor(zk, baseNode);
     assertThrows(IllegalStateException.class, distributor::initialize);
   }
 
   @Test
   public void testBadAcl() throws Exception {
     // Attempt to create the directory and fail
-    expect(zk.exists(baseNode, null)).andReturn(new Stat());
-    expect(zk.getACL(eq(baseNode), isNull())).andReturn(Collections.singletonList(
+    expect(zrw.exists(baseNode)).andReturn(true);
+    expect(zrw.getACL(eq(baseNode))).andReturn(Collections.singletonList(
         new ACL(ZooUtil.PRIVATE.get(0).getPerms(), new Id("digest", "somethingweird"))));
 
-    replay(zk);
+    replay(zk, zrw);
+    var distributor = new ZooAuthenticationKeyDistributor(zk, baseNode);
     assertThrows(IllegalStateException.class, distributor::initialize);
   }
 
@@ -154,15 +161,16 @@ public class ZooAuthenticationKeyDistributorTest {
     String path = baseNode + "/" + key.getKeyId();
 
     // Attempt to create the directory and fail
-    expect(zk.exists(baseNode, null)).andReturn(new Stat());
-    expect(zk.getACL(eq(baseNode), isNull())).andReturn(Collections.singletonList(
+    expect(zrw.exists(baseNode)).andReturn(true);
+    expect(zrw.getACL(eq(baseNode))).andReturn(Collections.singletonList(
         new ACL(ZooUtil.PRIVATE.get(0).getPerms(), new Id("digest", "accumulo:DEFAULT"))));
-    expect(zk.exists(path, null)).andReturn(null);
-    expect(zk.create(eq(path), aryEq(serialized), anyObject(), eq(CreateMode.PERSISTENT)))
-        .andReturn(path);
+    expect(zrw.exists(path)).andReturn(false);
+    expect(zrw.putPrivatePersistentData(eq(path), aryEq(serialized), eq(NodeExistsPolicy.FAIL)))
+        .andReturn(true);
 
-    replay(zk);
+    replay(zk, zrw);
 
+    var distributor = new ZooAuthenticationKeyDistributor(zk, baseNode);
     distributor.initialize();
     distributor.advertise(key);
   }
@@ -173,13 +181,14 @@ public class ZooAuthenticationKeyDistributorTest {
     String path = baseNode + "/" + key.getKeyId();
 
     // Attempt to create the directory and fail
-    expect(zk.exists(baseNode, null)).andReturn(new Stat());
-    expect(zk.getACL(eq(baseNode), isNull())).andReturn(Collections.singletonList(
+    expect(zrw.exists(baseNode)).andReturn(true);
+    expect(zrw.getACL(eq(baseNode))).andReturn(Collections.singletonList(
         new ACL(ZooUtil.PRIVATE.get(0).getPerms(), new Id("digest", "accumulo:DEFAULT"))));
-    expect(zk.exists(path, null)).andReturn(new Stat());
+    expect(zrw.exists(path)).andReturn(true);
 
-    replay(zk);
+    replay(zk, zrw);
 
+    var distributor = new ZooAuthenticationKeyDistributor(zk, baseNode);
     distributor.initialize();
     distributor.advertise(key);
   }
@@ -190,15 +199,16 @@ public class ZooAuthenticationKeyDistributorTest {
     String path = baseNode + "/" + key.getKeyId();
 
     // Attempt to create the directory and fail
-    expect(zk.exists(baseNode, null)).andReturn(new Stat());
-    expect(zk.getACL(eq(baseNode), isNull())).andReturn(Collections.singletonList(
+    expect(zrw.exists(baseNode)).andReturn(true);
+    expect(zrw.getACL(eq(baseNode))).andReturn(Collections.singletonList(
         new ACL(ZooUtil.PRIVATE.get(0).getPerms(), new Id("digest", "accumulo:DEFAULT"))));
-    expect(zk.exists(path, null)).andReturn(new Stat());
-    zk.delete(path, -1);
+    expect(zrw.exists(path)).andReturn(true);
+    zrw.delete(path);
     expectLastCall().once();
 
-    replay(zk);
+    replay(zk, zrw);
 
+    var distributor = new ZooAuthenticationKeyDistributor(zk, baseNode);
     distributor.initialize();
     distributor.remove(key);
   }
@@ -209,13 +219,14 @@ public class ZooAuthenticationKeyDistributorTest {
     String path = baseNode + "/" + key.getKeyId();
 
     // Attempt to create the directory and fail
-    expect(zk.exists(baseNode, null)).andReturn(new Stat());
-    expect(zk.getACL(eq(baseNode), isNull())).andReturn(Collections.singletonList(
+    expect(zrw.exists(baseNode)).andReturn(true);
+    expect(zrw.getACL(eq(baseNode))).andReturn(Collections.singletonList(
         new ACL(ZooUtil.PRIVATE.get(0).getPerms(), new Id("digest", "accumulo:DEFAULT"))));
-    expect(zk.exists(path, null)).andReturn(null);
+    expect(zrw.exists(path)).andReturn(false);
 
-    replay(zk);
+    replay(zk, zrw);
 
+    var distributor = new ZooAuthenticationKeyDistributor(zk, baseNode);
     distributor.initialize();
     distributor.remove(key);
   }
@@ -234,16 +245,17 @@ public class ZooAuthenticationKeyDistributorTest {
       serializedKeys.add(baos.toByteArray());
     }
 
-    expect(zk.exists(baseNode, null)).andReturn(new Stat());
-    expect(zk.getACL(eq(baseNode), isNull())).andReturn(Collections.singletonList(
+    expect(zrw.exists(baseNode)).andReturn(true);
+    expect(zrw.getACL(eq(baseNode))).andReturn(Collections.singletonList(
         new ACL(ZooUtil.PRIVATE.get(0).getPerms(), new Id("digest", "accumulo:DEFAULT"))));
-    expect(zk.getChildren(baseNode, null)).andReturn(children);
+    expect(zrw.getChildren(baseNode)).andReturn(children);
     for (int i = 1; i < 6; i++) {
-      expect(zk.getData(baseNode + "/" + i, null, null)).andReturn(serializedKeys.get(i - 1));
+      expect(zrw.getData(baseNode + "/" + i)).andReturn(serializedKeys.get(i - 1));
     }
 
-    replay(zk);
+    replay(zk, zrw);
 
+    var distributor = new ZooAuthenticationKeyDistributor(zk, baseNode);
     distributor.initialize();
     assertEquals(keys, distributor.getCurrentKeys());
   }

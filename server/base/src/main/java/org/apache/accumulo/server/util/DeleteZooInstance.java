@@ -27,7 +27,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
@@ -42,7 +41,7 @@ public class DeleteZooInstance {
       final String instance, final String auth) throws InterruptedException, KeeperException {
 
     if (auth != null) {
-      ZooUtil.digestAuth(context.getZooKeeper(), auth);
+      context.getZooSession().addAccumuloDigestAuth(auth);
     }
 
     if (clean) {
@@ -61,7 +60,7 @@ public class DeleteZooInstance {
 
   private static void removeInstance(ServerContext context, final String instance)
       throws InterruptedException, KeeperException {
-    var zrw = context.getZooReaderWriter();
+    var zrw = context.getZooSession().asReaderWriter();
     // try instance name:
     Set<String> instances = new HashSet<>(getInstances(zrw));
     Set<String> uuids = new HashSet<>(zrw.getChildren(Constants.ZROOT));
@@ -96,7 +95,7 @@ public class DeleteZooInstance {
 
   private static void cleanAllOld(ServerContext context)
       throws InterruptedException, KeeperException {
-    var zrw = context.getZooReaderWriter();
+    var zrw = context.getZooSession().asReaderWriter();
     for (String child : zrw.getChildren(Constants.ZROOT)) {
       if (Constants.ZINSTANCES.equals("/" + child)) {
         for (String instanceName : getInstances(zrw)) {

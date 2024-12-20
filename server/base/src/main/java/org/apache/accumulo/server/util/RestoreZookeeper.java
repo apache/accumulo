@@ -31,8 +31,8 @@ import javax.xml.parsers.SAXParserFactory;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
@@ -110,8 +110,8 @@ public class RestoreZookeeper {
       justification = "code runs in same security context as user who provided input")
   public static void execute(final AccumuloConfiguration conf, final String file,
       final boolean overwrite) throws Exception {
-    try (var zk = ZooUtil.connect(RestoreZookeeper.class.getSimpleName(), conf)) {
-      var zrw = new ZooReaderWriter(zk);
+    try (var zk = new ZooSession(RestoreZookeeper.class.getSimpleName(), conf)) {
+      var zrw = zk.asReaderWriter();
 
       InputStream in = System.in;
       if (file != null) {

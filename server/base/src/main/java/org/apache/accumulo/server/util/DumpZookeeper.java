@@ -25,7 +25,7 @@ import java.util.Base64;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -74,8 +74,8 @@ public class DumpZookeeper implements KeywordExecutable {
 
     PrintStream out = System.out;
     var conf = opts.getSiteConfiguration();
-    try (var zk = ZooUtil.connect(getClass().getSimpleName(), conf)) {
-      zrw = new ZooReaderWriter(zk);
+    try (var zk = new ZooSession(getClass().getSimpleName(), conf)) {
+      zrw = zk.asReaderWriter();
       if (opts.xml) {
         writeXml(out, opts.root);
       } else {

@@ -79,7 +79,6 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
@@ -105,8 +104,8 @@ import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,7 +128,7 @@ public class ClientContext implements AccumuloClient {
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
   private ConditionalWriterConfig conditionalWriterConfig;
-  private final AccumuloConfiguration serverConf;
+  private final AccumuloConfiguration accumuloConf;
   private final Configuration hadoopConf;
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
@@ -155,8 +154,7 @@ public class ClientContext implements AccumuloClient {
   private ThreadPoolExecutor scannerReadaheadPool;
 
   private final AtomicBoolean zooKeeperOpened = new AtomicBoolean(false);
-  private final Supplier<ZooKeeper> zooKeeper;
-  private final Supplier<ZooReader> zooReaderSupplier;
+  private final Supplier<ZooSession> zooSession;
 
   private void ensureOpen() {
     if (closed) {
@@ -225,16 +223,15 @@ public class ClientContext implements AccumuloClient {
     this.info = info;
     this.hadoopConf = info.getHadoopConf();
 
-    this.zooKeeper = memoize(() -> {
-      var zk = info.getZooKeeperSupplier().get();
+    this.zooSession = memoize(() -> {
+      var zk = info
+          .getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")").get();
       zooKeeperOpened.set(true);
       return zk;
     });
 
-    this.zooReaderSupplier = memoize(() -> new ZooReader(getZooKeeper()));
-
-    this.zooCache = memoize(() -> new ZooCache(getZooKeeper()));
-    this.serverConf = serverConf;
+    this.zooCache = memoize(() -> new ZooCache(getZooSession()));
+    this.accumuloConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), 100, MILLISECONDS);
     sslSupplier = memoize(() -> SslConnectionParams.forClient(getConfiguration()));
@@ -335,7 +332,7 @@ public class ClientContext implements AccumuloClient {
    */
   public AccumuloConfiguration getConfiguration() {
     ensureOpen();
-    return serverConf;
+    return accumuloConf;
   }
 
   /**
@@ -849,7 +846,7 @@ public class ClientContext implements AccumuloClient {
   public synchronized void close() {
     closed = true;
     if (zooKeeperOpened.get()) {
-      ZooUtil.close(zooKeeper.get());
+      zooSession.get().close();
     }
     if (thriftTransportPool != null) {
       thriftTransportPool.shutdown();
@@ -1077,14 +1074,9 @@ public class ClientContext implements AccumuloClient {
 
   }
 
-  public ZooKeeper getZooKeeper() {
+  public ZooSession getZooSession() {
     ensureOpen();
-    return zooKeeper.get();
-  }
-
-  public ZooReader getZooReader() {
-    ensureOpen();
-    return zooReaderSupplier.get();
+    return zooSession.get();
   }
 
   protected long getTransportPoolMaxAgeMillis() {

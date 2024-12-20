@@ -32,15 +32,16 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,10 +53,13 @@ import com.google.common.base.Preconditions;
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
  */
 public class ZooCache {
+
+  public interface ZooCacheWatcher extends Consumer<WatchedEvent> {}
+
   private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
 
   private final ZCacheWatcher watcher = new ZCacheWatcher();
-  private final Optional<Watcher> externalWatcher;
+  private final Optional<ZooCacheWatcher> externalWatcher;
 
   private final ReadWriteLock cacheLock = new ReentrantReadWriteLock(false);
   private final Lock cacheWriteLock = cacheLock.writeLock();
@@ -65,7 +69,7 @@ public class ZooCache {
   private final HashMap<String,ZcStat> statCache;
   private final HashMap<String,List<String>> childrenCache;
 
-  private final ZooKeeper zk;
+  private final ZooSession zk;
 
   private volatile boolean closed = false;
 
@@ -184,7 +188,7 @@ public class ZooCache {
           break;
       }
 
-      externalWatcher.ifPresent(w -> w.process(event));
+      externalWatcher.ifPresent(w -> w.accept(event));
     }
   }
 
@@ -194,7 +198,7 @@ public class ZooCache {
    * @param zk the ZooKeeper instance
    * @throws NullPointerException if zk is {@code null}
    */
-  public ZooCache(ZooKeeper zk) {
+  public ZooCache(ZooSession zk) {
     this(zk, Optional.empty());
   }
 
@@ -205,11 +209,11 @@ public class ZooCache {
    * @param watcher watcher object
    * @throws NullPointerException if zk or watcher is {@code null}
    */
-  public ZooCache(ZooKeeper zk, Watcher watcher) {
+  public ZooCache(ZooSession zk, ZooCacheWatcher watcher) {
     this(zk, Optional.of(watcher));
   }
 
-  private ZooCache(ZooKeeper zk, Optional<Watcher> watcher) {
+  private ZooCache(ZooSession zk, Optional<ZooCacheWatcher> watcher) {
     this.zk = requireNonNull(zk);
     this.cache = new HashMap<>();
     this.statCache = new HashMap<>();

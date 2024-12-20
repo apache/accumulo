@@ -46,6 +46,8 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.SystemConfiguration;
@@ -59,9 +61,7 @@ import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -82,7 +82,7 @@ public class ZooBasedConfigIT {
   private static final InstanceId INSTANCE_ID = InstanceId.of(UUID.randomUUID());
   private static ZooKeeperTestingServer testZk = null;
   private static ZooReaderWriter zrw;
-  private static ZooKeeper zk;
+  private static ZooSession zk;
   private ServerContext context;
 
   // fake ids
@@ -101,7 +101,7 @@ public class ZooBasedConfigIT {
   public static void setupZk() throws Exception {
     testZk = new ZooKeeperTestingServer(tempDir);
     zk = testZk.newClient();
-    zrw = new ZooReaderWriter(zk);
+    zrw = zk.asReaderWriter();
   }
 
   @AfterAll
@@ -137,7 +137,7 @@ public class ZooBasedConfigIT {
 
     // setup context mock with enough to create prop store
     expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(context.getZooSession().asReaderWriter()).andReturn(zrw).anyTimes();
 
     replay(context);
 
@@ -150,7 +150,7 @@ public class ZooBasedConfigIT {
 
     // setup context mock with prop store and the rest of the env needed.
     expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(context.getZooSession().asReaderWriter()).andReturn(zrw).anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(zk.getSessionTimeout()).anyTimes();
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
     expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.empty().build()).anyTimes();

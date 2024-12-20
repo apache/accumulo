@@ -29,8 +29,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.zookeeper.ZooKeeper;
 import org.easymock.EasyMock;
 
 /**
@@ -47,12 +47,12 @@ public class MockServerContext {
     return context;
   }
 
-  public static ServerContext getWithZK(ZooKeeper zk) {
+  public static ServerContext getWithMockZK(ZooSession zk) {
     var sc = get();
     var zrw = new ZooReaderWriter(zk);
-    expect(sc.getZooKeeper()).andReturn(zk).anyTimes();
-    expect(sc.getZooReader()).andReturn(zrw).anyTimes();
-    expect(sc.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(sc.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReader()).andReturn(zrw).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
     return sc;
   }
 

@@ -227,7 +227,7 @@ public class FunctionalTestUtils {
     try {
       AdminUtil<String> admin = new AdminUtil<>(false);
       ServerContext context = cluster.getServerContext();
-      var zk = context.getZooKeeper();
+      var zk = context.getZooSession();
       ZooStore<String> zs = new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk);
       var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
       return admin.getStatus(zs, zk, lockPath, null, null);

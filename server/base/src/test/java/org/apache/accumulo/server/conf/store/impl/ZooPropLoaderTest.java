@@ -44,13 +44,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
 import org.junit.jupiter.api.AfterEach;
@@ -61,12 +62,13 @@ public class ZooPropLoaderTest {
 
   private PropCacheCaffeineImplTest.TestTicker ticker;
   private InstanceId instanceId;
+  private ZooSession zk;
   private PropStoreKey<?> propStoreKey;
   private VersionedPropCodec propCodec;
 
   // mocks
   private PropStoreWatcher propStoreWatcher;
-  private ZooKeeper zk;
+  private ZooReaderWriter zrw;
 
   private ZooPropLoader loader;
 
@@ -79,17 +81,21 @@ public class ZooPropLoaderTest {
     propCodec = VersionedPropCodec.getDefault();
 
     // mocks
-    zk = createMock(ZooKeeper.class);
+    zk = createMock(ZooSession.class);
+    zrw = createMock(ZooReaderWriter.class);
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
+    replay(zk);
 
     propStoreWatcher = createMock(PropStoreWatcher.class);
 
     // loader used in tests
     loader = new ZooPropLoader(zk, propCodec, propStoreWatcher);
+
   }
 
   @AfterEach
   public void verifyCommonMocks() {
-    verify(zk, propStoreWatcher);
+    verify(zk, zrw, propStoreWatcher);
   }
 
   @Test
@@ -98,7 +104,7 @@ public class ZooPropLoaderTest {
     final VersionedProperties defaultProps = new VersionedProperties();
     final byte[] bytes = propCodec.toBytes(defaultProps);
     Capture<Stat> stat = newCapture();
-    expect(zk.getData(eq(propStoreKey.getPath()), anyObject(), capture(stat))).andAnswer(() -> {
+    expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(), capture(stat))).andAnswer(() -> {
       Stat s = stat.getValue();
       s.setCtime(System.currentTimeMillis());
       s.setMtime(System.currentTimeMillis());
@@ -108,7 +114,7 @@ public class ZooPropLoaderTest {
       return (bytes);
     }).once();
 
-    replay(zk, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     assertNotNull(loader.load(propStoreKey));
   }
@@ -126,11 +132,11 @@ public class ZooPropLoaderTest {
     final VersionedProperties defaultProps = new VersionedProperties();
     final byte[] bytes = propCodec.toBytes(defaultProps);
 
-    expect(zk.exists(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class)))
-        .andThrow(new KeeperException.NoNodeException()).anyTimes();
+    expect(zrw.getStatus(propStoreKey.getPath())).andThrow(new KeeperException.NoNodeException())
+        .anyTimes();
 
     Capture<Stat> stat = newCapture();
-    expect(zk.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+    expect(zrw.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -141,7 +147,7 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).once();
 
-    replay(zk, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -163,13 +169,13 @@ public class ZooPropLoaderTest {
   @Test
   public void loadFailTest() throws Exception {
 
-    expect(zk.getData(eq(propStoreKey.getPath()), anyObject(), anyObject()))
+    expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(), anyObject()))
         .andThrow(new KeeperException.NoNodeException("force no node exception")).once();
 
     propStoreWatcher.signalZkChangeEvent(eq(propStoreKey));
     expectLastCall();
 
-    replay(zk, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -189,7 +195,7 @@ public class ZooPropLoaderTest {
     byte[] bytes = propCodec.toBytes(defaultProps);
 
     Capture<Stat> stat = newCapture();
-    expect(zk.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+    expect(zrw.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -200,7 +206,7 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).times(2);
 
-    replay(zk, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -227,7 +233,7 @@ public class ZooPropLoaderTest {
     final byte[] bytes = propCodec.toBytes(defaultProps);
 
     Capture<Stat> stat = newCapture();
-    expect(zk.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+    expect(zrw.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -238,7 +244,7 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).once();
 
-    expect(zk.getData(eq(propStoreKey.getPath()), anyObject(), anyObject()))
+    expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(), anyObject()))
         .andThrow(new KeeperException.NoNodeException("forced no node")).anyTimes();
 
     propStoreWatcher.signalZkChangeEvent(anyObject());
@@ -247,7 +253,7 @@ public class ZooPropLoaderTest {
     propStoreWatcher.signalCacheChangeEvent(anyObject());
     expectLastCall().anyTimes();
 
-    replay(zk, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -268,12 +274,14 @@ public class ZooPropLoaderTest {
 
   @Test
   public void getIfCachedTest() {
-    replay(zk, propStoreWatcher);
+
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
 
     assertNull(cache.getIfCached(propStoreKey));
+
   }
 
   @Test
@@ -285,7 +293,7 @@ public class ZooPropLoaderTest {
     final byte[] bytes = propCodec.toBytes(defaultProps);
 
     Capture<Stat> stat = newCapture();
-    expect(zk.getData(eq(sysPropKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+    expect(zrw.getData(eq(sysPropKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -297,7 +305,7 @@ public class ZooPropLoaderTest {
         }).once();
 
     Capture<Stat> stat1 = newCapture();
-    expect(zk.getData(eq(tablePropKey.getPath()), isA(PropStoreWatcher.class), capture(stat1)))
+    expect(zrw.getData(eq(tablePropKey.getPath()), isA(PropStoreWatcher.class), capture(stat1)))
         .andAnswer(() -> {
           Stat s = stat1.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -308,7 +316,7 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).once();
 
-    replay(zk, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -333,7 +341,7 @@ public class ZooPropLoaderTest {
     final byte[] bytes = propCodec.toBytes(defaultProps);
 
     Capture<Stat> stat = newCapture();
-    expect(zk.getData(eq(sysPropKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+    expect(zrw.getData(eq(sysPropKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -345,7 +353,7 @@ public class ZooPropLoaderTest {
         }).once();
 
     Capture<Stat> stat1 = newCapture();
-    expect(zk.getData(eq(tablePropKey.getPath()), isA(PropStoreWatcher.class), capture(stat1)))
+    expect(zrw.getData(eq(tablePropKey.getPath()), isA(PropStoreWatcher.class), capture(stat1)))
         .andAnswer(() -> {
           Stat s = stat1.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -356,7 +364,7 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).once();
 
-    replay(zk, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -374,7 +382,7 @@ public class ZooPropLoaderTest {
 
   @Test
   public void getIfCachedNotPresentTest() {
-    replay(zk, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -397,7 +405,7 @@ public class ZooPropLoaderTest {
     Capture<String> path = newCapture();
     Capture<Stat> stat = newCapture();
 
-    expect(zk.getData(capture(path), anyObject(), capture(stat))).andAnswer(() -> {
+    expect(zrw.getData(capture(path), anyObject(), capture(stat))).andAnswer(() -> {
       Stat r = stat.getValue();
       r.setCzxid(1234);
       r.setVersion(9);
@@ -405,7 +413,7 @@ public class ZooPropLoaderTest {
       return propCodec.toBytes(vProps);
     }).anyTimes();
 
-    replay(zk, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     Stat statCheck = new Stat();
     statCheck.setVersion(9);

@@ -51,8 +51,6 @@ import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metrics.MetricsInfo;
@@ -107,7 +105,6 @@ public class ServerContext extends ClientContext {
   private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
   private final Supplier<LowMemoryDetector> lowMemoryDetector;
   private final Supplier<MetricsInfo> metricsInfoSupplier;
-  private final Supplier<ZooReaderWriter> zrwSupplier;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(ServerInfo.fromServerConfig(siteConfig));
@@ -118,14 +115,9 @@ public class ServerContext extends ClientContext {
     this.info = info;
     serverDirs = info.getServerDirs();
 
-    // getZooKeeper() doesn't need closed here because the context will close it when it closes
-    @SuppressWarnings("resource")
-    var tmpZrwSupplier = memoize(() -> new ZooReaderWriter(getZooKeeper()));
-    zrwSupplier = tmpZrwSupplier;
-
     // the PropStore shouldn't close the ZooKeeper, since ServerContext is responsible for that
     @SuppressWarnings("resource")
-    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooKeeper()));
+    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooSession()));
     propStore = tmpPropStore;
     zkUserPath = memoize(() -> ZooUtil.getRoot(getInstanceID()) + Constants.ZUSERS);
 
@@ -220,15 +212,6 @@ public class ServerContext extends ClientContext {
 
   public VolumeManager getVolumeManager() {
     return info.getVolumeManager();
-  }
-
-  @Override
-  public ZooReader getZooReader() {
-    return getZooReaderWriter();
-  }
-
-  public ZooReaderWriter getZooReaderWriter() {
-    return zrwSupplier.get();
   }
 
   /**
@@ -328,7 +311,7 @@ public class ServerContext extends ClientContext {
     log.info("Attempting to talk to zookeeper");
     while (true) {
       try {
-        getZooReaderWriter().getChildren(Constants.ZROOT);
+        getZooSession().asReaderWriter().getChildren(Constants.ZROOT);
         break;
       } catch (InterruptedException | KeeperException ex) {
         log.info("Waiting for accumulo to be initialized");

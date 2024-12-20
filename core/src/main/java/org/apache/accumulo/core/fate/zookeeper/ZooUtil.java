@@ -20,12 +20,8 @@ package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
-import java.io.IOException;
 import java.math.BigInteger;
-import java.net.UnknownHostException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -36,23 +32,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooDefs.Perms;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -63,29 +50,6 @@ public class ZooUtil {
   private static final Logger log = LoggerFactory.getLogger(ZooUtil.class);
 
   private ZooUtil() {}
-
-  private static class ZooSessionWatcher implements Watcher {
-
-    private static final Logger watcherLog = LoggerFactory.getLogger(ZooSessionWatcher.class);
-    private final AtomicReference<KeeperState> lastState = new AtomicReference<>(null);
-    private final String clientName;
-
-    public ZooSessionWatcher(String clientName) {
-      this.clientName = clientName + "_" + UUID.randomUUID();
-    }
-
-    @Override
-    public void process(WatchedEvent event) {
-      final var newState = event.getState();
-      var oldState = lastState.getAndUpdate(s -> newState);
-      if (oldState == null) {
-        watcherLog.debug("ZooKeeper[{}] state changed to {}", clientName, newState);
-      } else if (newState != oldState) {
-        watcherLog.debug("ZooKeeper[{}] state changed from {} to {}", clientName, oldState,
-            newState);
-      }
-    }
-  }
 
   public enum NodeExistsPolicy {
     SKIP, OVERWRITE, FAIL
@@ -100,9 +64,9 @@ public class ZooUtil {
       DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss 'UTC' yyyy");
 
   public static class LockID {
-    public long eid;
-    public String path;
-    public String node;
+    public final long eid;
+    public final String path;
+    public final String node;
 
     public LockID(String root, String serializedLID) {
       String[] sa = serializedLID.split("\\$");
@@ -128,7 +92,6 @@ public class ZooUtil {
     }
 
     public String serialize(String root) {
-
       return path.substring(root.length()) + "/" + node + "$" + Long.toHexString(eid);
     }
 
@@ -159,7 +122,7 @@ public class ZooUtil {
   /**
    * This method will delete a node and all its children.
    */
-  public static void recursiveDelete(ZooKeeper zooKeeper, String zPath, NodeMissingPolicy policy)
+  public static void recursiveDelete(ZooSession zooKeeper, String zPath, NodeMissingPolicy policy)
       throws KeeperException, InterruptedException {
     if (policy == NodeMissingPolicy.CREATE) {
       throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
@@ -212,124 +175,10 @@ public class ZooUtil {
     return fmt.format(timestamp);
   }
 
-  public static void digestAuth(ZooKeeper zoo, String secret) {
-    zoo.addAuthInfo("digest", ("accumulo:" + secret).getBytes(UTF_8));
-  }
-
-  /**
-   * Construct a new ZooKeeper client, retrying indefinitely if it doesn't work right away. The
-   * caller is responsible for closing instances returned from this method.
-   *
-   * @param clientName a convenient name for logging its connection state changes
-   * @param conf a convenient carrier of ZK connection information using Accumulo properties
-   */
-  public static ZooKeeper connect(String clientName, AccumuloConfiguration conf) {
-    return ZooUtil.connect(clientName, conf.get(Property.INSTANCE_ZK_HOST),
-        (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
-        conf.get(Property.INSTANCE_SECRET));
-  }
-
-  /**
-   * Construct a new ZooKeeper client, retrying indefinitely if it doesn't work right away. The
-   * caller is responsible for closing instances returned from this method.
-   *
-   * @param clientName a convenient name for logging its connection state changes
-   * @param connectString in the form of host1:port1,host2:port2/chroot/path
-   * @param timeout in milliseconds
-   * @param instanceSecret instance secret (may be null)
-   */
-  public static ZooKeeper connect(String clientName, String connectString, int timeout,
-      String instanceSecret) {
-    log.debug("Connecting to {} with timeout {} with auth", connectString, timeout);
-    final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
-    int connectTimeWait = Math.min(10_000, timeout);
-    boolean tryAgain = true;
-    long sleepTime = 100;
-    ZooKeeper zk = null;
-
-    var watcher = new ZooSessionWatcher(clientName);
-
-    long startTime = System.nanoTime();
-
-    while (tryAgain) {
-      try {
-        zk = new ZooKeeper(connectString, timeout, watcher);
-        // it may take some time to get connected to zookeeper if some of the servers are down
-        for (int i = 0; i < connectTimeWait / TIME_BETWEEN_CONNECT_CHECKS_MS && tryAgain; i++) {
-          if (zk.getState().isConnected()) {
-            if (instanceSecret != null) {
-              ZooUtil.digestAuth(zk, instanceSecret);
-            }
-            tryAgain = false;
-          } else {
-            UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
-          }
-        }
-
-      } catch (IOException e) {
-        if (e instanceof UnknownHostException) {
-          /*
-           * Make sure we wait at least as long as the JVM TTL for negative DNS responses
-           */
-          int ttl = AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e);
-          sleepTime = Math.max(sleepTime, (ttl + 1) * 1000L);
-        }
-        log.warn("Connection to zooKeeper failed, will try again in "
-            + String.format("%.2f secs", sleepTime / 1000.0), e);
-      } finally {
-        if (tryAgain && zk != null) {
-          try {
-            zk.close();
-          } catch (InterruptedException e) {
-            throw new AssertionError(
-                "ZooKeeper.close() shouldn't throw this; it exists only for backwards compatibility",
-                e);
-          }
-          zk = null;
-        }
-      }
-
-      long stopTime = System.nanoTime();
-      long duration = NANOSECONDS.toMillis(stopTime - startTime);
-
-      if (duration > 2L * timeout) {
-        throw new IllegalStateException("Failed to connect to zookeeper (" + connectString
-            + ") within 2x zookeeper timeout period " + timeout);
-      }
-
-      if (tryAgain) {
-        if (2L * timeout < duration + sleepTime + connectTimeWait) {
-          sleepTime = 2L * timeout - duration - connectTimeWait;
-        }
-        if (sleepTime < 0) {
-          connectTimeWait -= sleepTime;
-          sleepTime = 0;
-        }
-        UtilWaitThread.sleep(sleepTime);
-        if (sleepTime < 10000) {
-          sleepTime = sleepTime + (long) (sleepTime * RANDOM.get().nextDouble());
-        }
-      }
-    }
-
-    return zk;
-  }
-
-  public static void close(ZooKeeper zk) {
-    try {
-      if (zk != null) {
-        zk.close();
-      }
-    } catch (InterruptedException e) {
-      throw new AssertionError(
-          "ZooKeeper.close() shouldn't throw this; it exists only for backwards compatibility", e);
-    }
-  }
-
   /**
    * Given a zooCache and instanceId, look up the instance name.
    */
-  public static String getInstanceName(ZooKeeper zk, InstanceId instanceId) {
+  public static String getInstanceName(ZooSession zk, InstanceId instanceId) {
     requireNonNull(zk);
     var instanceIdBytes = requireNonNull(instanceId).canonical().getBytes(UTF_8);
     for (String name : getInstanceNames(zk)) {
@@ -341,7 +190,7 @@ public class ZooUtil {
     return null;
   }
 
-  private static List<String> getInstanceNames(ZooKeeper zk) {
+  private static List<String> getInstanceNames(ZooSession zk) {
     try {
       return new ZooReader(zk).getChildren(Constants.ZROOT + Constants.ZINSTANCES);
     } catch (InterruptedException e) {
@@ -352,7 +201,7 @@ public class ZooUtil {
     }
   }
 
-  private static byte[] getInstanceIdBytesFromName(ZooKeeper zk, String name) {
+  private static byte[] getInstanceIdBytesFromName(ZooSession zk, String name) {
     try {
       return new ZooReader(zk)
           .getData(Constants.ZROOT + Constants.ZINSTANCES + "/" + requireNonNull(name));
@@ -366,7 +215,7 @@ public class ZooUtil {
     }
   }
 
-  public static Map<String,InstanceId> getInstanceMap(ZooKeeper zk) {
+  public static Map<String,InstanceId> getInstanceMap(ZooSession zk) {
     Map<String,InstanceId> idMap = new TreeMap<>();
     getInstanceNames(zk).forEach(name -> {
       byte[] instanceId = getInstanceIdBytesFromName(zk, name);
@@ -377,7 +226,7 @@ public class ZooUtil {
     return idMap;
   }
 
-  public static InstanceId getInstanceId(ZooKeeper zk, String name) {
+  public static InstanceId getInstanceId(ZooSession zk, String name) {
     byte[] data = getInstanceIdBytesFromName(zk, name);
     if (data == null) {
       throw new IllegalStateException("Instance name " + name + " does not exist in ZooKeeper. "

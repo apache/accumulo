@@ -31,12 +31,11 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -104,11 +103,12 @@ public class ChangeSecret {
       throws Exception {
     var conf = context.getSiteConfiguration();
     try (var oldZk =
-        ZooUtil.connect(ChangeSecret.class.getSimpleName(), conf.get(Property.INSTANCE_ZK_HOST),
+        new ZooSession(ChangeSecret.class.getSimpleName() + ".verifyAccumuloIsDown(oldPassword)",
+            conf.get(Property.INSTANCE_ZK_HOST),
             (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), oldPassword)) {
       String root = context.getZooKeeperRoot();
       final List<String> ephemerals = new ArrayList<>();
-      recurse(new ZooReaderWriter(oldZk), root, (zoo, path) -> {
+      recurse(oldZk.asReaderWriter(), root, (zoo, path) -> {
         Stat stat = zoo.getStatus(path);
         if (stat.getEphemeralOwner() != 0) {
           ephemerals.add(path);
@@ -128,15 +128,17 @@ public class ChangeSecret {
       final InstanceId newInstanceId, String oldPass, String newPass) throws Exception {
     var conf = context.getSiteConfiguration();
     try (
-        var oldZk =
-            ZooUtil.connect(ChangeSecret.class.getSimpleName(), conf.get(Property.INSTANCE_ZK_HOST),
-                (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), oldPass);
-        var newZk =
-            ZooUtil.connect(ChangeSecret.class.getSimpleName(), conf.get(Property.INSTANCE_ZK_HOST),
-                (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), newPass)) {
+        var oldZk = new ZooSession(
+            ChangeSecret.class.getSimpleName() + ".rewriteZooKeeperInstance(oldPass)",
+            conf.get(Property.INSTANCE_ZK_HOST),
+            (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), oldPass);
+        var newZk = new ZooSession(
+            ChangeSecret.class.getSimpleName() + ".rewriteZooKeeperInstance(newPass)",
+            conf.get(Property.INSTANCE_ZK_HOST),
+            (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), newPass)) {
 
-      final var orig = new ZooReaderWriter(oldZk);
-      final var new_ = new ZooReaderWriter(newZk);
+      final var orig = oldZk.asReaderWriter();
+      final var new_ = newZk.asReaderWriter();
       String root = context.getZooKeeperRoot();
       recurse(orig, root, (zoo, path) -> {
         String newPath =
@@ -219,11 +221,11 @@ public class ChangeSecret {
 
   private static void deleteInstance(ServerContext context, String oldPass) throws Exception {
     var conf = context.getSiteConfiguration();
-    try (var oldZk =
-        ZooUtil.connect(ChangeSecret.class.getSimpleName(), conf.get(Property.INSTANCE_ZK_HOST),
-            (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), oldPass)) {
+    try (var oldZk = new ZooSession(ChangeSecret.class.getSimpleName() + ".deleteInstance()",
+        conf.get(Property.INSTANCE_ZK_HOST),
+        (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), oldPass)) {
 
-      var orig = new ZooReaderWriter(oldZk);
+      var orig = oldZk.asReaderWriter();
       orig.recursiveDelete(context.getZooKeeperRoot(), NodeMissingPolicy.SKIP);
     }
   }

@@ -39,11 +39,11 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.zookeeper.ZooKeeper;
 
 public class ServerInfo implements ClientInfo {
 
@@ -56,11 +56,9 @@ public class ServerInfo implements ClientInfo {
   // set things up using the config file, the instanceId from HDFS, and ZK for the instanceName
   static ServerInfo fromServerConfig(SiteConfiguration siteConfig) {
     final Function<ServerInfo,String> instanceNameFromZk = si -> {
-      var zk = si.getZooKeeperSupplier().get();
-      try {
+      try (var zk =
+          si.getZooKeeperSupplier(ServerInfo.class.getSimpleName() + ".getInstanceId()").get()) {
         return ZooUtil.getInstanceName(zk, si.getInstanceId());
-      } finally {
-        ZooUtil.close(zk);
       }
     };
     final Function<ServerInfo,
@@ -111,7 +109,7 @@ public class ServerInfo implements ClientInfo {
   private final Supplier<InstanceId> instanceId;
   private final Supplier<String> instanceName;
   private final Supplier<Credentials> credentials;
-  private final Supplier<ZooKeeper> zkSupplier;
+  private final Function<String,ZooSession> zooSessionForName;
 
   // set up everything to be lazily loaded with memoized suppliers, so if nothing is used, the cost
   // is low; to support different scenarios, plug in the functionality to retrieve certain items
@@ -141,7 +139,7 @@ public class ServerInfo implements ClientInfo {
     this.credentials =
         memoize(() -> SystemCredentials.get(getInstanceId(), getSiteConfiguration()));
 
-    this.zkSupplier = () -> ZooUtil.connect(getClass().getSimpleName(), getZooKeepers(),
+    this.zooSessionForName = name -> new ZooSession(name, getZooKeepers(),
         getZooKeepersSessionTimeOut(), getSiteConfiguration().get(Property.INSTANCE_SECRET));
 
     // from here on, set up the suppliers based on what was passed in, to support different cases
@@ -165,8 +163,8 @@ public class ServerInfo implements ClientInfo {
   }
 
   @Override
-  public Supplier<ZooKeeper> getZooKeeperSupplier() {
-    return zkSupplier;
+  public Supplier<ZooSession> getZooKeeperSupplier(String clientName) {
+    return () -> zooSessionForName.apply(clientName);
   }
 
   @Override

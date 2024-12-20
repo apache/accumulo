@@ -48,6 +48,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
@@ -55,7 +56,6 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
 import org.junit.jupiter.api.Test;
@@ -137,8 +137,8 @@ public class ZooInfoViewerTest {
   @Test
   public void instanceIdOutputTest() throws Exception {
     String uuid = UUID.randomUUID().toString();
-    ZooKeeper zk = createMock(ZooKeeper.class);
-    var context = MockServerContext.getWithZK(zk);
+    ZooSession zk = createMock(ZooSession.class);
+    var context = MockServerContext.getWithMockZK(zk);
     expect(context.getInstanceID()).andReturn(InstanceId.of(uuid)).anyTimes();
     var instanceName = "test";
     expect(zk.getChildren(eq(ZROOT + ZINSTANCES), isNull())).andReturn(List.of(instanceName))
@@ -176,8 +176,8 @@ public class ZooInfoViewerTest {
   @Test
   public void instanceNameOutputTest() throws Exception {
     String uuid = UUID.randomUUID().toString();
-    ZooKeeper zk = createMock(ZooKeeper.class);
-    var context = MockServerContext.getWithZK(zk);
+    ZooSession zk = createMock(ZooSession.class);
+    var context = MockServerContext.getWithMockZK(zk);
     var instanceName = "test";
     expect(zk.getChildren(eq(ZROOT + ZINSTANCES), isNull())).andReturn(List.of(instanceName))
         .once();
@@ -217,8 +217,8 @@ public class ZooInfoViewerTest {
   public void propTest() throws Exception {
     String uuid = UUID.randomUUID().toString();
     InstanceId iid = InstanceId.of(uuid);
-    ZooKeeper zk = createMock(ZooKeeper.class);
-    var context = MockServerContext.getWithZK(zk);
+    ZooSession zk = createMock(ZooSession.class);
+    var context = MockServerContext.getWithMockZK(zk);
     expect(context.getInstanceID()).andReturn(iid).anyTimes();
     var instanceName = "test";
     expect(zk.getChildren(eq(ZROOT + ZINSTANCES), isNull())).andReturn(List.of(instanceName))

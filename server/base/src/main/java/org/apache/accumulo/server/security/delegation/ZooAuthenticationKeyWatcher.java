@@ -23,12 +23,12 @@ import java.io.DataInputStream;
 import java.io.IOException;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
-import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +43,7 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
   private final ZooReader zk;
   private final String baseNode;
 
-  public ZooAuthenticationKeyWatcher(AuthenticationTokenSecretManager secretManager, ZooKeeper zk,
+  public ZooAuthenticationKeyWatcher(AuthenticationTokenSecretManager secretManager, ZooSession zk,
       String baseNode) {
     this.secretManager = secretManager;
     this.zk = new ZooReader(zk);

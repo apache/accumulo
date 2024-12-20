@@ -45,10 +45,10 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +62,7 @@ public class ZooStore<T> implements TStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
   private String path;
-  private ZooKeeper zk;
+  private ZooSession zk;
   private ZooReaderWriter zrw;
   private String lastReserved = "";
   private Set<Long> reserved;
@@ -103,11 +103,11 @@ public class ZooStore<T> implements TStore<T> {
     return Long.parseLong(txdir.split("_")[1], 16);
   }
 
-  public ZooStore(String path, ZooKeeper zk) throws KeeperException, InterruptedException {
+  public ZooStore(String path, ZooSession zk) throws KeeperException, InterruptedException {
 
     this.path = path;
     this.zk = zk;
-    this.zrw = new ZooReaderWriter(zk);
+    this.zrw = zk.asReaderWriter();
     this.reserved = new HashSet<>();
     this.deferred = new HashMap<>();
 
@@ -526,7 +526,7 @@ public class ZooStore<T> implements TStore<T> {
     verifyReserved(tid);
 
     try {
-      Stat stat = zk.exists(getTXPath(tid), false);
+      Stat stat = zk.exists(getTXPath(tid), null);
       return stat.getCtime();
     } catch (Exception e) {
       return 0;

@@ -25,10 +25,10 @@ import java.util.List;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
@@ -43,7 +43,7 @@ public class ZooReaderWriter extends ZooReader {
    * @param zk the ZooKeeper instance
    * @throws NullPointerException if zk is {@code null}
    */
-  public ZooReaderWriter(ZooKeeper zk) {
+  public ZooReaderWriter(ZooSession zk) {
     super(zk);
   }
 

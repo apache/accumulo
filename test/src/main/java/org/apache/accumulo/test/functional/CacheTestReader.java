@@ -29,7 +29,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -46,7 +46,7 @@ public class CacheTestReader {
     File myfile = new File(reportDir + "/" + UUID.randomUUID());
     myfile.deleteOnExit();
 
-    try (var zk = ZooUtil.connect(CacheTestReader.class.getSimpleName(), keepers, 30_000, null)) {
+    try (var zk = new ZooSession(CacheTestReader.class.getSimpleName(), keepers, 30_000, null)) {
       ZooCache zc = new ZooCache(zk);
 
       while (true) {

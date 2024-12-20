@@ -855,7 +855,7 @@ public class Admin implements KeywordExecutable {
     var zLockManagerPath = ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK);
     var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
     String fateZkPath = zkRoot + Constants.ZFATE;
-    var zk = context.getZooKeeper();
+    var zk = context.getZooSession();
     ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
 
     if (fateOpsCommand.cancel) {
@@ -933,7 +933,7 @@ public class Admin implements KeywordExecutable {
       ReadOnlyTStore<Admin> zs, ServiceLock.ServiceLockPath tableLocksPath)
       throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
 
-    var zk = context.getZooKeeper();
+    var zk = context.getZooSession();
     var transactions = admin.getStatus(zs, zk, tableLocksPath, null, null);
 
     // build id map - relies on unique ids for tables and namespaces
