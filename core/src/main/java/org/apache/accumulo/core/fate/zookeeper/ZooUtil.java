@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
@@ -70,7 +71,7 @@ public class ZooUtil {
     private final String clientName;
 
     public ZooSessionWatcher(String clientName) {
-      this.clientName = clientName;
+      this.clientName = clientName + "_" + UUID.randomUUID();
     }
 
     @Override
