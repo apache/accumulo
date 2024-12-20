@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.coordinator;
 
+import java.util.function.Supplier;
+
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.util.Halt;
@@ -31,17 +33,27 @@ public class CoordinatorLockWatcher implements ServiceLock.AccumuloLockWatcher {
 
   private volatile boolean acquiredLock = false;
   private volatile boolean failedToAcquireLock = false;
+  private final Supplier<Boolean> shutdown;
+
+  public CoordinatorLockWatcher(Supplier<Boolean> shutdownRequested) {
+    super();
+    shutdown = shutdownRequested;
+  }
 
   @Override
   public void lostLock(LockLossReason reason) {
-    Halt.halt("Coordinator lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+    if (shutdown.get()) {
+      LOG.warn("Coordinator lost lock (reason = {}), not exiting because shutdown requested.",
+          reason);
+    } else {
+      Halt.halt("Coordinator lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+    }
   }
 
   @Override
   public void unableToMonitorLockNode(final Exception e) {
     // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
     Halt.halt(-1, () -> LOG.error("FATAL: No longer able to monitor Coordinator lock node", e));
-
   }
 
   @Override
