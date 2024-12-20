@@ -29,8 +29,13 @@
 
           tableList = $('#tableList').DataTable({
             "ajax": {
-              "url": "/rest/tables",
-              "dataSrc": "table"
+              "url": "/rest-v2/tables",
+              "dataSrc": function (json) {
+                return Object.keys(json).map(function (key) {
+                  json[key].tablename = key;
+                  return json[key];
+                });
+              }
             },
             "stateSave": true,
             "columnDefs": [
@@ -42,30 +47,7 @@
                     data = bigNumberForQuantity(data);
                   return data;
                 }
-              },
-              {
-                "targets": "duration",
-                "render": function (data, type, row) {
-                  if (type === 'display') data = timeDuration(data);
-                  return data;
-                }
-              },
-              // ensure these 3 columns are sorted by the 2 numeric values that comprise the combined string
-              // instead of sorting them lexicographically by the string itself.
-              // Specifically: 'targets' column will use the values in the 'orderData' columns
-
-              // scan column will be sorted by number of running, then by number of queued
-              {
-                "targets": [10],
-                "type": "numeric",
-                "orderData": [13, 14]
-              },
-              // minor compaction column will be sorted by number of running, then by number of queued
-              {
-                "targets": [11],
-                "type": "numeric",
-                "orderData": [15, 16]
-              },
+              }
             ],
             "columns": [
               {
@@ -73,26 +55,24 @@
                 "type": "html",
                 "render": function (data, type, row, meta) {
                   if (type === 'display') {
-                    data = '<a href="/tables/' + row.tableId + '">' + row.tablename + '</a>';
+                    data = '<a href="/tables/' + row.tablename + '">' + row.tablename + '</a>';
                   }
                   return data;
                 }
               },
-              { "data": "tableState" },
-              { "data": "tablets", "orderSequence": ["desc", "asc"] },
-              { "data": "offlineTablets", "orderSequence": ["desc", "asc"] },
-              { "data": "recs", "orderSequence": ["desc", "asc"] },
-              { "data": "recsInMemory", "orderSequence": ["desc", "asc"] },
-              { "data": "ingestRate", "orderSequence": ["desc", "asc"] },
-              { "data": "entriesRead", "orderSequence": ["desc", "asc"] },
-              { "data": "entriesReturned", "orderSequence": ["desc", "asc"] },
-              { "data": "holdTime", "orderSequence": ["desc", "asc"] },
-              { "data": "scansCombo", "orderSequence": ["desc", "asc"] },
-              { "data": "minorCombo", "orderSequence": ["desc", "asc"] },
-              { "data": "runningScans", "orderSequence": ["desc", "asc"], "visible": false },
-              { "data": "queuedScans", "orderSequence": ["desc", "asc"], "visible": false},
-              { "data": "runningMinorCompactions", "orderSequence": ["desc", "asc"], "visible": false },
-              { "data": "queuedMinorCompactions", "orderSequence": ["desc", "asc"], "visible": false },
+              { "data": "totalTablets", "orderSequence": ["desc", "asc"] },
+              { "data": "totalEntries", "orderSequence": ["desc", "asc"] },
+              { "data": "totalSizeOnDisk", "orderSequence": ["desc", "asc"] },
+              { "data": "totalFiles", "orderSequence": ["desc", "asc"] },
+              { "data": "totalWals", "orderSequence": ["desc", "asc"] },
+              { "data": "availableAlways", "orderSequence": ["desc", "asc"] },
+              { "data": "availableOnDemand", "orderSequence": ["desc", "asc"] },
+              { "data": "availableNever", "orderSequence": ["desc", "asc"] },
+              { "data": "totalAssignedTablets", "orderSequence": ["desc", "asc"] },
+              { "data": "totalAssignedToDeadServerTablets", "orderSequence": ["desc", "asc"] },
+              { "data": "totalHostedTablets", "orderSequence": ["desc", "asc"] },
+              { "data": "totalSuspendedTablets", "orderSequence": ["desc", "asc"] },
+              { "data": "totalUnassignedTablets", "orderSequence": ["desc", "asc"] }
             ]
           });
         });
@@ -118,18 +98,20 @@
           <caption><span class="table-caption">${tablesTitle}</span><br />
           <thead>
             <tr>
-              <th>Table&nbsp;Name</th>
-              <th>State</th>
+              <th title="Table Name">Table&nbsp;Name</th>
               <th title="Tables are broken down into ranges of rows called tablets." class="big-num">Tablets</th>
-              <th title="Tablets unavailable for query or ingest. May be a transient condition when tablets are moved for balancing." class="big-num">Offline</th>
               <th title="Key/value pairs over each instance, table or tablet." class="big-num">Entries</th>
-              <th title="The total number of key/value pairs stored in memory and not yet written to disk." class="big-num">In&nbsp;Mem</th>
-              <th title="The rate of Key/Value pairs inserted. (Note that deletes are considered inserted)" class="big-num">Ingest</th>
-              <th title="The rate of Key/Value pairs read on the server side. Not all key values read may be returned to client because of filtering." class="big-num">Read</th>
-              <th title="The rate of Key/Value pairs returned to clients during queries. This is not the number of scans." class="big-num">Returned</th>
-              <th title="The amount of time live ingest operations (mutations, batch writes) have been waiting for the tserver to free up memory." class="duration">Hold&nbsp;Time</th>
-              <th title="Running scans. The number queued waiting are in parentheses.">Scans</th>
-              <th title="Minor Compactions. The number of tablets waiting for compaction are in parentheses.">MinC</th>
+              <th title="Total size on disk." class="big-num">Size on Disk</th>
+              <th title="Total number of files." class="big-num">Files</th>
+              <th title="Total number of WALs." class="big-num">WALs</th>
+              <th title="Number of tablets that are always hosted." class="big-num">Always Available</th>
+              <th title="Number of tablets that are hosted on demand." class="big-num">On Demand</th>
+              <th title="Number of tablets that are never hosted." class="big-num">Never Available</th>
+              <th title="Total assigned tablets." class="big-num">Assigned Tablets</th>
+              <th title="Tablets assigned to dead servers." class="big-num">Assigned to Dead Servers</th>
+              <th title="Number of tablets that are currently hosted." class="big-num">Hosted Tablets</th>
+              <th title="Number of suspended tablets." class="big-num">Suspended Tablets</th>
+              <th title="Number of unassigned tablets." class="big-num">Unassigned Tablets</th>
             </tr>
           </thead>
           <tbody></tbody>
