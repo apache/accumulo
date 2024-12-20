@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,7 +28,9 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.VerifyIngest;
@@ -58,16 +62,30 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
   @BeforeEach
   public void alterConfig() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      final int initialTserverCount =
+          client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size();
+      log.info("Tserver count: {}", initialTserverCount);
+      Timer timer = Timer.startNew();
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).isEmpty(),
+          120_000);
+      log.info("Took {} ms to stop all tservers", timer.elapsed(MILLISECONDS));
+      timer.restart();
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      Wait.waitFor(() -> client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size()
+          < initialTserverCount, 120_000);
+      log.info("Took {} ms to start all tservers", timer.elapsed(MILLISECONDS));
 
       FileSystem fs = cluster.getFileSystem();
       testDir = new Path(cluster.getTemporaryPath(), "testmf");
       fs.deleteOnExit(testDir);
-      FunctionalTestUtils.createRFiles(client, fs, testDir.toString(), ROWS, SPLITS, 8);
-      FileStatus[] stats = fs.listStatus(testDir);
 
-      log.info("Number of generated files: {}", stats.length);
+      timer.restart();
+      FunctionalTestUtils.createRFiles(client, fs, testDir.toString(), ROWS, SPLITS, 8);
+      long elapsed = timer.elapsed(MILLISECONDS);
+      FileStatus[] stats = fs.listStatus(testDir);
+      log.info("Generated {} files in {} ms", stats.length, elapsed);
     }
   }
 
@@ -82,23 +100,34 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
   @Test
   public void testBulkSplitOptimization() throws Exception {
+    log.info("Starting BulkSplitOptimizationIT test");
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
       final String tableName = getUniqueNames(1)[0];
       Map<String,String> tableProps = new HashMap<>();
       tableProps.put(Property.TABLE_MAJC_RATIO.getKey(), "1000");
       tableProps.put(Property.TABLE_FILE_MAX.getKey(), "1000");
       tableProps.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "1G");
+
+      log.info("Creating table {}", tableName);
+      Timer timer = Timer.startNew();
       c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(tableProps)
           .withInitialTabletAvailability(TabletAvailability.HOSTED));
+      log.info("Created table in {} ms. Starting bulk import", timer.elapsed(MILLISECONDS));
 
-      log.info("Starting bulk import");
+      timer.restart();
       c.tableOperations().importDirectory(testDir.toString()).to(tableName).load();
+      log.info("Imported into table {} in {} ms", tableName, timer.elapsed(MILLISECONDS));
 
+      timer.restart();
       FunctionalTestUtils.checkSplits(c, tableName, 0, 0);
       FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 100, 100);
+      log.info("Checked splits and rfiles in {} ms", timer.elapsed(MILLISECONDS));
 
       log.info("Lowering split threshold to 100K to initiate splits");
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "100K");
+
+      timer.restart();
 
       // wait until over split threshold -- should be 78 splits
       Wait.waitFor(() -> {
@@ -113,6 +142,8 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
         }
         return true;
       });
+
+      log.info("Took {} ms for split count to reach expected range", timer.elapsed(MILLISECONDS));
 
       VerifyParams params = new VerifyParams(getClientProps(), tableName, ROWS);
       params.timestamp = 1;
