@@ -43,6 +43,7 @@ import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
@@ -59,7 +60,7 @@ import org.junit.jupiter.api.Test;
 
 public class ScanServerTest {
 
-  public class TestScanServer extends ScanServer {
+  public class TestScanServer extends ScanServer implements ServerProcessService.Iface {
 
     private KeyExtent extent;
     private TabletResolver resolver;

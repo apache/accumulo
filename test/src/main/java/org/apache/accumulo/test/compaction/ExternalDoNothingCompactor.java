@@ -31,6 +31,7 @@ import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.FileCompactor;
@@ -39,7 +40,8 @@ import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceeded
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ExternalDoNothingCompactor extends Compactor implements Iface {
+public class ExternalDoNothingCompactor extends Compactor
+    implements Iface, ServerProcessService.Iface {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalDoNothingCompactor.class);
 

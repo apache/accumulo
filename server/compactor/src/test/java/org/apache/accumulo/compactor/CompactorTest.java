@@ -51,6 +51,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.Halt;
@@ -184,7 +185,7 @@ public class CompactorTest {
 
   }
 
-  public class SuccessfulCompactor extends Compactor {
+  public class SuccessfulCompactor extends Compactor implements ServerProcessService.Iface {
 
     private final Logger LOG = LoggerFactory.getLogger(SuccessfulCompactor.class);
 
@@ -295,7 +296,7 @@ public class CompactorTest {
 
   }
 
-  public class FailedCompactor extends SuccessfulCompactor {
+  public class FailedCompactor extends SuccessfulCompactor implements ServerProcessService.Iface {
 
     FailedCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci, CompactorServerOpts compactorServerOpts) {
@@ -310,7 +311,8 @@ public class CompactorTest {
     }
   }
 
-  public class InterruptedCompactor extends SuccessfulCompactor {
+  public class InterruptedCompactor extends SuccessfulCompactor
+      implements ServerProcessService.Iface {
 
     InterruptedCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci, CompactorServerOpts compactorServerOpts) {
