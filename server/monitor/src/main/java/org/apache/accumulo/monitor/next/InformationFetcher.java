@@ -264,10 +264,10 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
     while (true) {
 
-      // Don't fetch new data if there are no connections
-      // On an initial connection, no data may be displayed
-      // If a connection has not been made in a while, stale data may be displayed
-      // Only refresh every 5s (old monitor logic)
+      // Don't fetch new data if there are no connections.
+      // On an initial connection, no data may be displayed.
+      // If a connection has not been made in a while, stale data may be displayed.
+      // Only refresh every 5s (old monitor logic).
       while (!newConnectionEvent.get() && connectionCount.get() == 0
           && NanoTime.millisElapsed(refreshTime, NanoTime.now()) > 5000) {
         Thread.onSpinWait();
@@ -302,7 +302,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
           ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);
       long allFuturesAdded = NanoTime.now();
       boolean tookToLong = false;
-      while (futures.size() > 0) {
+      while (!futures.isEmpty()) {
 
         if (NanoTime.millisElapsed(allFuturesAdded, NanoTime.now()) > monitorFetchTimeout) {
           tookToLong = true;
@@ -322,7 +322,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
             }
           }
         }
-        if (futures.size() > 0) {
+        if (!futures.isEmpty()) {
           UtilWaitThread.sleep(3_000);
         }
       }

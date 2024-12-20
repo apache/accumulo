@@ -18,12 +18,6 @@
  */
 package org.apache.accumulo.server.metrics;
 
-import static org.apache.accumulo.core.metrics.MetricsInfo.HOST_TAG_KEY;
-import static org.apache.accumulo.core.metrics.MetricsInfo.INSTANCE_NAME_TAG_KEY;
-import static org.apache.accumulo.core.metrics.MetricsInfo.PORT_TAG_KEY;
-import static org.apache.accumulo.core.metrics.MetricsInfo.PROCESS_NAME_TAG_KEY;
-import static org.apache.accumulo.core.metrics.MetricsInfo.RESOURCE_GROUP_TAG_KEY;
-
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +25,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.metrics.thrift.MetricResponse;
@@ -53,7 +48,7 @@ import io.micrometer.core.instrument.distribution.ValueAtPercentile;
  */
 public class MetricResponseWrapper extends MetricResponse {
 
-  private class CommonRefs {
+  private static class CommonRefs {
     int nameRef;
     int typeRef;
     int tagsRef;
@@ -81,11 +76,8 @@ public class MetricResponseWrapper extends MetricResponse {
    * Remove tags from the Metric that duplicate other information found in the MetricResponse
    */
   private List<Tag> reduceTags(List<Tag> tags, List<Tag> extraTags) {
-    return Stream.concat(tags.stream(), extraTags.stream()).filter(t -> {
-      return !t.getKey().equals(INSTANCE_NAME_TAG_KEY) && !t.getKey().equals(PROCESS_NAME_TAG_KEY)
-          && !t.getKey().equals(RESOURCE_GROUP_TAG_KEY) && !t.getKey().equals(HOST_TAG_KEY)
-          && !t.getKey().equals(PORT_TAG_KEY);
-    }).collect(Collectors.toList());
+    return Stream.concat(tags.stream(), extraTags.stream())
+        .filter(t -> !MetricsInfo.allTags.contains(t.getKey())).collect(Collectors.toList());
   }
 
   private void parseAndCreateCommonInfo(Meter.Id id, List<Tag> extraTags) {

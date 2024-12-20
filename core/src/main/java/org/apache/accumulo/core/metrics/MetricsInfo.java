@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import com.google.common.net.HostAndPort;
 
@@ -30,11 +31,14 @@ import io.micrometer.core.instrument.Tag;
 
 public interface MetricsInfo {
 
-  public static final String INSTANCE_NAME_TAG_KEY = "instance.name";
-  public static final String PROCESS_NAME_TAG_KEY = "process.name";
-  public static final String RESOURCE_GROUP_TAG_KEY = "resource.group";
-  public static final String HOST_TAG_KEY = "host";
-  public static final String PORT_TAG_KEY = "port";
+  String INSTANCE_NAME_TAG_KEY = "instance.name";
+  String PROCESS_NAME_TAG_KEY = "process.name";
+  String RESOURCE_GROUP_TAG_KEY = "resource.group";
+  String HOST_TAG_KEY = "host";
+  String PORT_TAG_KEY = "port";
+
+  Set<String> allTags = Set.of(INSTANCE_NAME_TAG_KEY, PROCESS_NAME_TAG_KEY, RESOURCE_GROUP_TAG_KEY,
+      HOST_TAG_KEY, PORT_TAG_KEY);
 
   /**
    * Convenience method to create tag name / value pair for the instance name

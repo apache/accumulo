@@ -79,8 +79,8 @@ public class Endpoints {
   @Description("Returns a list of the available endpoints and a description for each")
   public Map<String,String> getEndpoints(@Context HttpServletRequest request) {
 
-    /**
-     * Attemtped to use OpenAPI annotation for use with Swagger-UI, but ran into potential
+    /*
+     * Attempted to use OpenAPI annotation for use with Swagger-UI, but ran into potential
      * dependency convergence issues as we were using newer version of some of the same
      * dependencies.
      */
@@ -159,7 +159,7 @@ public class Endpoints {
     return new InstanceSummary(monitor.getContext().getInstanceName(),
         monitor.getContext().instanceOperations().getInstanceId().canonical(),
         Set.of(monitor.getContext().getZooKeepers().split(",")),
-        monitor.getContext().getVolumeManager().getVolumes().stream().map(v -> v.toString())
+        monitor.getContext().getVolumeManager().getVolumes().stream().map(Object::toString)
             .collect(Collectors.toSet()),
         Constants.VERSION);
   }

@@ -172,18 +172,11 @@ public class CompactionCoordinator
 
     private static final int UPPER_LIMIT = 50;
 
+    Comparator<RunningCompaction> oldestFirstComparator =
+        Comparator.comparingLong(RunningCompaction::getStartTime)
+            .thenComparing(rc -> rc.getJob().getExternalCompactionId());
     private final ConcurrentSkipListSet<RunningCompaction> compactions =
-        new ConcurrentSkipListSet<>(new Comparator<RunningCompaction>() {
-          @Override
-          public int compare(RunningCompaction rc1, RunningCompaction rc2) {
-            int result = Long.compare(rc1.getStartTime(), rc2.getStartTime());
-            if (result == 0) {
-              result = rc1.getJob().getExternalCompactionId()
-                  .compareTo(rc2.getJob().getExternalCompactionId());
-            }
-            return result;
-          }
-        });
+        new ConcurrentSkipListSet<>(oldestFirstComparator);
 
     // Tracking size here as ConcurrentSkipListSet.size() is not constant time
     private final AtomicInteger size = new AtomicInteger(0);
@@ -381,9 +374,7 @@ public class CompactionCoordinator
         update.setState(TCompactionState.IN_PROGRESS);
         update.setMessage(RESTART_UPDATE_MSG);
         rc.addUpdate(System.currentTimeMillis(), update);
-        if (!rc.isStartTimeSet()) {
-          rc.setStartTime(this.coordinatorStartTime);
-        }
+        rc.setStartTime(this.coordinatorStartTime);
         RUNNING_CACHE.put(ExternalCompactionId.of(rc.getJob().getExternalCompactionId()), rc);
         LONG_RUNNING_COMPACTIONS_BY_RG
             .computeIfAbsent(rc.getGroupName(), k -> new TimeOrderedRunningCompactionSet()).add(rc);
@@ -1069,8 +1060,10 @@ public class CompactionCoordinator
         case CANCELLED:
         case FAILED:
         case SUCCEEDED:
-          LONG_RUNNING_COMPACTIONS_BY_RG
-              .getOrDefault(rc.getGroupName(), new TimeOrderedRunningCompactionSet()).remove(rc);
+          var compactionSet = LONG_RUNNING_COMPACTIONS_BY_RG.get(rc.getGroupName());
+          if (compactionSet != null) {
+            compactionSet.remove(rc);
+          }
           break;
         case ASSIGNED:
         case IN_PROGRESS:
@@ -1086,8 +1079,10 @@ public class CompactionCoordinator
     var rc = RUNNING_CACHE.remove(ecid);
     if (rc != null) {
       completed.put(ecid, rc);
-      LONG_RUNNING_COMPACTIONS_BY_RG
-          .getOrDefault(rc.getGroupName(), new TimeOrderedRunningCompactionSet()).remove(rc);
+      var compactionSet = LONG_RUNNING_COMPACTIONS_BY_RG.get(rc.getGroupName());
+      if (compactionSet != null) {
+        compactionSet.remove(rc);
+      }
     }
   }
 
