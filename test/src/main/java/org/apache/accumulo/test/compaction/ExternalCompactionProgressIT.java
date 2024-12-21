@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
@@ -183,7 +183,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           .getCompactions().values().iterator().next();
       RunningCompactionInfo updatedCompactionInfo = new RunningCompactionInfo(updatedCompaction);
 
-      final Duration reportedCompactionDuration = Duration.ofNanos(updatedCompactionInfo.duration);
+      final Duration reportedCompactionDuration = Duration.ofMillis(updatedCompactionInfo.duration);
       final Duration measuredCompactionDuration =
           Duration.ofNanos(System.nanoTime() - compactionStartTime);
       final Duration coordinatorAge = Duration.ofNanos(System.nanoTime() - coordinatorRestartTime);
@@ -432,7 +432,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
         RunningCompactionInfo rci = new RunningCompactionInfo(ec);
         RunningCompactionInfo previousRci = runningMap.put(ecid, rci);
         log.debug("ECID {} has been running for {} seconds", ecid,
-            NANOSECONDS.toSeconds(rci.duration));
+            MILLISECONDS.toSeconds(rci.duration));
         if (previousRci == null) {
           log.debug("New ECID {} with inputFiles: {}", ecid, rci.numFiles);
         } else {

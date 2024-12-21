@@ -75,7 +75,7 @@ public class RunningCompactionInfo {
     if (lastEntry != null) {
       last = lastEntry.getValue();
       updateMillis = lastEntry.getKey();
-      duration = last.getCompactionAgeNanos();
+      duration = NANOSECONDS.toMillis(last.getCompactionAgeNanos());
     } else {
       log.debug("No updates found for {}", ecid);
       lastUpdate = 1;
@@ -84,7 +84,7 @@ public class RunningCompactionInfo {
       duration = 0;
       return;
     }
-    long durationMinutes = NANOSECONDS.toMinutes(duration);
+    long durationMinutes = MILLISECONDS.toMinutes(duration);
     if (durationMinutes > 15) {
       log.warn("Compaction {} has been running for {} minutes", ecid, durationMinutes);
     }
