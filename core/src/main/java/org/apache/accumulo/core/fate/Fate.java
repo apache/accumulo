@@ -250,7 +250,7 @@ public class Fate<T> {
       // resize the pool if the property changed
       ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
       // If the pool grew, then ensure that there is a TransactionRunner for each thread
-      int needed = conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE) - pool.getQueue().size();
+      int needed = conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE) - pool.getActiveCount();
       if (needed > 0) {
         for (int i = 0; i < needed; i++) {
           try {
