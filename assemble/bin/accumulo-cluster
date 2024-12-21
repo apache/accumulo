@@ -28,46 +28,57 @@
 
 function print_usage() {
   cat <<EOF
-Usage: accumulo-cluster <command> (<argument> ...) [<option> ...]
+Usage: accumulo-cluster <command> [<option> ...]
 
 Options:
-  --dry-run                  Prints information and commands, but does not execute them
+  General options:
+    --dry-run                Prints information and commands, but does not execute them
+    --local                  Operates on matching local services only (no SSH)
+
+  Service type selection options (if none are used, all service types are selected):
+    --manager                Selects the manager service (oversees cluster operations)
+    --gc                     Selects the gc service (cleans up unused files)
+    --monitor                Selects the monitor web service (shows cluster information)
+    --compaction-coordinator Selects the compaction-coordinator service (external compactions)
+    --tservers               Selects the tablet server services (read/write operations on tablets)
+    --sservers[=group]       Selects the scan server services (read-only eventually consistent scans)
+    --compactors[=group]     Selects the compactor services (external compactions)
+    --no-tservers            Deprecated. Selects service types except tservers (for backwards compatibility)
 
 Commands:
-  create-config              Creates cluster config
-  start-non-tservers         Deprecated. Alias for "start --manager --gc --monitor --compaction-coordinator --sservers --compactors"
-  start-servers              Deprecated. Alias for "start"
-  stop-servers               Deprecated. Alias for "stop"
-  start-tservers             Deprecated. Alias for "start --tservers"
-  stop-tservers              Deprecated. Alias for "stop --tservers"
-  start-here                 Deprecated. Alias for "start --local --all"
-  stop-here                  Deprecated. Alias for "stop --local --all"
-  restart [--local] [--all | [--manager] [--gc] [--monitor] [--compaction-coordinator] [--tservers] [--sservers[=group]] [--compactors[=group]]
-                             Restarts Accumulo cluster services
-  start [--local] [--all | [--manager] [--gc] [--monitor] [--compaction-coordinator] [--tservers] [--sservers[=group]] [--compactors[=group]]
-                             Starts Accumulo cluster services
-  stop [--local] [--all | [--manager] [--gc] [--monitor] [--compaction-coordinator] [--tservers] [--sservers[=group]] [--compactors[=group]]
-                             Stops Accumulo cluster services
-  kill [--local] [--all | [--manager] [--gc] [--monitor] [--compaction-coordinator] [--tservers] [--sservers[=group]] [--compactors[=group]]
-                             Kills Accumulo cluster services
+  create-config              Creates cluster config (ignores service selection options)
+  start                      Starts Accumulo cluster services
+  stop                       Stops Accumulo cluster services
+  restart                    Restarts Accumulo cluster services
+  kill                       Kills Accumulo cluster services
 
-  Examples:
+  Deprecated commands:
+    start-non-tservers       Deprecated. Alias for "start --no-tservers"
+    start-servers            Deprecated. Alias for "start"
+    stop-servers             Deprecated. Alias for "stop"
+    start-tservers           Deprecated. Alias for "start --tservers"
+    stop-tservers            Deprecated. Alias for "stop --tservers"
+    start-here               Deprecated. Alias for "start --local"
+    stop-here                Deprecated. Alias for "stop --local"
 
-  accumulo-cluster start                                   # start all servers
-  accumulo-cluster start --dry-run                         # print debug information and commands to be executed
-  accumulo-cluster start --local                           # start all local services
-  accumulo-cluster start --local --manager                 # start local manager services
-  accumulo-cluster start --tservers                        # start all tservers
-  accumulo-cluster start --sservers=group1                 # start all group1 sservers
-  accumulo-cluster start --local --manager --tservers      # Start the local manager and local tservers
+Examples:
+  accumulo-cluster start                              # start all servers
+  accumulo-cluster start --dry-run                    # print debug information and commands to be executed
+  accumulo-cluster start --local                      # start all local services
+  accumulo-cluster start --local --manager            # start local manager services
+  accumulo-cluster start --tservers                   # start all tservers
+  accumulo-cluster start --sservers=group1            # start all group1 sservers
+  accumulo-cluster start --local --manager --tservers # Start the local manager and local tservers
 
 EOF
 }
 
 function parse_args() {
+  local originalArgs=("$@")
+
   DEBUG=0
   ARG_LOCAL=0
-  ARG_ALL=0
+  ARG_ALL=1
   ARG_MANAGER=0
   ARG_GC=0
   ARG_MONITOR=0
@@ -86,7 +97,7 @@ function parse_args() {
     exit 2
   fi
 
-  if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,all,local,manager,gc,monitor,compaction-coordinator,no-tservers,tservers,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
+  if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,local,manager,gc,monitor,compaction-coordinator,no-tservers,tservers,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
     print_usage
     exit 1
   fi
@@ -97,11 +108,8 @@ function parse_args() {
     case "$1" in
       --dry-run)
         DEBUG=1
-        debug "args: $PARSE_OUTPUT"
-        shift 1
-        ;;
-      --all)
-        ARG_ALL=1
+        debug "original args: $(quote "${originalArgs[@]}")"
+        debug "parsed args: $PARSE_OUTPUT"
         shift 1
         ;;
       --local)
@@ -109,36 +117,32 @@ function parse_args() {
         shift 1
         ;;
       --manager)
+        ARG_ALL=0
         ARG_MANAGER=1
         shift 1
         ;;
       --gc)
+        ARG_ALL=0
         ARG_GC=1
         shift 1
         ;;
       --monitor)
+        ARG_ALL=0
         ARG_MONITOR=1
         shift 1
         ;;
       --compaction-coordinator)
+        ARG_ALL=0
         ARG_COORDINATOR=1
-        shift 1
-        ;;
-      --no-tservers)
-        echo "The --no-tservers option is deprecated. Please specify the servers you wish to manage instead"
-        ARG_MANAGER=1
-        ARG_GC=1
-        ARG_MONITOR=1
-        ARG_COORDINATOR=1
-        ARG_SSERVER=1
-        ARG_COMPACTOR=1
         shift 1
         ;;
       --tservers)
+        ARG_ALL=0
         ARG_TSERVER=1
         shift 1
         ;;
       --sservers)
+        ARG_ALL=0
         ARG_SSERVER=1
         if [[ -n $2 ]]; then
           ARG_SSERVER_GROUP=$2
@@ -146,11 +150,23 @@ function parse_args() {
         shift 2
         ;;
       --compactors)
+        ARG_ALL=0
         ARG_COMPACTOR=1
         if [[ -n $2 ]]; then
           ARG_COMPACTOR_GROUP=$2
         fi
         shift 2
+        ;;
+      --no-tservers)
+        echo "The --no-tservers option is deprecated. Please specify the servers you wish to manage instead"
+        ARG_ALL=0
+        ARG_MANAGER=1
+        ARG_GC=1
+        ARG_MONITOR=1
+        ARG_COORDINATOR=1
+        ARG_SSERVER=1
+        ARG_COMPACTOR=1
+        shift 1
         ;;
       --)
         shift
@@ -164,22 +180,16 @@ function parse_args() {
     esac
   done
 
-  # All and any of the others are mutually exclusive
-  if [[ $ARG_ALL == 1 && ($ARG_MANAGER == 1 ||
-    $ARG_GC == 1 || $ARG_MONITOR == 1 || $ARG_COORDINATOR == 1 || $ARG_TSERVER == 1 ||
-    $ARG_SSERVER == 1 || $ARG_COMPACTOR == 1) ]]; then
-    echo "The --all option cannot be used with other options"
-    print_usage
-    exit 1
+  if [[ $# -eq 0 ]]; then
+    invalid_args "<command> cannot be empty"
+  elif [[ $# -ne 1 ]]; then
+    # use getopt to display the remaining non-option parameters quoted for readability
+    local remaining
+    remaining="$(getopt -o "" -- "$@")"
+    invalid_args "Only one <command> is allowed, but found:${remaining#*--}"
   fi
-
-  # Handle the case where no args were passed
-  if [[ $ARG_MANAGER == 0 && $ARG_GC == 0 &&
-    $ARG_MONITOR == 0 && $ARG_COORDINATOR == 0 && $ARG_TSERVER == 0 &&
-    $ARG_SSERVER == 0 && $ARG_COMPACTOR == 0 ]]; then
-    ARG_ALL=1
-  fi
-
+  ARG_CMD=$1
+  debug "ARG_CMD=$ARG_CMD"
   debug "ARG_ALL=$ARG_ALL"
   debug "ARG_LOCAL=$ARG_LOCAL"
   debug "ARG_MANAGER=$ARG_MANAGER"
@@ -193,16 +203,6 @@ function parse_args() {
   debug "ARG_COMPACTOR=$ARG_COMPACTOR"
   debug "ARG_COMPACTOR_GROUP=$ARG_COMPACTOR_GROUP"
 
-  if [[ $# -eq 0 ]]; then
-    invalid_args "<command> cannot be empty"
-  elif [[ $# -ne 1 ]]; then
-    # use getopt to display the remaining non-option parameters quoted for readability
-    local remaining
-    remaining="$(getopt -o "" -- "$@")"
-    invalid_args "Only one <command> is allowed, but found:${remaining#*--}"
-  fi
-  cmd=$1
-  debug "cmd=$cmd"
 }
 
 function invalid_args() {
@@ -226,9 +226,23 @@ function debug() {
   isDebug && echo "DEBUG: $*"
 }
 
+function quote() {
+  # use getopt to quote, because it uses quotes, rather than escaping spaces, and that's easier to
+  # read; POSIXLY_CORRECT makes it ignore unrecognized options, so it still quotes things that start
+  # with '-', but it only does this after the first non-option argument, so we provide an empty
+  # string to trick it, and then we remove it in the regex that removes " -- '' " from the front of
+  # the parsed output, which is now quoted
+  local quoted
+  quoted=$(POSIXLY_CORRECT=1 getopt -o "" -- '' "$@") &&
+    [[ $quoted =~ ^[[:space:]]*--[[:space:]]*\'\'[[:space:]]*(.*)$ ]] && echo "${BASH_REMATCH[1]}" &&
+    return
+  echo "Script error - unable to quote: $*"
+  exit 1
+}
+
 # call debug to print, or execute if debug is off
 function debugOrRun() {
-  debug "$(printf "%q " "$@")" || "$@"
+  debug "$(quote "$@")" || "$@"
 }
 
 function canRunOnHost() {
@@ -473,7 +487,7 @@ function control_services() {
       tserver_groups=$ARG_TSERVER_GROUP
     fi
     for group in $tserver_groups; do
-      echo "${cmd}ing tablet servers for group $group"
+      echo "Executing '$ARG_CMD' on tablet servers for group '$group'"
       count=1
       hosts="TSERVER_HOSTS_$group"
       for tserver in ${!hosts}; do
@@ -534,7 +548,7 @@ function control_services() {
       sserver_groups=$ARG_SSERVER_GROUP
     fi
     for group in $sserver_groups; do
-      echo "${cmd}ing scan servers for group $group"
+      echo "Executing '$ARG_CMD' on scan servers for group named '$group'"
       hosts="SSERVER_HOSTS_$group"
       for sserver in ${!hosts}; do
         if canRunOnHost "$sserver"; then
@@ -552,7 +566,7 @@ function control_services() {
       compactor_groups=$ARG_COMPACTOR_GROUP
     fi
     for group in $compactor_groups; do
-      echo "${cmd}ing compactors for group $group"
+      echo "Executing '$ARG_CMD' on compactors for group named '$group'"
       hosts="COMPACTOR_HOSTS_$group"
       for compactor in ${!hosts}; do
         if canRunOnHost "$compactor"; then
@@ -573,9 +587,10 @@ function control_services() {
 
 function main() {
 
-  local SOURCE
+  parse_args "$@"
 
   # Resolve base directory
+  local SOURCE
   SOURCE="${BASH_SOURCE[0]}"
   while [[ -L $SOURCE ]]; do
     bin="$(cd -P "$(dirname "$SOURCE")" && pwd)"
@@ -589,12 +604,10 @@ function main() {
   accumulo_cmd="$bin/accumulo"
   SSH=('ssh' '-qnf' '-o' 'ConnectTimeout=2')
 
-  parse_args "$@"
-
   mapfile -t LOCAL_HOST_ADDRESSES < <(get_localhost_addresses)
   isDebug && echo "DEBUG: LOCAL_HOST_ADDRESSES=${LOCAL_HOST_ADDRESSES[*]}"
 
-  case "$cmd" in
+  case "$ARG_CMD" in
     create-config)
       if [[ -f "$conf"/cluster.yaml ]]; then
         echo "ERROR : $conf/cluster.yaml already exists, not overwriting"
@@ -678,7 +691,7 @@ EOF
       control_services kill
       ;;
     start-non-tservers)
-      echo "'$cmd' is deprecated. Please specify the servers you wish to start instead"
+      echo "'$ARG_CMD' is deprecated. Please specify the servers you wish to start instead"
       parse_config
       ARG_MANAGER=1
       ARG_GC=1
@@ -689,27 +702,27 @@ EOF
       control_services start
       ;;
     start-servers)
-      echo "'$cmd' is deprecated. Please use 'start' instead"
+      echo "'$ARG_CMD' is deprecated. Please use 'start' instead"
       parse_config
       control_services start
       ;;
     stop-servers)
-      echo "'$cmd' is deprecated. Please use 'stop' instead"
+      echo "'$ARG_CMD' is deprecated. Please use 'stop' instead"
       parse_config
       control_services stop
       ;;
     start-tservers)
-      echo "'$cmd' is deprecated. Please use 'start --tservers' instead"
+      echo "'$ARG_CMD' is deprecated. Please use 'start --tservers' instead"
       ARG_TSERVER=1
       control_services start
       ;;
     stop-tservers)
-      echo "'$cmd' is deprecated. Please use 'stop --tservers' instead"
+      echo "'$ARG_CMD' is deprecated. Please use 'stop --tservers' instead"
       ARG_TSERVER=1
       control_services stop
       ;;
     *)
-      invalid_args "'$cmd' is an invalid <command>"
+      invalid_args "'$ARG_CMD' is an invalid <command>"
       ;;
   esac
 }
