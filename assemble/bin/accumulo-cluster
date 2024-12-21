@@ -26,7 +26,7 @@
 #                                and addresses to override the default lookups
 #
 
-function print_usage {
+function print_usage() {
   cat <<EOF
 Usage: accumulo-cluster <command> (<argument> ...) [<option> ...]
 
@@ -64,7 +64,7 @@ Commands:
 EOF
 }
 
-function parse_args {
+function parse_args() {
   DEBUG=0
   ARG_LOCAL=0
   ARG_ALL=0
@@ -78,6 +78,13 @@ function parse_args {
   ARG_SSERVER_GROUP=""
   ARG_COMPACTOR=0
   ARG_COMPACTOR_GROUP=""
+
+  # the correct version of getopt will always exit with exit code 4 when provided the `-T` flag
+  getopt -T &>/dev/null
+  if (($? != 4)); then
+    echo 'Missing util-linux (or equivalent) version of getopt. Unable to continue.'
+    exit 2
+  fi
 
   if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,all,local,manager,gc,monitor,compaction-coordinator,no-tservers,tservers,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
     print_usage
@@ -118,7 +125,7 @@ function parse_args {
         shift 1
         ;;
       --no-tservers)
-        echo -- "--no-tservers is deprecated. Please specify the servers you wish to manage instead"
+        echo "The --no-tservers option is deprecated. Please specify the servers you wish to manage instead"
         ARG_MANAGER=1
         ARG_GC=1
         ARG_MONITOR=1
@@ -161,7 +168,7 @@ function parse_args {
   if [[ $ARG_ALL == 1 && ($ARG_MANAGER == 1 ||
     $ARG_GC == 1 || $ARG_MONITOR == 1 || $ARG_COORDINATOR == 1 || $ARG_TSERVER == 1 ||
     $ARG_SSERVER == 1 || $ARG_COMPACTOR == 1) ]]; then
-    echo -- "--all cannot be used with other options"
+    echo "The --all option cannot be used with other options"
     print_usage
     exit 1
   fi
@@ -185,30 +192,42 @@ function parse_args {
   debug "ARG_SSERVER_GROUP=$ARG_SSERVER_GROUP"
   debug "ARG_COMPACTOR=$ARG_COMPACTOR"
   debug "ARG_COMPACTOR_GROUP=$ARG_COMPACTOR_GROUP"
+
+  if [[ $# -eq 0 ]]; then
+    invalid_args "<command> cannot be empty"
+  elif [[ $# -ne 1 ]]; then
+    # use getopt to display the remaining non-option parameters quoted for readability
+    local remaining
+    remaining="$(getopt -o "" -- "$@")"
+    invalid_args "Only one <command> is allowed, but found:${remaining#*--}"
+  fi
+  cmd=$1
+  debug "cmd=$cmd"
 }
 
-function invalid_args {
-  echo -e "Invalid arguments: $1\n"
+function invalid_args() {
+  echo "Invalid arguments: $*"
+  echo
   print_usage 1>&2
   exit 1
 }
 
-function parse_fail {
+function parse_fail() {
   echo "Failed to parse $conf/cluster.yaml"
   exit 1
 }
 
-isDebug() {
+function isDebug() {
   [[ $DEBUG == 1 ]]
 }
 
 # if debug is on, print and return true; otherwise, return false
-debug() {
+function debug() {
   isDebug && echo "DEBUG: $*"
 }
 
 # call debug to print, or execute if debug is off
-debugOrRun() {
+function debugOrRun() {
   debug "$(printf "%q " "$@")" || "$@"
 }
 
@@ -235,7 +254,7 @@ function canRunOnHost() {
   [[ $found == 1 ]]
 }
 
-function parse_config {
+function parse_config() {
 
   for file in slaves tservers monitor tracers gc managers masters; do
     if [[ -f $conf/$file ]]; then
@@ -258,7 +277,7 @@ function parse_config {
 
   trap 'rm -f "$CONFIG_FILE"' EXIT
   CONFIG_FILE=$(mktemp --tmpdir "ClusterConfigParser-XXXXXXXX.out") || exit 1
-  $accumulo_cmd org.apache.accumulo.core.conf.cluster.ClusterConfigParser "$conf/cluster.yaml" "$CONFIG_FILE" || parse_fail
+  "$accumulo_cmd" org.apache.accumulo.core.conf.cluster.ClusterConfigParser "$conf/cluster.yaml" "$CONFIG_FILE" || parse_fail
   #shellcheck source=/dev/null
   . "$CONFIG_FILE"
   debug "Parsed config:" && cat "$CONFIG_FILE"
@@ -412,7 +431,7 @@ function control_services() {
   if [[ $ARG_ALL == 1 && $ARG_LOCAL == 0 && $operation == "stop" ]]; then
     echo "Stopping Accumulo cluster..."
     if ! isDebug; then
-      if ! $accumulo_cmd admin stopAll; then
+      if ! "$accumulo_cmd" admin stopAll; then
         echo "Invalid password or unable to connect to the manager"
         echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
         sleep 10
@@ -434,7 +453,7 @@ function control_services() {
         for tserver in ${!G}; do
           if echo "$tserver" | grep -q "$addr"; then
             if ! isDebug; then
-              $accumulo_cmd admin stop "$addr"
+              "$accumulo_cmd" admin stop "$addr"
             else
               debug "Stopping tservers on $addr via admin command"
             fi
@@ -546,17 +565,13 @@ function control_services() {
   if [[ $ARG_LOCAL == 0 && $ARG_ALL == 1 && ($operation == "stop" || $operation == "kill") ]]; then
     if ! isDebug; then
       echo "Cleaning all server entries in ZooKeeper"
-      $accumulo_cmd org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
+      "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
     fi
   fi
 
 }
 
 function main() {
-
-  if [[ -z $1 ]]; then
-    invalid_args "<command> cannot be empty"
-  fi
 
   local SOURCE
 
@@ -574,8 +589,6 @@ function main() {
   accumulo_cmd="$bin/accumulo"
   SSH=('ssh' '-qnf' '-o' 'ConnectTimeout=2')
 
-  cmd=$1
-  shift
   parse_args "$@"
 
   mapfile -t LOCAL_HOST_ADDRESSES < <(get_localhost_addresses)
@@ -665,7 +678,7 @@ EOF
       control_services kill
       ;;
     start-non-tservers)
-      echo "$cmd is deprecated. Please specify the servers you wish to start instead"
+      echo "'$cmd' is deprecated. Please specify the servers you wish to start instead"
       parse_config
       ARG_MANAGER=1
       ARG_GC=1
@@ -676,27 +689,27 @@ EOF
       control_services start
       ;;
     start-servers)
-      echo "$cmd is deprecated. Please use 'start' instead"
+      echo "'$cmd' is deprecated. Please use 'start' instead"
       parse_config
       control_services start
       ;;
     stop-servers)
-      echo "$cmd is deprecated. Please use 'stop' instead"
+      echo "'$cmd' is deprecated. Please use 'stop' instead"
       parse_config
       control_services stop
       ;;
     start-tservers)
-      echo "$cmd is deprecated. Please use 'start --tservers' instead"
+      echo "'$cmd' is deprecated. Please use 'start --tservers' instead"
       ARG_TSERVER=1
       control_services start
       ;;
     stop-tservers)
-      echo "$cmd is deprecated. Please use 'stop --tservers' instead"
+      echo "'$cmd' is deprecated. Please use 'stop --tservers' instead"
       ARG_TSERVER=1
       control_services stop
       ;;
     *)
-      invalid_args "$cmd is an invalid <command>"
+      invalid_args "'$cmd' is an invalid <command>"
       ;;
   esac
 }
