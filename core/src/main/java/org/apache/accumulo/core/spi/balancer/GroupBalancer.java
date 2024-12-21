@@ -213,7 +213,7 @@ public abstract class GroupBalancer implements TabletBalancer {
       return 5000;
     }
 
-    final DataLevel currentLevel = DataLevel.valueOf(params.currentLevel());
+    final DataLevel currentLevel = DataLevel.valueOf(params.partitionName());
 
     if (System.currentTimeMillis() - lastRunTimes.getOrDefault(currentLevel, 0L) < getWaitTime()) {
       return 5000;

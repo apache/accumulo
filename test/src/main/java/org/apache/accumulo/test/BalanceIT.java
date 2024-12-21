@@ -33,6 +33,7 @@ import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -87,7 +88,14 @@ public class BalanceIT extends ConfigurableMacBase {
 
   @Test
   public void testBalanceMetadata() throws Exception {
+    String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+      SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 0; i < 10; i++) {
+        splits.add(new Text("" + i));
+      }
+      c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
+
       var metaSplits = IntStream.range(1, 100).mapToObj(i -> Integer.toString(i, 36)).map(Text::new)
           .collect(Collectors.toCollection(TreeSet::new));
       c.tableOperations().addSplits(MetadataTable.NAME, metaSplits);
@@ -119,6 +127,19 @@ public class BalanceIT extends ConfigurableMacBase {
       stats = locCounts.values().stream().mapToInt(i -> i).summaryStatistics();
       assertTrue(stats.getMax() <= 26, locCounts.toString());
       assertTrue(stats.getMin() >= 25, locCounts.toString());
+      assertEquals(4, stats.getCount(), locCounts.toString());
+
+      // The user table should eventually balance
+      Wait.waitFor(() -> {
+        var lc = countLocations(c, tableName);
+        log.info("locations:{}", lc);
+        return lc.size() == 4;
+      });
+
+      locCounts = countLocations(c, tableName);
+      stats = locCounts.values().stream().mapToInt(i -> i).summaryStatistics();
+      assertTrue(stats.getMax() <= 3, locCounts.toString());
+      assertTrue(stats.getMin() >= 2, locCounts.toString());
       assertEquals(4, stats.getCount(), locCounts.toString());
     }
   }

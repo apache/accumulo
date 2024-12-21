@@ -64,7 +64,7 @@ public class Migrations {
   }
 
   public void removeExtents(Set<KeyExtent> extents) {
-    removeIf(entry -> extents.contains(entry.getKey()));
+    extents.forEach(this::removeExtent);
   }
 
   public TServerInstance removeExtent(KeyExtent extent) {
@@ -105,7 +105,7 @@ public class Migrations {
   public Map<DataLevel,Set<KeyExtent>> mutableCopy() {
     Map<DataLevel,Set<KeyExtent>> copy = new EnumMap<>(DataLevel.class);
     for (var dataLevel : DataLevel.values()) {
-      copy.put(dataLevel, new HashSet<KeyExtent>(migrations.get(dataLevel).keySet()));
+      copy.put(dataLevel, new HashSet<>(migrations.get(dataLevel).keySet()));
     }
     return copy;
   }

@@ -77,6 +77,7 @@ public class SimpleLoadBalancer implements TabletBalancer {
 
   public SimpleLoadBalancer() {}
 
+  // TODO drop this constructor and use new getTablesToBalance() method
   public SimpleLoadBalancer(TableId table) {
     tableToBalance = table;
   }

@@ -30,7 +30,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
-import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.slf4j.Logger;
@@ -125,12 +124,13 @@ public class TableLoadBalancer implements TabletBalancer {
   public long balance(BalanceParameters params) {
     long minBalanceTime = 5_000;
     // Iterate over the tables and balance each of them
-    final DataLevel currentDataLevel = DataLevel.valueOf(params.currentLevel());
-    for (TableId tableId : environment.getTableIdMap().values()) {
+    for (Entry<String,TableId> entry : params.getTablesToBalance().entrySet()) {
+      String tableName = entry.getKey();
+      TableId tableId = entry.getValue();
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      long tableBalanceTime =
-          getBalancerForTable(tableId).balance(new BalanceParamsImpl(params.currentStatus(),
-              params.currentMigrations(), newMigrations, currentDataLevel));
+      long tableBalanceTime = getBalancerForTable(tableId)
+          .balance(new BalanceParamsImpl(params.currentStatus(), params.currentMigrations(),
+              newMigrations, params.partitionName() + ":" + tableId, Map.of(tableName, tableId)));
       if (tableBalanceTime < minBalanceTime) {
         minBalanceTime = tableBalanceTime;
       }

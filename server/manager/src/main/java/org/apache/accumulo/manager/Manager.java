@@ -1005,6 +1005,23 @@ public class Manager extends AbstractServer
       return tserverStatusForLevel;
     }
 
+    private Map<String,TableId> getTablesForLevel(DataLevel dataLevel) {
+      switch (dataLevel) {
+        case ROOT:
+          return Map.of(RootTable.NAME, RootTable.ID);
+        case METADATA:
+          return Map.of(MetadataTable.NAME, MetadataTable.ID);
+        case USER: {
+          Map<String,TableId> userTables = new HashMap<>(getContext().getTableNameToIdMap());
+          userTables.remove(RootTable.NAME);
+          userTables.remove(MetadataTable.NAME);
+          return Collections.unmodifiableMap(userTables);
+        }
+        default:
+          throw new IllegalArgumentException("Unknown data level " + dataLevel);
+      }
+    }
+
     private long balanceTablets() {
 
       final int tabletsNotHosted = notHosted();
@@ -1046,7 +1063,7 @@ public class Manager extends AbstractServer
         SortedMap<TabletServerId,TServerStatus> statusForBalancerLevel =
             tserverStatusForBalancerLevel;
         params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tserverStatusForLevel,
-            migrations.snapshot(dl), dl);
+            migrations.snapshot(dl), dl.name(), getTablesForLevel(dl));
         wait = Math.max(tabletBalancer.balance(params), wait);
         long migrationsOutForLevel = 0;
         for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),
@@ -1085,7 +1102,7 @@ public class Manager extends AbstractServer
         if (m.getTablet() == null) {
           log.error("Balancer gave back a null tablet {}", m);
         } else if (DataLevel.of(m.getTablet().getTable()) != level) {
-          log.trace(
+          log.warn(
               "Balancer wants to move a tablet ({}) outside of the current processing level ({}), "
                   + "ignoring and should be processed at the correct level ({})",
               m.getTablet(), level, DataLevel.of(m.getTablet().getTable()));
