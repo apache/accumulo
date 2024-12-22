@@ -36,17 +36,17 @@ $(cyan Options):
     $(green --local)                  Operates on matching local services only (no SSH)
 
   $(cyan 'Service type selection options (if none are used, all service types are selected)'):
-    $(yellow NOTE): some commands support optionally selecting only a specific group or groups for
-          that service. To select multiple groups, separate the groups by spaces in quotes.
-
     $(green --manager)                Selects the manager service (oversees cluster operations)
     $(green --gc)                     Selects the gc service (cleans up unused files)
     $(green --monitor)                Selects the monitor web service (shows cluster information)
     $(green --compaction-coordinator) Selects the compaction-coordinator service (external compactions)
     $(green --tservers)               Selects the tablet server services (read/write operations on tablets)
-    $(green --sservers)[$(yellow =group)]       Selects the scan server services (read-only eventually consistent scans)
-    $(green --compactors)[$(yellow =group)]     Selects the compactor services (external compactions)
+    $(green --sservers)[$(yellow '=group')]       Selects the scan server services (read-only eventually consistent scans)
+    $(green --compactors)[$(yellow '=group')]     Selects the compactor services (external compactions)
     $(green --no-tservers)            $(yellow Deprecated). Selects service types except tservers (for backwards compatibility)
+    $(yellow NOTE): some server types support an optional $(yellow group) name. If it is not provided or is empty, then
+          all groups are considered. Declare multiple groups as a single space-separated parameter. Later
+          options overwrite earlier ones, so $(yellow '--sservers="g1 g2" --sserver') operates on all sserver groups.
 
 $(cyan Commands):
   $(green create-config)              Creates cluster config (ignores service selection options)
@@ -65,14 +65,14 @@ $(cyan Commands):
     $(green stop-here)                $(yellow Deprecated). Alias for "stop --local"
 
 $(cyan Examples):
-  $(purple accumulo-cluster start)                              $(blue '# start all servers')
-  $(purple accumulo-cluster start --dry-run)                    $(blue '# print debug information and commands to be executed')
-  $(purple accumulo-cluster start --local)                      $(blue '# start all local services')
-  $(purple accumulo-cluster start --local --manager)            $(blue '# start local manager services')
-  $(purple accumulo-cluster start --tservers)                   $(blue '# start all tservers')
-  $(purple accumulo-cluster start --sservers=group1)            $(blue '# start all group1 sservers')
-  $(purple accumulo-cluster start --sservers=\"group1 group2\")   $(blue '# start all group1 and group2 sservers')
-  $(purple accumulo-cluster start --local --manager --tservers) $(blue '# Start the local manager and local tservers')
+  $(purple 'accumulo-cluster start')                              $(blue '# start all servers')
+  $(purple 'accumulo-cluster start --dry-run')                    $(blue '# print debug information and commands to be executed')
+  $(purple 'accumulo-cluster start --local')                      $(blue '# start all local services')
+  $(purple 'accumulo-cluster start --local --manager')            $(blue '# start local manager services')
+  $(purple 'accumulo-cluster start --tservers')                   $(blue '# start all tservers')
+  $(purple 'accumulo-cluster start --sservers=group1')            $(blue '# start all group1 sservers')
+  $(purple 'accumulo-cluster start --sservers="group1 group2"')   $(blue '# start all group1 and group2 sservers')
+  $(purple 'accumulo-cluster start --local --manager --tservers') $(blue '# Start the local manager and local tservers')
 
 EOF
 }
@@ -85,6 +85,18 @@ function checkTerminalSupportsColor() {
   [[ -t 1 && $c -ge 8 ]]
 }
 
+function decolorize() {
+  # this only decolorizes escape sequences that we've added
+  # namely, the color codes 0;31m through 0;37m and the 0m reset
+  # it also can't deal with arrays, so can only work on a single param
+  if [[ $# -ne 1 ]]; then
+    echo "$(red ERROR): Couldn't decolorize multiple items: $*"
+  fi
+  local myvar=$1
+  myvar="${myvar//[[:cntrl:]]\[0;3[1-7]m/}" # remove the color codes
+  myvar="${myvar//[[:cntrl:]]\[0m/}"        # remove the reset code
+  echo "$myvar"
+}
 function colorize() {
   local c=$1
   shift
@@ -169,17 +181,13 @@ function parse_args() {
       --sservers)
         ARG_ALL=0
         ARG_SSERVER=1
-        if [[ -n $2 ]]; then
-          ARG_SSERVER_GROUP=$2
-        fi
+        ARG_SSERVER_GROUP=$2
         shift 2
         ;;
       --compactors)
         ARG_ALL=0
         ARG_COMPACTOR=1
-        if [[ -n $2 ]]; then
-          ARG_COMPACTOR_GROUP=$2
-        fi
+        ARG_COMPACTOR_GROUP=$2
         shift 2
         ;;
       --no-tservers)
@@ -521,11 +529,10 @@ function control_services() {
     for group in $tserver_groups; do
       local msg
       local msgNoColor
-      local msgLen
       msg="Executing $(green "$ARG_CMD") on $(purple tablet servers) for group $(yellow "$group") ..."
-      msgNoColor=$(echo "$msg" | sed -e $'s/\x1b\[[0-9;]*m//g')
+      msgNoColor=$(decolorize "$msg")
       count=${#msgNoColor}
-      (( count > 71 )) && count=69 # only print up to 3 more dots if the line is too long
+      ((count > 71)) && count=69 # only print up to 3 more dots if the line is too long
       echo -n "$msg"
       hosts="TSERVER_HOSTS_$group"
       for tserver in ${!hosts}; do
