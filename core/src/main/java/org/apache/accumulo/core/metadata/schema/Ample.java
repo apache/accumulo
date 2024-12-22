@@ -27,6 +27,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -391,6 +392,8 @@ public interface Ample {
     T deleteUnSplittable();
 
     T putCloned();
+
+    T putTabletMergeability(TabletMergeability tabletMergeability);
 
     /**
      * By default the server lock is automatically added to mutations unless this method is set to

@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -93,7 +94,8 @@ public class FileSystemInitializer {
       KeyExtent keyExtent = new KeyExtent(tableId, endRow, prevEndRow);
       var builder = TabletMetadata.builder(keyExtent).putDirName(dirName)
           .putTime(new MetadataTime(0, TimeType.LOGICAL))
-          .putTabletAvailability(TabletAvailability.HOSTED).putPrevEndRow(prevEndRow);
+          .putTabletAvailability(TabletAvailability.HOSTED)
+          .putTabletMergeability(TabletMergeability.NEVER).putPrevEndRow(prevEndRow);
       for (String file : files) {
         builder.putFile(new ReferencedTabletFile(new Path(file)).insert(), new DataFileValue(0, 0));
       }
