@@ -154,7 +154,7 @@ function updateSystemAlerts() {
   updateManagerAlerts();
 }
 
-$(document).ready(function () {
+$(function () {
 
   // dismiss the alert when clicked
   $('#systemAlertCloseButton').click(function () {
