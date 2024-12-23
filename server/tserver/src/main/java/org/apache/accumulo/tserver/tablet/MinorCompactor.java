@@ -29,8 +29,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.FileCompactor;
@@ -93,7 +95,19 @@ public class MinorCompactor extends FileCompactor {
     try {
       do {
         try {
-          CompactionStats ret = super.call();
+          CompactionStats ret = null;
+          try {
+            ret = super.call();
+          } catch (Exception e) {
+            final ServiceLock tserverLock = tabletServer.getLock();
+            if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
+              log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
+                  + " Halting...", getExtent(), e);
+              Halt.halt("TabletServer lock does not exist", -1);
+            } else {
+              throw e;
+            }
+          }
 
           // log.debug(String.format("MinC %,d recs in | %,d recs out | %,d recs/sec | %6.3f secs |
           // %,d bytes ",map.size(), entriesCompacted,
