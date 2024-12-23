@@ -494,7 +494,7 @@ public class Admin implements KeywordExecutable {
     try {
       flusher.join(3000);
     } catch (InterruptedException e) {
-      // ignore
+      log.warn("Interrupted while waiting to join Flush thread");
     }
 
     while (flusher.isAlive() && System.currentTimeMillis() - start < 15000) {
@@ -502,13 +502,20 @@ public class Admin implements KeywordExecutable {
       try {
         flusher.join(1000);
       } catch (InterruptedException e) {
-        // ignore
+        log.warn("Interrupted while waiting to join Flush thread");
       }
 
       if (flushCount == flushesStarted.get()) {
         // no progress was made while waiting for join... maybe its stuck, stop waiting on it
         break;
       }
+    }
+
+    flusher.interrupt();
+    try {
+      flusher.join();
+    } catch (InterruptedException e) {
+      log.warn("Interrupted while waiting to join Flush thread");
     }
   }
 

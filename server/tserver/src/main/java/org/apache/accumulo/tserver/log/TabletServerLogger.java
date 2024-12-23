@@ -285,6 +285,8 @@ public class TabletServerLogger {
               try {
                 alog.close();
               } catch (Exception e) {
+                // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
+                // will log this then halt the VM.
                 log.error("Failed to close WAL after it failed to open", e);
               }
 
@@ -301,7 +303,7 @@ public class TabletServerLogger {
             try {
               nextLog.offer(t, 12, TimeUnit.HOURS);
             } catch (InterruptedException ex) {
-              // ignore
+              throw new Error("Next log maker thread interrupted", ex);
             }
 
             continue;
@@ -337,7 +339,9 @@ public class TabletServerLogger {
             try {
               nextLog.offer(t, 12, TimeUnit.HOURS);
             } catch (InterruptedException ex) {
-              // ignore
+              // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
+              // will log this then halt the VM.
+              throw new Error("Next log maker thread interrupted", ex);
             }
 
             continue;
@@ -348,7 +352,9 @@ public class TabletServerLogger {
               log.info("Our WAL was not used for 12 hours: {}", fileName);
             }
           } catch (InterruptedException e) {
-            // ignore - server is shutting down
+            // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
+            // will log this then halt the VM.
+            throw new Error("Next log maker thread interrupted", e);
           }
         }
       }
