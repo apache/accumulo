@@ -517,7 +517,8 @@ public class Admin implements KeywordExecutable {
     try {
       flusher.join();
     } catch (InterruptedException e) {
-      log.warn("Interrupted while waiting to join Flush thread");
+      Thread.currentThread.interrupt();
+      log.warn("Interrupted while waiting to join Flush thread", e);
     }
   }
 
