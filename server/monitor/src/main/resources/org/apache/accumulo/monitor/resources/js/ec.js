@@ -85,7 +85,6 @@ $(function () {
     "columnDefs": [{
         "targets": "duration",
         "render": function (data, type, row) {
-          data = data / 1_000_000; // convert from nanos to millis
           if (type === 'display') data = timeDuration(data);
           return data;
         }
