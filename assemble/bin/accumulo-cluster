@@ -545,8 +545,8 @@ function control_services() {
           fi
         fi
       done
+      echo "done"
     done
-    echo "done"
   fi
 
   local manager
