@@ -28,13 +28,14 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState.FinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TestCompactionCoordinatorForOfflineTable extends CompactionCoordinator
-    implements CompactionCoordinatorService.Iface {
+    implements CompactionCoordinatorService.Iface, ServerProcessService.Iface {
 
   public static class NonNotifyingCompactionFinalizer extends CompactionFinalizer {
 
