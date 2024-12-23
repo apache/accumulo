@@ -170,6 +170,7 @@ public class Compactor extends AbstractServer
   private ServerAddress compactorAddress = null;
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
+  private volatile boolean shutdownComplete = false;
 
   protected Compactor(CompactorServerOpts opts, String[] args) {
     super("compactor", opts, args);
@@ -287,7 +288,9 @@ public class Compactor extends AbstractServer
     LockWatcher lw = new LockWatcher() {
       @Override
       public void lostLock(final LockLossReason reason) {
-        if (isShutdownRequested()) {
+        // ServiceLock.unlock is called at the end of run(). We don't
+        // want to Halt when we are shutting down.
+        if (isShutdownRequested() && shutdownComplete) {
           LOG.warn("Compactor lost lock (reason = {}), not exiting because shutdown requested.",
               reason);
         } else {
@@ -905,6 +908,7 @@ public class Compactor extends AbstractServer
 
       gcLogger.logGCInfo(getConfiguration());
       LOG.info("stop requested. exiting ... ");
+      shutdownComplete = true;
       try {
         if (null != compactorLock) {
           compactorLock.unlock();

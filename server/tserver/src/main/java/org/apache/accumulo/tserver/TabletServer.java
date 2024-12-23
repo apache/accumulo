@@ -240,6 +240,7 @@ public class TabletServer extends AbstractServer
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
   private final ServerContext context;
+  private volatile boolean shutdownComplete = false;
 
   public static void main(String[] args) throws Exception {
     try (TabletServer tserver = new TabletServer(new ServerOpts(), args)) {
@@ -686,7 +687,9 @@ public class TabletServer extends AbstractServer
 
         @Override
         public void lostLock(final LockLossReason reason) {
-          if (isShutdownRequested()) {
+          // ServiceLock.unlock is called at the end of run(). We don't
+          // want to Halt when we are shutting down.
+          if (isShutdownRequested() && shutdownComplete) {
             LOG.warn(
                 "TabletServer lost lock (reason = {}), not exiting because shutdown requested.",
                 reason);
@@ -1027,6 +1030,7 @@ public class TabletServer extends AbstractServer
 
     log.info("TServerInfo: stop requested. exiting ... ");
 
+    shutdownComplete = true;
     try {
       tabletServerLock.unlock();
     } catch (Exception e) {
