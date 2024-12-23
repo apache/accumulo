@@ -284,7 +284,7 @@ public class TabletServerLogger {
             if (alog != null) {
               try {
                 alog.close();
-              } catch (Exception e) {
+              } catch (IOException e) {
                 log.error("Failed to close WAL after it failed to open", e);
               }
 
@@ -293,7 +293,7 @@ public class TabletServerLogger {
                 if (fs.exists(path)) {
                   fs.delete(path);
                 }
-              } catch (Exception e) {
+              } catch (IOException e) {
                 log.warn("Failed to delete a WAL that failed to open", e);
               }
             }
@@ -301,7 +301,9 @@ public class TabletServerLogger {
             try {
               nextLog.offer(t, 12, TimeUnit.HOURS);
             } catch (InterruptedException ex) {
-              // ignore
+              // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
+              // will log this then halt the VM.
+              throw new Error("Next log maker thread interrupted", ex);
             }
 
             continue;
@@ -319,7 +321,7 @@ public class TabletServerLogger {
               // Intentionally not deleting walog because it may have been advertised in ZK. See
               // #949
               alog.close();
-            } catch (Exception e) {
+            } catch (IOException e) {
               log.error("Failed to close WAL after it failed to open", e);
             }
 
@@ -337,7 +339,9 @@ public class TabletServerLogger {
             try {
               nextLog.offer(t, 12, TimeUnit.HOURS);
             } catch (InterruptedException ex) {
-              // ignore
+              // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
+              // will log this then halt the VM.
+              throw new Error("Next log maker thread interrupted", ex);
             }
 
             continue;
@@ -348,7 +352,9 @@ public class TabletServerLogger {
               log.info("Our WAL was not used for 12 hours: {}", fileName);
             }
           } catch (InterruptedException e) {
-            // ignore - server is shutting down
+            // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
+            // will log this then halt the VM.
+            throw new Error("Next log maker thread interrupted", e);
           }
         }
       }
