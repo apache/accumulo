@@ -39,7 +39,7 @@ $(cyan Options):
     $(green --manager)                Selects the manager service (oversees cluster operations)
     $(green --gc)                     Selects the gc service (cleans up unused files)
     $(green --monitor)                Selects the monitor web service (shows cluster information)
-    $(green --tservers[$(yellow '=group')])       Selects the tablet server services (read/write operations on tablets)
+    $(green --tservers)[$(yellow '=group')]       Selects the tablet server services (read/write operations on tablets)
     $(green --sservers)[$(yellow '=group')]       Selects the scan server services (read-only eventually consistent scans)
     $(green --compactors)[$(yellow '=group')]     Selects the compactor services (external compactions)
     $(yellow NOTE): some server types support an optional $(yellow group) name. If it is not provided or is empty, then
