@@ -48,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -178,6 +179,10 @@ public class CompactionCoordinatorTest {
       return RUNNING_CACHE;
     }
 
+    public Map<String,TimeOrderedRunningCompactionSet> getLongRunningByGroup() {
+      return LONG_RUNNING_COMPACTIONS_BY_RG;
+    }
+
     public void resetInternals() {
       getRunning().clear();
       metadataCompactionIds = null;
@@ -254,11 +259,13 @@ public class CompactionCoordinatorTest {
     var coordinator = new TestCoordinator(context, security, new ArrayList<>(), manager);
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
+    assertEquals(0, coordinator.getLongRunningByGroup().size());
     coordinator.run();
     coordinator.shutdown();
 
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
+    assertEquals(0, coordinator.getLongRunningByGroup().size());
     EasyMock.verify(context, security, metricsInfo);
   }
 
@@ -292,15 +299,23 @@ public class CompactionCoordinatorTest {
     coordinator.resetInternals();
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
+    assertEquals(0, coordinator.getLongRunningByGroup().size());
     coordinator.run();
     coordinator.shutdown();
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(1, coordinator.getRunning().size());
+    assertEquals(1, coordinator.getLongRunningByGroup().size());
 
     Map<ExternalCompactionId,RunningCompaction> running = coordinator.getRunning();
     Entry<ExternalCompactionId,RunningCompaction> ecomp = running.entrySet().iterator().next();
     assertEquals(eci, ecomp.getKey());
     RunningCompaction rc = ecomp.getValue();
+    assertEquals(GROUP_ID.toString(), rc.getGroupName());
+    assertEquals(tserverAddr.toString(), rc.getCompactorAddress());
+
+    assertTrue(coordinator.getLongRunningByGroup().containsKey(GROUP_ID.toString()));
+    assertTrue(coordinator.getLongRunningByGroup().get(GROUP_ID.toString()).size() == 1);
+    rc = coordinator.getLongRunningByGroup().get(GROUP_ID.toString()).iterator().next();
     assertEquals(GROUP_ID.toString(), rc.getGroupName());
     assertEquals(tserverAddr.toString(), rc.getCompactorAddress());
 
@@ -418,7 +433,20 @@ public class CompactionCoordinatorTest {
     expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
         .anyTimes();
 
-    EasyMock.replay(context, creds, security, manager);
+    TExternalCompaction ext1 = EasyMock.createMock(TExternalCompaction.class);
+    expect(ext1.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
+    expect(ext1.getCompactor()).andReturn("localhost:9133").anyTimes();
+    expect(ext1.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME).anyTimes();
+    TExternalCompaction ext2 = EasyMock.createMock(TExternalCompaction.class);
+    expect(ext2.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
+    expect(ext2.getCompactor()).andReturn("localhost:9133").anyTimes();
+    expect(ext2.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME).anyTimes();
+    TExternalCompaction ext3 = EasyMock.createMock(TExternalCompaction.class);
+    expect(ext3.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
+    expect(ext3.getCompactor()).andReturn("localhost:9133").anyTimes();
+    expect(ext3.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME).anyTimes();
+
+    EasyMock.replay(context, creds, security, manager, ext1, ext2, ext3);
 
     TestCoordinator coordinator =
         new TestCoordinator(context, security, new ArrayList<>(), manager);
@@ -427,9 +455,9 @@ public class CompactionCoordinatorTest {
     var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
     var ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
 
-    coordinator.getRunning().put(ecid1, new RunningCompaction(new TExternalCompaction()));
-    coordinator.getRunning().put(ecid2, new RunningCompaction(new TExternalCompaction()));
-    coordinator.getRunning().put(ecid3, new RunningCompaction(new TExternalCompaction()));
+    coordinator.getRunning().put(ecid1, new RunningCompaction(ext1));
+    coordinator.getRunning().put(ecid2, new RunningCompaction(ext2));
+    coordinator.getRunning().put(ecid3, new RunningCompaction(ext3));
 
     coordinator.cleanUpInternalState();
 
@@ -441,7 +469,7 @@ public class CompactionCoordinatorTest {
 
     assertEquals(Set.of(ecid1, ecid2), coordinator.getRunning().keySet());
 
-    EasyMock.verify(context, creds, security);
+    EasyMock.verify(context, creds, security, manager, ext1, ext2, ext3);
 
   }
 
