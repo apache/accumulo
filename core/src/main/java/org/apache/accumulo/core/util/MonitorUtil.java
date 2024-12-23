@@ -32,7 +32,7 @@ public class MonitorUtil {
 
   public static String getLocation(ClientContext context)
       throws KeeperException, InterruptedException {
-    return getLocation(context.getZooReader(), context);
+    return getLocation(context.getZooSession().asReader(), context);
   }
 
   @VisibleForTesting

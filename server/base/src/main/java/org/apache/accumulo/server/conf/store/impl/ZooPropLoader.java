@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
@@ -44,9 +45,9 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
   // used to set watcher, does not react to events.
   private final PropStoreWatcher propStoreWatcher;
 
-  public ZooPropLoader(final ZooReaderWriter zrw, final VersionedPropCodec propCodec,
+  public ZooPropLoader(final ZooSession zk, final VersionedPropCodec propCodec,
       final PropStoreWatcher propStoreWatcher) {
-    this.zrw = zrw;
+    this.zrw = zk.asReaderWriter();
     this.propCodec = propCodec;
     this.propStoreWatcher = propStoreWatcher;
   }

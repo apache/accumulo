@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -50,7 +51,6 @@ import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.util.PropUtil;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +77,7 @@ public class TableManager {
     final PropStore propStore = context.getPropStore();
     final InstanceId instanceId = context.getInstanceID();
     log.debug("Creating ZooKeeper entries for new namespace {} (ID: {})", namespace, namespaceId);
-    context.getZooReaderWriter().putPersistentData(
+    context.getZooSession().asReaderWriter().putPersistentData(
         context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId, new byte[0],
         existsPolicy);
     var propKey = NamespacePropKey.of(instanceId, namespaceId);
@@ -115,7 +115,7 @@ public class TableManager {
   public static void prepareNewTableState(final ServerContext context, TableId tableId,
       NamespaceId namespaceId, String tableName, TableState state, NodeExistsPolicy existsPolicy)
       throws KeeperException, InterruptedException {
-    prepareNewTableState(context.getZooReaderWriter(), context.getPropStore(),
+    prepareNewTableState(context.getZooSession().asReaderWriter(), context.getPropStore(),
         context.getInstanceID(), tableId, namespaceId, tableName, state, existsPolicy);
   }
 
@@ -123,8 +123,8 @@ public class TableManager {
     this.context = context;
     zkRoot = context.getZooKeeperRoot();
     instanceID = context.getInstanceID();
-    zoo = context.getZooReaderWriter();
-    zooStateCache = new ZooCache(zoo, new TableStateWatcher());
+    zoo = context.getZooSession().asReaderWriter();
+    zooStateCache = new ZooCache(context.getZooSession(), new TableStateWatcher());
     updateTableStateCache();
   }
 
@@ -251,9 +251,9 @@ public class TableManager {
     }
   }
 
-  private class TableStateWatcher implements Watcher {
+  private class TableStateWatcher implements ZooCacheWatcher {
     @Override
-    public void process(WatchedEvent event) {
+    public void accept(WatchedEvent event) {
       if (log.isTraceEnabled()) {
         log.trace("{}", event);
       }

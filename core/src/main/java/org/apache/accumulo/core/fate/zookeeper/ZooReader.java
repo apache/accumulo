@@ -29,10 +29,10 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.RetryFactory;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,34 +45,24 @@ public class ZooReader {
           .incrementBy(Duration.ofMillis(250)).maxWait(Duration.ofMinutes(2)).backOffFactor(1.5)
           .logInterval(Duration.ofMinutes(3)).createFactory();
 
-  protected final String connectString;
-  protected final int timeout;
+  private final ZooSession zk;
 
-  public ZooReader(String connectString, int timeout) {
-    this.connectString = requireNonNull(connectString);
-    this.timeout = timeout;
+  /**
+   * Decorate a ZooKeeper with additional, more convenient functionality.
+   *
+   * @param zk the ZooKeeper instance
+   * @throws NullPointerException if zk is {@code null}
+   */
+  public ZooReader(ZooSession zk) {
+    this.zk = requireNonNull(zk);
   }
 
-  public ZooReaderWriter asWriter(String secret) {
-    return new ZooReaderWriter(connectString, timeout, secret);
-  }
-
-  protected ZooKeeper getZooKeeper() {
-    return ZooSession.getAnonymousSession(connectString, timeout);
+  protected ZooSession getZooKeeper() {
+    return zk;
   }
 
   protected RetryFactory getRetryFactory() {
     return RETRY_FACTORY;
-  }
-
-  /**
-   * Returns the requested ZooKeeper client session timeout. The client may negotiate a different
-   * value and the actual negotiated value may change after a re-connect.
-   *
-   * @return the timeout in milliseconds
-   */
-  public int getSessionTimeout() {
-    return timeout;
   }
 
   public byte[] getData(String zPath) throws KeeperException, InterruptedException {
@@ -135,11 +125,11 @@ public class ZooReader {
   }
 
   protected interface ZKFunction<R> {
-    R apply(ZooKeeper zk) throws KeeperException, InterruptedException;
+    R apply(ZooSession zk) throws KeeperException, InterruptedException;
   }
 
   protected interface ZKFunctionMutator<R> {
-    R apply(ZooKeeper zk)
+    R apply(ZooSession zk)
         throws KeeperException, InterruptedException, AcceptableThriftTableOperationException;
   }
 

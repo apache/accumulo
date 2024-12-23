@@ -41,17 +41,15 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.util.SlowOps;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
@@ -80,11 +78,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   private static final long SLOW_SCAN_SLEEP_MS = 250L;
 
   private AccumuloClient client;
-  private ClientContext context;
+  private ServerContext context;
 
   private static final ExecutorService pool = Executors.newCachedThreadPool();
-
-  private String secret;
 
   private long maxWaitMillis;
 
@@ -98,8 +94,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   @BeforeEach
   public void setup() {
     client = Accumulo.newClient().from(getClientProps()).build();
-    context = (ClientContext) client;
-    secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
+    context = getServerContext();
     maxWaitMillis = Math.max(MINUTES.toMillis(1), defaultTimeout().toMillis() / 2);
   }
 
@@ -251,7 +246,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       try {
 
         InstanceId instanceId = context.getInstanceID();
-        ZooReaderWriter zk = context.getZooReader().asWriter(secret);
+
+        var zk = context.getZooSession();
         ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
         var lockPath =
             ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
@@ -341,7 +337,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       log.trace("tid: {}", tableId);
 
       InstanceId instanceId = context.getInstanceID();
-      ZooReaderWriter zk = context.getZooReader().asWriter(secret);
+      var zk = context.getZooSession();
       ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
       var lockPath =
           ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);

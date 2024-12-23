@@ -31,6 +31,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -40,7 +41,6 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.tserver.ScanServer;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.zookeeper.ZooKeeper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -127,11 +127,11 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
   public void testClientConfiguration() throws Exception {
 
     final String zooRoot = getCluster().getServerContext().getZooKeeperRoot();
-    final ZooKeeper zk = getCluster().getServerContext().getZooReaderWriter().getZooKeeper();
+    final ZooReaderWriter zk = getCluster().getServerContext().getZooSession().asReaderWriter();
     final String scanServerRoot = zooRoot + Constants.ZSSERVERS;
 
     // Ensure no scan servers running
-    Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 0);
+    Wait.waitFor(() -> zk.getChildren(scanServerRoot).size() == 0);
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
@@ -152,7 +152,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
 
         // Start a ScanServer. No group specified, should be in the default group.
         getCluster().getClusterControl().start(ServerType.SCAN_SERVER, "localhost");
-        Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 1, 30_000);
+        Wait.waitFor(() -> zk.getChildren(scanServerRoot).size() == 1, 30_000);
         Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
             (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
             == true);
@@ -172,7 +172,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
         // and the scripts need to be updated.
         getCluster()._exec(ScanServer.class, ServerType.SCAN_SERVER, Map.of(),
             new String[] {"-o", "sserver.group=GROUP1"});
-        Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 2);
+        Wait.waitFor(() -> zk.getChildren(scanServerRoot).size() == 2);
         Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
             (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
             == true);
