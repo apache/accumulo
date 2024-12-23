@@ -503,7 +503,7 @@ public class Admin implements KeywordExecutable {
       try {
         flusher.join(1000);
       } catch (InterruptedException e) {
-        Thread.currentThread.interrupt();
+        Thread.currentThread().interrupt();
         log.warn("Interrupted while waiting to join Flush thread", e);
       }
 
@@ -517,7 +517,7 @@ public class Admin implements KeywordExecutable {
     try {
       flusher.join();
     } catch (InterruptedException e) {
-      Thread.currentThread.interrupt();
+      Thread.currentThread().interrupt();
       log.warn("Interrupted while waiting to join Flush thread", e);
     }
   }

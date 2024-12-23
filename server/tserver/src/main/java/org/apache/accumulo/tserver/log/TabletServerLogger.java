@@ -284,9 +284,7 @@ public class TabletServerLogger {
             if (alog != null) {
               try {
                 alog.close();
-              } catch (Exception e) {
-                // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
-                // will log this then halt the VM.
+              } catch (IOException e) {
                 log.error("Failed to close WAL after it failed to open", e);
               }
 
@@ -295,7 +293,7 @@ public class TabletServerLogger {
                 if (fs.exists(path)) {
                   fs.delete(path);
                 }
-              } catch (Exception e) {
+              } catch (IOException e) {
                 log.warn("Failed to delete a WAL that failed to open", e);
               }
             }
@@ -303,6 +301,8 @@ public class TabletServerLogger {
             try {
               nextLog.offer(t, 12, TimeUnit.HOURS);
             } catch (InterruptedException ex) {
+              // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
+              // will log this then halt the VM.
               throw new Error("Next log maker thread interrupted", ex);
             }
 
@@ -321,7 +321,7 @@ public class TabletServerLogger {
               // Intentionally not deleting walog because it may have been advertised in ZK. See
               // #949
               alog.close();
-            } catch (Exception e) {
+            } catch (IOException e) {
               log.error("Failed to close WAL after it failed to open", e);
             }
 
