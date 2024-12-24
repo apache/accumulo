@@ -26,7 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
@@ -54,7 +57,6 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -101,12 +103,17 @@ public abstract class FateInterleavingIT extends SharedMiniClusterBase
 
     @Override
     public long isReady(FateId tid, FilTestEnv env) throws Exception {
+      // First call to isReady will return that it's not ready (defer time of 100ms), inserting
+      // the data 'isReady1' so we know isReady was called once. The second attempt (after the
+      // deferral time) will pass as ready (return 0) and insert the data 'isReady2' so we know
+      // the second call to isReady was made
       Thread.sleep(50);
       var step = this.getName() + "::isReady";
-      if (isTrackingDataSet(tid, env, step)) {
+      if (isTrackingDataSet(tid, env, step + "1")) {
+        insertTrackingData(tid, env, step + "2");
         return 0;
       } else {
-        insertTrackingData(tid, env, step);
+        insertTrackingData(tid, env, step + "1");
         return 100;
       }
     }
@@ -192,9 +199,9 @@ public abstract class FateInterleavingIT extends SharedMiniClusterBase
     return new Fate<>(new FilTestEnv(client), store, false, r -> r + "", config);
   }
 
-  private static Entry<String,String> toIdStep(Entry<Key,Value> e) {
-    return new AbstractMap.SimpleImmutableEntry<>(e.getKey().getColumnFamily().toString(),
-        e.getValue().toString());
+  private static Entry<FateId,String> toIdStep(Entry<Key,Value> e) {
+    return new AbstractMap.SimpleImmutableEntry<>(
+        FateId.from(e.getKey().getColumnFamily().toString()), e.getValue().toString());
   }
 
   @Test
@@ -208,9 +215,10 @@ public abstract class FateInterleavingIT extends SharedMiniClusterBase
     // This test verifies that fates will interleave in time when their isReady() returns >0 and
     // then 0.
 
-    FateId[] fateIds = new FateId[3];
+    final int numFateIds = 3;
+    FateId[] fateIds = new FateId[numFateIds];
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < numFateIds; i++) {
       fateIds[i] = store.create();
       var txStore = store.reserve(fateIds[i]);
       try {
@@ -235,38 +243,50 @@ public abstract class FateInterleavingIT extends SharedMiniClusterBase
         waitFor(store, fateId);
       }
 
-      var expectedIds =
-          Set.of(fateIds[0].canonical(), fateIds[1].canonical(), fateIds[2].canonical());
-
       Scanner scanner = client.createScanner(FATE_TRACKING_TABLE);
-      Iterator<Entry<String,String>> iter = scanner.stream().map(FateInterleavingIT::toIdStep)
-          .filter(e -> e.getValue().contains("::call")).iterator();
+      var iter = scanner.stream().map(FateInterleavingIT::toIdStep).iterator();
 
-      SortedMap<String,String> subset = new TreeMap<>();
+      // we should see the following execution order for all fate ids:
+      // FirstOp::isReady1, FirstOp::isReady2, FirstOp::call,
+      // SecondOp::isReady1, SecondOp::isReady2, SecondOp::call,
+      // LastOp::isReady1, LastOp::isReady2, LastOp::call
+      // the first isReady of each op will defer the op to be executed later, allowing for the FATE
+      // thread to interleave and work on another fate id, but may not always interleave.
+      // It is unlikely that the FATE will not interleave at least once in a run, so we will check
+      // for at least one occurrence.
+      int interleaves = 0;
+      int i = 0;
+      Map.Entry<FateId,String> prevOp = null;
+      var expRunOrder = List.of("FirstOp::isReady1", "FirstOp::isReady2", "FirstOp::call",
+          "SecondOp::isReady1", "SecondOp::isReady2", "SecondOp::call", "LastOp::isReady1",
+          "LastOp::isReady2", "LastOp::call");
+      var fateIdsToExpRunOrder = Map.of(fateIds[0], new ArrayList<>(expRunOrder), fateIds[1],
+          new ArrayList<>(expRunOrder), fateIds[2], new ArrayList<>(expRunOrder));
 
-      Iterators.limit(iter, 3).forEachRemaining(e -> subset.put(e.getKey(), e.getValue()));
+      while (iter.hasNext()) {
+        var currOp = iter.next();
+        FateId fateId = currOp.getKey();
+        String currStep = currOp.getValue();
+        var expRunOrderFateId = fateIdsToExpRunOrder.get(fateId);
 
-      // Should see the call() for the first steps of all three fates come first in time
-      assertTrue(subset.values().stream().allMatch(v -> v.startsWith("FirstOp")));
-      assertEquals(expectedIds, subset.keySet());
+        // An interleave occurred if we do not see <FateIdX, OpN::isReady2> immediately after
+        // <FateIdX, OpN::isReady1>
+        if (prevOp != null && prevOp.getValue().contains("isReady1")
+            && !currOp.equals(new AbstractMap.SimpleImmutableEntry<>(prevOp.getKey(),
+                prevOp.getValue().replace('1', '2')))) {
+          interleaves++;
+        }
+        assertEquals(currStep, expRunOrderFateId.remove(0));
+        prevOp = currOp;
+        i++;
+      }
 
-      subset.clear();
-
-      Iterators.limit(iter, 3).forEachRemaining(e -> subset.put(e.getKey(), e.getValue()));
-
-      // Should see the call() for the second steps of all three fates come second in time
-      assertTrue(subset.values().stream().allMatch(v -> v.startsWith("SecondOp")));
-      assertEquals(expectedIds, subset.keySet());
-
-      subset.clear();
-
-      Iterators.limit(iter, 3).forEachRemaining(e -> subset.put(e.getKey(), e.getValue()));
-
-      // Should see the call() for the last steps of all three fates come last in time
-      assertTrue(subset.values().stream().allMatch(v -> v.startsWith("LastOp")));
-      assertEquals(expectedIds, subset.keySet());
-
-      assertFalse(iter.hasNext());
+      assertTrue(interleaves > 0);
+      assertEquals(i, expRunOrder.size() * numFateIds);
+      assertEquals(numFateIds, fateIdsToExpRunOrder.size());
+      for (var expRunOrderFateId : fateIdsToExpRunOrder.values()) {
+        assertTrue(expRunOrderFateId.isEmpty());
+      }
 
     } finally {
       if (fate != null) {
@@ -329,9 +349,10 @@ public abstract class FateInterleavingIT extends SharedMiniClusterBase
     // This test ensures that when isReady() always returns zero that all the fate steps will
     // execute immediately
 
-    FateId[] fateIds = new FateId[3];
+    final int numFateIds = 3;
+    FateId[] fateIds = new FateId[numFateIds];
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < numFateIds; i++) {
       fateIds[i] = store.create();
       var txStore = store.reserve(fateIds[i]);
       try {
@@ -386,10 +407,10 @@ public abstract class FateInterleavingIT extends SharedMiniClusterBase
     Text fateId = subset.keySet().iterator().next().getColumnFamily();
     assertTrue(subset.keySet().stream().allMatch(k -> k.getColumnFamily().equals(fateId)));
 
-    var expectedVals = Set.of("FirstNonInterleavingOp::isReady", "FirstNonInterleavingOp::call",
+    var expectedVals = List.of("FirstNonInterleavingOp::isReady", "FirstNonInterleavingOp::call",
         "SecondNonInterleavingOp::isReady", "SecondNonInterleavingOp::call",
         "LastNonInterleavingOp::isReady", "LastNonInterleavingOp::call");
-    var actualVals = subset.values().stream().map(Value::toString).collect(Collectors.toSet());
+    var actualVals = subset.values().stream().map(Value::toString).collect(Collectors.toList());
     assertEquals(expectedVals, actualVals);
 
     return FateId.from(fateId.toString());
