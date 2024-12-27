@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.security.ColumnVisibility.quote;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -236,6 +237,15 @@ public class ColumnVisibilityTest {
     String flat = new String(flattened, UTF_8);
     assertTrue(flat.indexOf('e') < flat.indexOf('|'), "shortest expressions sort first");
     assertTrue(flat.indexOf('b') < flat.indexOf('a'), "shortest children sort first");
+  }
+
+  @Test
+  public void testDeepCopy() {
+    ColumnVisibility cv1 = new ColumnVisibility("(b&c&d)|((a|m)&y&z)|(e&f)");
+    ColumnVisibility cv2 = cv1.deepCopy();
+    assertNotSame(cv1.getExpression(), cv2.getExpression());
+    assertNotSame(cv1.getParseTree(), cv2.getParseTree());
+    assertEquals(cv1.toString(), cv2.toString());
   }
 
   private Node parse(String s) {
