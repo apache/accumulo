@@ -535,7 +535,7 @@ function control_services() {
       hosts="COMPACTOR_HOSTS_$group"
       for compactor in ${!hosts}; do
         if canRunOnHost "$compactor"; then
-          execute_command "$operation" "$compactor" compactor "$group" "-o" "compactor.queue=$group"
+          execute_command "$operation" "$compactor" compactor "$group" "-o" "compactor.group=$group"
         fi
       done
     done
