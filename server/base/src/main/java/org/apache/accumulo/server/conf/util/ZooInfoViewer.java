@@ -106,7 +106,6 @@ public class ZooInfoViewer implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
-    nullWatcher = new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
 
     ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
     opts.parseArgs(ZooInfoViewer.class.getName(), args);
@@ -127,6 +126,7 @@ public class ZooInfoViewer implements KeywordExecutable {
 
   void generateReport(final InstanceId iid, final ZooInfoViewer.Opts opts,
       final ZooReader zooReader) throws Exception {
+    nullWatcher = new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
 
     OutputStream outStream;
 
