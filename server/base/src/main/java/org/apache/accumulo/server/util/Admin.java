@@ -255,6 +255,15 @@ public class Admin implements KeywordExecutable {
     List<String> states = new ArrayList<>();
   }
 
+  @Parameters(commandDescription = "show service status")
+  public static class ServiceStatusCmdOpts {
+    @Parameter(names = "--json", description = "provide output in json format (--noHosts ignored)")
+    boolean json = false;
+    @Parameter(names = "--noHosts",
+        description = "provide a summary of service counts without host details")
+    boolean noHosts = false;
+  }
+
   public static void main(String[] args) {
     new Admin().execute(args);
   }
@@ -283,7 +292,7 @@ public class Admin implements KeywordExecutable {
     JCommander cl = new JCommander(opts);
     cl.setProgramName("accumulo admin");
 
-    ServiceStatusCmd.Opts serviceStatusCommandOpts = new ServiceStatusCmd.Opts();
+    ServiceStatusCmdOpts serviceStatusCommandOpts = new ServiceStatusCmdOpts();
     cl.addCommand("serviceStatus", serviceStatusCommandOpts);
 
     ChangeSecretCommand changeSecretCommand = new ChangeSecretCommand();
@@ -402,7 +411,8 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("fate")) {
         executeFateOpsCommand(context, fateOpsCommand);
       } else if (cl.getParsedCommand().equals("serviceStatus")) {
-        printServiceStatus(context, serviceStatusCommandOpts);
+        ServiceStatusCmd ssc = new ServiceStatusCmd();
+        ssc.execute(context, serviceStatusCommandOpts.json, serviceStatusCommandOpts.noHosts);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
@@ -428,11 +438,6 @@ public class Admin implements KeywordExecutable {
     } finally {
       SingletonManager.setMode(Mode.CLOSED);
     }
-  }
-
-  private static void printServiceStatus(ServerContext context, ServiceStatusCmd.Opts opts) {
-    ServiceStatusCmd ssc = new ServiceStatusCmd();
-    ssc.execute(context, opts);
   }
 
   private static int ping(ClientContext context, List<String> args) {
