@@ -25,7 +25,7 @@
 package org.apache.accumulo.core.manager.thrift;
 
 
-public enum FateOperation implements org.apache.thrift.TEnum {
+public enum TFateOperation implements org.apache.thrift.TEnum {
   TABLE_CREATE(0),
   TABLE_CLONE(1),
   TABLE_DELETE(2),
@@ -48,7 +48,7 @@ public enum FateOperation implements org.apache.thrift.TEnum {
 
   private final int value;
 
-  private FateOperation(int value) {
+  private TFateOperation(int value) {
     this.value = value;
   }
 
@@ -65,7 +65,7 @@ public enum FateOperation implements org.apache.thrift.TEnum {
    * @return null if the value is not found.
    */
   @org.apache.thrift.annotation.Nullable
-  public static FateOperation findByValue(int value) { 
+  public static TFateOperation findByValue(int value) { 
     switch (value) {
       case 0:
         return TABLE_CREATE;

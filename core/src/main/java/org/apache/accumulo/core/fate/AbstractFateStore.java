@@ -18,14 +18,11 @@
  */
 package org.apache.accumulo.core.fate;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.Collections;
@@ -45,7 +42,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.Retry;
@@ -424,31 +420,6 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   protected void seededTx() {
     unreservedRunnableCount.increment();
-  }
-
-  protected static byte[] serializeTxInfo(Serializable so) {
-    if (so instanceof String) {
-      return ("S " + so).getBytes(UTF_8);
-    } else {
-      byte[] sera = serialize(so);
-      byte[] data = new byte[sera.length + 2];
-      System.arraycopy(sera, 0, data, 2, sera.length);
-      data[0] = 'O';
-      data[1] = ' ';
-      return data;
-    }
-  }
-
-  protected static Serializable deserializeTxInfo(TxInfo txInfo, byte[] data) {
-    if (data[0] == 'O') {
-      byte[] sera = new byte[data.length - 2];
-      System.arraycopy(data, 2, sera, 0, sera.length);
-      return (Serializable) deserialize(sera);
-    } else if (data[0] == 'S') {
-      return new String(data, 2, data.length - 2, UTF_8);
-    } else {
-      throw new IllegalStateException("Bad node data " + txInfo);
-    }
   }
 
   /**

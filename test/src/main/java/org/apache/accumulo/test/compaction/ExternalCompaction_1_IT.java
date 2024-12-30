@@ -74,6 +74,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
@@ -363,7 +364,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     // should never run. Its purpose is to prevent the dead compaction detector
     // from deleting the id.
     Repo<Manager> repo = new FakeRepo();
-    var fateId = fateStore.seedTransaction("COMPACTION_COMMIT",
+    var fateId = fateStore.seedTransaction(Fate.FateOperation.COMMIT_COMPACTION,
         FateKey.forCompactionCommit(allCids.get(tableId).get(0)), repo, true).orElseThrow();
 
     // Read the tablet metadata
