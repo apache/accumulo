@@ -135,6 +135,7 @@ public class TestRandomDeletes {
 
     TestOpts opts = new TestOpts();
     opts.parseArgs(TestRandomDeletes.class.getName(), args);
+    opts.printUsage(opts.help);
 
     log.info("starting random delete test");
 

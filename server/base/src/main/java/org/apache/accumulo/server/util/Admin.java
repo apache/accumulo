@@ -96,26 +96,28 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class Admin implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Admin.class);
 
-  static class AdminOpts extends ServerUtilOpts {
-    @Parameter(names = {"-f", "--force"},
-        description = "force the given server to stop by removing its lock")
-    boolean force = false;
+  private static class SubCommandOpts {
+    @Parameter(names = {"-h", "-?", "--help", "-help"}, help = true)
+    public boolean help = false;
   }
 
   @Parameters(commandDescription = "stop the tablet server on the given hosts")
-  static class StopCommand {
+  static class StopCommand extends SubCommandOpts {
+    @Parameter(names = {"-f", "--force"},
+        description = "force the given server to stop by removing its lock")
+    boolean force = false;
     @Parameter(description = "<host> {<host> ... }")
     List<String> args = new ArrayList<>();
   }
 
   @Parameters(commandDescription = "Ping tablet servers.  If no arguments, pings all.")
-  static class PingCommand {
+  static class PingCommand extends SubCommandOpts {
     @Parameter(description = "{<host> ... }")
     List<String> args = new ArrayList<>();
   }
 
   @Parameters(commandDescription = "print tablets that are offline in online tables")
-  static class CheckTabletsCommand {
+  static class CheckTabletsCommand extends SubCommandOpts {
     @Parameter(names = "--fixFiles", description = "Remove dangling file pointers")
     boolean fixFiles = false;
 
@@ -125,17 +127,17 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(commandDescription = "stop the manager")
-  static class StopManagerCommand {}
+  static class StopManagerCommand extends SubCommandOpts {}
 
   @Deprecated(since = "2.1.0")
   @Parameters(commandDescription = "stop the master (DEPRECATED -- use stopManager instead)")
   static class StopMasterCommand {}
 
   @Parameters(commandDescription = "stop all tablet servers and the manager")
-  static class StopAllCommand {}
+  static class StopAllCommand extends SubCommandOpts {}
 
   @Parameters(commandDescription = "list Accumulo instances in zookeeper")
-  static class ListInstancesCommand {
+  static class ListInstancesCommand extends SubCommandOpts {
     @Parameter(names = "--print-errors", description = "display errors while listing instances")
     boolean printErrors = false;
     @Parameter(names = "--print-all",
@@ -144,13 +146,13 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(commandDescription = "Accumulo volume utility")
-  static class VolumesCommand {
+  static class VolumesCommand extends SubCommandOpts {
     @Parameter(names = {"-l", "--list"}, description = "list volumes currently in use")
     boolean printErrors = false;
   }
 
   @Parameters(commandDescription = "print out non-default configuration settings")
-  static class DumpConfigCommand {
+  static class DumpConfigCommand extends SubCommandOpts {
     @Parameter(names = {"-a", "--all"},
         description = "print the system and all table configurations")
     boolean allConfiguration = false;
@@ -173,13 +175,13 @@ public class Admin implements KeywordExecutable {
           + "necessary.";
 
   @Parameters(commandDescription = RV_DEPRECATION_MSG)
-  static class RandomizeVolumesCommand {
+  static class RandomizeVolumesCommand extends SubCommandOpts {
     @Parameter(names = {"-t"}, description = "table to update", required = true)
     String tableName = null;
   }
 
   @Parameters(commandDescription = "Verify all Tablets are assigned to tablet servers")
-  static class VerifyTabletAssignmentsCommand {
+  static class VerifyTabletAssignmentsCommand extends SubCommandOpts {
     @Parameter(names = {"-v", "--verbose"},
         description = "verbose mode (prints locations of tablets)")
     boolean verbose = false;
@@ -194,14 +196,14 @@ public class Admin implements KeywordExecutable {
 
   @Parameters(
       commandDescription = "List or delete Tablet Server locks. Default with no arguments is to list the locks.")
-  static class TabletServerLocksCommand {
+  static class TabletServerLocksCommand extends SubCommandOpts {
     @Parameter(names = "-delete", description = "specify a tablet server lock to delete")
     String delete = null;
   }
 
   @Parameters(
       commandDescription = "Deletes specific instance name or id from zookeeper or cleans up all old instances.")
-  static class DeleteZooInstanceCommand {
+  static class DeleteZooInstanceCommand extends SubCommandOpts {
     @Parameter(names = {"-i", "--instance"}, description = "the instance name or id to delete")
     String instance;
     @Parameter(names = {"-c", "--clean"},
@@ -214,7 +216,7 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(commandDescription = "Restore Zookeeper data from a file.")
-  static class RestoreZooCommand {
+  static class RestoreZooCommand extends SubCommandOpts {
     @Parameter(names = "--overwrite")
     boolean overwrite = false;
 
@@ -224,7 +226,7 @@ public class Admin implements KeywordExecutable {
 
   @Parameters(commandNames = "fate",
       commandDescription = "Operations performed on the Manager FaTE system.")
-  static class FateOpsCommand {
+  static class FateOpsCommand extends SubCommandOpts {
     @Parameter(description = "[<txId>...]")
     List<String> txList = new ArrayList<>();
 
@@ -256,7 +258,7 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(commandDescription = "show service status")
-  public static class ServiceStatusCmdOpts {
+  public static class ServiceStatusCmdOpts extends SubCommandOpts {
     @Parameter(names = "--json", description = "provide output in json format (--noHosts ignored)")
     boolean json = false;
     @Parameter(names = "--noHosts",
@@ -288,7 +290,7 @@ public class Admin implements KeywordExecutable {
   public void execute(final String[] args) {
     boolean everything;
 
-    AdminOpts opts = new AdminOpts();
+    ServerUtilOpts opts = new ServerUtilOpts();
     JCommander cl = new JCommander(opts);
     cl.setProgramName("accumulo admin");
 
@@ -346,8 +348,16 @@ public class Admin implements KeywordExecutable {
 
     cl.parse(args);
 
-    if (opts.help || cl.getParsedCommand() == null) {
+    if (cl.getParsedCommand() == null) {
       cl.usage();
+      return;
+    }
+
+    if (opts.help || listInstancesOpts.help || pingCommand.help || checkTabletsCommand.help
+        || stopOpts.help || dumpConfigCommand.help || volumesCommand.help
+        || verifyTabletAssignmentsOpts.help || deleteZooInstOpts.help || restoreZooOpts.help
+        || fateOpsCommand.help || tServerLocksOpts.help || serviceStatusCommandOpts.help) {
+      cl.getCommands().get(cl.getParsedCommand()).usage();
       return;
     }
 
@@ -389,7 +399,7 @@ public class Admin implements KeywordExecutable {
         }
 
       } else if (cl.getParsedCommand().equals("stop")) {
-        stopTabletServer(context, stopOpts.args, opts.force);
+        stopTabletServer(context, stopOpts.args, stopOpts.force);
       } else if (cl.getParsedCommand().equals("dumpConfig")) {
         printConfig(context, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {

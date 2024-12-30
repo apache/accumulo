@@ -158,6 +158,7 @@ public class MiniAccumuloRunner {
   public static void main(String[] args) throws IOException, InterruptedException {
     Opts opts = new Opts();
     opts.parseArgs(MiniAccumuloRunner.class.getName(), args);
+    opts.printUsage(opts.help);
 
     if (opts.printProps) {
       printProperties();

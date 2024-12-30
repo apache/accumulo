@@ -232,6 +232,7 @@ public class TestBinaryRows {
   public static void main(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(TestBinaryRows.class.getName(), args);
+    opts.printUsage(opts.help);
 
     try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
       runTest(client, opts);

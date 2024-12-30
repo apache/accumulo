@@ -84,6 +84,7 @@ public class ZooPropEditor implements KeywordExecutable {
   public void execute(String[] args) throws Exception {
     ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
     opts.parseArgs(ZooPropEditor.class.getName(), args);
+    opts.printUsage(opts.help);
 
     ZooReaderWriter zrw = new ZooReaderWriter(opts.getSiteConfiguration());
 

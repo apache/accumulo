@@ -83,6 +83,7 @@ public class GenerateSequentialRFile implements Runnable {
   public static void main(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(GenerateSequentialRFile.class.getName(), args);
+    opts.printUsage(opts.help);
     new GenerateSequentialRFile(opts).run();
   }
 }

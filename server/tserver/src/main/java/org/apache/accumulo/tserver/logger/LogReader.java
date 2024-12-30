@@ -106,6 +106,8 @@ public class LogReader implements KeywordExecutable {
   public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs("accumulo wal-info", args);
+    opts.printUsage(opts.help);
+
     if (opts.files.isEmpty()) {
       System.err.println("No WAL files were given");
       System.exit(1);

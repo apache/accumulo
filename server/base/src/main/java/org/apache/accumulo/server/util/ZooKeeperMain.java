@@ -63,6 +63,7 @@ public class ZooKeeperMain implements KeywordExecutable {
   public void execute(final String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(ZooKeeperMain.class.getName(), args);
+    opts.printUsage(opts.help);
     try (var context = new ServerContext(SiteConfiguration.auto())) {
       if (opts.servers == null) {
         opts.servers = context.getZooKeepers();

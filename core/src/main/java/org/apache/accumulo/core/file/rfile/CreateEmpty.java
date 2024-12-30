@@ -97,6 +97,7 @@ public class CreateEmpty implements KeywordExecutable {
 
     Opts opts = new Opts();
     opts.parseArgs("accumulo create-empty", args);
+    opts.printUsage(opts.help);
 
     for (String arg : opts.files) {
       Path path = new Path(arg);

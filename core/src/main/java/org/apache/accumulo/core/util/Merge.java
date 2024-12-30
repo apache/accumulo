@@ -100,6 +100,7 @@ public class Merge {
   public void start(String[] args) throws MergeException {
     Opts opts = new Opts();
     opts.parseArgs(Merge.class.getName(), args);
+    opts.printUsage(opts.help);
     Span span = TraceUtil.startSpan(Merge.class, "start");
     try (Scope scope = span.makeCurrent()) {
 

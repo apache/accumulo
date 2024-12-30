@@ -100,6 +100,7 @@ public class RandomWriter {
     Opts opts = new Opts();
     opts.principal = "root";
     opts.parseArgs(RandomWriter.class.getName(), args);
+    opts.printUsage(opts.help);
 
     Span span = TraceUtil.startSpan(RandomWriter.class, "main");
     try (Scope scope = span.makeCurrent()) {

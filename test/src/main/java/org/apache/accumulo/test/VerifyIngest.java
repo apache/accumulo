@@ -90,6 +90,7 @@ public class VerifyIngest {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(VerifyIngest.class.getName(), args);
+    opts.printUsage(opts.help);
     Span span = TraceUtil.startSpan(VerifyIngest.class, "main");
     try (Scope scope = span.makeCurrent()) {
 
