@@ -19,9 +19,13 @@
 namespace java org.apache.accumulo.core.process.thrift
 namespace cpp org.apache.accumulo.core.process.thrift
 
+include "security.thrift"
+
 service ServerProcessService {
 
-  oneway void gracefulShutdown()
+  oneway void gracefulShutdown(
+    1:security.TCredentials credentials  
+  )
 
 }
  

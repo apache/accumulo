@@ -26,11 +26,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -107,7 +109,17 @@ public abstract class AbstractServer
   }
 
   @Override
-  public void gracefulShutdown() {
+  public void gracefulShutdown(TCredentials credentials) {
+
+    try {
+      if (!context.getSecurityOperation().canPerformSystemActions(credentials)) {
+        log.warn("Ignoring shutdown request, user " + credentials.getPrincipal()
+            + " does not have the appropriate permissions.");
+      }
+    } catch (ThriftSecurityException e) {
+      log.warn("Error trying to determine if user has permissions to shutdown server", e);
+    }
+
     log.info("Graceful shutdown initiated.");
     // Don't interrupt the server thread, that will cause
     // IO operations to fail as the servers are finishing
@@ -116,7 +128,7 @@ public abstract class AbstractServer
   }
 
   protected void requestShutdown() {
-    shutdownRequested.compareAndSet(false, true);
+    shutdownRequested.set(true);
   }
 
   protected boolean isShutdownRequested() {

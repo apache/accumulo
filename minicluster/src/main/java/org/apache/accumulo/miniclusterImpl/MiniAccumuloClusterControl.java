@@ -42,7 +42,6 @@ import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.minicluster.ServerType;
@@ -128,7 +127,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
 
   private static TExternalCompactionList getRunningCompactions(ClientContext context)
       throws TException {
-    Optional<HostAndPort> coordinatorHost =
+    Optional<org.apache.accumulo.core.util.HostAndPort> coordinatorHost =
         ExternalCompactionUtil.findCompactionCoordinator(context);
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
@@ -570,7 +569,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case COMPACTION_COORDINATOR:
         return coordinatorProcess == null ? Set.of() : Set.of(coordinatorProcess);
       case COMPACTOR:
-        return Set.of(compactorProcesses.toArray(new Process[] {}));
+        return Set.copyOf(compactorProcesses);
       case GARBAGE_COLLECTOR:
         return gcProcess == null ? Set.of() : Set.of(gcProcess);
       case MANAGER:
@@ -579,10 +578,9 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case MONITOR:
         return monitor == null ? Set.of() : Set.of(monitor);
       case SCAN_SERVER:
-        return Set.of(scanServerProcesses.toArray(new Process[] {}));
+        return Set.copyOf(scanServerProcesses);
       case TABLET_SERVER:
-        return tabletServerProcesses == null ? Set.of()
-            : Set.of(tabletServerProcesses.toArray(new Process[] {}));
+        return Set.copyOf(tabletServerProcesses);
       case ZOOKEEPER:
         return zooKeeperProcess == null ? Set.of() : Set.of(zooKeeperProcess);
       default:

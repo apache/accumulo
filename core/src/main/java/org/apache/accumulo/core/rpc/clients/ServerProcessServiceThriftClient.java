@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
+import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -41,9 +42,9 @@ public class ServerProcessServiceThriftClient extends ThriftClientTypes<Client> 
       return ThriftUtil.getClientNoTimeout(this, serverProcess, context);
     } catch (TTransportException tte) {
       Throwable cause = tte.getCause();
-      if (cause != null && cause instanceof UnknownHostException) {
+      if (cause instanceof UnknownHostException) {
         // do not expect to recover from this
-        throw new RuntimeException(tte);
+        throw new UncheckedIOException((UnknownHostException) cause);
       }
       log.debug("Failed to connect to process at " + serverProcess + ", will retry... ", tte);
       return null;

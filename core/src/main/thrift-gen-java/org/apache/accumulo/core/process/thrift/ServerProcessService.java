@@ -29,13 +29,13 @@ public class ServerProcessService {
 
   public interface Iface {
 
-    public void gracefulShutdown() throws org.apache.thrift.TException;
+    public void gracefulShutdown(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException;
 
   }
 
   public interface AsyncIface {
 
-    public void gracefulShutdown(org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void gracefulShutdown(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -62,14 +62,15 @@ public class ServerProcessService {
     }
 
     @Override
-    public void gracefulShutdown() throws org.apache.thrift.TException
+    public void gracefulShutdown(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
     {
-      send_gracefulShutdown();
+      send_gracefulShutdown(credentials);
     }
 
-    public void send_gracefulShutdown() throws org.apache.thrift.TException
+    public void send_gracefulShutdown(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
     {
       gracefulShutdown_args args = new gracefulShutdown_args();
+      args.setCredentials(credentials);
       sendBaseOneway("gracefulShutdown", args);
     }
 
@@ -93,22 +94,25 @@ public class ServerProcessService {
     }
 
     @Override
-    public void gracefulShutdown(org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void gracefulShutdown(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      gracefulShutdown_call method_call = new gracefulShutdown_call(resultHandler, this, ___protocolFactory, ___transport);
+      gracefulShutdown_call method_call = new gracefulShutdown_call(credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class gracefulShutdown_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
-      public gracefulShutdown_call(org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
+      public gracefulShutdown_call(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, true);
+        this.credentials = credentials;
       }
 
       @Override
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("gracefulShutdown", org.apache.thrift.protocol.TMessageType.ONEWAY, 0));
         gracefulShutdown_args args = new gracefulShutdown_args();
+        args.setCredentials(credentials);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -163,7 +167,7 @@ public class ServerProcessService {
 
       @Override
       public org.apache.thrift.TBase getResult(I iface, gracefulShutdown_args args) throws org.apache.thrift.TException {
-        iface.gracefulShutdown();
+        iface.gracefulShutdown(args.credentials);
         return null;
       }
     }
@@ -221,7 +225,7 @@ public class ServerProcessService {
 
       @Override
       public void start(I iface, gracefulShutdown_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-        iface.gracefulShutdown(resultHandler);
+        iface.gracefulShutdown(args.credentials,resultHandler);
       }
     }
 
@@ -231,14 +235,16 @@ public class ServerProcessService {
   public static class gracefulShutdown_args implements org.apache.thrift.TBase<gracefulShutdown_args, gracefulShutdown_args._Fields>, java.io.Serializable, Cloneable, Comparable<gracefulShutdown_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("gracefulShutdown_args");
 
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new gracefulShutdown_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new gracefulShutdown_argsTupleSchemeFactory();
 
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-;
+      CREDENTIALS((short)1, "credentials");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -254,6 +260,8 @@ public class ServerProcessService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
+          case 1: // CREDENTIALS
+            return CREDENTIALS;
           default:
             return null;
         }
@@ -295,9 +303,13 @@ public class ServerProcessService {
         return _fieldName;
       }
     }
+
+    // isset id assignments
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(gracefulShutdown_args.class, metaDataMap);
     }
@@ -305,10 +317,20 @@ public class ServerProcessService {
     public gracefulShutdown_args() {
     }
 
+    public gracefulShutdown_args(
+      org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials)
+    {
+      this();
+      this.credentials = credentials;
+    }
+
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public gracefulShutdown_args(gracefulShutdown_args other) {
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
+      }
     }
 
     @Override
@@ -318,11 +340,45 @@ public class ServerProcessService {
 
     @Override
     public void clear() {
+      this.credentials = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.securityImpl.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public gracefulShutdown_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
     }
 
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.securityImpl.thrift.TCredentials)value);
+        }
+        break;
+
       }
     }
 
@@ -330,6 +386,9 @@ public class ServerProcessService {
     @Override
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
+      case CREDENTIALS:
+        return getCredentials();
+
       }
       throw new java.lang.IllegalStateException();
     }
@@ -342,6 +401,8 @@ public class ServerProcessService {
       }
 
       switch (field) {
+      case CREDENTIALS:
+        return isSetCredentials();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -359,12 +420,25 @@ public class ServerProcessService {
       if (this == that)
         return true;
 
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
       return true;
     }
 
     @Override
     public int hashCode() {
       int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
+      if (isSetCredentials())
+        hashCode = hashCode * 8191 + credentials.hashCode();
 
       return hashCode;
     }
@@ -377,6 +451,16 @@ public class ServerProcessService {
 
       int lastComparison = 0;
 
+      lastComparison = java.lang.Boolean.compare(isSetCredentials(), other.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -401,6 +485,13 @@ public class ServerProcessService {
       java.lang.StringBuilder sb = new java.lang.StringBuilder("gracefulShutdown_args(");
       boolean first = true;
 
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
       sb.append(")");
       return sb.toString();
     }
@@ -408,6 +499,9 @@ public class ServerProcessService {
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
+      if (credentials != null) {
+        credentials.validate();
+      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -446,6 +540,15 @@ public class ServerProcessService {
             break;
           }
           switch (schemeField.id) {
+            case 1: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -462,6 +565,11 @@ public class ServerProcessService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -480,11 +588,25 @@ public class ServerProcessService {
       @Override
       public void write(org.apache.thrift.protocol.TProtocol prot, gracefulShutdown_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetCredentials()) {
+          optionals.set(0);
+        }
+        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, gracefulShutdown_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(1);
+        if (incoming.get(0)) {
+          struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
       }
     }
 

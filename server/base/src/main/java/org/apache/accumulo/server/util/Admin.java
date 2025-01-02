@@ -90,7 +90,6 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 
@@ -109,11 +108,8 @@ public class Admin implements KeywordExecutable {
   @Parameters(
       commandDescription = "signal the server process to shutdown normally, finishing anything it might be working on, but not starting any new tasks")
   static class GracefulShutdownCommand {
-    @Parameter(names = {"-h", "--host"}, description = "<host>")
-    String hostname = null;
-
-    @Parameter(names = {"-p", "--port"}, description = "<port>")
-    int port = 0;
+    @Parameter(required = true, names = {"-a", "--address"}, description = "<host:port>")
+    String address = null;
   }
 
   @Parameters(commandDescription = "stop the tablet server on the given hosts")
@@ -399,8 +395,7 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("stop")) {
         stopTabletServer(context, stopOpts.args, opts.force);
       } else if (cl.getParsedCommand().equals("signalShutdown")) {
-        signalGracefulShutdown(context, gracefulShutdownCommand.hostname,
-            gracefulShutdownCommand.port);
+        signalGracefulShutdown(context, gracefulShutdownCommand.address);
       } else if (cl.getParsedCommand().equals("dumpConfig")) {
         printConfig(context, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
@@ -550,19 +545,17 @@ public class Admin implements KeywordExecutable {
   }
 
   // Visible for tests
-  public static void signalGracefulShutdown(final ClientContext context, String hostname,
-      int port) {
+  public static void signalGracefulShutdown(final ClientContext context, String address) {
 
-    Objects.requireNonNull(hostname, "host name not set");
-    Preconditions.checkArgument(port > 0, "port number not set");
+    Objects.requireNonNull(address, "address not set");
+    final HostAndPort hp = HostAndPort.fromString(address);
     ServerProcessService.Client client = null;
     try {
-      client =
-          ThriftClientTypes.SERVER_PROCESS.getServerProcessConnection(context, log, hostname, port);
-      client.gracefulShutdown();
+      client = ThriftClientTypes.SERVER_PROCESS.getServerProcessConnection(context, log,
+          hp.getHost(), hp.getPort());
+      client.gracefulShutdown(context.rpcCreds());
     } catch (TException e) {
-      throw new RuntimeException(
-          "Error invoking graceful shutdown for server: " + hostname + ":" + port, e);
+      throw new RuntimeException("Error invoking graceful shutdown for server: " + hp, e);
     } finally {
       if (client != null) {
         ThriftUtil.returnClient(client, context);
