@@ -49,6 +49,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
@@ -147,17 +148,17 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       final TableId tid = ctx.getTableId(tableName);
 
       // Insert 10 rows, flush after every row to create 10 files
-      final BatchWriter writer = client.createBatchWriter(tableName);
-      for (int i : IntStream.rangeClosed(1, 10).toArray()) {
-        String val = i + "";
-        Mutation m = new Mutation(val);
-        m.put(val, val, val);
-        writer.addMutation(m);
-        writer.flush();
-        client.tableOperations().flush(tableName, null, null, true);
+      try (BatchWriter writer = client.createBatchWriter(tableName)) {
+        for (int i : IntStream.rangeClosed(1, 10).toArray()) {
+          String val = i + "";
+          Mutation m = new Mutation(val);
+          m.put(val, val, val);
+          writer.addMutation(m);
+          writer.flush();
+          client.tableOperations().flush(tableName, null, null, true);
+        }
       }
-      final long numFiles = ctx.getAmple().readTablets().forTable(tid).build().stream()
-          .mapToLong(tm -> tm.getFiles().size()).sum();
+      long numFiles = getNumFilesForTable(ctx, tid);
       assertEquals(10, numFiles);
       client.instanceOperations().waitForBalance();
 
@@ -220,9 +221,8 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       cc.setIterators(List.of(is));
       cc.setWait(false);
 
-      final long numFiles2 = ctx.getAmple().readTablets().forTable(tid).build().stream()
-          .mapToLong(tm -> tm.getFiles().size()).sum();
-      assertTrue(numFiles2 == numFiles);
+      final long numFiles2 = getNumFilesForTable(ctx, tid);
+      assertEquals(numFiles2, numFiles);
       assertEquals(0, ExternalCompactionTestUtils.getRunningCompactions(ctx).getCompactionsSize());
       client.tableOperations().compact(tableName, cc);
       Wait.waitFor(
@@ -232,8 +232,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
         control.refreshProcesses(ServerType.COMPACTOR);
         return control.getProcesses(ServerType.COMPACTOR).isEmpty();
       });
-      final long numFiles3 = ctx.getAmple().readTablets().forTable(tid).build().stream()
-          .mapToLong(tm -> tm.getFiles().size()).sum();
+      final long numFiles3 = getNumFilesForTable(ctx, tid);
       assertTrue(numFiles3 < numFiles2);
       assertEquals(1, numFiles3);
 
@@ -265,5 +264,11 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
 
     }
 
+  }
+
+  long getNumFilesForTable(ServerContext ctx, TableId tid) {
+    try (TabletsMetadata tablets = ctx.getAmple().readTablets().forTable(tid).build()) {
+      return tablets.stream().mapToLong(tm -> tm.getFiles().size()).sum();
+    }
   }
 }

@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -532,12 +531,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case COMPACTOR:
-        Iterator<Process> iterC = compactorProcesses.iterator();
-        while (iterC.hasNext()) {
-          if (!iterC.next().isAlive()) {
-            iterC.remove();
-          }
-        }
+        compactorProcesses.removeIf(process -> !process.isAlive());
         break;
       case GARBAGE_COLLECTOR:
         if (!gcProcess.isAlive()) {
@@ -556,20 +550,10 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case SCAN_SERVER:
-        Iterator<Process> iterS = scanServerProcesses.iterator();
-        while (iterS.hasNext()) {
-          if (!iterS.next().isAlive()) {
-            iterS.remove();
-          }
-        }
+        scanServerProcesses.removeIf(process -> !process.isAlive());
         break;
       case TABLET_SERVER:
-        Iterator<Process> iterT = tabletServerProcesses.iterator();
-        while (iterT.hasNext()) {
-          if (!iterT.next().isAlive()) {
-            iterT.remove();
-          }
-        }
+        tabletServerProcesses.removeIf(process -> !process.isAlive());
         break;
       case ZOOKEEPER:
         if (!zooKeeperProcess.isAlive()) {
@@ -586,8 +570,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case COMPACTION_COORDINATOR:
         return coordinatorProcess == null ? Set.of() : Set.of(coordinatorProcess);
       case COMPACTOR:
-        return compactorProcesses == null ? Set.of()
-            : Set.of(compactorProcesses.toArray(new Process[] {}));
+        return Set.of(compactorProcesses.toArray(new Process[] {}));
       case GARBAGE_COLLECTOR:
         return gcProcess == null ? Set.of() : Set.of(gcProcess);
       case MANAGER:
@@ -596,8 +579,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case MONITOR:
         return monitor == null ? Set.of() : Set.of(monitor);
       case SCAN_SERVER:
-        return scanServerProcesses == null ? Set.of()
-            : Set.of(scanServerProcesses.toArray(new Process[] {}));
+        return Set.of(scanServerProcesses.toArray(new Process[] {}));
       case TABLET_SERVER:
         return tabletServerProcesses == null ? Set.of()
             : Set.of(tabletServerProcesses.toArray(new Process[] {}));
