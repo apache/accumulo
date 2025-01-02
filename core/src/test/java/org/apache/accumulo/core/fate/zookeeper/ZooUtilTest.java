@@ -90,6 +90,7 @@ class ZooUtilTest {
 
     ZooSession zk = createMock(ZooSession.class);
     String namePath = Constants.ZROOT + Constants.ZINSTANCES;
+    expect(zk.asReader()).andReturn(new ZooReader(zk)).anyTimes();
     expect(zk.getChildren(eq(namePath), isNull())).andReturn(List.of(instAName, instBName)).once();
     expect(zk.getData(eq(namePath + "/" + instAName), isNull(), isNull()))
         .andReturn(instA.canonical().getBytes(UTF_8)).once();
