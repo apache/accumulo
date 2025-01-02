@@ -46,7 +46,7 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
   public ZooAuthenticationKeyWatcher(AuthenticationTokenSecretManager secretManager, ZooSession zk,
       String baseNode) {
     this.secretManager = secretManager;
-    this.zk = new ZooReader(zk);
+    this.zk = zk.asReader();
     this.baseNode = baseNode;
   }
 

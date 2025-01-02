@@ -72,7 +72,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
@@ -645,7 +644,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + getInstanceName();
     try (var zk = new ZooSession(MiniAccumuloClusterImpl.class.getSimpleName() + ".verifyUp()",
         getZooKeepers(), 60000, secret)) {
-      var rdr = new ZooReader(zk);
+      var rdr = zk.asReader();
       InstanceId instanceId = null;
       for (int i = 0; i < numTries; i++) {
         try {

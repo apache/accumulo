@@ -37,7 +37,6 @@ import java.util.Set;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
 import org.apache.accumulo.core.fate.zookeeper.FateLock.FateLockPath;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
@@ -265,7 +264,7 @@ public class AdminUtil<T> {
       final Map<Long,List<String>> heldLocks, final Map<Long,List<String>> waitingLocks)
       throws KeeperException, InterruptedException {
 
-    var zr = new ZooReader(zk);
+    var zr = zk.asReader();
 
     // stop with exception if lock ids cannot be retrieved from zookeeper
     List<String> lockedIds = zr.getChildren(lockPath.toString());

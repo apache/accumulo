@@ -189,7 +189,7 @@ public class ZooUtil {
 
   private static List<String> getInstanceNames(ZooSession zk) {
     try {
-      return new ZooReader(zk).getChildren(Constants.ZROOT + Constants.ZINSTANCES);
+      return zk.asReader().getChildren(Constants.ZROOT + Constants.ZINSTANCES);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Interrupted reading instance names from ZooKeeper", e);
@@ -200,7 +200,7 @@ public class ZooUtil {
 
   private static byte[] getInstanceIdBytesFromName(ZooSession zk, String name) {
     try {
-      return new ZooReader(zk)
+      return zk.asReader()
           .getData(Constants.ZROOT + Constants.ZINSTANCES + "/" + requireNonNull(name));
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -232,7 +232,7 @@ public class ZooUtil {
     String instanceIdString = new String(data, UTF_8);
     try {
       // verify that the instanceId found via the name actually exists
-      if (new ZooReader(zk).getData(Constants.ZROOT + "/" + instanceIdString) == null) {
+      if (zk.asReader().getData(Constants.ZROOT + "/" + instanceIdString) == null) {
         throw new IllegalStateException("InstanceId " + instanceIdString
             + " pointed to by the name " + name + " does not exist in ZooKeeper");
       }
