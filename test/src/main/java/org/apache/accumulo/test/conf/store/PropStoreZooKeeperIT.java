@@ -40,7 +40,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
@@ -73,7 +72,7 @@ public class PropStoreZooKeeperIT {
   private static final Logger log = LoggerFactory.getLogger(PropStoreZooKeeperIT.class);
   private static final VersionedPropCodec propCodec = VersionedPropCodec.getDefault();
   private static ZooKeeperTestingServer testZk = null;
-  private static ZooSession zooKeeper;
+  private static ZooSession zk;
   private ServerContext context;
   private InstanceId instanceId = null;
   private PropStore propStore = null;
@@ -86,13 +85,13 @@ public class PropStoreZooKeeperIT {
   @BeforeAll
   public static void setupZk() throws Exception {
     testZk = new ZooKeeperTestingServer(tempDir);
-    zooKeeper = testZk.newClient();
+    zk = testZk.newClient();
   }
 
   @AfterAll
   public static void shutdownZK() throws Exception {
     try {
-      zooKeeper.close();
+      zk.close();
     } finally {
       testZk.close();
     }
@@ -100,26 +99,25 @@ public class PropStoreZooKeeperIT {
 
   @BeforeEach
   public void setupZnodes() throws Exception {
-    var zrw = new ZooReaderWriter(zooKeeper);
     instanceId = InstanceId.of(UUID.randomUUID());
     context = createMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-    expect(context.getZooSession()).andReturn(zooKeeper).anyTimes();
+    expect(context.getZooSession()).andReturn(zk).anyTimes();
 
     replay(context);
 
-    zrw.mkdirs(ZooUtil.getRoot(instanceId) + Constants.ZCONFIG);
-    zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES, new byte[0],
+    zk.asReaderWriter().mkdirs(ZooUtil.getRoot(instanceId) + Constants.ZCONFIG);
+    zk.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES, new byte[0],
         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdA.canonical(),
+    zk.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdA.canonical(),
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    zooKeeper.create(
+    zk.create(
         ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdA.canonical() + "/conf",
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-    zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdB.canonical(),
+    zk.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdB.canonical(),
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    zooKeeper.create(
+    zk.create(
         ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdB.canonical() + "/conf",
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     propStore = ZooPropStore.initialize(instanceId, context.getZooSession());
@@ -127,7 +125,7 @@ public class PropStoreZooKeeperIT {
 
   @AfterEach
   public void cleanupZnodes() throws Exception {
-    ZKUtil.deleteRecursive(zooKeeper, "/accumulo");
+    ZKUtil.deleteRecursive(zk, "/accumulo");
   }
 
   /**
@@ -138,7 +136,7 @@ public class PropStoreZooKeeperIT {
     var propKey = TablePropKey.of(instanceId, tIdA);
 
     // read from ZK, after delete no node and node not created.
-    assertNull(zooKeeper.exists(propKey.getPath(), null));
+    assertNull(zk.exists(propKey.getPath(), null));
     assertThrows(IllegalStateException.class, () -> propStore.get(propKey));
   }
 
@@ -146,12 +144,12 @@ public class PropStoreZooKeeperIT {
   public void failOnDuplicate() throws InterruptedException, KeeperException {
     var propKey = TablePropKey.of(instanceId, tIdA);
 
-    assertNull(zooKeeper.exists(propKey.getPath(), null)); // check node does not exist in ZK
+    assertNull(zk.exists(propKey.getPath(), null)); // check node does not exist in ZK
 
     propStore.create(propKey, Map.of());
     Thread.sleep(25); // yield.
 
-    assertNotNull(zooKeeper.exists(propKey.getPath(), null)); // check not created
+    assertNotNull(zk.exists(propKey.getPath(), null)); // check not created
     assertThrows(IllegalStateException.class, () -> propStore.create(propKey, null));
 
     assertNotNull(propStore.get(propKey));
@@ -169,7 +167,7 @@ public class PropStoreZooKeeperIT {
     assertEquals("true", vProps.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
     // check using direct read from ZK
-    byte[] bytes = zooKeeper.getData(propKey.getPath(), null, new Stat());
+    byte[] bytes = zk.getData(propKey.getPath(), null, new Stat());
     var readFromZk = propCodec.fromBytes(0, bytes);
     var propsA = propStore.get(propKey);
     assertEquals(readFromZk.asMap(), propsA.asMap());
