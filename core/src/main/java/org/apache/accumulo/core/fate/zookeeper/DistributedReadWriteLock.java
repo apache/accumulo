@@ -142,7 +142,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
             return;
           }
         } catch (InterruptedException ex) {
-          // ignored
+          Thread.currentThread().interrupt();
+          log.warn("Interrupted while waiting to acquire lock", ex);
         }
       }
     }
