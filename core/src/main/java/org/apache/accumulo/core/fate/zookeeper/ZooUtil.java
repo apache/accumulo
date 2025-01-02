@@ -175,9 +175,6 @@ public class ZooUtil {
     return fmt.format(timestamp);
   }
 
-  /**
-   * Given a zooCache and instanceId, look up the instance name.
-   */
   public static String getInstanceName(ZooSession zk, InstanceId instanceId) {
     requireNonNull(zk);
     var instanceIdBytes = requireNonNull(instanceId).canonical().getBytes(UTF_8);
