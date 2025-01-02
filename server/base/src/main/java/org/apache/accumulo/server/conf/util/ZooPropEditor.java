@@ -83,25 +83,24 @@ public class ZooPropEditor implements KeywordExecutable {
     opts.parseArgs(ZooPropEditor.class.getName(), args);
 
     var siteConfig = opts.getSiteConfiguration();
-    try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
+    try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig);
+        var context = new ServerContext(siteConfig)) {
       var zrw = zk.asReaderWriter();
 
-      try (ServerContext context = new ServerContext(siteConfig)) {
-        PropStoreKey<?> propKey = getPropKey(context, opts);
-        switch (opts.getCmdMode()) {
-          case SET:
-            setProperty(context, propKey, opts);
-            break;
-          case DELETE:
-            deleteProperty(context, propKey, readPropNode(propKey, zrw), opts);
-            break;
-          case PRINT:
-            printProperties(context, propKey, readPropNode(propKey, zrw));
-            break;
-          case ERROR:
-          default:
-            throw new IllegalArgumentException("Invalid operation requested");
-        }
+      PropStoreKey<?> propKey = getPropKey(context, opts);
+      switch (opts.getCmdMode()) {
+        case SET:
+          setProperty(context, propKey, opts);
+          break;
+        case DELETE:
+          deleteProperty(context, propKey, readPropNode(propKey, zrw), opts);
+          break;
+        case PRINT:
+          printProperties(context, propKey, readPropNode(propKey, zrw));
+          break;
+        case ERROR:
+        default:
+          throw new IllegalArgumentException("Invalid operation requested");
       }
     }
   }
