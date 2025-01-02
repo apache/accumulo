@@ -45,7 +45,7 @@ public class DeadServerList {
     this.path = context.getZooKeeperRoot() + Constants.ZDEADTSERVERS;
     zoo = context.getZooSession().asReaderWriter();
     try {
-      context.getZooSession().asReaderWriter().mkdirs(path);
+      zoo.mkdirs(path);
     } catch (Exception ex) {
       log.error("Unable to make parent directories of " + path, ex);
     }
