@@ -284,7 +284,7 @@ public class TabletServerLogger {
             if (alog != null) {
               try {
                 alog.close();
-              } catch (IOException e) {
+              } catch (Exception e) {
                 log.error("Failed to close WAL after it failed to open", e);
               }
 
@@ -293,7 +293,7 @@ public class TabletServerLogger {
                 if (fs.exists(path)) {
                   fs.delete(path);
                 }
-              } catch (IOException e) {
+              } catch (Exception e) {
                 log.warn("Failed to delete a WAL that failed to open", e);
               }
             }
@@ -321,7 +321,7 @@ public class TabletServerLogger {
               // Intentionally not deleting walog because it may have been advertised in ZK. See
               // #949
               alog.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
               log.error("Failed to close WAL after it failed to open", e);
             }
 
