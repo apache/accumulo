@@ -152,9 +152,10 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     int maxAttempts = 5;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       var mutator = mutatorFactory.get();
-      mutator = mutator.putName(serialize(txName)).putRepo(1, repo).putStatus(TStatus.SUBMITTED);
+      mutator =
+          mutator.putName(serializeTxInfo(txName)).putRepo(1, repo).putStatus(TStatus.SUBMITTED);
       if (autoCleanUp) {
-        mutator = mutator.putAutoClean(serialize(autoCleanUp));
+        mutator = mutator.putAutoClean(serializeTxInfo(autoCleanUp));
       }
       var status = mutator.tryMutate();
       if (status == FateMutator.Status.ACCEPTED) {
@@ -432,7 +433,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         }
         scanner.fetchColumn(cq.getColumnFamily(), cq.getColumnQualifier());
 
-        return scanner.stream().map(e -> (Serializable) deserialize(e.getValue().get())).findFirst()
+        return scanner.stream().map(e -> deserializeTxInfo(txInfo, e.getValue().get())).findFirst()
             .orElse(null);
       } catch (TableNotFoundException e) {
         throw new IllegalStateException(tableName + " not found!", e);
@@ -487,7 +488,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     public void setTransactionInfo(TxInfo txInfo, Serializable so) {
       verifyReservedAndNotDeleted(true);
 
-      final byte[] serialized = serialize(so);
+      final byte[] serialized = serializeTxInfo(so);
 
       newMutator(fateId).putTxInfo(txInfo, serialized).mutate();
     }

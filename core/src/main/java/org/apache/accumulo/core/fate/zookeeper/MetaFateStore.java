@@ -702,7 +702,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       while (length != 0) {
         Preconditions.checkArgument(length >= 0);
         TxInfo type = TxInfo.values()[buffer.readInt()];
-        txInfo.put(type, (Serializable) deserialize(buffer.readNBytes(length - 1)));
+        txInfo.put(type, AbstractFateStore.deserializeTxInfo(type, buffer.readNBytes(length - 1)));
 
         // if we have reached the end of the buffer (= reached the end of the tx info data)
         if (buffer.getPosition() == buffer.getLength()) {
@@ -747,7 +747,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
         // tx info
         if (!txInfo.isEmpty()) {
           for (var elt : txInfo.entrySet()) {
-            byte[] serTxInfo = AbstractFateStore.serialize(elt.getValue());
+            byte[] serTxInfo = serializeTxInfo(elt.getValue());
             dos.writeInt(1 + serTxInfo.length);
             dos.writeInt(elt.getKey().ordinal());
             dos.write(serTxInfo);
