@@ -120,15 +120,14 @@ public abstract class AbstractServer
       log.warn("Error trying to determine if user has permissions to shutdown server", e);
     }
 
-    log.info("Graceful shutdown initiated.");
-    // Don't interrupt the server thread, that will cause
-    // IO operations to fail as the servers are finishing
-    // their work.
-    requestShutdown();
-  }
-
-  protected void requestShutdown() {
-    shutdownRequested.set(true);
+    if (shutdownRequested.compareAndSet(false, true)) {
+      // Don't interrupt the server thread, that will cause
+      // IO operations to fail as the servers are finishing
+      // their work.
+      log.info("Graceful shutdown initiated.");
+    } else {
+      log.warn("Graceful shutdown previously requested.");
+    }
   }
 
   protected boolean isShutdownRequested() {

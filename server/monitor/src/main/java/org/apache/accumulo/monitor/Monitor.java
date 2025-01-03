@@ -532,7 +532,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         Thread.sleep(1000);
       } catch (InterruptedException e) {
         LOG.info("Interrupt Exception received, shutting down");
-        requestShutdown();
+        gracefulShutdown(context.rpcCreds());
       }
     }
 

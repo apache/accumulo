@@ -429,7 +429,7 @@ public class ScanServer extends AbstractServer
               && tabletMetadataCache.estimatedSize() == 0);
         } catch (InterruptedException e) {
           LOG.info("Interrupt Exception received, shutting down");
-          requestShutdown();
+          gracefulShutdown(getContext().rpcCreds());
         }
       }
     } finally {

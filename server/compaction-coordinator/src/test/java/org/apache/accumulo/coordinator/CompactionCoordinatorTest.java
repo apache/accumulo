@@ -119,12 +119,12 @@ public class CompactionCoordinatorTest {
 
     @Override
     protected long getTServerCheckInterval() {
-      requestShutdown();
+      gracefulShutdown(null);
       return 0L;
     }
 
     @Override
-    public void requestShutdown() {
+    public void gracefulShutdown(TCredentials credentials) {
       shutdown.set(true);
     }
 

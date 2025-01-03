@@ -1449,7 +1449,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         Thread.sleep(500);
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");
-        requestShutdown();
+        gracefulShutdown(context.rpcCreds());
       }
     }
 

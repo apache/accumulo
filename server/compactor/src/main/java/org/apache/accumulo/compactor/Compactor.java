@@ -884,7 +884,7 @@ public class Compactor extends AbstractServer
           }
         } catch (InterruptedException e) {
           LOG.info("Interrupt Exception received, shutting down");
-          requestShutdown();
+          gracefulShutdown(getContext().rpcCreds());
         }
       } // end while
     } catch (Exception e) {

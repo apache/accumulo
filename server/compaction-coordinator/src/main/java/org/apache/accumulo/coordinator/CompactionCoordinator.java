@@ -332,7 +332,7 @@ public class CompactionCoordinator extends AbstractServer implements
         }
       } catch (InterruptedException e) {
         LOG.info("Interrupt Exception received, shutting down");
-        requestShutdown();
+        gracefulShutdown(getContext().rpcCreds());
       }
     }
 

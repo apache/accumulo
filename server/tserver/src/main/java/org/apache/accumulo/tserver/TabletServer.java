@@ -405,7 +405,7 @@ public class TabletServer extends AbstractServer
 
   void requestStop() {
     log.info("Stop requested.");
-    requestShutdown();
+    gracefulShutdown(getContext().rpcCreds());
   }
 
   private class SplitRunner implements Runnable {
@@ -941,7 +941,7 @@ public class TabletServer extends AbstractServer
         }
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");
-        requestShutdown();
+        gracefulShutdown(getContext().rpcCreds());
       } catch (Exception e) {
         // may have lost connection with manager
         // loop back to the beginning and wait for a new one

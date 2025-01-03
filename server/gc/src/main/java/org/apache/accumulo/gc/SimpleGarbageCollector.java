@@ -330,7 +330,7 @@ public class SimpleGarbageCollector extends AbstractServer
         }
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");
-        requestShutdown();
+        gracefulShutdown(getContext().rpcCreds());
       }
     }
     log.info("stop requested. exiting ... ");

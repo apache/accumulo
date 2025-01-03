@@ -46,7 +46,7 @@ public class SelfStoppingScanServer extends ScanServer
     scanCount.incrementAndGet();
     super.closeMultiScan(tinfo, scanID);
     if (scanCount.get() == 3) {
-      requestShutdown();
+      gracefulShutdown(getContext().rpcCreds());
     }
   }
 

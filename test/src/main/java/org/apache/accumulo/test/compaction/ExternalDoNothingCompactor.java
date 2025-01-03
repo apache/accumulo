@@ -62,7 +62,7 @@ public class ExternalDoNothingCompactor extends Compactor
       CountDownLatch stopped, AtomicReference<Throwable> err) {
 
     // Set this to true so that only 1 external compaction is run
-    requestShutdown();
+    gracefulShutdown(getContext().rpcCreds());
 
     return new FileCompactorRunnable() {
 

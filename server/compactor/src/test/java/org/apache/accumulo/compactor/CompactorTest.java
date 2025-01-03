@@ -52,6 +52,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.Halt;
@@ -230,12 +231,12 @@ public class CompactorTest {
     protected TNextCompactionJob getNextJob(Supplier<UUID> uuid) throws RetriesExceededException {
       LOG.info("Attempting to get next job, eci = {}", eci);
       currentCompactionId.set(eci);
-      requestShutdown();
+      gracefulShutdown(null);
       return new TNextCompactionJob(job, 1);
     }
 
     @Override
-    public void requestShutdown() {
+    public void gracefulShutdown(TCredentials creds) {
       shutdown.set(true);
     }
 
