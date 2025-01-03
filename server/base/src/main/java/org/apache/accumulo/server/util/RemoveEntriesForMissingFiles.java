@@ -212,6 +212,7 @@ public class RemoveEntriesForMissingFiles {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args);
+    opts.printUsage(opts.help);
     Span span = TraceUtil.startSpan(RemoveEntriesForMissingFiles.class, "main");
     try (Scope scope = span.makeCurrent()) {
       checkAllTables(opts.getServerContext(), opts.fix);

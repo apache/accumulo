@@ -110,6 +110,7 @@ public class ZooInfoViewer implements KeywordExecutable {
 
     ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
     opts.parseArgs(ZooInfoViewer.class.getName(), args);
+    opts.printUsage(opts.help);
 
     log.info("print ids map: {}", opts.printIdMap);
     log.info("print properties: {}", opts.printProps);

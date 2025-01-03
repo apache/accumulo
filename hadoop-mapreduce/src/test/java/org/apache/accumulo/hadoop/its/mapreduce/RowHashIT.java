@@ -205,6 +205,7 @@ public class RowHashIT extends ConfigurableMacBase {
       job.setJarByClass(this.getClass());
       RowHash.Opts opts = new RowHash.Opts();
       opts.parseArgs(RowHash.class.getName(), args);
+      opts.printUsage(opts.help);
       job.setInputFormatClass(AccumuloInputFormat.class);
 
       String col = opts.column;

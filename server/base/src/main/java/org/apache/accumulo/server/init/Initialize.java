@@ -527,6 +527,7 @@ public class Initialize implements KeywordExecutable {
     boolean success = true;
     Opts opts = new Opts();
     opts.parseArgs("accumulo init", args);
+    opts.printUsage(opts.help);
     var siteConfig = SiteConfiguration.auto();
     ZooReaderWriter zoo = new ZooReaderWriter(siteConfig);
     SecurityUtil.serverLogin(siteConfig);

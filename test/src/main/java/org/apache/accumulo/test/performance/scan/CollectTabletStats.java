@@ -109,6 +109,7 @@ public class CollectTabletStats {
 
     final CollectOptions opts = new CollectOptions();
     opts.parseArgs(CollectTabletStats.class.getName(), args);
+    opts.printUsage(opts.help);
 
     String[] columnsTmp = {};
     if (opts.columns != null) {

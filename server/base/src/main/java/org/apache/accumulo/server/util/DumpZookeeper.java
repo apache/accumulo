@@ -70,6 +70,7 @@ public class DumpZookeeper implements KeywordExecutable {
   public void execute(String[] args) throws KeeperException, InterruptedException {
     Opts opts = new Opts();
     opts.parseArgs(DumpZookeeper.class.getName(), args);
+    opts.printUsage(opts.help);
 
     PrintStream out = System.out;
     zk = new ZooReaderWriter(opts.getSiteConfiguration());
