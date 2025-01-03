@@ -54,6 +54,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -87,12 +88,15 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.Halt;
@@ -104,6 +108,7 @@ import org.apache.accumulo.core.util.Retry.RetryFactory;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.threads.ThreadPoolNames;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
@@ -170,7 +175,8 @@ import com.google.common.collect.Iterators;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class TabletServer extends AbstractServer implements TabletHostingServer {
+public class TabletServer extends AbstractServer
+    implements TabletHostingServer, ServerProcessService.Iface {
 
   private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
@@ -219,9 +225,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   volatile HostAndPort clientAddress;
 
-  private volatile boolean serverStopRequested = false;
-  private volatile boolean shutdownComplete = false;
-
   private ServiceLock tabletServerLock;
 
   private TServer server;
@@ -237,6 +240,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
   private final ServerContext context;
+  private volatile boolean shutdownComplete = false;
 
   public static void main(String[] args) throws Exception {
     try (TabletServer tserver = new TabletServer(new ServerOpts(), args)) {
@@ -401,7 +405,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   void requestStop() {
     log.info("Stop requested.");
-    serverStopRequested = true;
+    gracefulShutdown(getContext().rpcCreds());
   }
 
   private class SplitRunner implements Runnable {
@@ -612,7 +616,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     thriftClientHandler = newTabletClientHandler(watcher, writeTracker);
     scanClientHandler = newThriftScanClientHandler(writeTracker);
 
-    TProcessor processor = ThriftProcessorTypes.getTabletServerTProcessor(clientHandler,
+    TProcessor processor = ThriftProcessorTypes.getTabletServerTProcessor(this, clientHandler,
         thriftClientHandler, scanClientHandler, getContext());
     HostAndPort address = startServer(clientAddress.getHost(), processor);
     log.info("address = {}", address);
@@ -683,12 +687,20 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
         @Override
         public void lostLock(final LockLossReason reason) {
-          Halt.halt(serverStopRequested ? 0 : 1, () -> {
-            if (!serverStopRequested) {
-              log.error("Lost tablet server lock (reason = {}), exiting.", reason);
-            }
-            gcLogger.logGCInfo(getConfiguration());
-          });
+          // ServiceLock.unlock is called at the end of run(). We don't
+          // want to Halt when we are shutting down.
+          if (isShutdownRequested() && shutdownComplete) {
+            LOG.warn(
+                "TabletServer lost lock (reason = {}), not exiting because shutdown requested.",
+                reason);
+          } else {
+            Halt.halt(isShutdownRequested() ? 0 : 1, () -> {
+              if (!isShutdownRequested()) {
+                log.error("Lost tablet server lock (reason = {}), exiting.", reason);
+              }
+              gcLogger.logGCInfo(getConfiguration());
+            });
+          }
         }
 
         @Override
@@ -873,7 +885,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS));
 
     HostAndPort managerHost;
-    while (!serverStopRequested) {
+    while (!isShutdownRequested()) {
 
       updateIdleStatus(getOnlineTablets().isEmpty());
 
@@ -885,7 +897,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         try {
           // wait until a message is ready to send, or a server stop
           // was requested
-          while (mm == null && !serverStopRequested) {
+          while (mm == null && !isShutdownRequested()) {
             mm = managerMessages.poll(1, TimeUnit.SECONDS);
             updateIdleStatus(getOnlineTablets().isEmpty());
           }
@@ -898,7 +910,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
           // if while loop does not execute at all and mm != null,
           // then finally block should place mm back on queue
-          while (!serverStopRequested && mm != null && client != null
+          while (!isShutdownRequested() && mm != null && client != null
               && client.getOutputProtocol() != null
               && client.getOutputProtocol().getTransport() != null
               && client.getOutputProtocol().getTransport().isOpen()) {
@@ -929,7 +941,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");
-        serverStopRequested = true;
+        gracefulShutdown(getContext().rpcCreds());
       } catch (Exception e) {
         // may have lost connection with manager
         // loop back to the beginning and wait for a new one
@@ -938,24 +950,68 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
     }
 
-    // wait for shutdown
-    // if the main thread exits oldServer the manager listener, the JVM will
-    // kill the other threads and finalize objects. We want the shutdown that is
-    // running in the manager listener thread to complete oldServer this happens.
-    // consider making other threads daemon threads so that objects don't
-    // get prematurely finalized
-    synchronized (this) {
-      while (!shutdownComplete) {
-        try {
-          this.wait(1000);
-        } catch (InterruptedException e) {
-          log.error(e.toString());
-        }
-      }
-    }
     log.debug("Stopping Replication Server");
     if (this.replServer != null) {
       this.replServer.stop();
+    }
+
+    // Best-effort attempt at unloading tablets.
+    log.debug("Unloading tablets");
+    final List<Future<?>> futures = new ArrayList<>();
+    final ThreadPoolExecutor tpe = getContext().threadPools()
+        .getPoolBuilder(ThreadPoolNames.TSERVER_SHUTDOWN_UNLOAD_TABLET_POOL).numCoreThreads(8)
+        .numMaxThreads(16).build();
+
+    ManagerClientService.Client iface = managerConnection(getManagerAddress());
+    boolean managerDown = false;
+
+    try {
+      for (DataLevel level : new DataLevel[] {DataLevel.USER, DataLevel.METADATA, DataLevel.ROOT}) {
+        getOnlineTablets().keySet().forEach(ke -> {
+          if (DataLevel.of(ke.tableId()) == level) {
+            futures.add(
+                tpe.submit(new UnloadTabletHandler(this, ke, TUnloadTabletGoal.UNASSIGNED, 5000)));
+          }
+        });
+        while (!futures.isEmpty()) {
+          Iterator<Future<?>> unloads = futures.iterator();
+          while (unloads.hasNext()) {
+            Future<?> f = unloads.next();
+            if (f.isDone()) {
+              if (!managerDown) {
+                ManagerMessage mm = managerMessages.poll();
+                try {
+                  mm.send(getContext().rpcCreds(), getClientAddressString(), iface);
+                } catch (TException e) {
+                  managerDown = true;
+                  LOG.debug("Error sending message to Manager during tablet unloading, msg: {}",
+                      e.getMessage());
+                }
+              }
+              unloads.remove();
+            }
+          }
+          log.debug("Waiting on {} {} tablets to close.", futures.size(), level);
+          UtilWaitThread.sleep(1000);
+        }
+      }
+    } finally {
+      if (!managerDown) {
+        try {
+          ManagerMessage mm = managerMessages.poll();
+          do {
+            if (mm != null) {
+              mm.send(getContext().rpcCreds(), getClientAddressString(), iface);
+            }
+            mm = managerMessages.poll();
+          } while (mm != null);
+        } catch (TException e) {
+          LOG.debug("Error sending message to Manager during tablet unloading, msg: {}",
+              e.getMessage());
+        }
+      }
+      returnManagerConnection(iface);
+      tpe.shutdown();
     }
 
     log.debug("Stopping Thrift Servers");
@@ -974,6 +1030,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     log.info("TServerInfo: stop requested. exiting ... ");
 
+    shutdownComplete = true;
     try {
       tabletServerLock.unlock();
     } catch (Exception e) {
