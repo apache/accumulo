@@ -21,7 +21,7 @@
 /**
  * Creates overview initial table
  */
-$(document).ready(function () {
+$(function () {
   refreshOverview();
 });
 

@@ -90,7 +90,7 @@ function refreshManagerTables() {
 /**
  * Creates initial tables
  */
-$(document).ready(function () {
+$(function () {
 
   // Generates the manager table
   managerStatusTable = $('#managerStatus').DataTable({
