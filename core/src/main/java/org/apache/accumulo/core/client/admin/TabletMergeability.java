@@ -28,7 +28,7 @@ public class TabletMergeability implements Serializable {
   private static final long serialVersionUID = 1L;
 
   public static final TabletMergeability NEVER = new TabletMergeability(Duration.ofNanos(-1));
-  public static final TabletMergeability NOW = new TabletMergeability(Duration.ofNanos(0));
+  public static final TabletMergeability NOW = new TabletMergeability(Duration.ZERO);
 
   private final Duration delay;
 
@@ -42,6 +42,10 @@ public class TabletMergeability implements Serializable {
 
   public boolean isNow() {
     return this.delay.isZero();
+  }
+
+  public boolean isFuture() {
+    return delay.toNanos() > 0;
   }
 
   public Duration getDelay() {

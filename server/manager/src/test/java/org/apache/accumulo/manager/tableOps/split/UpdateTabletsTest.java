@@ -33,7 +33,6 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -50,6 +49,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -296,7 +296,7 @@ public class UpdateTabletsTest {
         .andReturn(tablet1Mutator);
     EasyMock.expect(tablet1Mutator.putFile(file2, dfv2)).andReturn(tablet1Mutator);
     // SplitInfo marked as system generated so should be set to NOW
-    EasyMock.expect(tablet1Mutator.putTabletMergeability(TabletMergeability.NOW))
+    EasyMock.expect(tablet1Mutator.putTabletMergeability(TabletMergeabilityMetadata.NOW))
         .andReturn(tablet1Mutator);
     tablet1Mutator.submit(EasyMock.anyObject());
     EasyMock.expectLastCall().once();
@@ -315,7 +315,7 @@ public class UpdateTabletsTest {
     EasyMock.expect(tablet2Mutator.putCompacted(ucfid3)).andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putTabletAvailability(availability)).andReturn(tablet2Mutator);
     // SplitInfo marked as system generated so should be set to NOW
-    EasyMock.expect(tablet2Mutator.putTabletMergeability(TabletMergeability.NOW))
+    EasyMock.expect(tablet2Mutator.putTabletMergeability(TabletMergeabilityMetadata.NOW))
         .andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putBulkFile(loaded1.getTabletFile(), flid1))
         .andReturn(tablet2Mutator);

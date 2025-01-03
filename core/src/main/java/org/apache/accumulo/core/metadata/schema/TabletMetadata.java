@@ -42,7 +42,6 @@ import java.util.OptionalLong;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -60,7 +59,6 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletMergeabilityUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
@@ -126,7 +124,7 @@ public class TabletMetadata {
   private final Set<FateId> compacted;
   private final Set<FateId> userCompactionsRequested;
   private final UnSplittableMetadata unSplittableMetadata;
-  private final TabletMergeability mergeability;
+  private final TabletMergeabilityMetadata mergeability;
   private final Supplier<Long> fileSize;
 
   private TabletMetadata(Builder tmBuilder) {
@@ -445,7 +443,7 @@ public class TabletMetadata {
     return unSplittableMetadata;
   }
 
-  public TabletMergeability getTabletMergeability() {
+  public TabletMergeabilityMetadata getTabletMergeability() {
     ensureFetched(ColumnType.MERGEABILITY);
     return mergeability;
   }
@@ -540,7 +538,7 @@ public class TabletMetadata {
               tmBuilder.onDemandHostingRequested(true);
               break;
             case MERGEABILITY_QUAL:
-              tmBuilder.mergeability(TabletMergeabilityUtil.fromValue(kv.getValue()));
+              tmBuilder.mergeability(TabletMergeabilityMetadata.fromValue(kv.getValue()));
               break;
             default:
               throw new IllegalStateException("Unexpected TabletColumnFamily qualifier: " + qual);
@@ -704,7 +702,7 @@ public class TabletMetadata {
     private final ImmutableSet.Builder<FateId> compacted = ImmutableSet.builder();
     private final ImmutableSet.Builder<FateId> userCompactionsRequested = ImmutableSet.builder();
     private UnSplittableMetadata unSplittableMetadata;
-    private TabletMergeability mergeability = TabletMergeability.NEVER;
+    private TabletMergeabilityMetadata mergeability = TabletMergeabilityMetadata.NEVER;
 
     void table(TableId tableId) {
       this.tableId = tableId;
@@ -814,7 +812,7 @@ public class TabletMetadata {
       this.unSplittableMetadata = unSplittableMetadata;
     }
 
-    void mergeability(TabletMergeability mergeability) {
+    void mergeability(TabletMergeabilityMetadata mergeability) {
       this.mergeability = mergeability;
     }
 

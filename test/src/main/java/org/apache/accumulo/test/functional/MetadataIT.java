@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -55,6 +54,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
@@ -290,7 +290,7 @@ public class MetadataIT extends AccumuloClusterHarness {
       assertTrue(
           tablets.stream().allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
       assertTrue(tablets.stream()
-          .allMatch(tm -> tm.getTabletMergeability().equals(TabletMergeability.NEVER)));
+          .allMatch(tm -> tm.getTabletMergeability().equals(TabletMergeabilityMetadata.NEVER)));
     }
   }
 }

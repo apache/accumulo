@@ -49,7 +49,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -315,7 +314,8 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   }
 
   @Override
-  public TabletMetadataBuilder putTabletMergeability(TabletMergeability tabletMergeability) {
+  public TabletMetadataBuilder
+      putTabletMergeability(TabletMergeabilityMetadata tabletMergeability) {
     fetched.add(MERGEABILITY);
     internalBuilder.putTabletMergeability(tabletMergeability);
     return this;

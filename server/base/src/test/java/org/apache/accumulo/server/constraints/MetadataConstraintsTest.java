@@ -33,7 +33,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -46,7 +45,6 @@ import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletMergeabilityUtil;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
@@ -59,6 +57,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Su
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
@@ -648,25 +647,37 @@ public class MetadataConstraintsTest {
     Mutation m;
     List<Short> violations;
 
+    // Delay must be >= -1
     m = new Mutation(new Text("0;foo"));
-    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("-2"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":-2}"));
+    assertViolation(mc, m, (short) 4006);
+
+    // SteadyTime must be null if delay is not positive
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":0,\"steadyTime\":1}"));
+    assertViolation(mc, m, (short) 4006);
+
+    // SteadyTime must be set if delay positive
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":10}"));
     assertViolation(mc, m, (short) 4006);
 
     m = new Mutation(new Text("0;foo"));
     TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
-        TabletMergeabilityUtil.toValue(TabletMergeability.NEVER));
+        TabletMergeabilityMetadata.toValue(TabletMergeabilityMetadata.NEVER));
     violations = mc.check(createEnv(), m);
     assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
     TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
-        TabletMergeabilityUtil.toValue(TabletMergeability.NOW));
+        TabletMergeabilityMetadata.toValue(TabletMergeabilityMetadata.NOW));
     violations = mc.check(createEnv(), m);
     assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
     TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
-        TabletMergeabilityUtil.toValue(TabletMergeability.after(Duration.ofDays(3))));
+        TabletMergeabilityMetadata.toValue(TabletMergeabilityMetadata.after(Duration.ofDays(3),
+            SteadyTime.from(Duration.ofHours(1)))));
     violations = mc.check(createEnv(), m);
     assertTrue(violations.isEmpty());
   }

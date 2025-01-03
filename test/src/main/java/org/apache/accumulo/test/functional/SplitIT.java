@@ -57,7 +57,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.conf.Property;
@@ -67,9 +66,9 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.TabletMergeabilityUtil;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -264,9 +263,9 @@ public class SplitIT extends AccumuloClusterHarness {
               .equals(entry.getKey().getColumnQualifier())) {
             // Default tablet should be set to NEVER, all newly generated system splits should be
             // set to NOW
-            var mergeability =
-                extent.endRow() == null ? TabletMergeability.NEVER : TabletMergeability.NOW;
-            assertEquals(mergeability, TabletMergeabilityUtil.fromValue(entry.getValue()));
+            var mergeability = extent.endRow() == null ? TabletMergeabilityMetadata.NEVER
+                : TabletMergeabilityMetadata.NOW;
+            assertEquals(mergeability, TabletMergeabilityMetadata.fromValue(entry.getValue()));
           }
           count++;
         }

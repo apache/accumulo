@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -36,6 +35,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
@@ -219,8 +219,8 @@ public class UpdateTablets extends ManagerRepo {
             .debug("{} copying compacted marker to new child tablet {}", fateId, compactedFateId));
 
         mutator.putTabletAvailability(tabletMetadata.getTabletAvailability());
-        mutator.putTabletMergeability(
-            splitInfo.isSystemCreated() ? TabletMergeability.NOW : TabletMergeability.NEVER);
+        mutator.putTabletMergeability(splitInfo.isSystemCreated() ? TabletMergeabilityMetadata.NOW
+            : TabletMergeabilityMetadata.NEVER);
         tabletMetadata.getLoaded().forEach((k, v) -> mutator.putBulkFile(k.getTabletFile(), v));
 
         newTabletsFiles.get(newExtent).forEach(mutator::putFile);

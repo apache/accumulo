@@ -30,11 +30,11 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -96,8 +96,8 @@ public class AddSplitIT extends AccumuloClusterHarness {
       TableId id = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       try (TabletsMetadata tm = getServerContext().getAmple().readTablets().forTable(id).build()) {
         // Default for user created tablets should be mergeability set to NEVER
-        tm.stream().forEach(
-            tablet -> assertEquals(TabletMergeability.NEVER, tablet.getTabletMergeability()));
+        tm.stream().forEach(tablet -> assertEquals(TabletMergeabilityMetadata.NEVER,
+            tablet.getTabletMergeability()));
       }
     }
   }

@@ -57,7 +57,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -75,6 +74,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadataBuilder;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -152,7 +152,7 @@ public class MergeTabletsTest {
     var availability = TabletAvailability.HOSTED;
     var lastLocation = TabletMetadata.Location.last("1.2.3.4:1234", "123456789");
     var suspendingTServer = SuspendingTServer.fromValue(new Value("1.2.3.4:5|56"));
-    var mergeability = TabletMergeability.NOW;
+    var mergeability = TabletMergeabilityMetadata.NOW;
 
     var tablet1 =
         TabletMetadata.builder(ke1).putOperation(opid).putDirName("td1").putFile(file3, dfv3)
@@ -234,7 +234,7 @@ public class MergeTabletsTest {
       EasyMock.expect(tabletMutator.deleteSuspension()).andReturn(tabletMutator);
       EasyMock.expect(tabletMutator.deleteLocation(lastLocation)).andReturn(tabletMutator);
       EasyMock.expect(tabletMutator.deleteUnSplittable()).andReturn(tabletMutator);
-      EasyMock.expect(tabletMutator.putTabletMergeability(TabletMergeability.NOW))
+      EasyMock.expect(tabletMutator.putTabletMergeability(TabletMergeabilityMetadata.NOW))
           .andReturn(tabletMutator).once();
 
     });
@@ -405,7 +405,7 @@ public class MergeTabletsTest {
             .once();
         EasyMock.expect(tabletMutator.setMerged()).andReturn(tabletMutator).once();
         // Current default if not set is NEVER
-        EasyMock.expect(tabletMutator.putTabletMergeability(TabletMergeability.NEVER))
+        EasyMock.expect(tabletMutator.putTabletMergeability(TabletMergeabilityMetadata.NEVER))
             .andReturn(tabletMutator).once();
       });
     }

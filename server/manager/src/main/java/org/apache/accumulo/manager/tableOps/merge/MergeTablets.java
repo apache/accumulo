@@ -186,19 +186,6 @@ public class MergeTablets extends ManagerRepo {
         tabletMutator.putTabletAvailability(
             DeleteRows.getMergeTabletAvailability(range, tabletAvailabilities));
         tabletMutator.putPrevEndRow(firstTabletMeta.getPrevEndRow());
-
-        // TODO: How should we determine this value this after merging?
-        // Do we just keep the value that's already in the last tablet in the range?
-        // For now the lastTabletMetadata is the simplest to use
-        //
-        // All the tablets being merged could have different values
-        // even if they are all currently mergeable. Right now merging is
-        // always user generated but eventually will be possible to be
-        // system generated auto merge because of this column.
-        //
-        // Another option could be to track if the user started the merge and if
-        // they did then treat it like a user split and mark this as NEVER ,
-        // and if the system triggered the merge we set it as SYSTEM
         tabletMutator.putTabletMergeability(lastTabletMeta.getTabletMergeability());
 
         // scan entries are related to a hosted tablet, this tablet is not hosted so can safely

@@ -36,7 +36,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
-import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -54,6 +53,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata.TableOptions;
 import org.apache.accumulo.core.security.Authorizations;
@@ -150,7 +150,7 @@ public class TestAmple {
         tabletMutator.putDirName(dirName);
         tabletMutator.putTime(new MetadataTime(0, TimeType.MILLIS));
         tabletMutator.putTabletAvailability(TabletAvailability.HOSTED);
-        tabletMutator.putTabletMergeability(TabletMergeability.NEVER);
+        tabletMutator.putTabletMergeability(TabletMergeabilityMetadata.NEVER);
         tabletMutator.mutate();
       } catch (Exception e) {
         throw new IllegalStateException(e);
