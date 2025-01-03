@@ -635,8 +635,9 @@ public class CompactionCoordinator
             }
 
             tabletMutator.putExternalCompaction(externalCompactionId, ecm);
-            tabletMutator
-                .submit(tm -> tm.getExternalCompactions().containsKey(externalCompactionId));
+            tabletMutator.submit(
+                tm -> tm.getExternalCompactions().containsKey(externalCompactionId),
+                () -> "compaction reservation");
 
             var result = tabletsMutator.process().get(extent);
 
