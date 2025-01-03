@@ -76,14 +76,15 @@ public class AdminUtil<T> {
     private final FateId fateId;
     private final FateInstanceType instanceType;
     private final TStatus status;
-    private final String txName;
+    private final Fate.FateOperation txName;
     private final List<String> hlocks;
     private final List<String> wlocks;
     private final String top;
     private final long timeCreated;
 
     private TransactionStatus(FateId fateId, FateInstanceType instanceType, TStatus status,
-        String txName, List<String> hlocks, List<String> wlocks, String top, Long timeCreated) {
+        Fate.FateOperation txName, List<String> hlocks, List<String> wlocks, String top,
+        Long timeCreated) {
 
       this.fateId = fateId;
       this.instanceType = instanceType;
@@ -115,7 +116,7 @@ public class AdminUtil<T> {
     /**
      * @return The name of the transaction running.
      */
-    public String getTxName() {
+    public Fate.FateOperation getTxName() {
       return txName;
     }
 
@@ -361,7 +362,9 @@ public class AdminUtil<T> {
         fateIds.forEach(fateId -> {
 
           ReadOnlyFateTxStore<T> txStore = store.read(fateId);
-          String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
+          // tx name will not be set if the tx is not seeded with work (it is NEW)
+          Fate.FateOperation txName = txStore.getTransactionInfo(Fate.TxInfo.TX_NAME) == null ? null
+              : ((Fate.FateOperation) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME));
 
           List<String> hlocks = heldLocks.remove(fateId);
 

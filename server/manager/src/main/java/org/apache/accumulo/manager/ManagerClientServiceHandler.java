@@ -321,7 +321,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     String msg = "Shutdown tserver " + tabletServer;
 
-    fate.seedTransaction("ShutdownTServer", fateId,
+    fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, fateId,
         new TraceRepo<>(
             new ShutdownTServer(doomed, manager.tserverSet.getResourceGroup(doomed), force)),
         false, msg);

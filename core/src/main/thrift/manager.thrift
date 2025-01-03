@@ -49,7 +49,7 @@ enum TabletLoadState {
   UNLOAD_ERROR
 }
 
-enum FateOperation {
+enum TFateOperation {
   TABLE_CREATE
   TABLE_CLONE
   TABLE_DELETE
@@ -58,7 +58,6 @@ enum FateOperation {
   TABLE_OFFLINE
   TABLE_MERGE
   TABLE_DELETE_RANGE
-  OBSOLETE_TABLE_BULK_IMPORT
   TABLE_COMPACT
   TABLE_IMPORT
   TABLE_EXPORT
@@ -192,7 +191,7 @@ service FateService {
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:TFateId opid
-    4:FateOperation op
+    4:TFateOperation op
     5:list<binary> arguments
     6:map<string, string> options
     7:bool autoClean

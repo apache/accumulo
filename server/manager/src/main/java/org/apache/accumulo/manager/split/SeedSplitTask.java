@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.split;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.manager.Manager;
@@ -41,8 +42,8 @@ public class SeedSplitTask implements Runnable {
   public void run() {
     try {
       var fateInstanceType = FateInstanceType.fromTableId((extent.tableId()));
-      manager.fate(fateInstanceType).seedTransaction("SYSTEM_SPLIT", FateKey.forSplit(extent),
-          new FindSplits(extent), true);
+      manager.fate(fateInstanceType).seedTransaction(Fate.FateOperation.SYSTEM_SPLIT,
+          FateKey.forSplit(extent), new FindSplits(extent), true);
     } catch (Exception e) {
       log.error("Failed to split {}", extent, e);
     }

@@ -33,6 +33,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
@@ -87,8 +88,9 @@ public class FateSummaryReport {
     }
     String top = txnStatus.getTop();
     stepCounts.merge(Objects.requireNonNullElse(top, "?"), 1, Integer::sum);
-    String runningRepo = txnStatus.getTxName();
-    cmdCounts.merge(Objects.requireNonNullElse(runningRepo, "?"), 1, Integer::sum);
+    Fate.FateOperation runningRepo = txnStatus.getTxName();
+
+    cmdCounts.merge(runningRepo == null ? "?" : runningRepo.name(), 1, Integer::sum);
 
     // filter transactions if provided
     if (!fateIdFilter.isEmpty() && !fateIdFilter.contains(txnStatus.getFateId().canonical())) {

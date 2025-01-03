@@ -54,6 +54,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
+import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -86,6 +87,34 @@ public class Fate<T> {
 
   public enum TxInfo {
     TX_NAME, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
+  }
+
+  public enum FateOperation {
+    COMMIT_COMPACTION,
+    NAMESPACE_CREATE,
+    NAMESPACE_DELETE,
+    NAMESPACE_RENAME,
+    SHUTDOWN_TSERVER,
+    SYSTEM_SPLIT,
+    TABLE_BULK_IMPORT2,
+    TABLE_CANCEL_COMPACT,
+    TABLE_CLONE,
+    TABLE_COMPACT,
+    TABLE_CREATE,
+    TABLE_DELETE,
+    TABLE_DELETE_RANGE,
+    TABLE_EXPORT,
+    TABLE_IMPORT,
+    TABLE_MERGE,
+    TABLE_OFFLINE,
+    TABLE_ONLINE,
+    TABLE_RENAME,
+    TABLE_SPLIT,
+    TABLE_TABLET_AVAILABILITY;
+
+    public static FateOperation fromThrift(TFateOperation tFateOp) {
+      return FateOperation.valueOf(tFateOp.name());
+    }
   }
 
   /**
@@ -437,14 +466,15 @@ public class Fate<T> {
     return store.create();
   }
 
-  public void seedTransaction(String txName, FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
+  public void seedTransaction(FateOperation txName, FateKey fateKey, Repo<T> repo,
+      boolean autoCleanUp) {
     store.seedTransaction(txName, fateKey, repo, autoCleanUp);
   }
 
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
-  public void seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp,
-      String goalMessage) {
+  public void seedTransaction(FateOperation txName, FateId fateId, Repo<T> repo,
+      boolean autoCleanUp, String goalMessage) {
     log.info("Seeding {} {}", fateId, goalMessage);
     store.seedTransaction(txName, fateId, repo, autoCleanUp);
   }

@@ -150,8 +150,8 @@ public class FateLogger {
       }
 
       @Override
-      public Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
-          boolean autoCleanUp) {
+      public Optional<FateId> seedTransaction(Fate.FateOperation txName, FateKey fateKey,
+          Repo<T> repo, boolean autoCleanUp) {
         var optional = store.seedTransaction(txName, fateKey, repo, autoCleanUp);
         if (storeLog.isTraceEnabled()) {
           optional.ifPresentOrElse(fateId -> {
@@ -166,7 +166,7 @@ public class FateLogger {
       }
 
       @Override
-      public boolean seedTransaction(String txName, FateId fateId, Repo<T> repo,
+      public boolean seedTransaction(Fate.FateOperation txName, FateId fateId, Repo<T> repo,
           boolean autoCleanUp) {
         boolean seeded = store.seedTransaction(txName, fateId, repo, autoCleanUp);
         if (storeLog.isTraceEnabled()) {

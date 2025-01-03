@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.test.fate.FateStoreUtil.TEST_FATE_OP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -298,8 +299,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     FateKey fateKey2 =
         FateKey.forCompactionCommit(ExternalCompactionId.generate(UUID.randomUUID()));
 
-    var fateId1 = store.seedTransaction("TEST", fateKey1, new TestRepo(), true).orElseThrow();
-    var fateId2 = store.seedTransaction("TEST", fateKey2, new TestRepo(), true).orElseThrow();
+    var fateId1 = store.seedTransaction(TEST_FATE_OP, fateKey1, new TestRepo(), true).orElseThrow();
+    var fateId2 = store.seedTransaction(TEST_FATE_OP, fateKey2, new TestRepo(), true).orElseThrow();
 
     assertNotEquals(fateId1, fateId2);
 
@@ -333,11 +334,11 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
     FateKey fateKey = FateKey.forSplit(ke);
-    var fateId = store.seedTransaction("TEST", fateKey, new TestRepo(), true).orElseThrow();
+    var fateId = store.seedTransaction(TEST_FATE_OP, fateKey, new TestRepo(), true).orElseThrow();
 
     // second call is empty
-    assertTrue(store.seedTransaction("TEST", fateKey, new TestRepo(), true).isEmpty());
-    assertFalse(store.seedTransaction("TEST", fateId, new TestRepo(), true));
+    assertTrue(store.seedTransaction(TEST_FATE_OP, fateKey, new TestRepo(), true).isEmpty());
+    assertFalse(store.seedTransaction(TEST_FATE_OP, fateId, new TestRepo(), true));
 
     var txStore = store.reserve(fateId);
     try {
@@ -362,7 +363,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
     FateKey fateKey = FateKey.forSplit(ke);
 
-    var fateId = store.seedTransaction("TEST", fateKey, new TestRepo(), true).orElseThrow();
+    var fateId = store.seedTransaction(TEST_FATE_OP, fateKey, new TestRepo(), true).orElseThrow();
 
     var txStore = store.reserve(fateId);
     try {
@@ -371,7 +372,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
       // We have an existing transaction with the same key in progress
       // so should return an empty Optional
-      assertTrue(store.seedTransaction("TEST", fateKey, new TestRepo(), true).isEmpty());
+      assertTrue(store.seedTransaction(TEST_FATE_OP, fateKey, new TestRepo(), true).isEmpty());
       assertEquals(TStatus.IN_PROGRESS, txStore.getStatus());
     } finally {
       txStore.setStatus(TStatus.SUCCESSFUL);
@@ -383,7 +384,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
     try {
       // After deletion, make sure we can create again with the same key
-      var fateId2 = store.seedTransaction("TEST", fateKey, new TestRepo(), true).orElseThrow();
+      var fateId2 =
+          store.seedTransaction(TEST_FATE_OP, fateKey, new TestRepo(), true).orElseThrow();
       txStore = store.reserve(fateId);
       assertEquals(fateId, fateId2);
       assertTrue(txStore.timeCreated() > 0);
@@ -424,10 +426,10 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     FateKey fateKey1 = FateKey.forSplit(ke1);
     FateKey fateKey2 = FateKey.forSplit(ke2);
 
-    var fateId1 = store.seedTransaction("TEST", fateKey1, new TestRepo(), true).orElseThrow();
+    var fateId1 = store.seedTransaction(TEST_FATE_OP, fateKey1, new TestRepo(), true).orElseThrow();
     var txStore = store.reserve(fateId1);
     try {
-      assertTrue(store.seedTransaction("TEST", fateKey2, new TestRepo(), true).isEmpty());
+      assertTrue(store.seedTransaction(TEST_FATE_OP, fateKey2, new TestRepo(), true).isEmpty());
       assertEquals(fateKey1, txStore.getKey().orElseThrow());
     } finally {
       txStore.delete();
@@ -447,14 +449,14 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
     FateKey fateKey = FateKey.forSplit(ke);
-    var fateId = store.seedTransaction("TEST", fateKey, new TestRepo(), true).orElseThrow();
+    var fateId = store.seedTransaction(TEST_FATE_OP, fateKey, new TestRepo(), true).orElseThrow();
 
     // After seeding a fate transaction using a key we can simulate a collision with
     // a random FateId by deleting the key out of Fate and calling seed again to
     // verify it detects the key is missing. Then we can continue and see if we can still use
     // the existing transaction.
     deleteKey(fateId, sctx);
-    assertTrue(store.seedTransaction("TEST", fateKey, new TestRepo(), true).isEmpty());
+    assertTrue(store.seedTransaction(TEST_FATE_OP, fateKey, new TestRepo(), true).isEmpty());
 
     var txStore = store.reserve(fateId);
     // We should still be able to use the existing transaction
@@ -600,8 +602,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       // have 10 threads all try to seed the same fate key, only one should succeed.
       List<Future<Optional<FateId>>> futures = new ArrayList<>(10);
       for (int i = 0; i < 10; i++) {
-        futures.add(
-            executor.submit(() -> store.seedTransaction("TEST", fateKey, new TestRepo(), true)));
+        futures.add(executor
+            .submit(() -> store.seedTransaction(TEST_FATE_OP, fateKey, new TestRepo(), true)));
       }
 
       int idsSeen = 0;
@@ -683,7 +685,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
     Map<FateKey,FateId> fateKeyIds = new HashMap<>();
     for (FateKey fateKey : List.of(fateKey1, fateKey2, fateKey3, fateKey4)) {
-      var fateId = store.seedTransaction("TEST", fateKey, new TestRepo(), true).orElseThrow();
+      var fateId = store.seedTransaction(TEST_FATE_OP, fateKey, new TestRepo(), true).orElseThrow();
       fateKeyIds.put(fateKey, fateId);
     }
 

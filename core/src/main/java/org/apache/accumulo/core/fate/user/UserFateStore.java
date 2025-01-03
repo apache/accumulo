@@ -40,6 +40,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -126,7 +127,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
+  public Optional<FateId> seedTransaction(Fate.FateOperation txName, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
     final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
     Supplier<FateMutator<T>> mutatorFactory = () -> newMutator(fateId).requireAbsent()
@@ -139,14 +140,15 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public boolean seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp) {
+  public boolean seedTransaction(Fate.FateOperation txName, FateId fateId, Repo<T> repo,
+      boolean autoCleanUp) {
     Supplier<FateMutator<T>> mutatorFactory =
         () -> newMutator(fateId).requireStatus(TStatus.NEW).requireUnreserved().requireAbsentKey();
     return seedTransaction(mutatorFactory, fateId.canonical(), txName, repo, autoCleanUp);
   }
 
   private boolean seedTransaction(Supplier<FateMutator<T>> mutatorFactory, String logId,
-      String txName, Repo<T> repo, boolean autoCleanUp) {
+      Fate.FateOperation txName, Repo<T> repo, boolean autoCleanUp) {
     int maxAttempts = 5;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       var mutator = mutatorFactory.get();

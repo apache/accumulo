@@ -42,7 +42,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.manager.thrift.FateOperation;
+import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -524,7 +524,7 @@ public class SecurityOperation {
         || hasTablePermission(c, tableId, namespaceId, TablePermission.DROP_TABLE, false);
   }
 
-  public boolean canChangeTableState(TCredentials c, TableId tableId, FateOperation op,
+  public boolean canChangeTableState(TCredentials c, TableId tableId, TFateOperation op,
       NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.SYSTEM, namespaceId, false)
