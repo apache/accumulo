@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -86,17 +87,20 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   private final ServerContext context;
   private final ServiceLock lock;
   private final KeyExtent extent;
+  private final BiConsumer<KeyExtent,Supplier<String>> descriptionConsumer;
 
   private boolean sawOperationRequirement = false;
   private boolean checkPrevEndRow = true;
 
   protected ConditionalTabletMutatorImpl(ServerContext context, KeyExtent extent,
       Consumer<ConditionalMutation> mutationConsumer,
-      BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer) {
+      BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer,
+      BiConsumer<KeyExtent,Supplier<String>> descriptionConsumer) {
     super(new ConditionalMutation(extent.toMetaRow()));
     this.mutation = (ConditionalMutation) super.mutation;
     this.mutationConsumer = mutationConsumer;
     this.rejectionHandlerConsumer = rejectionHandlerConsumer;
+    this.descriptionConsumer = descriptionConsumer;
     this.extent = extent;
     this.context = context;
     this.lock = this.context.getServiceLock();
@@ -389,5 +393,11 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     getMutation();
     mutationConsumer.accept(mutation);
     rejectionHandlerConsumer.accept(extent, rejectionCheck);
+  }
+
+  @Override
+  public void submit(Ample.RejectionHandler rejectionHandler, Supplier<String> description) {
+    descriptionConsumer.accept(extent, description);
+    this.submit(rejectionHandler);
   }
 }

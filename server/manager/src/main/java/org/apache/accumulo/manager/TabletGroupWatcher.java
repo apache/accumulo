@@ -350,12 +350,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     // Do not add any code here, it may interfere with the finally block removing extents from
     // hostingRequestInProgress
     try (var mutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
-      inProgress.forEach(ke -> {
-        mutator.mutateTablet(ke).requireAbsentOperation()
-            .requireTabletAvailability(TabletAvailability.ONDEMAND).requireAbsentLocation()
-            .setHostingRequested().submit(TabletMetadata::getHostingRequested);
-
-      });
+      inProgress.forEach(ke -> mutator.mutateTablet(ke).requireAbsentOperation()
+          .requireTabletAvailability(TabletAvailability.ONDEMAND).requireAbsentLocation()
+          .setHostingRequested()
+          .submit(TabletMetadata::getHostingRequested, () -> "host ondemand"));
 
       List<Range> ranges = new ArrayList<>();
 
@@ -1094,7 +1092,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               "replaceVolume conditional mutation rejection check {} logsRemoved:{} filesRemoved:{}",
               tm.getExtent(), logsRemoved, filesRemoved);
           return logsRemoved && filesRemoved;
-        });
+        }, () -> "replace volume");
       }
 
       tabletsMutator.process().forEach((extent, result) -> {

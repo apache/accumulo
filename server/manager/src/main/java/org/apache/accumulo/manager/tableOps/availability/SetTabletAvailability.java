@@ -136,7 +136,8 @@ public class SetTabletAvailability extends ManagerRepo {
             tabletExtent);
         mutator.mutateTablet(tabletExtent).requireAbsentOperation()
             .putTabletAvailability(tabletAvailability)
-            .submit(tabletMeta -> tabletMeta.getTabletAvailability() == tabletAvailability);
+            .submit(tabletMeta -> tabletMeta.getTabletAvailability() == tabletAvailability,
+                () -> "set tablet availability");
       }
     }
 

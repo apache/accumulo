@@ -173,7 +173,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       // test require absent with a future location set
       try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
         ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
-            .putLocation(Location.future(ts2)).submit(tm -> false);
+            .putLocation(Location.future(ts2)).submit(tm -> false,
+                () -> "Testing that requireAbsentLocation() fails when a future location is set");
         assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
       }
       assertEquals(Location.future(ts1), context.getAmple().readTablet(e1).getLocation());
@@ -196,7 +197,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
         ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
             .putLocation(Location.future(ts2)).submit(tm -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus(),
+            () -> "Testing that requireAbsentLocation() fails when a current location is set");
       }
       assertEquals(Location.current(ts1), context.getAmple().readTablet(e1).getLocation());
 
