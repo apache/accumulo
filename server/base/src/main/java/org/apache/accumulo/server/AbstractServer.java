@@ -20,6 +20,7 @@ package org.apache.accumulo.server;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.util.List;
 import java.util.OptionalInt;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,6 +32,7 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -68,6 +70,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     var siteConfig = opts.getSiteConfiguration();
     this.hostname = siteConfig.get(Property.GENERAL_PROCESS_BIND_ADDRESS);
     this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
+    ClusterConfigParser.validateGroupNames(List.of(resourceGroup));
     SecurityUtil.serverLogin(siteConfig);
     context = serverContextFactory.apply(siteConfig);
     log = LoggerFactory.getLogger(getClass());
