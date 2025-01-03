@@ -60,14 +60,14 @@ function rotate_log() {
 
 function get_group() {
   # Find the group parameter if any
-  GROUP_PATTERN="^(compactor.group|sserver.group|tserver.group)=(.*)$"
-  group="default"
+  local group="default"
+  local param
   for param in "$@"; do
-    if [[ $param =~ $GROUP_PATTERN ]]; then
-      group="${BASH_REMATCH[2]}"
+    if [[ $param =~ ^[a-z]*[.]group=(.*)$ ]]; then
+      group="${BASH_REMATCH[1]}"
     fi
   done
-  echo "${group}"
+  echo "$group"
 }
 
 function start_service() {
@@ -111,7 +111,7 @@ function start_service() {
     rotate_log "$outfile"
     rotate_log "$errfile"
 
-    nohup "${bin}/accumulo" "$service_type" "$@" "${PROPERTY_OVERRIDES[@]}" >"$outfile" 2>"$errfile" </dev/null &
+    nohup "${bin}/accumulo" "$service_type" "$@" >"$outfile" 2>"$errfile" </dev/null &
     echo "$!" >"${pid_file}"
 
   done

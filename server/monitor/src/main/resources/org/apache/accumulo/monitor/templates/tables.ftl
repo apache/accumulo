@@ -25,7 +25,7 @@
          *   - uses ajax call for data source and saves sort state in session
          *   - defines custom number formats
          */
-        $(document).ready(function () {
+        $(function () {
 
           tableList = $('#tableList').DataTable({
             "ajax": {
