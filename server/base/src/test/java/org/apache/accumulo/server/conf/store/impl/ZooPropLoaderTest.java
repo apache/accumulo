@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
@@ -62,7 +62,7 @@ public class ZooPropLoaderTest {
 
   private PropCacheCaffeineImplTest.TestTicker ticker;
   private InstanceId instanceId;
-  private ServerContext context;
+  private ZooSession zk;
   private PropStoreKey<?> propStoreKey;
   private VersionedPropCodec propCodec;
 
@@ -81,21 +81,21 @@ public class ZooPropLoaderTest {
     propCodec = VersionedPropCodec.getDefault();
 
     // mocks
-    context = createMock(ServerContext.class);
-    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-
+    zk = createMock(ZooSession.class);
     zrw = createMock(ZooReaderWriter.class);
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
+    replay(zk);
 
     propStoreWatcher = createMock(PropStoreWatcher.class);
 
     // loader used in tests
-    loader = new ZooPropLoader(zrw, propCodec, propStoreWatcher);
+    loader = new ZooPropLoader(zk, propCodec, propStoreWatcher);
 
   }
 
   @AfterEach
   public void verifyCommonMocks() {
-    verify(context, zrw, propStoreWatcher);
+    verify(zk, zrw, propStoreWatcher);
   }
 
   @Test
@@ -114,7 +114,7 @@ public class ZooPropLoaderTest {
       return (bytes);
     }).once();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     assertNotNull(loader.load(propStoreKey));
   }
@@ -147,7 +147,7 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).once();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -175,7 +175,7 @@ public class ZooPropLoaderTest {
     propStoreWatcher.signalZkChangeEvent(eq(propStoreKey));
     expectLastCall();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -206,7 +206,7 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).times(2);
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -253,7 +253,7 @@ public class ZooPropLoaderTest {
     propStoreWatcher.signalCacheChangeEvent(anyObject());
     expectLastCall().anyTimes();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -275,7 +275,7 @@ public class ZooPropLoaderTest {
   @Test
   public void getIfCachedTest() {
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -316,7 +316,7 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).once();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -364,7 +364,7 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).once();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -382,7 +382,7 @@ public class ZooPropLoaderTest {
 
   @Test
   public void getIfCachedNotPresentTest() {
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -413,7 +413,7 @@ public class ZooPropLoaderTest {
       return propCodec.toBytes(vProps);
     }).anyTimes();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     Stat statCheck = new Stat();
     statCheck.setVersion(9);

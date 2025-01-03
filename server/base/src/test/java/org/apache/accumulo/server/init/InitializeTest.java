@@ -31,9 +31,11 @@ import java.io.IOException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,7 +47,8 @@ public class InitializeTest {
   private Configuration conf;
   private VolumeManager fs;
   private SiteConfiguration sconf;
-  private ZooReaderWriter zoo;
+  private ZooSession zk;
+  private ZooReaderWriter zrw;
   private InitialConfiguration initConfig;
 
   @BeforeEach
@@ -59,18 +62,19 @@ public class InitializeTest {
     expect(sconf.get(Property.INSTANCE_SECRET))
         .andReturn(Property.INSTANCE_SECRET.getDefaultValue()).anyTimes();
     expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1").anyTimes();
-    zoo = createMock(ZooReaderWriter.class);
+    zk = createMock(ZooSession.class);
+    zrw = new ZooReaderWriter(zk);
   }
 
   @AfterEach
   public void tearDown() {
-    verify(sconf, zoo, fs);
+    verify(sconf, zk, fs);
   }
 
   @Test
   public void testIsInitialized_HasInstanceId() throws Exception {
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
-    replay(sconf, zoo, fs);
+    replay(sconf, zk, fs);
     assertTrue(Initialize.isInitialized(fs, initConfig));
   }
 
@@ -78,40 +82,40 @@ public class InitializeTest {
   public void testIsInitialized_HasDataVersion() throws Exception {
     expect(fs.exists(anyObject(Path.class))).andReturn(false);
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
-    replay(sconf, zoo, fs);
+    replay(sconf, zk, fs);
     assertTrue(Initialize.isInitialized(fs, initConfig));
   }
 
   @Test
   public void testCheckInit_NoZK() throws Exception {
-    expect(zoo.exists("/")).andReturn(false);
-    replay(sconf, zoo, fs);
-    assertThrows(IllegalStateException.class, () -> Initialize.checkInit(zoo, fs, initConfig));
+    expect(zk.exists("/", null)).andReturn(null);
+    replay(sconf, zk, fs);
+    assertThrows(IllegalStateException.class, () -> Initialize.checkInit(zrw, fs, initConfig));
   }
 
   @Test
   public void testCheckInit_AlreadyInit() throws Exception {
-    expect(zoo.exists("/")).andReturn(true);
+    expect(zk.exists("/", null)).andReturn(new Stat());
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
-    replay(sconf, zoo, fs);
-    assertThrows(IOException.class, () -> Initialize.checkInit(zoo, fs, initConfig));
+    replay(sconf, zk, fs);
+    assertThrows(IOException.class, () -> Initialize.checkInit(zrw, fs, initConfig));
   }
 
   @Test
   public void testCheckInit_FSException() throws Exception {
-    expect(zoo.exists("/")).andReturn(true);
+    expect(zk.exists("/", null)).andReturn(new Stat());
     expect(fs.exists(anyObject(Path.class))).andThrow(new IOException());
-    replay(sconf, zoo, fs);
-    assertThrows(IOException.class, () -> Initialize.checkInit(zoo, fs, initConfig));
+    replay(sconf, zk, fs);
+    assertThrows(IOException.class, () -> Initialize.checkInit(zrw, fs, initConfig));
   }
 
   @Test
   public void testCheckInit_OK() throws Exception {
-    expect(zoo.exists("/")).andReturn(true);
+    expect(zk.exists("/", null)).andReturn(new Stat());
     // check for volumes initialized calls exists twice for each volume
     // once for instance_id, and once for version
     expect(fs.exists(anyObject(Path.class))).andReturn(false).times(4);
-    replay(sconf, zoo, fs);
-    Initialize.checkInit(zoo, fs, initConfig);
+    replay(sconf, zk, fs);
+    Initialize.checkInit(zrw, fs, initConfig);
   }
 }

@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ClusterUser;
@@ -44,6 +45,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import com.google.common.base.Suppliers;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -55,14 +58,14 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
       Collections.unmodifiableList(Arrays.asList(ServerType.MANAGER, ServerType.TABLET_SERVER,
           ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
 
-  private ClientInfo info;
+  private final ClientInfo info;
   private String accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, hadoopConfDir;
-  private Path tmp;
-  private List<ClusterUser> users;
+  private final Path tmp;
+  private final List<ClusterUser> users;
   private String clientCmdPrefix;
   private String serverCmdPrefix;
-  private SiteConfiguration siteConfig;
-  private ServerContext context;
+  private final SiteConfiguration siteConfig;
+  private final Supplier<ServerContext> contextSupplier;
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input file name")
@@ -74,6 +77,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     this.serverAccumuloConfDir = serverAccumuloConfDir;
     siteConfig =
         SiteConfiguration.fromFile(new File(serverAccumuloConfDir, "accumulo.properties")).build();
+    this.contextSupplier = Suppliers.memoize(() -> ServerContext.withClientInfo(siteConfig, info));
   }
 
   public String getAccumuloHome() {
@@ -129,12 +133,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  public synchronized ServerContext getServerContext() {
-    if (context == null) {
-      context = ServerContext.override(siteConfig, info.getInstanceName(), info.getZooKeepers(),
-          info.getZooKeepersSessionTimeOut());
-    }
-    return context;
+  public ServerContext getServerContext() {
+    return contextSupplier.get();
   }
 
   @Override

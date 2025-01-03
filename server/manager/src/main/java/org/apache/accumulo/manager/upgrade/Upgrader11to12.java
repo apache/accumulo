@@ -104,7 +104,7 @@ public class Upgrader11to12 implements Upgrader {
     var rootBase = zooRoot + ZROOT_TABLET;
 
     try {
-      var zrw = context.getZooReaderWriter();
+      var zrw = context.getZooSession().asReaderWriter();
 
       // clean up nodes no longer in use
       zrw.recursiveDelete(zooRoot + ZTRACERS, ZooUtil.NodeMissingPolicy.SKIP);
@@ -308,16 +308,17 @@ public class Upgrader11to12 implements Upgrader {
   private void removeZKProblemReports(ServerContext context) {
     String zpath = context.getZooKeeperRoot() + ZPROBLEMS;
     try {
-      if (!context.getZooReaderWriter().exists(zpath)) {
+      if (!context.getZooSession().asReaderWriter().exists(zpath)) {
         // could be running a second time and the node was already deleted
         return;
       }
-      var children = context.getZooReaderWriter().getChildren(zpath);
+      var children = context.getZooSession().asReaderWriter().getChildren(zpath);
       for (var child : children) {
         var pr = ProblemReport.decodeZooKeeperEntry(context, child);
         logProblemDeletion(pr);
       }
-      context.getZooReaderWriter().recursiveDelete(zpath, ZooUtil.NodeMissingPolicy.SKIP);
+      context.getZooSession().asReaderWriter().recursiveDelete(zpath,
+          ZooUtil.NodeMissingPolicy.SKIP);
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }
@@ -421,7 +422,7 @@ public class Upgrader11to12 implements Upgrader {
       String resource = dis.readUTF();
 
       String zpath = context.getZooKeeperRoot() + ZPROBLEMS + "/" + node;
-      byte[] enc = context.getZooReaderWriter().getData(zpath);
+      byte[] enc = context.getZooSession().asReaderWriter().getData(zpath);
 
       return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, enc);
 

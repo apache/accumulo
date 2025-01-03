@@ -46,6 +46,8 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.SystemConfiguration;
@@ -59,9 +61,7 @@ import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -82,7 +82,7 @@ public class ZooBasedConfigIT {
   private static final InstanceId INSTANCE_ID = InstanceId.of(UUID.randomUUID());
   private static ZooKeeperTestingServer testZk = null;
   private static ZooReaderWriter zrw;
-  private static ZooKeeper zooKeeper;
+  private static ZooSession zk;
   private ServerContext context;
 
   // fake ids
@@ -99,17 +99,15 @@ public class ZooBasedConfigIT {
 
   @BeforeAll
   public static void setupZk() throws Exception {
-    // using default zookeeper port - we don't have a full configuration
     testZk = new ZooKeeperTestingServer(tempDir);
-    zooKeeper = testZk.newClient();
-    ZooUtil.digestAuth(zooKeeper, ZooKeeperTestingServer.SECRET);
-    zrw = testZk.getZooReaderWriter();
+    zk = testZk.newClient();
+    zrw = zk.asReaderWriter();
   }
 
   @AfterAll
   public static void shutdownZK() throws Exception {
     try {
-      zooKeeper.close();
+      zk.close();
     } finally {
       testZk.close();
     }
@@ -118,19 +116,20 @@ public class ZooBasedConfigIT {
   @BeforeEach
   public void initPaths() throws Exception {
     context = createMock(ServerContext.class);
+    expect(context.getZooSession()).andReturn(zk);
     zrw.mkdirs(ZooUtil.getRoot(INSTANCE_ID));
 
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES, new byte[0],
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES, new byte[0],
         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidA.canonical(),
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidA.canonical(),
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidB.canonical(),
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidB.canonical(),
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES, new byte[0],
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES, new byte[0],
         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES + "/" + nsId.canonical(),
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES + "/" + nsId.canonical(),
         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
     ticker = new TestTicker();
@@ -139,12 +138,10 @@ public class ZooBasedConfigIT {
 
     // setup context mock with enough to create prop store
     expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(zrw.getSessionTimeout()).anyTimes();
 
     replay(context);
 
-    propStore = ZooPropStore.initialize(context.getInstanceID(), zrw);
+    propStore = ZooPropStore.initialize(context.getInstanceID(), zk);
 
     reset(context);
 
@@ -153,9 +150,7 @@ public class ZooBasedConfigIT {
 
     // setup context mock with prop store and the rest of the env needed.
     expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(zooKeeper.getSessionTimeout())
-        .anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(zk.getSessionTimeout()).anyTimes();
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
     expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.empty().build()).anyTimes();
 
@@ -163,7 +158,7 @@ public class ZooBasedConfigIT {
 
   @AfterEach
   public void cleanupZnodes() throws Exception {
-    ZKUtil.deleteRecursive(zooKeeper, "/accumulo");
+    ZKUtil.deleteRecursive(zk, "/accumulo");
     verify(context);
   }
 
@@ -175,7 +170,7 @@ public class ZooBasedConfigIT {
   public void upgradeSysTestNoProps() throws Exception {
     replay(context);
     // force create empty sys config node.
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG, new byte[0],
+    zk.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG, new byte[0],
         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     var propKey = SystemPropKey.of(INSTANCE_ID);
     ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);

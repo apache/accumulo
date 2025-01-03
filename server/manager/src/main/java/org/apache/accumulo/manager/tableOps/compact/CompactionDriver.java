@@ -88,7 +88,7 @@ class CompactionDriver extends ManagerRepo {
 
     String zCancelID =
         createCompactionCancellationPath(manager.getContext().getInstanceID(), tableId);
-    ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
 
     if (Long.parseLong(new String(zoo.getData(zCancelID), UTF_8)) >= compactId) {
       // compaction was canceled

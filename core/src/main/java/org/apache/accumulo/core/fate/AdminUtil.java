@@ -37,12 +37,11 @@ import java.util.Set;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
 import org.apache.accumulo.core.fate.zookeeper.FateLock.FateLockPath;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -211,7 +210,7 @@ public class AdminUtil<T> {
   /**
    * Returns a list of the FATE transactions, optionally filtered by transaction id and status. This
    * method does not process lock information, if lock information is desired, use
-   * {@link #getStatus(ReadOnlyTStore, ZooReader, ServiceLockPath, Set, EnumSet)}
+   * {@link #getStatus(ReadOnlyTStore, ZooSession, ServiceLockPath, Set, EnumSet)}
    *
    * @param zs read-only zoostore
    * @param filterTxid filter results to include for provided transaction ids.
@@ -240,7 +239,7 @@ public class AdminUtil<T> {
    * @throws KeeperException if zookeeper exception occurs
    * @throws InterruptedException if process is interrupted.
    */
-  public FateStatus getStatus(ReadOnlyTStore<T> zs, ZooReader zk,
+  public FateStatus getStatus(ReadOnlyTStore<T> zs, ZooSession zk,
       ServiceLock.ServiceLockPath lockPath, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
     Map<Long,List<String>> heldLocks = new HashMap<>();
@@ -254,19 +253,21 @@ public class AdminUtil<T> {
   /**
    * Walk through the lock nodes in zookeeper to find and populate held locks and waiting locks.
    *
-   * @param zk zookeeper reader
+   * @param zk zookeeper client
    * @param lockPath the zookeeper path for locks
    * @param heldLocks map for returning transactions with held locks
    * @param waitingLocks map for returning transactions with waiting locks
    * @throws KeeperException if initial lock list cannot be read.
    * @throws InterruptedException if thread interrupt detected while processing.
    */
-  private void findLocks(ZooReader zk, final ServiceLock.ServiceLockPath lockPath,
+  private void findLocks(ZooSession zk, final ServiceLock.ServiceLockPath lockPath,
       final Map<Long,List<String>> heldLocks, final Map<Long,List<String>> waitingLocks)
       throws KeeperException, InterruptedException {
 
+    var zr = zk.asReader();
+
     // stop with exception if lock ids cannot be retrieved from zookeeper
-    List<String> lockedIds = zk.getChildren(lockPath.toString());
+    List<String> lockedIds = zr.getChildren(lockPath.toString());
 
     for (String id : lockedIds) {
 
@@ -274,14 +275,14 @@ public class AdminUtil<T> {
 
         FateLockPath fLockPath = FateLock.path(lockPath + "/" + id);
         List<String> lockNodes =
-            FateLock.validateAndSort(fLockPath, zk.getChildren(fLockPath.toString()));
+            FateLock.validateAndSort(fLockPath, zr.getChildren(fLockPath.toString()));
 
         int pos = 0;
         boolean sawWriteLock = false;
 
         for (String node : lockNodes) {
           try {
-            byte[] data = zk.getData(lockPath + "/" + id + "/" + node);
+            byte[] data = zr.getData(lockPath + "/" + id + "/" + node);
             String[] lda = new String(data, UTF_8).split(":");
 
             if (lda[0].charAt(0) == 'W') {
@@ -407,12 +408,12 @@ public class AdminUtil<T> {
     return (filterTxid == null) || filterTxid.isEmpty() || filterTxid.contains(tid);
   }
 
-  public void printAll(ReadOnlyTStore<T> zs, ZooReader zk,
+  public void printAll(ReadOnlyTStore<T> zs, ZooSession zk,
       ServiceLock.ServiceLockPath tableLocksPath) throws KeeperException, InterruptedException {
     print(zs, zk, tableLocksPath, new Formatter(System.out), null, null);
   }
 
-  public void print(ReadOnlyTStore<T> zs, ZooReader zk, ServiceLock.ServiceLockPath tableLocksPath,
+  public void print(ReadOnlyTStore<T> zs, ZooSession zk, ServiceLock.ServiceLockPath tableLocksPath,
       Formatter fmt, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
     FateStatus fateStatus = getStatus(zs, zk, tableLocksPath, filterTxid, filterStatus);
@@ -426,8 +427,7 @@ public class AdminUtil<T> {
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
   }
 
-  public boolean prepDelete(TStore<T> zs, ZooReaderWriter zk, ServiceLockPath path,
-      String txidStr) {
+  public boolean prepDelete(TStore<T> zs, ZooSession zk, ServiceLockPath path, String txidStr) {
     if (!checkGlobalLock(zk, path)) {
       return false;
     }
@@ -463,7 +463,7 @@ public class AdminUtil<T> {
     return state;
   }
 
-  public boolean prepFail(TStore<T> zs, ZooReaderWriter zk, ServiceLockPath zLockManagerPath,
+  public boolean prepFail(TStore<T> zs, ZooSession zk, ServiceLockPath zLockManagerPath,
       String txidStr) {
     if (!checkGlobalLock(zk, zLockManagerPath)) {
       return false;
@@ -507,19 +507,21 @@ public class AdminUtil<T> {
     return state;
   }
 
-  public void deleteLocks(ZooReaderWriter zk, ServiceLock.ServiceLockPath path, String txidStr)
+  public void deleteLocks(ZooSession zk, ServiceLock.ServiceLockPath path, String txidStr)
       throws KeeperException, InterruptedException {
+    var zrw = zk.asReaderWriter();
+
     // delete any locks assoc w/ fate operation
-    List<String> lockedIds = zk.getChildren(path.toString());
+    List<String> lockedIds = zrw.getChildren(path.toString());
 
     for (String id : lockedIds) {
-      List<String> lockNodes = zk.getChildren(path + "/" + id);
+      List<String> lockNodes = zrw.getChildren(path + "/" + id);
       for (String node : lockNodes) {
         String lockPath = path + "/" + id + "/" + node;
-        byte[] data = zk.getData(path + "/" + id + "/" + node);
+        byte[] data = zrw.getData(path + "/" + id + "/" + node);
         String[] lda = new String(data, UTF_8).split(":");
         if (lda[1].equals(txidStr)) {
-          zk.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
+          zrw.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
         }
       }
     }
@@ -528,9 +530,9 @@ public class AdminUtil<T> {
   @SuppressFBWarnings(value = "DM_EXIT",
       justification = "TODO - should probably avoid System.exit here; "
           + "this code is used by the fate admin shell command")
-  public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLockPath zLockManagerPath) {
+  public boolean checkGlobalLock(ZooSession zk, ServiceLockPath zLockManagerPath) {
     try {
-      if (ServiceLock.getLockData(zk.getZooKeeper(), zLockManagerPath) != null) {
+      if (ServiceLock.getLockData(zk, zLockManagerPath) != null) {
         System.err.println("ERROR: Manager lock is held, not running");
         if (this.exitOnError) {
           System.exit(1);

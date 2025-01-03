@@ -93,7 +93,7 @@ public class WalStateManager {
 
   public WalStateManager(ServerContext context) {
     this.context = context;
-    this.zoo = context.getZooReaderWriter();
+    this.zoo = context.getZooSession().asReaderWriter();
   }
 
   private String root() throws WalMarkerException {
