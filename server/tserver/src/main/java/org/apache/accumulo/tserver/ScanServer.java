@@ -54,6 +54,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -277,6 +278,7 @@ public class ScanServer extends AbstractServer
     delegate = newThriftScanClientHandler(new WriteTracker());
 
     this.groupName = getConfiguration().get(Property.SSERV_GROUP_NAME);
+    ClusterConfigParser.validateGroupNames(Set.of(groupName));
 
     ThreadPools.watchCriticalScheduledTask(getContext().getScheduledExecutor()
         .scheduleWithFixedDelay(() -> cleanUpReservedFiles(scanServerReservationExpiration),
