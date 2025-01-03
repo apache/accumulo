@@ -507,7 +507,7 @@ public class CompactorTest {
 
     Compactor.CompactorServerOpts compactorServerOpts =
         PowerMock.createNiceMock(Compactor.CompactorServerOpts.class);
-    expect(compactorServerOpts.getQueueName()).andReturn(null);
+    expect(compactorServerOpts.getQueueName()).andReturn("default");
 
     PowerMock.replayAll();
 
