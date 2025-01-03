@@ -85,8 +85,7 @@ public class ZooInfoViewer implements KeywordExecutable {
       DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC));
   private static final Logger log = LoggerFactory.getLogger(ZooInfoViewer.class);
 
-  private final NullWatcher nullWatcher =
-      new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
+  private NullWatcher nullWatcher;
 
   private static final String INDENT = "  ";
 
@@ -127,6 +126,7 @@ public class ZooInfoViewer implements KeywordExecutable {
 
   void generateReport(final InstanceId iid, final ZooInfoViewer.Opts opts,
       final ZooReader zooReader) throws Exception {
+    nullWatcher = new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
 
     OutputStream outStream;
 
