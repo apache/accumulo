@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -64,6 +65,7 @@ import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -169,6 +171,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected Compactor(ConfigOpts opts, String[] args) {
     super("compactor", opts, args);
     queueName = super.getConfiguration().get(Property.COMPACTOR_QUEUE_NAME);
+    ClusterConfigParser.validateGroupNames(Set.of(queueName));
   }
 
   private long getTotalEntriesRead() {
