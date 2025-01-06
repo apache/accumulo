@@ -69,12 +69,12 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockSupport.ServiceLockWatcher;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -90,7 +90,6 @@ import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -346,24 +345,8 @@ public class ScanServer extends AbstractServer
 
       serverLockUUID = UUID.randomUUID();
       scanServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, serverLockUUID);
-
-      LockWatcher lw = new LockWatcher() {
-
-        @Override
-        public void lostLock(final LockLossReason reason) {
-          Halt.halt(serverStopRequested ? 0 : 1, () -> {
-            if (!serverStopRequested) {
-              LOG.error("Lost tablet server lock (reason = {}), exiting.", reason);
-            }
-            context.getLowMemoryDetector().logGCInfo(getConfiguration());
-          });
-        }
-
-        @Override
-        public void unableToMonitorLockNode(final Exception e) {
-          Halt.halt(1, () -> LOG.error("Lost ability to monitor scan server lock, exiting.", e));
-        }
-      };
+      LockWatcher lw = new ServiceLockWatcher("scan server", () -> serverStopRequested,
+          (name) -> context.getLowMemoryDetector().logGCInfo(getConfiguration()));
 
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
