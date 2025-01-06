@@ -47,6 +47,7 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -81,6 +82,7 @@ import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.lock.ServiceLockSupport;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -273,26 +275,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected void announceExistence(HostAndPort clientAddress)
       throws KeeperException, InterruptedException {
 
-    ZooReaderWriter zoo = getContext().getZooReaderWriter();
-
+    final ZooReaderWriter zoo = getContext().getZooReaderWriter();
     final ServiceLockPath path =
         getContext().getServerPaths().createCompactorPath(getResourceGroup(), clientAddress);
-    // The ServiceLockPath contains a resource group in the path which is not created
-    // at initialization time. If it does not exist, then create it.
-    final String compactorGroupPath =
-        path.toString().substring(0, path.toString().lastIndexOf("/" + path.getServer()));
-    LOG.debug("Creating compactor resource group path in zookeeper: {}", compactorGroupPath);
-    try {
-      zoo.mkdirs(compactorGroupPath);
-      zoo.putPersistentData(path.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
-    } catch (KeeperException e) {
-      if (e.code() == KeeperException.Code.NOAUTH) {
-        LOG.error("Failed to write to ZooKeeper. Ensure that"
-            + " accumulo.properties, specifically instance.secret, is consistent.");
-      }
-      throw e;
-    }
-
+    ServiceLockSupport.createNonHaServiceLockPath(Type.COMPACTOR, zoo, path);
     compactorLock =
         new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, compactorId);
     LockWatcher lw = new LockWatcher() {

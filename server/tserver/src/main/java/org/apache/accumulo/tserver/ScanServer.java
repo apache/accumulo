@@ -50,6 +50,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -76,6 +77,7 @@ import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.lock.ServiceLockSupport;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -120,7 +122,6 @@ import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
-import org.apache.zookeeper.KeeperException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -327,28 +328,13 @@ public class ScanServer extends AbstractServer
    * Set up nodes and locks in ZooKeeper for this Compactor
    */
   private ServiceLock announceExistence() {
-    ZooReaderWriter zoo = getContext().getZooReaderWriter();
+    final ZooReaderWriter zoo = getContext().getZooReaderWriter();
     try {
 
       final ServiceLockPath zLockPath =
           context.getServerPaths().createScanServerPath(getResourceGroup(), clientAddress);
+      ServiceLockSupport.createNonHaServiceLockPath(Type.SCAN_SERVER, zoo, zLockPath);
       serverLockUUID = UUID.randomUUID();
-      // The ServiceLockPath contains a resource group in the path which is not created
-      // at initialization time. If it does not exist, then create it.
-      String sserverGroupPath = zLockPath.toString().substring(0,
-          zLockPath.toString().lastIndexOf("/" + zLockPath.getServer()));
-      LOG.debug("Creating sserver resource group path in zookeeper: {}", sserverGroupPath);
-      try {
-        zoo.mkdirs(sserverGroupPath);
-        // Old zk nodes can be cleaned up by ZooZap
-        zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
-      } catch (KeeperException e) {
-        if (e.code() == KeeperException.Code.NOAUTH) {
-          LOG.error("Failed to write to ZooKeeper. Ensure that"
-              + " accumulo.properties, specifically instance.secret, is consistent.");
-        }
-        throw e;
-      }
       scanServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, serverLockUUID);
 
       LockWatcher lw = new LockWatcher() {
