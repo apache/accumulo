@@ -56,9 +56,9 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
@@ -72,7 +72,6 @@ import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
@@ -742,10 +741,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     // Get a ZooLock for the monitor
     UUID zooLockUUID = UUID.randomUUID();
     monitorLock = new ServiceLock(zoo.getZooKeeper(), monitorLockPath, zooLockUUID);
+    HAServiceLockWatcher monitorLockWatcher = new HAServiceLockWatcher("monitor");
 
     while (true) {
-      MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
-
       monitorLock.lock(monitorLockWatcher,
           new ServiceLockData(zooLockUUID,
               monitorLocation.getHost() + ":" + monitorLocation.getPort(), ThriftService.NONE,
@@ -753,11 +751,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
       monitorLockWatcher.waitForChange();
 
-      if (monitorLockWatcher.acquiredLock) {
+      if (monitorLockWatcher.isLockAcquired()) {
         break;
       }
 
-      if (!monitorLockWatcher.failedToAcquireLock) {
+      if (!monitorLockWatcher.isFailedToAcquireLock()) {
         throw new IllegalStateException("monitor lock in unknown state");
       }
 
@@ -769,57 +767,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     log.info("Got Monitor lock.");
-  }
-
-  /**
-   * Async Watcher for monitor lock
-   */
-  private static class MoniterLockWatcher implements ServiceLock.AccumuloLockWatcher {
-
-    boolean acquiredLock = false;
-    boolean failedToAcquireLock = false;
-
-    @Override
-    public void lostLock(LockLossReason reason) {
-      Halt.halt("Monitor lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
-    }
-
-    @Override
-    public void unableToMonitorLockNode(final Exception e) {
-      Halt.halt(-1, () -> log.error("No longer able to monitor Monitor lock node", e));
-
-    }
-
-    @Override
-    public synchronized void acquiredLock() {
-      if (acquiredLock || failedToAcquireLock) {
-        Halt.halt("Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock, -1);
-      }
-
-      acquiredLock = true;
-      notifyAll();
-    }
-
-    @Override
-    public synchronized void failedToAcquireLock(Exception e) {
-      log.warn("Failed to get monitor lock " + e);
-
-      if (acquiredLock) {
-        Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock,
-            -1);
-      }
-
-      failedToAcquireLock = true;
-      notifyAll();
-    }
-
-    public synchronized void waitForChange() {
-      while (!acquiredLock && !failedToAcquireLock) {
-        try {
-          wait();
-        } catch (InterruptedException e) {}
-      }
-    }
   }
 
   public ManagerMonitorInfo getMmi() {
