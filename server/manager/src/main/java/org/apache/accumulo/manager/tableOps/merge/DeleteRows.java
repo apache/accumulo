@@ -188,11 +188,10 @@ public class DeleteRows extends ManagerRepo {
           tabletMutator.putFile(file, dfv);
         });
 
-        tabletMutator
-            .submit(
-                tm -> tm.getFiles().containsAll(filesToAddMap.keySet())
-                    && Collections.disjoint(tm.getFiles(), filesToDelete),
-                () -> "delete tablet files (as part of merge or deleterow operation) "+fateId);
+        tabletMutator.submit(
+            tm -> tm.getFiles().containsAll(filesToAddMap.keySet())
+                && Collections.disjoint(tm.getFiles(), filesToDelete),
+            () -> "delete tablet files (as part of merge or deleterow operation) " + fateId);
       }
 
       var results = tabletsMutator.process();
