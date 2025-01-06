@@ -77,7 +77,6 @@ JAVA_OPTS=(
   '-XX:OnOutOfMemoryError=kill -9 %p'
   '-XX:-OmitStackTraceInFastThrow'
   '-Djava.net.preferIPv4Stack=true'
-  '-Dorg.jline.terminal.output=out'
   "-Daccumulo.native.lib.path=${lib}/native"
   "${accumulo_initial_opts[@]}"
 )
