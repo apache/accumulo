@@ -212,7 +212,7 @@ public class CompactionDriver extends ManagerRepo {
           tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
               .requireSame(tablet, FILES, COMPACTED).putCompacted(fateId)
               .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId),
-                  () -> "no files, attempting to mark as compacted");
+                  () -> "no files, attempting to mark as compacted. " + fateId);
           noFiles++;
         } else if (tablet.getSelectedFiles() == null && tablet.getExternalCompactions().isEmpty()) {
           // there are no selected files
@@ -244,7 +244,7 @@ public class CompactionDriver extends ManagerRepo {
             tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
                 .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED).putCompacted(fateId)
                 .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId),
-                    () -> "no files, attempting to mark as compacted");
+                    () -> "no files, attempting to mark as compacted. " + fateId);
 
             noneSelected++;
           } else {
@@ -266,7 +266,7 @@ public class CompactionDriver extends ManagerRepo {
                 tabletMetadata -> tabletMetadata.getSelectedFiles() != null
                     && tabletMetadata.getSelectedFiles().getFateId().equals(fateId)
                     || tabletMetadata.getCompacted().contains(fateId),
-                () -> "selecting files for compaction");
+                () -> "selecting files for compaction. " + fateId);
 
             if (minSelected == null || tablet.getExtent().compareTo(minSelected) < 0) {
               minSelected = tablet.getExtent();
@@ -303,7 +303,7 @@ public class CompactionDriver extends ManagerRepo {
                 .requireSame(tablet, ECOMP, USER_COMPACTION_REQUESTED)
                 .putUserCompactionRequested(fateId);
             mutator.submit(tm -> tm.getUserCompactionsRequested().contains(fateId),
-                () -> "marking as needing a user requested compaction");
+                () -> "marking as needing a user requested compaction. " + fateId);
             userCompactionRequested++;
           } else {
             // Marker was already added and we are waiting
@@ -405,7 +405,8 @@ public class CompactionDriver extends ManagerRepo {
               mutator.deleteUserCompactionRequested(fateId);
             }
 
-            mutator.submit(needsNoUpdate::test, () -> "cleanup metadata for failed compaction");
+            mutator.submit(needsNoUpdate::test,
+                () -> "cleanup metadata for failed compaction. " + fateId);
           }
         }
       }
