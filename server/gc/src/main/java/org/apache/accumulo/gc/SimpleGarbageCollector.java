@@ -383,6 +383,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
       gcLock.tryToCancelAsyncLockOrUnlock();
 
+      log.debug("Failed to get GC ZooKeeper lock, will retry");
       sleepUninterruptibly(1000, TimeUnit.MILLISECONDS);
     }
 
