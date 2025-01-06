@@ -48,8 +48,7 @@ import org.apache.accumulo.monitor.rest.tservers.DeadServerList;
 import org.apache.accumulo.monitor.rest.tservers.ServerShuttingDownInformation;
 import org.apache.accumulo.monitor.rest.tservers.ServersShuttingDown;
 import org.apache.accumulo.server.manager.state.TabletServerState;
-
-import io.micrometer.common.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Responsible for generating a new Manager information JSON object
