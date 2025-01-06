@@ -192,7 +192,7 @@ public class DeleteRows extends ManagerRepo {
             .submit(
                 tm -> tm.getFiles().containsAll(filesToAddMap.keySet())
                     && Collections.disjoint(tm.getFiles(), filesToDelete),
-                () -> "delete tablet files");
+                () -> "delete tablet files (as part of merge or deleterow operation) "+fateId);
       }
 
       var results = tabletsMutator.process();

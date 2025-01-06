@@ -130,7 +130,7 @@ public class CommitCompaction extends ManagerRepo {
 
         tabletMutator.submit(
             tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid),
-            () -> "commit compaction");
+            () -> "commit compaction "+ecid);
 
         if (LOG.isDebugEnabled()) {
           LOG.debug("Compaction completed {} added {} removed {}", tablet.getExtent(), newDatafile,

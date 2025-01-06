@@ -111,7 +111,7 @@ public class CleanUpBulkImport extends ManagerRepo {
                 tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
             tablet.getLoaded().entrySet().stream().filter(entry -> entry.getValue().equals(fateId))
                 .map(Map.Entry::getKey).forEach(tabletMutator::deleteBulkFile);
-            tabletMutator.submit(tm -> false, () -> "remove bulk load entries");
+            tabletMutator.submit(tm -> false, () -> "remove bulk load entries "+fateId);
           }
         }
 

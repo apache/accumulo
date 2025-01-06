@@ -251,7 +251,7 @@ class LoadFiles extends ManagerRepo {
         Preconditions.checkState(
             loadingFiles.put(tablet.getExtent(), List.copyOf(filesToLoad.keySet())) == null);
 
-        tabletMutator.submit(tm -> false, () -> "bulk load files");
+        tabletMutator.submit(tm -> false, () -> "bulk load files "+fateId);
       }
     }
 
