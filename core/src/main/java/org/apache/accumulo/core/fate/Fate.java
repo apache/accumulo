@@ -90,30 +90,49 @@ public class Fate<T> {
   }
 
   public enum FateOperation {
-    COMMIT_COMPACTION,
-    NAMESPACE_CREATE,
-    NAMESPACE_DELETE,
-    NAMESPACE_RENAME,
-    SHUTDOWN_TSERVER,
-    SYSTEM_SPLIT,
-    TABLE_BULK_IMPORT2,
-    TABLE_CANCEL_COMPACT,
-    TABLE_CLONE,
-    TABLE_COMPACT,
-    TABLE_CREATE,
-    TABLE_DELETE,
-    TABLE_DELETE_RANGE,
-    TABLE_EXPORT,
-    TABLE_IMPORT,
-    TABLE_MERGE,
-    TABLE_OFFLINE,
-    TABLE_ONLINE,
-    TABLE_RENAME,
-    TABLE_SPLIT,
-    TABLE_TABLET_AVAILABILITY;
+    COMMIT_COMPACTION(null),
+    NAMESPACE_CREATE(TFateOperation.NAMESPACE_CREATE),
+    NAMESPACE_DELETE(TFateOperation.NAMESPACE_DELETE),
+    NAMESPACE_RENAME(TFateOperation.NAMESPACE_RENAME),
+    SHUTDOWN_TSERVER(null),
+    SYSTEM_SPLIT(null),
+    TABLE_BULK_IMPORT2(TFateOperation.TABLE_BULK_IMPORT2),
+    TABLE_CANCEL_COMPACT(TFateOperation.TABLE_CANCEL_COMPACT),
+    TABLE_CLONE(TFateOperation.TABLE_CLONE),
+    TABLE_COMPACT(TFateOperation.TABLE_COMPACT),
+    TABLE_CREATE(TFateOperation.TABLE_CREATE),
+    TABLE_DELETE(TFateOperation.TABLE_DELETE),
+    TABLE_DELETE_RANGE(TFateOperation.TABLE_DELETE_RANGE),
+    TABLE_EXPORT(TFateOperation.TABLE_EXPORT),
+    TABLE_IMPORT(TFateOperation.TABLE_IMPORT),
+    TABLE_MERGE(TFateOperation.TABLE_MERGE),
+    TABLE_OFFLINE(TFateOperation.TABLE_OFFLINE),
+    TABLE_ONLINE(TFateOperation.TABLE_ONLINE),
+    TABLE_RENAME(TFateOperation.TABLE_RENAME),
+    TABLE_SPLIT(TFateOperation.TABLE_SPLIT),
+    TABLE_TABLET_AVAILABILITY(TFateOperation.TABLE_TABLET_AVAILABILITY);
 
-    public static FateOperation fromThrift(TFateOperation tFateOp) {
-      return FateOperation.valueOf(tFateOp.name());
+    private final TFateOperation top;
+    private static final EnumSet<FateOperation> nonThriftOps =
+        EnumSet.of(COMMIT_COMPACTION, SHUTDOWN_TSERVER, SYSTEM_SPLIT);
+
+    FateOperation(TFateOperation top) {
+      this.top = top;
+    }
+
+    public static FateOperation fromThrift(TFateOperation top) {
+      return FateOperation.valueOf(top.name());
+    }
+
+    public static EnumSet<FateOperation> getNonThriftOps() {
+      return nonThriftOps;
+    }
+
+    public TFateOperation toThrift() {
+      if (top == null) {
+        throw new IllegalStateException(this + " does not have an equivalent thrift form");
+      }
+      return top;
     }
   }
 
