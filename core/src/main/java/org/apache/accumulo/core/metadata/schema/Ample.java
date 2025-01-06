@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -623,6 +624,16 @@ public interface Ample {
      *        let the rejected status carry forward in this case.
      */
     void submit(RejectionHandler rejectionHandler);
+
+    /**
+     * Overloaded version of {@link #submit(RejectionHandler)} that takes a short description of the
+     * operation to assist with debugging.
+     *
+     * @param rejectionHandler The rejection handler
+     * @param description A short description of the operation (e.g., "bulk import", "compaction")
+     */
+    void submit(RejectionHandler rejectionHandler, Supplier<String> description);
+
   }
 
   /**
