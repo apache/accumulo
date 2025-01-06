@@ -26,6 +26,7 @@ import static org.apache.accumulo.core.Constants.ZROOT;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.apache.accumulo.core.Constants.ZTABLE_NAME;
 import static org.apache.accumulo.core.Constants.ZTABLE_NAMESPACE;
+import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
@@ -50,13 +51,18 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.server.MockServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
+import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
 import org.junit.jupiter.api.Test;
@@ -139,7 +145,7 @@ public class ZooInfoViewerTest {
   public void instanceIdOutputTest() throws Exception {
     String uuid = UUID.randomUUID().toString();
 
-    ZooReader zooReader = createMock(ZooReader.class);
+    ZooReaderWriter zooReader = createMock(ZooReaderWriter.class);
     var instanceName = "test";
     expect(zooReader.getChildren(eq(ZROOT + ZINSTANCES))).andReturn(List.of(instanceName)).once();
     expect(zooReader.getData(eq(ZROOT + ZINSTANCES + "/" + instanceName)))
@@ -148,14 +154,23 @@ public class ZooInfoViewerTest {
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
 
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--print-instances", "--outfile", testFileName});
+    ServerContext context =
+        MockServerContext.getWithZK(InstanceId.of(instanceName), instanceName, 20_000);
+    expect(context.getZooReader()).andReturn(zooReader).once();
 
-    ZooInfoViewer viewer = new ZooInfoViewer();
-    viewer.generateReport(InstanceId.of(uuid), opts, zooReader);
+    replay(context);
 
-    verify(zooReader);
+    class ZooInfoViewerTestClazz extends ZooInfoViewer {
+      @Override
+      ServerContext getContext(ZooInfoViewer.Opts ots) {
+        return context;
+      }
+    }
+
+    ZooInfoViewer viewer = new ZooInfoViewerTestClazz();
+    viewer.execute(new String[] {"--print-instances", "--outfile", testFileName});
+
+    verify(zooReader, context);
 
     String line;
     try (Scanner scanner = new Scanner(new File(testFileName))) {
@@ -286,14 +301,30 @@ public class ZooInfoViewerTest {
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
 
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--print-props", "--outfile", testFileName});
+    ZooReaderWriter zrw = createMock(ZooReaderWriter.class);
+    expect(zrw.getSessionTimeout()).andReturn(2_000).anyTimes();
+    expect(zrw.exists(eq("/accumulo/" + iid), anyObject())).andReturn(true).anyTimes();
 
-    ZooInfoViewer viewer = new ZooInfoViewer();
-    viewer.generateReport(InstanceId.of(uuid), opts, zooReader);
+    replay(zrw);
 
-    verify(zooReader);
+    PropStore propStore = ZooPropStore.initialize(iid, zrw);
+
+    ServerContext context = MockServerContext.getMockContextWithPropStore(iid, zrw, propStore);
+    expect(context.getZooReader()).andReturn(zooReader).once();
+
+    replay(context);
+
+    class ZooInfoViewerTestClazz extends ZooInfoViewer {
+      @Override
+      ServerContext getContext(ZooInfoViewer.Opts ots) {
+        return context;
+      }
+    }
+
+    ZooInfoViewer viewer = new ZooInfoViewerTestClazz();
+    viewer.execute(new String[] {"--print-props", "--outfile", testFileName});
+
+    verify(zooReader, context);
 
     Map<String,String> props = new HashMap<>();
     try (Scanner scanner = new Scanner(new File(testFileName))) {
