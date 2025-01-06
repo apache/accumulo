@@ -211,7 +211,8 @@ public class CompactionDriver extends ManagerRepo {
           // this tablet has no files try to mark it as done
           tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
               .requireSame(tablet, FILES, COMPACTED).putCompacted(fateId)
-              .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId));
+              .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId),
+                  () -> "no files, attempting to mark as compacted. " + fateId);
           noFiles++;
         } else if (tablet.getSelectedFiles() == null && tablet.getExternalCompactions().isEmpty()) {
           // there are no selected files
@@ -242,7 +243,8 @@ public class CompactionDriver extends ManagerRepo {
             // no files were selected so mark the tablet as compacted
             tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
                 .requireSame(tablet, FILES, SELECTED, ECOMP, COMPACTED).putCompacted(fateId)
-                .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId));
+                .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId),
+                    () -> "no files, attempting to mark as compacted. " + fateId);
 
             noneSelected++;
           } else {
@@ -260,9 +262,11 @@ public class CompactionDriver extends ManagerRepo {
 
             selectionsSubmitted.put(tablet.getExtent(), filesToCompact);
 
-            mutator.submit(tabletMetadata -> tabletMetadata.getSelectedFiles() != null
-                && tabletMetadata.getSelectedFiles().getFateId().equals(fateId)
-                || tabletMetadata.getCompacted().contains(fateId));
+            mutator.submit(
+                tabletMetadata -> tabletMetadata.getSelectedFiles() != null
+                    && tabletMetadata.getSelectedFiles().getFateId().equals(fateId)
+                    || tabletMetadata.getCompacted().contains(fateId),
+                () -> "selecting files for compaction. " + fateId);
 
             if (minSelected == null || tablet.getExtent().compareTo(minSelected) < 0) {
               minSelected = tablet.getExtent();
@@ -298,7 +302,8 @@ public class CompactionDriver extends ManagerRepo {
             var mutator = tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation()
                 .requireSame(tablet, ECOMP, USER_COMPACTION_REQUESTED)
                 .putUserCompactionRequested(fateId);
-            mutator.submit(tm -> tm.getUserCompactionsRequested().contains(fateId));
+            mutator.submit(tm -> tm.getUserCompactionsRequested().contains(fateId),
+                () -> "marking as needing a user requested compaction. " + fateId);
             userCompactionRequested++;
           } else {
             // Marker was already added and we are waiting
@@ -400,7 +405,8 @@ public class CompactionDriver extends ManagerRepo {
               mutator.deleteUserCompactionRequested(fateId);
             }
 
-            mutator.submit(needsNoUpdate::test);
+            mutator.submit(needsNoUpdate::test,
+                () -> "cleanup metadata for failed compaction. " + fateId);
           }
         }
       }

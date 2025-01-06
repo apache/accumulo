@@ -128,8 +128,9 @@ public class CommitCompaction extends ManagerRepo {
         // make the needed updates to the tablet
         updateTabletForCompaction(commitData.stats, ecid, tablet, newDatafile, ecm, tabletMutator);
 
-        tabletMutator
-            .submit(tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid));
+        tabletMutator.submit(
+            tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid),
+            () -> "commit compaction " + ecid);
 
         if (LOG.isDebugEnabled()) {
           LOG.debug("Compaction completed {} added {} removed {}", tablet.getExtent(), newDatafile,
