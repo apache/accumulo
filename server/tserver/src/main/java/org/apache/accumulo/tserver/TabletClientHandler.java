@@ -553,8 +553,8 @@ public class TabletClientHandler implements TabletClientService.Iface {
       if (us.unhandledException != null) {
         // Something unexpected happened during this write session, so throw an exception here to
         // cause a TApplicationException on the client side.
-        throw new IllegalStateException("Write session " + updateID + " saw an unexpected exception",
-                us.unhandledException);
+        throw new IllegalStateException(
+            "Write session " + updateID + " saw an unexpected exception", us.unhandledException);
       }
 
       // clients may or may not see data from an update session while

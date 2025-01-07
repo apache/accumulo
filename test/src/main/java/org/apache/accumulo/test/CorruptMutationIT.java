@@ -48,7 +48,7 @@ import org.junit.jupiter.api.Test;
 public class CorruptMutationIT extends AccumuloClusterHarness {
   @Test
   public void testCorruptMutation() throws Exception {
-    
+
     String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(table);
