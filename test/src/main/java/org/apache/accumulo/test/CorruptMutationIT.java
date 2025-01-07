@@ -76,18 +76,27 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
         TInfo tinfo = TraceUtil.traceInfo();
 
         long sessionId = client.startUpdate(tinfo, ctx.rpcCreds(), TDurability.DEFAULT);
-        Mutation m = new Mutation("abc");
-        m.put("x", "y", "z");
+        Mutation bad = new Mutation("abc");
+        bad.put("x", "y", "z");
 
         // Serialize the mutation
-        TMutation tMutation = m.toThrift();
+        TMutation badMutation = bad.toThrift();
 
         // Simulate data corruption in the serialized mutation
-        tMutation.entries = -42;
+        badMutation.entries = -42;
+
+        Mutation good1 = new Mutation("def");
+        good1.put("x", "y", "z2");
+        TMutation goodMutation1 = good1.toThrift();
+
+        Mutation good2 = new Mutation("ghi");
+        good2.put("x", "y", "z3");
+        TMutation goodMutation2 = good2.toThrift();
 
         // The server side will see an error here, however since this is a thrift oneway method no
         // exception is expected here.
-        client.applyUpdates(tinfo, sessionId, extent.toThrift(), List.of(tMutation));
+        client.applyUpdates(tinfo, sessionId, extent.toThrift(),
+            List.of(goodMutation1, badMutation, goodMutation2));
 
         // Since client.applyUpdates experienced an error, should see an error when closing the
         // session.
