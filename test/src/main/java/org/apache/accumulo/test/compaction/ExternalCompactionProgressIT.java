@@ -194,7 +194,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           }
           TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(s);
           final String metricName = metric.getName();
-          if (!metricName.startsWith("accumulo.compactor.entries")) {
+          if (!metricName.startsWith("accumulo.compaction.entries")) {
             continue;
           }
           int value = Integer.parseInt(metric.getValue());
