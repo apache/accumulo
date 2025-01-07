@@ -157,6 +157,7 @@ public class ZooInfoViewerTest {
     ServerContext context =
         MockServerContext.getWithZK(InstanceId.of(instanceName), instanceName, 20_000);
     expect(context.getZooReader()).andReturn(zooReader).once();
+    context.close();
 
     replay(context);
 
@@ -311,6 +312,7 @@ public class ZooInfoViewerTest {
 
     ServerContext context = MockServerContext.getMockContextWithPropStore(iid, zrw, propStore);
     expect(context.getZooReader()).andReturn(zooReader).once();
+    context.close();
 
     replay(context);
 

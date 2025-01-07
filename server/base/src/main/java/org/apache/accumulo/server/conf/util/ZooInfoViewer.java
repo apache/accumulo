@@ -115,11 +115,8 @@ public class ZooInfoViewer implements KeywordExecutable {
     log.info("print properties: {}", opts.printProps);
     log.info("print instances: {}", opts.printInstanceIds);
 
-    try {
-      ServerContext context = getContext(opts);
+    try (ServerContext context = getContext(opts)) {
       generateReport(context.getInstanceID(), opts, context.getZooReader());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
     }
   }
 
