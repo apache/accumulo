@@ -370,7 +370,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
       us.unhandledException = e;
       us.currentTablet = null;
 
-      // rethrowing it will cause logging from thrift, so not adding logging here
+      // Rethrowing it will cause logging from thrift, so not adding logging here.
       throw e;
     } finally {
       if (reserved) {
