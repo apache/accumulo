@@ -18,10 +18,12 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -31,6 +33,9 @@ import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 public class CompactionMetadata {
 
@@ -96,7 +101,7 @@ public class CompactionMetadata {
   // This class is used to serialize and deserialize this class using GSon. Any changes to this
   // class must consider persisted data.
   private static class GSonData {
-    List<String> inputs;
+    String inputs;
     String tmp;
     String compactor;
     String kind;
@@ -107,9 +112,15 @@ public class CompactionMetadata {
   }
 
   public String toJson() {
-    GSonData jData = new GSonData();
 
-    jData.inputs = jobFiles.stream().map(StoredTabletFile::getMetadata).collect(toList());
+    final Gson gson = GSON.get();
+
+    List<String> inputFiles =
+        jobFiles.stream().map(StoredTabletFile::getMetadata).collect(toList());
+    String inputFilesJson = gson.toJson(inputFiles);
+
+    final GSonData jData = new GSonData();
+    jData.inputs = Base64.getEncoder().encodeToString(inputFilesJson.getBytes(UTF_8));
     jData.tmp = compactTmpName.insert().getMetadata();
     jData.compactor = compactorId;
     jData.kind = kind.name();
@@ -117,13 +128,19 @@ public class CompactionMetadata {
     jData.priority = priority;
     jData.propDels = propagateDeletes;
     jData.fateId = fateId == null ? null : fateId.canonical();
-    return GSON.get().toJson(jData);
+    return gson.toJson(jData);
   }
 
   public static CompactionMetadata fromJson(String json) {
-    GSonData jData = GSON.get().fromJson(json, GSonData.class);
+    final Gson gson = GSON.get();
 
-    return new CompactionMetadata(jData.inputs.stream().map(StoredTabletFile::new).collect(toSet()),
+    GSonData jData = gson.fromJson(json, GSonData.class);
+
+    byte[] inputFilesDecoded = Base64.getDecoder().decode(jData.inputs);
+    List<String> inputFiles = gson.fromJson(new String(inputFilesDecoded, UTF_8),
+        new TypeToken<List<String>>() {}.getType());
+
+    return new CompactionMetadata(inputFiles.stream().map(StoredTabletFile::new).collect(toSet()),
         StoredTabletFile.of(jData.tmp).getTabletFile(), jData.compactor,
         CompactionKind.valueOf(jData.kind), jData.priority, CompactorGroupId.of(jData.groupId),
         jData.propDels, jData.fateId == null ? null : FateId.from(jData.fateId));
