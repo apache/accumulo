@@ -18,9 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import java.util.Set;
@@ -46,6 +44,8 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.Sets;
 
 public class CorruptMutationIT extends AccumuloClusterHarness {
   @Test
@@ -76,27 +76,27 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
         TInfo tinfo = TraceUtil.traceInfo();
 
         long sessionId = client.startUpdate(tinfo, ctx.rpcCreds(), TDurability.DEFAULT);
-        Mutation bad = new Mutation("abc");
-        bad.put("x", "y", "z");
 
-        // Serialize the mutation
-        TMutation badMutation = bad.toThrift();
+        // Write two valid mutations to the session. The tserver buffers data it receives via
+        // applyUpdates and may not write them until closeUpdate RPC is called. So this write may or
+        // may not go through.
+        client.applyUpdates(tinfo, sessionId, extent.toThrift(),
+            List.of(createTMutation("abc", "z1"), createTMutation("def", "z2")));
 
         // Simulate data corruption in the serialized mutation
+        TMutation badMutation = createTMutation("ghi", "z3");
         badMutation.entries = -42;
 
-        Mutation good1 = new Mutation("def");
-        good1.put("x", "y", "z2");
-        TMutation goodMutation1 = good1.toThrift();
-
-        Mutation good2 = new Mutation("ghi");
-        good2.put("x", "y", "z3");
-        TMutation goodMutation2 = good2.toThrift();
-
-        // The server side will see an error here, however since this is a thrift oneway method no
-        // exception is expected here.
+        // Write some good and bad mutations to the session. The server side will see an error here,
+        // however since this is a thrift oneway method no exception is expected here. This should
+        // leave the session in a broken state where it no longer accepts any new data.
         client.applyUpdates(tinfo, sessionId, extent.toThrift(),
-            List.of(goodMutation1, badMutation, goodMutation2));
+            List.of(createTMutation("jkl", "z4"), badMutation, createTMutation("mno", "z5")));
+
+        // Write two more valid mutations to the session, these should be dropped on the server side
+        // because of the previous error. So should never see these updates.
+        client.applyUpdates(tinfo, sessionId, extent.toThrift(),
+            List.of(createTMutation("pqr", "z6"), createTMutation("stu", "z7")));
 
         // Since client.applyUpdates experienced an error, should see an error when closing the
         // session.
@@ -104,6 +104,16 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
       } finally {
         ThriftUtil.returnClient((TServiceClient) client, ctx);
       }
+
+      // The values that a scan must see
+      Set<String> mustSeeValues = Set.of("v1", "v2");
+      // The values that a scan may see, not all have to be seen. A scan should not see any values
+      // outside of this set.
+      Set<String> possibleValues = Set.of("v1", "v2", "z1", "z2");
+
+      // This code is just testing the test code to make sure an assumption is correct. Simulates a
+      // scan seeing unexpected values.
+      assertFalse(Sets.difference(Set.of("v1", "v2", "z1", "z2", "z3"), possibleValues).isEmpty());
 
       // The failed mutation should not have left the tablet in a bad state. Do some follow-on
       // actions to ensure the tablet is still functional.
@@ -116,7 +126,8 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
       try (Scanner scanner = c.createScanner(table)) {
         var valuesSeen =
             scanner.stream().map(e -> e.getValue().toString()).collect(Collectors.toSet());
-        assertEquals(Set.of("v1", "v2"), valuesSeen);
+        assertTrue(valuesSeen.containsAll(mustSeeValues)
+            && Sets.difference(valuesSeen, possibleValues).isEmpty(), valuesSeen::toString);
       }
 
       c.tableOperations().flush(table, null, null, true);
@@ -124,8 +135,15 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
       try (Scanner scanner = c.createScanner(table)) {
         var valuesSeen =
             scanner.stream().map(e -> e.getValue().toString()).collect(Collectors.toSet());
-        assertEquals(Set.of("v1", "v2"), valuesSeen);
+        assertTrue(valuesSeen.containsAll(mustSeeValues)
+            && Sets.difference(valuesSeen, possibleValues).isEmpty(), valuesSeen::toString);
       }
     }
+  }
+
+  private static TMutation createTMutation(String row, String value) {
+    Mutation m = new Mutation("row");
+    m.put("x", "y", value);
+    return m.toThrift();
   }
 }
