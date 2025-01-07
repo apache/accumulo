@@ -19,10 +19,8 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Set;
@@ -33,6 +31,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -45,13 +44,19 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Sets;
-
 public class CorruptMutationIT extends AccumuloClusterHarness {
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX, "10");
+  }
+
   @Test
   public void testCorruptMutation() throws Exception {
 
@@ -82,8 +87,8 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
         long sessionId = client.startUpdate(tinfo, ctx.rpcCreds(), TDurability.DEFAULT);
 
         // Write two valid mutations to the session. The tserver buffers data it receives via
-        // applyUpdates and may not write them until closeUpdate RPC is called. So this write may or
-        // may not go through.
+        // applyUpdates and may not write them until closeUpdate RPC is called. Because
+        // TSERV_TOTAL_MUTATION_QUEUE_MAX was set so small, these values should be written.
         client.applyUpdates(tinfo, sessionId, extent.toThrift(),
             List.of(createTMutation("abc", "z1"), createTMutation("def", "z2")));
 
@@ -110,14 +115,7 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
       }
 
       // The values that a scan must see
-      Set<String> mustSeeValues = Set.of("v1", "v2");
-      // The values that a scan may see, not all have to be seen. A scan should not see any values
-      // outside of this set.
-      Set<String> possibleValues = Set.of("v1", "v2", "z1", "z2");
-
-      // This code is just testing the test code to make sure an assumption is correct. Simulates a
-      // scan seeing unexpected values.
-      assertFalse(Sets.difference(Set.of("v1", "v2", "z1", "z2", "z3"), possibleValues).isEmpty());
+      Set<String> expectedValues = Set.of("v1", "v2", "z1", "z2");
 
       // The failed mutation should not have left the tablet in a bad state. Do some follow-on
       // actions to ensure the tablet is still functional.
@@ -130,8 +128,7 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
       try (Scanner scanner = c.createScanner(table)) {
         var valuesSeen =
             scanner.stream().map(e -> e.getValue().toString()).collect(Collectors.toSet());
-        assertTrue(valuesSeen.containsAll(mustSeeValues)
-            && Sets.difference(valuesSeen, possibleValues).isEmpty(), valuesSeen::toString);
+        assertEquals(expectedValues, valuesSeen);
       }
 
       c.tableOperations().flush(table, null, null, true);
@@ -139,14 +136,13 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
       try (Scanner scanner = c.createScanner(table)) {
         var valuesSeen =
             scanner.stream().map(e -> e.getValue().toString()).collect(Collectors.toSet());
-        assertTrue(valuesSeen.containsAll(mustSeeValues)
-            && Sets.difference(valuesSeen, possibleValues).isEmpty(), valuesSeen::toString);
+        assertEquals(expectedValues, valuesSeen);
       }
     }
   }
 
   private static TMutation createTMutation(String row, String value) {
-    Mutation m = new Mutation("row");
+    Mutation m = new Mutation(row);
     m.put("x", "y", value);
     return m.toThrift();
   }
