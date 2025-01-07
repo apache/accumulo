@@ -551,6 +551,13 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
     try {
       if (us.unhandledException != null) {
+        // Since flush() is not being called, any memory added to the global queued mutations
+        // counter will not be decremented. So do that here before throwing an exception.
+        server.updateTotalQueuedMutationSize(-us.queuedMutationSize);
+        us.queuedMutationSize = 0;
+        // make this memory available for GC
+        us.queuedMutations.clear();
+
         // Something unexpected happened during this write session, so throw an exception here to
         // cause a TApplicationException on the client side.
         throw new IllegalStateException(
