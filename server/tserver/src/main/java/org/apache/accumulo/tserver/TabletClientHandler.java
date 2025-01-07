@@ -469,6 +469,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
         }
       } catch (Exception e) {
         TraceUtil.setException(span2, e, true);
+        log.error("Error logging mutations sent from {}", TServerUtils.clientAddress.get(), e);
         throw e;
       } finally {
         span2.end();
@@ -496,6 +497,10 @@ public class TabletClientHandler implements TabletClientService.Iface {
         us.commitTimes.addStat(t2 - t1);
 
         updateAvgCommitTime(t2 - t1, sendables.size());
+      } catch (Exception e) {
+        TraceUtil.setException(span3, e, true);
+        log.error("Error committing mutations sent from {}", TServerUtils.clientAddress.get(), e);
+        throw e;
       } finally {
         span3.end();
       }
@@ -675,6 +680,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
           session.commit(mutations);
         } catch (Exception e) {
           TraceUtil.setException(span3, e, true);
+          log.error("Error committing mutations sent from {}", TServerUtils.clientAddress.get(), e);
           throw e;
         } finally {
           span3.end();
@@ -831,6 +837,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
       updateAvgCommitTime(t2 - t1, sendables.size());
     } catch (Exception e) {
       TraceUtil.setException(span3, e, true);
+      log.error("Error committing mutations sent from {}", TServerUtils.clientAddress.get(), e);
       throw e;
     } finally {
       span3.end();
