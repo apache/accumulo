@@ -172,7 +172,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
+  public Optional<FateId> seedTransaction(Fate.FateOperation txName, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
     return createAndReserve(fateKey).map(txStore -> {
       try {
@@ -185,7 +185,8 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public boolean seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp) {
+  public boolean seedTransaction(Fate.FateOperation txName, FateId fateId, Repo<T> repo,
+      boolean autoCleanUp) {
     return tryReserve(fateId).map(txStore -> {
       try {
         if (txStore.getStatus() == NEW) {
@@ -199,7 +200,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     }).orElse(false);
   }
 
-  private void seedTransaction(String txName, Repo<T> repo, boolean autoCleanUp,
+  private void seedTransaction(Fate.FateOperation txName, Repo<T> repo, boolean autoCleanUp,
       FateTxStore<T> txStore) {
     if (txStore.top() == null) {
       try {

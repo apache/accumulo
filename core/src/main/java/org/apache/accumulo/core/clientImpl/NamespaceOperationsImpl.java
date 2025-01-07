@@ -56,7 +56,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.manager.thrift.FateOperation;
+import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -126,7 +126,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     NEW_NAMESPACE_NAME.validate(namespace);
 
     try {
-      doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE,
+      doNamespaceFateOperation(TFateOperation.NAMESPACE_CREATE,
           Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8))), Collections.emptyMap(),
           namespace);
     } catch (NamespaceNotFoundException e) {
@@ -156,7 +156,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     Map<String,String> opts = new HashMap<>();
 
     try {
-      doNamespaceFateOperation(FateOperation.NAMESPACE_DELETE, args, opts, namespace);
+      doNamespaceFateOperation(TFateOperation.NAMESPACE_DELETE, args, opts, namespace);
     } catch (NamespaceExistsException e) {
       // should not happen
       throw new AssertionError(e);
@@ -174,7 +174,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldNamespaceName.getBytes(UTF_8)),
         ByteBuffer.wrap(newNamespaceName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
-    doNamespaceFateOperation(FateOperation.NAMESPACE_RENAME, args, opts, oldNamespaceName);
+    doNamespaceFateOperation(TFateOperation.NAMESPACE_RENAME, args, opts, oldNamespaceName);
   }
 
   @Override
@@ -385,7 +385,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     return super.addConstraint(namespace, constraintClassName);
   }
 
-  private String doNamespaceFateOperation(FateOperation op, List<ByteBuffer> args,
+  private String doNamespaceFateOperation(TFateOperation op, List<ByteBuffer> args,
       Map<String,String> opts, String namespace) throws AccumuloSecurityException,
       AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
     // caller should validate the namespace name
