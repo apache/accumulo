@@ -50,6 +50,7 @@ public class UpdateSession extends Session {
   public long flushTime = 0;
   public long queuedMutationSize = 0;
   public final Durability durability;
+  public Exception unhandledException = null;
 
   public UpdateSession(TservConstraintEnv env, TCredentials credentials, Durability durability) {
     super(credentials);
