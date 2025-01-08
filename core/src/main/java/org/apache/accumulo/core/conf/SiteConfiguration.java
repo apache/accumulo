@@ -39,6 +39,7 @@ import org.apache.commons.configuration2.CompositeConfiguration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.io.FileHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -222,8 +223,9 @@ public class SiteConfiguration extends AccumuloConfiguration {
   private static AbstractConfiguration getPropsFileConfig(URL accumuloPropsLocation) {
     var config = new PropertiesConfiguration();
     if (accumuloPropsLocation != null) {
+      var fileHandler = new FileHandler(config);
       try (var reader = new InputStreamReader(accumuloPropsLocation.openStream(), UTF_8)) {
-        config.read(reader);
+        fileHandler.load(reader);
       } catch (ConfigurationException | IOException e) {
         throw new IllegalArgumentException(e);
       }
