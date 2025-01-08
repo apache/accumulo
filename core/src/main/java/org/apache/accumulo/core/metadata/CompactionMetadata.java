@@ -16,23 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata.schema;
+package org.apache.accumulo.core.metadata;
 
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
-import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile.TabletFileCqMetadataGson;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
+import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
+
+import com.google.gson.Gson;
 
 public class CompactionMetadata {
+
+  private static final Gson gson = ByteArrayToBase64TypeAdapter.createBase64Gson();
 
   private final Set<StoredTabletFile> jobFiles;
   private final ReferencedTabletFile compactTmpName;
@@ -96,8 +99,8 @@ public class CompactionMetadata {
   // This class is used to serialize and deserialize this class using GSon. Any changes to this
   // class must consider persisted data.
   private static class GSonData {
-    List<String> inputs;
-    String tmp;
+    List<TabletFileCqMetadataGson> inputs;
+    TabletFileCqMetadataGson tmp;
     String compactor;
     String kind;
     String groupId;
@@ -108,25 +111,25 @@ public class CompactionMetadata {
 
   public String toJson() {
     GSonData jData = new GSonData();
-
-    jData.inputs = jobFiles.stream().map(StoredTabletFile::getMetadata).collect(toList());
-    jData.tmp = compactTmpName.insert().getMetadata();
+    jData.inputs = jobFiles.stream().map(stf -> stf.toTabletFileCqMetadataGson()).collect(toList());
+    jData.tmp = new TabletFileCqMetadataGson(compactTmpName);
     jData.compactor = compactorId;
     jData.kind = kind.name();
     jData.groupId = cgid.toString();
     jData.priority = priority;
     jData.propDels = propagateDeletes;
     jData.fateId = fateId == null ? null : fateId.canonical();
-    return GSON.get().toJson(jData);
+    return gson.toJson(jData);
   }
 
   public static CompactionMetadata fromJson(String json) {
-    GSonData jData = GSON.get().fromJson(json, GSonData.class);
+    GSonData jData = gson.fromJson(json, GSonData.class);
 
-    return new CompactionMetadata(jData.inputs.stream().map(StoredTabletFile::new).collect(toSet()),
-        StoredTabletFile.of(jData.tmp).getTabletFile(), jData.compactor,
-        CompactionKind.valueOf(jData.kind), jData.priority, CompactorGroupId.of(jData.groupId),
-        jData.propDels, jData.fateId == null ? null : FateId.from(jData.fateId));
+    return new CompactionMetadata(
+        jData.inputs.stream().map(TabletFileCqMetadataGson::toStoredTabletFile).collect(toSet()),
+        jData.tmp.toReferencedTabletFile(), jData.compactor, CompactionKind.valueOf(jData.kind),
+        jData.priority, CompactorGroupId.of(jData.groupId), jData.propDels,
+        jData.fateId == null ? null : FateId.from(jData.fateId));
   }
 
   @Override
