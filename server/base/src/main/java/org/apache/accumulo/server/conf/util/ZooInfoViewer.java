@@ -113,8 +113,6 @@ public class ZooInfoViewer implements KeywordExecutable {
     log.info("print properties: {}", opts.printProps);
     log.info("print instances: {}", opts.printInstanceIds);
 
-    var conf = opts.getSiteConfiguration();
-
     try (ServerContext context = getContext(opts)) {
       generateReport(context, opts);
     }
