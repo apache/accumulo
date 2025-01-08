@@ -85,8 +85,7 @@ public class ZooInfoViewer implements KeywordExecutable {
       DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC));
   private static final Logger log = LoggerFactory.getLogger(ZooInfoViewer.class);
 
-  private final NullWatcher nullWatcher =
-      new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
+  private NullWatcher nullWatcher;
 
   private static final String INDENT = "  ";
 
@@ -107,6 +106,7 @@ public class ZooInfoViewer implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
+    nullWatcher = new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
 
     ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
     opts.parseArgs(ZooInfoViewer.class.getName(), args);
@@ -115,14 +115,13 @@ public class ZooInfoViewer implements KeywordExecutable {
     log.info("print properties: {}", opts.printProps);
     log.info("print instances: {}", opts.printInstanceIds);
 
-    var conf = opts.getSiteConfiguration();
-
-    ZooReader zooReader = new ZooReaderWriter(conf);
-
-    try (ServerContext context = new ServerContext(conf)) {
-      InstanceId iid = context.getInstanceID();
-      generateReport(iid, opts, zooReader);
+    try (ServerContext context = getContext(opts)) {
+      generateReport(context.getInstanceID(), opts, context.getZooReader());
     }
+  }
+
+  ServerContext getContext(ZooInfoViewer.Opts opts) {
+    return new ServerContext(opts.getSiteConfiguration());
   }
 
   void generateReport(final InstanceId iid, final ZooInfoViewer.Opts opts,
