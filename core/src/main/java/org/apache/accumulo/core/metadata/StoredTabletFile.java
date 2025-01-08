@@ -291,9 +291,28 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     }
   }
 
-  private static class TabletFileCqMetadataGson {
+  static class TabletFileCqMetadataGson {
     private String path;
     private byte[] startRow;
     private byte[] endRow;
+
+    TabletFileCqMetadataGson() {}
+
+    TabletFileCqMetadataGson(AbstractTabletFile<?> atf) {
+      path = Objects.requireNonNull(atf.path.toString());
+      startRow = encodeRow(atf.range.getStartKey());
+      endRow = encodeRow(atf.range.getEndKey());
+    }
+
+    ReferencedTabletFile toReferencedTabletFile() {
+      return new ReferencedTabletFile(new Path(URI.create(path)),
+          new Range(decodeRow(startRow), true, decodeRow(endRow), false));
+    }
+
+    StoredTabletFile toStoredTabletFile() {
+      return StoredTabletFile.of(new Path(URI.create(path)),
+          new Range(decodeRow(startRow), true, decodeRow(endRow), false));
+    }
   }
+
 }
