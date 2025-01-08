@@ -283,6 +283,9 @@ public enum Property {
           + " user-implementations of pluggable Accumulo features, such as the balancer"
           + " or volume chooser.",
       "2.0.0"),
+  GENERAL_CACHE_MANAGER_IMPL("general.block.cache.manager.class",
+      TinyLfuBlockCacheManager.class.getName(), PropertyType.STRING,
+      "Specifies the class name of the block cache factory implementation.", "2.1.4"),
   GENERAL_DELEGATION_TOKEN_LIFETIME("general.delegation.token.lifetime", "7d",
       PropertyType.TIMEDURATION,
       "The length of time that delegation tokens and secret keys are valid.", "1.7.0"),
@@ -514,6 +517,8 @@ public enum Property {
       "Time to wait for clients to continue scans before closing a session.", "1.3.5"),
   TSERV_DEFAULT_BLOCKSIZE("tserver.default.blocksize", "1M", PropertyType.BYTES,
       "Specifies a default blocksize for the tserver caches.", "1.3.5"),
+  @Deprecated(since = "2.1.4")
+  @ReplacedBy(property = Property.GENERAL_CACHE_MANAGER_IMPL)
   TSERV_CACHE_MANAGER_IMPL("tserver.cache.manager.class", TinyLfuBlockCacheManager.class.getName(),
       PropertyType.STRING, "Specifies the class name of the block cache factory implementation.",
       "2.0.0"),
@@ -1535,8 +1540,9 @@ public enum Property {
       RPC_MAX_MESSAGE_SIZE,
 
       // block cache options
-      TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
-      TSERV_SUMMARYCACHE_SIZE, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
+      GENERAL_CACHE_MANAGER_IMPL, TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE,
+      TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE,
+      SSERV_SUMMARYCACHE_SIZE,
 
       // blocksize options
       TSERV_DEFAULT_BLOCKSIZE, SSERV_DEFAULT_BLOCKSIZE,
