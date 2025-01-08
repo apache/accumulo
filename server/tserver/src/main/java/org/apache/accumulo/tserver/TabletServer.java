@@ -417,7 +417,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public long updateTotalQueuedMutationSize(long additionalMutationSize) {
-    return totalQueuedMutationSize.addAndGet(additionalMutationSize);
+    var newTotal = totalQueuedMutationSize.addAndGet(additionalMutationSize);
+    if (log.isTraceEnabled()) {
+      log.trace("totalQueuedMutationSize is now {} after adding {}", newTotal,
+          additionalMutationSize);
+    }
+    return newTotal;
   }
 
   @Override

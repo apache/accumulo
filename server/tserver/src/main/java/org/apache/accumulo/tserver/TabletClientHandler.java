@@ -258,7 +258,21 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
     UpdateSession us =
         new UpdateSession(new TservConstraintEnv(server.getContext(), security, credentials),
-            credentials, durability);
+            credentials, durability) {
+          @Override
+          public boolean cleanup() {
+            // This is called when a client abandons a session. When this happens need to decrement
+            // any queued mutations.
+            if (queuedMutationSize > 0) {
+              log.trace(
+                  "cleaning up abandoned update session, decrementing totalQueuedMutationSize by {}",
+                  queuedMutationSize);
+              server.updateTotalQueuedMutationSize(-queuedMutationSize);
+              queuedMutationSize = 0;
+            }
+            return true;
+          }
+        };
     return server.sessionManager.createSession(us, false);
   }
 
