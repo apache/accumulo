@@ -111,7 +111,8 @@ public class CompactionMetadata {
 
   public String toJson() {
     GSonData jData = new GSonData();
-    jData.inputs = jobFiles.stream().map(stf -> stf.toTabletFileCqMetadataGson()).collect(toList());
+    jData.inputs =
+        jobFiles.stream().map(stf -> new TabletFileCqMetadataGson(stf)).collect(toList());
     jData.tmp = new TabletFileCqMetadataGson(compactTmpName);
     jData.compactor = compactorId;
     jData.kind = kind.name();

@@ -315,17 +315,4 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     }
   }
 
-  static StoredTabletFile fomTabletFileCqMetadataGson(String serialized) {
-    return new StoredTabletFile(deserialize(serialized));
-  }
-
-  TabletFileCqMetadataGson toTabletFileCqMetadataGson() {
-    requireKeyExtentDataRange(range);
-    final TabletFileCqMetadataGson metadata = new TabletFileCqMetadataGson();
-    metadata.path = Objects.requireNonNull(path).toString();
-    metadata.startRow = encodeRow(range.getStartKey());
-    metadata.endRow = encodeRow(range.getEndKey());
-    return metadata;
-  }
-
 }
