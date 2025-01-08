@@ -148,7 +148,6 @@ public class ZooInfoViewerTest {
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
 
-    expect(context.getZooReader()).andReturn(zooReader).once();
     context.close();
 
     replay(context, zooReader);
@@ -295,15 +294,13 @@ public class ZooInfoViewerTest {
     expect(zooReader.getData(tBasePath + "/t" + ZTABLE_NAMESPACE))
         .andReturn("+default".getBytes(UTF_8)).anyTimes();
 
-    replay(context, zooReader);
-
     NamespacePropKey nsKey = NamespacePropKey.of(iid, nsId);
     log.trace("namespace base path: {}", nsKey.getPath());
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
     context.close();
 
-    replay(context);
+    replay(context, zooReader);
 
     class ZooInfoViewerTestClazz extends ZooInfoViewer {
       @Override
