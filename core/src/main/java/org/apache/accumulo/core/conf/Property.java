@@ -834,7 +834,7 @@ public enum Property {
       "The Monitor displays information about servers that it believes have died recently."
           + " This property accepts a comma separated list of resource group names. If"
           + " the dead servers resource group matches a resource group in this list,"
-          + " then it will be suppressed.",
+          + " then it will be suppressed from the dead servers list in the monitor.",
       "4.0.0"),
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
