@@ -167,7 +167,6 @@ public class TabletMetadataTest {
     mutation.put(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical(), ecMeta.toJson());
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
-    System.out.println(rowMap);
 
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
         EnumSet.allOf(ColumnType.class), true, false);
