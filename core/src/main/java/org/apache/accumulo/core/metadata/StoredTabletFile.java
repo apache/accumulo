@@ -310,8 +310,8 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     }
 
     StoredTabletFile toStoredTabletFile() {
-      return new StoredTabletFile(new TabletFileCq(new Path(URI.create(path)),
-          new Range(decodeRow(startRow), true, decodeRow(endRow), false)));
+      return StoredTabletFile.of(new Path(URI.create(path)),
+          new Range(decodeRow(startRow), true, decodeRow(endRow), false));
     }
   }
 
