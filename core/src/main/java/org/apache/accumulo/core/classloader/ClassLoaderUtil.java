@@ -69,7 +69,7 @@ public class ClassLoaderUtil {
   }
 
   // for testing
-  static synchronized void resetContextFactoryForTests() {
+  public static synchronized void resetContextFactoryForTests() {
     FACTORY = null;
   }
 
