@@ -67,8 +67,6 @@ public class SessionManager {
   private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
 
   private final ConcurrentMap<Long,Session> sessions = new ConcurrentHashMap<>();
-  private final long maxIdle;
-  private final long maxUpdateIdle;
   private final BlockingQueue<Session> deferredCleanupQueue = new ArrayBlockingQueue<>(5000);
   private final Long expiredSessionMarker = (long) -1;
   private final ServerContext ctx;
@@ -76,12 +74,8 @@ public class SessionManager {
 
   public SessionManager(ServerContext context) {
     this.ctx = context;
-    final AccumuloConfiguration aconf = context.getConfiguration();
-    maxUpdateIdle = aconf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
-    maxIdle = aconf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
-
-    Runnable r = () -> sweep(maxIdle, maxUpdateIdle);
-
+    long maxIdle = ctx.getConfiguration().getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
+    Runnable r = () -> sweep(ctx);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(r,
         0, Math.max(maxIdle / 2, 1000), MILLISECONDS));
   }
@@ -103,7 +97,7 @@ public class SessionManager {
   }
 
   public long getMaxIdleTime() {
-    return maxIdle;
+    return ctx.getConfiguration().getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
   }
 
   /**
@@ -299,7 +293,10 @@ public class SessionManager {
     cleanup(deferredCleanupQueue, session);
   }
 
-  private void sweep(final long maxIdle, final long maxUpdateIdle) {
+  private void sweep(final ServerContext context) {
+    final AccumuloConfiguration conf = context.getConfiguration();
+    final long maxUpdateIdle = conf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
+    final long maxIdle = conf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
     List<Session> sessionsToCleanup = new LinkedList<>();
     Iterator<Session> iter = sessions.values().iterator();
     while (iter.hasNext()) {
