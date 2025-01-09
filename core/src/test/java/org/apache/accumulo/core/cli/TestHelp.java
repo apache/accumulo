@@ -58,10 +58,9 @@ public class TestHelp {
 
     String[] args = {"--help", "--test"};
     TestHelpOpt opts = new TestHelpOpt();
-    opts.parseArgs("program", args);
-    assertTrue(opts.test);
     try {
-      opts.printUsage(opts.help);
+      opts.parseArgs("program", args);
+      assertTrue(opts.test);
     } catch (RuntimeException e) {
       assertEquals("0", e.getMessage());
     }

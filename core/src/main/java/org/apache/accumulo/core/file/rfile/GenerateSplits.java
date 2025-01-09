@@ -116,7 +116,6 @@ public class GenerateSplits implements KeywordExecutable {
   public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(GenerateSplits.class.getName(), args);
-    opts.printUsage(opts.help);
     if (opts.files.isEmpty()) {
       throw new IllegalArgumentException("No files were given");
     }

@@ -65,7 +65,6 @@ public class ListInstances {
 
   public static void main(String[] args) {
     opts.parseArgs(ListInstances.class.getName(), args);
-    opts.printUsage(opts.help);
 
     if (opts.keepers == null) {
       var siteConfig = SiteConfiguration.auto();

@@ -92,7 +92,6 @@ public class ZooZap implements KeywordExecutable {
   public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
-    opts.printUsage(opts.help);
 
     if (!opts.zapMaster && !opts.zapManager && !opts.zapTservers) {
       new JCommander(opts).usage();

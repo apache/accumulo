@@ -75,7 +75,6 @@ public class PrintBCInfo {
   public PrintBCInfo(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs("PrintInfo", args);
-    opts.printUsage(opts.help);
     if (opts.file.isEmpty()) {
       System.err.println("No files were given");
       System.exit(-1);

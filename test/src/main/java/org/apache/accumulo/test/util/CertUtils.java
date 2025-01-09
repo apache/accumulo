@@ -140,7 +140,6 @@ public class CertUtils {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(CertUtils.class.getName(), args);
-    opts.printUsage(opts.help);
 
     String operation = opts.operation.get(0);
     String keyPassword = opts.keystorePassword;

@@ -75,7 +75,6 @@ public class SplitLarge implements KeywordExecutable {
     FileSystem fs = FileSystem.get(conf);
     Opts opts = new Opts();
     opts.parseArgs("accumulo split-large", args);
-    opts.printUsage(opts.help);
 
     for (String file : opts.files) {
       AccumuloConfiguration aconf = opts.getSiteConfiguration();

@@ -81,7 +81,6 @@ public class ConvertConfig implements KeywordExecutable {
   public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs("accumulo convert-config", args);
-    opts.printUsage(opts.help);
 
     File xmlFile = new File(opts.xmlPath);
     if (!xmlFile.exists()) {

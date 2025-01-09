@@ -337,7 +337,6 @@ public class TableDiskUsage {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(TableDiskUsage.class.getName(), args);
-    opts.printUsage(opts.help);
     Span span = TraceUtil.startSpan(TableDiskUsage.class, "main");
     try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {

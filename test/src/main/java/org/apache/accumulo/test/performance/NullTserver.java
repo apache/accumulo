@@ -322,7 +322,6 @@ public class NullTserver {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(NullTserver.class.getName(), args);
-    opts.printUsage(opts.help);
 
     // modify metadata
     int zkTimeOut =

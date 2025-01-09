@@ -57,7 +57,6 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     this.log = LoggerFactory.getLogger(getClass().getName());
     this.applicationName = appName;
     opts.parseArgs(appName, args);
-    opts.printUsage(opts.help);
     this.hostname = Objects.requireNonNull(opts.getAddress());
     var siteConfig = opts.getSiteConfiguration();
     SecurityUtil.serverLogin(siteConfig);

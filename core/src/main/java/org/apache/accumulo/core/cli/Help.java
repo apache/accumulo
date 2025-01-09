@@ -23,12 +23,11 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 
 public class Help {
-  private final JCommander commander = new JCommander();
-
   @Parameter(names = {"-h", "-?", "--help", "-help"}, help = true)
   public boolean help = false;
 
   public void parseArgs(String programName, String[] args, Object... others) {
+    JCommander commander = new JCommander();
     commander.addObject(this);
     for (Object other : others) {
       commander.addObject(other);
@@ -40,10 +39,7 @@ public class Help {
       commander.usage();
       exitWithError(ex.getMessage(), 1);
     }
-  }
-
-  public void printUsage(boolean isHelp) {
-    if (isHelp) {
+    if (help) {
       commander.usage();
       exit(0);
     }

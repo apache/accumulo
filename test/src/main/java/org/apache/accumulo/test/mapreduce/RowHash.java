@@ -78,7 +78,6 @@ public class RowHash extends Configured implements Tool {
     job.setJarByClass(this.getClass());
     Opts opts = new Opts();
     opts.parseArgs(RowHash.class.getName(), args);
-    opts.printUsage(opts.help);
 
     job.setInputFormatClass(org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.class);
     org.apache.accumulo.core.client.ClientConfiguration clientConf =

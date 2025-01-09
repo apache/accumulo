@@ -77,7 +77,6 @@ public class TestMultiTableIngest {
 
     Opts opts = new Opts();
     opts.parseArgs(TestMultiTableIngest.class.getName(), args);
-    opts.printUsage(opts.help);
     // create the test table within accumulo
     try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
       for (int i = 0; i < opts.tables; i++) {

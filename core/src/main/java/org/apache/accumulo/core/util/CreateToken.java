@@ -80,7 +80,6 @@ public class CreateToken implements KeywordExecutable {
   public void execute(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs("accumulo create-token", args);
-    opts.printUsage(opts.help);
 
     String pass = opts.password;
     if (pass == null && opts.securePassword != null) {

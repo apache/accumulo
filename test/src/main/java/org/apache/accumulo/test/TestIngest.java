@@ -250,7 +250,6 @@ public class TestIngest {
 
     Opts opts = new Opts();
     opts.parseArgs(TestIngest.class.getSimpleName(), args);
-    opts.printUsage(opts.help);
 
     try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
       ingest(client, opts.getIngestPrams());
