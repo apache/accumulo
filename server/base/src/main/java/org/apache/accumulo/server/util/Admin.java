@@ -288,7 +288,6 @@ public class Admin implements KeywordExecutable {
   @SuppressFBWarnings(value = "DM_EXIT", justification = "System.exit okay for CLI tool")
   @Override
   public void execute(final String[] args) {
-    boolean everything;
 
     ServerUtilOpts opts = new ServerUtilOpts();
     JCommander cl = new JCommander(opts);
@@ -423,14 +422,17 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("serviceStatus")) {
         ServiceStatusCmd ssc = new ServiceStatusCmd();
         ssc.execute(context, serviceStatusCommandOpts.json, serviceStatusCommandOpts.noHosts);
-      } else {
-        everything = cl.getParsedCommand().equals("stopAll");
+      } else if (cl.getParsedCommand().equals("stopManager")
+          || cl.getParsedCommand().equals("stopAll")) {
+        boolean everything = cl.getParsedCommand().equals("stopAll");
 
         if (everything) {
           flushAll(context);
         }
 
         stopServer(context, everything);
+      } else {
+        cl.usage();
       }
 
       if (rc != 0) {
