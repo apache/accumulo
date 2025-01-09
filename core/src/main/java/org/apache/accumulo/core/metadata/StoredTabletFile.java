@@ -236,7 +236,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
    * returned as an empty byte array
    **/
 
-  protected static byte[] encodeRow(final Key key) {
+  static byte[] encodeRow(final Key key) {
     final Text row = key != null ? key.getRow() : null;
     if (row != null) {
       try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -252,7 +252,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return new byte[0];
   }
 
-  protected static Text decodeRow(byte[] serialized) {
+  static Text decodeRow(byte[] serialized) {
     // Empty byte array means null row
     if (serialized.length == 0) {
       return null;
