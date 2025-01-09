@@ -18,10 +18,22 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.URI;
+
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.StoredTabletFile.TabletFileCqMetadataGson;
+import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+
+import com.google.gson.Gson;
 
 public class StoredTabletFileTest {
 
@@ -36,5 +48,29 @@ public class StoredTabletFileTest {
     assertTrue(StoredTabletFile.fileNeedsConversion(s21));
     assertFalse(StoredTabletFile.fileNeedsConversion(s31));
     assertFalse(StoredTabletFile.fileNeedsConversion(s31_untrimmed));
+  }
+
+  @Test
+  public void testSerDe() {
+    Gson gson = ByteArrayToBase64TypeAdapter.createBase64Gson();
+    String metadataEntry =
+        "{ \"path\":\"hdfs://localhost:8020/accumulo//tables//1/t-0000000/A000003v.rf\",\"startRow\":\"AmEA\",\"endRow\":\"AnoA\" }";
+    URI normalizedPath =
+        URI.create("hdfs://localhost:8020/accumulo/tables/1/t-0000000/A000003v.rf");
+    KeyExtent ke = new KeyExtent(TableId.of("t"), new Text("z"), new Text("a"));
+    Range r = ke.toDataRange();
+    StoredTabletFile expected = new StoredTabletFile(metadataEntry);
+    TabletFileCqMetadataGson meta = new TabletFileCqMetadataGson(expected);
+    assertEquals(metadataEntry, meta.metadataEntry);
+    assertEquals(normalizedPath.toString(), meta.path);
+    assertArrayEquals(StoredTabletFile.encodeRow(r.getStartKey()), meta.startRow);
+    assertArrayEquals(StoredTabletFile.encodeRow(r.getEndKey()), meta.endRow);
+    String json = gson.toJson(meta);
+    System.out.println(json);
+    TabletFileCqMetadataGson des = gson.fromJson(json, TabletFileCqMetadataGson.class);
+    assertEquals(metadataEntry, des.metadataEntry);
+    assertEquals(normalizedPath.toString(), des.path);
+    assertArrayEquals(StoredTabletFile.encodeRow(r.getStartKey()), des.startRow);
+    assertArrayEquals(StoredTabletFile.encodeRow(r.getEndKey()), des.endRow);
   }
 }

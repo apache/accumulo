@@ -236,7 +236,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
    * returned as an empty byte array
    **/
 
-  private static byte[] encodeRow(final Key key) {
+  protected static byte[] encodeRow(final Key key) {
     final Text row = key != null ? key.getRow() : null;
     if (row != null) {
       try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -252,7 +252,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return new byte[0];
   }
 
-  private static Text decodeRow(byte[] serialized) {
+  protected static Text decodeRow(byte[] serialized) {
     // Empty byte array means null row
     if (serialized.length == 0) {
       return null;
@@ -292,26 +292,26 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   }
 
   static class TabletFileCqMetadataGson {
-    private String path;
-    private byte[] startRow;
-    private byte[] endRow;
+    protected String metadataEntry;
+    protected String path;
+    protected byte[] startRow;
+    protected byte[] endRow;
 
     TabletFileCqMetadataGson() {}
 
-    TabletFileCqMetadataGson(AbstractTabletFile<?> atf) {
-      path = Objects.requireNonNull(atf.path.toString());
-      startRow = encodeRow(atf.range.getStartKey());
-      endRow = encodeRow(atf.range.getEndKey());
+    TabletFileCqMetadataGson(StoredTabletFile stf) {
+      metadataEntry = Objects.requireNonNull(stf.getMetadata());
+      path = Objects.requireNonNull(stf.getMetadataPath());
+      startRow = encodeRow(stf.range.getStartKey());
+      endRow = encodeRow(stf.range.getEndKey());
     }
 
     ReferencedTabletFile toReferencedTabletFile() {
-      return new ReferencedTabletFile(new Path(URI.create(path)),
-          new Range(decodeRow(startRow), true, decodeRow(endRow), false));
+      return new StoredTabletFile(metadataEntry).getTabletFile();
     }
 
     StoredTabletFile toStoredTabletFile() {
-      return StoredTabletFile.of(new Path(URI.create(path)),
-          new Range(decodeRow(startRow), true, decodeRow(endRow), false));
+      return new StoredTabletFile(metadataEntry);
     }
   }
 
