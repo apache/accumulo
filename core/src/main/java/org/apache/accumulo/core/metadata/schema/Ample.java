@@ -37,7 +37,6 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.CompactionMetadata;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.ScanServerRefStore;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
