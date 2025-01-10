@@ -860,22 +860,21 @@ public class Tablet extends TabletBase {
       totalBytes += mutation.numBytes();
     }
 
-    getTabletMemory().mutate(commitSession, mutations, totalCount);
-
-    synchronized (this) {
-      if (isCloseComplete()) {
-        throw new IllegalStateException(
-            "Tablet " + extent + " closed with outstanding messages to the logger");
+    try {
+      getTabletMemory().mutate(commitSession, mutations, totalCount);
+      synchronized (this) {
+        getTabletMemory().updateMemoryUsageStats();
+        if (isCloseComplete()) {
+          throw new IllegalStateException(
+              "Tablet " + extent + " closed with outstanding messages to the logger");
+        }
+        numEntries += totalCount;
+        numEntriesInMemory += totalCount;
+        ingestCount += totalCount;
+        ingestBytes += totalBytes;
       }
-      // decrement here in case an exception is thrown below
+    } finally {
       decrementWritesInProgress(commitSession);
-
-      getTabletMemory().updateMemoryUsageStats();
-
-      numEntries += totalCount;
-      numEntriesInMemory += totalCount;
-      ingestCount += totalCount;
-      ingestBytes += totalBytes;
     }
   }
 

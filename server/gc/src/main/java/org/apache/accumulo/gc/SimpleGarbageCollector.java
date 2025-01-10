@@ -36,16 +36,14 @@ import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
 import org.apache.accumulo.gc.metrics.GcMetrics;
@@ -336,31 +334,32 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
     var path = ServiceLock.path(getContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
 
-    LockWatcher lockWatcher = new LockWatcher() {
-      @Override
-      public void lostLock(LockLossReason reason) {
-        Halt.halt("GC lock in zookeeper lost (reason = " + reason + "), exiting!", 1);
-      }
-
-      @Override
-      public void unableToMonitorLockNode(final Exception e) {
-        // ACCUMULO-3651 Level changed to error and FATAL added to message for slf4j compatibility
-        Halt.halt(-1, () -> log.error("FATAL: No longer able to monitor lock node ", e));
-
-      }
-    };
-
     UUID zooLockUUID = UUID.randomUUID();
     gcLock = new ServiceLock(getContext().getZooSession(), path, zooLockUUID);
+    HAServiceLockWatcher gcLockWatcher = new HAServiceLockWatcher("gc");
+
     while (true) {
-      if (gcLock.tryLock(lockWatcher,
-          new ServiceLockData(zooLockUUID, addr.toString(), ThriftService.GC))) {
-        log.debug("Got GC ZooKeeper lock");
-        return;
+      gcLock.lock(gcLockWatcher,
+          new ServiceLockData(zooLockUUID, addr.toString(), ThriftService.GC));
+
+      gcLockWatcher.waitForChange();
+
+      if (gcLockWatcher.isLockAcquired()) {
+        break;
       }
+
+      if (!gcLockWatcher.isFailedToAcquireLock()) {
+        throw new IllegalStateException("gc lock in unknown state");
+      }
+
+      gcLock.tryToCancelAsyncLockOrUnlock();
+
       log.debug("Failed to get GC ZooKeeper lock, will retry");
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      sleepUninterruptibly(1000, TimeUnit.MILLISECONDS);
     }
+
+    log.info("Got GC lock.");
+
   }
 
   private HostAndPort startStatsService() {

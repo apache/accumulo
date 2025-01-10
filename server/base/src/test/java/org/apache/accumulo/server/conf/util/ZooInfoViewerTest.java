@@ -27,6 +27,7 @@ import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.isA;
 import static org.easymock.EasyMock.isNull;
 import static org.easymock.EasyMock.newCapture;
@@ -50,6 +51,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.MockServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -145,16 +147,22 @@ public class ZooInfoViewerTest {
         .once();
     expect(zk.getData(eq(ZROOT + ZINSTANCES + "/" + instanceName), isNull(), isNull()))
         .andReturn(uuid.getBytes(UTF_8)).once();
+    context.close();
+    expectLastCall().once();
+
     replay(context, zk);
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
 
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--print-instances", "--outfile", testFileName});
+    class ZooInfoViewerTestClazz extends ZooInfoViewer {
+      @Override
+      ServerContext getContext(ZooInfoViewer.Opts ots) {
+        return context;
+      }
+    }
 
-    ZooInfoViewer viewer = new ZooInfoViewer();
-    viewer.generateReport(context, opts);
+    ZooInfoViewer viewer = new ZooInfoViewerTestClazz();
+    viewer.execute(new String[] {"--print-instances", "--outfile", testFileName});
 
     verify(context, zk);
 
@@ -281,6 +289,9 @@ public class ZooInfoViewerTest {
     expect(zk.getData(tBasePath + "/t" + ZTABLE_NAMESPACE, null, null))
         .andReturn("+default".getBytes(UTF_8)).anyTimes();
 
+    context.close();
+    expectLastCall().once();
+
     replay(context, zk);
 
     NamespacePropKey nsKey = NamespacePropKey.of(iid, nsId);
@@ -288,12 +299,15 @@ public class ZooInfoViewerTest {
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
 
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--print-props", "--outfile", testFileName});
+    class ZooInfoViewerTestClazz extends ZooInfoViewer {
+      @Override
+      ServerContext getContext(ZooInfoViewer.Opts ots) {
+        return context;
+      }
+    }
 
-    ZooInfoViewer viewer = new ZooInfoViewer();
-    viewer.generateReport(context, opts);
+    ZooInfoViewer viewer = new ZooInfoViewerTestClazz();
+    viewer.execute(new String[] {"--print-props", "--outfile", testFileName});
 
     verify(context, zk);
 

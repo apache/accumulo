@@ -75,12 +75,12 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockSupport.ServiceLockWatcher;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -98,7 +98,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
@@ -270,20 +269,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     compactorLock =
         new ServiceLock(getContext().getZooSession(), ServiceLock.path(zPath), compactorId);
-    LockWatcher lw = new LockWatcher() {
-      @Override
-      public void lostLock(final LockLossReason reason) {
-        Halt.halt(1, () -> {
-          LOG.error("Compactor lost lock (reason = {}), exiting.", reason);
-          getContext().getLowMemoryDetector().logGCInfo(getConfiguration());
-        });
-      }
-
-      @Override
-      public void unableToMonitorLockNode(final Exception e) {
-        Halt.halt(1, () -> LOG.error("Lost ability to monitor Compactor lock, exiting.", e));
-      }
-    };
+    LockWatcher lw = new ServiceLockWatcher("compactor", () -> false,
+        (name) -> getContext().getLowMemoryDetector().logGCInfo(getConfiguration()));
 
     try {
       for (int i = 0; i < 25; i++) {
