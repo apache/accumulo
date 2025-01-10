@@ -219,8 +219,9 @@ public class UpdateTablets extends ManagerRepo {
             .debug("{} copying compacted marker to new child tablet {}", fateId, compactedFateId));
 
         mutator.putTabletAvailability(tabletMetadata.getTabletAvailability());
-        mutator.putTabletMergeability(splitInfo.isSystemCreated() ? TabletMergeabilityMetadata.now()
-            : TabletMergeabilityMetadata.never());
+        mutator.putTabletMergeability(
+            splitInfo.isSystemCreated() ? TabletMergeabilityMetadata.always(manager.getSteadyTime())
+                : TabletMergeabilityMetadata.never());
         tabletMetadata.getLoaded().forEach((k, v) -> mutator.putBulkFile(k.getTabletFile(), v));
 
         newTabletsFiles.get(newExtent).forEach(mutator::putFile);

@@ -21,6 +21,7 @@ package org.apache.accumulo.core.client.admin;
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 
 import com.google.common.base.Preconditions;
 
@@ -30,8 +31,8 @@ import com.google.common.base.Preconditions;
 public class TabletMergeability implements Serializable {
   private static final long serialVersionUID = 1L;
 
-  private static final TabletMergeability NEVER = new TabletMergeability(Duration.ofNanos(-1));
-  private static final TabletMergeability NOW = new TabletMergeability(Duration.ZERO);
+  private static final TabletMergeability NEVER = new TabletMergeability();
+  private static final TabletMergeability ALWAYS = new TabletMergeability(Duration.ZERO);
 
   private final Duration delay;
 
@@ -39,14 +40,19 @@ public class TabletMergeability implements Serializable {
     this.delay = Objects.requireNonNull(delay);
   }
 
+  // Edge case for NEVER
+  private TabletMergeability() {
+    this.delay = null;
+  }
+
   /**
    * Determines if the configured delay signals a tablet is never eligible to be automatically
-   * merged. (Has a delay of -1)
+   * merged.
    *
    * @return true if never mergeable, else false
    */
   public boolean isNever() {
-    return this.delay.isNegative();
+    return this.delay == null;
   }
 
   /**
@@ -55,33 +61,23 @@ public class TabletMergeability implements Serializable {
    *
    * @return true if always mergeable now, else false
    */
-  public boolean isNow() {
-    return this.delay.isZero();
+  public boolean isAlways() {
+    return delay != null && this.delay.isZero();
   }
 
   /**
-   * Determines if the configured delay signals a tablet has a configured delay before being
-   * eligible to be automatically merged. (Has a positive delay)
-   *
-   * @return true if there is a configured delay, else false
-   */
-  public boolean isDelayed() {
-    return delay.toNanos() > 0;
-  }
-
-  /**
-   * Returns the duration of the delay which is one of:
+   * Returns an Optional duration of the delay which is one of:
    *
    * <ul>
-   * <li>-1 (never)</li>
+   * <li>empty (never)</li>
    * <li>0 (now)</li>
    * <li>positive delay</li>
    * </ul>
    *
    * @return the configured mergeability delay
    */
-  public Duration getDelay() {
-    return delay;
+  public Optional<Duration> getDelay() {
+    return Optional.ofNullable(delay);
   }
 
   @Override
@@ -100,9 +96,7 @@ public class TabletMergeability implements Serializable {
 
   @Override
   public String toString() {
-    if (isNow()) {
-      return "TabletMergeability=NOW";
-    } else if (isNever()) {
+    if (delay == null) {
       return "TabletMergeability=NEVER";
     }
     return "TabletMergeability=AFTER:" + delay.toMillis() + "ms";
@@ -111,7 +105,7 @@ public class TabletMergeability implements Serializable {
   /**
    * Signifies that a tablet is never eligible to be automatically merged.
    *
-   * @return a {@link TabletMergeability} with a delay of -1 signaling never merge
+   * @return a {@link TabletMergeability} with an empty delay signaling never merge
    */
   public static TabletMergeability never() {
     return NEVER;
@@ -122,26 +116,8 @@ public class TabletMergeability implements Serializable {
    *
    * @return a {@link TabletMergeability} with a delay of 0 signaling never merge
    */
-  public static TabletMergeability now() {
-    return NOW;
-  }
-
-  /**
-   * Creates a {@link TabletMergeability} from the given delay. The duration must be one of
-   * <ul>
-   * <li>-1 (never)</li>
-   * <li>0 (now)</li>
-   * <li>positive delay</li>
-   * </ul>
-   *
-   * @param delay the duration of the delay
-   *
-   * @return a {@link TabletMergeability} from the given delay.
-   */
-  public static TabletMergeability from(Duration delay) {
-    Preconditions.checkArgument(delay.toNanos() >= -1,
-        "Duration of delay must be -1, 0, or a positive delay.");
-    return new TabletMergeability(delay);
+  public static TabletMergeability always() {
+    return ALWAYS;
   }
 
   /**
@@ -153,7 +129,7 @@ public class TabletMergeability implements Serializable {
    * @return a {@link TabletMergeability} from the given delay.
    */
   public static TabletMergeability after(Duration delay) {
-    Preconditions.checkArgument(delay.toNanos() > 0, "Duration of delay must be greater than 0.");
+    Preconditions.checkArgument(delay.toNanos() >= 0, "Duration of delay must be greater than 0.");
     return new TabletMergeability(delay);
   }
 

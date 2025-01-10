@@ -36,9 +36,7 @@ public class TabletMergeabilityMetadata implements Serializable {
   private static final long serialVersionUID = 1L;
 
   private static final TabletMergeabilityMetadata NEVER =
-      new TabletMergeabilityMetadata(TabletMergeability.never());
-  private static final TabletMergeabilityMetadata NOW =
-      new TabletMergeabilityMetadata(TabletMergeability.now());
+      new TabletMergeabilityMetadata(TabletMergeability.never());;
 
   private final TabletMergeability tabletMergeability;
   private final SteadyTime steadyTime;
@@ -46,8 +44,10 @@ public class TabletMergeabilityMetadata implements Serializable {
   private TabletMergeabilityMetadata(TabletMergeability tabletMergeability, SteadyTime steadyTime) {
     this.tabletMergeability = Objects.requireNonNull(tabletMergeability);
     this.steadyTime = steadyTime;
-    Preconditions.checkArgument(tabletMergeability.isDelayed() == (steadyTime != null),
-        "SteadyTime must be set if and only if TabletMergeability delay is greater than 0.");
+    // This makes sure that SteadyTime is set if TabletMergeability has a delay, and is null
+    // if TabletMergeability is NEVER as we don't need to store it in that case
+    Preconditions.checkArgument(tabletMergeability.isNever() == (steadyTime == null),
+        "SteadyTime must be set if and only if TabletMergeability delay is >= 0");
   }
 
   private TabletMergeabilityMetadata(TabletMergeability tabletMergeability) {
@@ -66,29 +66,37 @@ public class TabletMergeabilityMetadata implements Serializable {
     if (tabletMergeability.isNever()) {
       return false;
     }
-    return currentTime.getDuration().compareTo(totalDelay()) >= 0;
-  }
-
-  private Duration totalDelay() {
-    return steadyTime != null ? steadyTime.getDuration().plus(tabletMergeability.getDelay())
-        : tabletMergeability.getDelay();
+    // Steady time should never be null unless TabletMergeability is NEVER
+    Preconditions.checkState(steadyTime != null, "SteadyTime should be set");
+    var totalDelay = steadyTime.getDuration().plus(tabletMergeability.getDelay().orElseThrow());
+    return currentTime.getDuration().compareTo(totalDelay) >= 0;
   }
 
   private static class GSonData {
-    long delay;
+    boolean never;
+    Long delay;
     Long steadyTime;
   }
 
   String toJson() {
     GSonData jData = new GSonData();
-    jData.delay = tabletMergeability.getDelay().toNanos();
+    jData.never = tabletMergeability.isNever();
+    jData.delay = tabletMergeability.getDelay().map(Duration::toNanos).orElse(null);
     jData.steadyTime = steadyTime != null ? steadyTime.getNanos() : null;
     return GSON.get().toJson(jData);
   }
 
   static TabletMergeabilityMetadata fromJson(String json) {
     GSonData jData = GSON.get().fromJson(json, GSonData.class);
-    TabletMergeability tabletMergeability = TabletMergeability.from(Duration.ofNanos(jData.delay));
+    if (jData.never) {
+      Preconditions.checkArgument(jData.delay == null && jData.steadyTime == null,
+          "delay and steadyTime should be null if mergeability 'never' is true");
+    } else {
+      Preconditions.checkArgument(jData.delay != null && jData.steadyTime != null,
+          "delay and steadyTime should both be set if mergeability 'never' is false");
+    }
+    TabletMergeability tabletMergeability = jData.never ? TabletMergeability.never()
+        : TabletMergeability.after(Duration.ofNanos(jData.delay));
     SteadyTime steadyTime =
         jData.steadyTime != null ? SteadyTime.from(jData.steadyTime, TimeUnit.NANOSECONDS) : null;
     return new TabletMergeabilityMetadata(tabletMergeability, steadyTime);
@@ -114,20 +122,16 @@ public class TabletMergeabilityMetadata implements Serializable {
     return "TabletMergeabilityMetadata{" + tabletMergeability + ", " + steadyTime + '}';
   }
 
-  public static TabletMergeabilityMetadata now() {
-    return NOW;
-  }
-
   public static TabletMergeabilityMetadata never() {
     return NEVER;
   }
 
-  public static TabletMergeabilityMetadata after(Duration delay, SteadyTime currentTime) {
-    return from(TabletMergeability.after(delay), currentTime);
+  public static TabletMergeabilityMetadata always(SteadyTime currentTime) {
+    return new TabletMergeabilityMetadata(TabletMergeability.always(), currentTime);
   }
 
-  public static TabletMergeabilityMetadata from(TabletMergeability tm, SteadyTime currentTime) {
-    return new TabletMergeabilityMetadata(tm, currentTime);
+  public static TabletMergeabilityMetadata after(Duration delay, SteadyTime currentTime) {
+    return new TabletMergeabilityMetadata(TabletMergeability.after(delay), currentTime);
   }
 
   public static Value toValue(TabletMergeabilityMetadata tmm) {

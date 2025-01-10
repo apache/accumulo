@@ -57,6 +57,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.conf.Property;
@@ -262,10 +263,11 @@ public class SplitIT extends AccumuloClusterHarness {
           if (TabletColumnFamily.MERGEABILITY_COLUMN.getColumnQualifier()
               .equals(entry.getKey().getColumnQualifier())) {
             // Default tablet should be set to NEVER, all newly generated system splits should be
-            // set to NOW
-            var mergeability = extent.endRow() == null ? TabletMergeabilityMetadata.never()
-                : TabletMergeabilityMetadata.now();
-            assertEquals(mergeability, TabletMergeabilityMetadata.fromValue(entry.getValue()));
+            // set to ALWAYS
+            var mergeability =
+                extent.endRow() == null ? TabletMergeability.never() : TabletMergeability.always();
+            assertEquals(mergeability,
+                TabletMergeabilityMetadata.fromValue(entry.getValue()).getTabletMergeability());
           }
           count++;
         }

@@ -152,7 +152,7 @@ public class MergeTabletsTest {
     var availability = TabletAvailability.HOSTED;
     var lastLocation = TabletMetadata.Location.last("1.2.3.4:1234", "123456789");
     var suspendingTServer = SuspendingTServer.fromValue(new Value("1.2.3.4:5|56"));
-    var mergeability = TabletMergeabilityMetadata.now();
+    var mergeability = TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS));
 
     var tablet1 =
         TabletMetadata.builder(ke1).putOperation(opid).putDirName("td1").putFile(file3, dfv3)
@@ -234,7 +234,9 @@ public class MergeTabletsTest {
       EasyMock.expect(tabletMutator.deleteSuspension()).andReturn(tabletMutator);
       EasyMock.expect(tabletMutator.deleteLocation(lastLocation)).andReturn(tabletMutator);
       EasyMock.expect(tabletMutator.deleteUnSplittable()).andReturn(tabletMutator);
-      EasyMock.expect(tabletMutator.putTabletMergeability(TabletMergeabilityMetadata.now()))
+      EasyMock
+          .expect(tabletMutator.putTabletMergeability(
+              TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS))))
           .andReturn(tabletMutator).once();
 
     });

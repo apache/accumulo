@@ -647,19 +647,25 @@ public class MetadataConstraintsTest {
     Mutation m;
     List<Short> violations;
 
-    // Delay must be >= -1
+    // Delay must be >= 0
     m = new Mutation(new Text("0;foo"));
-    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":-2}"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
+        new Value("{\"delay\":-1,\"steadyTime\":1,\"never\"=false}"));
     assertViolation(mc, m, (short) 4006);
 
-    // SteadyTime must be null if delay is not positive
+    // SteadyTime must be null if never is true
     m = new Mutation(new Text("0;foo"));
-    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":0,\"steadyTime\":1}"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"steadyTime\":1,\"never\"=true}"));
+    assertViolation(mc, m, (short) 4006);
+
+    // delay must be null if never is true
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":1,\"never\"=true}"));
     assertViolation(mc, m, (short) 4006);
 
     // SteadyTime must be set if delay positive
     m = new Mutation(new Text("0;foo"));
-    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":10}"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":10,\"never\"=false}"));
     assertViolation(mc, m, (short) 4006);
 
     m = new Mutation(new Text("0;foo"));
@@ -669,8 +675,8 @@ public class MetadataConstraintsTest {
     assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
-    TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
-        TabletMergeabilityMetadata.toValue(TabletMergeabilityMetadata.now()));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, TabletMergeabilityMetadata
+        .toValue(TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS))));
     violations = mc.check(createEnv(), m);
     assertTrue(violations.isEmpty());
 

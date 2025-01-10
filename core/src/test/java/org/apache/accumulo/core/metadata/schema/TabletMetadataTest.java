@@ -644,7 +644,8 @@ public class TabletMetadataTest {
         .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, loadedFateId1)
         .putBulkFile(rf2, loadedFateId2).putFlushId(27).putDirName("dir1").putScan(sf3).putScan(sf4)
         .putCompacted(compactFateId1).putCompacted(compactFateId2).putCloned()
-        .putTabletMergeability(TabletMergeabilityMetadata.now())
+        .putTabletMergeability(
+            TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS)))
         .build(ECOMP, HOSTING_REQUESTED, MERGED, USER_COMPACTION_REQUESTED, UNSPLITTABLE);
 
     assertEquals(extent, tm.getExtent());
@@ -664,7 +665,8 @@ public class TabletMetadataTest {
     assertFalse(tm.hasMerged());
     assertNull(tm.getUnSplittable());
     assertEquals("OK", tm.getCloned());
-    assertEquals(TabletMergeabilityMetadata.now(), tm.getTabletMergeability());
+    assertEquals(TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS)),
+        tm.getTabletMergeability());
     assertThrows(IllegalStateException.class, tm::getOperationId);
     assertThrows(IllegalStateException.class, tm::getSuspend);
     assertThrows(IllegalStateException.class, tm::getTime);
@@ -732,7 +734,7 @@ public class TabletMetadataTest {
     assertTrue(tm3.getUserCompactionsRequested().contains(selFilesFateId));
     assertEquals(unsplittableMeta, tm3.getUnSplittable());
     var tmm = tm3.getTabletMergeability();
-    assertEquals(Duration.ofDays(3), tmm.getTabletMergeability().getDelay());
+    assertEquals(Duration.ofDays(3), tmm.getTabletMergeability().getDelay().orElseThrow());
     assertEquals(SteadyTime.from(45L, TimeUnit.MILLISECONDS), tmm.getSteadyTime().orElseThrow());
     assertTrue(tmm.isMergeable(SteadyTime.from(Duration.ofHours(73))));
     assertFalse(tmm.isMergeable(SteadyTime.from(Duration.ofHours(72))));

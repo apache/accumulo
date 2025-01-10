@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.TableId;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.server.ServerContext;
@@ -295,8 +297,10 @@ public class UpdateTabletsTest {
     EasyMock.expect(tablet1Mutator.putFile(file1, new DataFileValue(333, 33, 20)))
         .andReturn(tablet1Mutator);
     EasyMock.expect(tablet1Mutator.putFile(file2, dfv2)).andReturn(tablet1Mutator);
-    // SplitInfo marked as system generated so should be set to NOW
-    EasyMock.expect(tablet1Mutator.putTabletMergeability(TabletMergeabilityMetadata.now()))
+    // SplitInfo marked as system generated so should be set to ALWAYS (0 delay)
+    EasyMock
+        .expect(tablet1Mutator.putTabletMergeability(
+            TabletMergeabilityMetadata.always(SteadyTime.from(100_000, TimeUnit.SECONDS))))
         .andReturn(tablet1Mutator);
     tablet1Mutator.submit(EasyMock.anyObject());
     EasyMock.expectLastCall().once();
@@ -314,8 +318,10 @@ public class UpdateTabletsTest {
     EasyMock.expect(tablet2Mutator.putCompacted(ucfid1)).andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putCompacted(ucfid3)).andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putTabletAvailability(availability)).andReturn(tablet2Mutator);
-    // SplitInfo marked as system generated so should be set to NOW
-    EasyMock.expect(tablet2Mutator.putTabletMergeability(TabletMergeabilityMetadata.now()))
+    // SplitInfo marked as system generated so should be set to ALWAYS (0 delay)
+    EasyMock
+        .expect(tablet2Mutator.putTabletMergeability(
+            TabletMergeabilityMetadata.always(SteadyTime.from(100_000, TimeUnit.SECONDS))))
         .andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putBulkFile(loaded1.getTabletFile(), flid1))
         .andReturn(tablet2Mutator);
