@@ -150,7 +150,7 @@ public class TestAmple {
         tabletMutator.putDirName(dirName);
         tabletMutator.putTime(new MetadataTime(0, TimeType.MILLIS));
         tabletMutator.putTabletAvailability(TabletAvailability.HOSTED);
-        tabletMutator.putTabletMergeability(TabletMergeabilityMetadata.NEVER);
+        tabletMutator.putTabletMergeability(TabletMergeabilityMetadata.never());
         tabletMutator.mutate();
       } catch (Exception e) {
         throw new IllegalStateException(e);

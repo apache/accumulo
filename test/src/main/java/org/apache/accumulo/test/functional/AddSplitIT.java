@@ -96,7 +96,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
       TableId id = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       try (TabletsMetadata tm = getServerContext().getAmple().readTablets().forTable(id).build()) {
         // Default for user created tablets should be mergeability set to NEVER
-        tm.stream().forEach(tablet -> assertEquals(TabletMergeabilityMetadata.NEVER,
+        tm.stream().forEach(tablet -> assertEquals(TabletMergeabilityMetadata.never(),
             tablet.getTabletMergeability()));
       }
     }

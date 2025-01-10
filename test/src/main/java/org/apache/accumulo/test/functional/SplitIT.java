@@ -263,8 +263,8 @@ public class SplitIT extends AccumuloClusterHarness {
               .equals(entry.getKey().getColumnQualifier())) {
             // Default tablet should be set to NEVER, all newly generated system splits should be
             // set to NOW
-            var mergeability = extent.endRow() == null ? TabletMergeabilityMetadata.NEVER
-                : TabletMergeabilityMetadata.NOW;
+            var mergeability = extent.endRow() == null ? TabletMergeabilityMetadata.never()
+                : TabletMergeabilityMetadata.now();
             assertEquals(mergeability, TabletMergeabilityMetadata.fromValue(entry.getValue()));
           }
           count++;

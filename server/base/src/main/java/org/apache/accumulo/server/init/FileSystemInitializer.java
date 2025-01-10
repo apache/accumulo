@@ -95,7 +95,7 @@ public class FileSystemInitializer {
       var builder = TabletMetadata.builder(keyExtent).putDirName(dirName)
           .putTime(new MetadataTime(0, TimeType.LOGICAL))
           .putTabletAvailability(TabletAvailability.HOSTED)
-          .putTabletMergeability(TabletMergeabilityMetadata.NEVER).putPrevEndRow(prevEndRow);
+          .putTabletMergeability(TabletMergeabilityMetadata.never()).putPrevEndRow(prevEndRow);
       for (String file : files) {
         builder.putFile(new ReferencedTabletFile(new Path(file)).insert(), new DataFileValue(0, 0));
       }

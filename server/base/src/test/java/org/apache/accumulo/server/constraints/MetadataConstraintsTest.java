@@ -664,13 +664,13 @@ public class MetadataConstraintsTest {
 
     m = new Mutation(new Text("0;foo"));
     TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
-        TabletMergeabilityMetadata.toValue(TabletMergeabilityMetadata.NEVER));
+        TabletMergeabilityMetadata.toValue(TabletMergeabilityMetadata.never()));
     violations = mc.check(createEnv(), m);
     assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
     TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
-        TabletMergeabilityMetadata.toValue(TabletMergeabilityMetadata.NOW));
+        TabletMergeabilityMetadata.toValue(TabletMergeabilityMetadata.now()));
     violations = mc.check(createEnv(), m);
     assertTrue(violations.isEmpty());
 

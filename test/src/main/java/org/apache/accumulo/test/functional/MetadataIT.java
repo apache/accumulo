@@ -290,7 +290,7 @@ public class MetadataIT extends AccumuloClusterHarness {
       assertTrue(
           tablets.stream().allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
       assertTrue(tablets.stream()
-          .allMatch(tm -> tm.getTabletMergeability().equals(TabletMergeabilityMetadata.NEVER)));
+          .allMatch(tm -> tm.getTabletMergeability().equals(TabletMergeabilityMetadata.never())));
     }
   }
 }

@@ -257,7 +257,7 @@ class FateServiceHandler implements FateService.Iface {
         manager.fate(type).seedTransaction(op, fateId,
             new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
                 splitsPath, splitCount, splitsDirsPath, initialTableState,
-                initialTabletAvailability, namespaceId, TabletMergeabilityMetadata.NEVER)),
+                initialTabletAvailability, namespaceId, TabletMergeabilityMetadata.never())),
             autoCleanup, goalMessage);
 
         break;

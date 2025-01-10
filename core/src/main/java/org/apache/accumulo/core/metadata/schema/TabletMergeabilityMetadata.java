@@ -35,10 +35,10 @@ import com.google.common.base.Preconditions;
 public class TabletMergeabilityMetadata implements Serializable {
   private static final long serialVersionUID = 1L;
 
-  public static final TabletMergeabilityMetadata NEVER =
-      new TabletMergeabilityMetadata(TabletMergeability.NEVER);
-  public static final TabletMergeabilityMetadata NOW =
-      new TabletMergeabilityMetadata(TabletMergeability.NOW);
+  private static final TabletMergeabilityMetadata NEVER =
+      new TabletMergeabilityMetadata(TabletMergeability.never());
+  private static final TabletMergeabilityMetadata NOW =
+      new TabletMergeabilityMetadata(TabletMergeability.now());
 
   private final TabletMergeability tabletMergeability;
   private final SteadyTime steadyTime;
@@ -46,7 +46,7 @@ public class TabletMergeabilityMetadata implements Serializable {
   private TabletMergeabilityMetadata(TabletMergeability tabletMergeability, SteadyTime steadyTime) {
     this.tabletMergeability = Objects.requireNonNull(tabletMergeability);
     this.steadyTime = steadyTime;
-    Preconditions.checkArgument(tabletMergeability.isFuture() == (steadyTime != null),
+    Preconditions.checkArgument(tabletMergeability.isDelayed() == (steadyTime != null),
         "SteadyTime must be set if and only if TabletMergeability delay is greater than 0.");
   }
 
@@ -112,6 +112,14 @@ public class TabletMergeabilityMetadata implements Serializable {
   @Override
   public String toString() {
     return "TabletMergeabilityMetadata{" + tabletMergeability + ", " + steadyTime + '}';
+  }
+
+  public static TabletMergeabilityMetadata now() {
+    return NOW;
+  }
+
+  public static TabletMergeabilityMetadata never() {
+    return NEVER;
   }
 
   public static TabletMergeabilityMetadata after(Duration delay, SteadyTime currentTime) {

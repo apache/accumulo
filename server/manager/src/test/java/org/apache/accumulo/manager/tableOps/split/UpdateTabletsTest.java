@@ -296,7 +296,7 @@ public class UpdateTabletsTest {
         .andReturn(tablet1Mutator);
     EasyMock.expect(tablet1Mutator.putFile(file2, dfv2)).andReturn(tablet1Mutator);
     // SplitInfo marked as system generated so should be set to NOW
-    EasyMock.expect(tablet1Mutator.putTabletMergeability(TabletMergeabilityMetadata.NOW))
+    EasyMock.expect(tablet1Mutator.putTabletMergeability(TabletMergeabilityMetadata.now()))
         .andReturn(tablet1Mutator);
     tablet1Mutator.submit(EasyMock.anyObject());
     EasyMock.expectLastCall().once();
@@ -315,7 +315,7 @@ public class UpdateTabletsTest {
     EasyMock.expect(tablet2Mutator.putCompacted(ucfid3)).andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putTabletAvailability(availability)).andReturn(tablet2Mutator);
     // SplitInfo marked as system generated so should be set to NOW
-    EasyMock.expect(tablet2Mutator.putTabletMergeability(TabletMergeabilityMetadata.NOW))
+    EasyMock.expect(tablet2Mutator.putTabletMergeability(TabletMergeabilityMetadata.now()))
         .andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putBulkFile(loaded1.getTabletFile(), flid1))
         .andReturn(tablet2Mutator);

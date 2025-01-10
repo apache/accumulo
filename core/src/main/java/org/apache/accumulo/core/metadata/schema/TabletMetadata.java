@@ -702,7 +702,7 @@ public class TabletMetadata {
     private final ImmutableSet.Builder<FateId> compacted = ImmutableSet.builder();
     private final ImmutableSet.Builder<FateId> userCompactionsRequested = ImmutableSet.builder();
     private UnSplittableMetadata unSplittableMetadata;
-    private TabletMergeabilityMetadata mergeability = TabletMergeabilityMetadata.NEVER;
+    private TabletMergeabilityMetadata mergeability = TabletMergeabilityMetadata.never();
 
     void table(TableId tableId) {
       this.tableId = tableId;
