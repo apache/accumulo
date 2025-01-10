@@ -58,8 +58,7 @@ import com.google.auto.service.AutoService;
 public class ZooPropEditor implements KeywordExecutable {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZooPropEditor.class);
-  private final NullWatcher nullWatcher =
-      new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
+  private NullWatcher nullWatcher;
 
   /**
    * No-op constructor - provided so ServiceLoader autoload does not consume resources.
@@ -79,6 +78,8 @@ public class ZooPropEditor implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
+    nullWatcher = new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
+
     ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
     opts.parseArgs(ZooPropEditor.class.getName(), args);
 

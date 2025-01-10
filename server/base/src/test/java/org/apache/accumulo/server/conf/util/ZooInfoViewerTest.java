@@ -49,6 +49,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.MockServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -139,22 +140,29 @@ public class ZooInfoViewerTest {
     var context = MockServerContext.getWithZK(InstanceId.of(uuid), "fakeHost", 2000);
     ZooReader zooReader = createMock(ZooReader.class);
     expect(context.getZooReader()).andReturn(zooReader).anyTimes();
+
     var instanceName = "test";
     expect(zooReader.getChildren(eq(ZROOT + ZINSTANCES))).andReturn(List.of(instanceName)).once();
     expect(zooReader.getData(eq(ZROOT + ZINSTANCES + "/" + instanceName)))
         .andReturn(uuid.getBytes(UTF_8)).once();
-    replay(context, zooReader);
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
 
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--print-instances", "--outfile", testFileName});
+    context.close();
 
-    ZooInfoViewer viewer = new ZooInfoViewer();
-    viewer.generateReport(context, opts);
+    replay(context, zooReader);
 
-    verify(context, zooReader);
+    class ZooInfoViewerTestClazz extends ZooInfoViewer {
+      @Override
+      ServerContext getContext(ZooInfoViewer.Opts ots) {
+        return context;
+      }
+    }
+
+    ZooInfoViewer viewer = new ZooInfoViewerTestClazz();
+    viewer.execute(new String[] {"--print-instances", "--outfile", testFileName});
+
+    verify(zooReader, context);
 
     String line;
     try (Scanner scanner = new Scanner(new File(testFileName))) {
@@ -215,6 +223,13 @@ public class ZooInfoViewerTest {
   public void propTest() throws Exception {
     String uuid = UUID.randomUUID().toString();
     InstanceId iid = InstanceId.of(uuid);
+    // ZooReaderWriter zrw = createMock(ZooReaderWriter.class);
+    // expect(zrw.getSessionTimeout()).andReturn(2_000).anyTimes();
+    // expect(zrw.exists(eq("/accumulo/" + iid), anyObject())).andReturn(true).anyTimes();
+    // replay(zrw);
+
+    // ServerContext context = MockServerContext.getMockContextWithPropStore(iid, zrw, propStore);
+
     var context = MockServerContext.getWithZK(iid, "fakeHost", 2000);
     ZooReader zooReader = createMock(ZooReader.class);
     expect(context.getZooReader()).andReturn(zooReader).anyTimes();
@@ -279,21 +294,25 @@ public class ZooInfoViewerTest {
     expect(zooReader.getData(tBasePath + "/t" + ZTABLE_NAMESPACE))
         .andReturn("+default".getBytes(UTF_8)).anyTimes();
 
-    replay(context, zooReader);
-
     NamespacePropKey nsKey = NamespacePropKey.of(iid, nsId);
     log.trace("namespace base path: {}", nsKey.getPath());
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
+    context.close();
 
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--print-props", "--outfile", testFileName});
+    replay(context, zooReader);
 
-    ZooInfoViewer viewer = new ZooInfoViewer();
-    viewer.generateReport(context, opts);
+    class ZooInfoViewerTestClazz extends ZooInfoViewer {
+      @Override
+      ServerContext getContext(ZooInfoViewer.Opts ots) {
+        return context;
+      }
+    }
 
-    verify(context, zooReader);
+    ZooInfoViewer viewer = new ZooInfoViewerTestClazz();
+    viewer.execute(new String[] {"--print-props", "--outfile", testFileName});
+
+    verify(zooReader, context);
 
     Map<String,String> props = new HashMap<>();
     try (Scanner scanner = new Scanner(new File(testFileName))) {

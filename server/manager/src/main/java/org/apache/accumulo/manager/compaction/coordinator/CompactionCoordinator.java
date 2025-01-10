@@ -635,8 +635,9 @@ public class CompactionCoordinator
             }
 
             tabletMutator.putExternalCompaction(externalCompactionId, ecm);
-            tabletMutator
-                .submit(tm -> tm.getExternalCompactions().containsKey(externalCompactionId));
+            tabletMutator.submit(
+                tm -> tm.getExternalCompactions().containsKey(externalCompactionId),
+                () -> "compaction reservation");
 
             var result = tabletsMutator.process().get(extent);
 
@@ -838,8 +839,8 @@ public class CompactionCoordinator
     // Start a fate transaction to commit the compaction.
     CompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
     var renameOp = new RenameCompactionFile(new CompactionCommitData(ecid, extent, ecm, stats));
-    localFate.seedTransaction("COMMIT_COMPACTION", FateKey.forCompactionCommit(ecid), renameOp,
-        true);
+    localFate.seedTransaction(Fate.FateOperation.COMMIT_COMPACTION,
+        FateKey.forCompactionCommit(ecid), renameOp, true);
   }
 
   @Override

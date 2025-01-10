@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 
@@ -101,11 +102,9 @@ public abstract class FateMetricValues {
 
       // incr count for op type for for in_progress transactions.
       if (ReadOnlyFateStore.TStatus.IN_PROGRESS.equals(tx.getStatus())) {
-        String opType = tx.getTxName();
-        if (opType == null || opType.isEmpty()) {
-          opType = "UNKNOWN";
-        }
-        opTypeCounters.merge(opType, 1L, Long::sum);
+        Fate.FateOperation opType = tx.getTxName();
+        String opTypeStr = opType == null ? "UNKNOWN" : opType.name();
+        opTypeCounters.merge(opTypeStr, 1L, Long::sum);
       }
     }
 

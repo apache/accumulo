@@ -50,6 +50,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
@@ -421,10 +422,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     log.trace("Fate id: {}, status: {}", tx.getFateId(), tx.getStatus());
 
     String top = tx.getTop();
-    String txName = tx.getTxName();
+    Fate.FateOperation txName = tx.getTxName();
 
     return top != null && txName != null && top.contains("CompactionDriver")
-        && tx.getTxName().equals("TABLE_COMPACT");
+        && txName == Fate.FateOperation.TABLE_COMPACT;
   }
 
   /**
