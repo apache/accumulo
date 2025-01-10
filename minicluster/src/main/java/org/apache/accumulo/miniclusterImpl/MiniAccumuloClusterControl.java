@@ -47,6 +47,7 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.tserver.ScanServer;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -278,6 +279,15 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         if (managerProcess != null) {
           try {
             cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
+            try {
+              System.setProperty("accumulo.properties",
+                  "file://" + cluster.getAccumuloPropertiesPath());
+              new ZooZap().zap(cluster.getServerContext().getSiteConfiguration(),
+                  new String[] {"-manager"});
+            } catch (Exception e) {
+              log.error("Error zapping Manager zookeeper lock", e);
+            }
+
           } catch (ExecutionException | TimeoutException e) {
             log.warn("Manager did not fully stop after 30 seconds", e);
           } catch (InterruptedException e) {

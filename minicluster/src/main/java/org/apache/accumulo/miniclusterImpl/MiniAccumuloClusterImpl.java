@@ -90,6 +90,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
+import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -824,8 +825,46 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     control.stop(ServerType.GARBAGE_COLLECTOR, null);
     control.stop(ServerType.MANAGER, null);
+    control.stop(ServerType.COMPACTION_COORDINATOR);
     control.stop(ServerType.TABLET_SERVER, null);
+    control.stop(ServerType.COMPACTOR, null);
+    control.stop(ServerType.SCAN_SERVER, null);
+
+    // The method calls above kill the server
+    // Clean up the locks in ZooKeeper fo that if the cluster
+    // is restarted, then the processes will start right away
+    // and not wait for the old locks to be cleaned up.
+    try {
+      System.setProperty("accumulo.properties", "file://" + getAccumuloPropertiesPath());
+      new ZooZap().zap(getServerContext().getSiteConfiguration(), new String[] {"-manager",
+          "-compaction-coordinators", "-tservers", "-compactors", "-sservers"});
+    } catch (Exception e) {
+      log.error("Error zapping zookeeper locks", e);
+    }
     control.stop(ServerType.ZOOKEEPER, null);
+
+    // Clear the location of the servers in ZooCache.
+    // When ZooKeeper was stopped in the previous method call,
+    // the local ZooKeeper watcher did not fire. If MAC is
+    // restarted, then ZooKeeper will start on the same port with
+    // the same data, but no Watchers will fire.
+    boolean startCalled = true;
+    try {
+      getServerContext();
+    } catch (RuntimeException e) {
+      if (e.getMessage().startsWith("Accumulo not initialized")) {
+        startCalled = false;
+      }
+    }
+    if (startCalled) {
+      final ServerContext ctx = getServerContext();
+      final String zRoot = getServerContext().getZooKeeperRoot();
+      ctx.getZooCache().clear((path) -> path.startsWith(zRoot + Constants.ZMANAGER_LOCK));
+      ctx.getZooCache().clear((path) -> path.startsWith(zRoot + Constants.ZGC_LOCK));
+      ctx.getZooCache().clear((path) -> path.startsWith(zRoot + Constants.ZCOMPACTORS));
+      ctx.getZooCache().clear((path) -> path.startsWith(zRoot + Constants.ZSSERVERS));
+      ctx.getZooCache().clear((path) -> path.startsWith(zRoot + Constants.ZTSERVERS));
+    }
 
     // ACCUMULO-2985 stop the ExecutorService after we finished using it to stop accumulo procs
     if (executor != null) {

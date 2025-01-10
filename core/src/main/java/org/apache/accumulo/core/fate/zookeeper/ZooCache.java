@@ -30,6 +30,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.zookeeper.KeeperException;
@@ -520,6 +521,36 @@ public class ZooCache {
       statCache.keySet().removeIf(path -> path.startsWith(zPath));
 
       immutableCache = new ImmutableCacheCopies(++updateCount, cache, statCache, childrenCache);
+    } finally {
+      cacheWriteLock.unlock();
+    }
+  }
+
+  /**
+   * Removes all paths in the cache match the predicate.
+   */
+  public void clear(Predicate<String> pathPredicate) {
+    Preconditions.checkState(!closed);
+    Predicate<String> pathPredicateToUse;
+    if (log.isTraceEnabled()) {
+      pathPredicateToUse = path -> {
+        boolean testResult = pathPredicate.test(path);
+        if (testResult) {
+          log.trace("removing {} from cache", path);
+        }
+        return testResult;
+      };
+    } else {
+      pathPredicateToUse = pathPredicate;
+    }
+    cacheWriteLock.lock();
+    try {
+      cache.keySet().removeIf(pathPredicateToUse);
+      childrenCache.keySet().removeIf(pathPredicateToUse);
+      statCache.keySet().removeIf(pathPredicateToUse);
+
+      immutableCache = new ImmutableCacheCopies(++updateCount, cache, statCache, childrenCache);
+
     } finally {
       cacheWriteLock.unlock();
     }
