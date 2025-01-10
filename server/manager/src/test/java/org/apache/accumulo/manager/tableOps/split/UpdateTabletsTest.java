@@ -233,6 +233,8 @@ public class UpdateTabletsTest {
     EasyMock.expect(splitter.getCachedFileInfo(tableId, file3)).andReturn(newFileInfo("d", "f"));
     EasyMock.expect(splitter.getCachedFileInfo(tableId, file4)).andReturn(newFileInfo("d", "j"));
     EasyMock.expect(manager.getSplitter()).andReturn(splitter).atLeastOnce();
+    EasyMock.expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100_000, TimeUnit.SECONDS))
+        .atLeastOnce();
 
     ServiceLock managerLock = EasyMock.mock(ServiceLock.class);
     EasyMock.expect(context.getServiceLock()).andReturn(managerLock).anyTimes();
