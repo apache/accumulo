@@ -138,7 +138,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       // Wait for the Manager to grab its lock
       while (true) {
         try {
-          List<String> locks = cluster.getServerContext().getZooReader()
+          List<String> locks = cluster.getServerContext().getZooSession().asReader()
               .getChildren(cluster.getServerContext().getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
           if (!locks.isEmpty()) {
             break;
@@ -196,7 +196,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       // Wait for the Manager to grab its lock
       while (true) {
         try {
-          List<String> locks = cluster.getServerContext().getZooReader()
+          List<String> locks = cluster.getServerContext().getZooSession().asReader()
               .getChildren(cluster.getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
           if (!locks.isEmpty()) {
             break;

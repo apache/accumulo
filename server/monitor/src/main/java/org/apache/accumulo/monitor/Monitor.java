@@ -324,7 +324,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     HostAndPort address = null;
     try {
       // Read the gc location from its lock
-      ZooReaderWriter zk = context.getZooReaderWriter();
+      ZooReaderWriter zk = context.getZooSession().asReaderWriter();
       var path = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZGC_LOCK);
       List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
@@ -399,7 +399,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     try {
       URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
       final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
-      final ZooReaderWriter zoo = context.getZooReaderWriter();
+      final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired
       zoo.delete(path);
       zoo.putEphemeralData(path, url.toString().getBytes(UTF_8));
@@ -723,7 +723,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     final var monitorLockPath = ServiceLock.path(zRoot + Constants.ZMONITOR_LOCK);
 
     // Ensure that everything is kosher with ZK as this has changed.
-    ZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     if (zoo.exists(monitorPath)) {
       byte[] data = zoo.getData(monitorPath);
       // If the node isn't empty, it's from a previous install (has hostname:port for HTTP server)
@@ -750,7 +750,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
     // Get a ZooLock for the monitor
     UUID zooLockUUID = UUID.randomUUID();
-    monitorLock = new ServiceLock(zoo.getZooKeeper(), monitorLockPath, zooLockUUID);
+    monitorLock = new ServiceLock(context.getZooSession(), monitorLockPath, zooLockUUID);
 
     while (true) {
       HAServiceLockWatcher monitorLockWatcher = new HAServiceLockWatcher("monitor");

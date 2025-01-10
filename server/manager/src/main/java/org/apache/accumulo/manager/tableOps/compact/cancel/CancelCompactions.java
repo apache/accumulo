@@ -73,7 +73,7 @@ public class CancelCompactions extends ManagerRepo {
     String zCancelID = environment.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
-    ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = environment.getContext().getZooSession().asReaderWriter();
 
     byte[] currentValue = zoo.getData(zCompactID);
 

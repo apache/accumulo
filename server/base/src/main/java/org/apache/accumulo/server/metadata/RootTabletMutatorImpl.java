@@ -94,7 +94,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
       context.getZooCache().clear(zpath);
 
       // TODO examine implementation of getZooReaderWriter().mutate()
-      context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
+      context.getZooSession().asReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
         var rtm = new RootTabletMetadata(currJson);
         rtm.update(mutation);

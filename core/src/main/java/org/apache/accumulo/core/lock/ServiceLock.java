@@ -32,6 +32,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -39,7 +40,6 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,7 +100,7 @@ public class ServiceLock implements Watcher {
   }
 
   private final ServiceLockPath path;
-  protected final ZooKeeper zooKeeper;
+  protected final ZooSession zooKeeper;
   private final Prefix vmLockPrefix;
 
   private LockWatcher lockWatcher;
@@ -111,7 +111,7 @@ public class ServiceLock implements Watcher {
   private String createdNodeName;
   private String watchingNodeName;
 
-  public ServiceLock(ZooKeeper zookeeper, ServiceLockPath path, UUID uuid) {
+  public ServiceLock(ZooSession zookeeper, ServiceLockPath path, UUID uuid) {
     this.zooKeeper = requireNonNull(zookeeper);
     this.path = requireNonNull(path);
     try {
@@ -657,7 +657,7 @@ public class ServiceLock implements Watcher {
     return zc.get(lid.path + "/" + lid.node, stat) != null && stat.getEphemeralOwner() == lid.eid;
   }
 
-  public static Optional<ServiceLockData> getLockData(ZooKeeper zk, ServiceLockPath path)
+  public static Optional<ServiceLockData> getLockData(ZooSession zk, ServiceLockPath path)
       throws KeeperException, InterruptedException {
 
     List<String> children = validateAndSort(path, zk.getChildren(path.toString(), null));
@@ -668,7 +668,7 @@ public class ServiceLock implements Watcher {
 
     String lockNode = children.get(0);
 
-    byte[] data = zk.getData(path + "/" + lockNode, false, null);
+    byte[] data = zk.getData(path + "/" + lockNode, null, null);
     if (data == null) {
       data = new byte[0];
     }
@@ -791,7 +791,7 @@ public class ServiceLock implements Watcher {
       return false;
     }
     try {
-      return null != this.zooKeeper.exists(lockPath, false);
+      return null != this.zooKeeper.exists(lockPath, null);
     } catch (KeeperException | InterruptedException | RuntimeException e) {
       LOG.error("Error verfiying lock at {}", lockPath, e);
       return false;

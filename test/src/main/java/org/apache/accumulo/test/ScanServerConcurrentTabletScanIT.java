@@ -86,7 +86,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
       throws IOException, KeeperException, InterruptedException {
 
     String zooRoot = getCluster().getServerContext().getZooKeeperRoot();
-    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
+    ZooReaderWriter zrw = getCluster().getServerContext().getZooSession().asReaderWriter();
     String scanServerRoot = zooRoot + Constants.ZSSERVERS;
 
     SharedMiniClusterBase.getCluster().getClusterControl().stop(ServerType.SCAN_SERVER);

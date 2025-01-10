@@ -101,7 +101,7 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
         final String zooRoot = this.getContext().getZooKeeperRoot();
         final String tableZPath = zooRoot + Constants.ZTABLES + "/" + tid.canonical();
         try {
-          this.getContext().getZooReaderWriter().exists(tableZPath, new StuckWatcher());
+          this.getContext().getZooSession().asReaderWriter().exists(tableZPath, new StuckWatcher());
         } catch (KeeperException | InterruptedException e) {
           LOG.error("Error setting watch at: {}", tableZPath, e);
         }
@@ -183,7 +183,7 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
       // Delete the lock for the TabletServer
       final ServerContext ctx = getServerContext();
       final String zooRoot = ctx.getZooKeeperRoot();
-      ctx.getZooReaderWriter().recursiveDelete(
+      ctx.getZooSession().asReaderWriter().recursiveDelete(
           zooRoot + Constants.ZTSERVERS + "/" + tservers.get(0), NodeMissingPolicy.FAIL);
 
       Wait.waitFor(() -> pingServer(client, tservers.get(0)) == false, 60_000);
