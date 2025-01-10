@@ -457,7 +457,7 @@ public class Fate<T> {
           idleCountHistory.add(workQueue.getWaitingConsumerCount());
         }
       }
-    }, 3, 30, SECONDS));
+    }, getInitialDelay().toSeconds(), getPoolWatcherDelay().toSeconds(), SECONDS));
     this.transactionExecutor = pool;
 
     ScheduledExecutorService deadResCleanerExecutor = null;
@@ -466,8 +466,9 @@ public class Fate<T> {
       // reservations held by dead processes, if they exist.
       deadResCleanerExecutor = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,
           store.type() + "-dead-reservation-cleaner-pool");
-      ScheduledFuture<?> deadReservationCleaner = deadResCleanerExecutor.scheduleWithFixedDelay(
-          new DeadReservationCleaner(), 3, getDeadResCleanupDelay().toSeconds(), SECONDS);
+      ScheduledFuture<?> deadReservationCleaner =
+          deadResCleanerExecutor.scheduleWithFixedDelay(new DeadReservationCleaner(),
+              getInitialDelay().toSeconds(), getDeadResCleanupDelay().toSeconds(), SECONDS);
       ThreadPools.watchCriticalScheduledTask(deadReservationCleaner);
     }
     this.deadResCleanerExecutor = deadResCleanerExecutor;
@@ -476,8 +477,16 @@ public class Fate<T> {
     this.workFinder.start();
   }
 
+  public Duration getInitialDelay() {
+    return Duration.ofSeconds(3);
+  }
+
   public Duration getDeadResCleanupDelay() {
     return Duration.ofMinutes(3);
+  }
+
+  public Duration getPoolWatcherDelay() {
+    return Duration.ofSeconds(30);
   }
 
   // get a transaction id back to the requester before doing any work
