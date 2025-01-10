@@ -80,6 +80,7 @@ import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.TextUtil;
@@ -256,7 +257,7 @@ class FateServiceHandler implements FateService.Iface {
         manager.fate(type).seedTransaction(op, fateId,
             new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
                 splitsPath, splitCount, splitsDirsPath, initialTableState,
-                initialTabletAvailability, namespaceId)),
+                initialTabletAvailability, namespaceId, TabletMergeabilityMetadata.never())),
             autoCleanup, goalMessage);
 
         break;
