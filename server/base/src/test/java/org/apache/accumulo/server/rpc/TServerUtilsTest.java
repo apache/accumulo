@@ -46,6 +46,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.thrift.server.TServer;
@@ -58,14 +59,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TServerUtilsTest {
 
   private ServerContext context;
+  private ZooSession zk;
   private MetricsInfo metricsInfo;
   private final ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
 
   @BeforeEach
   public void createMockServerContext() {
     context = createMock(ServerContext.class);
-    expect(context.getZooReader()).andReturn(null).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
+    zk = createMock(ZooSession.class);
+    expect(context.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReader()).andReturn(null).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(null).anyTimes();
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     expect(context.getZooKeepers()).andReturn("").anyTimes();
     expect(context.getInstanceName()).andReturn("instance").anyTimes();

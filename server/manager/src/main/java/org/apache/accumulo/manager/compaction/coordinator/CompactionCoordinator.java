@@ -1120,7 +1120,7 @@ public class CompactionCoordinator
   private void cleanUpEmptyCompactorPathInZK() {
     final String compactorQueuesPath = this.ctx.getZooKeeperRoot() + Constants.ZCOMPACTORS;
 
-    final var zoorw = this.ctx.getZooReaderWriter();
+    final var zoorw = this.ctx.getZooSession().asReaderWriter();
     final double queueSizeFactor = ctx.getConfiguration()
         .getFraction(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR);
 

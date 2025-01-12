@@ -19,30 +19,37 @@
 package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooDefs.Perms;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
-import org.apache.zookeeper.data.Id;
 import org.apache.zookeeper.data.Stat;
-import org.apache.zookeeper.server.auth.DigestAuthenticationProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZooUtil {
+
+  private static final Logger log = LoggerFactory.getLogger(ZooUtil.class);
+
+  private ZooUtil() {}
 
   public enum NodeExistsPolicy {
     SKIP, OVERWRITE, FAIL
@@ -57,9 +64,9 @@ public class ZooUtil {
       DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss 'UTC' yyyy");
 
   public static class LockID {
-    public long eid;
-    public String path;
-    public String node;
+    public final long eid;
+    public final String path;
+    public final String node;
 
     public LockID(String root, String serializedLID) {
       String[] sa = serializedLID.split("\\$");
@@ -85,7 +92,6 @@ public class ZooUtil {
     }
 
     public String serialize(String root) {
-
       return path.substring(root.length()) + "/" + node + "$" + Long.toHexString(eid);
     }
 
@@ -134,7 +140,7 @@ public class ZooUtil {
   /**
    * This method will delete a node and all its children.
    */
-  public static void recursiveDelete(ZooKeeper zooKeeper, String zPath, NodeMissingPolicy policy)
+  public static void recursiveDelete(ZooSession zooKeeper, String zPath, NodeMissingPolicy policy)
       throws KeeperException, InterruptedException {
     if (policy == NodeMissingPolicy.CREATE) {
       throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
@@ -187,27 +193,76 @@ public class ZooUtil {
     return fmt.format(timestamp);
   }
 
-  /**
-   * Get the ZooKeeper digest based on the instance secret that is used within ZooKeeper for
-   * authentication. This method is primary intended to be used to validate ZooKeeper ACLs. Use
-   * {@link #digestAuth(ZooKeeper, String)} to add authorizations to ZooKeeper.
-   */
-  public static Id getZkDigestAuthId(final String secret) {
+  public static String getInstanceName(ZooSession zk, InstanceId instanceId) {
+    requireNonNull(zk);
+    var instanceIdBytes = requireNonNull(instanceId).canonical().getBytes(UTF_8);
+    for (String name : getInstanceNames(zk)) {
+      var bytes = getInstanceIdBytesFromName(zk, name);
+      if (Arrays.equals(bytes, instanceIdBytes)) {
+        return name;
+      }
+    }
+    return null;
+  }
+
+  private static List<String> getInstanceNames(ZooSession zk) {
     try {
-      final String scheme = "digest";
-      String auth = DigestAuthenticationProvider.generateDigest("accumulo:" + secret);
-      return new Id(scheme, auth);
-    } catch (NoSuchAlgorithmException ex) {
-      throw new IllegalArgumentException("Could not generate ZooKeeper digest string", ex);
+      return zk.asReader().getChildren(Constants.ZROOT + Constants.ZINSTANCES);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted reading instance names from ZooKeeper", e);
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Failed to read instance names from ZooKeeper", e);
     }
   }
 
-  public static void digestAuth(ZooKeeper zoo, String secret) {
-    auth(zoo, "digest", ("accumulo:" + secret).getBytes(UTF_8));
+  private static byte[] getInstanceIdBytesFromName(ZooSession zk, String name) {
+    try {
+      return zk.asReader()
+          .getData(Constants.ZROOT + Constants.ZINSTANCES + "/" + requireNonNull(name));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(
+          "Interrupted reading InstanceId from ZooKeeper for instance named " + name, e);
+    } catch (KeeperException e) {
+      log.warn("Failed to read InstanceId from ZooKeeper for instance named {}", name, e);
+      return null;
+    }
   }
 
-  public static void auth(ZooKeeper zoo, String scheme, byte[] auth) {
-    zoo.addAuthInfo(scheme, auth);
+  public static Map<String,InstanceId> getInstanceMap(ZooSession zk) {
+    Map<String,InstanceId> idMap = new TreeMap<>();
+    getInstanceNames(zk).forEach(name -> {
+      byte[] instanceId = getInstanceIdBytesFromName(zk, name);
+      if (instanceId != null) {
+        idMap.put(name, InstanceId.of(new String(instanceId, UTF_8)));
+      }
+    });
+    return idMap;
+  }
+
+  public static InstanceId getInstanceId(ZooSession zk, String name) {
+    byte[] data = getInstanceIdBytesFromName(zk, name);
+    if (data == null) {
+      throw new IllegalStateException("Instance name " + name + " does not exist in ZooKeeper. "
+          + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+    }
+    String instanceIdString = new String(data, UTF_8);
+    try {
+      // verify that the instanceId found via the name actually exists
+      if (zk.asReader().getData(Constants.ZROOT + "/" + instanceIdString) == null) {
+        throw new IllegalStateException("InstanceId " + instanceIdString
+            + " pointed to by the name " + name + " does not exist in ZooKeeper");
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted verifying InstanceId " + instanceIdString
+          + " pointed to by instance named " + name + " actually exists in ZooKeeper", e);
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Failed to verify InstanceId " + instanceIdString
+          + " pointed to by instance named " + name + " actually exists in ZooKeeper", e);
+    }
+    return InstanceId.of(instanceIdString);
   }
 
 }

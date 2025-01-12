@@ -73,7 +73,6 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -890,7 +889,7 @@ public class Admin implements KeywordExecutable {
     var zLockManagerPath = context.getServerPaths().createManagerPath();
     var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     String fateZkPath = zkRoot + Constants.ZFATE;
-    ZooReaderWriter zk = context.getZooReaderWriter();
+    var zk = context.getZooSession();
     MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk, createDummyLockID(), null);
     UserFateStore<Admin> ufs = new UserFateStore<>(context, createDummyLockID(), null);
     Map<FateInstanceType,FateStore<Admin>> fateStores =
@@ -978,7 +977,7 @@ public class Admin implements KeywordExecutable {
       Map<FateInstanceType,ReadOnlyFateStore<Admin>> fateStores, ServiceLockPath tableLocksPath)
       throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
 
-    ZooReaderWriter zk = context.getZooReaderWriter();
+    var zk = context.getZooSession();
     var transactions = admin.getStatus(fateStores, zk, tableLocksPath, null, null, null);
 
     // build id map - relies on unique ids for tables and namespaces

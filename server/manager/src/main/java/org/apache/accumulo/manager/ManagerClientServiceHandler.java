@@ -112,7 +112,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     String zTablePath = manager.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId
         + Constants.ZTABLE_FLUSH_ID;
 
-    ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
     byte[] fid;
     try {
       fid = zoo.mutateExisting(zTablePath, currentValue -> {

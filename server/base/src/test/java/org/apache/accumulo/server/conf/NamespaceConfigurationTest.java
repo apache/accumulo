@@ -41,7 +41,6 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -69,9 +68,7 @@ public class NamespaceConfigurationTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    ZooReaderWriter zrw = createMock(ZooReaderWriter.class);
-
-    context = getMockContextWithPropStore(iid, zrw, propStore);
+    context = getMockContextWithPropStore(iid, propStore);
 
     parent = createMock(AccumuloConfiguration.class);
     reset(propStore);

@@ -231,7 +231,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
     super("tserver", opts, serverContextFactory, args);
     context = super.getContext();
-    this.managerLockCache = new ZooCache(context.getZooReader(), null);
+    this.managerLockCache = new ZooCache(context.getZooSession());
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
@@ -332,9 +332,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       log.info("SASL is enabled, creating ZooKeeper watcher for AuthenticationKeys");
       // Watcher to notice new AuthenticationKeys which enable delegation tokens
-      authKeyWatcher =
-          new ZooAuthenticationKeyWatcher(context.getSecretManager(), context.getZooReaderWriter(),
-              context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
+      authKeyWatcher = new ZooAuthenticationKeyWatcher(context.getSecretManager(),
+          context.getZooSession(), context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
     } else {
       authKeyWatcher = null;
     }
@@ -488,7 +487,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   private void announceExistence() {
-    ZooReaderWriter zoo = getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     try {
 
       final ServiceLockPath zLockPath =
@@ -509,7 +508,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         throw e;
       }
       UUID tabletServerUUID = UUID.randomUUID();
-      tabletServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, tabletServerUUID);
+      tabletServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, tabletServerUUID);
 
       LockWatcher lw = new ServiceLockWatcher("tablet server", () -> serverStopRequested,
           (name) -> context.getLowMemoryDetector().logGCInfo(getConfiguration()));

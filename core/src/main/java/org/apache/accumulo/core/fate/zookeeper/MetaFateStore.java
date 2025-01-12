@@ -56,6 +56,7 @@ import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -75,26 +76,28 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   private static final Logger log = LoggerFactory.getLogger(MetaFateStore.class);
   private static final FateInstanceType fateInstanceType = FateInstanceType.META;
   private String path;
-  private ZooReaderWriter zk;
+  private ZooSession zk;
+  private ZooReaderWriter zrw;
 
   private String getTXPath(FateId fateId) {
     return path + "/tx_" + fateId.getTxUUIDStr();
   }
 
-  public MetaFateStore(String path, ZooReaderWriter zk, ZooUtil.LockID lockID,
+  public MetaFateStore(String path, ZooSession zk, ZooUtil.LockID lockID,
       Predicate<ZooUtil.LockID> isLockHeld) throws KeeperException, InterruptedException {
     this(path, zk, lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
   @VisibleForTesting
-  public MetaFateStore(String path, ZooReaderWriter zk, ZooUtil.LockID lockID,
+  public MetaFateStore(String path, ZooSession zk, ZooUtil.LockID lockID,
       Predicate<ZooUtil.LockID> isLockHeld, int maxDeferred, FateIdGenerator fateIdGenerator)
       throws KeeperException, InterruptedException {
     super(lockID, isLockHeld, maxDeferred, fateIdGenerator);
     this.path = path;
     this.zk = zk;
+    this.zrw = zk.asReaderWriter();
 
-    zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
+    this.zrw.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
   }
 
   /**
@@ -107,7 +110,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     while (true) {
       try {
         FateId fateId = fateIdGenerator.newRandomId(fateInstanceType);
-        zk.putPersistentData(getTXPath(fateId),
+        zrw.putPersistentData(getTXPath(fateId),
             new FateData<T>(TStatus.NEW, null, null, createEmptyRepoDeque(), createEmptyTxInfo())
                 .serialize(),
             NodeExistsPolicy.FAIL);
@@ -126,7 +129,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     try {
       byte[] newSerFateData =
-          zk.mutateOrCreate(getTXPath(fateId), new FateData<>(TStatus.NEW, reservation, fateKey,
+          zrw.mutateOrCreate(getTXPath(fateId), new FateData<>(TStatus.NEW, reservation, fateKey,
               createEmptyRepoDeque(), createEmptyTxInfo()).serialize(), currSerFateData -> {
                 // We are only returning a non-null value for the following cases:
                 // 1) The existing node for fateId is exactly the same as the value set for the
@@ -426,7 +429,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
             "Tried to delete fate data for %s when the transaction status is %s", fateId,
             fateData.status);
         try {
-          zk.deleteStrict(getTXPath(fateId), stat.getVersion());
+          zrw.deleteStrict(getTXPath(fateId), stat.getVersion());
           this.deleted = true;
         } catch (KeeperException.BadVersionException e) {
           log.trace(
@@ -466,7 +469,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       verifyReservedAndNotDeleted(false);
 
       try {
-        Stat stat = zk.getZooKeeper().exists(getTXPath(fateId), false);
+        Stat stat = zk.exists(getTXPath(fateId), null);
         return stat.getCtime();
       } catch (Exception e) {
         return 0;
@@ -529,7 +532,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   private FateData<T> getFateData(FateId fateId) {
     try {
-      return new FateData<>(zk.getData(getTXPath(fateId)));
+      return new FateData<>(zrw.getData(getTXPath(fateId)));
     } catch (NoNodeException nne) {
       return new FateData<>(TStatus.UNKNOWN, null, null, createEmptyRepoDeque(),
           createEmptyTxInfo());
@@ -540,7 +543,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   private FateData<T> getFateData(FateId fateId, Stat stat) {
     try {
-      return new FateData<>(zk.getData(getTXPath(fateId), stat));
+      return new FateData<>(zrw.getData(getTXPath(fateId), stat));
     } catch (NoNodeException nne) {
       return new FateData<>(TStatus.UNKNOWN, null, null, createEmptyRepoDeque(),
           createEmptyTxInfo());
@@ -557,7 +560,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   @Override
   protected Stream<FateIdStatus> getTransactions(EnumSet<TStatus> statuses) {
     try {
-      Stream<FateIdStatus> stream = zk.getChildren(path).stream().map(strTxid -> {
+      Stream<FateIdStatus> stream = zrw.getChildren(path).stream().map(strTxid -> {
         String txUUIDStr = strTxid.split("_")[1];
         FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
         // Memoizing for two reasons. First the status or reservation may never be requested, so
@@ -612,7 +615,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   private byte[] mutate(FateId fateId, UnaryOperator<FateData<T>> fateDataOp)
       throws KeeperException {
     try {
-      return zk.mutateExisting(getTXPath(fateId), currSerFateData -> {
+      return zrw.mutateExisting(getTXPath(fateId), currSerFateData -> {
         FateData<T> currFateData = new FateData<>(currSerFateData);
         FateData<T> newFateData = fateDataOp.apply(currFateData);
         if (newFateData == null) {

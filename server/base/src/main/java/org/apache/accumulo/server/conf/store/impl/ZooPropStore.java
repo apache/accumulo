@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCache;
@@ -57,37 +58,27 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   private final ReadyMonitor zkReadyMon;
 
   /**
-   * Create instance using ZooPropStore.Builder
-   *
-   * @param instanceId the instance id
-   * @param zrw a wrapper set of utilities for accessing ZooKeeper.
-   */
-  private ZooPropStore(final InstanceId instanceId, final ZooReaderWriter zrw) {
-    this(instanceId, zrw, null, null, null);
-  }
-
-  /**
    * For testing create an instance with the optionally pass synthetic clock (Ticker), a
    * ReadyMonitor and a PropStore watcher allowing them to be mocked. If the optional components are
    * passed as null an internal instance is created.
    *
    * @param instanceId the instance id
-   * @param zrw a wrapper set of utilities for accessing ZooKeeper.
+   * @param zk a ZooKeeper client
    * @param monitor a ready monitor. Optional, if null, one is created.
    * @param watcher a watcher. Optional, if null, one is created.
    * @param ticker a synthetic clock used for testing. Optional, if null, one is created.
    */
-  ZooPropStore(final InstanceId instanceId, final ZooReaderWriter zrw, final ReadyMonitor monitor,
+  ZooPropStore(final InstanceId instanceId, final ZooSession zk, final ReadyMonitor monitor,
       final PropStoreWatcher watcher, final Ticker ticker) {
 
-    this.zrw = zrw;
+    this.zrw = zk.asReaderWriter();
 
     this.zkReadyMon = requireNonNullElseGet(monitor,
-        () -> new ReadyMonitor("prop-store", Math.round(zrw.getSessionTimeout() * 1.75)));
+        () -> new ReadyMonitor("prop-store", Math.round(zk.getSessionTimeout() * 1.75)));
 
     this.propStoreWatcher = requireNonNullElseGet(watcher, () -> new PropStoreWatcher(zkReadyMon));
 
-    ZooPropLoader propLoader = new ZooPropLoader(zrw, codec, this.propStoreWatcher);
+    ZooPropLoader propLoader = new ZooPropLoader(zk, codec, this.propStoreWatcher);
 
     if (ticker == null) {
       this.cache = new PropCacheCaffeineImpl.Builder(propLoader).build();
@@ -115,8 +106,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   public static ZooPropStore initialize(@NonNull final InstanceId instanceId,
-      @NonNull final ZooReaderWriter zrw) {
-    return new ZooPropStore(instanceId, zrw);
+      @NonNull final ZooSession zk) {
+    return new ZooPropStore(instanceId, zk, null, null, null);
   }
 
   @Override

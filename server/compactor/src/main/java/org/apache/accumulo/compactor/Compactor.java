@@ -272,7 +272,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected void announceExistence(HostAndPort clientAddress)
       throws KeeperException, InterruptedException {
 
-    ZooReaderWriter zoo = getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
 
     final ServiceLockPath path =
         getContext().getServerPaths().createCompactorPath(getResourceGroup(), clientAddress);
@@ -284,16 +284,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
       zoo.mkdirs(compactorGroupPath);
       zoo.putPersistentData(path.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
-    } catch (KeeperException e) {
-      if (e.code() == KeeperException.Code.NOAUTH) {
-        LOG.error("Failed to write to ZooKeeper. Ensure that"
-            + " accumulo.properties, specifically instance.secret, is consistent.");
-      }
+    } catch (KeeperException.NoAuthException e) {
+      LOG.error("Failed to write to ZooKeeper. Ensure that"
+          + " accumulo.properties, specifically instance.secret, is consistent.");
       throw e;
     }
 
-    compactorLock =
-        new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, compactorId);
+    compactorLock = new ServiceLock(getContext().getZooSession(), path, compactorId);
     LockWatcher lw = new ServiceLockWatcher("compactor", () -> false,
         (name) -> getContext().getLowMemoryDetector().logGCInfo(getConfiguration()));
 

@@ -645,7 +645,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
           .withConstructor(String.class, ZooReaderWriter.class, ZooUtil.LockID.class,
               Predicate.class)
-          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter(),
+          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooSession(),
               createDummyLockID(), null)
           .addMockedMethod(listMethod).createMock();
     }

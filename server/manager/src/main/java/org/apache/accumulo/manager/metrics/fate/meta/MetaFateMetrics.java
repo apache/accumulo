@@ -64,7 +64,7 @@ public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
   @Override
   protected ReadOnlyFateStore<FateMetrics<MetaFateMetricValues>> buildStore(ServerContext context) {
     try {
-      return new MetaFateStore<>(getFateRootPath(context), context.getZooReaderWriter(),
+      return new MetaFateStore<>(getFateRootPath(context), context.getZooSession(),
           AbstractFateStore.createDummyLockID(), null);
     } catch (KeeperException ex) {
       throw new IllegalStateException(
