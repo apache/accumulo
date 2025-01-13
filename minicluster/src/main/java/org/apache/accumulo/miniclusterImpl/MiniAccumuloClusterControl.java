@@ -280,8 +280,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           try {
             cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
             try {
-              System.setProperty("accumulo.properties",
-                  "file://" + cluster.getAccumuloPropertiesPath());
               new ZooZap().zap(cluster.getServerContext().getSiteConfiguration(),
                   new String[] {"-manager"});
             } catch (Exception e) {

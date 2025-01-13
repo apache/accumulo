@@ -835,7 +835,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // is restarted, then the processes will start right away
     // and not wait for the old locks to be cleaned up.
     try {
-      System.setProperty("accumulo.properties", "file://" + getAccumuloPropertiesPath());
       new ZooZap().zap(getServerContext().getSiteConfiguration(), new String[] {"-manager",
           "-compaction-coordinators", "-tservers", "-compactors", "-sservers"});
     } catch (Exception e) {

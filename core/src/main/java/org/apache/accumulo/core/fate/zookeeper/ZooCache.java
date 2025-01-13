@@ -533,13 +533,10 @@ public class ZooCache {
     Preconditions.checkState(!closed);
     Predicate<String> pathPredicateToUse;
     if (log.isTraceEnabled()) {
-      pathPredicateToUse = path -> {
-        boolean testResult = pathPredicate.test(path);
-        if (testResult) {
-          log.trace("removing {} from cache", path);
-        }
-        return testResult;
-      };
+      pathPredicateToUse = pathPredicate.and(path -> {
+        log.trace("removing {} from cache", path);
+        return true;
+      });
     } else {
       pathPredicateToUse = pathPredicate;
     }
