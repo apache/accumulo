@@ -228,8 +228,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   // single command to execute from the command line
   protected String execCommand = null;
   protected boolean verbose = true;
-  protected boolean canPaginate = false;
 
+  private boolean canPaginate = false;
   private boolean tabCompletion;
   private boolean disableAuthTimeout;
   private long authTimeout;
