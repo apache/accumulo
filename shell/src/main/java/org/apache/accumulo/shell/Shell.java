@@ -384,9 +384,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       }
     }
 
-    if (System.console() != null && (terminal.getSize().getRows() > 0)) {
-      canPaginate = true;
-    }
+    canPaginate = terminal.getSize().getRows() > 0;
 
     // decide whether to execute commands from a file and quit
     if (options.getExecFile() != null) {
@@ -1071,7 +1069,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         if (out == null) {
           if (peek != null) {
             writer.println(peek);
-            if (paginate && canPaginate) {
+            if (canPaginate && paginate) {
               linesPrinted += peek.isEmpty() ? 0 : Math.ceil(peek.length() * 1.0 / termWidth);
 
               // check if displaying the next line would result in
