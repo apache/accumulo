@@ -74,6 +74,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
@@ -236,7 +237,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   public void testCompactionCommitAndDeadDetectionRoot() throws Exception {
     var ctx = getCluster().getServerContext();
     FateStore<Manager> metaFateStore = new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE,
-        ctx.getZooReaderWriter(), createDummyLockID(), null);
+        ctx.getZooSession(), createDummyLockID(), null);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       var tableId = ctx.getTableId(AccumuloTable.ROOT.tableName());
@@ -255,7 +256,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   public void testCompactionCommitAndDeadDetectionMeta() throws Exception {
     var ctx = getCluster().getServerContext();
     FateStore<Manager> metaFateStore = new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE,
-        ctx.getZooReaderWriter(), createDummyLockID(), null);
+        ctx.getZooSession(), createDummyLockID(), null);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       // Metadata table by default already has 2 tablets
@@ -301,9 +302,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       UserFateStore<Manager> userFateStore = new UserFateStore<>(ctx, createDummyLockID(), null);
-      FateStore<Manager> metaFateStore =
-          new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE, ctx.getZooReaderWriter(),
-              createDummyLockID(), null);
+      FateStore<Manager> metaFateStore = new MetaFateStore<>(
+          ctx.getZooKeeperRoot() + Constants.ZFATE, ctx.getZooSession(), createDummyLockID(), null);
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));
@@ -363,7 +363,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     // should never run. Its purpose is to prevent the dead compaction detector
     // from deleting the id.
     Repo<Manager> repo = new FakeRepo();
-    var fateId = fateStore.seedTransaction("COMPACTION_COMMIT",
+    var fateId = fateStore.seedTransaction(Fate.FateOperation.COMMIT_COMPACTION,
         FateKey.forCompactionCommit(allCids.get(tableId).get(0)), repo, true).orElseThrow();
 
     // Read the tablet metadata

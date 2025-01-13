@@ -29,7 +29,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -46,48 +46,49 @@ public class CacheTestReader {
     File myfile = new File(reportDir + "/" + UUID.randomUUID());
     myfile.deleteOnExit();
 
-    ZooCache zc = new ZooCache(new ZooReader(keepers, 30000), null);
+    try (var zk = new ZooSession(CacheTestReader.class.getSimpleName(), keepers, 30_000, null)) {
+      ZooCache zc = new ZooCache(zk);
 
-    while (true) {
-      if (myfile.exists() && !myfile.delete()) {
-        LoggerFactory.getLogger(CacheTestReader.class).warn("Unable to delete {}", myfile);
-      }
+      while (true) {
+        if (myfile.exists() && !myfile.delete()) {
+          LoggerFactory.getLogger(CacheTestReader.class).warn("Unable to delete {}", myfile);
+        }
 
-      if (zc.get(rootDir + "/die") != null) {
-        return;
-      }
+        if (zc.get(rootDir + "/die") != null) {
+          return;
+        }
 
-      Map<String,String> readData = new TreeMap<>();
+        Map<String,String> readData = new TreeMap<>();
 
-      for (int i = 0; i < numData; i++) {
-        byte[] v = zc.get(rootDir + "/data" + i);
+        for (int i = 0; i < numData; i++) {
+          byte[] v = zc.get(rootDir + "/data" + i);
+          if (v != null) {
+            readData.put(rootDir + "/data" + i, new String(v, UTF_8));
+          }
+        }
+
+        byte[] v = zc.get(rootDir + "/dataS");
         if (v != null) {
-          readData.put(rootDir + "/data" + i, new String(v, UTF_8));
+          readData.put(rootDir + "/dataS", new String(v, UTF_8));
         }
-      }
 
-      byte[] v = zc.get(rootDir + "/dataS");
-      if (v != null) {
-        readData.put(rootDir + "/dataS", new String(v, UTF_8));
-      }
-
-      List<String> children = zc.getChildren(rootDir + "/dir");
-      if (children != null) {
-        for (String child : children) {
-          readData.put(rootDir + "/dir/" + child, "");
+        List<String> children = zc.getChildren(rootDir + "/dir");
+        if (children != null) {
+          for (String child : children) {
+            readData.put(rootDir + "/dir/" + child, "");
+          }
         }
+
+        FileOutputStream fos = new FileOutputStream(myfile);
+        ObjectOutputStream oos = new ObjectOutputStream(fos);
+
+        oos.writeObject(readData);
+
+        fos.close();
+        oos.close();
+
+        Thread.sleep(20);
       }
-
-      FileOutputStream fos = new FileOutputStream(myfile);
-      ObjectOutputStream oos = new ObjectOutputStream(fos);
-
-      oos.writeObject(readData);
-
-      fos.close();
-      oos.close();
-
-      Thread.sleep(20);
     }
-
   }
 }

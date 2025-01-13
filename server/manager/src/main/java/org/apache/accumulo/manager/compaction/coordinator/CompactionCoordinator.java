@@ -839,8 +839,8 @@ public class CompactionCoordinator
     // Start a fate transaction to commit the compaction.
     CompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
     var renameOp = new RenameCompactionFile(new CompactionCommitData(ecid, extent, ecm, stats));
-    localFate.seedTransaction("COMMIT_COMPACTION", FateKey.forCompactionCommit(ecid), renameOp,
-        true);
+    localFate.seedTransaction(Fate.FateOperation.COMMIT_COMPACTION,
+        FateKey.forCompactionCommit(ecid), renameOp, true);
   }
 
   @Override
@@ -1120,7 +1120,7 @@ public class CompactionCoordinator
   private void cleanUpEmptyCompactorPathInZK() {
     final String compactorQueuesPath = this.ctx.getZooKeeperRoot() + Constants.ZCOMPACTORS;
 
-    final var zoorw = this.ctx.getZooReaderWriter();
+    final var zoorw = this.ctx.getZooSession().asReaderWriter();
     final double queueSizeFactor = ctx.getConfiguration()
         .getFraction(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR);
 

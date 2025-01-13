@@ -97,7 +97,7 @@ public class RootConditionalWriter implements ConditionalWriter {
     List<TCMResult> results = new ArrayList<>();
 
     try {
-      context.getZooReaderWriter().mutateExisting(zpath, currVal -> {
+      context.getZooSession().asReaderWriter().mutateExisting(zpath, currVal -> {
         String currJson = new String(currVal, UTF_8);
 
         var rtm = new RootTabletMetadata(currJson);

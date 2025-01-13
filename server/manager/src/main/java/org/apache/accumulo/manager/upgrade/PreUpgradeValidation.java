@@ -23,14 +23,13 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
 import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -61,8 +60,7 @@ public class PreUpgradeValidation {
   private void validateACLs(ServerContext context) {
 
     final AtomicBoolean aclErrorOccurred = new AtomicBoolean(false);
-    final ZooReaderWriter zrw = context.getZooReaderWriter();
-    final ZooKeeper zk = zrw.getZooKeeper();
+    final ZooSession zk = context.getZooSession();
     final String rootPath = context.getZooKeeperRoot();
     final Set<String> users = Set.of("accumulo", "anyone");
 

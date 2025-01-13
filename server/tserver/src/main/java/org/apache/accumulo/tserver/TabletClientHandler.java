@@ -157,7 +157,21 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     UpdateSession us =
         new UpdateSession(new TservConstraintEnv(server.getContext(), security, credentials),
-            credentials, durability);
+            credentials, durability) {
+          @Override
+          public boolean cleanup() {
+            // This is called when a client abandons a session. When this happens need to decrement
+            // any queued mutations.
+            if (queuedMutationSize > 0) {
+              log.trace(
+                  "cleaning up abandoned update session, decrementing totalQueuedMutationSize by {}",
+                  queuedMutationSize);
+              server.updateTotalQueuedMutationSize(-queuedMutationSize);
+              queuedMutationSize = 0;
+            }
+            return true;
+          }
+        };
     return server.sessionManager.createSession(us, false);
   }
 
@@ -166,8 +180,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     if (us.currentTablet != null && us.currentTablet.getExtent().equals(keyExtent)) {
       return;
     }
-    if (us.currentTablet == null
-        && (us.failures.containsKey(keyExtent) || us.authFailures.containsKey(keyExtent))) {
+    if (us.currentTablet == null && (us.failures.containsKey(keyExtent)
+        || us.authFailures.containsKey(keyExtent) || us.unhandledException != null)) {
       // if there were previous failures, then do not accept additional writes
       return;
     }
@@ -236,6 +250,11 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         List<Mutation> mutations = us.queuedMutations.get(us.currentTablet);
         for (TMutation tmutation : tmutations) {
           Mutation mutation = new ServerMutation(tmutation);
+          // Deserialize the mutation in an attempt to check for data corruption that happened on
+          // the network. This will avoid writing a corrupt mutation to the write ahead log and
+          // failing after its written to the write ahead log when it is deserialized to update the
+          // in memory map.
+          mutation.getUpdates();
           mutations.add(mutation);
           additionalMutationSize += mutation.numBytes();
         }
@@ -255,6 +274,15 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           }
         }
       }
+    } catch (RuntimeException e) {
+      // This method is a thrift oneway method so an exception from it will not make it back to the
+      // client. Need to record the exception and set the session such that any future updates to
+      // the session are ignored.
+      us.unhandledException = e;
+      us.currentTablet = null;
+
+      // Rethrowing it will cause logging from thrift, so not adding logging here.
+      throw e;
     } finally {
       if (reserved) {
         server.sessionManager.unreserveSession(us);
@@ -371,6 +399,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         }
       } catch (Exception e) {
         TraceUtil.setException(span2, e, true);
+        log.error("Error logging mutations sent from {}", TServerUtils.clientAddress.get(), e);
         throw e;
       } finally {
         span2.end();
@@ -398,6 +427,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         us.commitTimes.addStat(t2 - t1);
 
         updateAvgCommitTime(t2 - t1, sendableMutations);
+      } catch (Exception e) {
+        TraceUtil.setException(span3, e, true);
+        log.error("Error committing mutations sent from {}", TServerUtils.clientAddress.get(), e);
+        throw e;
       } finally {
         span3.end();
       }
@@ -450,6 +483,20 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     }
 
     try {
+      if (us.unhandledException != null) {
+        // Since flush() is not being called, any memory added to the global queued mutations
+        // counter will not be decremented. So do that here before throwing an exception.
+        server.updateTotalQueuedMutationSize(-us.queuedMutationSize);
+        us.queuedMutationSize = 0;
+        // make this memory available for GC
+        us.queuedMutations.clear();
+
+        // Something unexpected happened during this write session, so throw an exception here to
+        // cause a TApplicationException on the client side.
+        throw new IllegalStateException(
+            "Write session " + updateID + " saw an unexpected exception", us.unhandledException);
+      }
+
       // clients may or may not see data from an update session while
       // it is in progress, however when the update session is closed
       // want to ensure that reads wait for the write to finish
@@ -660,6 +707,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       updateAvgCommitTime(t2 - t1, sendableMutations);
     } catch (Exception e) {
       TraceUtil.setException(span3, e, true);
+      log.error("Error committing mutations sent from {}", TServerUtils.clientAddress.get(), e);
       throw e;
     } finally {
       span3.end();

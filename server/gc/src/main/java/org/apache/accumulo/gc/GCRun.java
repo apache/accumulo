@@ -220,7 +220,7 @@ public class GCRun implements GarbageCollectionEnvironment {
   @Override
   public Map<TableId,TableState> getTableIDs() throws InterruptedException {
     final String tablesPath = context.getZooKeeperRoot() + Constants.ZTABLES;
-    final ZooReader zr = context.getZooReader();
+    final ZooReader zr = context.getZooSession().asReader();
     int retries = 1;
     IllegalStateException ioe = null;
     while (retries <= 10) {

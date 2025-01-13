@@ -65,7 +65,6 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -233,7 +232,7 @@ public class FunctionalTestUtils {
     try {
       AdminUtil<String> admin = new AdminUtil<>(false);
       ServerContext context = cluster.getServerContext();
-      ZooReaderWriter zk = context.getZooReaderWriter();
+      var zk = context.getZooSession();
       MetaFateStore<String> mfs = new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
           zk, createDummyLockID(), null);
       UserFateStore<String> ufs = new UserFateStore<>(context, createDummyLockID(), null);

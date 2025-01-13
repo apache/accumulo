@@ -102,11 +102,11 @@ public class ZooZap implements KeywordExecutable {
       }
 
       try (var context = new ServerContext(siteConf)) {
-        final ZooReaderWriter zoo = context.getZooReaderWriter();
+        final ZooReaderWriter zrw = context.getZooSession().asReaderWriter();
         if (opts.zapManager) {
           ServiceLockPath managerLockPath = context.getServerPaths().createManagerPath();
           try {
-            zapDirectory(zoo, managerLockPath, opts);
+            zapDirectory(zrw, managerLockPath, opts);
           } catch (KeeperException | InterruptedException e) {
             e.printStackTrace();
           }
@@ -128,10 +128,10 @@ public class ZooZap implements KeywordExecutable {
               message("Deleting " + tserverPath + " from zookeeper", opts);
 
               if (opts.zapManager) {
-                zoo.recursiveDelete(tserverPath.toString(), NodeMissingPolicy.SKIP);
+                zrw.recursiveDelete(tserverPath.toString(), NodeMissingPolicy.SKIP);
               } else {
-                if (!zoo.getChildren(tserverPath.toString()).isEmpty()) {
-                  if (!ServiceLock.deleteLock(zoo, tserverPath, "tserver")) {
+                if (!zrw.getChildren(tserverPath.toString()).isEmpty()) {
+                  if (!ServiceLock.deleteLock(zrw, tserverPath, "tserver")) {
                     message("Did not delete " + tserverPath, opts);
                   }
                 }
@@ -151,7 +151,7 @@ public class ZooZap implements KeywordExecutable {
           try {
             for (String group : compactorResourceGroupPaths) {
               message("Deleting " + group + " from zookeeper", opts);
-              zoo.recursiveDelete(group, NodeMissingPolicy.SKIP);
+              zrw.recursiveDelete(group, NodeMissingPolicy.SKIP);
             }
           } catch (KeeperException | InterruptedException e) {
             log.error("Error deleting compactors from zookeeper, {}", e.getMessage(), e);
@@ -165,8 +165,8 @@ public class ZooZap implements KeywordExecutable {
                 context.getServerPaths().getScanServer(rgp, AddressSelector.all(), false);
             for (ServiceLockPath sserverPath : sserverLockPaths) {
               message("Deleting " + sserverPath + " from zookeeper", opts);
-              if (!zoo.getChildren(sserverPath.toString()).isEmpty()) {
-                ServiceLock.deleteLock(zoo, sserverPath);
+              if (!zrw.getChildren(sserverPath.toString()).isEmpty()) {
+                ServiceLock.deleteLock(zrw, sserverPath);
               }
             }
           } catch (KeeperException | InterruptedException e) {

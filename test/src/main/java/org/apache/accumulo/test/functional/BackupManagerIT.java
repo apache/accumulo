@@ -44,7 +44,7 @@ public class BackupManagerIT extends ConfigurableMacBase {
     // create a backup
     Process backup = exec(Manager.class);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      ZooReaderWriter writer = getCluster().getServerContext().getZooReaderWriter();
+      ZooReaderWriter writer = getServerContext().getZooSession().asReaderWriter();
 
       // wait for 2 lock entries
       var path = getServerContext().getServerPaths().createManagerPath();
@@ -58,7 +58,7 @@ public class BackupManagerIT extends ConfigurableMacBase {
           ServiceLock.validateAndSort(path, writer.getChildren(path.toString()));
       String lockPath = path + "/" + children.get(0);
       byte[] data = writer.getData(lockPath);
-      writer.getZooKeeper().setData(lockPath, data, -1);
+      getServerContext().getZooSession().setData(lockPath, data, -1);
       // let it propagate
       Thread.sleep(500);
       // kill the manager by removing its lock

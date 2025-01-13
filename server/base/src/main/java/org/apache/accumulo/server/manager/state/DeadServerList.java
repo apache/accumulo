@@ -47,18 +47,15 @@ public class DeadServerList {
   // and replace the "UNKNOWN" value with the ResourceGroup
   private static final String RESOURCE_GROUP = "UNKNOWN";
   private final ServerContext ctx;
-  private final String root;
   private final ZooReaderWriter zoo;
   private final String path;
 
   public DeadServerList(ServerContext context) {
     this.ctx = context;
-    zoo = this.ctx.getZooReaderWriter();
-    root = this.ctx.getZooKeeperRoot();
-
-    this.path = root + Constants.ZDEADTSERVERS + "/" + RESOURCE_GROUP;
+    this.zoo = context.getZooSession().asReaderWriter();
+    this.path = context.getZooKeeperRoot() + Constants.ZDEADTSERVERS + "/" + RESOURCE_GROUP;
     try {
-      ctx.getZooReaderWriter().mkdirs(path);
+      zoo.mkdirs(path);
     } catch (Exception ex) {
       log.error("Unable to make parent directories of " + path, ex);
     }

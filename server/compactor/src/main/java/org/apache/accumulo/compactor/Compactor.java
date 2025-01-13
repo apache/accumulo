@@ -274,12 +274,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected void announceExistence(HostAndPort clientAddress)
       throws KeeperException, InterruptedException {
 
-    final ZooReaderWriter zoo = getContext().getZooReaderWriter();
+    final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     final ServiceLockPath path =
         getContext().getServerPaths().createCompactorPath(getResourceGroup(), clientAddress);
     ServiceLockSupport.createNonHaServiceLockPath(Type.COMPACTOR, zoo, path);
-    compactorLock =
-        new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, compactorId);
+    compactorLock = new ServiceLock(getContext().getZooSession(), path, compactorId);
     LockWatcher lw = new ServiceLockWatcher(Type.COMPACTOR, () -> false,
         (type) -> getContext().getLowMemoryDetector().logGCInfo(getConfiguration()));
 

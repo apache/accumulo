@@ -32,7 +32,7 @@ import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT;
 import org.apache.accumulo.test.fate.FateStoreUtil;
@@ -60,21 +60,22 @@ public class MetaFateIT extends FateIT {
   public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
       FateIdGenerator fateIdGenerator) throws Exception {
     String zkRoot = FateStoreUtil.MetaFateZKSetup.getZkRoot();
-    var zooReaderWriter = FateStoreUtil.MetaFateZKSetup.getZooReaderWriter();
+    var zk = FateStoreUtil.MetaFateZKSetup.getZk();
     String fatePath = FateStoreUtil.MetaFateZKSetup.getZkFatePath();
     ServerContext sctx = createMock(ServerContext.class);
     expect(sctx.getZooKeeperRoot()).andReturn(zkRoot).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zooReaderWriter).anyTimes();
+    expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(sctx);
 
-    testMethod.execute(new MetaFateStore<>(fatePath, zooReaderWriter, createDummyLockID(), null,
-        maxDeferred, fateIdGenerator), sctx);
+    testMethod.execute(
+        new MetaFateStore<>(fatePath, zk, createDummyLockID(), null, maxDeferred, fateIdGenerator),
+        sctx);
   }
 
   @Override
   protected TStatus getTxStatus(ServerContext sctx, FateId fateId) {
     try {
-      return getTxStatus(sctx.getZooReaderWriter(), fateId);
+      return getTxStatus(sctx.getZooSession(), fateId);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
@@ -84,9 +85,10 @@ public class MetaFateIT extends FateIT {
    * Get the status of the TX from ZK directly. Unable to call MetaFateStore.getStatus because this
    * test thread does not have the reservation (the FaTE thread does)
    */
-  private static TStatus getTxStatus(ZooReaderWriter zrw, FateId fateId)
+  private static TStatus getTxStatus(ZooSession zk, FateId fateId)
       throws KeeperException, InterruptedException {
     String zkRoot = FateStoreUtil.MetaFateZKSetup.getZkRoot();
+    var zrw = zk.asReaderWriter();
     zrw.sync(zkRoot);
     String txdir = String.format("%s%s/tx_%s", zkRoot, Constants.ZFATE, fateId.getTxUUIDStr());
 

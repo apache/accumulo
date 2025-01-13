@@ -71,7 +71,7 @@ public class RootTabletMetadata {
   public static RootTabletMetadata read(ClientContext ctx) {
     try {
       final String zpath = zooPath(ctx);
-      ZooReader zooReader = ctx.getZooReader();
+      ZooReader zooReader = ctx.getZooSession().asReader();
       // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from
       // zookeeper
       zooReader.sync(zpath);
