@@ -45,6 +45,7 @@ import jakarta.inject.Singleton;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -741,7 +742,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     // Get a ZooLock for the monitor
     UUID zooLockUUID = UUID.randomUUID();
     monitorLock = new ServiceLock(context.getZooSession(), monitorLockPath, zooLockUUID);
-    HAServiceLockWatcher monitorLockWatcher = new HAServiceLockWatcher("monitor");
+    HAServiceLockWatcher monitorLockWatcher = new HAServiceLockWatcher(Type.MONITOR);
 
     while (true) {
       monitorLock.lock(monitorLockWatcher,

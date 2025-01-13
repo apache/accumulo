@@ -61,6 +61,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -1499,14 +1500,12 @@ public class Manager extends AbstractServer
     ServiceDescriptors descriptors = new ServiceDescriptors();
     descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.MANAGER,
         managerClientAddress, this.getResourceGroup()));
-
     ServiceLockData sld = new ServiceLockData(descriptors);
-
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
+    HAServiceLockWatcher managerLockWatcher = new HAServiceLockWatcher(Type.MANAGER);
 
     while (true) {
 
-      HAServiceLockWatcher managerLockWatcher = new HAServiceLockWatcher("manager");
       managerLock.lock(managerLockWatcher, sld);
 
       managerLockWatcher.waitForChange();
