@@ -48,18 +48,20 @@ public class CompactionJobQueues {
   private final ConcurrentHashMap<CompactorGroupId,CompactionJobPriorityQueue> priorityQueues =
       new ConcurrentHashMap<>();
 
-  private final int queueSize;
+  private final long queueSize;
 
   private final Map<DataLevel,AtomicLong> currentGenerations;
 
-  public CompactionJobQueues(int queueSize) {
+  private SizeTrackingTreeMap.Weigher<MetaJob> weigher =
+      val -> val.getTabletMetadata().toString().length() + val.getJob().toString().length();
+
+  public CompactionJobQueues(long queueSize) {
     this.queueSize = queueSize;
     Map<DataLevel,AtomicLong> cg = new EnumMap<>(DataLevel.class);
     for (var level : DataLevel.values()) {
       cg.put(level, new AtomicLong());
     }
     currentGenerations = Collections.unmodifiableMap(cg);
-
   }
 
   public void beginFullScan(DataLevel level) {
@@ -164,7 +166,7 @@ public class CompactionJobQueues {
    */
   public CompletableFuture<MetaJob> getAsync(CompactorGroupId groupId) {
     var pq = priorityQueues.computeIfAbsent(groupId,
-        gid -> new CompactionJobPriorityQueue(gid, queueSize));
+        gid -> new CompactionJobPriorityQueue(gid, queueSize, weigher));
     return pq.getAsync();
   }
 
@@ -187,7 +189,7 @@ public class CompactionJobQueues {
     }
 
     var pq = priorityQueues.computeIfAbsent(groupId,
-        gid -> new CompactionJobPriorityQueue(gid, queueSize));
+        gid -> new CompactionJobPriorityQueue(gid, queueSize, weigher));
     pq.add(tabletMetadata, jobs,
         currentGenerations.get(DataLevel.of(tabletMetadata.getTableId())).get());
   }
