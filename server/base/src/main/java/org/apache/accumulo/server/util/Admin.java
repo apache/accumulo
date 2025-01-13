@@ -352,10 +352,10 @@ public class Admin implements KeywordExecutable {
       return;
     }
 
-    for(var command : cl.getCommands().entrySet()){
+    for (var command : cl.getCommands().entrySet()) {
       var objects = command.getValue().getObjects();
-      for(var obj : objects) {
-        if(obj instanceof SubCommandOpts && ((SubCommandOpts)obj).help) {
+      for (var obj : objects) {
+        if (obj instanceof SubCommandOpts && ((SubCommandOpts) obj).help) {
           command.getValue().usage();
           return;
         }
