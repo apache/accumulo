@@ -352,12 +352,14 @@ public class Admin implements KeywordExecutable {
       return;
     }
 
-    if (opts.help || listInstancesOpts.help || pingCommand.help || checkTabletsCommand.help
-        || stopOpts.help || dumpConfigCommand.help || volumesCommand.help
-        || verifyTabletAssignmentsOpts.help || deleteZooInstOpts.help || restoreZooOpts.help
-        || fateOpsCommand.help || tServerLocksOpts.help || serviceStatusCommandOpts.help) {
-      cl.getCommands().get(cl.getParsedCommand()).usage();
-      return;
+    for(var command : cl.getCommands().entrySet()){
+      var objects = command.getValue().getObjects();
+      for(var obj : objects) {
+        if(obj instanceof SubCommandOpts && ((SubCommandOpts)obj).help) {
+          command.getValue().usage();
+          return;
+        }
+      }
     }
 
     ServerContext context = opts.getServerContext();
