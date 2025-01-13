@@ -97,7 +97,6 @@ public class TabletMetadataCheckIterator implements SortedKeyValueIterator<Key,V
         tabletRow, expectedMetaRow);
 
     var colsToRead = check.columnsToRead();
-    // TODO actually use columns in seek and TabletMetadata construction
 
     source.seek(new Range(tabletRow), Set.of(), false);
 
