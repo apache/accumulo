@@ -238,7 +238,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     try {
 
       // Wait for the transaction runner to be scheduled.
-      Thread.sleep(3000);
+      Thread.sleep(Fate.INITIAL_DELAY.toMillis() * 2);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
@@ -295,7 +295,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     try {
 
       // Wait for the transaction runner to be scheduled.
-      Thread.sleep(3000);
+      Thread.sleep(Fate.INITIAL_DELAY.toMillis() * 2);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
@@ -330,7 +330,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     try {
 
       // Wait for the transaction runner to be scheduled.
-      Thread.sleep(3000);
+      Thread.sleep(Fate.INITIAL_DELAY.toMillis() * 2);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
@@ -365,7 +365,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     try {
 
       // Wait for the transaction runner to be scheduled.
-      Thread.sleep(3000);
+      Thread.sleep(Fate.INITIAL_DELAY.toMillis() * 2);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
@@ -402,7 +402,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     try {
 
       // Wait for the transaction runner to be scheduled.
-      Thread.sleep(3000);
+      Thread.sleep(Fate.INITIAL_DELAY.toMillis() * 2);
 
       DeferredTestRepo.executedCalls.set(0);
       // Initialize the repo to have a delay of 30 seconds
@@ -479,7 +479,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     try {
 
       // Wait for the transaction runner to be scheduled.
-      Thread.sleep(3000);
+      Thread.sleep(Fate.INITIAL_DELAY.toMillis() * 2);
 
       List<String> expectedUndoOrder = List.of("OP3", "OP2", "OP1");
       /*
