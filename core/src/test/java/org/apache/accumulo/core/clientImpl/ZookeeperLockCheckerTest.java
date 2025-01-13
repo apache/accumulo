@@ -32,7 +32,6 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,8 +58,7 @@ public class ZookeeperLockCheckerTest {
 
   @Test
   public void testInvalidateCache() {
-    var zklc =
-        new ZookeeperLockChecker(zc, context.getZooKeeperRoot(), new ServiceLockPaths(context));
+    var zklc = new ZookeeperLockChecker(zc, context.getZooKeeperRoot());
 
     verify(zc);
     reset(zc);
