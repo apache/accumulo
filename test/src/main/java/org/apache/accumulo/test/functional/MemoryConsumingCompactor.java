@@ -37,7 +37,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MemoryConsumingCompactor extends Compactor implements CompactorService.Iface {
+public class MemoryConsumingCompactor extends Compactor {
 
   private static final Logger LOG = LoggerFactory.getLogger(MemoryConsumingCompactor.class);
 
