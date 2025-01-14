@@ -29,6 +29,7 @@ import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+import java.util.function.BiPredicate;
 
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.slf4j.Logger;
@@ -98,9 +99,9 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
   // them,
   // a writer only runs when they are at the top of the queue.
   public interface QueueLock {
-    SortedMap<Long,byte[]> getEarlierEntries(long entry);
+    SortedMap<Long,byte[]> getEntries(BiPredicate<Long,byte[]> predicate);
 
-    void removeEntry(long entry);
+    void removeEntry(byte[] data, long entry);
 
     long addEntry(byte[] data);
   }
@@ -164,7 +165,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         log.info("Added lock entry {} userData {} lockType {}", entry,
             new String(this.userData, UTF_8), getType());
       }
-      SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
+
+      SortedMap<Long,byte[]> entries = qlock.getEntries((seq, lockData) -> seq <= entry);
       for (Entry<Long,byte[]> entry : entries.entrySet()) {
         ParsedLock parsed = new ParsedLock(entry.getValue());
         if (entry.getKey().equals(this.entry)) {
@@ -200,7 +202,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       }
       log.debug("Removing lock entry {} userData {} lockType {}", entry,
           new String(this.userData, UTF_8), getType());
-      qlock.removeEntry(entry);
+      qlock.removeEntry(new ParsedLock(this.getType(), this.userData).getLockData(), entry);
       entry = -1;
     }
 
@@ -232,7 +234,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         log.info("Added lock entry {} userData {} lockType {}", entry,
             new String(this.userData, UTF_8), getType());
       }
-      SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
+      SortedMap<Long,byte[]> entries = qlock.getEntries((seq, locData) -> seq <= entry);
       Iterator<Entry<Long,byte[]>> iterator = entries.entrySet().iterator();
       if (!iterator.hasNext()) {
         throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry
@@ -251,19 +253,28 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
   }
 
   public static DistributedLock recoverLock(QueueLock qlock, byte[] data) {
-    SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(Long.MAX_VALUE);
-    for (Entry<Long,byte[]> entry : entries.entrySet()) {
-      ParsedLock parsed = new ParsedLock(entry.getValue());
-      if (Arrays.equals(data, parsed.getUserData())) {
+    SortedMap<Long,byte[]> entries = qlock.getEntries((seq, lockData) -> {
+      ParsedLock parsed = new ParsedLock(lockData);
+      return Arrays.equals(data, parsed.getUserData());
+    });
+
+    switch (entries.size()) {
+      case 0:
+        return null;
+      case 1:
+        var entry = entries.entrySet().iterator().next();
+        ParsedLock parsed = new ParsedLock(entry.getValue());
         switch (parsed.getType()) {
           case READ:
             return new ReadLock(qlock, parsed.getUserData(), entry.getKey());
           case WRITE:
             return new WriteLock(qlock, parsed.getUserData(), entry.getKey());
+          default:
+            throw new IllegalStateException("Uknown lock type " + parsed.getType());
         }
-      }
+      default:
+        throw new IllegalStateException("Found more than one lock node " + entries);
     }
-    return null;
   }
 
   @Override

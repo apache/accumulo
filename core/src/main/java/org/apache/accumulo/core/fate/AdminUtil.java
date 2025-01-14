@@ -25,6 +25,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.Formatter;
@@ -285,19 +286,19 @@ public class AdminUtil<T> {
     List<String> lockedIds = zr.getChildren(lockPath.toString());
 
     for (String id : lockedIds) {
-
       try {
-
         FateLockPath fLockPath = FateLock.path(lockPath + "/" + id);
-        List<String> lockNodes =
-            FateLock.validateAndSort(fLockPath, zr.getChildren(fLockPath.toString()));
+        List<FateLock.FateLockNode> lockNodes =
+            FateLock.validateAndWarn(fLockPath, zr.getChildren(fLockPath.toString()));
+
+        lockNodes.sort(Comparator.comparingLong(ln -> ln.sequence));
 
         int pos = 0;
         boolean sawWriteLock = false;
 
-        for (String node : lockNodes) {
+        for (FateLock.FateLockNode node : lockNodes) {
           try {
-            byte[] data = zr.getData(lockPath + "/" + id + "/" + node);
+            byte[] data = node.lockData.getBytes(UTF_8);
             // Example data: "READ:<FateId>". FateId contains ':' hence the limit of 2
             String[] lda = new String(data, UTF_8).split(":", 2);
             FateId fateId = FateId.from(lda[1]);
