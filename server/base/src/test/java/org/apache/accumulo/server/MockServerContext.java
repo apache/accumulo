@@ -21,8 +21,6 @@ package org.apache.accumulo.server;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 
-import java.util.Properties;
-
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -43,7 +41,6 @@ public class MockServerContext {
     ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     conf.set(Property.INSTANCE_VOLUMES, "file:///");
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
-    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     return context;
   }
 
