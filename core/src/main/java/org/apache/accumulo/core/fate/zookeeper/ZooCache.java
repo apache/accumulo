@@ -497,7 +497,7 @@ public class ZooCache {
   /**
    * Clears this cache.
    */
-  public void clear() {
+  private void clear() {
     Preconditions.checkState(!closed);
     nodeCache.clear();
     updateCount.incrementAndGet();
