@@ -230,6 +230,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   protected String execCommand = null;
   protected boolean verbose = true;
 
+  private boolean canPaginate = false;
   private boolean tabCompletion;
   private boolean disableAuthTimeout;
   private long authTimeout;
@@ -379,6 +380,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         return false;
       }
     }
+
+    canPaginate = terminal.getSize().getRows() > 0;
 
     // decide whether to execute commands from a file and quit
     if (options.getExecFile() != null) {
@@ -1032,7 +1035,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         if (out == null) {
           if (peek != null) {
             writer.println(peek);
-            if (paginate) {
+            if (canPaginate && paginate) {
               linesPrinted += peek.isEmpty() ? 0 : Math.ceil(peek.length() * 1.0 / termWidth);
 
               // check if displaying the next line would result in
