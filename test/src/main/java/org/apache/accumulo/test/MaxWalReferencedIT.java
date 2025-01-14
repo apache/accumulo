@@ -86,7 +86,6 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
       log.info("Created table {} with splits. Now writing data.", tableName);
 
       // Write data multiple times until we see the WAL count exceed WAL_MAX_REFERENCED
-      final int rowsPerIteration = 30000;
       AtomicInteger iteration = new AtomicInteger(0);
       Wait.waitFor(() -> {
 
