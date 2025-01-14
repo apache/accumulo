@@ -80,7 +80,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
@@ -119,7 +119,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -721,14 +720,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       String miniZDirPath =
           miniZInstancePath.substring(0, miniZInstancePath.indexOf("/" + miniUUID.toString()));
       try {
-        if (miniLockZk.exists(miniZDirPath, null) == null) {
-          miniLockZk.create(miniZDirPath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
-          log.info("Created: {}", miniZDirPath);
-        }
-        if (miniLockZk.exists(miniZInstancePath, null) == null) {
-          miniLockZk.create(miniZInstancePath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
-          log.info("Created: {}", miniZInstancePath);
-        }
+        var zrw = miniLockZk.asReaderWriter();
+        zrw.putPersistentData(miniZDirPath, new byte[0], NodeExistsPolicy.SKIP);
+        zrw.putPersistentData(miniZInstancePath, new byte[0], NodeExistsPolicy.SKIP);
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
