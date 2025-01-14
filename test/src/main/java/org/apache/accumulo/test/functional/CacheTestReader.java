@@ -25,6 +25,7 @@ import java.io.FileOutputStream;
 import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -47,7 +48,7 @@ public class CacheTestReader {
     myfile.deleteOnExit();
 
     try (var zk = new ZooSession(CacheTestReader.class.getSimpleName(), keepers, 30_000, null)) {
-      ZooCache zc = new ZooCache(zk);
+      ZooCache zc = new ZooCache(zk, Optional.empty(), "/");
 
       while (true) {
         if (myfile.exists() && !myfile.delete()) {

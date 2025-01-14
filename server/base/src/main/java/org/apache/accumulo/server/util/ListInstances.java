@@ -92,7 +92,7 @@ public class ListInstances {
     try (var zk = new ZooSession(ListInstances.class.getSimpleName(), keepers,
         ZOOKEEPER_TIMER_MILLIS, null)) {
       ZooReader rdr = zk.asReader();
-      ZooCache cache = new ZooCache(zk);
+      ZooCache cache = new ZooCache(zk, Optional.empty(), Constants.ZROOT);
 
       TreeMap<String,InstanceId> instanceNames = getInstanceNames(rdr, printErrors);
 

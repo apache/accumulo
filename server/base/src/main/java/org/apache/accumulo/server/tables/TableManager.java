@@ -25,6 +25,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
@@ -122,7 +123,8 @@ public class TableManager {
     zkRoot = context.getZooKeeperRoot();
     instanceID = context.getInstanceID();
     zoo = context.getZooSession().asReaderWriter();
-    zooStateCache = new ZooCache(context.getZooSession(), new TableStateWatcher());
+    zooStateCache =
+        new ZooCache(context.getZooSession(), Optional.of(new TableStateWatcher()), zkRoot);
     updateTableStateCache();
   }
 

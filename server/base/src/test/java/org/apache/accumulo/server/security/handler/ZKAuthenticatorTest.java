@@ -39,6 +39,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -144,14 +145,16 @@ public class ZKAuthenticatorTest {
     var instanceId = InstanceId.of("example");
     ZooSession zk = createMock(ZooSession.class);
     ServerContext context = MockServerContext.getWithMockZK(zk);
+    ZooCache zc = createMock(ZooCache.class);
     expect(context.zkUserPath()).andReturn(ZooUtil.getRoot(instanceId) + Constants.ZUSERS)
         .anyTimes();
     expect(zk.getChildren(anyObject(), anyObject())).andReturn(Arrays.asList(principal)).anyTimes();
     expect(zk.exists(matches(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal),
         anyObject(Watcher.class))).andReturn(new Stat()).anyTimes();
-    expect(zk.getData(matches(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal),
-        anyObject(), anyObject())).andReturn(newHash).once();
-    replay(context, zk);
+    expect(context.getZooCache()).andReturn(zc).anyTimes();
+    expect(zc.get(matches(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal)))
+        .andReturn(newHash);
+    replay(context, zk, zc);
 
     // creating authenticator
     ZKAuthenticator auth = new ZKAuthenticator();
@@ -160,6 +163,6 @@ public class ZKAuthenticatorTest {
     PasswordToken token = new PasswordToken(rawPass.clone());
     // verifying that if the new type of hash is stored in zk authentication works as expected
     assertTrue(auth.authenticateUser(principal, token));
-    verify(context, zk);
+    verify(context, zk, zc);
   }
 }

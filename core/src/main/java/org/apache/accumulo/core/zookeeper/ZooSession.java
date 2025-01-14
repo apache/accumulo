@@ -37,6 +37,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.zookeeper.AddWatchMode;
 import org.apache.zookeeper.AsyncCallback.StringCallback;
 import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.CreateMode;
@@ -288,6 +289,11 @@ public class ZooSession implements AutoCloseable {
 
   public void sync(final String path, VoidCallback cb, Object ctx) {
     verifyConnected().sync(path, cb, ctx);
+  }
+
+  public void addPersistentRecursiveWatcher(String path, Watcher watcher)
+      throws KeeperException, InterruptedException {
+    verifyConnected().addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
   }
 
   @Override
