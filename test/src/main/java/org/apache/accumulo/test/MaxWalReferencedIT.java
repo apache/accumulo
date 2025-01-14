@@ -65,6 +65,7 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, Integer.toString(hdfsMinBlockSize));
     // Set the max number of WALs that can be referenced
     cfg.setProperty(Property.TSERV_WAL_MAX_REFERENCED, Integer.toString(WAL_MAX_REFERENCED));
+    cfg.setProperty(Property.TSERV_MAXMEM, "256M"); // avoid minor compactions via low memory
     cfg.setNumTservers(1);
 
     // Use raw local file system so WAL syncs and flushes work as expected
