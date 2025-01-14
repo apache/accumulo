@@ -25,7 +25,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
@@ -36,7 +35,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -70,7 +68,6 @@ public class TableManager {
   private final String zkRoot;
   private final InstanceId instanceID;
   private final ZooReaderWriter zoo;
-  private final ZooCache zooStateCache;
 
   public static void prepareNewNamespaceState(final ServerContext context, NamespaceId namespaceId,
       String namespace, NodeExistsPolicy existsPolicy)
@@ -123,8 +120,8 @@ public class TableManager {
     zkRoot = context.getZooKeeperRoot();
     instanceID = context.getInstanceID();
     zoo = context.getZooSession().asReaderWriter();
-    zooStateCache =
-        new ZooCache(context.getZooSession(), Optional.of(new TableStateWatcher()), zkRoot);
+    // add our Watcher to the shared ZooCache
+    context.getZooCache().addZooCacheWatcher(new TableStateWatcher());
     updateTableStateCache();
   }
 
@@ -181,9 +178,9 @@ public class TableManager {
 
   private void updateTableStateCache() {
     synchronized (tableStateCache) {
-      for (String tableId : zooStateCache.getChildren(zkRoot + Constants.ZTABLES)) {
-        if (zooStateCache.get(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE)
-            != null) {
+      for (String tableId : context.getZooCache().getChildren(zkRoot + Constants.ZTABLES)) {
+        if (context.getZooCache()
+            .get(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE) != null) {
           updateTableStateCache(TableId.of(tableId));
         }
       }
@@ -193,8 +190,8 @@ public class TableManager {
   public TableState updateTableStateCache(TableId tableId) {
     synchronized (tableStateCache) {
       TableState tState = TableState.UNKNOWN;
-      byte[] data =
-          zooStateCache.get(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
+      byte[] data = context.getZooCache()
+          .get(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
       if (data != null) {
         String sState = new String(data, UTF_8);
         try {

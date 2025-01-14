@@ -32,7 +32,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -54,12 +53,8 @@ public class ZooCacheTest {
    */
   private static class TestZooCache extends ZooCache {
 
-    public TestZooCache(ZooSession zk, String root) {
-      super(zk, Optional.empty(), root);
-    }
-
-    public TestZooCache(ZooSession zk, Optional<ZooCacheWatcher> watcher, String root) {
-      super(zk, watcher, root);
+    public TestZooCache(ZooSession zk, String root, ZooCacheWatcher... watchers) {
+      super(zk, root, watchers);
     }
 
     @Override
@@ -319,7 +314,7 @@ public class ZooCacheTest {
     WatchedEvent event =
         new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
-    zc = new TestZooCache(zk, Optional.of(exw), instancePath);
+    zc = new TestZooCache(zk, instancePath, exw);
 
     watchData(initialData);
     zc.executeWatcher(event);
@@ -429,7 +424,7 @@ public class ZooCacheTest {
   private void testWatchDataNode_Clear(Watcher.Event.KeeperState state) throws Exception {
     WatchedEvent event = new WatchedEvent(Watcher.Event.EventType.None, state, null);
     TestWatcher exw = new TestWatcher(event);
-    zc = new TestZooCache(zk, Optional.of(exw), instancePath);
+    zc = new TestZooCache(zk, instancePath, exw);
 
     watchData(DATA);
     assertTrue(zc.dataCached(ZPATH));
@@ -463,7 +458,7 @@ public class ZooCacheTest {
     WatchedEvent event =
         new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
-    zc = new TestZooCache(zk, Optional.of(exw), instancePath);
+    zc = new TestZooCache(zk, instancePath, exw);
 
     watchChildren(initialChildren);
     zc.executeWatcher(event);

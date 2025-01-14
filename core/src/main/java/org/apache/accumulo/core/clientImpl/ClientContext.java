@@ -235,8 +235,7 @@ public class ClientContext implements AccumuloClient {
       return zk;
     });
 
-    this.zooCache = memoize(
-        () -> new ZooCache(getZooSession(), Optional.empty(), ZooUtil.getRoot(getInstanceID())));
+    this.zooCache = memoize(() -> new ZooCache(getZooSession(), ZooUtil.getRoot(getInstanceID())));
     this.accumuloConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), 100, MILLISECONDS);
@@ -1063,8 +1062,8 @@ public class ClientContext implements AccumuloClient {
       // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
       var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName()).get();
       String zkRoot = getZooKeeperRoot();
-      this.zkLockChecker = new ZookeeperLockChecker(new ZooCache(zk, Optional.empty(), zkRoot),
-          zkRoot, getServerPaths());
+      this.zkLockChecker =
+          new ZookeeperLockChecker(new ZooCache(zk, zkRoot), zkRoot, getServerPaths());
     }
     return this.zkLockChecker;
   }

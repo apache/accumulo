@@ -28,7 +28,6 @@ import java.io.File;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -109,7 +108,7 @@ public class ZooCacheIT {
       }
     };
     final String root = Constants.ZROOT + UUID.randomUUID().toString();
-    ZooCache zooCache = new ZooCache(zk, Optional.of(watcher), root);
+    ZooCache zooCache = new ZooCache(zk, root, watcher);
     final String base = root + Constants.ZTSERVERS;
 
     zrw.mkdirs(base + "/test2");

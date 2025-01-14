@@ -23,6 +23,8 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Optional;
@@ -72,7 +74,8 @@ public class ZooCache {
   protected final TreeSet<String> watchedPaths = new TreeSet<>();
   // visible for tests
   protected final ZCacheWatcher watcher = new ZCacheWatcher();
-  private final Optional<ZooCacheWatcher> externalWatcher;
+  private final List<ZooCacheWatcher> externalWatchers =
+      Collections.synchronizedList(new ArrayList<>());
 
   private static final AtomicLong nextCacheId = new AtomicLong(0);
   private final String cacheId = "ZC" + nextCacheId.incrementAndGet();
@@ -186,15 +189,21 @@ public class ZooCache {
           break;
       }
 
-      externalWatcher.ifPresent(w -> w.accept(event));
+      externalWatchers.forEach(ew -> ew.accept(event));
     }
   }
 
-  public ZooCache(ZooSession zk, Optional<ZooCacheWatcher> watcher, String root) {
+  public ZooCache(ZooSession zk, String root, ZooCacheWatcher... watchers) {
     this.zk = requireNonNull(zk);
-    this.externalWatcher = watcher;
+    for (ZooCacheWatcher zcw : watchers) {
+      externalWatchers.add(zcw);
+    }
     setupWatchers(requireNonNull(root));
     log.trace("{} created new cache", cacheId, new Exception());
+  }
+
+  public void addZooCacheWatcher(ZooCacheWatcher watcher) {
+    externalWatchers.add(requireNonNull(watcher));
   }
 
   // Visible for testing
