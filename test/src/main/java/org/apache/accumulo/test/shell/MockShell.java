@@ -30,7 +30,6 @@ import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.shell.Shell;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
-import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.slf4j.Logger;
@@ -53,7 +52,6 @@ public class MockShell {
     output = new TestOutputStream();
     input = new StringInputStream();
     terminal = new DumbTerminal(input, output);
-    terminal.setSize(new Size(80, 24));
     reader = LineReaderBuilder.builder().terminal(terminal).build();
     shell = new Shell(reader);
     shell.setLogErrorsToConsole();
