@@ -61,10 +61,10 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -643,8 +643,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     } else {
       Method listMethod = MetaFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
-          .withConstructor(String.class, ZooReaderWriter.class, ZooUtil.LockID.class,
-              Predicate.class)
+          .withConstructor(String.class, ZooSession.class, ZooUtil.LockID.class, Predicate.class)
           .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooSession(),
               createDummyLockID(), null)
           .addMockedMethod(listMethod).createMock();
