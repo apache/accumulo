@@ -52,6 +52,7 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(MaxWalReferencedIT.class);
 
   final int WAL_MAX_REFERENCED = 3;
+  final int hdfsMinBlockSize = 1048576;
 
   @Override
   protected Duration defaultTimeout() {
@@ -60,10 +61,8 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    final String hdfsMinBlockSize = "1048576";
-
     // Set a small WAL size so we roll frequently
-    cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, hdfsMinBlockSize);
+    cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, Integer.toString(hdfsMinBlockSize));
     // Set the max number of WALs that can be referenced
     cfg.setProperty(Property.TSERV_WAL_MAX_REFERENCED, Integer.toString(WAL_MAX_REFERENCED));
     cfg.setNumTservers(1);
@@ -89,16 +88,13 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
       final int rowsPerIteration = 30000;
       AtomicInteger iteration = new AtomicInteger(0);
       Wait.waitFor(() -> {
-        int startRow = iteration.get() * rowsPerIteration;
-        int endRow = (iteration.get() + 1) * rowsPerIteration;
 
         // Write data that should fill or partially fill the WAL
-        writeData(client, tableName, startRow, endRow);
+        writeData(client, tableName);
 
         // Check the current number of WALs in use
         long walCount = getWalCount(getServerContext());
-        log.info("After iteration {}, wrote rows [{}..{}), WAL count is {}", iteration, startRow,
-            endRow, walCount);
+        log.info("After iteration {}, WAL count is {}", iteration, walCount);
         iteration.getAndIncrement();
 
         if (walCount > WAL_MAX_REFERENCED) {
@@ -108,7 +104,7 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
         } else {
           return false;
         }
-      }, 60000, 250, "Expected to see WAL count exceed " + WAL_MAX_REFERENCED);
+      }, 60000, 10, "Expected to see WAL count exceed " + WAL_MAX_REFERENCED);
 
       // wait for minor compactions to reduce the WAL count
       Wait.waitFor(() -> getWalCount(getServerContext()) <= WAL_MAX_REFERENCED, 30000, 1000,
@@ -116,13 +112,17 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
     }
   }
 
-  private void writeData(AccumuloClient client, String table, int startRow, int endRow)
-      throws Exception {
+  /**
+   * Writes data to a single tablet until the total written data size exceeds 2 * TSERV_WAL_MAX_SIZE
+   */
+  private void writeData(AccumuloClient client, String table) throws Exception {
     try (BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig())) {
-      for (int r = startRow; r < endRow; r++) {
-        Mutation m = new Mutation(String.format("row_%07d", r));
-        m.put("cf", "cq", String.format("val_%d", r));
+      long totalWritten = 0;
+      while (totalWritten < 2 * hdfsMinBlockSize) {
+        Mutation m = new Mutation("target_row");
+        m.put("cf", "cq", "value");
         bw.addMutation(m);
+        totalWritten += m.estimatedMemoryUsed();
       }
     }
   }
