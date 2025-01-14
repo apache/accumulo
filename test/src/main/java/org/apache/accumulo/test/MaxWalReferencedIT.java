@@ -19,11 +19,8 @@
 package org.apache.accumulo.test;
 
 import java.time.Duration;
-import java.util.List;
-import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -33,7 +30,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -100,7 +96,7 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
         writeData(client, tableName, startRow, endRow);
 
         // Check the current number of WALs in use
-        int walCount = getWalCount(getServerContext());
+        long walCount = getWalCount(getServerContext());
         log.info("After iteration {}, wrote rows [{}..{}), WAL count is {}", iteration, startRow,
             endRow, walCount);
         iteration.getAndIncrement();
@@ -131,13 +127,9 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
     }
   }
 
-  private int getWalCount(ServerContext context) throws Exception {
-    WalStateManager wals = new WalStateManager(context);
-    int total = 0;
-    for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
-      total += entry.getValue().size();
-    }
-    return total;
+  private long getWalCount(ServerContext context) throws Exception {
+    return new WalStateManager(context).getAllState().values().stream()
+        .filter(walState -> walState != WalStateManager.WalState.OPEN).count();
   }
 
 }
