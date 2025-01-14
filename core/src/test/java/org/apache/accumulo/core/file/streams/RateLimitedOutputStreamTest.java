@@ -38,7 +38,7 @@ public class RateLimitedOutputStreamTest {
     // Create variables for tracking behaviors of mock object
     AtomicLong rateLimiterPermitsAcquired = new AtomicLong();
     // Construct mock object
-    RateLimiter rateLimiter = EasyMock.niceMock(RateLimiter.class);
+    RateLimiter rateLimiter = EasyMock.createMock(RateLimiter.class);
     // Stub Mock Method
     rateLimiter.acquire(EasyMock.anyLong());
     EasyMock.expectLastCall()
