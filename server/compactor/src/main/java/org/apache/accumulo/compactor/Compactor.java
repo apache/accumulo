@@ -265,6 +265,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     } catch (KeeperException.NoAuthException e) {
       LOG.error("Failed to write to ZooKeeper. Ensure that"
           + " accumulo.properties, specifically instance.secret, is consistent.");
+      throw e;
     }
 
     compactorLock =
