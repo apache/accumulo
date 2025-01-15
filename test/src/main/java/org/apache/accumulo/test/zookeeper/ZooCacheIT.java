@@ -20,24 +20,19 @@ package org.apache.accumulo.test.zookeeper;
 
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.zookeeper.Watcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -70,10 +65,19 @@ public class ZooCacheIT {
 
   }
 
+  public static class TestZooCache extends ZooCache {
+
+    private static final ZooCacheTicker ticker = new ZooCacheTicker();
+
+    public TestZooCache(ZooSession zk, List<String> pathsToWatch) {
+      super(zk, pathsToWatch, ticker);
+    }
+
+  }
+
   private ZooKeeperTestingServer szk;
   private ZooSession zk;
   private ZooReaderWriter zrw;
-  private ZooCacheTicker ticker = new ZooCacheTicker();
 
   @TempDir
   private File tempDir;
@@ -85,7 +89,6 @@ public class ZooCacheIT {
     szk = new ZooKeeperTestingServer(tempDir);
     zk = szk.newClient();
     zrw = zk.asReaderWriter();
-    ZooCache.ticker = ticker;
   }
 
   @AfterEach
@@ -100,16 +103,9 @@ public class ZooCacheIT {
   @Test
   public void testGetChildren() throws Exception {
 
-    Set<String> watchesRemoved = Collections.synchronizedSet(new HashSet<>());
-    ZooCacheWatcher watcher = event -> {
-      if (event.getType() == Watcher.Event.EventType.ChildWatchRemoved
-          || event.getType() == Watcher.Event.EventType.DataWatchRemoved) {
-        watchesRemoved.add(event.getPath());
-      }
-    };
     final String root = Constants.ZROOT + UUID.randomUUID().toString();
-    ZooCache zooCache = new ZooCache(zk, root, watcher);
     final String base = root + Constants.ZTSERVERS;
+    TestZooCache zooCache = new TestZooCache(zk, List.of(base));
 
     zrw.mkdirs(base + "/test2");
     zrw.mkdirs(base + "/test3/c1");
@@ -148,7 +144,6 @@ public class ZooCacheIT {
     assertEquals(List.of(), zooCache.getChildren(base + "/test1"));
     assertEquals(List.of(), zooCache.getChildren(base + "/test2"));
     assertEquals(Set.of("c1", "c2"), Set.copyOf(zooCache.getChildren(base + "/test3")));
-    assertEquals(uc5, zooCache.getUpdateCount());
     long uc5b = zooCache.getUpdateCount();
     assertTrue(uc5 < uc5b);
 
@@ -223,16 +218,14 @@ public class ZooCacheIT {
     assertEquals(uc10, zooCache.getUpdateCount());
 
     // wait for the cache to evict and clear watches
-    ticker.advance();
+    TestZooCache.ticker.advance();
     Wait.waitFor(() -> {
       // the cache will not run its eviction handler unless accessed, so access something that is
       // not expected to be evicted
       zooCache.getChildren(base + "/test4");
-      return watchesRemoved.equals(Set.of("/test1", "/test2", "/test3"));
+      return zooCache.childrenCached(base + "/test1") == false
+          && zooCache.childrenCached(base + "/test2") == false
+          && zooCache.childrenCached(base + "/test3") == false;
     });
-
-    assertFalse(zooCache.childrenCached(base + "/test1"));
-    assertFalse(zooCache.childrenCached(base + "/test2"));
-    assertFalse(zooCache.childrenCached(base + "/test3"));
   }
 }

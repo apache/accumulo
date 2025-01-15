@@ -53,15 +53,14 @@ public class ZooCacheTest {
    */
   private static class TestZooCache extends ZooCache {
 
-    public TestZooCache(ZooSession zk, String root, ZooCacheWatcher... watchers) {
-      super(zk, root, watchers);
+    public TestZooCache(ZooSession zk, List<String> pathsToWatch) {
+      super(zk, pathsToWatch);
     }
 
     @Override
-    protected void setupWatchers(String zooRoot) {
-      for (String path : ALLOWED_PATHS) {
-        final String zPath = zooRoot + path;
-        watchedPaths.add(zPath);
+    protected void setupWatchers(List<String> pathsToWatch) {
+      for (String path : pathsToWatch) {
+        watchedPaths.add(path);
       }
     }
 
@@ -72,8 +71,8 @@ public class ZooCacheTest {
 
   }
 
-  private static final String instancePath = Constants.ZROOT + "/" + UUID.randomUUID().toString();
-  private static final String root = instancePath + Constants.ZTSERVERS;
+  private static final String root =
+      Constants.ZROOT + "/" + UUID.randomUUID().toString() + Constants.ZTSERVERS;
   private static final String ZPATH = root + "/testPath";
   private static final byte[] DATA = {(byte) 1, (byte) 2, (byte) 3, (byte) 4};
   private static final List<String> CHILDREN = java.util.Arrays.asList("huey", "dewey", "louie");
@@ -84,7 +83,7 @@ public class ZooCacheTest {
   @BeforeEach
   public void setUp() {
     zk = createStrictMock(ZooSession.class);
-    zc = new TestZooCache(zk, instancePath);
+    zc = new TestZooCache(zk, List.of(root));
   }
 
   @Test
@@ -314,7 +313,8 @@ public class ZooCacheTest {
     WatchedEvent event =
         new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
-    zc = new TestZooCache(zk, instancePath, exw);
+    zc = new TestZooCache(zk, List.of(root));
+    zc.addZooCacheWatcher(exw);
 
     watchData(initialData);
     zc.executeWatcher(event);
@@ -424,7 +424,8 @@ public class ZooCacheTest {
   private void testWatchDataNode_Clear(Watcher.Event.KeeperState state) throws Exception {
     WatchedEvent event = new WatchedEvent(Watcher.Event.EventType.None, state, null);
     TestWatcher exw = new TestWatcher(event);
-    zc = new TestZooCache(zk, instancePath, exw);
+    zc = new TestZooCache(zk, List.of(root));
+    zc.addZooCacheWatcher(exw);
 
     watchData(DATA);
     assertTrue(zc.dataCached(ZPATH));
@@ -440,7 +441,7 @@ public class ZooCacheTest {
 
   @Test
   public void testWatchChildrenNode_ChildrenChanged() throws Exception {
-    testWatchChildrenNode(CHILDREN, Watcher.Event.EventType.NodeChildrenChanged, false);
+    testWatchChildrenNode(CHILDREN, Watcher.Event.EventType.NodeChildrenChanged, true);
   }
 
   @Test
@@ -458,7 +459,8 @@ public class ZooCacheTest {
     WatchedEvent event =
         new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
-    zc = new TestZooCache(zk, instancePath, exw);
+    zc = new TestZooCache(zk, List.of(root));
+    zc.addZooCacheWatcher(exw);
 
     watchChildren(initialChildren);
     zc.executeWatcher(event);

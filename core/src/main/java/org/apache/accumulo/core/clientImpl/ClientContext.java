@@ -48,6 +48,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -235,7 +236,8 @@ public class ClientContext implements AccumuloClient {
       return zk;
     });
 
-    this.zooCache = memoize(() -> new ZooCache(getZooSession(), ZooUtil.getRoot(getInstanceID())));
+    this.zooCache = memoize(() -> new ZooCache(getZooSession(),
+        ZooCache.createPersistentWatcherPaths(ZooUtil.getRoot(getInstanceID()))));
     this.accumuloConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), 100, MILLISECONDS);
@@ -1063,7 +1065,8 @@ public class ClientContext implements AccumuloClient {
       // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
       var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName()).get();
       String zkRoot = getZooKeeperRoot();
-      this.zkLockChecker = new ZookeeperLockChecker(new ZooCache(zk, zkRoot), zkRoot);
+      this.zkLockChecker =
+          new ZookeeperLockChecker(new ZooCache(zk, List.of(zkRoot + Constants.ZTSERVERS)), zkRoot);
     }
     return this.zkLockChecker;
   }

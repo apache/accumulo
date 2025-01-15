@@ -47,7 +47,7 @@ public class CacheTestReader {
     myfile.deleteOnExit();
 
     try (var zk = new ZooSession(CacheTestReader.class.getSimpleName(), keepers, 30_000, null)) {
-      ZooCache zc = new ZooCache(zk, "/");
+      ZooCache zc = new ZooCache(zk, List.of("/"));
 
       while (true) {
         if (myfile.exists() && !myfile.delete()) {

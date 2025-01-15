@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -55,8 +56,6 @@ import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
  */
@@ -66,10 +65,16 @@ public class ZooCache {
 
   private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
 
-  protected static final String[] ALLOWED_PATHS = new String[] {Constants.ZCOMPACTORS,
-      Constants.ZDEADTSERVERS, Constants.ZGC_LOCK, Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK,
-      Constants.ZMONITOR_LOCK, Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS,
-      Constants.ZTABLES, Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET};
+  public static List<String> createPersistentWatcherPaths(String zkRoot) {
+    List<String> pathsToWatch = new ArrayList<>();
+    for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
+        Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
+        Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
+        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET)) {
+      pathsToWatch.add(zkRoot + path);
+    }
+    return pathsToWatch;
+  }
 
   protected final TreeSet<String> watchedPaths = new TreeSet<>();
   // visible for tests
@@ -82,23 +87,15 @@ public class ZooCache {
 
   public static final Duration CACHE_DURATION = Duration.ofMinutes(30);
 
-  // public and non-final because this is being set
-  // in tests to test the eviction
-  @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL",
-      justification = "being set in tests for eviction test")
-  public static Ticker ticker = Ticker.systemTicker();
-
   // Construct this here, otherwise end up with NPE in some cases
   // when the Watcher tries to access nodeCache. Alternative would
   // be to mark nodeCache as volatile.
-  private final Cache<String,ZcNode> cache =
-      Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false).ticker(ticker)
-          .expireAfterAccess(CACHE_DURATION).build();
+  private final Cache<String,ZcNode> cache;
 
   // The concurrent map returned by Caffiene will only allow one thread to run at a time for a given
   // key and ZooCache relies on that. Not all concurrent map implementations have this behavior for
   // their compute functions.
-  private final ConcurrentMap<String,ZcNode> nodeCache = cache.asMap();
+  private final ConcurrentMap<String,ZcNode> nodeCache;
 
   private final ZooSession zk;
 
@@ -140,18 +137,25 @@ public class ZooCache {
     @Override
     public void process(WatchedEvent event) {
       if (log.isTraceEnabled()) {
-        log.trace("{} {}: {}", cacheId, event.getType(), event);
+        log.trace("{}: {}", cacheId, event);
       }
 
       switch (event.getType()) {
-        case NodeDataChanged:
         case NodeChildrenChanged:
-        case NodeCreated:
-        case NodeDeleted:
+          // According to documentation we should not receive this event.
+          // According to https://issues.apache.org/jira/browse/ZOOKEEPER-4475 we
+          // may receive this event (Fixed in 3.9.0)
+          break;
         case ChildWatchRemoved:
         case DataWatchRemoved:
-          // This code use to call remove(path), but that was when a Watcher was set
-          // on each node. With the Watcher being set at a higher level we need to remove
+          // We don't need to do anything with the cache on these events.
+          break;
+        case NodeDataChanged:
+          clear(path -> path.equals(event.getPath()));
+          break;
+        case NodeCreated:
+        case NodeDeleted:
+          // With the Watcher being set at a higher level we need to remove
           // the parent of the affected node and all of its children from the cache
           // so that the parent and children node can be re-cached. If we only remove the
           // affected node, then the cached children in the parent could be incorrect.
@@ -193,12 +197,34 @@ public class ZooCache {
     }
   }
 
-  public ZooCache(ZooSession zk, String root, ZooCacheWatcher... watchers) {
+  /**
+   * Creates a ZooCache instance that uses the supplied ZooSession for communicating with the
+   * instance's ZooKeeper servers. The ZooCache will create persistent watchers at the given
+   * pathsToWatch, if any, to be updated when changes are made in ZooKeeper for nodes at or below in
+   * the tree. If ZooCacheWatcher's are added via {@code addZooCacheWatcher}, then they will be
+   * notified when this object is notified of changes via the PersistentWatcher callback.
+   *
+   * @param zk ZooSession for this instance
+   * @param pathsToWatch Paths in ZooKeeper to watch
+   */
+  public ZooCache(ZooSession zk, List<String> pathsToWatch) {
     this.zk = requireNonNull(zk);
-    for (ZooCacheWatcher zcw : watchers) {
-      externalWatchers.add(zcw);
-    }
-    setupWatchers(requireNonNull(root));
+    this.cache = Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
+        .ticker(Ticker.systemTicker()).expireAfterAccess(CACHE_DURATION).build();
+    this.nodeCache = cache.asMap();
+
+    setupWatchers(requireNonNull(pathsToWatch));
+    log.trace("{} created new cache", cacheId, new Exception());
+  }
+
+  // for tests that use a Ticker
+  public ZooCache(ZooSession zk, List<String> pathsToWatch, Ticker ticker) {
+    this.zk = requireNonNull(zk);
+    this.cache = Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
+        .ticker(requireNonNull(ticker)).expireAfterAccess(CACHE_DURATION).build();
+    this.nodeCache = cache.asMap();
+
+    setupWatchers(requireNonNull(pathsToWatch));
     log.trace("{} created new cache", cacheId, new Exception());
   }
 
@@ -207,13 +233,12 @@ public class ZooCache {
   }
 
   // Visible for testing
-  protected void setupWatchers(String zooRoot) {
+  protected void setupWatchers(List<String> pathsToWatch) {
     try {
-      for (String path : ALLOWED_PATHS) {
-        final String zPath = zooRoot + path;
-        watchedPaths.add(zPath);
-        zk.addPersistentRecursiveWatcher(zPath, this.watcher);
-        log.trace("Added persistent recursive watcher at {}", zPath);
+      for (String path : pathsToWatch) {
+        watchedPaths.add(path);
+        zk.addPersistentRecursiveWatcher(path, this.watcher);
+        log.trace("Added persistent recursive watcher at {}", path);
       }
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error setting up persistent recursive watcher", e);
@@ -558,7 +583,6 @@ public class ZooCache {
       return testResult;
     };
     nodeCache.keySet().removeIf(pathPredicateWrapper);
-    updateCount.incrementAndGet();
   }
 
   /**
