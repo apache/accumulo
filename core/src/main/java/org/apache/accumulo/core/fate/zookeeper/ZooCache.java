@@ -234,6 +234,15 @@ public class ZooCache {
 
   // Visible for testing
   protected void setupWatchers(List<String> pathsToWatch) {
+    for (String left : pathsToWatch) {
+      for (String right : pathsToWatch) {
+        if (left != right && left.contains(right)) {
+          throw new IllegalArgumentException(
+              "Overlapping paths found in paths to watch: " + pathsToWatch);
+        }
+      }
+    }
+
     try {
       for (String path : pathsToWatch) {
         watchedPaths.add(path);

@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -84,6 +85,12 @@ public class ZooCacheTest {
   public void setUp() {
     zk = createStrictMock(ZooSession.class);
     zc = new TestZooCache(zk, List.of(root));
+  }
+
+  @Test
+  public void testOverlappingPaths() {
+    assertThrows(IllegalArgumentException.class,
+        () -> new ZooCache(zk, List.of(root, root + "/localhost:9995")));
   }
 
   @Test
