@@ -236,7 +236,7 @@ public class ZooCache {
   protected void setupWatchers(List<String> pathsToWatch) {
     for (String left : pathsToWatch) {
       for (String right : pathsToWatch) {
-        if (left != right && left.contains(right)) {
+        if (left.equals(right) && left.contains(right)) {
           throw new IllegalArgumentException(
               "Overlapping paths found in paths to watch: " + pathsToWatch);
         }
@@ -582,7 +582,6 @@ public class ZooCache {
    */
   public void clear(Predicate<String> pathPredicate) {
     Preconditions.checkState(!closed);
-
     Predicate<String> pathPredicateWrapper = path -> {
       boolean testResult = isWatchedPath(path) && pathPredicate.test(path);
       if (testResult) {

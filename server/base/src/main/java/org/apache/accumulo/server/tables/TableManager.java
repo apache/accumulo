@@ -285,11 +285,13 @@ public class TableManager {
         case NodeCreated:
         case NodeDataChanged:
           // state transition
-          TableState tState = updateTableStateCache(tableId);
-          log.debug("State transition to {} @ {}", tState, event);
-          synchronized (observers) {
-            for (TableObserver to : observers) {
-              to.stateChanged(tableId, tState);
+          if (tableId != null) {
+            TableState tState = updateTableStateCache(tableId);
+            log.debug("State transition to {} @ {}", tState, event);
+            synchronized (observers) {
+              for (TableObserver to : observers) {
+                to.stateChanged(tableId, tState);
+              }
             }
           }
           break;

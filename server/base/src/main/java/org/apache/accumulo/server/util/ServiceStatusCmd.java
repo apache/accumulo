@@ -183,30 +183,6 @@ public class ServiceStatusCmd {
   }
 
   /**
-   * Read the node names from ZooKeeper. Exceptions are counted but ignored.
-   *
-   * @return Result with error count, Set of the node names.
-   */
-  @VisibleForTesting
-  Result<Set<String>> readNodeNames(final ZooReader zooReader, final String path) {
-    Set<String> nodeNames = new TreeSet<>();
-    final AtomicInteger errorCount = new AtomicInteger(0);
-    try {
-      var children = zooReader.getChildren(path);
-      if (children != null) {
-        nodeNames.addAll(children);
-      }
-    } catch (KeeperException | InterruptedException ex) {
-      if (Thread.currentThread().isInterrupted()) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException(ex);
-      }
-      errorCount.incrementAndGet();
-    }
-    return new Result<>(errorCount.get(), nodeNames);
-  }
-
-  /**
    * Read the data from a ZooKeeper node, tracking if an error occurred. ZooKeeper's exceptions are
    * counted but otherwise ignored.
    *
