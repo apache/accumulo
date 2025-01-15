@@ -39,7 +39,7 @@ public class TabletServerLocks {
       throws Exception {
 
     ZooCache cache = context.getZooCache();
-    ZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
 
     if (delete == null) {
       Set<ServiceLockPath> tabletServers =

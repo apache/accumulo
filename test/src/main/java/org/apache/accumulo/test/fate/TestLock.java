@@ -25,11 +25,11 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,10 +62,10 @@ public class TestLock {
    * See similar {@link TestLock#createDummyLockID()}
    */
   public ServiceLock createTestLock(ServerContext context) throws InterruptedException {
-    var zk = context.getZooReaderWriter().getZooKeeper();
+    var zk = context.getZooSession();
     UUID uuid = UUID.randomUUID();
     ServiceLockPaths.ServiceLockPath slp = context.getServerPaths().createTestLockPath();
-    ServiceLock lock = new ServiceLock(context.getZooReaderWriter().getZooKeeper(), slp, uuid);
+    ServiceLock lock = new ServiceLock(zk, slp, uuid);
     TestLockWatcher lw = new TestLockWatcher();
     ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
     descriptors
@@ -76,14 +76,9 @@ public class TestLock {
     String parentLockPath = lockPath.substring(0, lockPath.lastIndexOf("/"));
 
     try {
-      if (zk.exists(parentLockPath, false) == null) {
-        zk.create(parentLockPath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
-        log.info("Created: {}", parentLockPath);
-      }
-      if (zk.exists(lockPath, false) == null) {
-        zk.create(lockPath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
-        log.info("Created: {}", lockPath);
-      }
+      var zrw = zk.asReaderWriter();
+      zrw.putPersistentData(parentLockPath, new byte[0], NodeExistsPolicy.SKIP);
+      zrw.putPersistentData(lockPath, new byte[0], NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Error creating path in ZooKeeper", e);
     }

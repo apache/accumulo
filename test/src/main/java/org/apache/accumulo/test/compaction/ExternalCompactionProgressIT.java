@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.compaction;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
@@ -194,7 +194,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           }
           TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(s);
           final String metricName = metric.getName();
-          if (!metricName.startsWith("accumulo.compactor.entries")) {
+          if (!metricName.startsWith("accumulo.compaction.entries")) {
             continue;
           }
           int value = Integer.parseInt(metric.getValue());
@@ -335,7 +335,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
         RunningCompactionInfo rci = new RunningCompactionInfo(ec);
         RunningCompactionInfo previousRci = runningMap.put(ecid, rci);
         log.debug("ECID {} has been running for {} seconds", ecid,
-            NANOSECONDS.toSeconds(rci.duration));
+            MILLISECONDS.toSeconds(rci.duration));
         if (previousRci == null) {
           log.debug("New ECID {} with inputFiles: {}", ecid, rci.numFiles);
         } else {

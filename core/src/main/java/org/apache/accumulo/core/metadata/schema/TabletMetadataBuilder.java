@@ -30,6 +30,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGEABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
@@ -309,6 +310,14 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
   public TabletMetadataBuilder putCloned() {
     fetched.add(CLONED);
     internalBuilder.putCloned();
+    return this;
+  }
+
+  @Override
+  public TabletMetadataBuilder
+      putTabletMergeability(TabletMergeabilityMetadata tabletMergeability) {
+    fetched.add(MERGEABILITY);
+    internalBuilder.putTabletMergeability(tabletMergeability);
     return this;
   }
 

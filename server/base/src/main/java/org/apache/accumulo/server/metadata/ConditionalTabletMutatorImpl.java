@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -45,6 +46,7 @@ import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedFilesIterator;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletMutator;
@@ -64,6 +66,8 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.metadata.iterators.ColumnFamilySizeLimitIterator;
+import org.apache.accumulo.server.metadata.iterators.DisjointCompactionIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
 import org.apache.accumulo.server.metadata.iterators.SetEncodingIterator;
 import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
@@ -83,17 +87,20 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   private final ServerContext context;
   private final ServiceLock lock;
   private final KeyExtent extent;
+  private final BiConsumer<KeyExtent,Supplier<String>> descriptionConsumer;
 
   private boolean sawOperationRequirement = false;
   private boolean checkPrevEndRow = true;
 
   protected ConditionalTabletMutatorImpl(ServerContext context, KeyExtent extent,
       Consumer<ConditionalMutation> mutationConsumer,
-      BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer) {
+      BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer,
+      BiConsumer<KeyExtent,Supplier<String>> descriptionConsumer) {
     super(new ConditionalMutation(extent.toMetaRow()));
     this.mutation = (ConditionalMutation) super.mutation;
     this.mutationConsumer = mutationConsumer;
     this.rejectionHandlerConsumer = rejectionHandlerConsumer;
+    this.descriptionConsumer = descriptionConsumer;
     this.extent = extent;
     this.context = context;
     this.lock = this.context.getServiceLock();
@@ -345,6 +352,32 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
+  public ConditionalTabletMutator requireLessOrEqualsFiles(long limit) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition c = ColumnFamilySizeLimitIterator.createCondition(DataFileColumnFamily.NAME, limit);
+    mutation.addCondition(c);
+    return this;
+  }
+
+  @Override
+  public ConditionalTabletMutator requireAbsentLoaded(Set<ReferencedTabletFile> files) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    for (ReferencedTabletFile file : files) {
+      Condition c = new Condition(BulkFileColumnFamily.STR_NAME, file.insert().getMetadata());
+      mutation.addCondition(c);
+    }
+    return this;
+  }
+
+  @Override
+  public ConditionalTabletMutator requireNotCompacting(Set<StoredTabletFile> files) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition condition = DisjointCompactionIterator.createCondition(files);
+    mutation.addCondition(condition);
+    return this;
+  }
+
+  @Override
   public void submit(Ample.RejectionHandler rejectionCheck) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Preconditions.checkState(sawOperationRequirement, "No operation requirements were seen");
@@ -360,5 +393,11 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     getMutation();
     mutationConsumer.accept(mutation);
     rejectionHandlerConsumer.accept(extent, rejectionCheck);
+  }
+
+  @Override
+  public void submit(Ample.RejectionHandler rejectionHandler, Supplier<String> description) {
+    descriptionConsumer.accept(extent, description);
+    this.submit(rejectionHandler);
   }
 }

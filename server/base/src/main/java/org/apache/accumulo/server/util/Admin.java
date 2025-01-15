@@ -37,16 +37,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -77,7 +74,6 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
@@ -86,7 +82,6 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -100,6 +95,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.tables.TableMap;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -113,17 +109,13 @@ import org.apache.accumulo.server.util.checkCommand.TableLocksCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.UserFilesCheckRunner;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -615,7 +607,8 @@ public class Admin implements KeywordExecutable {
     try {
       flusher.join(3000);
     } catch (InterruptedException e) {
-      // ignore
+      Thread.currentThread().interrupt();
+      log.warn("Interrupted while waiting to join Flush thread", e);
     }
 
     while (flusher.isAlive() && System.currentTimeMillis() - start < 15000) {
@@ -623,13 +616,22 @@ public class Admin implements KeywordExecutable {
       try {
         flusher.join(1000);
       } catch (InterruptedException e) {
-        // ignore
+        Thread.currentThread().interrupt();
+        log.warn("Interrupted while waiting to join Flush thread", e);
       }
 
       if (flushCount == flushesStarted.get()) {
         // no progress was made while waiting for join... maybe its stuck, stop waiting on it
         break;
       }
+    }
+
+    flusher.interrupt();
+    try {
+      flusher.join();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      log.warn("Interrupted while waiting to join Flush thread", e);
     }
   }
 
@@ -922,7 +924,7 @@ public class Admin implements KeywordExecutable {
     final String zkRoot = context.getZooKeeperRoot();
     var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     String fateZkPath = zkRoot + Constants.ZFATE;
-    ZooReaderWriter zk = context.getZooReaderWriter();
+    var zk = context.getZooSession();
     ServiceLock adminLock = null;
     Map<FateInstanceType,FateStore<Admin>> fateStores;
     Map<FateInstanceType,ReadOnlyFateStore<Admin>> readOnlyFateStores = null;
@@ -977,7 +979,7 @@ public class Admin implements KeywordExecutable {
   }
 
   private Map<FateInstanceType,FateStore<Admin>> createFateStores(ServerContext context,
-      ZooReaderWriter zk, String fateZkPath, ServiceLock adminLock)
+      ZooSession zk, String fateZkPath, ServiceLock adminLock)
       throws InterruptedException, KeeperException {
     var lockId = adminLock.getLockID();
     MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk, lockId, null);
@@ -987,7 +989,7 @@ public class Admin implements KeywordExecutable {
   }
 
   private Map<FateInstanceType,ReadOnlyFateStore<Admin>>
-      createReadOnlyFateStores(ServerContext context, ZooReaderWriter zk, String fateZkPath)
+      createReadOnlyFateStores(ServerContext context, ZooSession zk, String fateZkPath)
           throws InterruptedException, KeeperException {
     MetaFateStore<Admin> readOnlyMFS = new MetaFateStore<>(fateZkPath, zk, null, null);
     UserFateStore<Admin> readOnlyUFS =
@@ -996,10 +998,10 @@ public class Admin implements KeywordExecutable {
   }
 
   private ServiceLock createAdminLock(ServerContext context) throws InterruptedException {
-    var zk = context.getZooReaderWriter().getZooKeeper();
+    var zk = context.getZooSession();
     UUID uuid = UUID.randomUUID();
     ServiceLockPath slp = context.getServerPaths().createAdminLockPath();
-    ServiceLock adminLock = new ServiceLock(context.getZooReaderWriter().getZooKeeper(), slp, uuid);
+    ServiceLock adminLock = new ServiceLock(zk, slp, uuid);
     AdminLockWatcher lw = new AdminLockWatcher();
     ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
     descriptors
@@ -1010,14 +1012,9 @@ public class Admin implements KeywordExecutable {
     String parentLockPath = lockPath.substring(0, lockPath.lastIndexOf("/"));
 
     try {
-      if (zk.exists(parentLockPath, false) == null) {
-        zk.create(parentLockPath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
-        log.info("Created: {} in ZooKeeper", parentLockPath);
-      }
-      if (zk.exists(lockPath, false) == null) {
-        zk.create(lockPath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
-        log.info("Created: {} in ZooKeeper", lockPath);
-      }
+      var zrw = zk.asReaderWriter();
+      zrw.putPersistentData(parentLockPath, new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
+      zrw.putPersistentData(lockPath, new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Error creating path in ZooKeeper", e);
     }
@@ -1073,7 +1070,7 @@ public class Admin implements KeywordExecutable {
       Map<FateInstanceType,ReadOnlyFateStore<Admin>> fateStores, ServiceLockPath tableLocksPath)
       throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
 
-    ZooReaderWriter zk = context.getZooReaderWriter();
+    var zk = context.getZooSession();
     var transactions = admin.getStatus(fateStores, zk, tableLocksPath, null, null, null);
 
     // build id map - relies on unique ids for tables and namespaces
@@ -1145,79 +1142,6 @@ public class Admin implements KeywordExecutable {
       }
     }
     return typesFilter;
-  }
-
-  private static long printDanglingFateOperations(ServerContext context, String tableName)
-      throws Exception {
-    long totalDanglingSeen = 0;
-    if (tableName == null) {
-      for (var dataLevel : Ample.DataLevel.values()) {
-        try (var tablets = context.getAmple().readTablets().forLevel(dataLevel).build()) {
-          totalDanglingSeen += printDanglingFateOperations(context, tablets);
-        }
-      }
-    } else {
-      var tableId = context.getTableId(tableName);
-      try (var tablets = context.getAmple().readTablets().forTable(tableId).build()) {
-        totalDanglingSeen += printDanglingFateOperations(context, tablets);
-      }
-    }
-
-    System.out.printf("\nFound %,d dangling references to fate operations\n", totalDanglingSeen);
-
-    return totalDanglingSeen;
-  }
-
-  private static long printDanglingFateOperations(ServerContext context,
-      Iterable<TabletMetadata> tablets) throws Exception {
-    Function<Collection<KeyExtent>,Map<KeyExtent,TabletMetadata>> tabletLookup = extents -> {
-      try (var lookedupTablets =
-          context.getAmple().readTablets().forTablets(extents, Optional.empty()).build()) {
-        Map<KeyExtent,TabletMetadata> tabletMap = new HashMap<>();
-        lookedupTablets
-            .forEach(tabletMetadata -> tabletMap.put(tabletMetadata.getExtent(), tabletMetadata));
-        return tabletMap;
-      }
-    };
-
-    UserFateStore<?> readOnlyUFS =
-        new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
-    MetaFateStore<?> readOnlyMFS = new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
-        context.getZooReaderWriter(), null, null);
-    LoadingCache<FateId,ReadOnlyFateStore.TStatus> fateStatusCache = Caffeine.newBuilder()
-        .maximumSize(100_000).expireAfterWrite(10, TimeUnit.SECONDS).build(fateId -> {
-          if (fateId.getType() == FateInstanceType.META) {
-            return readOnlyMFS.read(fateId).getStatus();
-          } else {
-            return readOnlyUFS.read(fateId).getStatus();
-          }
-        });
-
-    Predicate<FateId> activePredicate = fateId -> {
-      var status = fateStatusCache.get(fateId);
-      switch (status) {
-        case NEW:
-        case IN_PROGRESS:
-        case SUBMITTED:
-        case FAILED_IN_PROGRESS:
-          return true;
-        case FAILED:
-        case SUCCESSFUL:
-        case UNKNOWN:
-          return false;
-        default:
-          throw new IllegalStateException("Unexpected status: " + status);
-      }
-    };
-
-    AtomicLong danglingSeen = new AtomicLong();
-    BiConsumer<KeyExtent,Set<FateId>> danglingConsumer = (extent, fateIds) -> {
-      danglingSeen.addAndGet(fateIds.size());
-      fateIds.forEach(fateId -> System.out.println(fateId + " " + extent));
-    };
-
-    findDanglingFateOperations(tablets, tabletLookup, activePredicate, danglingConsumer, 10_000);
-    return danglingSeen.get();
   }
 
   /**

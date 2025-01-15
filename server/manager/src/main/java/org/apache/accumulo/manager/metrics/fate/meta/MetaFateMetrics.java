@@ -64,8 +64,7 @@ public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
   protected ReadOnlyFateStore<FateMetrics<MetaFateMetricValues>>
       buildReadOnlyStore(ServerContext context) {
     try {
-      return new MetaFateStore<>(getFateRootPath(context), context.getZooReaderWriter(), null,
-          null);
+      return new MetaFateStore<>(getFateRootPath(context), context.getZooSession(), null, null);
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);

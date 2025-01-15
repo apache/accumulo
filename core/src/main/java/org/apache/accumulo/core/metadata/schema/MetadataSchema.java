@@ -158,6 +158,10 @@ public class MetadataSchema {
       public static final String REQUESTED_QUAL = "requestToHost";
       public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
 
+      public static final String MERGEABILITY_QUAL = "mergeability";
+      public static final ColumnFQ MERGEABILITY_COLUMN =
+          new ColumnFQ(NAME, new Text(MERGEABILITY_QUAL));
+
       public static Value encodePrevEndRow(Text per) {
         if (per == null) {
           return new Value(new byte[] {0});

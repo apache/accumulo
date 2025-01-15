@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -392,6 +393,8 @@ public interface Ample {
 
     T putCloned();
 
+    T putTabletMergeability(TabletMergeabilityMetadata tabletMergeability);
+
     /**
      * By default the server lock is automatically added to mutations unless this method is set to
      * false.
@@ -521,6 +524,21 @@ public interface Ample {
     ConditionalTabletMutator requireFiles(Set<StoredTabletFile> files);
 
     /**
+     * Require that a tablet have less than or equals the specified number of files.
+     */
+    ConditionalTabletMutator requireLessOrEqualsFiles(long limit);
+
+    /**
+     * Requires that a tablet not have these loaded flags set.
+     */
+    ConditionalTabletMutator requireAbsentLoaded(Set<ReferencedTabletFile> files);
+
+    /**
+     * Requires the given set of files are not currently involved in any running compactions.
+     */
+    ConditionalTabletMutator requireNotCompacting(Set<StoredTabletFile> files);
+
+    /**
      * <p>
      * Ample provides the following features on top of the conditional writer to help automate
      * handling of edges cases that arise when using the conditional writer.
@@ -608,6 +626,16 @@ public interface Ample {
      *        let the rejected status carry forward in this case.
      */
     void submit(RejectionHandler rejectionHandler);
+
+    /**
+     * Overloaded version of {@link #submit(RejectionHandler)} that takes a short description of the
+     * operation to assist with debugging.
+     *
+     * @param rejectionHandler The rejection handler
+     * @param description A short description of the operation (e.g., "bulk import", "compaction")
+     */
+    void submit(RejectionHandler rejectionHandler, Supplier<String> description);
+
   }
 
   /**

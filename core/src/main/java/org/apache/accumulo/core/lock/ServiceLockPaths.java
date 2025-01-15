@@ -18,10 +18,11 @@
  */
 package org.apache.accumulo.core.lock;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,7 +34,6 @@ import java.util.concurrent.FutureTask;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.util.threads.ThreadPoolNames;
@@ -68,8 +68,8 @@ public class ServiceLockPaths {
      * Create a ServiceLockPath for a management process
      */
     private ServiceLockPath(String root, String type) {
-      Objects.requireNonNull(root);
-      this.type = Objects.requireNonNull(type);
+      requireNonNull(root);
+      this.type = requireNonNull(type);
       Preconditions.checkArgument(this.type.equals(Constants.ZGC_LOCK)
           || this.type.equals(Constants.ZMANAGER_LOCK) || this.type.equals(Constants.ZMONITOR_LOCK)
           || this.type.equals(Constants.ZTABLE_LOCKS) || this.type.equals(Constants.ZADMIN_LOCK)
@@ -85,13 +85,13 @@ public class ServiceLockPaths {
      * Create a ServiceLockPath for ZTABLE_LOCKS
      */
     private ServiceLockPath(String root, String type, String content) {
-      Objects.requireNonNull(root);
-      this.type = Objects.requireNonNull(type);
+      requireNonNull(root);
+      this.type = requireNonNull(type);
       Preconditions.checkArgument(
           this.type.equals(Constants.ZTABLE_LOCKS) || this.type.equals(Constants.ZMINI_LOCK),
           "Unsupported type: " + type);
       this.resourceGroup = null;
-      this.server = Objects.requireNonNull(content);
+      this.server = requireNonNull(content);
       this.path = root + this.type + "/" + this.server;
     }
 
@@ -99,14 +99,14 @@ public class ServiceLockPaths {
      * Create a ServiceLockPath for a worker process
      */
     private ServiceLockPath(String root, String type, String resourceGroup, String server) {
-      Objects.requireNonNull(root);
-      this.type = Objects.requireNonNull(type);
+      requireNonNull(root);
+      this.type = requireNonNull(type);
       Preconditions.checkArgument(
           this.type.equals(Constants.ZCOMPACTORS) || this.type.equals(Constants.ZSSERVERS)
               || this.type.equals(Constants.ZTSERVERS) || this.type.equals(Constants.ZDEADTSERVERS),
           "Unsupported type: " + type);
-      this.resourceGroup = Objects.requireNonNull(resourceGroup);
-      this.server = Objects.requireNonNull(server);
+      this.resourceGroup = requireNonNull(resourceGroup);
+      this.server = requireNonNull(server);
       this.path = root + this.type + "/" + this.resourceGroup + "/" + this.server;
     }
 
@@ -185,10 +185,12 @@ public class ServiceLockPaths {
 
   private final ExecutorService fetchExectuor;
 
-  private final ClientContext ctx;
+  private final String zkRoot;
+  private final ZooCache zooCache;
 
-  public ServiceLockPaths(ClientContext context) {
-    this.ctx = context;
+  public ServiceLockPaths(String zkRoot, ZooCache zc) {
+    this.zkRoot = requireNonNull(zkRoot);
+    this.zooCache = requireNonNull(zc);
     this.fetchExectuor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(ThreadPoolNames.SERVICE_LOCK_POOL).numCoreThreads(16).build();
   }
@@ -224,8 +226,8 @@ public class ServiceLockPaths {
    * Parse a ZooKeeper path string and return a ServiceLockPath
    */
   public static ServiceLockPath parse(Optional<String> serverType, String path) {
-    Objects.requireNonNull(serverType);
-    Objects.requireNonNull(path);
+    requireNonNull(serverType);
+    requireNonNull(path);
 
     final String type = serverType.orElseGet(() -> determineServerType(path));
 
@@ -260,56 +262,56 @@ public class ServiceLockPaths {
   }
 
   public ServiceLockPath createGarbageCollectorPath() {
-    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZGC_LOCK);
+    return new ServiceLockPath(zkRoot, Constants.ZGC_LOCK);
   }
 
   public ServiceLockPath createManagerPath() {
-    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZMANAGER_LOCK);
+    return new ServiceLockPath(zkRoot, Constants.ZMANAGER_LOCK);
   }
 
   public ServiceLockPath createMiniPath(String miniUUID) {
-    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZMINI_LOCK, miniUUID);
+    return new ServiceLockPath(zkRoot, Constants.ZMINI_LOCK, miniUUID);
   }
 
   public ServiceLockPath createMonitorPath() {
-    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZMONITOR_LOCK);
+    return new ServiceLockPath(zkRoot, Constants.ZMONITOR_LOCK);
   }
 
   public ServiceLockPath createCompactorPath(String resourceGroup, HostAndPort serverAddress) {
-    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZCOMPACTORS, resourceGroup,
+    return new ServiceLockPath(zkRoot, Constants.ZCOMPACTORS, resourceGroup,
         serverAddress.toString());
   }
 
   public ServiceLockPath createScanServerPath(String resourceGroup, HostAndPort serverAddress) {
-    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZSSERVERS, resourceGroup,
+    return new ServiceLockPath(zkRoot, Constants.ZSSERVERS, resourceGroup,
         serverAddress.toString());
   }
 
   public ServiceLockPath createTableLocksPath() {
-    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZTABLE_LOCKS);
+    return new ServiceLockPath(zkRoot, Constants.ZTABLE_LOCKS);
   }
 
   public ServiceLockPath createTableLocksPath(String tableId) {
-    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZTABLE_LOCKS, tableId);
+    return new ServiceLockPath(zkRoot, Constants.ZTABLE_LOCKS, tableId);
   }
 
   public ServiceLockPath createTabletServerPath(String resourceGroup, HostAndPort serverAddress) {
-    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZTSERVERS, resourceGroup,
+    return new ServiceLockPath(zkRoot, Constants.ZTSERVERS, resourceGroup,
         serverAddress.toString());
   }
 
   public ServiceLockPath createDeadTabletServerPath(String resourceGroup,
       HostAndPort serverAddress) {
-    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZDEADTSERVERS, resourceGroup,
+    return new ServiceLockPath(zkRoot, Constants.ZDEADTSERVERS, resourceGroup,
         serverAddress.toString());
   }
 
   public ServiceLockPath createAdminLockPath() {
-    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZADMIN_LOCK);
+    return new ServiceLockPath(zkRoot, Constants.ZADMIN_LOCK);
   }
 
   public ServiceLockPath createTestLockPath() {
-    return new ServiceLockPath(ctx.getZooKeeperRoot(), Constants.ZTEST_LOCK);
+    return new ServiceLockPath(zkRoot, Constants.ZTEST_LOCK);
   }
 
   public Set<ServiceLockPath> getCompactor(ResourceGroupPredicate resourceGroupPredicate,
@@ -436,13 +438,12 @@ public class ServiceLockPaths {
       ResourceGroupPredicate resourceGroupPredicate, AddressSelector addressSelector,
       boolean withLock) {
 
-    Objects.requireNonNull(serverType);
-    Objects.requireNonNull(resourceGroupPredicate);
-    Objects.requireNonNull(addressSelector);
+    requireNonNull(serverType);
+    requireNonNull(resourceGroupPredicate);
+    requireNonNull(addressSelector);
 
     final Set<ServiceLockPath> results = ConcurrentHashMap.newKeySet();
-    final String typePath = ctx.getZooKeeperRoot() + serverType;
-    final ZooCache cache = ctx.getZooCache();
+    final String typePath = zkRoot + serverType;
 
     if (serverType.equals(Constants.ZGC_LOCK) || serverType.equals(Constants.ZMANAGER_LOCK)
         || serverType.equals(Constants.ZMONITOR_LOCK)) {
@@ -451,14 +452,14 @@ public class ServiceLockPaths {
       if (!withLock) {
         results.add(slp);
       } else {
-        Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
+        Optional<ServiceLockData> sld = ServiceLock.getLockData(zooCache, slp, stat);
         if (!sld.isEmpty()) {
           results.add(slp);
         }
       }
     } else if (serverType.equals(Constants.ZCOMPACTORS) || serverType.equals(Constants.ZSSERVERS)
         || serverType.equals(Constants.ZTSERVERS) || serverType.equals(Constants.ZDEADTSERVERS)) {
-      final List<String> resourceGroups = cache.getChildren(typePath);
+      final List<String> resourceGroups = zooCache.getChildren(typePath);
       for (final String group : resourceGroups) {
         if (resourceGroupPredicate.test(group)) {
           final Collection<String> servers;
@@ -466,7 +467,7 @@ public class ServiceLockPaths {
 
           if (addressSelector.getExactAddress() != null) {
             var server = addressSelector.getExactAddress().toString();
-            if (withLock || cache.get(typePath + "/" + group + "/" + server) != null) {
+            if (withLock || zooCache.get(typePath + "/" + group + "/" + server) != null) {
               // When withLock is true the server in the list may not exist in zookeeper, if it does
               // not exist then no lock will be found later when looking for a lock in zookeeper.
               servers = List.of(server);
@@ -475,7 +476,7 @@ public class ServiceLockPaths {
             }
             addressPredicate = s -> true;
           } else {
-            servers = cache.getChildren(typePath + "/" + group);
+            servers = zooCache.getChildren(typePath + "/" + group);
             addressPredicate = addressSelector.getPredicate();
           }
 
@@ -499,7 +500,7 @@ public class ServiceLockPaths {
                 // connection at the same time though.
                 var futureTask = new FutureTask<>(() -> {
                   final ZcStat stat = new ZcStat();
-                  Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, slp, stat);
+                  Optional<ServiceLockData> sld = ServiceLock.getLockData(zooCache, slp, stat);
                   if (sld.isPresent()) {
                     results.add(slp);
                   }

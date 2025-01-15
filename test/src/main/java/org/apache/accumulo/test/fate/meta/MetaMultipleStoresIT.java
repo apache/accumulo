@@ -21,13 +21,11 @@ package org.apache.accumulo.test.fate.meta;
 import java.io.File;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.test.fate.FateStoreUtil;
 import org.apache.accumulo.test.fate.MultipleStoresIT;
-import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,21 +33,16 @@ import org.junit.jupiter.api.io.TempDir;
 
 public class MetaMultipleStoresIT extends MultipleStoresIT {
   @TempDir
-  private static File TEMP_DIR;
-  private static ZooKeeperTestingServer SZK;
-  private static ZooReaderWriter ZK;
-  private static String FATE_DIR;
+  private static File tempDir;
 
   @BeforeAll
   public static void setup() throws Exception {
-    SZK = new ZooKeeperTestingServer(TEMP_DIR);
-    ZK = SZK.getZooReaderWriter();
-    FATE_DIR = Constants.ZFATE;
+    FateStoreUtil.MetaFateZKSetup.setup(tempDir);
   }
 
   @AfterAll
   public static void teardown() throws Exception {
-    SZK.close();
+    FateStoreUtil.MetaFateZKSetup.teardown();
   }
 
   @Override
@@ -68,7 +61,8 @@ public class MetaMultipleStoresIT extends MultipleStoresIT {
     @Override
     public FateStore<SleepingTestEnv> create(ZooUtil.LockID lockID,
         Predicate<ZooUtil.LockID> isLockHeld) throws InterruptedException, KeeperException {
-      return new MetaFateStore<>(FATE_DIR, ZK, lockID, isLockHeld);
+      return new MetaFateStore<>(FateStoreUtil.MetaFateZKSetup.getZkFatePath(),
+          FateStoreUtil.MetaFateZKSetup.getZk(), lockID, isLockHeld);
     }
   }
 
@@ -76,7 +70,8 @@ public class MetaMultipleStoresIT extends MultipleStoresIT {
     @Override
     public FateStore<LatchTestEnv> create(ZooUtil.LockID lockID,
         Predicate<ZooUtil.LockID> isLockHeld) throws InterruptedException, KeeperException {
-      return new MetaFateStore<>(FATE_DIR, ZK, lockID, isLockHeld);
+      return new MetaFateStore<>(FateStoreUtil.MetaFateZKSetup.getZkFatePath(),
+          FateStoreUtil.MetaFateZKSetup.getZk(), lockID, isLockHeld);
     }
   }
 }

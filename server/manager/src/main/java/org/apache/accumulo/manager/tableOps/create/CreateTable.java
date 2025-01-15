@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
@@ -47,7 +48,8 @@ public class CreateTable extends ManagerRepo {
 
   public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props,
       Path splitPath, int splitCount, Path splitDirsPath, InitialTableState initialTableState,
-      TabletAvailability initialTabletAvailability, NamespaceId namespaceId) {
+      TabletAvailability initialTabletAvailability, NamespaceId namespaceId,
+      TabletMergeabilityMetadata initialTabletMergeability) {
     tableInfo = new TableInfo();
     tableInfo.setTableName(tableName);
     tableInfo.setTimeType(timeType);
@@ -59,6 +61,7 @@ public class CreateTable extends ManagerRepo {
     tableInfo.setInitialTableState(initialTableState);
     tableInfo.setSplitDirsPath(splitDirsPath);
     tableInfo.setInitialTabletAvailability(initialTabletAvailability);
+    tableInfo.setInitialTabletMergeability(initialTabletMergeability);
   }
 
   @Override

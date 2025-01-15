@@ -29,7 +29,6 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -64,7 +63,7 @@ public class TableLocksCheckRunner implements CheckRunner {
     final String zkRoot = context.getZooKeeperRoot();
     final var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     final String fateZkPath = zkRoot + Constants.ZFATE;
-    final ZooReaderWriter zk = context.getZooReaderWriter();
+    final var zk = context.getZooSession();
     final MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk, null, null);
     final UserFateStore<Admin> ufs =
         new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
@@ -73,7 +72,8 @@ public class TableLocksCheckRunner implements CheckRunner {
 
     var tableIds = context.tableOperations().tableIdMap().values();
     var namespaceIds = context.namespaceOperations().namespaceIdMap().values();
-    List<String> lockedIds = zk.getChildren(zTableLocksPath.toString());
+    List<String> lockedIds =
+        context.getZooSession().asReader().getChildren(zTableLocksPath.toString());
     boolean locksExist = !lockedIds.isEmpty();
 
     if (locksExist) {

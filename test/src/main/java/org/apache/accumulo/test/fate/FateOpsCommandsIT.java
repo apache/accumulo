@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
+import static org.apache.accumulo.test.fate.FateStoreUtil.TEST_FATE_OP;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -60,11 +61,11 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.server.ServerContext;
@@ -547,7 +548,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
         fateIdsFromSummary);
 
     // Seed the transaction with the latch repo, so we can have an IN_PROGRESS transaction
-    fate.seedTransaction("op1", fateId1, new LatchTestRepo(), true, "test");
+    fate.seedTransaction(TEST_FATE_OP, fateId1, new LatchTestRepo(), true, "test");
     // Wait for 'fate' to reserve fateId1 (will be IN_PROGRESS on fateId1)
     Wait.waitFor(() -> env.numWorkers.get() == 1);
 
@@ -624,7 +625,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
         fateIdsFromSummary);
 
     // Seed the transaction with the latch repo, so we can have an IN_PROGRESS transaction
-    fate.seedTransaction("op1", fateId1, new LatchTestRepo(), true, "test");
+    fate.seedTransaction(TEST_FATE_OP, fateId1, new LatchTestRepo(), true, "test");
     // Wait for 'fate' to reserve fateId1 (will be IN_PROGRESS on fateId1)
     Wait.waitFor(() -> env.numWorkers.get() == 1);
 
@@ -702,10 +703,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     } else {
       Method listMethod = MetaFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
-          .withConstructor(String.class, ZooReaderWriter.class, ZooUtil.LockID.class,
-              Predicate.class)
-          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter(), null,
-              null)
+          .withConstructor(String.class, ZooSession.class, ZooUtil.LockID.class, Predicate.class)
+          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooSession(), null, null)
           .addMockedMethod(listMethod).createMock();
     }
 

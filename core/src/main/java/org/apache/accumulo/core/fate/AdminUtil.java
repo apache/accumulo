@@ -41,11 +41,10 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore.ReadOnlyFateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
 import org.apache.accumulo.core.fate.zookeeper.FateLock.FateLockPath;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,14 +74,15 @@ public class AdminUtil<T> {
     private final FateId fateId;
     private final FateInstanceType instanceType;
     private final TStatus status;
-    private final String txName;
+    private final Fate.FateOperation txName;
     private final List<String> hlocks;
     private final List<String> wlocks;
     private final String top;
     private final long timeCreated;
 
     private TransactionStatus(FateId fateId, FateInstanceType instanceType, TStatus status,
-        String txName, List<String> hlocks, List<String> wlocks, String top, Long timeCreated) {
+        Fate.FateOperation txName, List<String> hlocks, List<String> wlocks, String top,
+        Long timeCreated) {
 
       this.fateId = fateId;
       this.instanceType = instanceType;
@@ -114,7 +114,7 @@ public class AdminUtil<T> {
     /**
      * @return The name of the transaction running.
      */
-    public String getTxName() {
+    public Fate.FateOperation getTxName() {
       return txName;
     }
 
@@ -200,7 +200,7 @@ public class AdminUtil<T> {
   /**
    * Returns a list of the FATE transactions, optionally filtered by fate id, status, and fate
    * instance type. This method does not process lock information, if lock information is desired,
-   * use {@link #getStatus(ReadOnlyFateStore, ZooReader, ServiceLockPath, Set, EnumSet, EnumSet)}
+   * use {@link #getStatus(ReadOnlyFateStore, ZooSession, ServiceLockPath, Set, EnumSet, EnumSet)}
    *
    * @param readOnlyFateStores read-only fate stores
    * @param fateIdFilter filter results to include only provided fate transaction ids
@@ -233,7 +233,7 @@ public class AdminUtil<T> {
    * @throws KeeperException if zookeeper exception occurs
    * @throws InterruptedException if process is interrupted.
    */
-  public FateStatus getStatus(ReadOnlyFateStore<T> readOnlyMFS, ZooReader zk,
+  public FateStatus getStatus(ReadOnlyFateStore<T> readOnlyMFS, ZooSession zk,
       ServiceLockPath lockPath, Set<FateId> fateIdFilter, EnumSet<TStatus> statusFilter,
       EnumSet<FateInstanceType> typesFilter) throws KeeperException, InterruptedException {
     Map<FateId,List<String>> heldLocks = new HashMap<>();
@@ -254,7 +254,7 @@ public class AdminUtil<T> {
   }
 
   public FateStatus getStatus(Map<FateInstanceType,ReadOnlyFateStore<T>> readOnlyFateStores,
-      ZooReader zk, ServiceLockPath lockPath, Set<FateId> fateIdFilter,
+      ZooSession zk, ServiceLockPath lockPath, Set<FateId> fateIdFilter,
       EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter)
       throws KeeperException, InterruptedException {
     Map<FateId,List<String>> heldLocks = new HashMap<>();
@@ -269,19 +269,21 @@ public class AdminUtil<T> {
   /**
    * Walk through the lock nodes in zookeeper to find and populate held locks and waiting locks.
    *
-   * @param zk zookeeper reader
+   * @param zk zookeeper client
    * @param lockPath the zookeeper path for locks
    * @param heldLocks map for returning transactions with held locks
    * @param waitingLocks map for returning transactions with waiting locks
    * @throws KeeperException if initial lock list cannot be read.
    * @throws InterruptedException if thread interrupt detected while processing.
    */
-  private void findLocks(ZooReader zk, final ServiceLockPath lockPath,
+  private void findLocks(ZooSession zk, final ServiceLockPath lockPath,
       final Map<FateId,List<String>> heldLocks, final Map<FateId,List<String>> waitingLocks)
       throws KeeperException, InterruptedException {
 
+    var zr = zk.asReader();
+
     // stop with exception if lock ids cannot be retrieved from zookeeper
-    List<String> lockedIds = zk.getChildren(lockPath.toString());
+    List<String> lockedIds = zr.getChildren(lockPath.toString());
 
     for (String id : lockedIds) {
 
@@ -289,14 +291,14 @@ public class AdminUtil<T> {
 
         FateLockPath fLockPath = FateLock.path(lockPath + "/" + id);
         List<String> lockNodes =
-            FateLock.validateAndSort(fLockPath, zk.getChildren(fLockPath.toString()));
+            FateLock.validateAndSort(fLockPath, zr.getChildren(fLockPath.toString()));
 
         int pos = 0;
         boolean sawWriteLock = false;
 
         for (String node : lockNodes) {
           try {
-            byte[] data = zk.getData(lockPath + "/" + id + "/" + node);
+            byte[] data = zr.getData(lockPath + "/" + id + "/" + node);
             // Example data: "READ:<FateId>". FateId contains ':' hence the limit of 2
             String[] lda = new String(data, UTF_8).split(":", 2);
             FateId fateId = FateId.from(lda[1]);
@@ -362,7 +364,9 @@ public class AdminUtil<T> {
         fateIds.forEach(fateId -> {
 
           ReadOnlyFateTxStore<T> txStore = store.read(fateId);
-          String txName = (String) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME);
+          // tx name will not be set if the tx is not seeded with work (it is NEW)
+          Fate.FateOperation txName = txStore.getTransactionInfo(Fate.TxInfo.TX_NAME) == null ? null
+              : ((Fate.FateOperation) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME));
 
           List<String> hlocks = heldLocks.remove(fateId);
 
@@ -410,12 +414,12 @@ public class AdminUtil<T> {
     return typesFilter == null || typesFilter.isEmpty() || typesFilter.contains(type);
   }
 
-  public void printAll(Map<FateInstanceType,ReadOnlyFateStore<T>> readOnlyFateStores, ZooReader zk,
+  public void printAll(Map<FateInstanceType,ReadOnlyFateStore<T>> readOnlyFateStores, ZooSession zk,
       ServiceLockPath tableLocksPath) throws KeeperException, InterruptedException {
     print(readOnlyFateStores, zk, tableLocksPath, new Formatter(System.out), null, null, null);
   }
 
-  public void print(Map<FateInstanceType,ReadOnlyFateStore<T>> readOnlyFateStores, ZooReader zk,
+  public void print(Map<FateInstanceType,ReadOnlyFateStore<T>> readOnlyFateStores, ZooSession zk,
       ServiceLockPath tableLocksPath, Formatter fmt, Set<FateId> fateIdFilter,
       EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter)
       throws KeeperException, InterruptedException {
@@ -558,20 +562,22 @@ public class AdminUtil<T> {
     return reserveAttempt;
   }
 
-  public void deleteLocks(ZooReaderWriter zk, ServiceLockPath path, String fateIdStr)
+  public void deleteLocks(ZooSession zk, ServiceLockPath path, String fateIdStr)
       throws KeeperException, InterruptedException {
+    var zrw = zk.asReaderWriter();
+
     // delete any locks assoc w/ fate operation
-    List<String> lockedIds = zk.getChildren(path.toString());
+    List<String> lockedIds = zrw.getChildren(path.toString());
 
     for (String id : lockedIds) {
-      List<String> lockNodes = zk.getChildren(path + "/" + id);
+      List<String> lockNodes = zrw.getChildren(path + "/" + id);
       for (String node : lockNodes) {
         String lockPath = path + "/" + id + "/" + node;
-        byte[] data = zk.getData(path + "/" + id + "/" + node);
+        byte[] data = zrw.getData(path + "/" + id + "/" + node);
         // Example data: "READ:<FateId>". FateId contains ':' hence the limit of 2
         String[] lda = new String(data, UTF_8).split(":", 2);
         if (lda[1].equals(fateIdStr)) {
-          zk.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
+          zrw.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
         }
       }
     }

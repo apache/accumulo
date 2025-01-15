@@ -44,6 +44,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
@@ -93,7 +94,8 @@ public class FileSystemInitializer {
       KeyExtent keyExtent = new KeyExtent(tableId, endRow, prevEndRow);
       var builder = TabletMetadata.builder(keyExtent).putDirName(dirName)
           .putTime(new MetadataTime(0, TimeType.LOGICAL))
-          .putTabletAvailability(TabletAvailability.HOSTED).putPrevEndRow(prevEndRow);
+          .putTabletAvailability(TabletAvailability.HOSTED)
+          .putTabletMergeability(TabletMergeabilityMetadata.never()).putPrevEndRow(prevEndRow);
       for (String file : files) {
         builder.putFile(new ReferencedTabletFile(new Path(file)).insert(), new DataFileValue(0, 0));
       }

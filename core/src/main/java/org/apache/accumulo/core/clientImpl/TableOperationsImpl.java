@@ -140,11 +140,11 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
+import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
@@ -274,7 +274,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = ntc.getProperties();
 
     try {
-      doTableFateOperation(tableName, AccumuloException.class, FateOperation.TABLE_CREATE, args,
+      doTableFateOperation(tableName, AccumuloException.class, TFateOperation.TABLE_CREATE, args,
           opts);
     } catch (TableNotFoundException e) {
       // should not happen
@@ -304,7 +304,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   // This method is for retrying in the case of network failures;
   // anything else it passes to the caller to deal with
-  private void executeFateOperation(TFateId opid, FateOperation op, List<ByteBuffer> args,
+  private void executeFateOperation(TFateId opid, TFateOperation op, List<ByteBuffer> args,
       Map<String,String> opts, boolean autoCleanUp)
       throws ThriftSecurityException, TException, ThriftTableOperationException {
     while (true) {
@@ -372,7 +372,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
 
     try {
-      return doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(),
+      return doFateOperation(TFateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(),
           tableName);
     } catch (TableExistsException | NamespaceExistsException e) {
       // should not happen
@@ -427,14 +427,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  String doFateOperation(FateOperation op, List<ByteBuffer> args, Map<String,String> opts,
+  String doFateOperation(TFateOperation op, List<ByteBuffer> args, Map<String,String> opts,
       String tableOrNamespaceName)
       throws AccumuloSecurityException, TableExistsException, TableNotFoundException,
       AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
     return doFateOperation(op, args, opts, tableOrNamespaceName, true);
   }
 
-  String doFateOperation(FateOperation op, List<ByteBuffer> args, Map<String,String> opts,
+  String doFateOperation(TFateOperation op, List<ByteBuffer> args, Map<String,String> opts,
       String tableOrNamespaceName, boolean wait)
       throws AccumuloSecurityException, TableExistsException, TableNotFoundException,
       AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
@@ -521,7 +521,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             return handleFateOperation(() -> {
               TFateInstanceType t = FateInstanceType.fromNamespaceOrTableName(tableName).toThrift();
               TFateId opid = beginFateOperation(t);
-              executeFateOperation(opid, FateOperation.TABLE_SPLIT, args, Map.of(), false);
+              executeFateOperation(opid, TFateOperation.TABLE_SPLIT, args, Map.of(), false);
               return new Pair<>(opid, splitsForTablet.getValue());
             }, tableName);
           } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException
@@ -645,8 +645,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         end == null ? EMPTY : TextUtil.getByteBuffer(end));
     Map<String,String> opts = new HashMap<>();
     try {
-      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_MERGE, args,
-          opts);
+      doTableFateOperation(tableName, TableNotFoundException.class, TFateOperation.TABLE_MERGE,
+          args, opts);
     } catch (TableExistsException e) {
       // should not happen
       throw new AssertionError(e);
@@ -665,7 +665,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = new HashMap<>();
     try {
       doTableFateOperation(tableName, TableNotFoundException.class,
-          FateOperation.TABLE_DELETE_RANGE, args, opts);
+          TFateOperation.TABLE_DELETE_RANGE, args, opts);
     } catch (TableExistsException e) {
       // should not happen
       throw new AssertionError(e);
@@ -760,7 +760,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     List<ByteBuffer> args = List.of(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
     try {
-      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_DELETE,
+      doTableFateOperation(tableName, TableNotFoundException.class, TFateOperation.TABLE_DELETE,
           args, opts);
     } catch (TableExistsException e) {
       // should not happen
@@ -800,7 +800,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     prependPropertiesToExclude(opts, config.getPropertiesToExclude());
 
-    doTableFateOperation(newTableName, AccumuloException.class, FateOperation.TABLE_CLONE, args,
+    doTableFateOperation(newTableName, AccumuloException.class, TFateOperation.TABLE_CLONE, args,
         opts);
   }
 
@@ -813,7 +813,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes(UTF_8)),
         ByteBuffer.wrap(newTableName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
-    doTableFateOperation(oldTableName, TableNotFoundException.class, FateOperation.TABLE_RENAME,
+    doTableFateOperation(oldTableName, TableNotFoundException.class, TFateOperation.TABLE_RENAME,
         args, opts);
   }
 
@@ -892,7 +892,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = new HashMap<>();
 
     try {
-      doFateOperation(FateOperation.TABLE_COMPACT, args, opts, tableName, config.getWait());
+      doFateOperation(TFateOperation.TABLE_COMPACT, args, opts, tableName, config.getWait());
     } catch (TableExistsException | NamespaceExistsException e) {
       // should not happen
       throw new AssertionError(e);
@@ -912,7 +912,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     try {
       doTableFateOperation(tableName, TableNotFoundException.class,
-          FateOperation.TABLE_CANCEL_COMPACT, args, opts);
+          TFateOperation.TABLE_CANCEL_COMPACT, args, opts);
     } catch (TableExistsException e) {
       // should not happen
       throw new AssertionError(e);
@@ -1455,17 +1455,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     TableId tableId = context.getTableId(tableName);
 
-    FateOperation op = null;
+    TFateOperation op = null;
     switch (newState) {
       case OFFLINE:
-        op = FateOperation.TABLE_OFFLINE;
+        op = TFateOperation.TABLE_OFFLINE;
         if (tableName.equals(AccumuloTable.METADATA.tableName())
             || tableName.equals(AccumuloTable.ROOT.tableName())) {
           throw new AccumuloException("Cannot set table to offline state");
         }
         break;
       case ONLINE:
-        op = FateOperation.TABLE_ONLINE;
+        op = TFateOperation.TABLE_ONLINE;
         if (tableName.equals(AccumuloTable.METADATA.tableName())
             || tableName.equals(AccumuloTable.ROOT.tableName())) {
           // Don't submit a Fate operation for this, these tables can only be online.
@@ -1694,7 +1694,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkedImportDirs.stream().map(s -> s.getBytes(UTF_8)).map(ByteBuffer::wrap).forEach(args::add);
 
     try {
-      doTableFateOperation(tableName, AccumuloException.class, FateOperation.TABLE_IMPORT, args,
+      doTableFateOperation(tableName, AccumuloException.class, TFateOperation.TABLE_IMPORT, args,
           Collections.emptyMap());
     } catch (TableNotFoundException e) {
       // should not happen
@@ -1727,7 +1727,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = Collections.emptyMap();
 
     try {
-      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_EXPORT,
+      doTableFateOperation(tableName, TableNotFoundException.class, TFateOperation.TABLE_EXPORT,
           args, opts);
     } catch (TableExistsException e) {
       // should not happen
@@ -1782,7 +1782,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   private void doTableFateOperation(String tableOrNamespaceName,
-      Class<? extends Exception> namespaceNotFoundExceptionClass, FateOperation op,
+      Class<? extends Exception> namespaceNotFoundExceptionClass, TFateOperation op,
       List<ByteBuffer> args, Map<String,String> opts) throws AccumuloSecurityException,
       AccumuloException, TableExistsException, TableNotFoundException {
     try {
@@ -2212,7 +2212,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     try {
       doTableFateOperation(tableName, AccumuloException.class,
-          FateOperation.TABLE_TABLET_AVAILABILITY, args, opts);
+          TFateOperation.TABLE_TABLET_AVAILABILITY, args, opts);
     } catch (TableNotFoundException | TableExistsException e) {
       // should not happen
       throw new AssertionError(e);

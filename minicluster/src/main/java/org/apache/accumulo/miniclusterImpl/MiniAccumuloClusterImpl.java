@@ -80,7 +80,6 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooSession;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
@@ -100,6 +99,7 @@ import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
@@ -121,7 +121,6 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,9 +153,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private final MiniAccumuloClusterControl clusterControl;
 
   private boolean initialized = false;
-  private ExecutorService executor;
+  private volatile ExecutorService executor;
   private ServiceLock miniLock;
-  private ZooKeeper zk;
+  private ZooSession miniLockZk;
   private AccumuloClient client;
 
   /**
@@ -524,7 +523,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       InstanceId instanceIdFromFile =
           VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
-      ZooReaderWriter zrw = getServerContext().getZooReaderWriter();
+      ZooReaderWriter zrw = getServerContext().getZooSession().asReaderWriter();
 
       String instanceName = null;
       try {
@@ -708,8 +707,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     final int timeout = (int) ConfigurationTypeHelper.getTimeInMillis(properties.getOrDefault(
         Property.INSTANCE_ZK_TIMEOUT.getKey(), Property.INSTANCE_ZK_TIMEOUT.getDefaultValue()));
     final String secret = properties.get(Property.INSTANCE_SECRET.getKey());
-    final byte[] auth = ("accumulo:" + secret).getBytes(UTF_8);
-    zk = ZooSession.getAuthenticatedSession(config.getZooKeepers(), timeout, "digest", auth);
+    miniLockZk = new ZooSession(MiniAccumuloClusterImpl.class.getSimpleName() + ".lock",
+        config.getZooKeepers(), timeout, secret);
 
     // It's possible start was called twice...
     if (miniLock == null) {
@@ -722,12 +721,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       String miniZDirPath =
           miniZInstancePath.substring(0, miniZInstancePath.indexOf("/" + miniUUID.toString()));
       try {
-        if (zk.exists(miniZDirPath, null) == null) {
-          zk.create(miniZDirPath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
+        if (miniLockZk.exists(miniZDirPath, null) == null) {
+          miniLockZk.create(miniZDirPath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
           log.info("Created: {}", miniZDirPath);
         }
-        if (zk.exists(miniZInstancePath, null) == null) {
-          zk.create(miniZInstancePath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
+        if (miniLockZk.exists(miniZInstancePath, null) == null) {
+          miniLockZk.create(miniZInstancePath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
           log.info("Created: {}", miniZInstancePath);
         }
       } catch (KeeperException | InterruptedException e) {
@@ -735,7 +734,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
       ServiceLockData sld = new ServiceLockData(miniUUID, "localhost", ThriftService.NONE,
           Constants.DEFAULT_RESOURCE_GROUP_NAME);
-      miniLock = new ServiceLock(zk, slp, miniUUID);
+      miniLock = new ServiceLock(miniLockZk, slp, miniUUID);
       miniLock.lock(miniLockWatcher, sld);
 
       lockWatcherInvoked.await();
@@ -981,9 +980,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       miniLock = null;
       this.getServerContext().clearServiceLock();
     }
-    if (zk != null) {
-      zk.close();
-      zk = null;
+    if (miniLockZk != null) {
+      miniLockZk.close();
+      miniLockZk = null;
     }
     if (client != null) {
       client.close();

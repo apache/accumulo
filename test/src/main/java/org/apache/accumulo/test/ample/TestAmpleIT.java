@@ -119,6 +119,7 @@ public class TestAmpleIT extends SharedMiniClusterBase {
           assertNotNull(tm.getExtent());
           assertNotNull(tm.getTabletAvailability());
           assertNotNull(tm.getTime());
+          assertNotNull(tm.getTabletMergeability());
           count.incrementAndGet();
         });
       }

@@ -45,6 +45,7 @@ import jakarta.inject.Singleton;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -56,9 +57,9 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
@@ -72,7 +73,6 @@ import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
@@ -323,7 +323,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     HostAndPort address = null;
     try {
       // Read the gc location from its lock
-      ZooReaderWriter zk = context.getZooReaderWriter();
+      ZooReaderWriter zk = context.getZooSession().asReaderWriter();
       var path = context.getServerPaths().createGarbageCollectorPath();
       List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
@@ -399,7 +399,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     try {
       URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
       final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
-      final ZooReaderWriter zoo = context.getZooReaderWriter();
+      final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired
       zoo.delete(path);
       zoo.putEphemeralData(path, url.toString().getBytes(UTF_8));
@@ -714,7 +714,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     final var monitorLockPath = context.getServerPaths().createMonitorPath();
 
     // Ensure that everything is kosher with ZK as this has changed.
-    ZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     if (zoo.exists(monitorPath)) {
       byte[] data = zoo.getData(monitorPath);
       // If the node isn't empty, it's from a previous install (has hostname:port for HTTP server)
@@ -741,11 +741,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
     // Get a ZooLock for the monitor
     UUID zooLockUUID = UUID.randomUUID();
-    monitorLock = new ServiceLock(zoo.getZooKeeper(), monitorLockPath, zooLockUUID);
+    monitorLock = new ServiceLock(context.getZooSession(), monitorLockPath, zooLockUUID);
+    HAServiceLockWatcher monitorLockWatcher = new HAServiceLockWatcher(Type.MONITOR);
 
     while (true) {
-      MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
-
       monitorLock.lock(monitorLockWatcher,
           new ServiceLockData(zooLockUUID,
               monitorLocation.getHost() + ":" + monitorLocation.getPort(), ThriftService.NONE,
@@ -753,11 +752,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
       monitorLockWatcher.waitForChange();
 
-      if (monitorLockWatcher.acquiredLock) {
+      if (monitorLockWatcher.isLockAcquired()) {
         break;
       }
 
-      if (!monitorLockWatcher.failedToAcquireLock) {
+      if (!monitorLockWatcher.isFailedToAcquireLock()) {
         throw new IllegalStateException("monitor lock in unknown state");
       }
 
@@ -769,57 +768,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     log.info("Got Monitor lock.");
-  }
-
-  /**
-   * Async Watcher for monitor lock
-   */
-  private static class MoniterLockWatcher implements ServiceLock.AccumuloLockWatcher {
-
-    boolean acquiredLock = false;
-    boolean failedToAcquireLock = false;
-
-    @Override
-    public void lostLock(LockLossReason reason) {
-      Halt.halt("Monitor lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
-    }
-
-    @Override
-    public void unableToMonitorLockNode(final Exception e) {
-      Halt.halt(-1, () -> log.error("No longer able to monitor Monitor lock node", e));
-
-    }
-
-    @Override
-    public synchronized void acquiredLock() {
-      if (acquiredLock || failedToAcquireLock) {
-        Halt.halt("Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock, -1);
-      }
-
-      acquiredLock = true;
-      notifyAll();
-    }
-
-    @Override
-    public synchronized void failedToAcquireLock(Exception e) {
-      log.warn("Failed to get monitor lock " + e);
-
-      if (acquiredLock) {
-        Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock,
-            -1);
-      }
-
-      failedToAcquireLock = true;
-      notifyAll();
-    }
-
-    public synchronized void waitForChange() {
-      while (!acquiredLock && !failedToAcquireLock) {
-        try {
-          wait();
-        } catch (InterruptedException e) {}
-      }
-    }
   }
 
   public ManagerMonitorInfo getMmi() {

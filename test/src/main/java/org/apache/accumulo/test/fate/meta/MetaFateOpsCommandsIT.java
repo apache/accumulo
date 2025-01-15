@@ -24,7 +24,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
@@ -43,7 +42,7 @@ public class MetaFateOpsCommandsIT extends FateOpsCommandsIT {
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
     ServerContext context = getCluster().getServerContext();
     String path = context.getZooKeeperRoot() + Constants.ZFATE;
-    ZooReaderWriter zk = context.getZooReaderWriter();
+    var zk = context.getZooSession();
     // test should not be reserving txns or checking reservations, so null lockID and isLockHeld
     testMethod.execute(new MetaFateStore<>(path, zk, null, null), context);
   }
@@ -59,7 +58,7 @@ public class MetaFateOpsCommandsIT extends FateOpsCommandsIT {
     stopManager();
     ServerContext context = getCluster().getServerContext();
     String path = context.getZooKeeperRoot() + Constants.ZFATE;
-    ZooReaderWriter zk = context.getZooReaderWriter();
+    var zk = context.getZooSession();
     ServiceLock testLock = null;
     try {
       testLock = new TestLock().createTestLock(context);

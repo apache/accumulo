@@ -54,6 +54,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
+import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -78,6 +79,9 @@ public class Fate<T> {
   private final ExecutorService deadResCleanerExecutor;
 
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
+  public static final Duration INITIAL_DELAY = Duration.ofSeconds(3);
+  private static final Duration DEAD_RES_CLEANUP_DELAY = Duration.ofMinutes(3);
+  private static final Duration POOL_WATCHER_DELAY = Duration.ofSeconds(30);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final TransferQueue<FateId> workQueue;
@@ -86,6 +90,53 @@ public class Fate<T> {
 
   public enum TxInfo {
     TX_NAME, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
+  }
+
+  public enum FateOperation {
+    COMMIT_COMPACTION(null),
+    NAMESPACE_CREATE(TFateOperation.NAMESPACE_CREATE),
+    NAMESPACE_DELETE(TFateOperation.NAMESPACE_DELETE),
+    NAMESPACE_RENAME(TFateOperation.NAMESPACE_RENAME),
+    SHUTDOWN_TSERVER(null),
+    SYSTEM_SPLIT(null),
+    TABLE_BULK_IMPORT2(TFateOperation.TABLE_BULK_IMPORT2),
+    TABLE_CANCEL_COMPACT(TFateOperation.TABLE_CANCEL_COMPACT),
+    TABLE_CLONE(TFateOperation.TABLE_CLONE),
+    TABLE_COMPACT(TFateOperation.TABLE_COMPACT),
+    TABLE_CREATE(TFateOperation.TABLE_CREATE),
+    TABLE_DELETE(TFateOperation.TABLE_DELETE),
+    TABLE_DELETE_RANGE(TFateOperation.TABLE_DELETE_RANGE),
+    TABLE_EXPORT(TFateOperation.TABLE_EXPORT),
+    TABLE_IMPORT(TFateOperation.TABLE_IMPORT),
+    TABLE_MERGE(TFateOperation.TABLE_MERGE),
+    TABLE_OFFLINE(TFateOperation.TABLE_OFFLINE),
+    TABLE_ONLINE(TFateOperation.TABLE_ONLINE),
+    TABLE_RENAME(TFateOperation.TABLE_RENAME),
+    TABLE_SPLIT(TFateOperation.TABLE_SPLIT),
+    TABLE_TABLET_AVAILABILITY(TFateOperation.TABLE_TABLET_AVAILABILITY);
+
+    private final TFateOperation top;
+    private static final EnumSet<FateOperation> nonThriftOps =
+        EnumSet.of(COMMIT_COMPACTION, SHUTDOWN_TSERVER, SYSTEM_SPLIT);
+
+    FateOperation(TFateOperation top) {
+      this.top = top;
+    }
+
+    public static FateOperation fromThrift(TFateOperation top) {
+      return FateOperation.valueOf(top.name());
+    }
+
+    public static EnumSet<FateOperation> getNonThriftOps() {
+      return nonThriftOps;
+    }
+
+    public TFateOperation toThrift() {
+      if (top == null) {
+        throw new IllegalStateException(this + " does not have an equivalent thrift form");
+      }
+      return top;
+    }
   }
 
   /**
@@ -263,8 +314,8 @@ public class Fate<T> {
       // as a warning. They're a normal, handled failure condition.
       if (e instanceof AcceptableException) {
         var tableOpEx = (AcceptableThriftTableOperationException) e;
-        log.debug(msg + " for {}({}) {}", tableOpEx.getTableName(), tableOpEx.getTableId(),
-            tableOpEx.getDescription());
+        log.info("{} for table:{}({}) saw acceptable exception: {}", msg, tableOpEx.getTableName(),
+            tableOpEx.getTableId(), tableOpEx.getDescription());
       } else {
         log.warn(msg, e);
       }
@@ -356,7 +407,7 @@ public class Fate<T> {
       ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
       // If the pool grew, then ensure that there is a TransactionRunner for each thread
       final int configured = conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE);
-      final int needed = configured - pool.getQueue().size();
+      final int needed = configured - pool.getActiveCount();
       if (needed > 0) {
         for (int i = 0; i < needed; i++) {
           try {
@@ -409,7 +460,7 @@ public class Fate<T> {
           idleCountHistory.add(workQueue.getWaitingConsumerCount());
         }
       }
-    }, 3, 30, SECONDS));
+    }, INITIAL_DELAY.toSeconds(), getPoolWatcherDelay().toSeconds(), SECONDS));
     this.transactionExecutor = pool;
 
     ScheduledExecutorService deadResCleanerExecutor = null;
@@ -418,8 +469,9 @@ public class Fate<T> {
       // reservations held by dead processes, if they exist.
       deadResCleanerExecutor = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,
           store.type() + "-dead-reservation-cleaner-pool");
-      ScheduledFuture<?> deadReservationCleaner = deadResCleanerExecutor.scheduleWithFixedDelay(
-          new DeadReservationCleaner(), 3, getDeadResCleanupDelay().toSeconds(), SECONDS);
+      ScheduledFuture<?> deadReservationCleaner =
+          deadResCleanerExecutor.scheduleWithFixedDelay(new DeadReservationCleaner(),
+              INITIAL_DELAY.toSeconds(), getDeadResCleanupDelay().toSeconds(), SECONDS);
       ThreadPools.watchCriticalScheduledTask(deadReservationCleaner);
     }
     this.deadResCleanerExecutor = deadResCleanerExecutor;
@@ -429,7 +481,11 @@ public class Fate<T> {
   }
 
   public Duration getDeadResCleanupDelay() {
-    return Duration.ofMinutes(3);
+    return DEAD_RES_CLEANUP_DELAY;
+  }
+
+  public Duration getPoolWatcherDelay() {
+    return POOL_WATCHER_DELAY;
   }
 
   // get a transaction id back to the requester before doing any work
@@ -437,14 +493,15 @@ public class Fate<T> {
     return store.create();
   }
 
-  public void seedTransaction(String txName, FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
+  public void seedTransaction(FateOperation txName, FateKey fateKey, Repo<T> repo,
+      boolean autoCleanUp) {
     store.seedTransaction(txName, fateKey, repo, autoCleanUp);
   }
 
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
-  public void seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp,
-      String goalMessage) {
+  public void seedTransaction(FateOperation txName, FateId fateId, Repo<T> repo,
+      boolean autoCleanUp, String goalMessage) {
     log.info("Seeding {} {}", fateId, goalMessage);
     store.seedTransaction(txName, fateId, repo, autoCleanUp);
   }

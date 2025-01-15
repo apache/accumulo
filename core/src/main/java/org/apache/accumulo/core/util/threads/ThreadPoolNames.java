@@ -34,6 +34,9 @@ public enum ThreadPoolNames {
   CONDITIONAL_WRITER_CLEANUP_POOL("accumulo.pool.client.context.conditional.writer.cleanup"),
   COORDINATOR_FINALIZER_BACKGROUND_POOL("accumulo.pool.compaction.finalizer.background.pool"),
   COORDINATOR_FINALIZER_NOTIFIER_POOL("accumulo.pool.compaction.coordinator.compaction.finalizer"),
+  COORDINATOR_RESERVATION_ROOT_POOL("accumulo.pool.compaction.coordinator.reservation.root"),
+  COORDINATOR_RESERVATION_META_POOL("accumulo.pool.compaction.coordinator.reservation.meta"),
+  COORDINATOR_RESERVATION_USER_POOL("accumulo.pool.compaction.coordinator.reservation.user"),
   GC_DELETE_POOL("accumulo.pool.gc.threads.delete"),
   GENERAL_SERVER_POOL("accumulo.pool.general.server"),
   SERVICE_LOCK_POOL("accumulo.pool.service.lock"),
@@ -62,6 +65,9 @@ public enum ThreadPoolNames {
   TSERVER_TABLET_MIGRATION_POOL("accumulo.pool.tserver.tablet.migration"),
   TSERVER_WAL_CREATOR_POOL("accumulo.pool.tserver.wal.creator"),
   TSERVER_WAL_SORT_CONCURRENT_POOL("accumulo.pool.tserver.wal.sort.concurrent"),
+  TSERVER_CONDITIONAL_UPDATE_ROOT_POOL("accumulo.pool.tserver.conditionalupdate.root"),
+  TSERVER_CONDITIONAL_UPDATE_META_POOL("accumulo.pool.tserver.conditionalupdate.meta"),
+  TSERVER_CONDITIONAL_UPDATE_USER_POOL("accumulo.pool.tserver.conditionalupdate.user"),
   UTILITY_CHECK_FILE_TASKS("accumulo.pool.util.check.file.tasks"),
   UTILITY_VERIFY_TABLET_ASSIGNMENTS("accumulo.pool.util.check.tablet.servers");
 
