@@ -109,7 +109,6 @@ public class FateLock implements QueueLock {
     }
   }
 
-  // TODO change data arg from byte[] to String.. in the rest of the code its always a String.
   @Override
   public long addEntry(byte[] data) {
 
