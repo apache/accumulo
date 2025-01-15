@@ -19,8 +19,8 @@
 package org.apache.accumulo.test.fate.user;
 
 import static org.apache.accumulo.core.fate.user.UserFateStore.getRowId;
-import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 import static org.apache.accumulo.test.fate.FateStoreUtil.createFateTable;
+import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
