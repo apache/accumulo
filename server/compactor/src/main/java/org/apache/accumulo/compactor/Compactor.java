@@ -19,7 +19,6 @@
 package org.apache.accumulo.compactor;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -28,8 +27,10 @@ import java.net.UnknownHostException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -60,12 +61,13 @@ import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLockSupport.ServiceLockWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.FileOperations;
@@ -89,7 +91,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
@@ -124,6 +125,7 @@ import com.google.common.base.Preconditions;
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
 
 public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface {
 
@@ -152,7 +154,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   private static final Logger LOG = LoggerFactory.getLogger(Compactor.class);
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
-  private static final long TIME_BETWEEN_CANCEL_CHECKS = MINUTES.toMillis(5);
 
   private static final long TEN_MEGABYTES = 10485760;
 
@@ -175,6 +176,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected Compactor(CompactorServerOpts opts, String[] args) {
     super("compactor", opts, args);
     queueName = opts.getQueueName();
+    ClusterConfigParser.validateGroupNames(Set.of(queueName));
   }
 
   private long getTotalEntriesRead() {
@@ -285,20 +287,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     compactorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
         ServiceLock.path(zPath), compactorId);
-    LockWatcher lw = new LockWatcher() {
-      @Override
-      public void lostLock(final LockLossReason reason) {
-        Halt.halt(1, () -> {
-          LOG.error("Compactor lost lock (reason = {}), exiting.", reason);
-          gcLogger.logGCInfo(getConfiguration());
-        });
-      }
 
-      @Override
-      public void unableToMonitorLockNode(final Exception e) {
-        Halt.halt(1, () -> LOG.error("Lost ability to monitor Compactor lock, exiting.", e));
-      }
-    };
+    LockWatcher lw = new ServiceLockWatcher("compactor", () -> false,
+        (name) -> gcLogger.logGCInfo(getConfiguration()));
 
     try {
       byte[] lockContent =
@@ -669,6 +660,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     return sleepTime;
   }
 
+  protected Collection<Tag> getServiceTags(HostAndPort clientAddress) {
+    return MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        clientAddress, queueName);
+  }
+
   @Override
   public void run() {
 
@@ -686,16 +682,16 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), clientAddress);
 
     metricsInfo.addMetricsProducers(this);
-    metricsInfo.init();
+    metricsInfo.init(getServiceTags(clientAddress));
 
     var watcher = new CompactionWatcher(getConfiguration());
     var schedExecutor = ThreadPools.getServerThreadPools()
         .createGeneralScheduledExecutorService(getConfiguration());
     startGCLogger(schedExecutor);
-    startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
+    startCancelChecker(schedExecutor,
+        getConfiguration().getTimeInMillis(Property.COMPACTOR_CANCEL_CHECK_INTERVAL));
 
     LOG.info("Compactor started, waiting for work");
     try {
@@ -982,4 +978,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       return eci.canonical();
     }
   }
+
+  @Override
+  public ServiceLock getLock() {
+    return compactorLock;
+  }
+
 }

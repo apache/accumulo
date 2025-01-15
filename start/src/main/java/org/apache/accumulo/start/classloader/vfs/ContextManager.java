@@ -118,10 +118,12 @@ class ContextManager {
   public static class DefaultContextsConfig implements ContextsConfig {
 
     private final Supplier<Map<String,String>> vfsContextClasspathPropertiesProvider;
+    private final Runnable contextConfigInvalidator;
 
-    public DefaultContextsConfig(
-        Supplier<Map<String,String>> vfsContextClasspathPropertiesProvider) {
+    public DefaultContextsConfig(Supplier<Map<String,String>> vfsContextClasspathPropertiesProvider,
+        Runnable contextConfigInvalidator) {
       this.vfsContextClasspathPropertiesProvider = vfsContextClasspathPropertiesProvider;
+      this.contextConfigInvalidator = contextConfigInvalidator;
     }
 
     @Override
@@ -133,7 +135,14 @@ class ContextManager {
       String uris = props.get(prop);
 
       if (uris == null) {
-        return null;
+        // maybe the property was set but has not propagated, so invalidate the config to force a
+        // reread
+        contextConfigInvalidator.run();
+        props = vfsContextClasspathPropertiesProvider.get();
+        uris = props.get(prop);
+        if (uris == null) {
+          return null;
+        }
       }
 
       String delegate = props.get(prop + ".delegation");

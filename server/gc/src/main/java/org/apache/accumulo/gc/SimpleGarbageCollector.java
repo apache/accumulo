@@ -32,8 +32,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
@@ -44,7 +43,6 @@ import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
@@ -78,6 +76,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
+  private ServiceLock gcLock;
 
   SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super("gc", opts, args);
@@ -167,10 +166,10 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), address);
 
     metricsInfo.addMetricsProducers(new GcMetrics(this));
-    metricsInfo.init();
+    metricsInfo.init(
+        MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(), address, ""));
     try {
       long delay = getStartDelay();
       log.debug("Sleeping for {} milliseconds before beginning garbage collection cycles", delay);
@@ -364,32 +363,32 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
     var path = ServiceLock.path(getContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
 
-    LockWatcher lockWatcher = new LockWatcher() {
-      @Override
-      public void lostLock(LockLossReason reason) {
-        Halt.halt("GC lock in zookeeper lost (reason = " + reason + "), exiting!", 1);
-      }
-
-      @Override
-      public void unableToMonitorLockNode(final Exception e) {
-        // ACCUMULO-3651 Level changed to error and FATAL added to message for slf4j compatibility
-        Halt.halt(-1, () -> log.error("FATAL: No longer able to monitor lock node ", e));
-
-      }
-    };
-
     UUID zooLockUUID = UUID.randomUUID();
-    ServiceLock lock =
-        new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
+    gcLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
+    HAServiceLockWatcher gcLockWatcher = new HAServiceLockWatcher("gc");
+
     while (true) {
-      if (lock.tryLock(lockWatcher,
-          new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes(UTF_8))) {
-        log.debug("Got GC ZooKeeper lock");
-        return;
+      gcLock.lock(gcLockWatcher,
+          new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes(UTF_8));
+
+      gcLockWatcher.waitForChange();
+
+      if (gcLockWatcher.isLockAcquired()) {
+        break;
       }
+
+      if (!gcLockWatcher.isFailedToAcquireLock()) {
+        throw new IllegalStateException("gc lock in unknown state");
+      }
+
+      gcLock.tryToCancelAsyncLockOrUnlock();
+
       log.debug("Failed to get GC ZooKeeper lock, will retry");
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      sleepUninterruptibly(1000, TimeUnit.MILLISECONDS);
     }
+
+    log.info("Got GC lock.");
+
   }
 
   private HostAndPort startStatsService() {
@@ -437,6 +436,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   public GcCycleMetrics getGcCycleMetrics() {
     return gcCycleMetrics;
+  }
+
+  @Override
+  public ServiceLock getLock() {
+    return gcLock;
   }
 
 }

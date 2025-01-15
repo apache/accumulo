@@ -208,7 +208,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
 
   public void setThreads(int numThreads) {
     ThreadPools.resizePool(threadPool, () -> numThreads,
-        ACCUMULO_POOL_PREFIX.poolName + "accumulo.pool.compaction." + ceid);
+        ACCUMULO_POOL_PREFIX.poolName + ".accumulo.pool.compaction." + ceid);
   }
 
   @Override

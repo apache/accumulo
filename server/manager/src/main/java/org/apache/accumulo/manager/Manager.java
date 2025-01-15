@@ -68,8 +68,8 @@ import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.TStore;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -105,7 +105,6 @@ import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -148,7 +147,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.NoAuthException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
@@ -1035,6 +1033,7 @@ public class Manager extends AbstractServer
       long totalMigrationsOut = 0;
       final Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
           partitionMigrations(migrationsSnapshot());
+      int levelsCompleted = 0;
 
       for (DataLevel dl : DataLevel.values()) {
         if (dl == DataLevel.USER && tabletsNotHosted > 0) {
@@ -1044,7 +1043,7 @@ public class Manager extends AbstractServer
         }
         // Create a view of the tserver status such that it only contains the tables
         // for this level in the tableMap.
-        final SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel =
+        SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel =
             createTServerStatusView(dl, tserverStatus);
         // Construct the Thrift variant of the map above for the BalancerParams
         final SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancerLevel =
@@ -1056,30 +1055,52 @@ public class Manager extends AbstractServer
         int attemptNum = 0;
         do {
           log.debug("Balancing for tables at level {}, times-in-loop: {}", dl, ++attemptNum);
-          params = BalanceParamsImpl.fromThrift(tserverStatusForBalancerLevel,
-              tserverStatusForLevel, partitionedMigrations.get(dl));
+
+          SortedMap<TabletServerId,TServerStatus> statusForBalancerLevel =
+              tserverStatusForBalancerLevel;
+          if (attemptNum > 1 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA)) {
+            // If we are still migrating then perform a re-check on the tablet
+            // servers to make sure non of them have failed.
+            Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
+            tserverStatus = gatherTableInformation(currentServers);
+            // Create a view of the tserver status such that it only contains the tables
+            // for this level in the tableMap.
+            tserverStatusForLevel = createTServerStatusView(dl, tserverStatus);
+            final SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancerLevel2 =
+                new TreeMap<>();
+            tserverStatusForLevel.forEach((tsi, status) -> tserverStatusForBalancerLevel2
+                .put(new TabletServerIdImpl(tsi), TServerStatusImpl.fromThrift(status)));
+            statusForBalancerLevel = tserverStatusForBalancerLevel2;
+          }
+
+          params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tserverStatusForLevel,
+              partitionedMigrations.get(dl), dl);
           wait = Math.max(tabletBalancer.balance(params), wait);
-          migrationsOutForLevel = params.migrationsOut().size();
-          for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancerLevel.keySet(),
-              params.migrationsOut())) {
+          migrationsOutForLevel = 0;
+          for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),
+              params.migrationsOut(), dl)) {
             final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
             if (migrations.containsKey(ke)) {
               log.warn("balancer requested migration more than once, skipping {}", m);
               continue;
             }
+            migrationsOutForLevel++;
             migrations.put(ke, TabletServerIdImpl.toThrift(m.getNewTabletServer()));
             log.debug("migration {}", m);
           }
         } while (migrationsOutForLevel > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
         totalMigrationsOut += migrationsOutForLevel;
+
+        // increment this at end of loop to signal complete run w/o any continue
+        levelsCompleted++;
       }
       balancerMetrics.assignMigratingCount(migrations::size);
 
-      if (totalMigrationsOut == 0) {
+      if (totalMigrationsOut == 0 && levelsCompleted == DataLevel.values().length) {
         synchronized (balancedNotifier) {
           balancedNotifier.notifyAll();
         }
-      } else {
+      } else if (totalMigrationsOut > 0) {
         nextEvent.event("Migrating %d more tablets, %d total", totalMigrationsOut,
             migrations.size());
       }
@@ -1087,11 +1108,16 @@ public class Manager extends AbstractServer
     }
 
     private List<TabletMigration> checkMigrationSanity(Set<TabletServerId> current,
-        List<TabletMigration> migrations) {
+        List<TabletMigration> migrations, DataLevel level) {
       return migrations.stream().filter(m -> {
         boolean includeMigration = false;
         if (m.getTablet() == null) {
           log.error("Balancer gave back a null tablet {}", m);
+        } else if (DataLevel.of(m.getTablet().getTable()) != level) {
+          log.trace(
+              "Balancer wants to move a tablet ({}) outside of the current processing level ({}), "
+                  + "ignoring and should be processed at the correct level ({})",
+              m.getTablet(), level, DataLevel.of(m.getTablet().getTable()));
         } else if (m.getNewTabletServer() == null) {
           log.error("Balancer did not set the destination {}", m);
         } else if (m.getOldTabletServer() == null) {
@@ -1241,12 +1267,12 @@ public class Manager extends AbstractServer
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), sa.getAddress());
 
     var producers = ManagerMetrics.getProducers(getConfiguration(), this);
     producers.add(balancerMetrics);
     metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
-    metricsInfo.init();
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        sa.getAddress(), ""));
 
     recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
@@ -1609,65 +1635,6 @@ public class Manager extends AbstractServer
     return managerLock;
   }
 
-  private static class ManagerLockWatcher implements ServiceLock.AccumuloLockWatcher {
-
-    boolean acquiredLock = false;
-    boolean failedToAcquireLock = false;
-
-    @Override
-    public void lostLock(LockLossReason reason) {
-      Halt.halt("Manager lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
-    }
-
-    @Override
-    public void unableToMonitorLockNode(final Exception e) {
-      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-      Halt.halt(-1, () -> log.error("FATAL: No longer able to monitor manager lock node", e));
-
-    }
-
-    @Override
-    public synchronized void acquiredLock() {
-      log.debug("Acquired manager lock");
-
-      if (acquiredLock || failedToAcquireLock) {
-        Halt.halt("Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock, -1);
-      }
-
-      acquiredLock = true;
-      notifyAll();
-    }
-
-    @Override
-    public synchronized void failedToAcquireLock(Exception e) {
-      log.warn("Failed to get manager lock", e);
-
-      if (e instanceof NoAuthException) {
-        String msg = "Failed to acquire manager lock due to incorrect ZooKeeper authentication.";
-        log.error("{} Ensure instance.secret is consistent across Accumulo configuration", msg, e);
-        Halt.halt(msg, -1);
-      }
-
-      if (acquiredLock) {
-        Halt.halt("Zoolock in unexpected state acquiredLock true with FAL " + failedToAcquireLock,
-            -1);
-      }
-
-      failedToAcquireLock = true;
-      notifyAll();
-    }
-
-    public synchronized void waitForChange() {
-      while (!acquiredLock && !failedToAcquireLock) {
-        try {
-          wait();
-        } catch (InterruptedException e) {
-          // empty
-        }
-      }
-    }
-  }
-
   private void getManagerLock(final ServiceLockPath zManagerLoc)
       throws KeeperException, InterruptedException {
     var zooKeeper = getContext().getZooReaderWriter().getZooKeeper();
@@ -1680,16 +1647,17 @@ public class Manager extends AbstractServer
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
     while (true) {
 
-      ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
+      HAServiceLockWatcher managerLockWatcher = new HAServiceLockWatcher("manager");
       managerLock.lock(managerLockWatcher, managerClientAddress.getBytes(UTF_8));
 
       managerLockWatcher.waitForChange();
 
-      if (managerLockWatcher.acquiredLock) {
+      if (managerLockWatcher.isLockAcquired()) {
+        startServiceLockVerificationThread();
         break;
       }
 
-      if (!managerLockWatcher.failedToAcquireLock) {
+      if (!managerLockWatcher.isFailedToAcquireLock()) {
         throw new IllegalStateException("manager lock in unknown state");
       }
 
@@ -1973,4 +1941,10 @@ public class Manager extends AbstractServer
         assignedOut);
     tabletBalancer.getAssignments(params);
   }
+
+  @Override
+  public ServiceLock getLock() {
+    return managerLock;
+  }
+
 }

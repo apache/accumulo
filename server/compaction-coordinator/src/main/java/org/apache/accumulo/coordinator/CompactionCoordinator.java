@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTION_COORDINATOR_SUMMARY_POOL;
 
 import java.net.UnknownHostException;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -98,6 +100,8 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Sets;
+
+import io.micrometer.core.instrument.Tag;
 
 public class CompactionCoordinator extends AbstractServer
     implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
@@ -220,11 +224,11 @@ public class CompactionCoordinator extends AbstractServer
         ServiceLock.path(lockPath), zooLockUUID);
     while (true) {
 
-      CoordinatorLockWatcher coordinatorLockWatcher = new CoordinatorLockWatcher();
+      HAServiceLockWatcher coordinatorLockWatcher = new HAServiceLockWatcher("coordinator");
       coordinatorLock.lock(coordinatorLockWatcher, coordinatorClientAddress.getBytes(UTF_8));
 
       coordinatorLockWatcher.waitForChange();
-      if (coordinatorLockWatcher.isAcquiredLock()) {
+      if (coordinatorLockWatcher.isLockAcquired()) {
         break;
       }
       if (!coordinatorLockWatcher.isFailedToAcquireLock()) {
@@ -257,6 +261,11 @@ public class CompactionCoordinator extends AbstractServer
     return sp;
   }
 
+  protected Collection<Tag> getServiceTags(HostAndPort clientAddress) {
+    return (MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        clientAddress, ""));
+  }
+
   @Override
   public void run() {
 
@@ -275,8 +284,7 @@ public class CompactionCoordinator extends AbstractServer
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), clientAddress);
-    metricsInfo.init();
+    metricsInfo.init(getServiceTags(clientAddress));
 
     // On a re-start of the coordinator it's possible that external compactions are in-progress.
     // Attempt to get the running compactions on the compactors and then resolve which tserver
@@ -759,6 +767,11 @@ public class CompactionCoordinator extends AbstractServer
       Thread.currentThread().interrupt();
       throw new RuntimeException(e);
     }
+  }
+
+  @Override
+  public ServiceLock getLock() {
+    return coordinatorLock;
   }
 
   public static void main(String[] args) throws Exception {

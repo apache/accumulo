@@ -264,7 +264,7 @@ public class TabletServerResourceManager {
   public TabletServerResourceManager(ServerContext context, TabletHostingServer tserver) {
     this.context = context;
     final AccumuloConfiguration acuConf = context.getConfiguration();
-    final boolean enableMetrics = context.getMetricsInfo().isMetricsEnabled(); // acuConf.getBoolean(Property.GENERAL_MICROMETER_ENABLED);
+    final boolean enableMetrics = context.getMetricsInfo().isMetricsEnabled();
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
     boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
     if (usingNativeMap) {
@@ -398,6 +398,10 @@ public class TabletServerResourceManager {
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().schedule(
         new AssignmentWatcher(acuConf, context, activeAssignments), 5000, TimeUnit.MILLISECONDS));
+  }
+
+  public int getOpenFiles() {
+    return fileManager.getOpenFiles();
   }
 
   /**

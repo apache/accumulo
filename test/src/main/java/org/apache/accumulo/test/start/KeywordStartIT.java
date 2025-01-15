@@ -53,6 +53,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloRunner;
 import org.apache.accumulo.miniclusterImpl.MiniClusterExecutable;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.MonitorExecutable;
+import org.apache.accumulo.server.conf.CheckAccumuloProperties;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.CheckServerConfig;
 import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
@@ -131,6 +132,7 @@ public class KeywordStartIT {
     expectSet.put("admin", Admin.class);
     expectSet.put("check-compaction-config", CheckCompactionConfig.class);
     expectSet.put("check-server-config", CheckServerConfig.class);
+    expectSet.put("check-accumulo-properties", CheckAccumuloProperties.class);
     expectSet.put("compaction-coordinator", CoordinatorExecutable.class);
     expectSet.put("compactor", CompactorExecutable.class);
     expectSet.put("config-upgrade", ConfigPropertyUpgrader.class);

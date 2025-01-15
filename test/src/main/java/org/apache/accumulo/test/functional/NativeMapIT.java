@@ -548,6 +548,14 @@ public class NativeMapIT {
     assertEquals(0, nm.size());
     assertEquals(0, nm.getMemoryUsed());
 
+    var iter1 = nm.iterator();
+    assertFalse(iter1.hasNext());
+    assertThrows(NoSuchElementException.class, () -> iter1.next());
+
+    var iter2 = nm.iterator(new Key("abc"));
+    assertFalse(iter2.hasNext());
+    assertThrows(NoSuchElementException.class, () -> iter2.next());
+
     nm.delete();
   }
 

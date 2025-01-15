@@ -53,7 +53,7 @@ import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -72,7 +72,6 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
@@ -199,11 +198,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     Map<String,Pair<Long,Long>> samples = new HashMap<>();
     Set<String> serversUpdated = new HashSet<>();
 
-    void startingUpdates() {
+    synchronized void startingUpdates() {
       serversUpdated.clear();
     }
 
-    void updateTabletServer(String name, long sampleTime, long numEvents) {
+    synchronized void updateTabletServer(String name, long sampleTime, long numEvents) {
       Pair<Long,Long> newSample = new Pair<>(sampleTime, numEvents);
       Pair<Long,Long> lastSample = samples.get(name);
 
@@ -216,13 +215,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       serversUpdated.add(name);
     }
 
-    void finishedUpdating() {
+    synchronized void finishedUpdating() {
       // remove any tablet servers not updated
       samples.keySet().retainAll(serversUpdated);
       prevSamples.keySet().retainAll(serversUpdated);
     }
 
-    double calculateRate() {
+    synchronized double calculateRate() {
       double totalRate = 0;
 
       for (Entry<String,Pair<Long,Long>> entry : prevSamples.entrySet()) {
@@ -236,7 +235,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       return totalRate;
     }
 
-    long calculateCount() {
+    synchronized long calculateCount() {
       long count = 0;
 
       for (Entry<String,Pair<Long,Long>> entry : prevSamples.entrySet()) {
@@ -499,8 +498,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), monitorHostAndPort);
-    metricsInfo.init();
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        monitorHostAndPort, ""));
 
     try {
       URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
@@ -765,9 +764,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     public final RunningCompactions runningCompactions;
     public final Map<String,TExternalCompaction> ecRunningMap;
 
-    private ExternalCompactionsSnapshot(Map<String,TExternalCompaction> ecRunningMap) {
-      this.ecRunningMap = Collections.unmodifiableMap(ecRunningMap);
-      this.runningCompactions = new RunningCompactions(ecRunningMap);
+    private ExternalCompactionsSnapshot(Optional<Map<String,TExternalCompaction>> ecRunningMapOpt) {
+      this.ecRunningMap =
+          ecRunningMapOpt.map(Collections::unmodifiableMap).orElse(Collections.emptyMap());
+      this.runningCompactions = new RunningCompactions(this.ecRunningMap);
     }
   }
 
@@ -785,7 +785,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
     }
 
-    return new ExternalCompactionsSnapshot(running.getCompactions());
+    return new ExternalCompactionsSnapshot(Optional.ofNullable(running.getCompactions()));
   }
 
   /**
@@ -828,16 +828,16 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     monitorLock = new ServiceLock(zoo.getZooKeeper(), monitorLockPath, zooLockUUID);
 
     while (true) {
-      MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
+      HAServiceLockWatcher monitorLockWatcher = new HAServiceLockWatcher("monitor");
       monitorLock.lock(monitorLockWatcher, new byte[0]);
 
       monitorLockWatcher.waitForChange();
 
-      if (monitorLockWatcher.acquiredLock) {
+      if (monitorLockWatcher.isLockAcquired()) {
         break;
       }
 
-      if (!monitorLockWatcher.failedToAcquireLock) {
+      if (!monitorLockWatcher.isFailedToAcquireLock()) {
         throw new IllegalStateException("monitor lock in unknown state");
       }
 
@@ -849,57 +849,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     log.info("Got Monitor lock.");
-  }
-
-  /**
-   * Async Watcher for monitor lock
-   */
-  private static class MoniterLockWatcher implements ServiceLock.AccumuloLockWatcher {
-
-    boolean acquiredLock = false;
-    boolean failedToAcquireLock = false;
-
-    @Override
-    public void lostLock(LockLossReason reason) {
-      Halt.halt("Monitor lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
-    }
-
-    @Override
-    public void unableToMonitorLockNode(final Exception e) {
-      Halt.halt(-1, () -> log.error("No longer able to monitor Monitor lock node", e));
-
-    }
-
-    @Override
-    public synchronized void acquiredLock() {
-      if (acquiredLock || failedToAcquireLock) {
-        Halt.halt("Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock, -1);
-      }
-
-      acquiredLock = true;
-      notifyAll();
-    }
-
-    @Override
-    public synchronized void failedToAcquireLock(Exception e) {
-      log.warn("Failed to get monitor lock " + e);
-
-      if (acquiredLock) {
-        Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock,
-            -1);
-      }
-
-      failedToAcquireLock = true;
-      notifyAll();
-    }
-
-    public synchronized void waitForChange() {
-      while (!acquiredLock && !failedToAcquireLock) {
-        try {
-          wait();
-        } catch (InterruptedException e) {}
-      }
-    }
   }
 
   public ManagerMonitorInfo getMmi() {
@@ -1017,5 +966,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   public int getLivePort() {
     return livePort;
+  }
+
+  @Override
+  public ServiceLock getLock() {
+    return monitorLock;
   }
 }

@@ -70,22 +70,15 @@ public class SessionManager {
 
   private static final SecureRandom random = new SecureRandom();
   private final ConcurrentMap<Long,Session> sessions = new ConcurrentHashMap<>();
-  private final long maxIdle;
-  private final long maxUpdateIdle;
   private final BlockingQueue<Session> deferredCleanupQueue = new ArrayBlockingQueue<>(5000);
   private final Long expiredSessionMarker = (long) -1;
-  private final AccumuloConfiguration aconf;
   private final ServerContext ctx;
   private volatile LongConsumer zombieCountConsumer = null;
 
   public SessionManager(ServerContext context) {
     this.ctx = context;
-    this.aconf = context.getConfiguration();
-    maxUpdateIdle = aconf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
-    maxIdle = aconf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
-
-    Runnable r = () -> sweep(maxIdle, maxUpdateIdle);
-
+    long maxIdle = ctx.getConfiguration().getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
+    Runnable r = () -> sweep(ctx);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(r,
         0, Math.max(maxIdle / 2, 1000), TimeUnit.MILLISECONDS));
   }
@@ -107,7 +100,7 @@ public class SessionManager {
   }
 
   public long getMaxIdleTime() {
-    return maxIdle;
+    return ctx.getConfiguration().getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
   }
 
   /**
@@ -309,7 +302,10 @@ public class SessionManager {
     cleanup(deferredCleanupQueue, session);
   }
 
-  private void sweep(final long maxIdle, final long maxUpdateIdle) {
+  private void sweep(final ServerContext context) {
+    final AccumuloConfiguration conf = context.getConfiguration();
+    final long maxUpdateIdle = conf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
+    final long maxIdle = conf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
     List<Session> sessionsToCleanup = new LinkedList<>();
     Iterator<Session> iter = sessions.values().iterator();
     while (iter.hasNext()) {
@@ -350,7 +346,7 @@ public class SessionManager {
     return Stream.concat(deferredCleanupQueue.stream(), sessions.values().stream())
         .filter(session -> {
           if (session instanceof ScanSession) {
-            var scanSession = (ScanSession) session;
+            var scanSession = (ScanSession<?>) session;
             synchronized (scanSession) {
               var scanTask = scanSession.getScanTask();
               if (scanTask != null && scanSession.getState() == State.REMOVED

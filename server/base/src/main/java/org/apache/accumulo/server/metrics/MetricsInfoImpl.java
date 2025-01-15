@@ -24,18 +24,13 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.Objects;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerContext;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
@@ -51,8 +46,9 @@ import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
+import io.micrometer.core.instrument.binder.logging.Log4j2Metrics;
+import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
-import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
 
@@ -62,17 +58,15 @@ public class MetricsInfoImpl implements MetricsInfo {
 
   private final ServerContext context;
 
-  private final Lock lock = new ReentrantLock();
-
-  private final Map<String,Tag> commonTags;
+  private List<Tag> commonTags = null;
 
   // JvmGcMetrics are declared with AutoCloseable - keep reference to use with close()
   private JvmGcMetrics jvmGcMetrics;
+  // Log4j2Metrics and LogbackMetrics are declared with AutoCloseable - keep reference to use with
+  // close()
+  private AutoCloseable logMetrics;
 
   private final boolean metricsEnabled;
-
-  private CompositeMeterRegistry composite = null;
-  private final List<MeterRegistry> pendingRegistries = new ArrayList<>();
 
   private final List<MetricsProducer> producers = new ArrayList<>();
 
@@ -80,26 +74,20 @@ public class MetricsInfoImpl implements MetricsInfo {
     this.context = context;
     metricsEnabled = context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_ENABLED);
     printMetricsConfig();
-    commonTags = new HashMap<>();
-    Tag t = MetricsInfo.instanceNameTag(context.getInstanceName());
-    commonTags.put(t.getKey(), t);
   }
 
   private void printMetricsConfig() {
     final boolean jvmMetricsEnabled =
         context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED);
     LOG.info("micrometer metrics enabled: {}", metricsEnabled);
+    if (!metricsEnabled) {
+      return;
+    }
     if (jvmMetricsEnabled) {
-      if (metricsEnabled) {
-        LOG.info("detailed jvm metrics enabled: {}", jvmMetricsEnabled);
-      } else {
-        LOG.info("requested jvm metrics, but micrometer metrics are disabled.");
-      }
+      LOG.info("detailed jvm metrics enabled: {}", jvmMetricsEnabled);
     }
-    if (metricsEnabled) {
-      LOG.info("metrics registry factories: {}",
-          context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY));
-    }
+    LOG.info("metrics registry factories: {}",
+        context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY));
   }
 
   @Override
@@ -107,161 +95,106 @@ public class MetricsInfoImpl implements MetricsInfo {
     return metricsEnabled;
   }
 
-  /**
-   * Common tags for all services.
-   */
   @Override
-  public void addServiceTags(final String applicationName, final HostAndPort hostAndPort) {
-    List<Tag> tags = new ArrayList<>();
-
-    if (applicationName != null && !applicationName.isEmpty()) {
-      tags.add(MetricsInfo.processTag(applicationName));
+  public synchronized void addMetricsProducers(MetricsProducer... producer) {
+    if (!metricsEnabled) {
+      return;
     }
-    if (hostAndPort != null) {
-      tags.addAll(MetricsInfo.addressTags(hostAndPort));
-    }
-    addCommonTags(tags);
-  }
-
-  @Override
-  public void addCommonTags(List<Tag> updates) {
-    lock.lock();
-    try {
-      if (composite != null) {
-        LOG.warn(
-            "Common tags after registry has been initialized may be ignored. Current common tags: {}",
-            commonTags);
-        return;
-      }
-      updates.forEach(t -> commonTags.put(t.getKey(), t));
-    } finally {
-      lock.unlock();
-    }
-  }
-
-  @Override
-  public Collection<Tag> getCommonTags() {
-    lock.lock();
-    try {
-      return Collections.unmodifiableCollection(commonTags.values());
-    } finally {
-      lock.unlock();
-    }
-  }
-
-  @Override
-  public void addRegistry(MeterRegistry registry) {
-    lock.lock();
-    try {
-      if (composite != null) {
-        composite.add(registry);
-      } else {
-        // defer until composite is initialized
-        pendingRegistries.add(registry);
-      }
-
-    } finally {
-      lock.unlock();
-    }
-  }
-
-  @Override
-  public void addMetricsProducers(MetricsProducer... producer) {
     if (producer.length == 0) {
       LOG.debug(
           "called addMetricsProducers() without providing at least one producer - this has no effect");
       return;
     }
-    lock.lock();
-    try {
-      if (composite == null) {
-        producers.addAll(Arrays.asList(producer));
-      } else {
-        Arrays.stream(producer).forEach(p -> p.registerMetrics(composite));
-      }
-    } finally {
-      lock.unlock();
+
+    if (commonTags == null) {
+      producers.addAll(Arrays.asList(producer));
+    } else {
+      Arrays.stream(producer).forEach(p -> p.registerMetrics(Metrics.globalRegistry));
     }
   }
 
   @Override
-  public MeterRegistry getRegistry() {
-    lock.lock();
-    try {
-      if (composite == null) {
-        throw new IllegalStateException("metrics have not been initialized, call init() first");
-      }
-    } finally {
-      lock.unlock();
+  public synchronized void init(Collection<Tag> tags) {
+    Objects.requireNonNull(tags);
+
+    if (!metricsEnabled) {
+      LOG.info("Metrics not initialized, metrics are disabled.");
+      return;
     }
-    return composite;
-  }
 
-  @Override
-  public void init() {
-    lock.lock();
-    try {
-      if (composite != null) {
-        LOG.warn("metrics registry has already been initialized");
-        return;
-      }
-      composite = new CompositeMeterRegistry();
-      composite.config().commonTags(commonTags.values());
-
-      LOG.info("Metrics initialization. common tags: {}", commonTags);
-
-      boolean jvmMetricsEnabled =
-          context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED);
-
-      if (jvmMetricsEnabled) {
-        LOG.info("enabling detailed jvm, classloader, jvm gc and process metrics");
-        new ClassLoaderMetrics().bindTo(composite);
-        new JvmMemoryMetrics().bindTo(composite);
-        jvmGcMetrics = new JvmGcMetrics();
-        jvmGcMetrics.bindTo(composite);
-        new ProcessorMetrics().bindTo(composite);
-        new JvmThreadMetrics().bindTo(composite);
-      }
-
-      MeterFilter replicationFilter = new MeterFilter() {
-        @Override
-        public DistributionStatisticConfig configure(Meter.Id id,
-            @NonNull DistributionStatisticConfig config) {
-          if (id.getName().equals("replicationQueue")) {
-            return DistributionStatisticConfig.builder().percentiles(0.5, 0.75, 0.9, 0.95, 0.99)
-                .expiry(Duration.ofMinutes(10)).build().merge(config);
-          }
-          return config;
-        }
-      };
-
-      if (isMetricsEnabled()) {
-        // user specified registries
-        String userRegistryFactories =
-            context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY);
-
-        for (String factoryName : getTrimmedStrings(userRegistryFactories)) {
-          try {
-            MeterRegistry registry = getRegistryFromFactory(factoryName, context);
-            registry.config().commonTags(commonTags.values());
-            registry.config().meterFilter(replicationFilter);
-            addRegistry(registry);
-          } catch (ReflectiveOperationException ex) {
-            LOG.warn("Could not load registry {}", factoryName, ex);
-          }
-        }
-      }
-
-      pendingRegistries.forEach(registry -> composite.add(registry));
-
-      LOG.info("Metrics initialization. Register producers: {}", producers);
-      producers.forEach(p -> p.registerMetrics(composite));
-
-      Metrics.globalRegistry.add(composite);
-
-    } finally {
-      lock.unlock();
+    if (commonTags != null) {
+      LOG.warn("metrics registry has already been initialized");
+      return;
     }
+
+    commonTags = List.copyOf(tags);
+
+    LOG.info("Metrics initialization. common tags: {}", commonTags);
+
+    Metrics.globalRegistry.config().commonTags(commonTags);
+
+    boolean jvmMetricsEnabled =
+        context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED);
+
+    MeterFilter replicationFilter = new MeterFilter() {
+      @Override
+      public DistributionStatisticConfig configure(Meter.Id id,
+          @NonNull DistributionStatisticConfig config) {
+        if (id.getName().equals("replicationQueue")) {
+          return DistributionStatisticConfig.builder().percentiles(0.5, 0.75, 0.9, 0.95, 0.99)
+              .expiry(Duration.ofMinutes(10)).build().merge(config);
+        }
+        return config;
+      }
+    };
+
+    // user specified registries
+    String userRegistryFactories =
+        context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY);
+
+    for (String factoryName : getTrimmedStrings(userRegistryFactories)) {
+      try {
+        MeterRegistry registry = getRegistryFromFactory(factoryName, context);
+        registry.config().meterFilter(replicationFilter);
+        registry.config().commonTags(commonTags);
+        Metrics.globalRegistry.add(registry);
+      } catch (ReflectiveOperationException ex) {
+        LOG.warn("Could not load registry {}", factoryName, ex);
+      }
+    }
+
+    if (jvmMetricsEnabled) {
+      LOG.info("enabling detailed jvm, classloader, jvm gc and process metrics");
+      new ClassLoaderMetrics().bindTo(Metrics.globalRegistry);
+      new JvmMemoryMetrics().bindTo(Metrics.globalRegistry);
+      jvmGcMetrics = new JvmGcMetrics();
+      jvmGcMetrics.bindTo(Metrics.globalRegistry);
+      new ProcessorMetrics().bindTo(Metrics.globalRegistry);
+      new JvmThreadMetrics().bindTo(Metrics.globalRegistry);
+    }
+
+    String loggingMetrics = context.getConfiguration().get(Property.GENERAL_MICROMETER_LOG_METRICS);
+    switch (loggingMetrics) {
+      case "none":
+        LOG.info("Log metrics are disabled.");
+        break;
+      case "log4j2":
+        Log4j2Metrics l2m = new Log4j2Metrics();
+        l2m.bindTo(Metrics.globalRegistry);
+        logMetrics = l2m;
+        break;
+      case "logback":
+        LogbackMetrics lb = new LogbackMetrics();
+        lb.bindTo(Metrics.globalRegistry);
+        logMetrics = lb;
+        break;
+      default:
+        LOG.info("Log metrics misconfigured, valid values for {} are 'none', 'log4j2' or 'logback'",
+            Property.GENERAL_MICROMETER_LOG_METRICS.getKey());
+    }
+
+    LOG.info("Metrics initialization. Register producers: {}", producers);
+    producers.forEach(p -> p.registerMetrics(Metrics.globalRegistry));
   }
 
   // support for org.apache.accumulo.core.metrics.MeterRegistryFactory can be removed in 3.1
@@ -303,14 +236,20 @@ public class MetricsInfoImpl implements MetricsInfo {
       jvmGcMetrics.close();
       jvmGcMetrics = null;
     }
-    if (composite != null) {
-      composite.close();
-      composite = null;
+
+    if (logMetrics != null) {
+      try {
+        logMetrics.close();
+      } catch (Exception e) {
+        LOG.info("Exception when closing log metrics", e);
+      }
     }
+
+    Metrics.globalRegistry.close();
   }
 
   @Override
-  public String toString() {
-    return "MetricsCommonTags{tags=" + getCommonTags() + '}';
+  public synchronized String toString() {
+    return "MetricsCommonTags{tags=" + commonTags + '}';
   }
 }

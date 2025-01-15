@@ -152,6 +152,6 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
   @Override
   public String toString() {
     return this.getClass().getSimpleName() + "{" + getId().getClass().getSimpleName() + "="
-        + getId().canonical() + "'}";
+        + getId().canonical() + "}";
   }
 }
