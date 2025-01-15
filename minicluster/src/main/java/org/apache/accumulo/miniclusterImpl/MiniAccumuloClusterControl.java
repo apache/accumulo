@@ -280,12 +280,10 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           try {
             cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
             try {
-              new ZooZap().zap(cluster.getServerContext().getSiteConfiguration(),
-                  new String[] {"-manager"});
-            } catch (Exception e) {
+              new ZooZap().zap(cluster.getServerContext().getSiteConfiguration(), "-manager");
+            } catch (RuntimeException e) {
               log.error("Error zapping Manager zookeeper lock", e);
             }
-
           } catch (ExecutionException | TimeoutException e) {
             log.warn("Manager did not fully stop after 30 seconds", e);
           } catch (InterruptedException e) {

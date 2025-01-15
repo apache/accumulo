@@ -56,6 +56,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -835,9 +836,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // is restarted, then the processes will start right away
     // and not wait for the old locks to be cleaned up.
     try {
-      new ZooZap().zap(getServerContext().getSiteConfiguration(), new String[] {"-manager",
-          "-compaction-coordinators", "-tservers", "-compactors", "-sservers"});
-    } catch (Exception e) {
+      new ZooZap().zap(getServerContext().getSiteConfiguration(), "-manager",
+          "-compaction-coordinators", "-tservers", "-compactors", "-sservers");
+    } catch (RuntimeException e) {
       log.error("Error zapping zookeeper locks", e);
     }
     control.stop(ServerType.ZOOKEEPER, null);
@@ -858,11 +859,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (startCalled) {
       final ServerContext ctx = getServerContext();
       final String zRoot = getServerContext().getZooKeeperRoot();
-      ctx.getZooCache().clear((path) -> path.startsWith(zRoot + Constants.ZMANAGER_LOCK));
-      ctx.getZooCache().clear((path) -> path.startsWith(zRoot + Constants.ZGC_LOCK));
-      ctx.getZooCache().clear((path) -> path.startsWith(zRoot + Constants.ZCOMPACTORS));
-      ctx.getZooCache().clear((path) -> path.startsWith(zRoot + Constants.ZSSERVERS));
-      ctx.getZooCache().clear((path) -> path.startsWith(zRoot + Constants.ZTSERVERS));
+      Predicate<String> pred = path -> false;
+      for (String lockPath : Set.of(Constants.ZMANAGER_LOCK, Constants.ZGC_LOCK,
+          Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS)) {
+        pred = pred.or(path -> path.startsWith(zRoot + lockPath));
+      }
+      ctx.getZooCache().clear(pred);
     }
 
     // ACCUMULO-2985 stop the ExecutorService after we finished using it to stop accumulo procs

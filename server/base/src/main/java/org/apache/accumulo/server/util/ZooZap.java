@@ -102,7 +102,7 @@ public class ZooZap implements KeywordExecutable {
     }
   }
 
-  public void zap(SiteConfiguration siteConf, String[] args) {
+  public void zap(SiteConfiguration siteConf, String... args) {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
 
