@@ -270,7 +270,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
           case WRITE:
             return new WriteLock(qlock, parsed.getUserData(), entry.getKey());
           default:
-            throw new IllegalStateException("Uknown lock type " + parsed.getType());
+            throw new IllegalStateException("Unknown lock type " + parsed.getType());
         }
       default:
         throw new IllegalStateException("Found more than one lock node " + entries);
