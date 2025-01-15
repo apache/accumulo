@@ -27,9 +27,12 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 
 /**
- * A FATE which performs the dead reservation cleanup with a much shorter delay between
+ * A FATE which performs the dead reservation cleanup and the check on the pool size with a much
+ * shorter delay between for faster testing.
  */
 public class FastFate<T> extends Fate<T> {
+  private static final Duration DEAD_RES_CLEANUP_DELAY = Duration.ofSeconds(15);
+  private static final Duration POOL_WATCHER_DELAY = Duration.ofSeconds(5);
 
   public FastFate(T environment, FateStore<T> store, boolean runDeadResCleaner,
       Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf) {
@@ -38,6 +41,11 @@ public class FastFate<T> extends Fate<T> {
 
   @Override
   public Duration getDeadResCleanupDelay() {
-    return Duration.ofSeconds(15);
+    return DEAD_RES_CLEANUP_DELAY;
+  }
+
+  @Override
+  public Duration getPoolWatcherDelay() {
+    return POOL_WATCHER_DELAY;
   }
 }
