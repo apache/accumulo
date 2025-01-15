@@ -21,11 +21,13 @@ package org.apache.accumulo.core.fate.zookeeper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.function.BiPredicate;
 
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.QueueLock;
@@ -72,7 +74,7 @@ public class FateLock implements QueueLock {
     this.path = requireNonNull(path);
   }
 
-  public static class FateLockNode {
+  public static class FateLockNode implements Comparable<FateLockNode> {
     public final long sequence;
     public final String lockData;
 
@@ -82,6 +84,28 @@ public class FateLock implements QueueLock {
           "Illegal node name %s", nodeName);
       sequence = Long.parseLong(nodeName.substring(len - 10));
       lockData = nodeName.substring(PREFIX.length(), len - 11);
+    }
+
+    @Override
+    public int compareTo(FateLockNode o) {
+      int cmp = Long.compare(sequence, o.sequence);
+      if (cmp == 0) {
+        cmp = lockData.compareTo(o.lockData);
+      }
+      return cmp;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o instanceof FateLockNode) {
+        return this.compareTo((FateLockNode) o) == 0;
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(sequence, lockData);
     }
   }
 
@@ -157,10 +181,10 @@ public class FateLock implements QueueLock {
   /**
    * Validate and sort child nodes at this lock path by the lock prefix
    */
-  public static List<FateLockNode> validateAndWarn(FateLockPath path, List<String> children) {
+  public static SortedSet<FateLockNode> validateAndWarn(FateLockPath path, List<String> children) {
     log.trace("validating and sorting children at path {}", path);
 
-    List<FateLockNode> validChildren = new ArrayList<>();
+    SortedSet<FateLockNode> validChildren = new TreeSet<>();
 
     if (children == null || children.isEmpty()) {
       return validChildren;

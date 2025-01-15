@@ -25,7 +25,6 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.Formatter;
@@ -33,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
@@ -288,10 +288,8 @@ public class AdminUtil<T> {
     for (String id : lockedIds) {
       try {
         FateLockPath fLockPath = FateLock.path(lockPath + "/" + id);
-        List<FateLock.FateLockNode> lockNodes =
+        SortedSet<FateLock.FateLockNode> lockNodes =
             FateLock.validateAndWarn(fLockPath, zr.getChildren(fLockPath.toString()));
-
-        lockNodes.sort(Comparator.comparingLong(ln -> ln.sequence));
 
         int pos = 0;
         boolean sawWriteLock = false;
