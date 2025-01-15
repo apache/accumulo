@@ -33,6 +33,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -86,6 +87,19 @@ public class ZooZap implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
+    try {
+      var siteConf = SiteConfiguration.auto();
+      // Login as the server on secure HDFS
+      if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        SecurityUtil.serverLogin(siteConf);
+      }
+      zap(siteConf, args);
+    } finally {
+      SingletonManager.setMode(Mode.CLOSED);
+    }
+  }
+
+  public void zap(SiteConfiguration siteConf, String... args) {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
 
@@ -94,8 +108,7 @@ public class ZooZap implements KeywordExecutable {
       return;
     }
 
-    try {
-      var siteConf = SiteConfiguration.auto();
+    try (var zk = new ZooSession(getClass().getSimpleName(), siteConf)) {
       // Login as the server on secure HDFS
       if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
         SecurityUtil.serverLogin(siteConf);
@@ -175,10 +188,7 @@ public class ZooZap implements KeywordExecutable {
         }
       }
 
-    } finally {
-      SingletonManager.setMode(Mode.CLOSED);
     }
-
   }
 
   private static void zapDirectory(ZooReaderWriter zoo, ServiceLockPath path, Opts opts)
