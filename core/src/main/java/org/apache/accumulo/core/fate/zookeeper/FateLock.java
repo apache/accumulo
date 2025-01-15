@@ -96,7 +96,7 @@ public class FateLock implements QueueLock {
     try {
       while (true) {
         try {
-          newPath = zoo.putPersistentSequential(path + "/" + PREFIX + dataString + "#", data);
+          newPath = zoo.putPersistentSequential(path + "/" + PREFIX + dataString + "#", new byte[0]);
           String[] parts = newPath.split("/");
           String last = parts[parts.length - 1];
           return new FateLockNode(last).sequence;
