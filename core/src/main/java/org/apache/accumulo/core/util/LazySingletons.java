@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 
 import com.google.common.base.Suppliers;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /**
  * This class provides easy access to global, immutable, lazily-instantiated, and thread-safe
@@ -36,7 +37,8 @@ public class LazySingletons {
   /**
    * A Gson instance constructed with defaults. Construct your own if you need custom settings.
    */
-  public static final Supplier<Gson> GSON = Suppliers.memoize(Gson::new);
+  public static final Supplier<Gson> GSON =
+      Suppliers.memoize(() -> new GsonBuilder().disableJdkUnsafe().create());
 
   /**
    * A SecureRandom instance created with the default constructor.

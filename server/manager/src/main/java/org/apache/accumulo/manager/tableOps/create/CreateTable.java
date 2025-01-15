@@ -41,7 +41,7 @@ public class CreateTable extends ManagerRepo {
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(CreateTable.class);
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props,
       Path splitPath, int splitCount, Path splitDirsPath, InitialTableState initialTableState,

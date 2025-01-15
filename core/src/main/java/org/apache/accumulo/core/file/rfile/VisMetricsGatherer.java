@@ -52,7 +52,7 @@ public class VisMetricsGatherer
   protected Map<String,AtomicLongMap<String>> blocks;
   protected ArrayList<Long> numEntries;
   protected ArrayList<Integer> numBlocks;
-  private ArrayList<String> inBlock;
+  private final ArrayList<String> inBlock;
   protected ArrayList<String> localityGroups;
   private int numLG;
   private Map<String,ArrayList<ByteSequence>> localityGroupCF;

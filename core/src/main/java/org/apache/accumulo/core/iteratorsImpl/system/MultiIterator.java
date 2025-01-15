@@ -37,8 +37,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  */
 public class MultiIterator extends HeapIterator {
 
-  private List<SortedKeyValueIterator<Key,Value>> iters;
-  private Range fence;
+  private final List<SortedKeyValueIterator<Key,Value>> iters;
+  private final Range fence;
 
   // deep copy with no seek/scan state
   @Override

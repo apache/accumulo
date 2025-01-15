@@ -39,7 +39,7 @@ import org.apache.hadoop.io.Text;
  */
 public class TimeoutTabletLocator extends SyncingTabletLocator {
 
-  private long timeout;
+  private final long timeout;
   private Long firstFailTime = null;
 
   private void failed() {

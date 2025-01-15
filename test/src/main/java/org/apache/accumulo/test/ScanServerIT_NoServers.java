@@ -85,7 +85,16 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
   @Test
   public void testScan() throws Exception {
 
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+    var clientProps = new Properties();
+    clientProps.putAll(getClientProps());
+    String scanServerSelectorProfiles = "[{'isDefault':true,'maxBusyTimeout':'5m',"
+        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':'0s',"
+        + "'attemptPlans':[{'servers':'3', 'busyTimeout':'1s'}]}]";
+    clientProps.put("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName());
+    clientProps.put("scan.server.selector.opts.profiles",
+        scanServerSelectorProfiles.replace("'", "\""));
+
+    try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
       String tableName = getUniqueNames(1)[0];
 
       final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
@@ -107,7 +116,16 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
   @Test
   public void testBatchScan() throws Exception {
 
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+    var clientProps = new Properties();
+    clientProps.putAll(getClientProps());
+    String scanServerSelectorProfiles = "[{'isDefault':true,'maxBusyTimeout':'5m',"
+        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':'0s',"
+        + "'attemptPlans':[{'servers':'3', 'busyTimeout':'1s'}]}]";
+    clientProps.put("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName());
+    clientProps.put("scan.server.selector.opts.profiles",
+        scanServerSelectorProfiles.replace("'", "\""));
+
+    try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
       String tableName = getUniqueNames(1)[0];
 
       final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
@@ -128,17 +146,7 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
 
   @Test
   public void testScanWithNoTserverFallback() throws Exception {
-
-    var clientProps = new Properties();
-    clientProps.putAll(getClientProps());
-    String scanServerSelectorProfiles = "[{'isDefault':true,'maxBusyTimeout':'5m',"
-        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':'120s',"
-        + "'attemptPlans':[{'servers':'3', 'busyTimeout':'1s'}]}]";
-    clientProps.put("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName());
-    clientProps.put("scan.server.selector.opts.profiles",
-        scanServerSelectorProfiles.replace("'", "\""));
-
-    try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
       createTableAndIngest(client, tableName, null, 10, 10, "colf");
@@ -156,17 +164,7 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
 
   @Test
   public void testBatchScanWithNoTserverFallback() throws Exception {
-
-    var clientProps = new Properties();
-    clientProps.putAll(getClientProps());
-    String scanServerSelectorProfiles = "[{'isDefault':true,'maxBusyTimeout':'5m',"
-        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':'120s',"
-        + "'attemptPlans':[{'servers':'3', 'busyTimeout':'1s'}]}]";
-    clientProps.put("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName());
-    clientProps.put("scan.server.selector.opts.profiles",
-        scanServerSelectorProfiles.replace("'", "\""));
-
-    try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
       createTableAndIngest(client, tableName, null, 10, 10, "colf");

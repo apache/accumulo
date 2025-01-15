@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.hadoop.its.mapreduce;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -112,8 +113,8 @@ public class RowHashIT extends ConfigurableMacBase {
       int i = 0;
       for (Entry<Key,Value> entry : s) {
         MessageDigest md = MessageDigest.getInstance("MD5");
-        byte[] check = Base64.getEncoder().encode(md.digest(("row" + i).getBytes()));
-        assertEquals(entry.getValue().toString(), new String(check));
+        byte[] check = Base64.getEncoder().encode(md.digest(("row" + i).getBytes(UTF_8)));
+        assertEquals(entry.getValue().toString(), new String(check, UTF_8));
         i++;
       }
     }

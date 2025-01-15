@@ -35,11 +35,11 @@ class MinorCompactionTask implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(MinorCompactionTask.class);
 
   private final Tablet tablet;
-  private long queued;
-  private CommitSession commitSession;
+  private final long queued;
+  private final CommitSession commitSession;
   private DataFileValue stats;
-  private long flushId;
-  private MinorCompactionReason mincReason;
+  private final long flushId;
+  private final MinorCompactionReason mincReason;
 
   MinorCompactionTask(Tablet tablet, CommitSession commitSession, long flushId,
       MinorCompactionReason mincReason) {

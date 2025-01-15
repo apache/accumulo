@@ -48,7 +48,6 @@ public class Constants {
   public static final String ZTABLE_NAMESPACE = "/namespace";
 
   public static final String ZNAMESPACES = "/namespaces";
-  public static final String ZNAMESPACE_NAME = "/name";
 
   public static final String ZMANAGERS = "/managers";
   public static final String ZMANAGER_LOCK = ZMANAGERS + "/lock";
@@ -75,8 +74,6 @@ public class Constants {
 
   public static final String ZDEAD = "/dead";
   public static final String ZDEADTSERVERS = ZDEAD + "/tservers";
-
-  public static final String ZPROBLEMS = "/problems";
 
   public static final String BULK_ARBITRATOR_TYPE = "bulkTx";
 

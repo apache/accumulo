@@ -103,7 +103,7 @@ public class ThreadPools {
   private static final ConcurrentLinkedQueue<ScheduledFuture<?>> NON_CRITICAL_RUNNING_TASKS =
       new ConcurrentLinkedQueue<>();
 
-  private static Runnable TASK_CHECKER = () -> {
+  private static final Runnable TASK_CHECKER = () -> {
     final List<ConcurrentLinkedQueue<ScheduledFuture<?>>> queues =
         List.of(CRITICAL_RUNNING_TASKS, NON_CRITICAL_RUNNING_TASKS);
     while (true) {
@@ -360,7 +360,7 @@ public class ThreadPools {
   }
 
   /**
-   * Fet a fluent-style pool builder.
+   * Get a fluent-style pool builder.
    *
    * @param name the pool name - the name trimed and prepended with the ACCUMULO_POOL_PREFIX so that
    *        pool names begin with a consistent prefix.
@@ -370,7 +370,11 @@ public class ThreadPools {
     if (trimmed.startsWith(ACCUMULO_POOL_PREFIX.poolName)) {
       return new ThreadPoolExecutorBuilder(trimmed);
     } else {
-      return new ThreadPoolExecutorBuilder(ACCUMULO_POOL_PREFIX.poolName + trimmed);
+      if (trimmed.startsWith(".")) {
+        return new ThreadPoolExecutorBuilder(ACCUMULO_POOL_PREFIX.poolName + trimmed);
+      } else {
+        return new ThreadPoolExecutorBuilder(ACCUMULO_POOL_PREFIX.poolName + "." + trimmed);
+      }
     }
   }
 

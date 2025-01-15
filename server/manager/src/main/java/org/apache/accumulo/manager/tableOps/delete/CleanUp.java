@@ -48,7 +48,6 @@ import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
-import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -60,8 +59,8 @@ class CleanUp extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableId tableId;
-  private NamespaceId namespaceId;
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
 
   private long creationTime;
 
@@ -163,13 +162,6 @@ class CleanUp extends ManagerRepo {
       MetadataTableUtil.deleteTable(tableId, refCount != 0, manager.getContext(), null);
     } catch (Exception e) {
       log.error("error deleting " + tableId + " from metadata table", e);
-    }
-
-    // remove any problem reports the table may have
-    try {
-      ProblemReports.getInstance(manager.getContext()).deleteProblemReports(tableId);
-    } catch (Exception e) {
-      log.error("Failed to delete problem reports for table " + tableId, e);
     }
 
     if (refCount == 0) {

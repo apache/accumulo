@@ -25,13 +25,13 @@ import java.util.Arrays;
  */
 public class ColumnUpdate {
 
-  private byte[] columnFamily;
-  private byte[] columnQualifier;
-  private byte[] columnVisibility;
-  private long timestamp;
-  private boolean hasTimestamp;
-  private byte[] val;
-  private boolean deleted;
+  private final byte[] columnFamily;
+  private final byte[] columnQualifier;
+  private final byte[] columnVisibility;
+  private final long timestamp;
+  private final boolean hasTimestamp;
+  private final byte[] val;
+  private final boolean deleted;
 
   /**
    * Creates a new column update.

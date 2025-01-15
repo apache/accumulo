@@ -262,8 +262,9 @@ public class MetadataSchema {
      */
     public static class SuspendLocationColumn {
       public static final String STR_NAME = "suspend";
-      public static final ColumnFQ SUSPEND_COLUMN =
-          new ColumnFQ(new Text(STR_NAME), new Text("loc"));
+      public static final Text NAME = new Text(STR_NAME);
+      public static final String SUSPEND_QUAL = "loc";
+      public static final ColumnFQ SUSPEND_COLUMN = new ColumnFQ(NAME, new Text(SUSPEND_QUAL));
     }
 
     /**
@@ -403,23 +404,6 @@ public class MetadataSchema {
   public static class BlipSection {
     private static final Section section =
         new Section(RESERVED_PREFIX + "blip", true, RESERVED_PREFIX + "bliq", false);
-
-    public static Range getRange() {
-      return section.getRange();
-    }
-
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
-    }
-
-  }
-
-  /**
-   * Holds error message processing flags
-   */
-  public static class ProblemSection {
-    private static final Section section =
-        new Section(RESERVED_PREFIX + "err_", true, RESERVED_PREFIX + "err`", false);
 
     public static Range getRange() {
       return section.getRange();

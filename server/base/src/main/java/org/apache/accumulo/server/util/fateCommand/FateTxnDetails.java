@@ -38,6 +38,10 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
   private List<String> locksHeld = List.of();
   private List<String> locksWaiting = List.of();
 
+  // Default constructor for Gson
+  @SuppressWarnings("unused")
+  private FateTxnDetails() {}
+
   /**
    * Create a detailed FaTE transaction that can be formatted for status reports.
    * <p>

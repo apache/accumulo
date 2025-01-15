@@ -22,7 +22,7 @@ var compactionsList;
 /**
  * Creates active compactions table
  */
-$(document).ready(function () {
+$(function () {
   // Create a table for compactions list
   compactionsList = $('#compactionsList').DataTable({
     "ajax": {

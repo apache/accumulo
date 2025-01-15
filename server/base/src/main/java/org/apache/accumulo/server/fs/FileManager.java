@@ -46,15 +46,13 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +63,7 @@ public class FileManager {
 
   private static final Logger log = LoggerFactory.getLogger(FileManager.class);
 
-  private int maxOpen;
+  private final int maxOpen;
 
   private static class OpenReader implements Comparable<OpenReader> {
     long releaseTime;
@@ -97,15 +95,15 @@ public class FileManager {
     }
   }
 
-  private Map<StoredTabletFile,List<OpenReader>> openFiles;
-  private HashMap<FileSKVIterator,StoredTabletFile> reservedReaders;
+  private final Map<StoredTabletFile,List<OpenReader>> openFiles;
+  private final HashMap<FileSKVIterator,StoredTabletFile> reservedReaders;
 
-  private Semaphore filePermits;
+  private final Semaphore filePermits;
 
-  private Cache<String,Long> fileLenCache;
+  private final Cache<String,Long> fileLenCache;
 
-  private long maxIdleTime;
-  private long slowFilePermitMillis;
+  private final long maxIdleTime;
+  private final long slowFilePermitMillis;
 
   private final ServerContext context;
 
@@ -308,16 +306,12 @@ public class FileManager {
             .withFileLenCache(fileLenCache).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
-
-        ProblemReports.getInstance(context)
-            .report(new ProblemReport(tablet.tableId(), ProblemType.FILE_READ, file.toString(), e));
-
+        TabletLogger.fileReadFailed(file.toString(), tablet, e);
         if (continueOnFailure) {
           // release the permit for the file that failed to open
           if (!tablet.isMeta()) {
             filePermits.release(1);
           }
-          log.warn("Failed to open file {} {} continuing...", file, e.getMessage(), e);
         } else {
           // close whatever files were opened
           closeReaders(readersReserved.keySet());
@@ -326,7 +320,6 @@ public class FileManager {
             filePermits.release(files.size());
           }
 
-          log.error("Failed to open file {} {}", file, e.getMessage());
           throw new IOException("Failed to open " + file, e);
         }
       }
@@ -344,21 +337,21 @@ public class FileManager {
       boolean sawIOException) {
     // put files in openFiles
 
+    for (FileSKVIterator reader : readers) {
+      try {
+        reader.closeDeepCopies();
+      } catch (IOException e) {
+        log.warn("{}", e.getMessage(), e);
+        sawIOException = true;
+      }
+    }
+
     synchronized (this) {
 
       // check that readers were actually reserved ... want to make sure a thread does
       // not try to release readers they never reserved
       if (!reservedReaders.keySet().containsAll(readers)) {
         throw new IllegalArgumentException("Asked to release readers that were never reserved ");
-      }
-
-      for (FileSKVIterator reader : readers) {
-        try {
-          reader.closeDeepCopies();
-        } catch (IOException e) {
-          log.warn("{}", e.getMessage(), e);
-          sawIOException = true;
-        }
       }
 
       for (FileSKVIterator reader : readers) {
@@ -383,7 +376,7 @@ public class FileManager {
   static class FileDataSource implements DataSource {
 
     private SortedKeyValueIterator<Key,Value> iter;
-    private ArrayList<FileDataSource> deepCopies;
+    private final ArrayList<FileDataSource> deepCopies;
     private boolean current = true;
     private IteratorEnvironment env;
     private StoredTabletFile file;
@@ -456,11 +449,11 @@ public class FileManager {
 
   public class ScanFileManager {
 
-    private ArrayList<FileDataSource> dataSources;
-    private ArrayList<FileSKVIterator> tabletReservedReaders;
-    private KeyExtent tablet;
+    private final ArrayList<FileDataSource> dataSources;
+    private final ArrayList<FileSKVIterator> tabletReservedReaders;
+    private final KeyExtent tablet;
     private boolean continueOnFailure;
-    private CacheProvider cacheProvider;
+    private final CacheProvider cacheProvider;
 
     ScanFileManager(KeyExtent tablet, CacheProvider cacheProvider) {
       tabletReservedReaders = new ArrayList<>();
@@ -519,8 +512,8 @@ public class FileManager {
           }
         }
 
-        iter = new ProblemReportingIterator(context, tablet.tableId(), file.toString(),
-            continueOnFailure, detachable ? getSsi(file, source) : source);
+        iter = new ProblemReportingIterator(tablet.tableId(), file.toString(), continueOnFailure,
+            detachable ? getSsi(file, source) : source);
 
         if (someIteratorsWillWrap) {
           // constructing FileRef is expensive so avoid if not needed
@@ -587,5 +580,9 @@ public class FileManager {
 
   public ScanFileManager newScanFileManager(KeyExtent tablet, CacheProvider cacheProvider) {
     return new ScanFileManager(tablet, cacheProvider);
+  }
+
+  public int getOpenFiles() {
+    return maxOpen - filePermits.availablePermits();
   }
 }

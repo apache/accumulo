@@ -34,7 +34,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -44,12 +43,13 @@ import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -117,9 +117,9 @@ public class TableLoadBalancerTest {
   @Test
   public void test() {
     BalancerEnvironment environment = createMock(BalancerEnvironment.class);
-    ConfigurationCopy cc = new ConfigurationCopy(
-        Map.of(Property.TABLE_LOAD_BALANCER.getKey(), TestSimpleLoadBalancer.class.getName()));
-    ConfigurationImpl tableConfig = new ConfigurationImpl(cc);
+    var tableConfig = ServiceEnvironment.Configuration.from(
+        Map.of(Property.TABLE_LOAD_BALANCER.getKey(), TestSimpleLoadBalancer.class.getName()),
+        false);
 
     Map<String,TableId> tableIdMap = TABLE_ID_MAP.entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> TableId.of(e.getValue())));
@@ -141,13 +141,13 @@ public class TableLoadBalancerTest {
     List<TabletMigration> migrationsOut = new ArrayList<>();
     TableLoadBalancer tls = new TableLoadBalancer();
     tls.init(environment);
-    tls.balance(new BalanceParamsImpl(state, migrations, migrationsOut));
+    tls.balance(new BalanceParamsImpl(state, migrations, migrationsOut, DataLevel.USER));
     assertEquals(0, migrationsOut.size());
 
     state.put(mkts("10.0.0.2", 2345, "0x02030405"), status());
     tls = new TableLoadBalancer();
     tls.init(environment);
-    tls.balance(new BalanceParamsImpl(state, migrations, migrationsOut));
+    tls.balance(new BalanceParamsImpl(state, migrations, migrationsOut, DataLevel.USER));
     int count = 0;
     Map<TableId,Integer> movedByTable = new HashMap<>();
     movedByTable.put(TableId.of(t1Id), 0);

@@ -7,7 +7,10 @@ assignees: ''
 
 ---
 
-- [ ] Label this issue with the [project](https://github.com/apache/accumulo/projects) that corresponds to this release version
+- [Milestone](https://github.com/apache/accumulo/milestones) tasks
+  - [ ] Label this issue with the corresponding release milestone
+  - [ ] Create a milestone for the next version (if necessary) and move any open issues not completed in this release (except this issue) to the new milestone
+  - [ ] Close the milestone for this issue (the only issue remaining open should be this one)
 - [Git](https://github.com/apache/accumulo) tasks
   - [ ] Create a signed `rel/<version>` tag (and push it)
   - [ ] Merge `<version>-rc<N>-next` branch into a maintenance branch (if maintenance is expected),
@@ -42,6 +45,4 @@ assignees: ''
   - [ ] Send to announce@apache.org and user@accumulo.apache.org (use plain text mode only; html email will be rejected)
 - GitHub wrap-up
   - [ ] Close this issue
-  - [ ] Create a new "Automated Kanban" [project](https://github.com/apache/accumulo/projects) for the next version (if necessary) and move any open issues not completed in this release to that project
-  - [ ] Close the project that corresponds to this release
 

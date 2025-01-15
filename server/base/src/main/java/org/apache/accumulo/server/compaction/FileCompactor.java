@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.compaction;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -58,6 +60,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -67,16 +70,13 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.mem.LowMemoryDetector.DetectionScope;
-import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,7 +125,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   // things to report
   private String currentLocalityGroup = "";
-  private volatile NanoTime startTime;
+  private volatile Timer startTime;
 
   private final AtomicInteger timesPaused = new AtomicInteger(0);
 
@@ -140,7 +140,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   private static final LongAdder totalEntriesRead = new LongAdder();
   private static final LongAdder totalEntriesWritten = new LongAdder();
-  private static volatile NanoTime lastUpdateTime = NanoTime.now();
+  private static final Timer lastUpdateTime = Timer.startNew();
 
   private final DateFormat dateFormatter = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
 
@@ -217,11 +217,11 @@ public class FileCompactor implements Callable<CompactionStats> {
    * is rate limited, so it will not cause issues if called too frequently.
    */
   private static void updateTotalEntries() {
-    if (lastUpdateTime.elapsed().compareTo(Duration.ofMillis(100)) < 0) {
+    if (!lastUpdateTime.hasElapsed(100, MILLISECONDS)) {
       return;
     }
     runningCompactions.forEach(FileCompactor::updateGlobalEntryCounts);
-    lastUpdateTime = NanoTime.now();
+    lastUpdateTime.restart();
   }
 
   protected static final Set<FileCompactor> runningCompactions =
@@ -284,7 +284,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     CompactionStats majCStats = new CompactionStats();
 
-    startTime = NanoTime.now();
+    startTime = Timer.startNew();
 
     boolean remove = runningCompactions.add(this);
 
@@ -436,7 +436,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
         readers.add(reader);
 
-        InterruptibleIterator iter = new ProblemReportingIterator(context, extent.tableId(),
+        InterruptibleIterator iter = new ProblemReportingIterator(extent.tableId(),
             dataFile.getNormalizedPathStr(), false, reader);
         iter.setInterruptFlag(interruptFlag);
 
@@ -445,11 +445,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         iters.add(iter);
 
       } catch (Exception e) {
-
-        ProblemReports.getInstance(context).report(new ProblemReport(extent.tableId(),
-            ProblemType.FILE_READ, dataFile.getNormalizedPathStr(), e));
-
-        log.warn("Some problem opening data file {} {}", dataFile, e.getMessage(), e);
+        TabletLogger.fileReadFailed(dataFile.toString(), extent, e);
         // failed to open some data file... close the ones that were opened
         for (FileSKVIterator reader : readers) {
           try {

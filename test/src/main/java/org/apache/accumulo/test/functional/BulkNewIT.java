@@ -24,7 +24,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -723,7 +722,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
         m.put("", "", NoBulkConstratint.CANARY_VALUE);
         // This test assume the metadata constraint check will not flag this mutation, the following
         // validates this assumption.
-        assertNull(metaConstraints.check(env, m));
+        assertTrue(metaConstraints.check(env, m).isEmpty());
         bw.addMutation(m);
         return false;
       } catch (MutationsRejectedException e) {

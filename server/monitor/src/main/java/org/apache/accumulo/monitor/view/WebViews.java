@@ -303,23 +303,6 @@ public class WebViews {
   }
 
   /**
-   * Returns log report template
-   *
-   * @return Log report model
-   */
-  @GET
-  @Path("log")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getLogs() {
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Recent Logs");
-    model.put("template", "log.ftl");
-
-    return model;
-  }
-
-  /**
    * Returns problem report template
    *
    * @param table Table ID to display problem details

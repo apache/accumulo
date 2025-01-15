@@ -143,8 +143,8 @@ public class SharedRateLimiterFactory {
   }
 
   protected class SharedRateLimiter extends GuavaRateLimiter {
-    private AtomicLong permitsAcquired = new AtomicLong();
-    private AtomicLong lastUpdate = new AtomicLong();
+    private final AtomicLong permitsAcquired = new AtomicLong();
+    private final AtomicLong lastUpdate = new AtomicLong();
 
     private final RateProvider rateProvider;
     private final String name;

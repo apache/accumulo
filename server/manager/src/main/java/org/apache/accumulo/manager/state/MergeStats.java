@@ -33,7 +33,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
@@ -235,11 +234,11 @@ public class MergeStats {
     try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         Map<String,String> tableIdMap = client.tableOperations().tableIdMap();
-        ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooReaderWriter();
+        ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooSession().asReaderWriter();
         for (Entry<String,String> entry : tableIdMap.entrySet()) {
           final String table = entry.getKey(), tableId = entry.getValue();
-          String path = ZooUtil.getRoot(client.instanceOperations().getInstanceId())
-              + Constants.ZTABLES + "/" + tableId + "/merge";
+          String path = opts.getServerContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
+              + tableId + "/merge";
           MergeInfo info = new MergeInfo();
           if (zooReaderWriter.exists(path)) {
             byte[] data = zooReaderWriter.getData(path);

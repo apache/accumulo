@@ -35,6 +35,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -54,17 +55,17 @@ import org.slf4j.LoggerFactory;
 class CompactionDriver extends ManagerRepo {
 
   public static String createCompactionCancellationPath(InstanceId instanceId, TableId tableId) {
-    return Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId.canonical()
+    return ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tableId.canonical()
         + Constants.ZTABLE_COMPACT_CANCEL_ID;
   }
 
   private static final long serialVersionUID = 1L;
 
-  private long compactId;
+  private final long compactId;
   private final TableId tableId;
   private final NamespaceId namespaceId;
-  private byte[] startRow;
-  private byte[] endRow;
+  private final byte[] startRow;
+  private final byte[] endRow;
 
   private static final Logger log = LoggerFactory.getLogger(CompactionDriver.class);
 
@@ -85,8 +86,9 @@ class CompactionDriver extends ManagerRepo {
       return 0;
     }
 
-    String zCancelID = createCompactionCancellationPath(manager.getInstanceID(), tableId);
-    ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
+    String zCancelID =
+        createCompactionCancellationPath(manager.getContext().getInstanceID(), tableId);
+    ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
 
     if (Long.parseLong(new String(zoo.getData(zCancelID), UTF_8)) >= compactId) {
       // compaction was canceled
@@ -96,7 +98,7 @@ class CompactionDriver extends ManagerRepo {
     }
 
     String deleteMarkerPath =
-        PreDeleteTable.createDeleteMarkerPath(manager.getInstanceID(), tableId);
+        PreDeleteTable.createDeleteMarkerPath(manager.getContext().getInstanceID(), tableId);
     if (zoo.exists(deleteMarkerPath)) {
       // table is being deleted
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,

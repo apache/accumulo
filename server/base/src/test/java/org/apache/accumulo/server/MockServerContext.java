@@ -28,6 +28,8 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.easymock.EasyMock;
 
@@ -45,23 +47,21 @@ public class MockServerContext {
     return context;
   }
 
-  public static ServerContext getWithZK(InstanceId instanceID, String zk, int zkTimeout) {
+  public static ServerContext getWithMockZK(ZooSession zk) {
     var sc = get();
-    expect(sc.getZooKeeperRoot()).andReturn("/accumulo/" + instanceID).anyTimes();
-    expect(sc.getInstanceID()).andReturn(instanceID).anyTimes();
-    expect(sc.zkUserPath()).andReturn("/accumulo/" + instanceID + "/users").anyTimes();
-    expect(sc.getZooKeepers()).andReturn(zk).anyTimes();
-    expect(sc.getZooKeepersSessionTimeOut()).andReturn(zkTimeout).anyTimes();
+    var zrw = new ZooReaderWriter(zk);
+    expect(sc.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReader()).andReturn(zrw).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
     return sc;
   }
 
   public static ServerContext getMockContextWithPropStore(final InstanceId instanceID,
-      ZooReaderWriter zrw, PropStore propStore) {
+      PropStore propStore) {
 
     ServerContext sc = createMock(ServerContext.class);
     expect(sc.getInstanceID()).andReturn(instanceID).anyTimes();
-    expect(sc.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(sc.getZooKeeperRoot()).andReturn("/accumulo/" + instanceID).anyTimes();
+    expect(sc.getZooKeeperRoot()).andReturn(ZooUtil.getRoot(instanceID)).anyTimes();
     expect(sc.getPropStore()).andReturn(propStore).anyTimes();
     return sc;
   }

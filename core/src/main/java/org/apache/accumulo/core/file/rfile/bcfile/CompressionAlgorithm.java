@@ -110,8 +110,8 @@ public class CompressionAlgorithm extends Configured {
   /**
    * Guava cache to have a limited factory pattern defined in the Algorithm enum.
    */
-  private static LoadingCache<Entry<CompressionAlgorithm,Integer>,CompressionCodec> codecCache =
-      Caffeine.newBuilder().maximumSize(25)
+  private static final LoadingCache<Entry<CompressionAlgorithm,Integer>,
+      CompressionCodec> codecCache = Caffeine.newBuilder().maximumSize(25)
           .build(key -> key.getKey().createNewCodec(key.getValue()));
 
   // Data input buffer size to absorb small reads from application.

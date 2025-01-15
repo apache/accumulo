@@ -29,6 +29,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalSch
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchNonCriticalScheduledTask;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
 import java.time.Duration;
@@ -77,12 +78,12 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockSupport.ServiceLockWatcher;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.Compacting;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
@@ -99,7 +100,6 @@ import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
@@ -115,10 +115,9 @@ import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
-import org.apache.accumulo.server.manager.recovery.RecoveryPath;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -245,7 +244,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   protected TabletServer(ConfigOpts opts, String[] args) {
     super("tserver", opts, args);
     context = super.getContext();
-    this.managerLockCache = new ZooCache(context.getZooReader(), null);
+    this.managerLockCache = new ZooCache(context.getZooSession());
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
@@ -265,9 +264,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     if (numBusyTabletsToLog > 0) {
       ScheduledFuture<?> future = context.getScheduledExecutor()
           .scheduleWithFixedDelay(Threads.createNamedRunnable("BusyTabletLogger", new Runnable() {
-            private BusiestTracker ingestTracker =
+            private final BusiestTracker ingestTracker =
                 BusiestTracker.newBusiestIngestTracker(numBusyTabletsToLog);
-            private BusiestTracker queryTracker =
+            private final BusiestTracker queryTracker =
                 BusiestTracker.newBusiestQueryTracker(numBusyTabletsToLog);
 
             @Override
@@ -347,9 +346,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       log.info("SASL is enabled, creating ZooKeeper watcher for AuthenticationKeys");
       // Watcher to notice new AuthenticationKeys which enable delegation tokens
-      authKeyWatcher =
-          new ZooAuthenticationKeyWatcher(context.getSecretManager(), context.getZooReaderWriter(),
-              context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
+      authKeyWatcher = new ZooAuthenticationKeyWatcher(context.getSecretManager(),
+          context.getZooSession(), context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
     } else {
       authKeyWatcher = null;
     }
@@ -403,7 +401,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public long updateTotalQueuedMutationSize(long additionalMutationSize) {
-    return totalQueuedMutationSize.addAndGet(additionalMutationSize);
+    var newTotal = totalQueuedMutationSize.addAndGet(additionalMutationSize);
+    if (log.isTraceEnabled()) {
+      log.trace("totalQueuedMutationSize is now {} after adding {}", newTotal,
+          additionalMutationSize);
+    }
+    return newTotal;
   }
 
   @Override
@@ -468,7 +471,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  TreeMap<KeyExtent,TabletData> splitTablet(Tablet tablet, byte[] splitPoint) throws IOException {
+  protected TreeMap<KeyExtent,TabletData> splitTablet(Tablet tablet, byte[] splitPoint)
+      throws IOException {
     long t1 = System.currentTimeMillis();
 
     TreeMap<KeyExtent,TabletData> tabletInfo = tablet.split(splitPoint);
@@ -520,7 +524,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private static final AutoCloseable NOOP_CLOSEABLE = () -> {};
 
   AutoCloseable acquireRecoveryMemory(TabletMetadata tabletMetadata) {
-    if (tabletMetadata.getExtent().isMeta() || tabletMetadata.getLogs().isEmpty()) {
+    if (tabletMetadata.getExtent().isMeta() || !needsRecovery(tabletMetadata)) {
       return NOOP_CLOSEABLE;
     } else {
       recoveryLock.lock();
@@ -611,7 +615,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   private void announceExistence() {
-    ZooReaderWriter zoo = getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     try {
       var zLockPath = ServiceLock.path(
           getContext().getZooKeeperRoot() + Constants.ZTSERVERS + "/" + getClientAddressString());
@@ -627,26 +631,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
 
       UUID tabletServerUUID = UUID.randomUUID();
-      tabletServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, tabletServerUUID);
+      tabletServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, tabletServerUUID);
 
-      LockWatcher lw = new LockWatcher() {
-
-        @Override
-        public void lostLock(final LockLossReason reason) {
-          Halt.halt(serverStopRequested ? 0 : 1, () -> {
-            if (!serverStopRequested) {
-              log.error("Lost tablet server lock (reason = {}), exiting.", reason);
-            }
-            context.getLowMemoryDetector().logGCInfo(getConfiguration());
-          });
-        }
-
-        @Override
-        public void unableToMonitorLockNode(final Exception e) {
-          Halt.halt(1, () -> log.error("Lost ability to monitor tablet server lock, exiting.", e));
-
-        }
-      };
+      LockWatcher lw = new ServiceLockWatcher("tablet server", () -> serverStopRequested,
+          (name) -> context.getLowMemoryDetector().logGCInfo(getConfiguration()));
 
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
@@ -665,6 +653,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           lockSessionId = tabletServerLock.getSessionId();
           log.debug("Obtained tablet server lock {} {}", tabletServerLock.getLockPath(),
               getTabletSession());
+          startServiceLockVerificationThread();
           return;
         }
         log.info("Waiting for tablet server lock");
@@ -704,11 +693,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     MetricsInfo metricsInfo = context.getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), clientAddress);
 
     metrics = new TabletServerMetrics(this);
     updateMetrics = new TabletServerUpdateMetrics();
-    scanMetrics = new TabletServerScanMetrics();
+    scanMetrics = new TabletServerScanMetrics(this.resourceManager::getOpenFiles);
+    sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);
     mincMetrics = new TabletServerMinCMetrics();
     ceMetrics = new CompactionExecutorsMetrics();
     pausedMetrics = new PausedCompactionMetrics();
@@ -717,7 +706,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
         ceMetrics, pausedMetrics, blockCacheMetrics);
-    metricsInfo.init();
+    metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
+        clientAddress, ""));
 
     this.compactionManager = new CompactionManager(() -> Iterators
         .transform(onlineTablets.snapshot().values().iterator(), Tablet::asCompactable),
@@ -1079,24 +1069,39 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     logger.minorCompactionStarted(tablet, lastUpdateSequence, newDataFileLocation, durability);
   }
 
+  public boolean needsRecovery(TabletMetadata tabletMetadata) {
+
+    var logEntries = tabletMetadata.getLogs();
+
+    if (logEntries.isEmpty()) {
+      return false;
+    }
+
+    // This method is called prior to volumes being switched for a tablet during the load process,
+    // so switch volumes before calling needsRecovery()
+    var switchedLogEntries = new ArrayList<LogEntry>(logEntries.size());
+    for (LogEntry logEntry : logEntries) {
+      var switchedWalog = VolumeUtil.switchVolume(logEntry, context.getVolumeReplacements());
+      LogEntry walog;
+      if (switchedWalog != null) {
+        log.debug("Volume switched for needsRecovery {} -> {}", logEntry, switchedWalog);
+        walog = switchedWalog;
+      } else {
+        walog = logEntry;
+      }
+      switchedLogEntries.add(walog);
+    }
+
+    try {
+      return logger.needsRecovery(getContext(), tabletMetadata.getExtent(), switchedLogEntries);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
   public void recover(VolumeManager fs, KeyExtent extent, List<LogEntry> logEntries,
       Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
-    List<Path> recoveryDirs = new ArrayList<>();
-    for (LogEntry entry : logEntries) {
-      Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.getPath()));
-      finished = SortedLogState.getFinishedMarkerPath(finished);
-      TabletServer.log.debug("Looking for " + finished);
-      if (fs.exists(finished)) {
-        recovery = finished.getParent();
-      }
-      if (recovery == null) {
-        throw new IOException(
-            "Unable to find recovery files for extent " + extent + " logEntry: " + entry);
-      }
-      recoveryDirs.add(recovery);
-    }
-    logger.recover(getContext(), extent, recoveryDirs, tabletFiles, mutationReceiver);
+    logger.recover(getContext(), extent, logEntries, tabletFiles, mutationReceiver);
   }
 
   public int createLogId() {

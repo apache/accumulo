@@ -43,9 +43,9 @@ public enum SystemPermission {
   ALTER_NAMESPACE((byte) 10),
   OBTAIN_DELEGATION_TOKEN((byte) 11);
 
-  private byte permID;
+  private final byte permID;
 
-  private static HashMap<Byte,SystemPermission> mapping;
+  private static final HashMap<Byte,SystemPermission> mapping;
   static {
     mapping = new HashMap<>(SystemPermission.values().length);
     for (SystemPermission perm : SystemPermission.values()) {

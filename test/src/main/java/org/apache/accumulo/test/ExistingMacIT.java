@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -116,9 +115,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
       }
     }
 
-    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
-    final String zInstanceRoot =
-        Constants.ZROOT + "/" + client.instanceOperations().getInstanceId();
+    ZooReaderWriter zrw = getCluster().getServerContext().getZooSession().asReaderWriter();
+    final String zInstanceRoot = getCluster().getServerContext().getZooKeeperRoot();
     while (!AccumuloStatus.isAccumuloOffline(zrw, zInstanceRoot)) {
       log.debug("Accumulo services still have their ZK locks held");
       Thread.sleep(1000);

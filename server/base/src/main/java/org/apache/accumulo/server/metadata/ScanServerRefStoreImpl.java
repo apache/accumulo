@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 
 public class ScanServerRefStoreImpl implements ScanServerRefStore {
 
-  private static Logger log = LoggerFactory.getLogger(ScanServerRefStoreImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(ScanServerRefStoreImpl.class);
 
   private final ClientContext context;
   private final String tableName;

@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -218,6 +219,15 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  public Set<String> getCompactors() {
+    Set<String> compactors = new HashSet<>();
+    ExternalCompactionUtil.getCompactorAddrs(context).values().forEach(addrs -> {
+      addrs.forEach(hp -> compactors.add(hp.toString()));
+    });
+    return compactors;
+  }
+
+  @Override
   public Set<String> getScanServers() {
     return Set.copyOf(context.getScanServers().keySet());
   }
@@ -276,27 +286,39 @@ public class InstanceOperationsImpl implements InstanceOperations {
         .checkClass(TraceUtil.traceInfo(), context.rpcCreds(), className, asTypeName));
   }
 
+  @SuppressWarnings("deprecation")
   @Override
-  public List<ActiveCompaction> getActiveCompactions(String tserver)
+  public List<ActiveCompaction> getActiveCompactions(String server)
       throws AccumuloException, AccumuloSecurityException {
-    final var parsedTserver = HostAndPort.fromString(tserver);
-    Client client = null;
-    try {
-      client = getClient(ThriftClientTypes.TABLET_SERVER, parsedTserver, context);
+    final var serverHostAndPort = HostAndPort.fromString(server);
 
-      List<ActiveCompaction> as = new ArrayList<>();
-      for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
-        as.add(new ActiveCompactionImpl(context, tac, parsedTserver, CompactionHost.Type.TSERVER));
+    final List<ActiveCompaction> as = new ArrayList<>();
+    try {
+      if (context.getTServerLockChecker().doesTabletServerLockExist(server)) {
+        Client client = null;
+        try {
+          client = getClient(ThriftClientTypes.TABLET_SERVER, serverHostAndPort, context);
+          for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
+            as.add(new ActiveCompactionImpl(context, tac, serverHostAndPort,
+                CompactionHost.Type.TSERVER));
+          }
+        } finally {
+          if (client != null) {
+            returnClient(client, context);
+          }
+        }
+      } else {
+        // if not a TabletServer address, maybe it's a Compactor
+        for (var tac : ExternalCompactionUtil.getActiveCompaction(serverHostAndPort, context)) {
+          as.add(new ActiveCompactionImpl(context, tac, serverHostAndPort,
+              CompactionHost.Type.COMPACTOR));
+        }
       }
       return as;
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (TException e) {
       throw new AccumuloException(e);
-    } finally {
-      if (client != null) {
-        returnClient(client, context);
-      }
     }
   }
 
@@ -319,6 +341,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
       compactors.values().forEach(compactorList -> {
         for (HostAndPort compactorAddr : compactorList) {
+          @SuppressWarnings("deprecation")
           Callable<List<ActiveCompaction>> task =
               () -> ExternalCompactionUtil.getActiveCompaction(compactorAddr, context).stream()
                   .map(tac -> new ActiveCompactionImpl(context, tac, compactorAddr,
@@ -371,24 +394,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   }
 
-  /**
-   * Given a zooCache and instanceId, look up the instance name.
-   */
-  public static String lookupInstanceName(ZooCache zooCache, InstanceId instanceId) {
-    checkArgument(zooCache != null, "zooCache is null");
-    checkArgument(instanceId != null, "instanceId is null");
-    for (String name : zooCache.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
-      var bytes = zooCache.get(Constants.ZROOT + Constants.ZINSTANCES + "/" + name);
-      InstanceId iid = InstanceId.of(new String(bytes, UTF_8));
-      if (iid.equals(instanceId)) {
-        return name;
-      }
-    }
-    return null;
-  }
-
   @Override
   public InstanceId getInstanceId() {
     return context.getInstanceID();
   }
+
 }

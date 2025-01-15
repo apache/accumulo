@@ -30,19 +30,22 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
+import java.util.function.LongConsumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletscan.thrift.ScanState;
 import org.apache.accumulo.core.tabletscan.thrift.ScanType;
@@ -50,10 +53,10 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.scan.ScanTask;
 import org.apache.accumulo.tserver.session.Session.State;
-import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,20 +67,15 @@ public class SessionManager {
   private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
 
   private final ConcurrentMap<Long,Session> sessions = new ConcurrentHashMap<>();
-  private final long maxIdle;
-  private final long maxUpdateIdle;
   private final BlockingQueue<Session> deferredCleanupQueue = new ArrayBlockingQueue<>(5000);
   private final Long expiredSessionMarker = (long) -1;
   private final ServerContext ctx;
+  private volatile LongConsumer zombieCountConsumer = null;
 
   public SessionManager(ServerContext context) {
     this.ctx = context;
-    final AccumuloConfiguration aconf = context.getConfiguration();
-    maxUpdateIdle = aconf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
-    maxIdle = aconf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
-
-    Runnable r = () -> sweep(maxIdle, maxUpdateIdle);
-
+    long maxIdle = ctx.getConfiguration().getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
+    Runnable r = () -> sweep(ctx);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(r,
         0, Math.max(maxIdle / 2, 1000), MILLISECONDS));
   }
@@ -86,8 +84,8 @@ public class SessionManager {
     long sid = RANDOM.get().nextLong();
 
     synchronized (session) {
-      Preconditions.checkArgument(session.state == State.NEW);
-      session.state = reserve ? State.RESERVED : State.UNRESERVED;
+      Preconditions.checkArgument(session.getState() == State.NEW);
+      session.setState(reserve ? State.RESERVED : State.UNRESERVED);
       session.startTime = session.lastAccessTime = System.currentTimeMillis();
     }
 
@@ -99,7 +97,7 @@ public class SessionManager {
   }
 
   public long getMaxIdleTime() {
-    return maxIdle;
+    return ctx.getConfiguration().getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
   }
 
   /**
@@ -110,14 +108,14 @@ public class SessionManager {
     Session session = sessions.get(sessionId);
     if (session != null) {
       synchronized (session) {
-        if (session.state == State.RESERVED) {
+        if (session.getState() == State.RESERVED) {
           throw new IllegalStateException(
-              "Attempted to reserved session that is already reserved " + sessionId);
+              "Attempted to reserve session that is already reserved " + sessionId);
         }
-        if (session.state == State.REMOVED) {
+        if (session.getState() == State.REMOVED || !session.allowReservation) {
           return null;
         }
-        session.state = State.RESERVED;
+        session.setState(State.RESERVED);
       }
     }
 
@@ -130,11 +128,11 @@ public class SessionManager {
     if (session != null) {
       synchronized (session) {
 
-        if (session.state == State.REMOVED) {
+        if (session.getState() == State.REMOVED || !session.allowReservation) {
           return null;
         }
 
-        while (wait && session.state == State.RESERVED) {
+        while (wait && session.getState() == State.RESERVED) {
           try {
             session.wait(1000);
           } catch (InterruptedException e) {
@@ -142,14 +140,14 @@ public class SessionManager {
           }
         }
 
-        if (session.state == State.RESERVED) {
+        if (session.getState() == State.RESERVED) {
           throw new IllegalStateException(
               "Attempted to reserved session that is already reserved " + sessionId);
         }
-        if (session.state == State.REMOVED) {
+        if (session.getState() == State.REMOVED || !session.allowReservation) {
           return null;
         }
-        session.state = State.RESERVED;
+        session.setState(State.RESERVED);
       }
     }
 
@@ -159,14 +157,15 @@ public class SessionManager {
 
   public void unreserveSession(Session session) {
     synchronized (session) {
-      if (session.state == State.REMOVED) {
+      if (session.getState() == State.REMOVED) {
         return;
       }
-      if (session.state != State.RESERVED) {
-        throw new IllegalStateException("Cannon unreserve, state: " + session.state);
+      if (session.getState() != State.RESERVED) {
+        throw new IllegalStateException("Cannon unreserve, state: " + session.getState());
       }
+
       session.notifyAll();
-      session.state = State.UNRESERVED;
+      session.setState(State.UNRESERVED);
       session.lastAccessTime = System.currentTimeMillis();
     }
   }
@@ -183,7 +182,7 @@ public class SessionManager {
 
     if (session != null) {
       synchronized (session) {
-        if (session.state == State.REMOVED) {
+        if (session.getState() == State.REMOVED) {
           return null;
         }
         session.lastAccessTime = System.currentTimeMillis();
@@ -203,12 +202,12 @@ public class SessionManager {
     if (session != null) {
       boolean doCleanup = false;
       synchronized (session) {
-        if (session.state != State.REMOVED) {
+        if (session.getState() != State.REMOVED) {
           if (unreserve) {
             unreserveSession(session);
           }
           doCleanup = true;
-          session.state = State.REMOVED;
+          session.setState(State.REMOVED);
         }
       }
 
@@ -228,15 +227,42 @@ public class SessionManager {
     }
 
     synchronized (session) {
-      if (session.state == State.RESERVED) {
+      if (session.getState() == State.RESERVED) {
         return false;
       }
-      session.state = State.REMOVED;
+      session.setState(State.REMOVED);
     }
 
     sessions.remove(sessionId);
 
     return true;
+  }
+
+  /**
+   * Prevents a session from ever being reserved in the future. This method can be called
+   * concurrently when another thread has the session reserved w/o impacting the other thread. When
+   * the session is currently reserved by another thread that thread can unreserve as normal and
+   * after that this session can never be reserved again. Since the session can never be reserved
+   * after this call it will eventually age off and be cleaned up.
+   *
+   * @return true if the sessions is currently not reserved, false otherwise
+   */
+  public boolean disallowNewReservations(long sessionId) {
+    var session = getSession(sessionId);
+    if (session == null) {
+      return true;
+    }
+    synchronized (session) {
+      if (session.allowReservation) {
+        // Prevent future reservations of this session.
+        session.allowReservation = false;
+        log.debug("disabled session {}", sessionId);
+      }
+
+      // If nothing can reserve the session and it is not currently reserved then the session is
+      // disabled and will eventually be cleaned up.
+      return session.getState() != State.RESERVED;
+    }
   }
 
   static void cleanup(BlockingQueue<Session> deferredCleanupQueue, Session session) {
@@ -267,13 +293,16 @@ public class SessionManager {
     cleanup(deferredCleanupQueue, session);
   }
 
-  private void sweep(final long maxIdle, final long maxUpdateIdle) {
+  private void sweep(final ServerContext context) {
+    final AccumuloConfiguration conf = context.getConfiguration();
+    final long maxUpdateIdle = conf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
+    final long maxIdle = conf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
     List<Session> sessionsToCleanup = new LinkedList<>();
     Iterator<Session> iter = sessions.values().iterator();
     while (iter.hasNext()) {
       Session session = iter.next();
       synchronized (session) {
-        if (session.state == State.UNRESERVED) {
+        if (session.getState() == State.UNRESERVED) {
           long configuredIdle = maxIdle;
           if (session instanceof UpdateSession) {
             configuredIdle = maxUpdateIdle;
@@ -284,7 +313,7 @@ public class SessionManager {
                 session.client, idleTime);
             iter.remove();
             sessionsToCleanup.add(session);
-            session.state = State.REMOVED;
+            session.setState(State.REMOVED);
           }
         }
       }
@@ -298,6 +327,33 @@ public class SessionManager {
     sessionsToCleanup.removeIf(Session::cleanup);
 
     sessionsToCleanup.forEach(this::cleanup);
+
+    if (zombieCountConsumer != null) {
+      zombieCountConsumer.accept(countZombieScans(maxIdle));
+    }
+  }
+
+  private long countZombieScans(long reportTimeMillis) {
+    return Stream.concat(deferredCleanupQueue.stream(), sessions.values().stream())
+        .filter(session -> {
+          if (session instanceof ScanSession) {
+            var scanSession = (ScanSession<?>) session;
+            synchronized (scanSession) {
+              var scanTask = scanSession.getScanTask();
+              if (scanTask != null && scanSession.getState() == State.REMOVED
+                  && scanTask.getScanThread() != null
+                  && scanSession.elaspedSinceStateChange(MILLISECONDS) > reportTimeMillis) {
+                scanSession.logZombieStackTrace();
+                return true;
+              }
+            }
+          }
+          return false;
+        }).count();
+  }
+
+  public void setZombieCountConsumer(LongConsumer zombieCountConsumer) {
+    this.zombieCountConsumer = Objects.requireNonNull(zombieCountConsumer);
   }
 
   public void removeIfNotAccessed(final long sessionId, final long delay) {
@@ -315,8 +371,9 @@ public class SessionManager {
           if (session2 != null) {
             boolean shouldRemove = false;
             synchronized (session2) {
-              if (session2.lastAccessTime == removeTime && session2.state == State.UNRESERVED) {
-                session2.state = State.REMOVED;
+              if (session2.lastAccessTime == removeTime
+                  && session2.getState() == State.UNRESERVED) {
+                session2.setState(State.REMOVED);
                 shouldRemove = true;
               }
             }
@@ -356,11 +413,11 @@ public class SessionManager {
 
       if (session instanceof SingleScanSession) {
         SingleScanSession ss = (SingleScanSession) session;
-        nbt = ss.nextBatchTask;
+        nbt = ss.getScanTask();
         tableID = ss.extent.tableId();
       } else if (session instanceof MultiScanSession) {
         MultiScanSession mss = (MultiScanSession) session;
-        nbt = mss.lookupTask;
+        nbt = mss.getScanTask();
         tableID = mss.threadPoolExtent.tableId();
       }
 
@@ -382,7 +439,7 @@ public class SessionManager {
     final Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
     /*
-     * Add sessions so that get the list returned in the active scans call
+     * Add sessions that get the list returned in the active scans call
      */
     for (Session session : deferredCleanupQueue) {
       copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
@@ -390,75 +447,56 @@ public class SessionManager {
 
     List.of(sessions.entrySet(), copiedIdleSessions).forEach(s -> s.forEach(entry -> {
       Session session = entry.getValue();
-      if (session instanceof SingleScanSession) {
-        SingleScanSession ss = (SingleScanSession) session;
 
-        ScanState state = ScanState.RUNNING;
+      if (session instanceof ScanSession) {
+        ScanSession<?> scanSession = (ScanSession<?>) session;
+        boolean isSingle = session instanceof SingleScanSession;
 
-        ScanTask<ScanBatch> nbt = ss.nextBatchTask;
-        if (nbt == null) {
-          state = ScanState.IDLE;
-        } else {
-          switch (nbt.getScanRunState()) {
-            case QUEUED:
-              state = ScanState.QUEUED;
-              break;
-            case FINISHED:
-              state = ScanState.IDLE;
-              break;
-            case RUNNING:
-            default:
-              /* do nothing */
-              break;
-          }
-        }
-
-        var params = ss.scanParams;
-        ActiveScan activeScan = new ActiveScan(ss.client, ss.getUser(),
-            ss.extent.tableId().canonical(), ct - ss.startTime, ct - ss.lastAccessTime,
-            ScanType.SINGLE, state, ss.extent.toThrift(),
-            params.getColumnSet().stream().map(Column::toThrift).collect(Collectors.toList()),
-            params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
-            params.getClassLoaderContext());
-
-        // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in
-        // ActiveScan constructor
-        activeScan.setScanId(entry.getKey());
-        activeScans.add(activeScan);
-
-      } else if (session instanceof MultiScanSession) {
-        MultiScanSession mss = (MultiScanSession) session;
-
-        ScanState state = ScanState.RUNNING;
-
-        ScanTask<MultiScanResult> nbt = mss.lookupTask;
-        if (nbt == null) {
-          state = ScanState.IDLE;
-        } else {
-          switch (nbt.getScanRunState()) {
-            case QUEUED:
-              state = ScanState.QUEUED;
-              break;
-            case FINISHED:
-              state = ScanState.IDLE;
-              break;
-            case RUNNING:
-            default:
-              /* do nothing */
-              break;
-          }
-        }
-
-        var params = mss.scanParams;
-        activeScans.add(new ActiveScan(mss.client, mss.getUser(),
-            mss.threadPoolExtent.tableId().canonical(), ct - mss.startTime, ct - mss.lastAccessTime,
-            ScanType.BATCH, state, mss.threadPoolExtent.toThrift(),
-            params.getColumnSet().stream().map(Column::toThrift).collect(Collectors.toList()),
-            params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
-            params.getClassLoaderContext()));
+        addActiveScan(activeScans, scanSession,
+            isSingle ? ((SingleScanSession) scanSession).extent
+                : ((MultiScanSession) scanSession).threadPoolExtent,
+            ct, isSingle ? ScanType.SINGLE : ScanType.BATCH,
+            computeScanState(scanSession.getScanTask()), scanSession.scanParams, entry.getKey());
       }
     }));
 
     return activeScans;
+  }
+
+  private ScanState computeScanState(ScanTask<?> scanTask) {
+    ScanState state = ScanState.RUNNING;
+
+    if (scanTask == null) {
+      state = ScanState.IDLE;
+    } else {
+      switch (scanTask.getScanRunState()) {
+        case QUEUED:
+          state = ScanState.QUEUED;
+          break;
+        case FINISHED:
+          state = ScanState.IDLE;
+          break;
+        case RUNNING:
+        default:
+          /* do nothing */
+          break;
+      }
+    }
+
+    return state;
+  }
+
+  private void addActiveScan(List<ActiveScan> activeScans, Session session, KeyExtent extent,
+      long ct, ScanType scanType, ScanState state, ScanParameters params, long scanId) {
+    ActiveScan activeScan =
+        new ActiveScan(session.client, session.getUser(), extent.tableId().canonical(),
+            ct - session.startTime, ct - session.lastAccessTime, scanType, state, extent.toThrift(),
+            params.getColumnSet().stream().map(Column::toThrift).collect(Collectors.toList()),
+            params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
+            params.getClassLoaderContext());
+    // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in
+    // ActiveScan constructor
+    activeScan.setScanId(scanId);
+    activeScans.add(activeScan);
   }
 }

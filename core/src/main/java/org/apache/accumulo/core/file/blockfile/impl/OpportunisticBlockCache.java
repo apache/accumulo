@@ -23,7 +23,7 @@ import org.apache.accumulo.core.spi.cache.CacheEntry;
 
 public class OpportunisticBlockCache implements BlockCache {
 
-  private BlockCache cache;
+  private final BlockCache cache;
 
   public OpportunisticBlockCache(BlockCache cache) {
     this.cache = cache;

@@ -31,7 +31,7 @@ import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.unescape;
  */
 public class ReverseLexicoder<T> extends AbstractLexicoder<T> {
 
-  private Lexicoder<T> lexicoder;
+  private final Lexicoder<T> lexicoder;
 
   /**
    * @param lexicoder The lexicoder who's sort order will be flipped.

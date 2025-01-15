@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.data;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -617,11 +618,10 @@ public class RangeTest {
     runClipTest(fence, range);
 
     // scanner was not handling edge case properly...
-    Range scanRange =
-        new Range(
-            new Key("10;007cdc5b0".getBytes(), "~tab".getBytes(), "~pr".getBytes(), "".getBytes(),
-                130962, false),
-            false, new Key(new Text("10<")).followingKey(PartialKey.ROW), false);
+    Range scanRange = new Range(
+        new Key("10;007cdc5b0".getBytes(UTF_8), "~tab".getBytes(UTF_8), "~pr".getBytes(UTF_8),
+            "".getBytes(UTF_8), 130962, false),
+        false, new Key(new Text("10<")).followingKey(PartialKey.ROW), false);
     // below is the proper check the scanner now does instead of just comparing the row bytes
     scanRange.afterEndKey(new Key(new Text("10<")).followingKey(PartialKey.ROW));
   }
@@ -644,7 +644,7 @@ public class RangeTest {
   }
 
   private static Column newColumn(String cf, String cq) {
-    return new Column(cf.getBytes(), cq == null ? null : cq.getBytes(), null);
+    return new Column(cf.getBytes(UTF_8), cq == null ? null : cq.getBytes(UTF_8), null);
   }
 
   private static Column newColumn(String cf) {

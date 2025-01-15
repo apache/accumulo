@@ -19,6 +19,7 @@
 package org.apache.accumulo.hadoop.its.mapreduce;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -58,10 +59,10 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       protected void map(Key k, Value v, Context context) {
         try {
           if (key != null) {
-            assertEquals(key.getRow().toString(), new String(v.get()));
+            assertEquals(key.getRow().toString(), new String(v.get(), UTF_8));
           }
           assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
-          assertEquals(new String(v.get()), String.format("%09x", count));
+          assertEquals(new String(v.get(), UTF_8), String.format("%09x", count));
         } catch (AssertionError e) {
           e1 = e;
         }
@@ -143,8 +144,8 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
-        int i = scanner.stream().map(Map.Entry::getValue).map(Value::get).map(String::new)
-            .map(Integer::parseInt).collect(onlyElement());
+        int i = scanner.stream().map(Map.Entry::getValue).map(Value::get)
+            .map(e -> new String(e, UTF_8)).map(Integer::parseInt).collect(onlyElement());
         assertEquals(100, i);
       }
     }

@@ -47,6 +47,7 @@ import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
+import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -260,6 +261,11 @@ public class UpgradeCoordinator {
         | TableNotFoundException e) {
       throw new IllegalStateException("Error checking properties", e);
     }
+    try {
+      CheckCompactionConfig.validate(context.getConfiguration());
+    } catch (SecurityException | IllegalArgumentException | ReflectiveOperationException e) {
+      throw new IllegalStateException("Error validating compaction configuration", e);
+    }
   }
 
   // visible for testing
@@ -307,8 +313,8 @@ public class UpgradeCoordinator {
       justification = "Want to immediately stop all manager threads on upgrade error")
   private void abortIfFateTransactions(ServerContext context) {
     try {
-      final ReadOnlyTStore<UpgradeCoordinator> fate = new ZooStore<>(
-          context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter());
+      final ReadOnlyTStore<UpgradeCoordinator> fate =
+          new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, context.getZooSession());
       if (!fate.list().isEmpty()) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."

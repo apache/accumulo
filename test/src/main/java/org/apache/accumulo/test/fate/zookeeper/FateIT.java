@@ -19,12 +19,12 @@
 package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.FAILED;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.IN_PROGRESS;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.NEW;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.SUBMITTED;
-import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.SUCCESSFUL;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -40,11 +40,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AgeOffStore;
@@ -55,6 +57,8 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
@@ -176,9 +180,11 @@ public class FateIT {
   @TempDir
   private static File tempDir;
 
-  private static ZooKeeperTestingServer szk = null;
-  private static ZooReaderWriter zk = null;
-  private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID();
+  private static ZooKeeperTestingServer testZk = null;
+  private static ZooSession zk = null;
+  private static ZooReaderWriter zrw = null;
+  private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
+  private static final String ZK_ROOT = ZooUtil.getRoot(IID);
   private static final NamespaceId NS = NamespaceId.of("testNameSpace");
   private static final TableId TID = TableId.of("testTable");
 
@@ -192,18 +198,23 @@ public class FateIT {
 
   @BeforeAll
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer(tempDir);
-    zk = szk.getZooReaderWriter();
-    zk.mkdirs(ZK_ROOT + Constants.ZFATE);
-    zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
-    zk.mkdirs(ZK_ROOT + Constants.ZNAMESPACES + "/" + NS.canonical());
-    zk.mkdirs(ZK_ROOT + Constants.ZTABLE_STATE + "/" + TID.canonical());
-    zk.mkdirs(ZK_ROOT + Constants.ZTABLES + "/" + TID.canonical());
+    testZk = new ZooKeeperTestingServer(tempDir);
+    zk = testZk.newClient();
+    zrw = zk.asReaderWriter();
+    zrw.mkdirs(ZK_ROOT + Constants.ZFATE);
+    zrw.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
+    zrw.mkdirs(ZK_ROOT + Constants.ZNAMESPACES + "/" + NS.canonical());
+    zrw.mkdirs(ZK_ROOT + Constants.ZTABLE_STATE + "/" + TID.canonical());
+    zrw.mkdirs(ZK_ROOT + Constants.ZTABLES + "/" + TID.canonical());
   }
 
   @AfterAll
   public static void teardown() throws Exception {
-    szk.close();
+    try {
+      zk.close();
+    } finally {
+      testZk.close();
+    }
   }
 
   @Test
@@ -217,7 +228,7 @@ public class FateIT {
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+    expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
     ConfigurationCopy config = new ConfigurationCopy();
@@ -230,39 +241,51 @@ public class FateIT {
       finishCall = new CountDownLatch(1);
 
       long txid = fate.startTransaction();
-      assertEquals(TStatus.NEW, getTxStatus(zk, txid));
+      assertEquals(TStatus.NEW, getTxStatus(zrw, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
-      assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
+      assertEquals(TStatus.SUBMITTED, getTxStatus(zrw, txid));
 
       // Wait for the transaction runner to be scheduled.
       Thread.sleep(3000);
 
       // wait for call() to be called
       callStarted.await();
-      assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
+      assertEquals(IN_PROGRESS, getTxStatus(zrw, txid));
       // tell the op to exit the method
       finishCall.countDown();
-      // Check that it transitions to SUCCESSFUL
-      TStatus s = getTxStatus(zk, txid);
-      while (s != SUCCESSFUL) {
-        s = getTxStatus(zk, txid);
-        Thread.sleep(10);
-      }
-      // Check that it gets removed
-      boolean errorSeen = false;
-      while (!errorSeen) {
+      // Check that it transitions to SUCCESSFUL and gets removed
+      final var sawSuccess = new AtomicBoolean(false);
+      Wait.waitFor(() -> {
+        TStatus s;
         try {
-          s = getTxStatus(zk, txid);
-          Thread.sleep(10);
+          switch (s = getTxStatus(zrw, txid)) {
+            case IN_PROGRESS:
+              if (sawSuccess.get()) {
+                fail("Should never see IN_PROGRESS after seeing SUCCESSFUL");
+              }
+              break;
+            case SUCCESSFUL:
+              // expected, but might be too quick to be detected
+              if (sawSuccess.compareAndSet(false, true)) {
+                LOG.debug("Saw expected transaction status change to SUCCESSFUL");
+              }
+              break;
+            default:
+              fail("Saw unexpected status: " + s);
+          }
         } catch (KeeperException e) {
           if (e.code() == KeeperException.Code.NONODE) {
-            errorSeen = true;
+            if (!sawSuccess.get()) {
+              LOG.debug("Never saw transaction status change to SUCCESSFUL, but that's okay");
+            }
+            return true;
           } else {
             fail("Unexpected error thrown: " + e.getMessage());
           }
         }
-      }
-
+        // keep waiting for NoNode
+        return false;
+      }, SECONDS.toMillis(30), 10);
     } finally {
       fate.shutdown();
     }
@@ -277,7 +300,7 @@ public class FateIT {
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+    expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
     ConfigurationCopy config = new ConfigurationCopy();
@@ -293,16 +316,16 @@ public class FateIT {
 
       long txid = fate.startTransaction();
       LOG.debug("Starting test testCancelWhileNew with {}", FateTxId.formatTid(txid));
-      assertEquals(NEW, getTxStatus(zk, txid));
+      assertEquals(NEW, getTxStatus(zrw, txid));
       // cancel the transaction
       assertTrue(fate.cancel(txid));
-      assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
+      assertTrue(FAILED_IN_PROGRESS == getTxStatus(zrw, txid) || FAILED == getTxStatus(zrw, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
-      Wait.waitFor(() -> FAILED == getTxStatus(zk, txid));
+      Wait.waitFor(() -> FAILED == getTxStatus(zrw, txid));
       // nothing should have run
       assertEquals(1, callStarted.getCount());
       fate.delete(txid);
-      assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zk, txid));
+      assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zrw, txid));
     } finally {
       fate.shutdown();
     }
@@ -317,7 +340,7 @@ public class FateIT {
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+    expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
     ConfigurationCopy config = new ConfigurationCopy();
@@ -334,17 +357,17 @@ public class FateIT {
 
       long txid = fate.startTransaction();
       LOG.debug("Starting test testCancelWhileSubmitted with {}", FateTxId.formatTid(txid));
-      assertEquals(NEW, getTxStatus(zk, txid));
+      assertEquals(NEW, getTxStatus(zrw, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), false, "Test Op");
-      Wait.waitFor(() -> IN_PROGRESS == getTxStatus(zk, txid));
+      Wait.waitFor(() -> IN_PROGRESS == getTxStatus(zrw, txid));
       // This is false because the transaction runner has reserved the FaTe
       // transaction.
       assertFalse(fate.cancel(txid));
       callStarted.await();
       finishCall.countDown();
-      Wait.waitFor(() -> IN_PROGRESS != getTxStatus(zk, txid));
+      Wait.waitFor(() -> IN_PROGRESS != getTxStatus(zrw, txid));
       fate.delete(txid);
-      assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zk, txid));
+      assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zrw, txid));
     } finally {
       fate.shutdown();
     }
@@ -359,7 +382,7 @@ public class FateIT {
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+    expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
     ConfigurationCopy config = new ConfigurationCopy();
@@ -376,9 +399,9 @@ public class FateIT {
 
       long txid = fate.startTransaction();
       LOG.debug("Starting test testCancelWhileInCall with {}", FateTxId.formatTid(txid));
-      assertEquals(NEW, getTxStatus(zk, txid));
+      assertEquals(NEW, getTxStatus(zrw, txid));
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
-      assertEquals(SUBMITTED, getTxStatus(zk, txid));
+      assertEquals(SUBMITTED, getTxStatus(zrw, txid));
 
       // wait for call() to be called
       callStarted.await();
@@ -406,7 +429,7 @@ public class FateIT {
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
     expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+    expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
     ConfigurationCopy config = new ConfigurationCopy();
@@ -424,7 +447,7 @@ public class FateIT {
        */
       undoLatch = new CountDownLatch(TestOperationFails.TOTAL_NUM_OPS);
       long txid = fate.startTransaction();
-      assertEquals(NEW, getTxStatus(zk, txid));
+      assertEquals(NEW, getTxStatus(zrw, txid));
       fate.seedTransaction("TestOperationFails", txid,
           new TestOperationFails(1, ExceptionLocation.CALL), false, "Test Op Fails");
       // Wait for all the undo() calls to complete
@@ -438,7 +461,7 @@ public class FateIT {
       TestOperationFails.undoOrder = new ArrayList<>();
       undoLatch = new CountDownLatch(TestOperationFails.TOTAL_NUM_OPS);
       txid = fate.startTransaction();
-      assertEquals(NEW, getTxStatus(zk, txid));
+      assertEquals(NEW, getTxStatus(zrw, txid));
       fate.seedTransaction("TestOperationFails", txid,
           new TestOperationFails(1, ExceptionLocation.IS_READY), false, "Test Op Fails");
       // Wait for all the undo() calls to complete

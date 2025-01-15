@@ -25,8 +25,8 @@ public class NumUtil {
   private static final String[] QUANTITY_SUFFIX = {"", "K", "M", "B", "T", "e15", "e18", "e21"};
   private static final String[] SIZE_SUFFIX = {"", "K", "M", "G", "T", "P", "E", "Z"};
 
-  private static DecimalFormat df = new DecimalFormat("#,###,##0");
-  private static DecimalFormat df_mantissa = new DecimalFormat("#,###,##0.00");
+  private static final DecimalFormat df = new DecimalFormat("#,###,##0");
+  private static final DecimalFormat df_mantissa = new DecimalFormat("#,###,##0.00");
 
   public static String bigNumberForSize(long big) {
     return bigNumber(big, SIZE_SUFFIX, 1024);

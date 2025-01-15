@@ -93,6 +93,15 @@ public interface TabletBalancer {
      *         migrations.
      */
     List<TabletMigration> migrationsOut();
+
+    /**
+     * Return the DataLevel name for which the Manager is currently balancing. Balancers should
+     * return migrations for tables within the current DataLevel.
+     *
+     * @return name of current balancing iteration data level
+     * @since 2.1.4
+     */
+    String currentLevel();
   }
 
   /**

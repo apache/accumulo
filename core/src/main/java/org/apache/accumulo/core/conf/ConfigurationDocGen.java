@@ -29,7 +29,7 @@ import java.util.TreeMap;
  * presentable form.
  */
 public class ConfigurationDocGen {
-  private PrintStream doc;
+  private final PrintStream doc;
   private final TreeMap<String,Property> sortedProps = new TreeMap<>();
 
   void generate() {

@@ -25,7 +25,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.tserver.tablet.CommitSession;
 
 public class TabletMutations {
-  private CommitSession commitSession;
+  private final CommitSession commitSession;
   private final List<Mutation> mutations;
   private final Durability durability;
 

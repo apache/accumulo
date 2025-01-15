@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -227,8 +229,8 @@ public class VerifyIngest {
 
             if (entry.getValue().compareTo(value) != 0) {
               log.error("unexpected value, rowNum : {} colNum : {}", rowNum, colNum);
-              log.error(" saw = {} expected = {}", new String(entry.getValue().get()),
-                  new String(value));
+              log.error(" saw = {} expected = {}", new String(entry.getValue().get(), UTF_8),
+                  new String(value, UTF_8));
               errors++;
             }
 

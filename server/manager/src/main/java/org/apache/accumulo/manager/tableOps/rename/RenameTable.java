@@ -41,10 +41,10 @@ import org.slf4j.LoggerFactory;
 public class RenameTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private TableId tableId;
-  private NamespaceId namespaceId;
-  private String oldTableName;
-  private String newTableName;
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
+  private final String oldTableName;
+  private final String newTableName;
 
   @Override
   public long isReady(long tid, Manager env) throws Exception {
@@ -73,7 +73,7 @@ public class RenameTable extends ManagerRepo {
           "Namespace in new table name does not match the old table name");
     }
 
-    ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
 
     Utils.getTableNameLock().lock();
     try {
@@ -83,8 +83,8 @@ public class RenameTable extends ManagerRepo {
       final String newName = qualifiedNewTableName.getSecond();
       final String oldName = qualifiedOldTableName.getSecond();
 
-      final String tap =
-          manager.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME;
+      final String tap = manager.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId
+          + Constants.ZTABLE_NAME;
 
       zoo.mutateExisting(tap, current -> {
         final String currentName = new String(current, UTF_8);

@@ -27,8 +27,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 public class ColumnFQ implements Comparable<ColumnFQ> {
-  private Text colf;
-  private Text colq;
+  private final Text colf;
+  private final Text colq;
 
   public ColumnFQ(Text colf, Text colq) {
     if (colf == null || colq == null) {

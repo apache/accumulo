@@ -32,12 +32,9 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.util.DurationFormat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.accumulo.shell.Shell;
 
 class ActiveCompactionHelper {
-
-  private static final Logger log = LoggerFactory.getLogger(ActiveCompactionHelper.class);
 
   private static final Comparator<ActiveCompaction> COMPACTION_AGE_DESCENDING =
       Comparator.comparingLong(ActiveCompaction::getAge).reversed();
@@ -65,6 +62,7 @@ class ActiveCompactionHelper {
     return maxDecimal(count / 1_000_000_000.0) + "B";
   }
 
+  @SuppressWarnings("deprecation")
   private static String formatActiveCompactionLine(ActiveCompaction ac) {
     String output = ac.getOutputFile();
     int index = output.indexOf("tables");
@@ -120,12 +118,13 @@ class ActiveCompactionHelper {
       return instanceOps.getActiveCompactions(tserver).stream().sorted(COMPACTION_AGE_DESCENDING)
           .map(ActiveCompactionHelper::formatActiveCompactionLine);
     } catch (Exception e) {
-      log.debug("Failed to list active compactions for server {}", tserver, e);
+      Shell.log.debug("Failed to list active compactions for server {}", tserver, e);
       return Stream.of(tserver + " ERROR " + e.getMessage());
     }
   }
 
   public static Stream<String> activeCompactions(InstanceOperations instanceOps) {
+    @SuppressWarnings("deprecation")
     Comparator<ActiveCompaction> comparator =
         Comparator.comparing((ActiveCompaction ac) -> ac.getHost().getAddress())
             .thenComparing(ac -> ac.getHost().getPort()).thenComparing(COMPACTION_AGE_DESCENDING);

@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 public class FateThriftClient extends ThriftClientTypes<Client> implements ManagerClient<Client> {
 
-  private static Logger LOG = LoggerFactory.getLogger(FateThriftClient.class);
+  private static final Logger LOG = LoggerFactory.getLogger(FateThriftClient.class);
 
   FateThriftClient(String serviceName) {
     super(serviceName, new Client.Factory());

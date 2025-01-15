@@ -34,7 +34,7 @@ class CreateImportDir extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(CreateImportDir.class);
   private static final long serialVersionUID = 1L;
 
-  private ImportedTableInfo tableInfo;
+  private final ImportedTableInfo tableInfo;
 
   CreateImportDir(ImportedTableInfo ti) {
     this.tableInfo = ti;

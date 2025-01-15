@@ -19,8 +19,9 @@
 package org.apache.accumulo.server.constraints;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
 import java.util.Base64;
@@ -71,7 +72,7 @@ public class MetadataConstraintsTest {
 
     List<Short> violations = mc.check(createEnv(), m);
 
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 3), violations.get(0));
 
@@ -80,7 +81,7 @@ public class MetadataConstraintsTest {
 
     violations = mc.check(createEnv(), m);
 
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 4), violations.get(0));
 
@@ -89,7 +90,7 @@ public class MetadataConstraintsTest {
 
     violations = mc.check(createEnv(), m);
 
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 2), violations.get(0));
 
@@ -98,7 +99,7 @@ public class MetadataConstraintsTest {
 
     violations = mc.check(createEnv(), m);
 
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(2, violations.size());
     assertEquals(Short.valueOf((short) 4), violations.get(0));
     assertEquals(Short.valueOf((short) 5), violations.get(1));
@@ -108,7 +109,7 @@ public class MetadataConstraintsTest {
 
     violations = mc.check(createEnv(), m);
 
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 6), violations.get(0));
 
@@ -117,21 +118,21 @@ public class MetadataConstraintsTest {
 
     violations = mc.check(createEnv(), m);
 
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text(AccumuloTable.METADATA.tableId().canonical() + "<"));
     TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("bar"));
 
     violations = mc.check(createEnv(), m);
 
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("!1<"));
     TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("bar"));
 
     violations = mc.check(createEnv(), m);
 
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 4), violations.get(0));
 
@@ -146,21 +147,21 @@ public class MetadataConstraintsTest {
     SuspendLocationColumn.SUSPEND_COLUMN.put(m, SuspendingTServer.toValue(ser1,
         SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS)));
     List<Short> violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
     SuspendLocationColumn.SUSPEND_COLUMN.put(m,
         SuspendingTServer.toValue(ser1, SteadyTime.from(0, TimeUnit.MILLISECONDS)));
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
     // We must encode manually since SteadyTime won't allow a negative
     SuspendLocationColumn.SUSPEND_COLUMN.put(m, new Value(ser1.getHostPort() + "|" + -1L));
     violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
-    assertEquals(Short.valueOf((short) 10), violations.get(0));
+    assertEquals(Short.valueOf((short) 3101), violations.get(0));
   }
 
   @Test
@@ -180,7 +181,7 @@ public class MetadataConstraintsTest {
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // loaded marker w/o file
     m = new Mutation(new Text("0;foo"));
@@ -209,7 +210,7 @@ public class MetadataConstraintsTest {
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile2")).getMetadataText(),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // two files w/ different txid
     m = new Mutation(new Text("0;foo"));
@@ -253,9 +254,9 @@ public class MetadataConstraintsTest {
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
         new Value("5"));
-    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t1"));
+    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("t-000009x"));
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // mutation that looks like a load
     m = new Mutation(new Text("0;foo"));
@@ -265,14 +266,14 @@ public class MetadataConstraintsTest {
         new Value("5"));
     m.put(CurrentLocationColumnFamily.NAME, new Text("789"), new Value("127.0.0.1:9997"));
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // deleting a load flag
     m = new Mutation(new Text("0;foo"));
     m.putDelete(BulkFileColumnFamily.NAME, StoredTabletFile
         .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText());
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // Missing beginning of path
     m = new Mutation(new Text("0;foo"));
@@ -281,7 +282,7 @@ public class MetadataConstraintsTest {
             .getMetadata()
             .replace("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile", "/someFile")),
         new Value("5"));
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Missing tables directory in path
     m = new Mutation(new Text("0;foo"));
@@ -290,7 +291,7 @@ public class MetadataConstraintsTest {
             .getMetadata().replace("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile",
                 "hdfs://1.2.3.4/accumulo/2a/t-0003/someFile")),
         new Value("5"));
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // No DataFileColumnFamily included
     m = new Mutation(new Text("0;foo"));
@@ -304,7 +305,7 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0;foo"));
     m.put(BulkFileColumnFamily.NAME, new Text("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"),
         new Value("5"));
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Bad Json - test startRow key is missing so validation should fail
     // {"path":"hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile","endRow":""}
@@ -313,7 +314,7 @@ public class MetadataConstraintsTest {
         new Text(
             "{\"path\":\"hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile\",\"endRow\":\"\"}"),
         new Value("5"));
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Bad Json - test path key replaced with empty string so validation should fail
     // {"":"hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile","startRow":"","endRow":""}
@@ -322,7 +323,7 @@ public class MetadataConstraintsTest {
         BulkFileColumnFamily.NAME, new Text(StoredTabletFile
             .serialize("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile").replace("path", "")),
         new Value("5"));
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Bad Json - test path value missing
     // {"path":"","startRow":"","endRow":""}
@@ -331,7 +332,7 @@ public class MetadataConstraintsTest {
         new Text(StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"))
             .getMetadata().replaceFirst("\"path\":\".*\",\"startRow", "\"path\":\"\",\"startRow")),
         new Value("5"));
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Bad Json - test startRow key replaced with empty string so validation should fail
     // {"path":"hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile","":"","endRow":""}
@@ -339,7 +340,7 @@ public class MetadataConstraintsTest {
     m.put(BulkFileColumnFamily.NAME, new Text(StoredTabletFile
         .serialize("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile").replace("startRow", "")),
         new Value("5"));
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Bad Json - test endRow key missing so validation should fail
     m = new Mutation(new Text("0;foo"));
@@ -347,7 +348,7 @@ public class MetadataConstraintsTest {
         BulkFileColumnFamily.NAME, new Text(StoredTabletFile
             .serialize("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile").replace("endRow", "")),
         new Value("5"));
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Bad Json - endRow will be replaced with encoded row without the exclusive byte 0x00 which is
     // required for an endRow so will fail validation
@@ -357,7 +358,7 @@ public class MetadataConstraintsTest {
             new Range("a", false, "b", true)).getMetadata().replaceFirst("\"endRow\":\".*\"",
                 "\"endRow\":\"" + encodeRowForMetadata("bad") + "\"")),
         new Value("5"));
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
   }
 
@@ -383,12 +384,12 @@ public class MetadataConstraintsTest {
             .getMetadata()
             .replace("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile", "/someFile")),
         value);
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Bad Json - only path (old format) so should fail parsing
     m = new Mutation(new Text("0;foo"));
     m.put(columnFamily, new Text("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), value);
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Bad Json - test path key replaced with empty string so validation should fail
     // {"":"hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile","startRow":"","endRow":""}
@@ -397,7 +398,7 @@ public class MetadataConstraintsTest {
         columnFamily, new Text(StoredTabletFile
             .serialize("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile").replace("path", "")),
         value);
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Bad Json - test path value missing
     // {"path":"","startRow":"","endRow":""}
@@ -406,7 +407,7 @@ public class MetadataConstraintsTest {
         new Text(StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"))
             .getMetadata().replaceFirst("\"path\":\".*\",\"startRow", "\"path\":\"\",\"startRow")),
         value);
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Bad Json - test startRow key replaced with empty string so validation should fail
     // {"path":"hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile","":"","endRow":""}
@@ -414,7 +415,7 @@ public class MetadataConstraintsTest {
     m.put(columnFamily, new Text(StoredTabletFile
         .serialize("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile").replace("startRow", "")),
         value);
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Bad Json - test startRow key is missing so validation should fail
     // {"path":"hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile","endRow":""}
@@ -423,7 +424,7 @@ public class MetadataConstraintsTest {
         new Text(
             "{\"path\":\"hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile\",\"endRow\":\"\"}"),
         value);
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Bad Json - test endRow key replaced with empty string so validation should fail
     // {"path":"hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile","":"","endRow":""}
@@ -432,7 +433,7 @@ public class MetadataConstraintsTest {
         columnFamily, new Text(StoredTabletFile
             .serialize("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile").replace("endRow", "")),
         value);
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Bad Json - endRow will be replaced with encoded row without the exclusive byte 0x00 which is
     // required for an endRow so this will fail validation
@@ -442,7 +443,7 @@ public class MetadataConstraintsTest {
             new Range("a", false, "b", true)).getMetadata()
             .replaceFirst("\"endRow\":\".*\"", "\"endRow\":\"" + encodeRowForMetadata("b") + "\"")),
         value);
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Missing tables directory in path
     m = new Mutation(new Text("0;foo"));
@@ -451,7 +452,7 @@ public class MetadataConstraintsTest {
             .getMetadata().replace("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile",
                 "hdfs://1.2.3.4/accumulo/2a/t-0003/someFile")),
         new DataFileValue(1, 1).encodeAsValue());
-    assertViolation(mc, m, (short) 9);
+    assertViolation(mc, m, (short) 3100);
 
     // Should pass validation (inf range)
     m = new Mutation(new Text("0;foo"));
@@ -460,7 +461,7 @@ public class MetadataConstraintsTest {
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
     // Should pass validation with range set
     m = new Mutation(new Text("0;foo"));
@@ -469,9 +470,28 @@ public class MetadataConstraintsTest {
             new Range("a", false, "b", true)).getMetadataText(),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
-    assertNull(violations);
+    assertTrue(violations.isEmpty());
 
-    assertNotNull(mc.getViolationDescription((short) 9));
+    assertNotNull(mc.getViolationDescription((short) 3100));
+  }
+
+  @Test
+  public void testDirectoryColumn() {
+    MetadataConstraints mc = new MetadataConstraints();
+    Mutation m;
+    List<Short> violations;
+    m = new Mutation(new Text("0;foo"));
+    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("t-000009x"));
+    violations = mc.check(createEnv(), m);
+    assertTrue(violations.isEmpty());
+
+    m = new Mutation(new Text("0;foo"));
+    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/invalid"));
+    violations = mc.check(createEnv(), m);
+    assertFalse(violations.isEmpty());
+    assertEquals(1, violations.size());
+    assertEquals((short) 3102, violations.get(0));
+
   }
 
   // Encode a row how it would appear in Json
@@ -488,7 +508,7 @@ public class MetadataConstraintsTest {
 
   private void assertViolation(MetadataConstraints mc, Mutation m, Short violation) {
     List<Short> violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
+    assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals(violation, violations.get(0));
     assertNotNull(mc.getViolationDescription(violations.get(0)));

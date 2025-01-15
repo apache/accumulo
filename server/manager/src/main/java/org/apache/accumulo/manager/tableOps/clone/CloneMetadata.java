@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 class CloneMetadata extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private CloneInfo cloneInfo;
+  private final CloneInfo cloneInfo;
 
   public CloneMetadata(CloneInfo cloneInfo) {
     this.cloneInfo = cloneInfo;

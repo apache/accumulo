@@ -284,8 +284,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     private final AtomicLong nmiPtr = new AtomicLong(0);
     private boolean hasNext;
-    private int expectedModCount;
-    private int[] fieldsLens = new int[7];
+    private final int expectedModCount;
+    private final int[] fieldsLens = new int[7];
     private byte[] lastRow;
     private final Cleanable cleanableNMI;
 
@@ -304,7 +304,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       hasNext = nmiPointer != 0;
 
       nmiPtr.set(nmiPointer);
-      cleanableNMI = NativeMapCleanerUtil.deleteNMIterator(this, nmiPtr);
+      // avoid registering a cleanable if there's nothing to delete
+      cleanableNMI = hasNext ? NativeMapCleanerUtil.deleteNMIterator(this, nmiPtr) : null;
     }
 
     // delete is synchronized on a per iterator basis want to ensure only one
@@ -537,7 +538,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     private ConcurrentIterator iter;
     private Entry<Key,Value> entry;
 
-    private NativeMap map;
+    private final NativeMap map;
     private Range range;
     private AtomicBoolean interruptFlag;
     private int interruptCheckCount = 0;

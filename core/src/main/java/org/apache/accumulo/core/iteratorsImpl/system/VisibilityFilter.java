@@ -46,7 +46,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
   protected final LRUMap<ByteSequence,Boolean> cache;
   protected final Authorizations authorizations;
 
-  private ArrayByteSequence testVis = new ArrayByteSequence(new byte[0]);
+  private final ArrayByteSequence testVis = new ArrayByteSequence(new byte[0]);
 
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
 

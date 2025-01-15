@@ -90,7 +90,7 @@ import com.google.common.base.Preconditions;
  */
 public class RFileWriter implements AutoCloseable {
 
-  private FileSKVWriter writer;
+  private final FileSKVWriter writer;
   private final LRUMap<ByteSequence,Boolean> validVisibilities;
   private boolean startedLG;
   private boolean startedDefaultLG;

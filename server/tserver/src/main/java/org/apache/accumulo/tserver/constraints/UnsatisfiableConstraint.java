@@ -26,8 +26,8 @@ import org.apache.accumulo.core.data.constraints.Constraint;
 
 public class UnsatisfiableConstraint implements Constraint {
 
-  private List<Short> violations;
-  private String vDesc;
+  private final List<Short> violations;
+  private final String vDesc;
 
   public UnsatisfiableConstraint(short vcode, String violationDescription) {
     this.violations = Collections.unmodifiableList(Collections.singletonList(vcode));

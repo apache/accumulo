@@ -40,10 +40,10 @@ import org.apache.hadoop.io.Text;
 
 public class SequenceFileIterator implements FileSKVIterator {
 
-  private Reader reader;
+  private final Reader reader;
   private Value top_value;
   private Key top_key;
-  private boolean readValue;
+  private final boolean readValue;
 
   @Override
   public SequenceFileIterator deepCopy(IteratorEnvironment env) {

@@ -55,7 +55,7 @@ public class CompactionPlanImpl implements CompactionPlan {
   public static class BuilderImpl implements CompactionPlan.Builder {
 
     private final CompactionKind kind;
-    private ArrayList<CompactionJob> jobs = new ArrayList<>();
+    private final ArrayList<CompactionJob> jobs = new ArrayList<>();
     private final Set<CompactableFile> allFiles;
     private final Set<CompactableFile> seenFiles = new HashSet<>();
     private final Set<CompactableFile> candidates;

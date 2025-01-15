@@ -182,7 +182,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     findTop();
   }
 
-  private Key workKey = new Key();
+  private final Key workKey = new Key();
 
   @VisibleForTesting
   static final Cache<String,Boolean> loggedMsgCache =

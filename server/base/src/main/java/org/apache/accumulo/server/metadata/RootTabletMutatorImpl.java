@@ -83,7 +83,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
     MetadataConstraints metaConstraint = new MetadataConstraints();
     List<Short> violations = metaConstraint.check(new RootEnv(context), mutation);
 
-    if (violations != null && !violations.isEmpty()) {
+    if (!violations.isEmpty()) {
       throw new IllegalStateException(
           "Mutation for root tablet metadata violated constraints : " + violations);
     }
@@ -94,7 +94,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
       context.getZooCache().clear(zpath);
 
       // TODO examine implementation of getZooReaderWriter().mutate()
-      context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
+      context.getZooSession().asReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
         var rtm = new RootTabletMetadata(currJson);
         rtm.update(mutation);

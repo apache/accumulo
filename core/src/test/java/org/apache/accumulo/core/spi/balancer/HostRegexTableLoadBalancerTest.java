@@ -39,8 +39,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -48,13 +46,13 @@ import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.ConfigurationImpl;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.junit.jupiter.api.Test;
 
 public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalancerTest {
@@ -65,9 +63,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     tables.put(BAR.getTableName(), BAR.getId());
     tables.put(BAZ.getTableName(), BAZ.getId());
 
-    ConfigurationCopy config = new ConfigurationCopy(SiteConfiguration.empty().build());
-    tableProperties.forEach(config::set);
-    ConfigurationImpl configImpl = new ConfigurationImpl(config);
+    var configImpl = ServiceEnvironment.Configuration.from(tableProperties, false);
     BalancerEnvironment environment = createMock(BalancerEnvironment.class);
     expect(environment.getConfiguration()).andReturn(configImpl).anyTimes();
     expect(environment.getTableIdMap()).andReturn(tables).anyTimes();
@@ -98,7 +94,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     List<TabletMigration> migrationsOut = new ArrayList<>();
     long wait =
         this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-            migrations, migrationsOut));
+            migrations, migrationsOut, DataLevel.USER));
     assertEquals(20000, wait);
     // should balance four tablets in one of the tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -109,7 +105,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     migrationsOut.clear();
     wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut));
+        migrations, migrationsOut, DataLevel.USER));
     assertEquals(20000, wait);
     // should balance four tablets in one of the other tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -120,7 +116,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     migrationsOut.clear();
     wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut));
+        migrations, migrationsOut, DataLevel.USER));
     assertEquals(20000, wait);
     // should balance four tablets in one of the other tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -131,7 +127,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     migrationsOut.clear();
     wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut));
+        migrations, migrationsOut, DataLevel.USER));
     assertEquals(20000, wait);
     // no more balancing to do
     assertEquals(0, migrationsOut.size());
@@ -148,7 +144,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     migrations.addAll(tableTablets.get(BAR.getTableName()));
     long wait =
         this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-            migrations, migrationsOut));
+            migrations, migrationsOut, DataLevel.USER));
     assertEquals(20000, wait);
     // no migrations should have occurred as 10 is the maxOutstandingMigrations
     assertEquals(0, migrationsOut.size());
@@ -487,13 +483,16 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testOutOfBoundsTablets() {
+    // calls to balance will clear the lastOOBCheckTimes map
+    // in the HostRegexTableLoadBalancer. For this test we want
+    // to get into the out of bounds checking code, so we need to
+    // populate the map with an older time value
+    this.lastOOBCheckTimes.put(DataLevel.USER, System.currentTimeMillis() / 2);
     init(DEFAULT_TABLE_PROPERTIES);
-    // Wait to trigger the out of bounds check which will call our version of
-    // getOnlineTabletsForTable
-    UtilWaitThread.sleep(11000);
     Set<TabletId> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
-    this.balance(new BalanceParamsImpl(createCurrent(15), migrations, migrationsOut));
+    this.balance(
+        new BalanceParamsImpl(createCurrent(15), migrations, migrationsOut, DataLevel.USER));
     assertEquals(2, migrationsOut.size());
   }
 
@@ -505,8 +504,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       // Report that we have a bar tablet on this server
       TKeyExtent tke = new TKeyExtent();
       tke.setTable(BAR.getId().canonical().getBytes(UTF_8));
-      tke.setEndRow("11".getBytes());
-      tke.setPrevEndRow("10".getBytes());
+      tke.setEndRow("11".getBytes(UTF_8));
+      tke.setPrevEndRow("10".getBytes(UTF_8));
       TabletStats tstats = new TabletStats();
       tstats.setExtent(tke);
       TabletStatistics ts = new TabletStatisticsImpl(tstats);
@@ -515,8 +514,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       // Report that we have a foo tablet on this server
       TKeyExtent tke = new TKeyExtent();
       tke.setTable(FOO.getId().canonical().getBytes(UTF_8));
-      tke.setEndRow("1".getBytes());
-      tke.setPrevEndRow("0".getBytes());
+      tke.setEndRow("1".getBytes(UTF_8));
+      tke.setPrevEndRow("0".getBytes(UTF_8));
       TabletStats tstats = new TabletStats();
       tstats.setExtent(tke);
       TabletStatistics ts = new TabletStatisticsImpl(tstats);

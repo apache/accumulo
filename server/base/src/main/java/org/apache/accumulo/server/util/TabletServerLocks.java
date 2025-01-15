@@ -36,7 +36,7 @@ public class TabletServerLocks {
     String tserverPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
 
     ZooCache cache = context.getZooCache();
-    ZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
 
     if (delete == null) {
       List<String> tabletServers = zoo.getChildren(tserverPath);
@@ -59,11 +59,12 @@ public class TabletServerLocks {
     } else {
       if (lock == null) {
         printUsage();
+      } else {
+        ServiceLock.ServiceLockPath path = ServiceLock.path(tserverPath + "/" + lock);
+        ServiceLock.deleteLock(zoo, path);
+        System.out.printf("Deleted %s", path);
       }
 
-      ServiceLock.ServiceLockPath path = ServiceLock.path(tserverPath + "/" + lock);
-      ServiceLock.deleteLock(zoo, path);
-      System.out.printf("Deleted %s", path);
     }
   }
 

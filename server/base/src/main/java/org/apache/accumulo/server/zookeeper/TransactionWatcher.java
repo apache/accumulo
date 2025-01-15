@@ -57,12 +57,12 @@ public class TransactionWatcher {
 
   public static class ZooArbitrator implements Arbitrator {
 
-    private ServerContext context;
-    private ZooReader rdr;
+    private final ServerContext context;
+    private final ZooReader rdr;
 
     public ZooArbitrator(ServerContext context) {
       this.context = context;
-      rdr = context.getZooReader();
+      rdr = context.getZooSession().asReader();
     }
 
     @Override
@@ -74,7 +74,7 @@ public class TransactionWatcher {
 
     public static void start(ServerContext context, String type, long tid)
         throws KeeperException, InterruptedException {
-      ZooReaderWriter writer = context.getZooReaderWriter();
+      ZooReaderWriter writer = context.getZooSession().asReaderWriter();
       writer.putPersistentData(context.getZooKeeperRoot() + "/" + type, new byte[] {},
           NodeExistsPolicy.OVERWRITE);
       writer.putPersistentData(context.getZooKeeperRoot() + "/" + type + "/" + tid, new byte[] {},
@@ -85,14 +85,14 @@ public class TransactionWatcher {
 
     public static void stop(ServerContext context, String type, long tid)
         throws KeeperException, InterruptedException {
-      ZooReaderWriter writer = context.getZooReaderWriter();
+      ZooReaderWriter writer = context.getZooSession().asReaderWriter();
       writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid,
           NodeMissingPolicy.SKIP);
     }
 
     public static void cleanup(ServerContext context, String type, long tid)
         throws KeeperException, InterruptedException {
-      ZooReaderWriter writer = context.getZooReaderWriter();
+      ZooReaderWriter writer = context.getZooSession().asReaderWriter();
       writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid,
           NodeMissingPolicy.SKIP);
       writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid + "-running",
@@ -101,7 +101,7 @@ public class TransactionWatcher {
 
     public static Set<Long> allTransactionsAlive(ServerContext context, String type)
         throws KeeperException, InterruptedException {
-      final ZooReader reader = context.getZooReaderWriter();
+      final ZooReader reader = context.getZooSession().asReaderWriter();
       final Set<Long> result = new HashSet<>();
       final String parent = context.getZooKeeperRoot() + "/" + type;
       reader.sync(parent);

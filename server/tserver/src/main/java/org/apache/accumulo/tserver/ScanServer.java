@@ -54,6 +54,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -68,12 +69,12 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockSupport.ServiceLockWatcher;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -89,10 +90,9 @@ import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -130,8 +130,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
-
-import io.micrometer.core.instrument.Tag;
 
 public class ScanServer extends AbstractServer
     implements TabletScanClientService.Iface, TabletHostingServer {
@@ -206,7 +204,7 @@ public class ScanServer extends AbstractServer
   private ScanServerMetrics scanServerMetrics;
   private BlockCacheMetrics blockCacheMetrics;
 
-  private ZooCache managerLockCache;
+  private final ZooCache managerLockCache;
 
   private final String groupName;
 
@@ -220,7 +218,7 @@ public class ScanServer extends AbstractServer
 
     this.resourceManager = new TabletServerResourceManager(context, this);
 
-    this.managerLockCache = new ZooCache(context.getZooReader(), null);
+    this.managerLockCache = new ZooCache(context.getZooSession());
 
     var readWriteLock = new ReentrantReadWriteLock();
     reservationsReadLock = readWriteLock.readLock();
@@ -279,6 +277,7 @@ public class ScanServer extends AbstractServer
     delegate = newThriftScanClientHandler(new WriteTracker());
 
     this.groupName = getConfiguration().get(Property.SSERV_GROUP_NAME);
+    ClusterConfigParser.validateGroupNames(Set.of(groupName));
 
     ThreadPools.watchCriticalScheduledTask(getContext().getScheduledExecutor()
         .scheduleWithFixedDelay(() -> cleanUpReservedFiles(scanServerReservationExpiration),
@@ -327,7 +326,7 @@ public class ScanServer extends AbstractServer
    * Set up nodes and locks in ZooKeeper for this Compactor
    */
   private ServiceLock announceExistence() {
-    ZooReaderWriter zoo = getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     try {
 
       var zLockPath = ServiceLock.path(
@@ -345,25 +344,9 @@ public class ScanServer extends AbstractServer
       }
 
       serverLockUUID = UUID.randomUUID();
-      scanServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, serverLockUUID);
-
-      LockWatcher lw = new LockWatcher() {
-
-        @Override
-        public void lostLock(final LockLossReason reason) {
-          Halt.halt(serverStopRequested ? 0 : 1, () -> {
-            if (!serverStopRequested) {
-              LOG.error("Lost tablet server lock (reason = {}), exiting.", reason);
-            }
-            context.getLowMemoryDetector().logGCInfo(getConfiguration());
-          });
-        }
-
-        @Override
-        public void unableToMonitorLockNode(final Exception e) {
-          Halt.halt(1, () -> LOG.error("Lost ability to monitor scan server lock, exiting.", e));
-        }
-      };
+      scanServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
+      LockWatcher lw = new ServiceLockWatcher("scan server", () -> serverStopRequested,
+          (name) -> context.getLowMemoryDetector().logGCInfo(getConfiguration()));
 
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
@@ -404,16 +387,16 @@ public class ScanServer extends AbstractServer
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), clientAddress);
-    metricsInfo.addCommonTags(List.of(Tag.of("resource.group", groupName)));
 
-    scanMetrics = new TabletServerScanMetrics();
+    scanMetrics = new TabletServerScanMetrics(resourceManager::getOpenFiles);
+    sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);
     scanServerMetrics = new ScanServerMetrics(tabletMetadataCache);
     blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),
         resourceManager.getDataCache(), resourceManager.getSummaryCache());
 
     metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics);
-    metricsInfo.init();
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        clientAddress, groupName));
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 
     ServiceLock lock = announceExistence();
@@ -703,7 +686,7 @@ public class ScanServer extends AbstractServer
   @VisibleForTesting
   ScanReservation reserveFilesInstrumented(Map<KeyExtent,List<TRange>> extents)
       throws AccumuloException {
-    NanoTime start = NanoTime.now();
+    Timer start = Timer.startNew();
     try {
       return reserveFiles(extents);
     } finally {
@@ -744,7 +727,7 @@ public class ScanServer extends AbstractServer
 
   @VisibleForTesting
   ScanReservation reserveFilesInstrumented(long scanId) throws NoSuchScanIDException {
-    NanoTime start = NanoTime.now();
+    Timer start = Timer.startNew();
     try {
       return reserveFiles(scanId);
     } finally {
@@ -753,7 +736,7 @@ public class ScanServer extends AbstractServer
   }
 
   protected ScanReservation reserveFiles(long scanId) throws NoSuchScanIDException {
-    var session = (ScanSession) sessionManager.getSession(scanId);
+    var session = (ScanSession<?>) sessionManager.getSession(scanId);
     if (session == null) {
       throw new NoSuchScanIDException();
     }
@@ -790,7 +773,7 @@ public class ScanServer extends AbstractServer
     return new ScanReservation(scanSessionFiles, myReservationId);
   }
 
-  private static Set<StoredTabletFile> getScanSessionFiles(ScanSession session) {
+  private static Set<StoredTabletFile> getScanSessionFiles(ScanSession<?> session) {
     if (session instanceof SingleScanSession) {
       var sss = (SingleScanSession) session;
       return Set.copyOf(session.getTabletResolver().getTablet(sss.extent).getDatafiles().keySet());

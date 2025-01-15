@@ -30,6 +30,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.data.constraints.NoDeleteConstraint;
+import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
@@ -132,7 +133,7 @@ public enum Property {
           + " everywhere. Before using the ChangeSecret tool, make sure Accumulo is not"
           + " running and you are logged in as the user that controls Accumulo files in"
           + " HDFS. To use the ChangeSecret tool, run the command: `./bin/accumulo"
-          + " org.apache.accumulo.server.util.ChangeSecret`.",
+          + " admin changeSecret`.",
       "1.3.5"),
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
       "A comma separated list of dfs uris to use. Files will be stored across"
@@ -170,11 +171,6 @@ public enum Property {
           + "other reserved characters in a URI use standard URI hex encoding. For "
           + "example replace commas with %2C.",
       "1.6.0"),
-  INSTANCE_VOLUMES_UPGRADE_RELATIVE("instance.volumes.upgrade.relative", "", PropertyType.STRING,
-      "The volume dfs uri containing relative tablet file paths. Relative paths may exist in the metadata from "
-          + "versions prior to 1.6. This property is only required if a relative path is detected "
-          + "during the upgrade process and will only be used once.",
-      "2.1.0"),
   @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator",
       "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
@@ -287,6 +283,9 @@ public enum Property {
           + " user-implementations of pluggable Accumulo features, such as the balancer"
           + " or volume chooser.",
       "2.0.0"),
+  GENERAL_CACHE_MANAGER_IMPL("general.block.cache.manager.class",
+      TinyLfuBlockCacheManager.class.getName(), PropertyType.STRING,
+      "Specifies the class name of the block cache factory implementation.", "2.1.4"),
   GENERAL_DELEGATION_TOKEN_LIFETIME("general.delegation.token.lifetime", "7d",
       PropertyType.TIMEDURATION,
       "The length of time that delegation tokens and secret keys are valid.", "1.7.0"),
@@ -324,9 +323,18 @@ public enum Property {
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC.",
       "1.7.3"),
   GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "false", PropertyType.BOOLEAN,
-      "Enables metrics functionality using Micrometer.", "2.1.0"),
+      "Enables metrics collection and reporting functionality using Micrometer.", "2.1.0"),
   GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
-      PropertyType.BOOLEAN, "Enables JVM metrics functionality using Micrometer.", "2.1.0"),
+      PropertyType.BOOLEAN,
+      "Enables additional JVM metrics collection and reporting using Micrometer. Requires "
+          + "property 'general.micrometer.enabled' to be set to 'true' to take effect.",
+      "2.1.0"),
+  GENERAL_MICROMETER_LOG_METRICS("general.micrometer.log.metrics", "none", PropertyType.STRING,
+      "Enables additional log metrics collection and reporting using Micrometer. Requires "
+          + "property 'general.micrometer.enabled' to be set to 'true' to take effect. Micrometer "
+          + "natively instruments Log4j2 and Logback. Valid values for this property are 'none',"
+          + "'log4j2' or 'logback'.",
+      "2.1.4"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
       "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory",
       PropertyType.CLASSNAMELIST,
@@ -339,6 +347,11 @@ public enum Property {
   GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic.",
       "3.0.0"),
+  GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL("general.server.lock.verification.interval", "2m",
+      PropertyType.TIMEDURATION,
+      "Interval at which the Manager and TabletServer should verify their server locks. A value of zero"
+          + " disables this check. The default value change from 0 to 2m in 3.1.0.",
+      "2.1.4"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),
@@ -504,11 +517,10 @@ public enum Property {
       "Time to wait for clients to continue scans before closing a session.", "1.3.5"),
   TSERV_DEFAULT_BLOCKSIZE("tserver.default.blocksize", "1M", PropertyType.BYTES,
       "Specifies a default blocksize for the tserver caches.", "1.3.5"),
-  TSERV_CACHE_MANAGER_IMPL("tserver.cache.manager.class",
-      "org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager", PropertyType.STRING,
-      "Specifies the class name of the block cache factory implementation."
-          + " Alternative implementation is"
-          + " org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager.",
+  @Deprecated(since = "2.1.4")
+  @ReplacedBy(property = Property.GENERAL_CACHE_MANAGER_IMPL)
+  TSERV_CACHE_MANAGER_IMPL("tserver.cache.manager.class", TinyLfuBlockCacheManager.class.getName(),
+      PropertyType.STRING, "Specifies the class name of the block cache factory implementation.",
       "2.0.0"),
   TSERV_DATACACHE_SIZE("tserver.cache.data.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile data blocks.", "1.3.5"),
@@ -567,7 +579,7 @@ public enum Property {
           + " until it is closed.",
       "1.3.5"),
   TSERV_NATIVEMAP_ENABLED("tserver.memory.maps.native.enabled", "true", PropertyType.BOOLEAN,
-      "An in-memory data store for accumulo implemented in c++ that increases"
+      "An off-heap in-memory data store for accumulo implemented in c++ that increases"
           + " the amount of data accumulo can hold in memory and avoids Java GC pauses.",
       "1.3.5"),
   TSERV_MAXMEM("tserver.memory.maps.max", "33%", PropertyType.MEMORY,
@@ -575,7 +587,8 @@ public enum Property {
           + " tablet server. There are two other properties that can effectively limit"
           + " memory usage `table.compaction.minor.logs.threshold` and"
           + " `tserver.wal.max.size`. Ensure that `table.compaction.minor.logs.threshold`"
-          + " * `tserver.wal.max.size` >= this property.",
+          + " * `tserver.wal.max.size` >= this property. This map is created in off-heap"
+          + " memory when " + TSERV_NATIVEMAP_ENABLED.name() + " is enabled.",
       "1.3.5"),
   TSERV_SESSION_MAXIDLE("tserver.session.idle.max", "1m", PropertyType.TIMEDURATION,
       "When a tablet server's SimpleTimer thread triggers to check idle"
@@ -907,10 +920,23 @@ public enum Property {
       "A tablet is split when the combined size of RFiles exceeds this amount.", "1.3.5"),
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
       "Maximum size of end row.", "1.7.0"),
+  TABLE_MINC_COMPACT_MAXAGE("table.compaction.minor.age", "10m", PropertyType.TIMEDURATION,
+      "Key values written to a tablet are temporarily stored in a per tablet in memory map.  When "
+          + "the age of the oldest key value in a tablets in memory map exceeds this configuration, then  "
+          + "a minor compaction may be initiated. This determines the maximum amount of time new data can "
+          + "be buffered in memory before being flushed to a file.  This is useful when using scan servers "
+          + "in conjunction with the property " + SSERV_CACHED_TABLET_METADATA_EXPIRATION.getKey()
+          + ". These two properties together can be used to control that amount of time it takes for a scan "
+          + "server to see a write to a tablet server. The default value of this property is set to such a "
+          + "high value that is should never cause a minor compaction.",
+      "3.1.0"),
+  @Deprecated(since = "3.1.0")
+  @ReplacedBy(property = TABLE_MINC_COMPACT_MAXAGE)
   TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,
-      "After a tablet has been idle (no mutations) for this time period it may have its "
-          + "in-memory map flushed to disk in a minor compaction. There is no guarantee an idle "
-          + "tablet will be compacted.",
+      "When the age of the youngest key value in a tablets in memory map exceeds this configuration, then"
+          + " a minor compaction may be initiated. There is no guarantee an idle tablet will be compacted."
+          + "This property was deprecated because the new property table.compaction.minor.age can offer the "
+          + " same functionality although it may cause more minor compactions than this property would have.",
       "1.3.5"),
   TABLE_COMPACTION_DISPATCHER("table.compaction.dispatcher",
       SimpleCompactionDispatcher.class.getName(), PropertyType.CLASSNAME,
@@ -1156,6 +1182,12 @@ public enum Property {
   @Experimental
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
+  COMPACTOR_CANCEL_CHECK_INTERVAL("compactor.cancel.check.interval", "5m",
+      PropertyType.TIMEDURATION,
+      "Interval at which Compactors will check to see if the currently executing compaction"
+          + " should be cancelled. This checks for situations like was the tablet deleted (split "
+          + " and merge do this), was the table deleted, was a user compaction canceled, etc.",
+      "2.1.4"),
   @Experimental
   COMPACTOR_MIN_JOB_WAIT_TIME("compactor.wait.time.job.min", "1s", PropertyType.TIMEDURATION,
       "The minimum amount of time to wait between checks for the next compaction job, backing off"
@@ -1508,8 +1540,9 @@ public enum Property {
       RPC_MAX_MESSAGE_SIZE,
 
       // block cache options
-      TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
-      TSERV_SUMMARYCACHE_SIZE, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
+      GENERAL_CACHE_MANAGER_IMPL, TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE,
+      TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE,
+      SSERV_SUMMARYCACHE_SIZE,
 
       // blocksize options
       TSERV_DEFAULT_BLOCKSIZE, SSERV_DEFAULT_BLOCKSIZE,

@@ -58,12 +58,13 @@ public class DistributedWorkQueue {
   private static final Logger log = LoggerFactory.getLogger(DistributedWorkQueue.class);
 
   private ThreadPoolExecutor threadPool;
-  private ZooReaderWriter zoo;
-  private String path;
-  private ServerContext context;
-  private long timerInitialDelay, timerPeriod;
+  private final ZooReaderWriter zoo;
+  private final String path;
+  private final ServerContext context;
+  private final long timerInitialDelay;
+  private final long timerPeriod;
 
-  private AtomicInteger numTask = new AtomicInteger(0);
+  private final AtomicInteger numTask = new AtomicInteger(0);
 
   private void lookForWork(final Processor processor, List<String> children) {
     if (children.isEmpty()) {
@@ -179,7 +180,7 @@ public class DistributedWorkQueue {
     this.context = context;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
-    zoo = context.getZooReaderWriter();
+    zoo = context.getZooSession().asReaderWriter();
   }
 
   public ServerContext getContext() {

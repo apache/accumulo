@@ -51,8 +51,8 @@ class TableRangeOpWait extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(TableRangeOpWait.class);
 
   private static final long serialVersionUID = 1L;
-  private TableId tableId;
-  private NamespaceId namespaceId;
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
 
   public TableRangeOpWait(NamespaceId namespaceId, TableId tableId) {
     this.tableId = tableId;

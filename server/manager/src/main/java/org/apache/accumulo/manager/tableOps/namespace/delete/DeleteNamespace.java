@@ -30,7 +30,7 @@ public class DeleteNamespace extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private NamespaceId namespaceId;
+  private final NamespaceId namespaceId;
 
   public DeleteNamespace(NamespaceId namespaceId) {
     this.namespaceId = namespaceId;

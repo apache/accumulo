@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
@@ -62,7 +63,7 @@ public class CombinerIT extends AccumuloClusterHarness {
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 10; i++) {
           Mutation m = new Mutation("row1");
-          m.put("cf".getBytes(), "col1".getBytes(), ("" + i).getBytes());
+          m.put("cf".getBytes(UTF_8), "col1".getBytes(UTF_8), ("" + i).getBytes(UTF_8));
           bw.addMutation(m);
         }
       }

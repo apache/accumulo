@@ -85,7 +85,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
 
   private TermSource currentTerm;
   private List<TermSource> sources;
-  private PriorityQueue<TermSource> sorted = new PriorityQueue<>(5);
+  private final PriorityQueue<TermSource> sorted = new PriorityQueue<>(5);
 
   protected static class TermSource implements Comparable<TermSource> {
     private final SortedKeyValueIterator<Key,Value> iter;

@@ -37,8 +37,8 @@ import org.slf4j.LoggerFactory;
 public class CancelCompactions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private TableId tableId;
-  private NamespaceId namespaceId;
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
 
   private static final Logger log = LoggerFactory.getLogger(CancelCompactions.class);
 
@@ -68,12 +68,12 @@ public class CancelCompactions extends ManagerRepo {
 
   public static void mutateZooKeeper(long tid, TableId tableId, Manager environment)
       throws Exception {
-    String zCompactID = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
-        + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
-    String zCancelID = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES + "/"
+    String zCompactID = environment.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
+        + tableId + Constants.ZTABLE_COMPACT_ID;
+    String zCancelID = environment.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
-    ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = environment.getContext().getZooSession().asReaderWriter();
 
     byte[] currentValue = zoo.getData(zCompactID);
 

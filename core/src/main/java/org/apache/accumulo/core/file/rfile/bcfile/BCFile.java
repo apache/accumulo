@@ -106,8 +106,8 @@ public final class BCFile {
   public static class Writer implements Closeable {
     private final RateLimitedOutputStream out;
     private final Configuration conf;
-    private FileEncrypter encrypter;
-    private CryptoEnvironmentImpl cryptoEnvironment;
+    private final FileEncrypter encrypter;
+    private final CryptoEnvironmentImpl cryptoEnvironment;
     // the single meta block containing index of compressed data blocks
     final DataIndex dataIndex;
     // index for meta blocks
@@ -117,7 +117,7 @@ public final class BCFile {
     private boolean closed = false;
     long errorCount = 0;
     // reusable buffers.
-    private BytesWritable fsOutputBuffer;
+    private final BytesWritable fsOutputBuffer;
     private long length = 0;
 
     public long getLength() {
@@ -458,8 +458,8 @@ public final class BCFile {
     // Index for meta blocks
     final MetaIndex metaIndex;
     final Version version;
-    private byte[] decryptionParams;
-    private FileDecrypter decrypter;
+    private final byte[] decryptionParams;
+    private final FileDecrypter decrypter;
 
     /**
      * Intermediate class that maintain the state of a Readable Compression Block.

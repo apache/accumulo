@@ -135,14 +135,14 @@ public class ZombieTServer {
 
     var zLockPath =
         ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + addressString);
-    ZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
 
-    ServiceLock zlock = new ServiceLock(zoo.getZooKeeper(), zLockPath, UUID.randomUUID());
+    ServiceLock zlock = new ServiceLock(context.getZooSession(), zLockPath, UUID.randomUUID());
 
     MetricsInfo metricsInfo = context.getMetricsInfo();
-    metricsInfo.addServiceTags("zombie.server", serverPort.address);
-    metricsInfo.init();
+    metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), "zombie.server",
+        serverPort.address, ""));
 
     LockWatcher lw = new LockWatcher() {
 

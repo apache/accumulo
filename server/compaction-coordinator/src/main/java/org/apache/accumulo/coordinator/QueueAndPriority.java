@@ -24,7 +24,7 @@ import org.apache.accumulo.core.util.Pair;
 
 public class QueueAndPriority implements Comparable<QueueAndPriority> {
 
-  private static WeakHashMap<Pair<String,Short>,QueueAndPriority> CACHE = new WeakHashMap<>();
+  private static final WeakHashMap<Pair<String,Short>,QueueAndPriority> CACHE = new WeakHashMap<>();
 
   public static QueueAndPriority get(String queue, short priority) {
     return CACHE.computeIfAbsent(new Pair<>(queue, priority),

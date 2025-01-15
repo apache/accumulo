@@ -37,6 +37,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -45,6 +46,8 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.base.Preconditions;
 
 public class ConfigurableScanServerSelectorTest {
 
@@ -140,7 +143,8 @@ public class ConfigurableScanServerSelectorTest {
     @Override
     public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
         String description) {
-      throw new UnsupportedOperationException();
+      Preconditions.checkArgument(maxWaitTime.compareTo(Duration.ZERO) > 0);
+      throw new TimedOutException("Timed out w/o checking condition");
     }
 
   }
@@ -313,7 +317,7 @@ public class ConfigurableScanServerSelectorTest {
     // Intentionally put the default profile in 2nd position. There was a bug where config parsing
     // would fail if the default did not come first.
     var opts = Map.of("profiles",
-        "[" + profile1 + ", " + defaultProfile + "," + profile2 + "]".replace('\'', '"'));
+        ("[" + profile1 + ", " + defaultProfile + "," + profile2 + "]").replace('\'', '"'));
 
     runBusyTest(1000, 0, 5, 5, opts);
     runBusyTest(1000, 1, 20, 33, opts);
@@ -372,14 +376,14 @@ public class ConfigurableScanServerSelectorTest {
             + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]}";
 
     var opts1 = Map.of("profiles",
-        "[" + defaultProfile + ", " + profile1 + "," + profile2 + "]".replace('\'', '"'));
+        ("[" + defaultProfile + ", " + profile1 + "," + profile2 + "]").replace('\'', '"'));
 
     // two profiles activate on the scan type "mega", so should fail
     var exception =
         assertThrows(IllegalArgumentException.class, () -> runBusyTest(1000, 0, 5, 66, opts1));
     assertTrue(exception.getMessage().contains("mega"));
 
-    var opts2 = Map.of("profiles", "[" + profile1 + "]".replace('\'', '"'));
+    var opts2 = Map.of("profiles", ("[" + profile1 + "]").replace('\'', '"'));
 
     // missing a default profile, so should fail
     exception =
@@ -391,11 +395,21 @@ public class ConfigurableScanServerSelectorTest {
 
   @Test
   public void testNoScanServers() {
-    ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
-    selector.init(new InitParams(Set.of()));
-
+    // run a 1st test assuming default config does not fallback to tservers, so should timeout
+    var selector1 = new ConfigurableScanServerSelector();
+    selector1.init(new InitParams(Set.of()));
     var tabletId = nti("1", "m");
-    ScanServerSelections actions = selector.selectServers(new SelectorParams(tabletId));
+    assertThrows(TimedOutException.class,
+        () -> selector1.selectServers(new SelectorParams(tabletId)));
+
+    // run a 2nd test with config that does fall back to tablet servers
+    String profile = "{'isDefault':'true','maxBusyTimeout':'60m','busyTimeoutMultiplier':2,"
+        + " 'timeToWaitForScanServers': '0s',"
+        + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]}";
+    var opts1 = Map.of("profiles", ("[" + profile + "]").replace('\'', '"'));
+    var selector2 = new ConfigurableScanServerSelector();
+    selector2.init(new InitParams(Set.of(), opts1));
+    ScanServerSelections actions = selector2.selectServers(new SelectorParams(tabletId));
     assertNull(actions.getScanServer(tabletId));
     assertEquals(Duration.ZERO, actions.getDelay());
     assertEquals(Duration.ZERO, actions.getBusyTimeout());
@@ -416,7 +430,7 @@ public class ConfigurableScanServerSelectorTest {
             + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]}";
 
     var opts = Map.of("profiles",
-        "[" + defaultProfile + ", " + profile1 + "," + profile2 + "]".replace('\'', '"'));
+        ("[" + defaultProfile + ", " + profile1 + "," + profile2 + "]").replace('\'', '"'));
 
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
     var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
@@ -493,7 +507,7 @@ public class ConfigurableScanServerSelectorTest {
         "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4,'timeToWaitForScanServers':'120s',"
             + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'60s'}]}";
 
-    var opts = Map.of("profiles", "[" + defaultProfile + "]".replace('\'', '"'));
+    var opts = Map.of("profiles", ("[" + defaultProfile + "]").replace('\'', '"'));
 
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
 

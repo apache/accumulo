@@ -36,8 +36,8 @@ public enum CompactionSettings {
   OUTPUT_INDEX_BLOCK_SIZE_OPT(new SizeType(), false),
   OUTPUT_REPLICATION_OPT(new UIntType(), false);
 
-  private Type type;
-  private boolean selectorOpt;
+  private final Type type;
+  private final boolean selectorOpt;
 
   private CompactionSettings(Type type, boolean selectorOpt) {
     this.type = type;

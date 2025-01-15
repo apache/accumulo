@@ -25,7 +25,7 @@ import org.apache.accumulo.server.ServerContext;
 
 class TabletMutatorImpl extends TabletMutatorBase implements Ample.TabletMutator {
 
-  private BatchWriter writer;
+  private final BatchWriter writer;
 
   TabletMutatorImpl(ServerContext context, KeyExtent extent, BatchWriter batchWriter) {
     super(context, extent);

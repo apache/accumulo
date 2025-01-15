@@ -62,12 +62,12 @@ class ScanDataSource implements DataSource {
   // data source state
   private final TabletBase tablet;
   private ScanFileManager fileManager;
-  private static AtomicLong nextSourceId = new AtomicLong(0);
+  private static final AtomicLong nextSourceId = new AtomicLong(0);
   private SortedKeyValueIterator<Key,Value> iter;
   private long expectedDeletionCount;
   private List<MemoryIterator> memIters = null;
   private long fileReservationId;
-  private AtomicBoolean interruptFlag;
+  private final AtomicBoolean interruptFlag;
   private StatsIterator statsIterator;
 
   private final ScanParameters scanParams;
@@ -100,7 +100,6 @@ class ScanDataSource implements DataSource {
       } finally {
         try {
           if (fileManager != null) {
-            tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
             fileManager.releaseOpenFiles(false);
           }
         } catch (Exception e) {
@@ -154,7 +153,6 @@ class ScanDataSource implements DataSource {
       // only acquire the file manager when we know the tablet is open
       if (fileManager == null) {
         fileManager = tablet.getTabletResources().newScanFileManager(scanParams.getScanDispatch());
-        tablet.getScanMetrics().incrementOpenFiles(fileManager.getNumOpenFiles());
         log.trace("Adding active scan for  {}, scanId:{}", tablet.getExtent(), scanDataSourceId);
         tablet.addActiveScans(this);
       }
@@ -274,7 +272,6 @@ class ScanDataSource implements DataSource {
       }
       try {
         if (fileManager != null) {
-          tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
           fileManager.releaseOpenFiles(sawErrors);
         }
       } finally {
@@ -320,5 +317,9 @@ class ScanDataSource implements DataSource {
         .append("fileReservationId", fileReservationId).append("interruptFlag", interruptFlag.get())
         .append("expectedDeletionCount", expectedDeletionCount).append("scanParams", scanParams)
         .toString();
+  }
+
+  public ScanParameters getScanParameters() {
+    return scanParams;
   }
 }

@@ -214,6 +214,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     long sid = server.getSessionManager().createSession(scanSession, true);
 
+    scanParams.setScanSessionId(sid);
+
     ScanResult scanResult;
     try {
       scanResult = continueScan(tinfo, sid, scanSession, busyTimeout);
@@ -252,17 +254,17 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     server.getScanMetrics().incrementContinueScan();
 
-    if (scanSession.nextBatchTask == null) {
-      scanSession.nextBatchTask = new NextBatchTask(server, scanID, scanSession.interruptFlag);
+    if (scanSession.getScanTask() == null) {
+      scanSession.setScanTask(new NextBatchTask(server, scanID, scanSession.interruptFlag));
       server.getResourceManager().executeReadAhead(scanSession.extent,
-          getScanDispatcher(scanSession.extent), scanSession, scanSession.nextBatchTask);
+          getScanDispatcher(scanSession.extent), scanSession, scanSession.getScanTask());
     }
 
     ScanBatch bresult;
     try {
-      bresult = scanSession.nextBatchTask.get(busyTimeout, MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS,
+      bresult = scanSession.getScanTask().get(busyTimeout, MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS,
           TimeUnit.MILLISECONDS);
-      scanSession.nextBatchTask = null;
+      scanSession.clearScanTask();
     } catch (ExecutionException e) {
       server.getSessionManager().removeSession(scanID);
       if (e.getCause() instanceof NotServingTabletException) {
@@ -276,7 +278,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
         sleepUninterruptibly(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
         List<KVEntry> empty = Collections.emptyList();
         bresult = new ScanBatch(empty, true);
-        scanSession.nextBatchTask = null;
+        scanSession.clearScanTask();
       } else {
         throw new RuntimeException(e);
       }
@@ -311,9 +313,9 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     if (scanResult.more && scanSession.batchCount > scanSession.readaheadThreshold) {
       // start reading next batch while current batch is transmitted
       // to client
-      scanSession.nextBatchTask = new NextBatchTask(server, scanID, scanSession.interruptFlag);
+      scanSession.setScanTask(new NextBatchTask(server, scanID, scanSession.interruptFlag));
       server.getResourceManager().executeReadAhead(scanSession.extent,
-          getScanDispatcher(scanSession.extent), scanSession, scanSession.nextBatchTask);
+          getScanDispatcher(scanSession.extent), scanSession, scanSession.getScanTask());
     }
 
     if (!scanResult.more) {
@@ -440,6 +442,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     long sid = server.getSessionManager().createSession(mss, true);
 
+    scanParams.setScanSessionId(sid);
+
     MultiScanResult result;
     try {
       result = continueMultiScan(sid, mss, busyTimeout);
@@ -472,17 +476,17 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     server.getScanMetrics().incrementContinueScan();
 
-    if (session.lookupTask == null) {
-      session.lookupTask = new LookupTask(server, scanID);
+    if (session.getScanTask() == null) {
+      session.setScanTask(new LookupTask(server, scanID));
       server.getResourceManager().executeReadAhead(session.threadPoolExtent,
-          getScanDispatcher(session.threadPoolExtent), session, session.lookupTask);
+          getScanDispatcher(session.threadPoolExtent), session, session.getScanTask());
     }
 
     try {
 
-      MultiScanResult scanResult = session.lookupTask.get(busyTimeout,
+      MultiScanResult scanResult = session.getScanTask().get(busyTimeout,
           MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
-      session.lookupTask = null;
+      session.clearScanTask();
       return scanResult;
     } catch (ExecutionException e) {
       server.getSessionManager().removeSession(scanID);

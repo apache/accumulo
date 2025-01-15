@@ -27,6 +27,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -110,9 +111,21 @@ public class TabletLogger {
     }
   }
 
+  public static void tabletLoadFailed(KeyExtent extent, Exception e) {
+    locLog.warn("Failed to load tablet {}", extent, e);
+  }
+
   private static String getSize(Collection<CompactableFile> files) {
     long sum = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
     return FileUtils.byteCountToDisplaySize(sum);
+  }
+
+  public static void fileReadFailed(String path, TableId tableId, Exception e) {
+    fileLog.error("For table {} failed to read {} ", tableId, path, e);
+  }
+
+  public static void fileReadFailed(String path, KeyExtent tablet, Exception e) {
+    fileLog.error("For tablet {} failed to read {} ", tablet, path, e);
   }
 
   /**

@@ -43,8 +43,8 @@ import org.apache.hadoop.io.Text;
 abstract class TableMetadataServicer extends MetadataServicer {
 
   private final ClientContext context;
-  private TableId tableIdBeingServiced;
-  private String serviceTableName;
+  private final TableId tableIdBeingServiced;
+  private final String serviceTableName;
 
   public TableMetadataServicer(ClientContext context, String serviceTableName,
       TableId tableIdBeingServiced) {

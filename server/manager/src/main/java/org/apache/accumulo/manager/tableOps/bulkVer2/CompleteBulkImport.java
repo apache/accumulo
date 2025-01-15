@@ -28,7 +28,7 @@ public class CompleteBulkImport extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private BulkInfo info;
+  private final BulkInfo info;
 
   public CompleteBulkImport(BulkInfo info) {
     this.info = info;

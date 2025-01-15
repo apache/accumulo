@@ -22,7 +22,7 @@
         /**
          * Creates participating Tservers initial table, passes the tableID from the template
          */
-        $(document).ready(function () {
+        $(function () {
           initTableServerTable('${tableID}');
         });
       </script>

@@ -42,8 +42,8 @@ public class SummaryWriter implements FileSKVWriter {
   static long MAGIC = 0x15ea283ec03e4c49L;
   static byte VER = 1;
 
-  private FileSKVWriter writer;
-  private SummarySerializer.Builder[] summaryStores;
+  private final FileSKVWriter writer;
+  private final SummarySerializer.Builder[] summaryStores;
 
   private SummaryWriter(FileSKVWriter writer, SummarizerFactory factory,
       List<SummarizerConfiguration> configs, long maxSize) {

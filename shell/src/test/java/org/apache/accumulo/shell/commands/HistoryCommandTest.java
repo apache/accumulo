@@ -70,8 +70,8 @@ public class HistoryCommandTest {
     baos = new ByteArrayOutputStream();
 
     String input = String.format("!1%n"); // Construct a platform dependent new-line
-    terminal = new ExternalTerminal("shell", "ansi", new ByteArrayInputStream(input.getBytes()),
-        baos, UTF_8);
+    terminal = new ExternalTerminal("shell", "ansi",
+        new ByteArrayInputStream(input.getBytes(UTF_8)), baos, UTF_8);
     reader = LineReaderBuilder.builder().history(history).terminal(terminal).build();
 
     shell = new Shell(reader);

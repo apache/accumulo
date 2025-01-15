@@ -47,6 +47,7 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
@@ -54,7 +55,6 @@ import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.server.util.ChangeSecret;
 import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang3.StringUtils;
@@ -107,7 +107,7 @@ public class Initialize implements KeywordExecutable {
       System.out.println();
       System.out.println();
       System.out.println("You can change the instance secret in accumulo by using:");
-      System.out.println("   bin/accumulo " + ChangeSecret.class.getName());
+      System.out.println("   bin/accumulo admin changeSecret");
       System.out.println("You will also need to edit your secret in your configuration"
           + " file by adding the property instance.secret to your"
           + " accumulo.properties. Without this accumulo will not operate correctly");
@@ -526,7 +526,6 @@ public class Initialize implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs("accumulo init", args);
     var siteConfig = SiteConfiguration.auto();
-    ZooReaderWriter zoo = new ZooReaderWriter(siteConfig);
     SecurityUtil.serverLogin(siteConfig);
     Configuration hadoopConfig = new Configuration();
     InitialConfiguration initConfig = new InitialConfiguration(hadoopConfig, siteConfig);
@@ -540,7 +539,9 @@ public class Initialize implements KeywordExecutable {
         success = addVolumes(fs, initConfig, serverDirs);
       }
       if (!opts.resetSecurity && !opts.addVolumes) {
-        success = doInit(zoo, opts, fs, initConfig);
+        try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
+          success = doInit(zk.asReaderWriter(), opts, fs, initConfig);
+        }
       }
     } catch (IOException e) {
       log.error("Problem trying to get Volume configuration", e);

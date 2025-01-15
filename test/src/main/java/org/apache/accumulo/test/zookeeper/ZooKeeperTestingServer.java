@@ -20,16 +20,10 @@ package org.apache.accumulo.test.zookeeper;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
 
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.curator.test.TestingServer;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,89 +39,59 @@ public class ZooKeeperTestingServer implements AutoCloseable {
   public static final String SECRET = "secret";
 
   private TestingServer zkServer;
-  private final ZooKeeper zoo;
 
   /**
    * Instantiate a running zookeeper server - this call will block until the server is ready for
    * client connections. It will try three times, with a 5 second pause to connect.
    */
-  public ZooKeeperTestingServer(File tmpDir) {
-    this(tmpDir, PortUtils.getRandomFreePort());
-  }
-
-  private ZooKeeperTestingServer(File tmpDir, int port) {
-
+  public ZooKeeperTestingServer(final File tmpDir) {
     Preconditions.checkArgument(tmpDir.isDirectory());
-
+    final int port = PortUtils.getRandomFreePort();
     try {
-
-      CountDownLatch connectionLatch = new CountDownLatch(1);
-
       // using a random port. The test server allows for auto port
       // generation, but not with specifying the tmp dir path too.
       // so, generate our own.
       boolean started = false;
       int retry = 0;
       while (!started && retry++ < 3) {
-
         try {
-
           zkServer = new TestingServer(port, tmpDir);
           zkServer.start();
-
           started = true;
         } catch (Exception ex) {
           log.trace("zookeeper test server start failed attempt {}", retry);
         }
       }
-
       log.info("zookeeper connection string:'{}'", zkServer.getConnectString());
-
-      zoo = new ZooKeeper(zkServer.getConnectString(), 5_000, watchedEvent -> {
-        if (watchedEvent.getState() == Watcher.Event.KeeperState.SyncConnected) {
-          connectionLatch.countDown();
-        }
-      });
-
-      connectionLatch.await();
-
     } catch (Exception ex) {
       throw new IllegalStateException("Failed to start testing zookeeper", ex);
     }
-
   }
 
-  public ZooKeeper getZooKeeper() {
-    return zoo;
+  @FunctionalInterface
+  public interface ZooSessionConstructor<T extends ZooSession> {
+    public T construct(String clientName, String connectString, int timeout, String instanceSecret)
+        throws IOException;
   }
 
-  public ZooReaderWriter getZooReaderWriter() {
-    return new ZooReader(getConn(), 30000).asWriter(SECRET);
+  /**
+   * Create a new instance of a ZooKeeper client that is already connected to the testing server
+   * using the provided constructor that accepts the connection string, the timeout, and a watcher
+   * used by this class to wait for the client to connect. This can be used to construct a subclass
+   * of the ZooKeeper client that implements non-standard behavior for a test.
+   */
+  public <T extends ZooSession> T newClient(ZooSessionConstructor<T> f)
+      throws IOException, InterruptedException {
+    return f.construct(ZooKeeperTestingServer.class.getSimpleName(), zkServer.getConnectString(),
+        30_000, SECRET);
   }
 
-  public String getConn() {
-    return zkServer.getConnectString();
-  }
-
-  public void initPaths(String s) {
-    try {
-
-      String[] paths = s.split("/");
-
-      String slash = "/";
-      String path = "";
-
-      for (String p : paths) {
-        if (!p.isEmpty()) {
-          path = path + slash + p;
-          log.debug("building default paths, creating node {}", path);
-          zoo.create(path, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-        }
-      }
-
-    } catch (Exception ex) {
-      throw new IllegalStateException("Failed to create accumulo initial paths: " + s, ex);
-    }
+  /**
+   * Create a new instance of a standard ZooKeeper client that is already connected to the testing
+   * server. The caller is responsible for closing the object.
+   */
+  public ZooSession newClient() throws IOException, InterruptedException {
+    return newClient(ZooSession::new);
   }
 
   @Override

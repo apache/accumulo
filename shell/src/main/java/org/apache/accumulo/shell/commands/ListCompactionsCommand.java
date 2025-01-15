@@ -85,7 +85,8 @@ public class ListCompactionsCommand extends Command {
     filterOption = new Option("f", "filter", true, "show only compactions that match the regex");
     opts.addOption(filterOption);
 
-    tserverOption = new Option("ts", "tabletServer", true, "tablet server to list compactions for");
+    tserverOption = new Option("ts", "tabletServer", true,
+        "tablet server or compactor to list compactions for");
     tserverOption.setArgName("tablet server");
     opts.addOption(tserverOption);
 

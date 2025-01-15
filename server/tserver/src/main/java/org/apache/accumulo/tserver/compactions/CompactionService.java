@@ -41,9 +41,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -77,18 +79,18 @@ public class CompactionService {
   private CompactionPlanner planner;
   private Map<CompactionExecutorId,CompactionExecutor> executors;
   private final CompactionServiceId myId;
-  private Map<KeyExtent,Collection<SubmittedJob>> submittedJobs = new ConcurrentHashMap<>();
-  private ServerContext context;
+  private final Map<KeyExtent,Collection<SubmittedJob>> submittedJobs = new ConcurrentHashMap<>();
+  private final ServerContext context;
   private String plannerClassName;
   private Map<String,String> plannerOpts;
-  private CompactionExecutorsMetrics ceMetrics;
-  private ExecutorService planningExecutor;
-  private Map<CompactionKind,ConcurrentMap<KeyExtent,Compactable>> queuedForPlanning;
+  private final CompactionExecutorsMetrics ceMetrics;
+  private final ExecutorService planningExecutor;
+  private final Map<CompactionKind,ConcurrentMap<KeyExtent,Compactable>> queuedForPlanning;
 
-  private RateLimiter readLimiter;
-  private RateLimiter writeLimiter;
-  private AtomicLong rateLimit = new AtomicLong(0);
-  private Function<CompactionExecutorId,ExternalCompactionExecutor> externExecutorSupplier;
+  private final RateLimiter readLimiter;
+  private final RateLimiter writeLimiter;
+  private final AtomicLong rateLimit = new AtomicLong(0);
+  private final Function<CompactionExecutorId,ExternalCompactionExecutor> externExecutorSupplier;
 
   // use to limit logging of max scan files exceeded
   private final Cache<TableId,Long> maxScanFilesExceededErrorCache;
@@ -234,6 +236,11 @@ public class CompactionService {
     }
 
     private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
+
+    @Override
+    public NamespaceId getNamespaceId() throws TableNotFoundException {
+      return context.getNamespaceId(comp.getTableId());
+    }
 
     @Override
     public TableId getTableId() {

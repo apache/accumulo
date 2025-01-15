@@ -47,7 +47,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
 
   private AccessEvaluator accessEvaluator;
   protected Map<ByteSequence,Boolean> cache;
-  private ArrayByteSequence testVis = new ArrayByteSequence(new byte[0]);
+  private final ArrayByteSequence testVis = new ArrayByteSequence(new byte[0]);
 
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
 
