@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP3;
@@ -87,6 +86,7 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
@@ -102,17 +102,20 @@ import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
+import org.apache.accumulo.test.fate.TestLock;
 import org.apache.accumulo.test.functional.CompactionIT.ErrorThrowingSelector;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Preconditions;
 
 public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
+  private static ServiceLock testLock;
 
   public static class ExternalCompaction1Config implements MiniClusterConfigurationCallback {
     @Override
@@ -124,6 +127,14 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   @BeforeAll
   public static void beforeTests() throws Exception {
     startMiniClusterWithConfig(new ExternalCompaction1Config());
+    testLock = new TestLock().createTestLock(getCluster().getServerContext());
+  }
+
+  @AfterAll
+  public static void afterTests() throws Exception {
+    if (testLock != null) {
+      testLock.unlock();
+    }
   }
 
   public static class TestFilter extends Filter {
@@ -237,7 +248,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   public void testCompactionCommitAndDeadDetectionRoot() throws Exception {
     var ctx = getCluster().getServerContext();
     FateStore<Manager> metaFateStore = new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE,
-        ctx.getZooSession(), createDummyLockID(), null);
+        ctx.getZooSession(), testLock.getLockID(), null);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       var tableId = ctx.getTableId(AccumuloTable.ROOT.tableName());
@@ -256,7 +267,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   public void testCompactionCommitAndDeadDetectionMeta() throws Exception {
     var ctx = getCluster().getServerContext();
     FateStore<Manager> metaFateStore = new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE,
-        ctx.getZooSession(), createDummyLockID(), null);
+        ctx.getZooSession(), testLock.getLockID(), null);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       // Metadata table by default already has 2 tablets
@@ -278,7 +289,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     final String tableName = getUniqueNames(1)[0];
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      UserFateStore<Manager> userFateStore = new UserFateStore<>(ctx, createDummyLockID(), null);
+      UserFateStore<Manager> userFateStore =
+          new UserFateStore<>(ctx, AccumuloTable.FATE.tableName(), testLock.getLockID(), null);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));
       c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
@@ -301,9 +313,11 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     final String userTable = getUniqueNames(1)[0];
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      UserFateStore<Manager> userFateStore = new UserFateStore<>(ctx, createDummyLockID(), null);
-      FateStore<Manager> metaFateStore = new MetaFateStore<>(
-          ctx.getZooKeeperRoot() + Constants.ZFATE, ctx.getZooSession(), createDummyLockID(), null);
+      UserFateStore<Manager> userFateStore =
+          new UserFateStore<>(ctx, AccumuloTable.FATE.tableName(), testLock.getLockID(), null);
+      FateStore<Manager> metaFateStore =
+          new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE, ctx.getZooSession(),
+              testLock.getLockID(), null);
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));

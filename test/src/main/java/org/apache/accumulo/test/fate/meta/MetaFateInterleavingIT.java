@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
-import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
+import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 
 import java.util.UUID;
 

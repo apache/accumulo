@@ -19,10 +19,10 @@
 package org.apache.accumulo.test.fate.user;
 
 import static org.apache.accumulo.test.fate.FateStoreUtil.createFateTable;
+import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.FateStatusEnforcementIT;
@@ -50,7 +50,7 @@ public class UserFateStatusEnforcementIT extends FateStatusEnforcementIT {
     client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
     table = getUniqueNames(1)[0];
     createFateTable(client, table);
-    store = new UserFateStore<>(client, table, AbstractFateStore.createDummyLockID(), null);
+    store = new UserFateStore<>(client, table, createDummyLockID(), null);
     fateId = store.create();
     txStore = store.reserve(fateId);
   }
