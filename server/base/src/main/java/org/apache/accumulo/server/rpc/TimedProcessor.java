@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.server.rpc;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import org.apache.accumulo.core.metrics.MetricsInfo;
-import org.apache.accumulo.core.util.time.NanoTime;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.server.metrics.ThriftMetrics;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
@@ -32,25 +34,25 @@ public class TimedProcessor implements TProcessor {
 
   private final TProcessor other;
   private final ThriftMetrics thriftMetrics;
-  private NanoTime idleStart;
+  private final Timer idleTimer;
 
   public TimedProcessor(final TProcessor next, final MetricsInfo metricsInfo) {
     this.other = next;
     thriftMetrics = new ThriftMetrics();
     metricsInfo.addMetricsProducers(thriftMetrics);
-    idleStart = NanoTime.now();
+    idleTimer = Timer.startNew();
   }
 
   @Override
   public void process(TProtocol in, TProtocol out) throws TException {
-    NanoTime processStart = NanoTime.now();
-    thriftMetrics.addIdle(processStart.subtract(idleStart).toMillis());
+    thriftMetrics.addIdle(idleTimer.elapsed(MILLISECONDS));
+    Timer processTimer = Timer.startNew();
     try {
       other.process(in, out);
     } finally {
-      // set idle to now, calc time in process
-      idleStart = NanoTime.now();
-      thriftMetrics.addExecute(idleStart.subtract(processStart).toMillis());
+      // calc time in process, restart idle timer
+      thriftMetrics.addExecute(processTimer.elapsed(MILLISECONDS));
+      idleTimer.restart();
     }
   }
 }

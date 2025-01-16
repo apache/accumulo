@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -31,8 +30,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.time.NanoTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -182,9 +181,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
     @Override
     public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
-      Duration returnTime = Duration.of(time, unit.toChronoUnit());
-      NanoTime start = NanoTime.now();
-      while (start.elapsed().compareTo(returnTime) < 0) {
+      Timer timer = Timer.startNew();
+      while (timer.hasElapsed(time, unit)) {
         if (tryLock()) {
           return true;
         }

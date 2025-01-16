@@ -18,8 +18,11 @@
  */
 package org.apache.accumulo.server.mem;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
@@ -29,7 +32,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.time.NanoTime;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +54,7 @@ public class LowMemoryDetector {
 
   private long lastMemorySize = 0;
   private int lowMemCount = 0;
-  private NanoTime lastMemoryCheckTime = null;
+  private Timer lastMemoryCheckTime = null;
   private final Lock memCheckTimeLock = new ReentrantLock();
   private volatile boolean runningLowOnMemory = false;
 
@@ -104,7 +107,7 @@ public class LowMemoryDetector {
 
     memCheckTimeLock.lock();
     try {
-      final NanoTime now = NanoTime.now();
+      final Timer currentTimer = Timer.startNew();
 
       List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
 
@@ -173,25 +176,24 @@ public class LowMemoryDetector {
         LOG.debug(sb.toString());
       }
 
-      final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-      if (lastMemoryCheckTime != null && lastMemoryCheckTime.compareTo(now) < 0) {
-        final long diff = now.subtract(lastMemoryCheckTime).toMillis();
-        if (diff > keepAliveTimeout + 1000) {
+      final Duration keepAliveTimeout = conf.getDuration(Property.INSTANCE_ZK_TIMEOUT);
+      if (lastMemoryCheckTime != null && lastMemoryCheckTime.hasElapsed(keepAliveTimeout)) {
+        if (currentTimer.hasElapsed(keepAliveTimeout.plus(Duration.ofSeconds(1)))) {
           LOG.warn(String.format(
               "GC pause checker not called in a timely"
                   + " fashion. Expected every %.1f seconds but was %.1f seconds since last check",
-              keepAliveTimeout / 1000., diff / 1000.));
+              keepAliveTimeout.toMillis() / 1000., currentTimer.elapsed(MILLISECONDS) / 1000.));
         }
-        lastMemoryCheckTime = now;
+        lastMemoryCheckTime = currentTimer;
         return;
       }
 
-      if (maxIncreaseInCollectionTime > keepAliveTimeout) {
+      if (maxIncreaseInCollectionTime > keepAliveTimeout.toMillis()) {
         Halt.halt("Garbage collection may be interfering with lock keep-alive. Halting.", -1);
       }
 
       lastMemorySize = freeMemory;
-      lastMemoryCheckTime = now;
+      lastMemoryCheckTime = currentTimer;
     } finally {
       memCheckTimeLock.unlock();
     }
