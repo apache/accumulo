@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -75,12 +76,22 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       return FateId.from(instanceType, UUID.randomUUID());
     }
   };
+  protected static final int MAX_REPOS = 100;
 
   // The ZooKeeper lock for the process that's running this store instance
   protected final ZooUtil.LockID lockID;
   protected final Predicate<ZooUtil.LockID> isLockHeld;
   protected final Map<FateId,CountDownTimer> deferred;
   protected final FateIdGenerator fateIdGenerator;
+  // the statuses required to perform operations
+  public static final Set<TStatus> REQ_PUSH_STATUS = Set.of(TStatus.IN_PROGRESS, TStatus.NEW);
+  public static final Set<TStatus> REQ_POP_STATUS =
+      Set.of(TStatus.FAILED_IN_PROGRESS, TStatus.SUCCESSFUL);
+  public static final Set<TStatus> REQ_DELETE_STATUS =
+      Set.of(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED);
+  // all but UNKNOWN
+  public static final Set<TStatus> REQ_FORCE_DELETE_STATUS = Set.of(TStatus.NEW, TStatus.SUBMITTED,
+      TStatus.SUCCESSFUL, TStatus.FAILED, TStatus.FAILED_IN_PROGRESS, TStatus.IN_PROGRESS);
   private final int maxDeferred;
   private final AtomicBoolean deferredOverflow = new AtomicBoolean();
 
@@ -89,10 +100,6 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   // Keeps track of the number of concurrent callers to waitForStatusChange()
   private final AtomicInteger concurrentStatusChangeCallers = new AtomicInteger(0);
-
-  public AbstractFateStore() {
-    this(createDummyLockID(), null, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
-  }
 
   public AbstractFateStore(ZooUtil.LockID lockID, Predicate<ZooUtil.LockID> isLockHeld) {
     this(lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
@@ -103,9 +110,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     this.maxDeferred = maxDeferred;
     this.fateIdGenerator = Objects.requireNonNull(fateIdGenerator);
     this.deferred = Collections.synchronizedMap(new HashMap<>());
-    this.lockID = Objects.requireNonNull(lockID);
-    // If the store is used for a Fate which runs a dead reservation cleaner,
-    // this should be non-null, otherwise null is fine
+    this.lockID = lockID;
     this.isLockHeld = isLockHeld;
   }
 
@@ -280,6 +285,10 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         "Collision detected for fate id " + fateId);
   }
 
+  protected void verifyLock(ZooUtil.LockID lockID, FateId fateId) {
+    Preconditions.checkState(lockID != null, "Tried to reserve " + fateId + " with null lockID");
+  }
+
   protected abstract Stream<FateIdStatus> getTransactions(EnumSet<TStatus> statuses);
 
   protected abstract TStatus _getStatus(FateId fateId);
@@ -415,7 +424,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     unreservedRunnableCount.increment();
   }
 
-  protected byte[] serializeTxInfo(Serializable so) {
+  protected static byte[] serializeTxInfo(Serializable so) {
     if (so instanceof String) {
       return ("S " + so).getBytes(UTF_8);
     } else {
@@ -428,7 +437,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     }
   }
 
-  protected Serializable deserializeTxInfo(TxInfo txInfo, byte[] data) {
+  protected static Serializable deserializeTxInfo(TxInfo txInfo, byte[] data) {
     if (data[0] == 'O') {
       byte[] sera = new byte[data.length - 2];
       System.arraycopy(data, 2, sera, 0, sera.length);
@@ -438,15 +447,5 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     } else {
       throw new IllegalStateException("Bad node data " + txInfo);
     }
-  }
-
-  /**
-   * this is a temporary method used to create a dummy lock when using a FateStore outside the
-   * context of a Manager (one example is testing) so reservations can still be made.
-   *
-   * @return a dummy {@link ZooUtil.LockID}
-   */
-  public static ZooUtil.LockID createDummyLockID() {
-    return new ZooUtil.LockID("/path", "node", 123);
   }
 }

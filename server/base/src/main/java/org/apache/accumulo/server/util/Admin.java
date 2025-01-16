@@ -20,7 +20,6 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -38,14 +37,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -76,14 +74,14 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -95,7 +93,9 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.tables.TableMap;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -116,8 +116,6 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -130,6 +128,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @AutoService(KeywordExecutable.class)
 public class Admin implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Admin.class);
+  private final CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
 
   static class AdminOpts extends ServerUtilOpts {
     @Parameter(names = {"-f", "--force"},
@@ -337,11 +336,11 @@ public class Admin implements KeywordExecutable {
     boolean cancel;
 
     @Parameter(names = {"-f", "--fail"},
-        description = "<FateId>... Transition FaTE transaction status to FAILED_IN_PROGRESS (requires Manager to be down)")
+        description = "<FateId>... Transition FaTE transaction status to FAILED_IN_PROGRESS")
     boolean fail;
 
     @Parameter(names = {"-d", "--delete"},
-        description = "<FateId>... Delete FaTE transaction and its associated table locks (requires Manager to be down)")
+        description = "<FateId>... Delete FaTE transaction and its associated table locks")
     boolean delete;
 
     @Parameter(names = {"-p", "--print", "-print", "-l", "--list", "-list"},
@@ -363,6 +362,36 @@ public class Admin implements KeywordExecutable {
     @Parameter(names = {"-t", "--type"},
         description = "<type>... Print transactions of fate instance type(s) {USER, META}")
     List<String> instanceTypes = new ArrayList<>();
+  }
+
+  class AdminLockWatcher implements ServiceLock.AccumuloLockWatcher {
+    @Override
+    public void lostLock(ServiceLock.LockLossReason reason) {
+      String msg = "Admin lost lock: " + reason.toString();
+      if (reason == ServiceLock.LockLossReason.LOCK_DELETED) {
+        Halt.halt(msg, 0);
+      } else {
+        Halt.halt(msg, 1);
+      }
+    }
+
+    @Override
+    public void unableToMonitorLockNode(Exception e) {
+      String msg = "Admin unable to monitor lock: " + e.getMessage();
+      log.warn(msg);
+      Halt.halt(msg, 1);
+    }
+
+    @Override
+    public void acquiredLock() {
+      lockAcquiredLatch.countDown();
+      log.debug("Acquired ZooKeeper lock for Admin");
+    }
+
+    @Override
+    public void failedToAcquireLock(Exception e) {
+      log.warn("Failed to acquire ZooKeeper lock for Admin, msg: " + e.getMessage());
+    }
   }
 
   public static void main(String[] args) {
@@ -578,7 +607,8 @@ public class Admin implements KeywordExecutable {
     try {
       flusher.join(3000);
     } catch (InterruptedException e) {
-      // ignore
+      Thread.currentThread().interrupt();
+      log.warn("Interrupted while waiting to join Flush thread", e);
     }
 
     while (flusher.isAlive() && System.currentTimeMillis() - start < 15000) {
@@ -586,13 +616,22 @@ public class Admin implements KeywordExecutable {
       try {
         flusher.join(1000);
       } catch (InterruptedException e) {
-        // ignore
+        Thread.currentThread().interrupt();
+        log.warn("Interrupted while waiting to join Flush thread", e);
       }
 
       if (flushCount == flushesStarted.get()) {
         // no progress was made while waiting for join... maybe its stuck, stop waiting on it
         break;
       }
+    }
+
+    flusher.interrupt();
+    try {
+      flusher.join();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      log.warn("Interrupted while waiting to join Flush thread", e);
     }
   }
 
@@ -883,50 +922,107 @@ public class Admin implements KeywordExecutable {
 
     AdminUtil<Admin> admin = new AdminUtil<>(true);
     final String zkRoot = context.getZooKeeperRoot();
-    var zLockManagerPath = context.getServerPaths().createManagerPath();
     var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     String fateZkPath = zkRoot + Constants.ZFATE;
-    ZooReaderWriter zk = context.getZooReaderWriter();
-    MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk, createDummyLockID(), null);
-    UserFateStore<Admin> ufs = new UserFateStore<>(context, createDummyLockID(), null);
-    Map<FateInstanceType,FateStore<Admin>> fateStores =
-        Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
-    Map<FateInstanceType,ReadOnlyFateStore<Admin>> readOnlyFateStores =
-        Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
+    var zk = context.getZooSession();
+    ServiceLock adminLock = null;
+    Map<FateInstanceType,FateStore<Admin>> fateStores;
+    Map<FateInstanceType,ReadOnlyFateStore<Admin>> readOnlyFateStores = null;
 
-    if (fateOpsCommand.cancel) {
-      cancelSubmittedFateTxs(context, fateOpsCommand.fateIdList);
-    } else if (fateOpsCommand.fail) {
-      for (String fateIdStr : fateOpsCommand.fateIdList) {
-        if (!admin.prepFail(fateStores, zk, zLockManagerPath, fateIdStr)) {
-          throw new AccumuloException("Could not fail transaction: " + fateIdStr);
+    try {
+      if (fateOpsCommand.cancel) {
+        cancelSubmittedFateTxs(context, fateOpsCommand.fateIdList);
+      } else if (fateOpsCommand.fail) {
+        adminLock = createAdminLock(context);
+        fateStores = createFateStores(context, zk, fateZkPath, adminLock);
+        for (String fateIdStr : fateOpsCommand.fateIdList) {
+          if (!admin.prepFail(fateStores, fateIdStr)) {
+            throw new AccumuloException("Could not fail transaction: " + fateIdStr);
+          }
+        }
+      } else if (fateOpsCommand.delete) {
+        adminLock = createAdminLock(context);
+        fateStores = createFateStores(context, zk, fateZkPath, adminLock);
+        for (String fateIdStr : fateOpsCommand.fateIdList) {
+          if (!admin.prepDelete(fateStores, fateIdStr)) {
+            throw new AccumuloException("Could not delete transaction: " + fateIdStr);
+          }
+          admin.deleteLocks(zk, zTableLocksPath, fateIdStr);
         }
       }
-    } else if (fateOpsCommand.delete) {
-      for (String fateIdStr : fateOpsCommand.fateIdList) {
-        if (!admin.prepDelete(fateStores, zk, zLockManagerPath, fateIdStr)) {
-          throw new AccumuloException("Could not delete transaction: " + fateIdStr);
+
+      if (fateOpsCommand.print) {
+        final Set<FateId> fateIdFilter = new TreeSet<>();
+        fateOpsCommand.fateIdList.forEach(fateIdStr -> fateIdFilter.add(FateId.from(fateIdStr)));
+        EnumSet<ReadOnlyFateStore.TStatus> statusFilter =
+            getCmdLineStatusFilters(fateOpsCommand.states);
+        EnumSet<FateInstanceType> typesFilter =
+            getCmdLineInstanceTypeFilters(fateOpsCommand.instanceTypes);
+        readOnlyFateStores = createReadOnlyFateStores(context, zk, fateZkPath);
+        admin.print(readOnlyFateStores, zk, zTableLocksPath, new Formatter(System.out),
+            fateIdFilter, statusFilter, typesFilter);
+        // print line break at the end
+        System.out.println();
+      }
+
+      if (fateOpsCommand.summarize) {
+        if (readOnlyFateStores == null) {
+          readOnlyFateStores = createReadOnlyFateStores(context, zk, fateZkPath);
         }
-        admin.deleteLocks(zk, zTableLocksPath, fateIdStr);
+        summarizeFateTx(context, fateOpsCommand, admin, readOnlyFateStores, zTableLocksPath);
+      }
+    } finally {
+      if (adminLock != null) {
+        adminLock.unlock();
       }
     }
+  }
 
-    if (fateOpsCommand.print) {
-      final Set<FateId> fateIdFilter = new TreeSet<>();
-      fateOpsCommand.fateIdList.forEach(fateIdStr -> fateIdFilter.add(FateId.from(fateIdStr)));
-      EnumSet<ReadOnlyFateStore.TStatus> statusFilter =
-          getCmdLineStatusFilters(fateOpsCommand.states);
-      EnumSet<FateInstanceType> typesFilter =
-          getCmdLineInstanceTypeFilters(fateOpsCommand.instanceTypes);
-      admin.print(readOnlyFateStores, zk, zTableLocksPath, new Formatter(System.out), fateIdFilter,
-          statusFilter, typesFilter);
-      // print line break at the end
-      System.out.println();
+  private Map<FateInstanceType,FateStore<Admin>> createFateStores(ServerContext context,
+      ZooSession zk, String fateZkPath, ServiceLock adminLock)
+      throws InterruptedException, KeeperException {
+    var lockId = adminLock.getLockID();
+    MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk, lockId, null);
+    UserFateStore<Admin> ufs =
+        new UserFateStore<>(context, AccumuloTable.FATE.tableName(), lockId, null);
+    return Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
+  }
+
+  private Map<FateInstanceType,ReadOnlyFateStore<Admin>>
+      createReadOnlyFateStores(ServerContext context, ZooSession zk, String fateZkPath)
+          throws InterruptedException, KeeperException {
+    MetaFateStore<Admin> readOnlyMFS = new MetaFateStore<>(fateZkPath, zk, null, null);
+    UserFateStore<Admin> readOnlyUFS =
+        new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+    return Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
+  }
+
+  private ServiceLock createAdminLock(ServerContext context) throws InterruptedException {
+    var zk = context.getZooSession();
+    UUID uuid = UUID.randomUUID();
+    ServiceLockPath slp = context.getServerPaths().createAdminLockPath();
+    ServiceLock adminLock = new ServiceLock(zk, slp, uuid);
+    AdminLockWatcher lw = new AdminLockWatcher();
+    ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
+    descriptors
+        .addService(new ServiceLockData.ServiceDescriptor(uuid, ServiceLockData.ThriftService.NONE,
+            "fake_admin_util_host", Constants.DEFAULT_RESOURCE_GROUP_NAME));
+    ServiceLockData sld = new ServiceLockData(descriptors);
+    String lockPath = slp.toString();
+    String parentLockPath = lockPath.substring(0, lockPath.lastIndexOf("/"));
+
+    try {
+      var zrw = zk.asReaderWriter();
+      zrw.putPersistentData(parentLockPath, new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
+      zrw.putPersistentData(lockPath, new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Error creating path in ZooKeeper", e);
     }
 
-    if (fateOpsCommand.summarize) {
-      summarizeFateTx(context, fateOpsCommand, admin, readOnlyFateStores, zTableLocksPath);
-    }
+    adminLock.lock(lw, sld);
+    lockAcquiredLatch.await();
+
+    return adminLock;
   }
 
   private void validateFateUserInput(FateOpsCommand cmd) {
@@ -974,7 +1070,7 @@ public class Admin implements KeywordExecutable {
       Map<FateInstanceType,ReadOnlyFateStore<Admin>> fateStores, ServiceLockPath tableLocksPath)
       throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
 
-    ZooReaderWriter zk = context.getZooReaderWriter();
+    var zk = context.getZooSession();
     var transactions = admin.getStatus(fateStores, zk, tableLocksPath, null, null, null);
 
     // build id map - relies on unique ids for tables and namespaces
@@ -1046,78 +1142,6 @@ public class Admin implements KeywordExecutable {
       }
     }
     return typesFilter;
-  }
-
-  private static long printDanglingFateOperations(ServerContext context, String tableName)
-      throws Exception {
-    long totalDanglingSeen = 0;
-    if (tableName == null) {
-      for (var dataLevel : Ample.DataLevel.values()) {
-        try (var tablets = context.getAmple().readTablets().forLevel(dataLevel).build()) {
-          totalDanglingSeen += printDanglingFateOperations(context, tablets);
-        }
-      }
-    } else {
-      var tableId = context.getTableId(tableName);
-      try (var tablets = context.getAmple().readTablets().forTable(tableId).build()) {
-        totalDanglingSeen += printDanglingFateOperations(context, tablets);
-      }
-    }
-
-    System.out.printf("\nFound %,d dangling references to fate operations\n", totalDanglingSeen);
-
-    return totalDanglingSeen;
-  }
-
-  private static long printDanglingFateOperations(ServerContext context,
-      Iterable<TabletMetadata> tablets) throws Exception {
-    Function<Collection<KeyExtent>,Map<KeyExtent,TabletMetadata>> tabletLookup = extents -> {
-      try (var lookedupTablets =
-          context.getAmple().readTablets().forTablets(extents, Optional.empty()).build()) {
-        Map<KeyExtent,TabletMetadata> tabletMap = new HashMap<>();
-        lookedupTablets
-            .forEach(tabletMetadata -> tabletMap.put(tabletMetadata.getExtent(), tabletMetadata));
-        return tabletMap;
-      }
-    };
-
-    UserFateStore<?> ufs = new UserFateStore<>(context, createDummyLockID(), null);
-    MetaFateStore<?> mfs = new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
-        context.getZooReaderWriter(), createDummyLockID(), null);
-    LoadingCache<FateId,ReadOnlyFateStore.TStatus> fateStatusCache = Caffeine.newBuilder()
-        .maximumSize(100_000).expireAfterWrite(10, TimeUnit.SECONDS).build(fateId -> {
-          if (fateId.getType() == FateInstanceType.META) {
-            return mfs.read(fateId).getStatus();
-          } else {
-            return ufs.read(fateId).getStatus();
-          }
-        });
-
-    Predicate<FateId> activePredicate = fateId -> {
-      var status = fateStatusCache.get(fateId);
-      switch (status) {
-        case NEW:
-        case IN_PROGRESS:
-        case SUBMITTED:
-        case FAILED_IN_PROGRESS:
-          return true;
-        case FAILED:
-        case SUCCESSFUL:
-        case UNKNOWN:
-          return false;
-        default:
-          throw new IllegalStateException("Unexpected status: " + status);
-      }
-    };
-
-    AtomicLong danglingSeen = new AtomicLong();
-    BiConsumer<KeyExtent,Set<FateId>> danglingConsumer = (extent, fateIds) -> {
-      danglingSeen.addAndGet(fateIds.size());
-      fateIds.forEach(fateId -> System.out.println(fateId + " " + extent));
-    };
-
-    findDanglingFateOperations(tablets, tabletLookup, activePredicate, danglingConsumer, 10_000);
-    return danglingSeen.get();
   }
 
   /**

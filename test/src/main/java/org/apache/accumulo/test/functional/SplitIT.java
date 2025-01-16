@@ -57,9 +57,9 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -69,6 +69,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -251,12 +252,22 @@ public class SplitIT extends AccumuloClusterHarness {
         KeyExtent extent = new KeyExtent(id, null, null);
         s.setRange(extent.toMetaRange());
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
+        TabletColumnFamily.MERGEABILITY_COLUMN.fetch(s);
         int count = 0;
         int shortened = 0;
         for (Entry<Key,Value> entry : s) {
           extent = KeyExtent.fromMetaPrevRow(entry);
           if (extent.endRow() != null && extent.endRow().toString().length() < 14) {
             shortened++;
+          }
+          if (TabletColumnFamily.MERGEABILITY_COLUMN.getColumnQualifier()
+              .equals(entry.getKey().getColumnQualifier())) {
+            // Default tablet should be set to NEVER, all newly generated system splits should be
+            // set to ALWAYS
+            var mergeability =
+                extent.endRow() == null ? TabletMergeability.never() : TabletMergeability.always();
+            assertEquals(mergeability,
+                TabletMergeabilityMetadata.fromValue(entry.getValue()).getTabletMergeability());
           }
           count++;
         }
@@ -519,7 +530,7 @@ public class SplitIT extends AccumuloClusterHarness {
       c.tableOperations().importDirectory(dir).to(tableName).load();
 
       // wait for the tablet to be marked unsplittable
-      var ctx = (ClientContext) c;
+      var ctx = getServerContext();
       Wait.waitFor(() -> {
         var tableId = ctx.getTableId(tableName);
         try (var tabletsMeta = ctx.getAmple().readTablets().forTable(tableId).build()) {

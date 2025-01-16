@@ -58,7 +58,7 @@ public class ZookeeperLockCheckerTest {
 
   @Test
   public void testInvalidateCache() {
-    var zklc = new ZookeeperLockChecker(context);
+    var zklc = new ZookeeperLockChecker(zc, context.getZooKeeperRoot());
 
     verify(zc);
     reset(zc);

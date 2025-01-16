@@ -59,6 +59,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
@@ -97,6 +98,7 @@ public class MetadataConstraints implements Constraint {
           TabletColumnFamily.REQUESTED_COLUMN,
           ServerColumnFamily.SELECTED_COLUMN,
           SplitColumnFamily.UNSPLITTABLE_COLUMN,
+          TabletColumnFamily.MERGEABILITY_COLUMN,
           Upgrade12to13.COMPACT_COL);
 
   @SuppressWarnings("deprecation")
@@ -297,6 +299,8 @@ public class MetadataConstraints implements Constraint {
         return "Invalid unsplittable column";
       case 4005:
         return "Malformed availability value";
+      case 4006:
+        return "Malformed mergeability value";
 
     }
     return null;
@@ -374,6 +378,13 @@ public class MetadataConstraints implements Constraint {
           TabletAvailabilityUtil.fromValue(new Value(columnUpdate.getValue()));
         } catch (IllegalArgumentException e) {
           addViolation(violations, 4005);
+        }
+        break;
+      case (TabletColumnFamily.MERGEABILITY_QUAL):
+        try {
+          TabletMergeabilityMetadata.fromValue(new Value(columnUpdate.getValue()));
+        } catch (IllegalArgumentException e) {
+          addViolation(violations, 4006);
         }
         break;
     }

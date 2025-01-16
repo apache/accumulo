@@ -118,7 +118,7 @@ public class Upgrader12to13 implements Upgrader {
 
   private static void addCompactionsNode(ServerContext context) {
     try {
-      context.getZooReaderWriter().putPersistentData(
+      context.getZooSession().asReaderWriter().putPersistentData(
           ZooUtil.getRoot(context.getInstanceID()) + Constants.ZCOMPACTIONS, new byte[0],
           ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
@@ -152,7 +152,7 @@ public class Upgrader12to13 implements Upgrader {
     var rootBase = ZooUtil.getRoot(context.getInstanceID()) + ZROOT_TABLET;
 
     try {
-      var zrw = context.getZooReaderWriter();
+      var zrw = context.getZooSession().asReaderWriter();
       Stat stat = new Stat();
       byte[] rootData = zrw.getData(rootBase, stat);
 
@@ -245,7 +245,7 @@ public class Upgrader12to13 implements Upgrader {
   private void removeUnusedZKNodes(ServerContext context) {
     try {
       final String zkRoot = ZooUtil.getRoot(context.getInstanceID());
-      final var zrw = context.getZooReaderWriter();
+      final var zrw = context.getZooSession().asReaderWriter();
 
       final String ZCOORDINATOR = "/coordinators";
       final String BULK_ARBITRATOR_TYPE = "bulkTx";
@@ -356,7 +356,7 @@ public class Upgrader12to13 implements Upgrader {
     // are empty. This means that for the Accumulo 4.0 upgrade, the Manager
     // should be started first before any other process.
     final String zkRoot = ZooUtil.getRoot(context.getInstanceID());
-    final ZooReader zr = context.getZooReader();
+    final ZooReader zr = context.getZooSession().asReader();
     for (String serverPath : new String[] {Constants.ZCOMPACTORS, Constants.ZSSERVERS,
         Constants.ZTSERVERS, Constants.ZDEADTSERVERS}) {
       try {

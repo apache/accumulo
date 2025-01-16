@@ -36,12 +36,14 @@ public class SplitInfo implements Serializable {
   private final byte[] prevEndRow;
   private final byte[] endRow;
   private final byte[][] splits;
+  private final boolean systemCreated;
 
-  public SplitInfo(KeyExtent extent, SortedSet<Text> splits) {
+  public SplitInfo(KeyExtent extent, SortedSet<Text> splits, boolean systemCreated) {
     this.tableId = extent.tableId();
     this.prevEndRow = extent.prevEndRow() == null ? null : TextUtil.getBytes(extent.prevEndRow());
     this.endRow = extent.endRow() == null ? null : TextUtil.getBytes(extent.endRow());
     this.splits = new byte[splits.size()][];
+    this.systemCreated = systemCreated;
 
     int index = 0;
     for (var split : splits) {
@@ -85,4 +87,7 @@ public class SplitInfo implements Serializable {
     return tablets;
   }
 
+  boolean isSystemCreated() {
+    return systemCreated;
+  }
 }

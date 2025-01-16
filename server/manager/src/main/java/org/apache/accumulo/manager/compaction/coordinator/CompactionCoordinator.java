@@ -31,6 +31,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.ref.SoftReference;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,13 +44,17 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -193,6 +198,9 @@ public class CompactionCoordinator
 
   private volatile long coordinatorStartTime;
 
+  private final Map<DataLevel,ThreadPoolExecutor> reservationPools;
+  private final Set<String> activeCompactorReservationRequest = ConcurrentHashMap.newKeySet();
+
   public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
       AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances, Manager manager) {
     this.ctx = ctx;
@@ -232,6 +240,18 @@ public class CompactionCoordinator
     deadCompactionDetector =
         new DeadCompactionDetector(this.ctx, this, schedExecutor, fateInstances);
 
+    var rootReservationPool = ThreadPools.getServerThreadPools().createExecutorService(
+        ctx.getConfiguration(), Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT, true);
+
+    var metaReservationPool = ThreadPools.getServerThreadPools().createExecutorService(
+        ctx.getConfiguration(), Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_META, true);
+
+    var userReservationPool = ThreadPools.getServerThreadPools().createExecutorService(
+        ctx.getConfiguration(), Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_USER, true);
+
+    reservationPools = Map.of(Ample.DataLevel.ROOT, rootReservationPool, Ample.DataLevel.METADATA,
+        metaReservationPool, Ample.DataLevel.USER, userReservationPool);
+
     compactorCounts = ctx.getCaches().createNewBuilder(CacheName.COMPACTOR_COUNTS, false)
         .expireAfterWrite(30, TimeUnit.SECONDS).build(this::countCompactors);
     // At this point the manager does not have its lock so no actions should be taken yet
@@ -250,6 +270,9 @@ public class CompactionCoordinator
 
   public void shutdown() {
     shutdown.countDown();
+
+    reservationPools.values().forEach(ExecutorService::shutdownNow);
+
     var localThread = serviceThread;
     if (localThread != null) {
       try {
@@ -528,82 +551,143 @@ public class CompactionCoordinator
 
   }
 
-  protected CompactionMetadata reserveCompaction(CompactionJobQueues.MetaJob metaJob,
-      String compactorAddress, ExternalCompactionId externalCompactionId) {
+  private class ReserveCompactionTask implements Supplier<CompactionMetadata> {
 
-    Preconditions.checkArgument(metaJob.getJob().getKind() == CompactionKind.SYSTEM
-        || metaJob.getJob().getKind() == CompactionKind.USER);
+    // Use a soft reference for this in case free memory gets low while this is sitting in the queue
+    // waiting to process. This object can contain the tablets list of files and if there are lots
+    // of tablet with lots of files then that could start to cause memory problems. This hack could
+    // be removed if #5188 were implemented.
+    private final SoftReference<CompactionJobQueues.MetaJob> metaJobRef;
+    private final String compactorAddress;
+    private final ExternalCompactionId externalCompactionId;
 
-    var tabletMetadata = metaJob.getTabletMetadata();
+    private ReserveCompactionTask(CompactionJobQueues.MetaJob metaJob, String compactorAddress,
+        ExternalCompactionId externalCompactionId) {
+      Preconditions.checkArgument(metaJob.getJob().getKind() == CompactionKind.SYSTEM
+          || metaJob.getJob().getKind() == CompactionKind.USER);
+      this.metaJobRef = new SoftReference<>(Objects.requireNonNull(metaJob));
+      this.compactorAddress = Objects.requireNonNull(compactorAddress);
+      this.externalCompactionId = Objects.requireNonNull(externalCompactionId);
+      Preconditions.checkState(activeCompactorReservationRequest.add(compactorAddress),
+          "compactor %s already on has a reservation in flight, cannot process %s",
+          compactorAddress, externalCompactionId);
+    }
 
-    var jobFiles = metaJob.getJob().getFiles().stream().map(CompactableFileImpl::toStoredTabletFile)
-        .collect(Collectors.toSet());
-
-    Retry retry = Retry.builder().maxRetries(5).retryAfter(Duration.ofMillis(100))
-        .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(10)).backOffFactor(1.5)
-        .logInterval(Duration.ofMinutes(3)).createRetry();
-
-    while (retry.canRetry()) {
-      try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
-        var extent = metaJob.getTabletMetadata().getExtent();
-
-        if (!canReserveCompaction(tabletMetadata, metaJob.getJob().getKind(), jobFiles, ctx,
-            manager.getSteadyTime())) {
+    @Override
+    public CompactionMetadata get() {
+      try {
+        var metaJob = metaJobRef.get();
+        if (metaJob == null) {
+          LOG.warn("Compaction reservation request for {} {} was garbage collected.",
+              compactorAddress, externalCompactionId);
           return null;
         }
 
-        var ecm = createExternalCompactionMetadata(metaJob.getJob(), jobFiles, tabletMetadata,
-            compactorAddress, externalCompactionId);
+        var tabletMetadata = metaJob.getTabletMetadata();
 
-        // any data that is read from the tablet to make a decision about if it can compact or not
-        // must be checked for changes in the conditional mutation.
-        var tabletMutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
-            .requireFiles(jobFiles).requireNotCompacting(jobFiles);
-        if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
-          // For system compactions the user compaction requested column is examined when deciding
-          // if a compaction can start so need to check for changes to this column.
-          tabletMutator.requireSame(tabletMetadata, SELECTED, USER_COMPACTION_REQUESTED);
-        } else {
-          tabletMutator.requireSame(tabletMetadata, SELECTED);
-        }
+        var jobFiles = metaJob.getJob().getFiles().stream()
+            .map(CompactableFileImpl::toStoredTabletFile).collect(Collectors.toSet());
 
-        if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
-          var selectedFiles = tabletMetadata.getSelectedFiles();
-          var reserved = getFilesReservedBySelection(tabletMetadata, manager.getSteadyTime(), ctx);
+        Retry retry = Retry.builder().maxRetries(5).retryAfter(Duration.ofMillis(100))
+            .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(10)).backOffFactor(1.5)
+            .logInterval(Duration.ofMinutes(3)).createRetry();
 
-          // If there is a selectedFiles column, and the reserved set is empty this means that
-          // either no user jobs were completed yet or the selection expiration time has passed
-          // so the column is eligible to be deleted so a system job can run instead
-          if (selectedFiles != null && reserved.isEmpty()
-              && !Collections.disjoint(jobFiles, selectedFiles.getFiles())) {
-            LOG.debug("Deleting user compaction selected files for {} {}", extent,
-                externalCompactionId);
-            tabletMutator.deleteSelectedFiles();
+        while (retry.canRetry()) {
+          try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
+            var extent = metaJob.getTabletMetadata().getExtent();
+
+            if (!canReserveCompaction(tabletMetadata, metaJob.getJob().getKind(), jobFiles, ctx,
+                manager.getSteadyTime())) {
+              return null;
+            }
+
+            var ecm = createExternalCompactionMetadata(metaJob.getJob(), jobFiles, tabletMetadata,
+                compactorAddress, externalCompactionId);
+
+            // any data that is read from the tablet to make a decision about if it can compact or
+            // not
+            // must be checked for changes in the conditional mutation.
+            var tabletMutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
+                .requireFiles(jobFiles).requireNotCompacting(jobFiles);
+            if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
+              // For system compactions the user compaction requested column is examined when
+              // deciding
+              // if a compaction can start so need to check for changes to this column.
+              tabletMutator.requireSame(tabletMetadata, SELECTED, USER_COMPACTION_REQUESTED);
+            } else {
+              tabletMutator.requireSame(tabletMetadata, SELECTED);
+            }
+
+            if (metaJob.getJob().getKind() == CompactionKind.SYSTEM) {
+              var selectedFiles = tabletMetadata.getSelectedFiles();
+              var reserved =
+                  getFilesReservedBySelection(tabletMetadata, manager.getSteadyTime(), ctx);
+
+              // If there is a selectedFiles column, and the reserved set is empty this means that
+              // either no user jobs were completed yet or the selection expiration time has passed
+              // so the column is eligible to be deleted so a system job can run instead
+              if (selectedFiles != null && reserved.isEmpty()
+                  && !Collections.disjoint(jobFiles, selectedFiles.getFiles())) {
+                LOG.debug("Deleting user compaction selected files for {} {}", extent,
+                    externalCompactionId);
+                tabletMutator.deleteSelectedFiles();
+              }
+            }
+
+            tabletMutator.putExternalCompaction(externalCompactionId, ecm);
+            tabletMutator.submit(
+                tm -> tm.getExternalCompactions().containsKey(externalCompactionId),
+                () -> "compaction reservation");
+
+            var result = tabletsMutator.process().get(extent);
+
+            if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
+              return ecm;
+            } else {
+              tabletMetadata = result.readMetadata();
+            }
+          }
+
+          retry.useRetry();
+          try {
+            retry.waitForNextAttempt(LOG,
+                "Reserved compaction for " + metaJob.getTabletMetadata().getExtent());
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e);
           }
         }
 
-        tabletMutator.putExternalCompaction(externalCompactionId, ecm);
-        tabletMutator.submit(tm -> tm.getExternalCompactions().containsKey(externalCompactionId));
-
-        var result = tabletsMutator.process().get(extent);
-
-        if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
-          return ecm;
-        } else {
-          tabletMetadata = result.readMetadata();
-        }
-      }
-
-      retry.useRetry();
-      try {
-        retry.waitForNextAttempt(LOG,
-            "Reserved compaction for " + metaJob.getTabletMetadata().getExtent());
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+        return null;
+      } finally {
+        Preconditions.checkState(activeCompactorReservationRequest.remove(compactorAddress),
+            "compactorAddress:%s", compactorAddress);
       }
     }
+  }
 
-    return null;
+  protected CompactionMetadata reserveCompaction(CompactionJobQueues.MetaJob metaJob,
+      String compactorAddress, ExternalCompactionId externalCompactionId) {
+
+    if (activeCompactorReservationRequest.contains(compactorAddress)) {
+      // In this case the compactor has a previously submitted reservation request that is still
+      // processing. Do not want to let it queue up another reservation request. One possible cause
+      // of this is that compactor timed out waiting for its last request to process and is now
+      // making another request. The previously submitted request can not be used because the
+      // compactor generates a new uuid for each request it makes. So the best thing to do is to
+      // return null and wait for this situation to resolve. This will likely happen when some part
+      // of the distributed system is not working well, so at this point want to avoid making
+      // problems worse instead of trying to reserve a job.
+      LOG.warn(
+          "Ignoring request from {} to reserve compaction job because it has a reservation request in progress.",
+          compactorAddress);
+      return null;
+    }
+
+    var dataLevel = DataLevel.of(metaJob.getTabletMetadata().getTableId());
+    var future = CompletableFuture.supplyAsync(
+        new ReserveCompactionTask(metaJob, compactorAddress, externalCompactionId),
+        reservationPools.get(dataLevel));
+    return future.join();
   }
 
   protected TExternalCompactionJob createThriftJob(String externalCompactionId,
@@ -755,8 +839,8 @@ public class CompactionCoordinator
     // Start a fate transaction to commit the compaction.
     CompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
     var renameOp = new RenameCompactionFile(new CompactionCommitData(ecid, extent, ecm, stats));
-    localFate.seedTransaction("COMMIT_COMPACTION", FateKey.forCompactionCommit(ecid), renameOp,
-        true);
+    localFate.seedTransaction(Fate.FateOperation.COMMIT_COMPACTION,
+        FateKey.forCompactionCommit(ecid), renameOp, true);
   }
 
   @Override
@@ -1036,7 +1120,7 @@ public class CompactionCoordinator
   private void cleanUpEmptyCompactorPathInZK() {
     final String compactorQueuesPath = this.ctx.getZooKeeperRoot() + Constants.ZCOMPACTORS;
 
-    final var zoorw = this.ctx.getZooReaderWriter();
+    final var zoorw = this.ctx.getZooSession().asReaderWriter();
     final double queueSizeFactor = ctx.getConfiguration()
         .getFraction(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR);
 
@@ -1122,6 +1206,14 @@ public class CompactionCoordinator
     // 4. Log groups with no compactors
     // 5. Log compactors with no groups
     // 6. Log groups with compactors and queued jos that have not checked in
+
+    var config = ctx.getConfiguration();
+    ThreadPools.resizePool(reservationPools.get(DataLevel.ROOT), config,
+        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT);
+    ThreadPools.resizePool(reservationPools.get(DataLevel.METADATA), config,
+        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_META);
+    ThreadPools.resizePool(reservationPools.get(DataLevel.USER), config,
+        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_USER);
 
     // grab a snapshot of the ids in the set before reading the metadata table. This is done to
     // avoid removing things that are added while reading the metadata.

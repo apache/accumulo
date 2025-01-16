@@ -390,6 +390,13 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     return getThis();
   }
 
+  @Override
+  public T putTabletMergeability(TabletMergeabilityMetadata tabletMergeability) {
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(mutation,
+        TabletMergeabilityMetadata.toValue(tabletMergeability));
+    return getThis();
+  }
+
   public void setCloseAfterMutate(AutoCloseable closeable) {
     this.closeAfterMutate = closeable;
   }

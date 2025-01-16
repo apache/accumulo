@@ -112,7 +112,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     String zTablePath = manager.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId
         + Constants.ZTABLE_FLUSH_ID;
 
-    ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
     byte[] fid;
     try {
       fid = zoo.mutateExisting(zTablePath, currentValue -> {
@@ -321,7 +321,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     String msg = "Shutdown tserver " + tabletServer;
 
-    fate.seedTransaction("ShutdownTServer", fateId,
+    fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, fateId,
         new TraceRepo<>(
             new ShutdownTServer(doomed, manager.tserverSet.getResourceGroup(doomed), force)),
         false, msg);

@@ -106,7 +106,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
 
       // TODO examine implementation of getZooReaderWriter().mutate()
       // TODO for efficiency this should maybe call mutateExisting
-      context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
+      context.getZooSession().asReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
         var rtm = new RootTabletMetadata(currJson);
         rtm.update(mutation);

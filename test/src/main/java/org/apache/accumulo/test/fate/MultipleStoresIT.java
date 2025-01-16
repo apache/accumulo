@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
+import static org.apache.accumulo.test.fate.FateStoreUtil.TEST_FATE_OP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -253,10 +254,10 @@ public abstract class MultipleStoresIT extends SharedMiniClusterBase {
       // Start half the txns using fate1, and the other half using fate2
       if (i % 2 == 0) {
         fateId = fate1.startTransaction();
-        fate1.seedTransaction("op" + i, fateId, new SleepingTestRepo(), true, "test");
+        fate1.seedTransaction(TEST_FATE_OP, fateId, new SleepingTestRepo(), true, "test");
       } else {
         fateId = fate2.startTransaction();
-        fate2.seedTransaction("op" + i, fateId, new SleepingTestRepo(), true, "test");
+        fate2.seedTransaction(TEST_FATE_OP, fateId, new SleepingTestRepo(), true, "test");
       }
       allIds.add(fateId);
     }
@@ -311,7 +312,7 @@ public abstract class MultipleStoresIT extends SharedMiniClusterBase {
     for (int i = 0; i < numFateIds; i++) {
       FateId fateId;
       fateId = fate1.startTransaction();
-      fate1.seedTransaction("op" + i, fateId, new LatchTestRepo(), true, "test");
+      fate1.seedTransaction(TEST_FATE_OP, fateId, new LatchTestRepo(), true, "test");
       allIds.add(fateId);
     }
     assertEquals(numFateIds, allIds.size());
@@ -341,8 +342,8 @@ public abstract class MultipleStoresIT extends SharedMiniClusterBase {
 
     // Create the new Fate/start the Fate threads (the work finder and the workers).
     // Don't run another dead reservation cleaner since we already have one running from fate1.
-    FastFate<LatchTestEnv> fate2 = new FastFate<>(testEnv2, store2, false, Object::toString,
-        DefaultConfiguration.getInstance());
+    Fate<LatchTestEnv> fate2 =
+        new Fate<>(testEnv2, store2, false, Object::toString, DefaultConfiguration.getInstance());
 
     // Wait for the "dead" reservations to be deleted and picked up again (reserved using
     // fate2/store2/lock2 now).
@@ -461,5 +462,5 @@ public abstract class MultipleStoresIT extends SharedMiniClusterBase {
     void execute(TestStoreFactory<T> fateStoreFactory) throws Exception;
   }
 
-  protected static class MultipleStoresTestEnv {}
+  protected static class MultipleStoresTestEnv extends FateTestRunner.TestEnv {}
 }

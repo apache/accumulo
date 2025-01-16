@@ -81,7 +81,7 @@ public class MetaFateMetricValues extends FateMetricValues {
     try {
       builder = getFateMetrics(metaFateStore, new Builder());
 
-      Stat node = context.getZooReaderWriter().getZooKeeper().exists(fateRootPath, false);
+      Stat node = context.getZooSession().exists(fateRootPath, null);
       builder.withZkFateChildOpsTotal(node.getCversion());
 
       if (log.isTraceEnabled()) {
