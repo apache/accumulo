@@ -109,7 +109,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   public static final String QUEUE1 = "METRICSQ1";
   public static final String QUEUE1_METRIC_LABEL = MetricsUtil.formatString(QUEUE1);
   public static final String QUEUE1_SERVICE = "Q1";
-  public static final int QUEUE1_SIZE = 6;
+  public static final int QUEUE1_SIZE = 10*1024;
 
   // Metrics collector Thread
   final LinkedBlockingQueue<TestStatsDSink.Metric> queueMetrics = new LinkedBlockingQueue<>();
@@ -202,7 +202,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
           Property.COMPACTION_SERVICE_PREFIX.getKey() + QUEUE1_SERVICE + ".planner.opts.groups",
           "[{'group':'" + QUEUE1 + "'}]");
 
-      cfg.setProperty(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE, "6");
+      cfg.setProperty(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE, "10K");
       cfg.getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 0);
 
       // This test waits for dead compactors to be absent in zookeeper. The following setting will
