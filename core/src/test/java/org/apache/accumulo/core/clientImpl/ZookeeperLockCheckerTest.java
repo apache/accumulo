@@ -19,35 +19,27 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ZookeeperLockCheckerTest {
-  private ClientContext context;
-  private ZooCache zc;
-  private ZookeeperLockChecker zklc;
-
-  @BeforeEach
-  public void setUp() {
-    context = createMock(ClientContext.class);
-    expect(context.getZooKeeperRoot()).andReturn("/accumulo/iid").anyTimes();
-    zc = createMock(ZooCache.class);
-    expect(context.getZooCache()).andReturn(zc).anyTimes();
-    replay(context);
-    zklc = new ZookeeperLockChecker(context);
-  }
 
   @Test
   public void testInvalidateCache() {
-    zc.clear(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/server");
+    ZooCache zc = createMock(ZooCache.class);
+    String basePath = "/arbitrary/base/path";
+
+    zc.clear(basePath + "/server");
+    expectLastCall().once();
     replay(zc);
+
+    var zklc = new ZookeeperLockChecker(zc, basePath);
     zklc.invalidateCache("server");
+
     verify(zc);
   }
 }

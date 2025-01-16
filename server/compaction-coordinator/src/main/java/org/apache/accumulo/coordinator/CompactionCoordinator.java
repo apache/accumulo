@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -63,6 +64,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -101,6 +103,8 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Uninterruptibles;
+
+import io.micrometer.core.instrument.Tag;
 
 public class CompactionCoordinator extends AbstractServer
     implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
@@ -212,16 +216,16 @@ public class CompactionCoordinator extends AbstractServer
     final String lockPath = getContext().getZooKeeperRoot() + Constants.ZCOORDINATOR_LOCK;
     final UUID zooLockUUID = UUID.randomUUID();
 
-    coordinatorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
-        ServiceLock.path(lockPath), zooLockUUID);
+    coordinatorLock =
+        new ServiceLock(getContext().getZooSession(), ServiceLock.path(lockPath), zooLockUUID);
     while (true) {
 
-      CoordinatorLockWatcher coordinatorLockWatcher = new CoordinatorLockWatcher();
+      HAServiceLockWatcher coordinatorLockWatcher = new HAServiceLockWatcher("coordinator");
       coordinatorLock.lock(coordinatorLockWatcher,
           new ServiceLockData(zooLockUUID, coordinatorClientAddress, ThriftService.COORDINATOR));
 
       coordinatorLockWatcher.waitForChange();
-      if (coordinatorLockWatcher.isAcquiredLock()) {
+      if (coordinatorLockWatcher.isLockAcquired()) {
         break;
       }
       if (!coordinatorLockWatcher.isFailedToAcquireLock()) {
@@ -251,6 +255,11 @@ public class CompactionCoordinator extends AbstractServer
     return sp;
   }
 
+  protected Collection<Tag> getServiceTags(HostAndPort clientAddress) {
+    return (MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        clientAddress, ""));
+  }
+
   @Override
   public void run() {
 
@@ -269,9 +278,8 @@ public class CompactionCoordinator extends AbstractServer
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), clientAddress);
     metricsInfo.addMetricsProducers(this);
-    metricsInfo.init();
+    metricsInfo.init(getServiceTags(clientAddress));
 
     // On a re-start of the coordinator it's possible that external compactions are in-progress.
     // Attempt to get the running compactions on the compactors and then resolve which tserver
@@ -725,7 +733,7 @@ public class CompactionCoordinator extends AbstractServer
   private void cleanUpCompactors() {
     final String compactorQueuesPath = getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS;
 
-    var zoorw = getContext().getZooReaderWriter();
+    var zoorw = getContext().getZooSession().asReaderWriter();
 
     try {
       var queues = zoorw.getChildren(compactorQueuesPath);
@@ -754,6 +762,11 @@ public class CompactionCoordinator extends AbstractServer
       Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
+  }
+
+  @Override
+  public ServiceLock getLock() {
+    return coordinatorLock;
   }
 
   public static void main(String[] args) throws Exception {

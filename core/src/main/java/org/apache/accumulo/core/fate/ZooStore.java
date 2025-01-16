@@ -45,6 +45,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
@@ -61,7 +62,8 @@ public class ZooStore<T> implements TStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
   private String path;
-  private ZooReaderWriter zk;
+  private ZooSession zk;
+  private ZooReaderWriter zrw;
   private String lastReserved = "";
   private Set<Long> reserved;
   private Map<Long,CountDownTimer> deferred;
@@ -101,14 +103,15 @@ public class ZooStore<T> implements TStore<T> {
     return Long.parseLong(txdir.split("_")[1], 16);
   }
 
-  public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
+  public ZooStore(String path, ZooSession zk) throws KeeperException, InterruptedException {
 
     this.path = path;
     this.zk = zk;
+    this.zrw = zk.asReaderWriter();
     this.reserved = new HashSet<>();
     this.deferred = new HashMap<>();
 
-    zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
+    this.zrw.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
   }
 
   /**
@@ -122,7 +125,7 @@ public class ZooStore<T> implements TStore<T> {
       try {
         // looking at the code for SecureRandom, it appears to be thread safe
         long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
-        zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8),
+        zrw.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8),
             NodeExistsPolicy.FAIL);
         return tid;
       } catch (NodeExistsException nee) {
@@ -143,7 +146,7 @@ public class ZooStore<T> implements TStore<T> {
           events = statusChangeEvents;
         }
 
-        List<String> txdirs = new ArrayList<>(zk.getChildren(path));
+        List<String> txdirs = new ArrayList<>(zrw.getChildren(path));
         Collections.sort(txdirs);
 
         synchronized (this) {
@@ -181,7 +184,7 @@ public class ZooStore<T> implements TStore<T> {
           // have reserved id, status should not change
 
           try {
-            TStatus status = TStatus.valueOf(new String(zk.getData(path + "/" + txdir), UTF_8));
+            TStatus status = TStatus.valueOf(new String(zrw.getData(path + "/" + txdir), UTF_8));
             if (status == TStatus.SUBMITTED || status == TStatus.IN_PROGRESS
                 || status == TStatus.FAILED_IN_PROGRESS) {
               return tid;
@@ -320,7 +323,7 @@ public class ZooStore<T> implements TStore<T> {
           throw new IllegalStateException(ex);
         }
 
-        byte[] ser = zk.getData(txpath + "/" + top);
+        byte[] ser = zrw.getData(txpath + "/" + top);
         @SuppressWarnings("unchecked")
         var deserialized = (Repo<T>) deserialize(ser);
         return deserialized;
@@ -336,7 +339,7 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   private String findTop(String txpath) throws KeeperException, InterruptedException {
-    List<String> ops = zk.getChildren(txpath);
+    List<String> ops = zrw.getChildren(txpath);
 
     ops = new ArrayList<>(ops);
 
@@ -366,7 +369,7 @@ public class ZooStore<T> implements TStore<T> {
         throw new StackOverflowException("Repo stack size too large");
       }
 
-      zk.putPersistentSequential(txpath + "/repo_", serialize(repo));
+      zrw.putPersistentSequential(txpath + "/repo_", serialize(repo));
     } catch (StackOverflowException soe) {
       throw soe;
     } catch (KeeperException | InterruptedException e) {
@@ -384,7 +387,7 @@ public class ZooStore<T> implements TStore<T> {
       if (top == null) {
         throw new IllegalStateException("Tried to pop when empty " + FateTxId.formatTid(tid));
       }
-      zk.recursiveDelete(txpath + "/" + top, NodeMissingPolicy.SKIP);
+      zrw.recursiveDelete(txpath + "/" + top, NodeMissingPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
@@ -392,7 +395,7 @@ public class ZooStore<T> implements TStore<T> {
 
   private TStatus _getStatus(long tid) {
     try {
-      return TStatus.valueOf(new String(zk.getData(getTXPath(tid)), UTF_8));
+      return TStatus.valueOf(new String(zrw.getData(getTXPath(tid)), UTF_8));
     } catch (NoNodeException nne) {
       return TStatus.UNKNOWN;
     } catch (KeeperException | InterruptedException e) {
@@ -437,7 +440,7 @@ public class ZooStore<T> implements TStore<T> {
     verifyReserved(tid);
 
     try {
-      zk.putPersistentData(getTXPath(tid), status.name().getBytes(UTF_8),
+      zrw.putPersistentData(getTXPath(tid), status.name().getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
@@ -454,7 +457,7 @@ public class ZooStore<T> implements TStore<T> {
     verifyReserved(tid);
 
     try {
-      zk.recursiveDelete(getTXPath(tid), NodeMissingPolicy.SKIP);
+      zrw.recursiveDelete(getTXPath(tid), NodeMissingPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
@@ -466,7 +469,7 @@ public class ZooStore<T> implements TStore<T> {
 
     try {
       if (so instanceof String) {
-        zk.putPersistentData(getTXPath(tid) + "/" + txInfo, ("S " + so).getBytes(UTF_8),
+        zrw.putPersistentData(getTXPath(tid) + "/" + txInfo, ("S " + so).getBytes(UTF_8),
             NodeExistsPolicy.OVERWRITE);
       } else {
         byte[] sera = serialize(so);
@@ -474,7 +477,7 @@ public class ZooStore<T> implements TStore<T> {
         System.arraycopy(sera, 0, data, 2, sera.length);
         data[0] = 'O';
         data[1] = ' ';
-        zk.putPersistentData(getTXPath(tid) + "/" + txInfo, data, NodeExistsPolicy.OVERWRITE);
+        zrw.putPersistentData(getTXPath(tid) + "/" + txInfo, data, NodeExistsPolicy.OVERWRITE);
       }
     } catch (KeeperException | InterruptedException e2) {
       throw new IllegalStateException(e2);
@@ -486,7 +489,7 @@ public class ZooStore<T> implements TStore<T> {
     verifyReserved(tid);
 
     try {
-      byte[] data = zk.getData(getTXPath(tid) + "/" + txInfo);
+      byte[] data = zrw.getData(getTXPath(tid) + "/" + txInfo);
 
       if (data[0] == 'O') {
         byte[] sera = new byte[data.length - 2];
@@ -508,7 +511,7 @@ public class ZooStore<T> implements TStore<T> {
   public List<Long> list() {
     try {
       ArrayList<Long> l = new ArrayList<>();
-      List<String> transactions = zk.getChildren(path);
+      List<String> transactions = zrw.getChildren(path);
       for (String txid : transactions) {
         l.add(parseTid(txid));
       }
@@ -523,7 +526,7 @@ public class ZooStore<T> implements TStore<T> {
     verifyReserved(tid);
 
     try {
-      Stat stat = zk.getZooKeeper().exists(getTXPath(tid), false);
+      Stat stat = zk.exists(getTXPath(tid), null);
       return stat.getCtime();
     } catch (Exception e) {
       return 0;
@@ -537,7 +540,7 @@ public class ZooStore<T> implements TStore<T> {
     outer: while (true) {
       List<String> ops;
       try {
-        ops = zk.getChildren(txpath);
+        ops = zrw.getChildren(txpath);
       } catch (KeeperException.NoNodeException e) {
         return Collections.emptyList();
       } catch (KeeperException | InterruptedException e1) {
@@ -553,7 +556,7 @@ public class ZooStore<T> implements TStore<T> {
         if (child.startsWith("repo_")) {
           byte[] ser;
           try {
-            ser = zk.getData(txpath + "/" + child);
+            ser = zrw.getData(txpath + "/" + child);
             @SuppressWarnings("unchecked")
             var repo = (ReadOnlyRepo<T>) deserialize(ser);
             dops.add(repo);

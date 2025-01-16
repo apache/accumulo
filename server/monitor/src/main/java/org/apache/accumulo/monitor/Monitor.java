@@ -20,18 +20,15 @@ package org.apache.accumulo.monitor;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.HOURS;
 
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -51,16 +48,15 @@ import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
@@ -74,19 +70,15 @@ import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactions;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactorDetails;
-import org.apache.accumulo.monitor.util.logging.RecentLogs;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.zookeeper.KeeperException;
 import org.eclipse.jetty.servlet.DefaultServlet;
@@ -138,35 +130,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private int totalTables = 0;
   private final AtomicBoolean monitorInitialized = new AtomicBoolean(false);
 
-  private static <T> List<Pair<Long,T>> newMaxList() {
-    return Collections.synchronizedList(new LinkedList<>() {
-
-      private static final long serialVersionUID = 1L;
-      private final long maxDelta = HOURS.toMillis(1);
-
-      @Override
-      public boolean add(Pair<Long,T> obj) {
-        boolean result = super.add(obj);
-        if (obj.getFirst() - get(0).getFirst() > maxDelta) {
-          remove(0);
-        }
-        return result;
-      }
-
-    });
-  }
-
-  private final List<Pair<Long,Double>> loadOverTime = newMaxList();
-  private final List<Pair<Long,Double>> ingestRateOverTime = newMaxList();
-  private final List<Pair<Long,Double>> ingestByteRateOverTime = newMaxList();
-  private final List<Pair<Long,Integer>> minorCompactionsOverTime = newMaxList();
-  private final List<Pair<Long,Integer>> majorCompactionsOverTime = newMaxList();
-  private final List<Pair<Long,Double>> lookupsOverTime = newMaxList();
-  private final List<Pair<Long,Long>> queryRateOverTime = newMaxList();
-  private final List<Pair<Long,Long>> scanRateOverTime = newMaxList();
-  private final List<Pair<Long,Double>> queryByteRateOverTime = newMaxList();
-  private final List<Pair<Long,Double>> indexCacheHitRateOverTime = newMaxList();
-  private final List<Pair<Long,Double>> dataCacheHitRateOverTime = newMaxList();
   private EventCounter lookupRateTracker = new EventCounter();
   private EventCounter indexCacheHitTracker = new EventCounter();
   private EventCounter indexCacheRequestTracker = new EventCounter();
@@ -175,8 +138,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   private final AtomicBoolean fetching = new AtomicBoolean(false);
   private ManagerMonitorInfo mmi;
-  private Map<TableId,Map<ProblemType,Integer>> problemSummary = Collections.emptyMap();
-  private Exception problemException;
   private GCStatus gcStatus;
   private Optional<HostAndPort> coordinatorHost = Optional.empty();
   private long coordinatorCheckNanos = 0L;
@@ -197,11 +158,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     Map<String,Pair<Long,Long>> samples = new HashMap<>();
     Set<String> serversUpdated = new HashSet<>();
 
-    void startingUpdates() {
+    synchronized void startingUpdates() {
       serversUpdated.clear();
     }
 
-    void updateTabletServer(String name, long sampleTime, long numEvents) {
+    synchronized void updateTabletServer(String name, long sampleTime, long numEvents) {
       Pair<Long,Long> newSample = new Pair<>(sampleTime, numEvents);
       Pair<Long,Long> lastSample = samples.get(name);
 
@@ -214,13 +175,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       serversUpdated.add(name);
     }
 
-    void finishedUpdating() {
+    synchronized void finishedUpdating() {
       // remove any tablet servers not updated
       samples.keySet().retainAll(serversUpdated);
       prevSamples.keySet().retainAll(serversUpdated);
     }
 
-    double calculateRate() {
+    synchronized double calculateRate() {
       double totalRate = 0;
 
       for (Entry<String,Pair<Long,Long>> entry : prevSamples.entrySet()) {
@@ -234,26 +195,12 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       return totalRate;
     }
 
-    long calculateCount() {
-      long count = 0;
-
-      for (Entry<String,Pair<Long,Long>> entry : prevSamples.entrySet()) {
-        Pair<Long,Long> prevSample = entry.getValue();
-        Pair<Long,Long> sample = samples.get(entry.getKey());
-
-        count += sample.getSecond() - prevSample.getSecond();
-      }
-
-      return count;
-    }
   }
 
   public void fetchData() {
     ServerContext context = getContext();
     double totalIngestRate = 0.;
-    double totalIngestByteRate = 0.;
     double totalQueryRate = 0.;
-    double totalQueryByteRate = 0.;
     double totalScanRate = 0.;
     long totalEntries = 0;
     int totalTabletCount = 0;
@@ -299,8 +246,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         }
       }
       if (mmi != null) {
-        int majorCompactions = 0;
-        int minorCompactions = 0;
 
         lookupRateTracker.startingUpdates();
         indexCacheHitTracker.startingUpdates();
@@ -311,15 +256,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         for (TabletServerStatus server : mmi.tServerInfo) {
           TableInfo summary = TableInfoUtil.summarizeTableStats(server);
           totalIngestRate += summary.ingestRate;
-          totalIngestByteRate += summary.ingestByteRate;
           totalQueryRate += summary.queryRate;
           totalScanRate += summary.scanRate;
-          totalQueryByteRate += summary.queryByteRate;
           totalEntries += summary.recs;
           totalHoldTime += server.holdTime;
           totalLookups += server.lookups;
-          majorCompactions += summary.majors.running;
-          minorCompactions += summary.minors.running;
           lookupRateTracker.updateTabletServer(server.name, server.lastContact, server.lookups);
           indexCacheHitTracker.updateTabletServer(server.name, server.lastContact,
               server.indexCacheHits);
@@ -344,48 +285,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         }
         this.totalIngestRate = totalIngestRate;
         this.totalTables = totalTables;
-        totalIngestByteRate = totalIngestByteRate / 1000000.0;
         this.totalQueryRate = totalQueryRate;
         this.totalScanRate = totalScanRate;
-        totalQueryByteRate = totalQueryByteRate / 1000000.0;
         this.totalEntries = totalEntries;
         this.totalTabletCount = totalTabletCount;
         this.totalHoldTime = totalHoldTime;
         this.totalLookups = totalLookups;
 
-        ingestRateOverTime.add(new Pair<>(currentTime, totalIngestRate));
-        ingestByteRateOverTime.add(new Pair<>(currentTime, totalIngestByteRate));
-
-        double totalLoad = 0.;
-        for (TabletServerStatus status : mmi.tServerInfo) {
-          if (status != null) {
-            totalLoad += status.osLoad;
-          }
-        }
-        loadOverTime.add(new Pair<>(currentTime, totalLoad));
-
-        minorCompactionsOverTime.add(new Pair<>(currentTime, minorCompactions));
-        majorCompactionsOverTime.add(new Pair<>(currentTime, majorCompactions));
-
-        lookupsOverTime.add(new Pair<>(currentTime, lookupRateTracker.calculateRate()));
-
-        queryRateOverTime.add(new Pair<>(currentTime, (long) totalQueryRate));
-        queryByteRateOverTime.add(new Pair<>(currentTime, totalQueryByteRate));
-
-        scanRateOverTime.add(new Pair<>(currentTime, (long) totalScanRate));
-
-        calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker,
-            indexCacheRequestTracker);
-        calcCacheHitRate(dataCacheHitRateOverTime, currentTime, dataCacheHitTracker,
-            dataCacheRequestTracker);
-      }
-      try {
-        this.problemSummary = ProblemReports.getInstance(context).summarize();
-        this.problemException = null;
-      } catch (Exception e) {
-        log.info("Failed to obtain problem reports ", e);
-        this.problemSummary = Collections.emptyMap();
-        this.problemException = e;
       }
 
       // check for compaction coordinator host and only notify its discovery
@@ -412,24 +318,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
   }
 
-  private static void calcCacheHitRate(List<Pair<Long,Double>> hitRate, long currentTime,
-      EventCounter cacheHits, EventCounter cacheReq) {
-    long req = cacheReq.calculateCount();
-    if (req > 0) {
-      hitRate.add(
-          new Pair<>(currentTime, cacheHits.calculateCount() / (double) cacheReq.calculateCount()));
-    } else {
-      hitRate.add(new Pair<>(currentTime, null));
-    }
-  }
-
   private GCStatus fetchGcStatus() {
     ServerContext context = getContext();
     GCStatus result = null;
     HostAndPort address = null;
     try {
       // Read the gc location from its lock
-      ZooReaderWriter zk = context.getZooReaderWriter();
+      ZooReaderWriter zk = context.getZooSession().asReaderWriter();
       var path = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZGC_LOCK);
       List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
@@ -497,14 +392,14 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), monitorHostAndPort);
     metricsInfo.addMetricsProducers(this);
-    metricsInfo.init();
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        monitorHostAndPort, ""));
 
     try {
       URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
       final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
-      final ZooReaderWriter zoo = context.getZooReaderWriter();
+      final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired
       zoo.delete(path);
       zoo.putEphemeralData(path, url.toString().getBytes(UTF_8));
@@ -615,7 +510,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final Map<HostAndPort,ScanStats> tserverScans = new HashMap<>();
   private final Map<HostAndPort,ScanStats> sserverScans = new HashMap<>();
   private final Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
-  private final RecentLogs recentLogs = new RecentLogs();
   private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
 
   private long scansFetchedNanos = System.nanoTime();
@@ -687,9 +581,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     public final RunningCompactions runningCompactions;
     public final Map<String,TExternalCompaction> ecRunningMap;
 
-    private ExternalCompactionsSnapshot(Map<String,TExternalCompaction> ecRunningMap) {
-      this.ecRunningMap = Collections.unmodifiableMap(ecRunningMap);
-      this.runningCompactions = new RunningCompactions(ecRunningMap);
+    private ExternalCompactionsSnapshot(Optional<Map<String,TExternalCompaction>> ecRunningMapOpt) {
+      this.ecRunningMap =
+          ecRunningMapOpt.map(Collections::unmodifiableMap).orElse(Collections.emptyMap());
+      this.runningCompactions = new RunningCompactions(this.ecRunningMap);
     }
   }
 
@@ -707,7 +602,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
     }
 
-    return new ExternalCompactionsSnapshot(running.getCompactions());
+    return new ExternalCompactionsSnapshot(Optional.ofNullable(running.getCompactions()));
   }
 
   public RunningCompactions getRunnningCompactions() {
@@ -828,7 +723,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     final var monitorLockPath = ServiceLock.path(zRoot + Constants.ZMONITOR_LOCK);
 
     // Ensure that everything is kosher with ZK as this has changed.
-    ZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     if (zoo.exists(monitorPath)) {
       byte[] data = zoo.getData(monitorPath);
       // If the node isn't empty, it's from a previous install (has hostname:port for HTTP server)
@@ -855,20 +750,20 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
     // Get a ZooLock for the monitor
     UUID zooLockUUID = UUID.randomUUID();
-    monitorLock = new ServiceLock(zoo.getZooKeeper(), monitorLockPath, zooLockUUID);
+    monitorLock = new ServiceLock(context.getZooSession(), monitorLockPath, zooLockUUID);
 
     while (true) {
-      MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
+      HAServiceLockWatcher monitorLockWatcher = new HAServiceLockWatcher("monitor");
       monitorLock.lock(monitorLockWatcher, new ServiceLockData(zooLockUUID,
           monitorLocation.getHost() + ":" + monitorLocation.getPort(), ThriftService.NONE));
 
       monitorLockWatcher.waitForChange();
 
-      if (monitorLockWatcher.acquiredLock) {
+      if (monitorLockWatcher.isLockAcquired()) {
         break;
       }
 
-      if (!monitorLockWatcher.failedToAcquireLock) {
+      if (!monitorLockWatcher.isFailedToAcquireLock()) {
         throw new IllegalStateException("monitor lock in unknown state");
       }
 
@@ -880,57 +775,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     log.info("Got Monitor lock.");
-  }
-
-  /**
-   * Async Watcher for monitor lock
-   */
-  private static class MoniterLockWatcher implements ServiceLock.AccumuloLockWatcher {
-
-    boolean acquiredLock = false;
-    boolean failedToAcquireLock = false;
-
-    @Override
-    public void lostLock(LockLossReason reason) {
-      Halt.halt("Monitor lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
-    }
-
-    @Override
-    public void unableToMonitorLockNode(final Exception e) {
-      Halt.halt(-1, () -> log.error("No longer able to monitor Monitor lock node", e));
-
-    }
-
-    @Override
-    public synchronized void acquiredLock() {
-      if (acquiredLock || failedToAcquireLock) {
-        Halt.halt("Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock, -1);
-      }
-
-      acquiredLock = true;
-      notifyAll();
-    }
-
-    @Override
-    public synchronized void failedToAcquireLock(Exception e) {
-      log.warn("Failed to get monitor lock " + e);
-
-      if (acquiredLock) {
-        Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock,
-            -1);
-      }
-
-      failedToAcquireLock = true;
-      notifyAll();
-    }
-
-    public synchronized void waitForChange() {
-      while (!acquiredLock && !failedToAcquireLock) {
-        try {
-          wait();
-        } catch (InterruptedException e) {}
-      }
-    }
   }
 
   public ManagerMonitorInfo getMmi() {
@@ -965,14 +809,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return totalHoldTime;
   }
 
-  public Exception getProblemException() {
-    return problemException;
-  }
-
-  public Map<TableId,Map<ProblemType,Integer>> getProblemSummary() {
-    return problemSummary;
-  }
-
   public GCStatus getGcStatus() {
     return gcStatus;
   }
@@ -985,61 +821,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return START_TIME;
   }
 
-  public List<Pair<Long,Double>> getLoadOverTime() {
-    return new ArrayList<>(loadOverTime);
-  }
-
-  public List<Pair<Long,Double>> getIngestRateOverTime() {
-    return new ArrayList<>(ingestRateOverTime);
-  }
-
-  public List<Pair<Long,Double>> getIngestByteRateOverTime() {
-    return new ArrayList<>(ingestByteRateOverTime);
-  }
-
-  public List<Pair<Long,Integer>> getMinorCompactionsOverTime() {
-    return new ArrayList<>(minorCompactionsOverTime);
-  }
-
-  public List<Pair<Long,Integer>> getMajorCompactionsOverTime() {
-    return new ArrayList<>(majorCompactionsOverTime);
-  }
-
-  public List<Pair<Long,Double>> getLookupsOverTime() {
-    return new ArrayList<>(lookupsOverTime);
-  }
-
   public double getLookupRate() {
     return lookupRateTracker.calculateRate();
-  }
-
-  public List<Pair<Long,Long>> getQueryRateOverTime() {
-    return new ArrayList<>(queryRateOverTime);
-  }
-
-  public List<Pair<Long,Long>> getScanRateOverTime() {
-    return new ArrayList<>(scanRateOverTime);
-  }
-
-  public List<Pair<Long,Double>> getQueryByteRateOverTime() {
-    return new ArrayList<>(queryByteRateOverTime);
-  }
-
-  public List<Pair<Long,Double>> getIndexCacheHitRateOverTime() {
-    return new ArrayList<>(indexCacheHitRateOverTime);
-  }
-
-  public List<Pair<Long,Double>> getDataCacheHitRateOverTime() {
-    return new ArrayList<>(dataCacheHitRateOverTime);
   }
 
   @Override
   public boolean isActiveService() {
     return monitorInitialized.get();
-  }
-
-  public RecentLogs recentLogs() {
-    return recentLogs;
   }
 
   public Optional<HostAndPort> getCoordinatorHost() {
@@ -1048,5 +836,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   public int getLivePort() {
     return livePort;
+  }
+
+  @Override
+  public ServiceLock getLock() {
+    return monitorLock;
   }
 }

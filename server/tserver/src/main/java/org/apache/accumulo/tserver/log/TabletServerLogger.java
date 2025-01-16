@@ -43,6 +43,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.LoggingBlockCache;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -305,7 +306,9 @@ public class TabletServerLogger {
           try {
             nextLog.offer(t, 12, TimeUnit.HOURS);
           } catch (InterruptedException ex) {
-            // ignore
+            // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
+            // will log this then halt the VM.
+            throw new Error("Next log maker thread interrupted", ex);
           }
 
           continue;
@@ -340,7 +343,9 @@ public class TabletServerLogger {
           try {
             nextLog.offer(t, 12, TimeUnit.HOURS);
           } catch (InterruptedException ex) {
-            // ignore
+            // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
+            // will log this then halt the VM.
+            throw new Error("Next log maker thread interrupted", ex);
           }
 
           continue;
@@ -351,7 +356,9 @@ public class TabletServerLogger {
             log.info("Our WAL was not used for 12 hours: {}", alog.getLogEntry());
           }
         } catch (InterruptedException e) {
-          // ignore - server is shutting down
+          // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
+          // will log this then halt the VM.
+          throw new Error("Next log maker thread interrupted", e);
         }
       }
     });
@@ -391,6 +398,7 @@ public class TabletServerLogger {
 
     boolean success = false;
     while (!success) {
+      boolean sawWriteFailure = false;
       try {
         // get a reference to the loggers that no other thread can touch
         AtomicInteger currentId = new AtomicInteger(-1);
@@ -428,7 +436,7 @@ public class TabletServerLogger {
         writeRetry.logRetry(log, "Logs closed while writing", ex);
       } catch (Exception t) {
         writeRetry.logRetry(log, "Failed to write to WAL", t);
-
+        sawWriteFailure = true;
         try {
           // Backoff
           writeRetry.waitForNextAttempt(log, "write to WAL");
@@ -444,6 +452,14 @@ public class TabletServerLogger {
       // the logs haven't changed.
       final int finalCurrent = currentLogId;
       if (!success) {
+        final ServiceLock tabletServerLock = tserver.getLock();
+        if (sawWriteFailure) {
+          log.info("WAL write failure, validating server lock in ZooKeeper");
+          if (tabletServerLock == null || !tabletServerLock.verifyLockAtSource()) {
+            Halt.halt("Writing to WAL has failed and TabletServer lock does not exist", -1);
+          }
+        }
+
         testLockAndRun(logIdLock, new TestCallWithWriteLock() {
 
           @Override

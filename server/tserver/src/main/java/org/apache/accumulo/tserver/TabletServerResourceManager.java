@@ -266,7 +266,7 @@ public class TabletServerResourceManager {
   public TabletServerResourceManager(ServerContext context, TabletHostingServer tserver) {
     this.context = context;
     final AccumuloConfiguration acuConf = context.getConfiguration();
-    final boolean enableMetrics = context.getMetricsInfo().isMetricsEnabled(); // acuConf.getBoolean(Property.GENERAL_MICROMETER_ENABLED);
+    final boolean enableMetrics = context.getMetricsInfo().isMetricsEnabled();
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
     boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
     if (usingNativeMap) {
@@ -398,8 +398,12 @@ public class TabletServerResourceManager {
 
     // We can use the same map for both metadata and normal assignments since the keyspace (extent)
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
-    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().schedule(
-        new AssignmentWatcher(acuConf, context, activeAssignments), 5000, TimeUnit.MILLISECONDS));
+    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
+        .schedule(new AssignmentWatcher(context, activeAssignments), 5000, TimeUnit.MILLISECONDS));
+  }
+
+  public int getOpenFiles() {
+    return fileManager.getOpenFiles();
   }
 
   /**
@@ -413,16 +417,14 @@ public class TabletServerResourceManager {
     private static long longAssignments = 0;
 
     private final Map<KeyExtent,RunnableStartedAt> activeAssignments;
-    private final AccumuloConfiguration conf;
     private final ServerContext context;
 
     public static long getLongAssignments() {
       return longAssignments;
     }
 
-    public AssignmentWatcher(AccumuloConfiguration conf, ServerContext context,
+    public AssignmentWatcher(ServerContext context,
         Map<KeyExtent,RunnableStartedAt> activeAssignments) {
-      this.conf = conf;
       this.context = context;
       this.activeAssignments = activeAssignments;
     }
@@ -430,7 +432,7 @@ public class TabletServerResourceManager {
     @Override
     public void run() {
       final long millisBeforeWarning =
-          this.conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
+          context.getConfiguration().getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
       try {
         long now = System.currentTimeMillis();
         KeyExtent extent;

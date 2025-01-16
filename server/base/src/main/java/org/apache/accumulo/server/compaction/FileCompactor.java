@@ -60,6 +60,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -75,10 +76,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.mem.LowMemoryDetector.DetectionScope;
-import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -438,7 +436,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
         readers.add(reader);
 
-        InterruptibleIterator iter = new ProblemReportingIterator(context, extent.tableId(),
+        InterruptibleIterator iter = new ProblemReportingIterator(extent.tableId(),
             dataFile.getNormalizedPathStr(), false, reader);
         iter.setInterruptFlag(interruptFlag);
 
@@ -447,11 +445,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         iters.add(iter);
 
       } catch (Exception e) {
-
-        ProblemReports.getInstance(context).report(new ProblemReport(extent.tableId(),
-            ProblemType.FILE_READ, dataFile.getNormalizedPathStr(), e));
-
-        log.warn("Some problem opening data file {} {}", dataFile, e.getMessage(), e);
+        TabletLogger.fileReadFailed(dataFile.toString(), extent, e);
         // failed to open some data file... close the ones that were opened
         for (FileSKVIterator reader : readers) {
           try {

@@ -56,6 +56,7 @@ public class FateSummaryReport {
   private transient Map<String,String> idsToNameMap;
 
   // Gson requires a default constructor when JDK Unsafe usage is disabled
+  @SuppressWarnings("unused")
   private FateSummaryReport() {}
 
   public FateSummaryReport(Map<String,String> idsToNameMap,

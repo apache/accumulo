@@ -286,6 +286,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         .checkClass(TraceUtil.traceInfo(), context.rpcCreds(), className, asTypeName));
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public List<ActiveCompaction> getActiveCompactions(String server)
       throws AccumuloException, AccumuloSecurityException {
@@ -340,6 +341,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
       compactors.values().forEach(compactorList -> {
         for (HostAndPort compactorAddr : compactorList) {
+          @SuppressWarnings("deprecation")
           Callable<List<ActiveCompaction>> task =
               () -> ExternalCompactionUtil.getActiveCompaction(compactorAddr, context).stream()
                   .map(tac -> new ActiveCompactionImpl(context, tac, compactorAddr,
@@ -390,22 +392,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throw new IllegalStateException("Unexpected exception thrown", ex);
     }
 
-  }
-
-  /**
-   * Given a zooCache and instanceId, look up the instance name.
-   */
-  public static String lookupInstanceName(ZooCache zooCache, InstanceId instanceId) {
-    checkArgument(zooCache != null, "zooCache is null");
-    checkArgument(instanceId != null, "instanceId is null");
-    for (String name : zooCache.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
-      var bytes = zooCache.get(Constants.ZROOT + Constants.ZINSTANCES + "/" + name);
-      InstanceId iid = InstanceId.of(new String(bytes, UTF_8));
-      if (iid.equals(instanceId)) {
-        return name;
-      }
-    }
-    return null;
   }
 
   @Override

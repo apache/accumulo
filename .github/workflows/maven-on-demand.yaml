@@ -70,14 +70,7 @@ jobs:
       with:
         distribution: adopt
         java-version: 17
-    - name: Cache local maven repository
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.m2/repository/
-          !~/.m2/repository/org/apache/accumulo
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        cache: 'maven'
     - name: Show the first log message
       run: git log -n1
     - name: Override DNS to fix IP address for hostname

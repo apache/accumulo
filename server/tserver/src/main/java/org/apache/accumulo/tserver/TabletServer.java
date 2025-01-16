@@ -78,12 +78,12 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockSupport.ServiceLockWatcher;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.Compacting;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
@@ -100,7 +100,6 @@ import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
@@ -245,7 +244,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   protected TabletServer(ConfigOpts opts, String[] args) {
     super("tserver", opts, args);
     context = super.getContext();
-    this.managerLockCache = new ZooCache(context.getZooReader(), null);
+    this.managerLockCache = new ZooCache(context.getZooSession());
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
@@ -347,9 +346,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       log.info("SASL is enabled, creating ZooKeeper watcher for AuthenticationKeys");
       // Watcher to notice new AuthenticationKeys which enable delegation tokens
-      authKeyWatcher =
-          new ZooAuthenticationKeyWatcher(context.getSecretManager(), context.getZooReaderWriter(),
-              context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
+      authKeyWatcher = new ZooAuthenticationKeyWatcher(context.getSecretManager(),
+          context.getZooSession(), context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
     } else {
       authKeyWatcher = null;
     }
@@ -403,7 +401,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public long updateTotalQueuedMutationSize(long additionalMutationSize) {
-    return totalQueuedMutationSize.addAndGet(additionalMutationSize);
+    var newTotal = totalQueuedMutationSize.addAndGet(additionalMutationSize);
+    if (log.isTraceEnabled()) {
+      log.trace("totalQueuedMutationSize is now {} after adding {}", newTotal,
+          additionalMutationSize);
+    }
+    return newTotal;
   }
 
   @Override
@@ -468,7 +471,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  TreeMap<KeyExtent,TabletData> splitTablet(Tablet tablet, byte[] splitPoint) throws IOException {
+  protected TreeMap<KeyExtent,TabletData> splitTablet(Tablet tablet, byte[] splitPoint)
+      throws IOException {
     long t1 = System.currentTimeMillis();
 
     TreeMap<KeyExtent,TabletData> tabletInfo = tablet.split(splitPoint);
@@ -611,7 +615,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   private void announceExistence() {
-    ZooReaderWriter zoo = getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     try {
       var zLockPath = ServiceLock.path(
           getContext().getZooKeeperRoot() + Constants.ZTSERVERS + "/" + getClientAddressString());
@@ -627,26 +631,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
 
       UUID tabletServerUUID = UUID.randomUUID();
-      tabletServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, tabletServerUUID);
+      tabletServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, tabletServerUUID);
 
-      LockWatcher lw = new LockWatcher() {
-
-        @Override
-        public void lostLock(final LockLossReason reason) {
-          Halt.halt(serverStopRequested ? 0 : 1, () -> {
-            if (!serverStopRequested) {
-              log.error("Lost tablet server lock (reason = {}), exiting.", reason);
-            }
-            context.getLowMemoryDetector().logGCInfo(getConfiguration());
-          });
-        }
-
-        @Override
-        public void unableToMonitorLockNode(final Exception e) {
-          Halt.halt(1, () -> log.error("Lost ability to monitor tablet server lock, exiting.", e));
-
-        }
-      };
+      LockWatcher lw = new ServiceLockWatcher("tablet server", () -> serverStopRequested,
+          (name) -> context.getLowMemoryDetector().logGCInfo(getConfiguration()));
 
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
@@ -665,6 +653,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           lockSessionId = tabletServerLock.getSessionId();
           log.debug("Obtained tablet server lock {} {}", tabletServerLock.getLockPath(),
               getTabletSession());
+          startServiceLockVerificationThread();
           return;
         }
         log.info("Waiting for tablet server lock");
@@ -704,11 +693,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     MetricsInfo metricsInfo = context.getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), clientAddress);
 
     metrics = new TabletServerMetrics(this);
     updateMetrics = new TabletServerUpdateMetrics();
-    scanMetrics = new TabletServerScanMetrics();
+    scanMetrics = new TabletServerScanMetrics(this.resourceManager::getOpenFiles);
     sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);
     mincMetrics = new TabletServerMinCMetrics();
     ceMetrics = new CompactionExecutorsMetrics();
@@ -718,7 +706,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
         ceMetrics, pausedMetrics, blockCacheMetrics);
-    metricsInfo.init();
+    metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
+        clientAddress, ""));
 
     this.compactionManager = new CompactionManager(() -> Iterators
         .transform(onlineTablets.snapshot().values().iterator(), Tablet::asCompactable),

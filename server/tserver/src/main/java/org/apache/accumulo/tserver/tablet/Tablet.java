@@ -99,9 +99,6 @@ import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
-import org.apache.accumulo.server.problems.ProblemReport;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.FileUtil;
@@ -679,9 +676,9 @@ public class Tablet extends TabletBase {
 
   public long getFlushID() throws NoNodeException {
     try {
-      String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
-          + "/" + extent.tableId() + Constants.ZTABLE_FLUSH_ID;
-      String id = new String(context.getZooReaderWriter().getData(zTablePath), UTF_8);
+      String zTablePath = tabletServer.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
+          + extent.tableId() + Constants.ZTABLE_FLUSH_ID;
+      String id = new String(context.getZooSession().asReaderWriter().getData(zTablePath), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
       throw new RuntimeException("Exception on " + extent + " getting flush ID", e);
@@ -695,19 +692,20 @@ public class Tablet extends TabletBase {
   }
 
   long getCompactionCancelID() {
-    String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
-        + "/" + extent.tableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
+    String zTablePath = tabletServer.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
+        + extent.tableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
     String id = new String(context.getZooCache().get(zTablePath), UTF_8);
     return Long.parseLong(id);
   }
 
   public Pair<Long,CompactionConfig> getCompactionID() throws NoNodeException {
     try {
-      String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
-          + "/" + extent.tableId() + Constants.ZTABLE_COMPACT_ID;
+      String zTablePath = tabletServer.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
+          + extent.tableId() + Constants.ZTABLE_COMPACT_ID;
 
       String[] tokens =
-          new String(context.getZooReaderWriter().getData(zTablePath), UTF_8).split(",");
+          new String(context.getZooSession().asReaderWriter().getData(zTablePath), UTF_8)
+              .split(",");
       long compactID = Long.parseLong(tokens[0]);
 
       CompactionConfig overlappingConfig = null;
@@ -862,22 +860,21 @@ public class Tablet extends TabletBase {
       totalBytes += mutation.numBytes();
     }
 
-    getTabletMemory().mutate(commitSession, mutations, totalCount);
-
-    synchronized (this) {
-      if (isCloseComplete()) {
-        throw new IllegalStateException(
-            "Tablet " + extent + " closed with outstanding messages to the logger");
+    try {
+      getTabletMemory().mutate(commitSession, mutations, totalCount);
+      synchronized (this) {
+        getTabletMemory().updateMemoryUsageStats();
+        if (isCloseComplete()) {
+          throw new IllegalStateException(
+              "Tablet " + extent + " closed with outstanding messages to the logger");
+        }
+        numEntries += totalCount;
+        numEntriesInMemory += totalCount;
+        ingestCount += totalCount;
+        ingestBytes += totalBytes;
       }
-      // decrement here in case an exception is thrown below
+    } finally {
       decrementWritesInProgress(commitSession);
-
-      getTabletMemory().updateMemoryUsageStats();
-
-      numEntries += totalCount;
-      numEntriesInMemory += totalCount;
-      ingestCount += totalCount;
-      ingestBytes += totalBytes;
     }
   }
 
@@ -1093,8 +1090,6 @@ public class Tablet extends TabletBase {
         }
       }
       if (err != null) {
-        ProblemReports.getInstance(context).report(new ProblemReport(extent.tableId(),
-            ProblemType.TABLET_LOAD, this.extent.toString(), err));
         log.error("Tablet closed consistency check has failed for {} giving up and closing",
             this.extent);
       }

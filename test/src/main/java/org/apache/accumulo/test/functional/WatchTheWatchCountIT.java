@@ -64,8 +64,8 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
       }
       c.tableOperations().list();
       String zooKeepers = ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props);
-      // base number of watchers 90 to 125, and 15 to 25 per table in a single-node instance.
-      final long MIN = 135L;
+      // expect about 30-45 base + about 12 per table in a single-node 3-tserver instance
+      final long MIN = 75L;
       final long MAX = 200L;
       long total = 0;
       final HostAndPort hostAndPort = HostAndPort.fromString(zooKeepers);

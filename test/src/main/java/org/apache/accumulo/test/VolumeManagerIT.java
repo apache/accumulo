@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -50,6 +51,7 @@ public class VolumeManagerIT extends ConfigurableMacBase {
       vol1 = config.getSiteConfig().get(Property.INSTANCE_VOLUMES.getKey());
       assertTrue(vol1.contains("localhost"));
       vol2 = vol1.replace("localhost", "127.0.0.1");
+      // order matters here, because this is parsed later to find the path to the table volumes
       config.setProperty(Property.INSTANCE_VOLUMES.getKey(), String.join(",", vol2, vol1));
 
       // Set Volume specific HDFS overrides
@@ -121,8 +123,11 @@ public class VolumeManagerIT extends ConfigurableMacBase {
 
       // Confirm that table 1 has a block size of 10485760
       FileSystem fs = this.cluster.getMiniDfs().getFileSystem();
-      RemoteIterator<LocatedFileStatus> iter1 =
-          fs.listFiles(new Path("/accumulo/tables/" + tid1), true);
+      // t1 is configured to use vol1, which is the second in the volumes list
+      final Path tablePath1 =
+          new Path(cluster.getSiteConfiguration().get(Property.INSTANCE_VOLUMES).split(",")[1] + "/"
+              + Constants.TABLE_DIR + "/" + tid1);
+      RemoteIterator<LocatedFileStatus> iter1 = fs.listFiles(tablePath1, true);
       while (iter1.hasNext()) {
         LocatedFileStatus stat = iter1.next();
         if (stat.isFile()) {
@@ -131,8 +136,11 @@ public class VolumeManagerIT extends ConfigurableMacBase {
       }
 
       // Confirm that table 1 has a block size of 51200000
-      RemoteIterator<LocatedFileStatus> iter2 =
-          fs.listFiles(new Path("/accumulo/tables/" + tid2), true);
+      // t2 is configured to use vol2, which is the first in the volumes list
+      final Path tablePath2 =
+          new Path(cluster.getSiteConfiguration().get(Property.INSTANCE_VOLUMES).split(",")[0] + "/"
+              + Constants.TABLE_DIR + "/" + tid2);
+      RemoteIterator<LocatedFileStatus> iter2 = fs.listFiles(tablePath2, true);
       while (iter2.hasNext()) {
         LocatedFileStatus stat = iter2.next();
         if (stat.isFile()) {

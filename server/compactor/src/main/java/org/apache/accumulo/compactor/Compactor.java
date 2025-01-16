@@ -20,7 +20,6 @@ package org.apache.accumulo.compactor;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
@@ -31,8 +30,10 @@ import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -64,6 +65,7 @@ import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -73,12 +75,12 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockSupport.ServiceLockWatcher;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -96,7 +98,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
@@ -130,6 +131,7 @@ import com.google.common.net.HostAndPort;
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
 
 public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface {
 
@@ -146,7 +148,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(Compactor.class);
-  private static final long TIME_BETWEEN_CANCEL_CHECKS = MINUTES.toMillis(5);
 
   private static final long TEN_MEGABYTES = 10485760;
 
@@ -169,6 +170,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected Compactor(ConfigOpts opts, String[] args) {
     super("compactor", opts, args);
     queueName = super.getConfiguration().get(Property.COMPACTOR_QUEUE_NAME);
+    ClusterConfigParser.validateGroupNames(Set.of(queueName));
   }
 
   private long getTotalEntriesRead() {
@@ -217,8 +219,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         }
 
         if (job.getKind() == TCompactionKind.USER) {
-          String zTablePath = Constants.ZROOT + "/" + getContext().getInstanceID()
-              + Constants.ZTABLES + "/" + extent.tableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
+          String zTablePath = getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
+              + extent.tableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
           byte[] id = getContext().getZooCache().get(zTablePath);
           if (id == null) {
             // table probably deleted
@@ -252,7 +254,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     String hostPort = ExternalCompactionUtil.getHostPortString(clientAddress);
 
-    ZooReaderWriter zoo = getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     String compactorQueuePath =
         getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + this.queueName;
     String zPath = compactorQueuePath + "/" + hostPort;
@@ -260,30 +262,16 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
       zoo.mkdirs(compactorQueuePath);
       zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
-    } catch (KeeperException e) {
-      if (e.code() == KeeperException.Code.NOAUTH) {
-        LOG.error("Failed to write to ZooKeeper. Ensure that"
-            + " accumulo.properties, specifically instance.secret, is consistent.");
-      }
+    } catch (KeeperException.NoAuthException e) {
+      LOG.error("Failed to write to ZooKeeper. Ensure that"
+          + " accumulo.properties, specifically instance.secret, is consistent.");
       throw e;
     }
 
-    compactorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
-        ServiceLock.path(zPath), compactorId);
-    LockWatcher lw = new LockWatcher() {
-      @Override
-      public void lostLock(final LockLossReason reason) {
-        Halt.halt(1, () -> {
-          LOG.error("Compactor lost lock (reason = {}), exiting.", reason);
-          getContext().getLowMemoryDetector().logGCInfo(getConfiguration());
-        });
-      }
-
-      @Override
-      public void unableToMonitorLockNode(final Exception e) {
-        Halt.halt(1, () -> LOG.error("Lost ability to monitor Compactor lock, exiting.", e));
-      }
-    };
+    compactorLock =
+        new ServiceLock(getContext().getZooSession(), ServiceLock.path(zPath), compactorId);
+    LockWatcher lw = new ServiceLockWatcher("compactor", () -> false,
+        (name) -> getContext().getLowMemoryDetector().logGCInfo(getConfiguration()));
 
     try {
       for (int i = 0; i < 25; i++) {
@@ -659,6 +647,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     return sleepTime;
   }
 
+  protected Collection<Tag> getServiceTags(HostAndPort clientAddress) {
+    return MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        clientAddress, queueName);
+  }
+
   @Override
   public void run() {
 
@@ -676,15 +669,15 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addServiceTags(getApplicationName(), clientAddress);
 
     metricsInfo.addMetricsProducers(this, pausedMetrics);
-    metricsInfo.init();
+    metricsInfo.init(getServiceTags(clientAddress));
 
     var watcher = new CompactionWatcher(getConfiguration());
     var schedExecutor = ThreadPools.getServerThreadPools()
         .createGeneralScheduledExecutorService(getConfiguration());
-    startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
+    startCancelChecker(schedExecutor,
+        getConfiguration().getTimeInMillis(Property.COMPACTOR_CANCEL_CHECK_INTERVAL));
 
     LOG.info("Compactor started, waiting for work");
     try {
@@ -972,4 +965,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       return eci.canonical();
     }
   }
+
+  @Override
+  public ServiceLock getLock() {
+    return compactorLock;
+  }
+
 }

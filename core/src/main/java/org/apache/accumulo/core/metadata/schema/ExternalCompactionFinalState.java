@@ -81,6 +81,7 @@ public class ExternalCompactionFinalState {
     String per;
 
     // Gson requires a default constructor
+    @SuppressWarnings("unused")
     private Extent() {}
 
     Extent(KeyExtent extent) {
