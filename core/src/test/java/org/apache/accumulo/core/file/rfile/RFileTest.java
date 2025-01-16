@@ -366,7 +366,6 @@ public class RFileTest {
   public void test1() throws IOException {
 
     // test an empty file
-
     TestRFile trf = new TestRFile(conf);
 
     trf.openWriter();
