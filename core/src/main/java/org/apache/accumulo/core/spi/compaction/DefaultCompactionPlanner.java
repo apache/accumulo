@@ -382,8 +382,13 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       goalCompactionSize = 0;
     }
 
+    // If the highRatio is 1.1 or less, then we will never get
+    // into the loop below.
+    boolean checkPerformed = false;
+
     // Do a binary search of the compaction ratios.
     while (highRatio - lowRatio > .1) {
+      checkPerformed = true;
       double ratioToCheck = (highRatio - lowRatio) / 2 + lowRatio;
 
       // This is continually resorting the list of files in the following call, could optimize this
@@ -399,12 +404,17 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         lowRatio = ratioToCheck;
         found = filesToCompact;
       }
+
+      if (!found.isEmpty()) {
+        break;
+      }
+
     }
 
-    if (found.isEmpty() && lowRatio == 1.0) {
+    if (checkPerformed && found.isEmpty() && lowRatio == 1.0) {
       // in this case the data must be really skewed, operator intervention may be needed.
       log.warn(
-          "Attempted to lower compaction ration from {} to {} for {} because there are {} files "
+          "Attempted to lower compaction ratio from {} to {} for {} because there are {} files "
               + "and the max tablet files is {}, however no set of files to compact were found.",
           params.getRatio(), highRatio, params.getTableId(), params.getCandidates().size(),
           maxTabletFiles);
