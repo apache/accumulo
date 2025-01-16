@@ -109,7 +109,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   public static final String QUEUE1 = "METRICSQ1";
   public static final String QUEUE1_METRIC_LABEL = MetricsUtil.formatString(QUEUE1);
   public static final String QUEUE1_SERVICE = "Q1";
-  public static final int QUEUE1_SIZE = 10*1024;
+  public static final int QUEUE1_SIZE = 10 * 1024;
 
   // Metrics collector Thread
   final LinkedBlockingQueue<TestStatsDSink.Metric> queueMetrics = new LinkedBlockingQueue<>();
