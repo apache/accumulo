@@ -864,8 +864,14 @@ public class RFileClientTest {
       }
       var writer = builder.build();
 
+      // can not get load plan before closing file
+      assertThrows(IllegalStateException.class,
+          () -> writer.getLoadPlan(new Path(testFile).getName()));
+
       try (writer) {
         writer.startDefaultLocalityGroup();
+        assertThrows(IllegalStateException.class,
+            () -> writer.getLoadPlan(new Path(testFile).getName()));
       }
       var loadPlan = writer.getLoadPlan(new Path(testFile).getName());
       assertEquals(0, loadPlan.getDestinations().size());
@@ -988,11 +994,28 @@ public class RFileClientTest {
     String testFile = createTmpTestFile();
     var writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build();
     try (writer) {
-      writer.startDefaultLocalityGroup();
-      writer.append(new Key("004", "F4"), "V2");
       var e = assertThrows(IllegalStateException.class,
           () -> writer.getLoadPlan(new Path(testFile).getName()));
       assertEquals("Attempted to get load plan before closing", e.getMessage());
+      writer.startDefaultLocalityGroup();
+      writer.append(new Key("004", "F4"), "V2");
+      var e2 = assertThrows(IllegalStateException.class,
+          () -> writer.getLoadPlan(new Path(testFile).getName()));
+      assertEquals("Attempted to get load plan before closing", e2.getMessage());
     }
+  }
+
+  @Test
+  public void testGetLoadPlanWithPath() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    String testFile = createTmpTestFile();
+    var writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build();
+    writer.close();
+
+    var e =
+        assertThrows(IllegalArgumentException.class, () -> writer.getLoadPlan(testFile.toString()));
+    assertTrue(e.getMessage().contains("Unexpected path"));
+    assertEquals(0, writer.getLoadPlan(new Path(testFile).getName()).getDestinations().size());
   }
 }
