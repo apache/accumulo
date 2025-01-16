@@ -1288,24 +1288,32 @@ public class RFile {
       this(new CachableBlockFile.Reader(b));
     }
 
-    private void closeLocalityGroupReaders() {
+    private void closeLocalityGroupReaders(boolean ignoreIOExceptions) throws IOException {
       for (LocalityGroupReader lgr : currentReaders) {
         try {
           lgr.close();
         } catch (IOException e) {
-          log.warn("Errored out attempting to close LocalityGroupReader.", e);
+          if (ignoreIOExceptions) {
+            log.warn("Errored out attempting to close LocalityGroupReader.", e);
+          } else {
+            throw e;
+          }
         }
       }
     }
 
     @Override
-    public void closeDeepCopies() {
+    public void closeDeepCopies() throws IOException {
+      closeDeepCopies(false);
+    }
+
+    private void closeDeepCopies(boolean ignoreIOExceptions) throws IOException {
       if (deepCopy) {
         throw new RuntimeException("Calling closeDeepCopies on a deep copy is not supported");
       }
 
       for (Reader deepCopy : deepCopies) {
-        deepCopy.closeLocalityGroupReaders();
+        deepCopy.closeLocalityGroupReaders(ignoreIOExceptions);
       }
 
       deepCopies.clear();
@@ -1317,8 +1325,9 @@ public class RFile {
         throw new RuntimeException("Calling close on a deep copy is not supported");
       }
 
-      closeDeepCopies();
-      closeLocalityGroupReaders();
+      // Closes as much as possible igoring and logging exceptions along the way
+      closeDeepCopies(true);
+      closeLocalityGroupReaders(true);
 
       if (sampleReaders != null) {
         for (LocalityGroupReader lgr : sampleReaders) {
