@@ -91,6 +91,22 @@ public class ZooCacheTest {
   public void testOverlappingPaths() {
     assertThrows(IllegalArgumentException.class,
         () -> new ZooCache(zk, List.of(root, root + "/localhost:9995")));
+
+    List<String> goodPaths = List.of("/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/compactors",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/dead/tservers",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/gc/lock",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/managers/lock",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/namespaces",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/recovery",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/root_tablet",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/sservers",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/tables",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/tservers",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/users",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/mini",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/monitor/lock");
+    new ZooCache(zk, goodPaths);
+
   }
 
   @Test
