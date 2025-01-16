@@ -128,7 +128,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @AutoService(KeywordExecutable.class)
 public class Admin implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Admin.class);
-  final CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
+  private final CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
 
   static class AdminOpts extends ServerUtilOpts {
     @Parameter(names = {"-f", "--force"},

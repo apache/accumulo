@@ -115,7 +115,7 @@ import org.junit.jupiter.api.Test;
 import com.google.common.base.Preconditions;
 
 public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
-  static ServiceLock testLock;
+  private static ServiceLock testLock;
 
   public static class ExternalCompaction1Config implements MiniClusterConfigurationCallback {
     @Override
