@@ -53,6 +53,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -63,8 +64,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLockSupport.ServiceLockWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -86,7 +87,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException;
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -206,6 +206,7 @@ public class ScanServer extends AbstractServer
   protected TabletServerScanMetrics scanMetrics;
   private ScanServerMetrics scanServerMetrics;
   private BlockCacheMetrics blockCacheMetrics;
+  private volatile boolean shutdownComplete = false;
 
   private final ZooCache managerLockCache;
 
@@ -280,6 +281,7 @@ public class ScanServer extends AbstractServer
     delegate = newThriftScanClientHandler(new WriteTracker());
 
     this.groupName = Objects.requireNonNull(opts.getGroupName());
+    ClusterConfigParser.validateGroupNames(Set.of(groupName));
 
     ThreadPools.watchCriticalScheduledTask(getContext().getScheduledExecutor()
         .scheduleWithFixedDelay(() -> cleanUpReservedFiles(scanServerReservationExpiration),
@@ -347,29 +349,8 @@ public class ScanServer extends AbstractServer
 
       serverLockUUID = UUID.randomUUID();
       scanServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, serverLockUUID);
-
-      LockWatcher lw = new LockWatcher() {
-
-        @Override
-        public void lostLock(final LockLossReason reason) {
-          if (isShutdownRequested()) {
-            LOG.warn("ScanServer lost lock (reason = {}), not exiting because shutdown requested.",
-                reason);
-          } else {
-            Halt.halt(isShutdownRequested() ? 0 : 1, () -> {
-              if (!isShutdownRequested()) {
-                LOG.error("Lost scan server lock (reason = {}), exiting.", reason);
-              }
-              gcLogger.logGCInfo(getConfiguration());
-            });
-          }
-        }
-
-        @Override
-        public void unableToMonitorLockNode(final Exception e) {
-          Halt.halt(1, () -> LOG.error("Lost ability to monitor scan server lock, exiting.", e));
-        }
-      };
+      LockWatcher lw = new ServiceLockWatcher("scan server", () -> isShutdownRequested(),
+          () -> shutdownComplete, (name) -> gcLogger.logGCInfo(getConfiguration()));
 
       // Don't use the normal ServerServices lock content, instead put the server UUID here.
       byte[] lockContent = (serverLockUUID.toString() + "," + groupName).getBytes(UTF_8);
@@ -468,6 +449,7 @@ public class ScanServer extends AbstractServer
 
       gcLogger.logGCInfo(getConfiguration());
       LOG.info("stop requested. exiting ... ");
+      shutdownComplete = true;
       try {
         if (null != lock) {
           lock.unlock();

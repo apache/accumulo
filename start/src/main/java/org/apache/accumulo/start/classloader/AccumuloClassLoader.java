@@ -34,6 +34,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.io.FileHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,8 +91,9 @@ public class AccumuloClassLoader {
     }
     try {
       var config = new PropertiesConfiguration();
+      var fileHandler = new FileHandler(config);
       try (var reader = new InputStreamReader(accumuloConfigUrl.openStream(), UTF_8)) {
-        config.read(reader);
+        fileHandler.load(reader);
       }
       String value = config.getString(propertyName);
       if (value != null) {
