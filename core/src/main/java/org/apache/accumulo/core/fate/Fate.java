@@ -493,17 +493,17 @@ public class Fate<T> {
     return store.create();
   }
 
-  public void seedTransaction(FateOperation txName, FateKey fateKey, Repo<T> repo,
+  public void seedTransaction(FateOperation FateOp, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
-    store.seedTransaction(txName, fateKey, repo, autoCleanUp);
+    store.seedTransaction(FateOp, fateKey, repo, autoCleanUp);
   }
 
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
-  public void seedTransaction(FateOperation txName, FateId fateId, Repo<T> repo,
+  public void seedTransaction(FateOperation FateOp, FateId fateId, Repo<T> repo,
       boolean autoCleanUp, String goalMessage) {
     log.info("Seeding {} {}", fateId, goalMessage);
-    store.seedTransaction(txName, fateId, repo, autoCleanUp);
+    store.seedTransaction(FateOp, fateId, repo, autoCleanUp);
   }
 
   // check on the transaction
