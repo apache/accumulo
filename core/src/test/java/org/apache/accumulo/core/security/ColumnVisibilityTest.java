@@ -242,7 +242,7 @@ public class ColumnVisibilityTest {
   @Test
   public void testDeepCopy() {
     ColumnVisibility cv1 = new ColumnVisibility("(b&c&d)|((a|m)&y&z)|(e&f)");
-    ColumnVisibility cv2 = cv1.deepCopy();
+    ColumnVisibility cv2 = new ColumnVisibility(cv1);
     assertNotSame(cv1.getExpression(), cv2.getExpression());
     assertNotSame(cv1.getParseTree(), cv2.getParseTree());
     assertEquals(cv1.toString(), cv2.toString());
