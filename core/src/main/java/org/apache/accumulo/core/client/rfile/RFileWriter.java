@@ -258,8 +258,11 @@ public class RFileWriter implements AutoCloseable {
 
   @Override
   public void close() throws IOException {
-    writer.close();
-    loadPlanCollector.close();
+    try {
+      writer.close();
+    } finally {
+      loadPlanCollector.close();
+    }
   }
 
   /**
