@@ -94,6 +94,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadataBuilder;
+import org.apache.accumulo.core.metadata.schema.TabletMetadataCheck;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -1938,8 +1939,26 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     assertTrue(context.getAmple().readTablet(e1).getFlushId().isEmpty());
   }
 
+  public static class TestCheck implements TabletMetadataCheck {
+
+    private Set<String> expectedFiles;
+
+    public TestCheck() {}
+
+    public TestCheck(Set<StoredTabletFile> expectedFiles) {
+      this.expectedFiles =
+          expectedFiles.stream().map(StoredTabletFile::getMetadata).collect(Collectors.toSet());
+    }
+
+    @Override
+    public boolean canUpdate(TabletMetadata tabletMetadata) {
+      var files = expectedFiles.stream().map(StoredTabletFile::of).collect(Collectors.toSet());
+      return tabletMetadata.getFiles().containsAll(files);
+    }
+  }
+
   @Test
-  public void testRequireNotCompacting() {
+  public void testMetadataCheck() {
     var context = cluster.getServerContext();
 
     var stf1 = StoredTabletFile
@@ -1948,69 +1967,45 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
         .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
     var stf3 = StoredTabletFile
         .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
-    var stf4 = StoredTabletFile
-        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/C0000073.rf"));
     var dfv = new DataFileValue(100, 100);
 
-    // add all four files to tablet
     try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
       ctmi.mutateTablet(e1).requireAbsentOperation().putFile(stf1, dfv).putFile(stf2, dfv)
-          .putFile(stf3, dfv).putFile(stf4, dfv).submit(tm -> false);
+          .submit(tm -> false);
       assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
     }
+    assertEquals(Set.of(stf1, stf2), context.getAmple().readTablet(e1).getFiles());
 
-    var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
-    var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
-    var compaction1 = createCompaction(Set.of(stf1, stf2));
-    var compaction2 = createCompaction(Set.of(stf3));
-
-    // add first compaction to tablet
     try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-      ctmi.mutateTablet(e1).requireAbsentOperation().requireNotCompacting(compaction1.getJobFiles())
-          .putExternalCompaction(ecid1, compaction1).submit(tm -> false);
-      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireCheckSuccess(new TestCheck(Set.of(stf1, stf3))).putFile(stf3, dfv)
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
     }
-    assertEquals(Set.of(ecid1),
-        context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+    assertEquals(Set.of(stf1, stf2), context.getAmple().readTablet(e1).getFiles());
 
-    // add second compaction to tablet, there is an existing compaction but the files do not overlap
     try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-      ctmi.mutateTablet(e1).requireAbsentOperation().requireNotCompacting(compaction2.getJobFiles())
-          .putExternalCompaction(ecid2, compaction2).submit(tm -> false);
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireCheckSuccess(new TestCheck(Set.of(stf1, stf2))).putFile(stf3, dfv)
+          .submit(tm -> false);
       assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
     }
-    assertEquals(Set.of(ecid1, ecid2),
-        context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+    assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
 
-    // try different adding a compaction for different subsets of files that overlap with the
-    // existing compacting files
-    for (var compactingFiles : Sets.powerSet(Set.of(stf1, stf2, stf3))) {
-      if (compactingFiles.isEmpty()) {
-        continue;
-      }
-      // attempt to add a compaction that overlaps with existing compacting files
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        // This compactions overlaps files from compaction1 and compaction2
-        var compaction3 = createCompaction(compactingFiles);
-        var ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
-        ctmi.mutateTablet(e1).requireAbsentOperation()
-            .requireNotCompacting(compaction3.getJobFiles())
-            .putExternalCompaction(ecid3, compaction3).submit(tm -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Set.of(ecid1, ecid2),
-          context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireCheckSuccess(new TestCheck(Set.of(stf1, stf3))).deleteFile(stf2)
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
     }
-  }
+    assertEquals(Set.of(stf1, stf3), context.getAmple().readTablet(e1).getFiles());
 
-  private CompactionMetadata createCompaction(Set<StoredTabletFile> jobFiles) {
-    FateInstanceType type = FateInstanceType.fromTableId(tid);
-    FateId fateId = FateId.from(type, UUID.randomUUID());
-    ReferencedTabletFile tmpFile =
-        ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
-    CompactorGroupId ceid = CompactorGroupId.of("G1");
-    CompactionMetadata ecMeta = new CompactionMetadata(jobFiles, tmpFile, "localhost:4444",
-        CompactionKind.SYSTEM, (short) 2, ceid, false, fateId);
-    return ecMeta;
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireCheckSuccess(new TestCheck(Set.of(stf1, stf2))).deleteFile(stf1)
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(stf1, stf3), context.getAmple().readTablet(e1).getFiles());
   }
 }

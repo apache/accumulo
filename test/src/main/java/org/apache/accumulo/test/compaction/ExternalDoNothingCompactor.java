@@ -92,9 +92,9 @@ public class ExternalDoNothingCompactor extends Compactor {
           // Create tmp output file
           final TabletMetadata tm = getContext().getAmple()
               .readTablet(KeyExtent.fromThrift(job.getExtent()), ColumnType.DIR);
-          ReferencedTabletFile newFile =
-              TabletNameGenerator.getNextDataFilenameForMajc(job.isPropagateDeletes(), getContext(),
-                  tm, (dir) -> {}, ExternalCompactionId.from(job.getExternalCompactionId()));
+          ReferencedTabletFile newFile = TabletNameGenerator.getNextDataFilenameForMajc(
+              job.isPropagateDeletes(), getContext(), tm.getExtent(), tm.getDirName(), (dir) -> {},
+              ExternalCompactionId.from(job.getExternalCompactionId()));
           LOG.info("Creating tmp file: {}", newFile.getPath());
           getContext().getVolumeManager().createNewFile(newFile.getPath());
 

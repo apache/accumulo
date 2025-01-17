@@ -31,7 +31,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -74,20 +73,16 @@ public class TabletNameGeneratorTest {
     EasyMock.expect(context.getBaseUris()).andReturn(Set.of(baseUri));
     EasyMock.expect(context.getUniqueNameAllocator()).andReturn(allocator);
 
-    TabletMetadata tm1 = EasyMock.createMock(TabletMetadata.class);
-    EasyMock.expect(tm1.getExtent()).andReturn(ke1);
-    EasyMock.expect(tm1.getDirName()).andReturn(dirName);
-
     Consumer<String> dirCreator = (dir) -> {};
     ExternalCompactionId ecid = ExternalCompactionId.generate(UUID.randomUUID());
 
-    EasyMock.replay(tableConf, vm, allocator, context, tm1);
+    EasyMock.replay(tableConf, vm, allocator, context);
 
-    ReferencedTabletFile rtf =
-        TabletNameGenerator.getNextDataFilenameForMajc(false, context, tm1, dirCreator, ecid);
+    ReferencedTabletFile rtf = TabletNameGenerator.getNextDataFilenameForMajc(false, context, ke1,
+        dirName, dirCreator, ecid);
     assertEquals("ANextFileName.rf_tmp_" + ecid.canonical(), rtf.getFileName());
 
-    EasyMock.verify(tableConf, vm, allocator, context, tm1);
+    EasyMock.verify(tableConf, vm, allocator, context);
 
   }
 }

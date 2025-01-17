@@ -534,9 +534,10 @@ public interface Ample {
     ConditionalTabletMutator requireAbsentLoaded(Set<ReferencedTabletFile> files);
 
     /**
-     * Requires the given set of files are not currently involved in any running compactions.
+     * This check will run atomically on the server side and must pass in order for the tablet to be
+     * updated.
      */
-    ConditionalTabletMutator requireNotCompacting(Set<StoredTabletFile> files);
+    ConditionalTabletMutator requireCheckSuccess(TabletMetadataCheck check);
 
     /**
      * <p>

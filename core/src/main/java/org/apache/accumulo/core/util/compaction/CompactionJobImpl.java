@@ -20,7 +20,6 @@ package org.apache.accumulo.core.util.compaction;
 
 import java.util.Collection;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
@@ -40,22 +39,13 @@ public class CompactionJobImpl implements CompactionJob {
   private final CompactorGroupId group;
   private final Set<CompactableFile> files;
   private final CompactionKind kind;
-  // Tracks if a job selected all the tablet's files that existed at the time the job was created.
-  private final Optional<Boolean> jobSelectedAll;
 
-  /**
-   *
-   * @param jobSelectedAll This parameters only needs to be non-empty for job objects that are used
-   *        to start compaction. After a job is running, its not used. So when a job object is
-   *        recreated for a running external compaction this parameter can be empty.
-   */
   public CompactionJobImpl(short priority, CompactorGroupId group,
-      Collection<CompactableFile> files, CompactionKind kind, Optional<Boolean> jobSelectedAll) {
+      Collection<CompactableFile> files, CompactionKind kind) {
     this.priority = priority;
     this.group = Objects.requireNonNull(group);
     this.files = Set.copyOf(files);
     this.kind = Objects.requireNonNull(kind);
-    this.jobSelectedAll = Objects.requireNonNull(jobSelectedAll);
   }
 
   @Override
@@ -90,10 +80,6 @@ public class CompactionJobImpl implements CompactionJob {
   @Override
   public int hashCode() {
     return Objects.hash(priority, group, files, kind);
-  }
-
-  public boolean selectedAll() {
-    return jobSelectedAll.orElseThrow();
   }
 
   @Override
