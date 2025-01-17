@@ -86,8 +86,8 @@ public class AdminCommandsTest {
 
   // not a command, but easy enough to include here
   @Test
-  public void testAdminOpts() {
-    Admin.AdminOpts opts = new Admin.AdminOpts();
+  public void testStopOpts() {
+    Admin.StopCommand opts = new Admin.StopCommand();
     assertFalse(opts.force);
   }
 }

@@ -398,7 +398,7 @@ public class ServiceStatusCmdTest {
   @Test
   public void testServiceStatusCommandOpts() {
     replay(zooReader); // needed for @AfterAll verify
-    ServiceStatusCmd.Opts opts = new ServiceStatusCmd.Opts();
+    Admin.ServiceStatusCmdOpts opts = new Admin.ServiceStatusCmdOpts();
     assertFalse(opts.json);
     assertFalse(opts.noHosts);
   }

@@ -19,8 +19,11 @@
 package org.apache.accumulo.core.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
+
+import com.beust.jcommander.Parameter;
 
 public class TestHelp {
   protected class HelpStub extends Help {
@@ -46,4 +49,20 @@ public class TestHelp {
     }
   }
 
+  @Test
+  public void testHelpCommand() {
+    class TestHelpOpt extends HelpStub {
+      @Parameter(names = {"--test"})
+      boolean test = false;
+    }
+
+    String[] args = {"--help", "--test"};
+    TestHelpOpt opts = new TestHelpOpt();
+    try {
+      opts.parseArgs("program", args);
+      assertTrue(opts.test);
+    } catch (RuntimeException e) {
+      assertEquals("0", e.getMessage());
+    }
+  }
 }
