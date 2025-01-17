@@ -38,6 +38,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -50,6 +51,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
@@ -91,11 +93,13 @@ import io.micrometer.core.instrument.Tag;
     "com.sun.org.apache.xerces.*"})
 public class CompactionCoordinatorTest {
 
-  public class TestCoordinator extends CompactionCoordinator {
+  public class TestCoordinator extends CompactionCoordinator implements ServerProcessService.Iface {
 
     private final ServerContext context;
     private final ServerAddress client;
     private final TabletClientService.Client tabletServerClient;
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
 
     private Set<ExternalCompactionId> metadataCompactionIds = null;
 
@@ -116,8 +120,22 @@ public class CompactionCoordinatorTest {
 
     @Override
     protected long getTServerCheckInterval() {
-      this.shutdown = true;
+      gracefulShutdown(null);
       return 0L;
+    }
+
+    @Override
+    public void gracefulShutdown(TCredentials credentials) {
+      shutdown.set(true);
+    }
+
+    @Override
+    public boolean isShutdownRequested() {
+      return shutdown.get();
+    }
+
+    public AtomicBoolean getShutdownComplete() {
+      return shutdownComplete;
     }
 
     @Override

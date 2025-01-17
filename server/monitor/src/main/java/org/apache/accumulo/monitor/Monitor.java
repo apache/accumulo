@@ -526,6 +526,18 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }).start();
 
     monitorInitialized.set(true);
+
+    while (!isShutdownRequested()) {
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        LOG.info("Interrupt Exception received, shutting down");
+        gracefulShutdown(context.rpcCreds());
+      }
+    }
+
+    server.stop();
+    log.info("stop requested. exiting ... ");
   }
 
   private ServletHolder getDefaultServlet() {
@@ -826,9 +838,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     // Get a ZooLock for the monitor
     UUID zooLockUUID = UUID.randomUUID();
     monitorLock = new ServiceLock(zoo.getZooKeeper(), monitorLockPath, zooLockUUID);
+    HAServiceLockWatcher monitorLockWatcher =
+        new HAServiceLockWatcher("monitor", () -> isShutdownRequested());
 
     while (true) {
-      HAServiceLockWatcher monitorLockWatcher = new HAServiceLockWatcher("monitor");
       monitorLock.lock(monitorLockWatcher, new byte[0]);
 
       monitorLockWatcher.waitForChange();
