@@ -72,7 +72,8 @@ public class ServiceLockPaths {
       this.type = requireNonNull(type);
       Preconditions.checkArgument(this.type.equals(Constants.ZGC_LOCK)
           || this.type.equals(Constants.ZMANAGER_LOCK) || this.type.equals(Constants.ZMONITOR_LOCK)
-          || this.type.equals(Constants.ZTABLE_LOCKS), "Unsupported type: " + type);
+          || this.type.equals(Constants.ZTABLE_LOCKS) || this.type.equals(Constants.ZADMIN_LOCK)
+          || this.type.equals(Constants.ZTEST_LOCK), "Unsupported type: " + type);
       // These server types support only one active instance, so they use a lock at
       // a known path, not the server's address.
       this.resourceGroup = null;
@@ -203,6 +204,10 @@ public class ServiceLockPaths {
       return Constants.ZMONITOR_LOCK;
     } else if (path.contains(Constants.ZMINI_LOCK)) {
       return Constants.ZMINI_LOCK;
+    } else if (path.contains(Constants.ZADMIN_LOCK)) {
+      return Constants.ZADMIN_LOCK;
+    } else if (path.contains(Constants.ZTEST_LOCK)) {
+      return Constants.ZTEST_LOCK;
     } else if (path.contains(Constants.ZCOMPACTORS)) {
       return Constants.ZCOMPACTORS;
     } else if (path.contains(Constants.ZSSERVERS)) {
@@ -230,6 +235,8 @@ public class ServiceLockPaths {
       case Constants.ZGC_LOCK:
       case Constants.ZMANAGER_LOCK:
       case Constants.ZMONITOR_LOCK:
+      case Constants.ZADMIN_LOCK:
+      case Constants.ZTEST_LOCK:
         return new ServiceLockPath(path.substring(0, path.indexOf(type)), type);
       default: {
         final String[] pathParts = path.replaceFirst("/", "").split("/");
@@ -297,6 +304,14 @@ public class ServiceLockPaths {
       HostAndPort serverAddress) {
     return new ServiceLockPath(zkRoot, Constants.ZDEADTSERVERS, resourceGroup,
         serverAddress.toString());
+  }
+
+  public ServiceLockPath createAdminLockPath() {
+    return new ServiceLockPath(zkRoot, Constants.ZADMIN_LOCK);
+  }
+
+  public ServiceLockPath createTestLockPath() {
+    return new ServiceLockPath(zkRoot, Constants.ZTEST_LOCK);
   }
 
   public Set<ServiceLockPath> getCompactor(ResourceGroupPredicate resourceGroupPredicate,

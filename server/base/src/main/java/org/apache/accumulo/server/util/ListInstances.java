@@ -33,7 +33,6 @@ import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -92,7 +91,6 @@ public class ListInstances {
     try (var zk = new ZooSession(ListInstances.class.getSimpleName(), keepers,
         ZOOKEEPER_TIMER_MILLIS, null)) {
       ZooReader rdr = zk.asReader();
-      ZooCache cache = new ZooCache(zk, List.of(Constants.ZROOT));
 
       TreeMap<String,InstanceId> instanceNames = getInstanceNames(rdr, printErrors);
 
@@ -100,7 +98,7 @@ public class ListInstances {
       printHeader();
 
       for (Entry<String,InstanceId> entry : instanceNames.entrySet()) {
-        printInstanceInfo(cache, entry.getKey(), entry.getValue(), printErrors);
+        printInstanceInfo(zk, entry.getKey(), entry.getValue(), printErrors);
       }
 
       TreeSet<InstanceId> instancedIds = getInstanceIDs(rdr, printErrors);
@@ -108,7 +106,7 @@ public class ListInstances {
 
       if (printAll) {
         for (InstanceId uuid : instancedIds) {
-          printInstanceInfo(cache, null, uuid, printErrors);
+          printInstanceInfo(zk, null, uuid, printErrors);
         }
       } else if (!instancedIds.isEmpty()) {
         System.out.println();
@@ -149,9 +147,9 @@ public class ListInstances {
 
   }
 
-  private static void printInstanceInfo(ZooCache cache, String instanceName, InstanceId iid,
+  private static void printInstanceInfo(ZooSession zs, String instanceName, InstanceId iid,
       boolean printErrors) {
-    String manager = getManager(cache, iid, printErrors);
+    String manager = getManager(zs, iid, printErrors);
     if (instanceName == null) {
       instanceName = "";
     }
@@ -164,7 +162,7 @@ public class ListInstances {
         "\"" + instanceName + "\"", iid, manager);
   }
 
-  private static String getManager(ZooCache cache, InstanceId iid, boolean printErrors) {
+  private static String getManager(ZooSession zs, InstanceId iid, boolean printErrors) {
 
     if (iid == null) {
       return null;
@@ -173,7 +171,7 @@ public class ListInstances {
     try {
       var zLockManagerPath = ServiceLockPaths.parse(Optional.of(Constants.ZMANAGER_LOCK),
           ZooUtil.getRoot(iid) + Constants.ZMANAGER_LOCK);
-      Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, zLockManagerPath, null);
+      Optional<ServiceLockData> sld = ServiceLock.getLockData(zs, zLockManagerPath);
       if (sld.isEmpty()) {
         return null;
       }

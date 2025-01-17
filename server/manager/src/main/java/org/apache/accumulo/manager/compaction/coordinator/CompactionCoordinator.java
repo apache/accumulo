@@ -194,7 +194,7 @@ public class CompactionCoordinator
   private final Manager manager;
 
   private final LoadingCache<String,Integer> compactorCounts;
-  private final int jobQueueInitialSize;
+  private final long jobQueueInitialSize;
 
   private volatile long coordinatorStartTime;
 
@@ -208,8 +208,8 @@ public class CompactionCoordinator
     this.security = security;
     this.manager = Objects.requireNonNull(manager);
 
-    this.jobQueueInitialSize = ctx.getConfiguration()
-        .getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE);
+    this.jobQueueInitialSize =
+        ctx.getConfiguration().getAsBytes(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE);
 
     this.jobQueues = new CompactionJobQueues(jobQueueInitialSize);
 
@@ -1121,8 +1121,6 @@ public class CompactionCoordinator
     final String compactorQueuesPath = this.ctx.getZooKeeperRoot() + Constants.ZCOMPACTORS;
 
     final var zoorw = this.ctx.getZooSession().asReaderWriter();
-    final double queueSizeFactor = ctx.getConfiguration()
-        .getFraction(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR);
 
     try {
       var groups = zoorw.getChildren(compactorQueuesPath);
@@ -1139,7 +1137,6 @@ public class CompactionCoordinator
           CompactionJobPriorityQueue queue = getJobQueues().getQueue(cgid);
           if (queue != null) {
             queue.clearIfInactive(Duration.ofMinutes(10));
-            queue.setMaxSize(this.jobQueueInitialSize);
           }
         } else {
           int aliveCompactorsForGroup = 0;
@@ -1152,16 +1149,8 @@ public class CompactionCoordinator
               aliveCompactorsForGroup++;
             }
           }
-          CompactionJobPriorityQueue queue = getJobQueues().getQueue(cgid);
-          if (queue != null) {
-            queue.setMaxSize(Math.min(
-                Math.max(1, (int) (aliveCompactorsForGroup * queueSizeFactor)), Integer.MAX_VALUE));
-          }
-
         }
-
       }
-
     } catch (KeeperException | RuntimeException e) {
       LOG.warn("Failed to clean up compactors", e);
     } catch (InterruptedException e) {

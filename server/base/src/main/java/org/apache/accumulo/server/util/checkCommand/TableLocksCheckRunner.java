@@ -24,7 +24,6 @@ import java.util.Map;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -65,10 +64,9 @@ public class TableLocksCheckRunner implements CheckRunner {
     final var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     final String fateZkPath = zkRoot + Constants.ZFATE;
     final var zk = context.getZooSession();
-    final MetaFateStore<Admin> mfs =
-        new MetaFateStore<>(fateZkPath, zk, AbstractFateStore.createDummyLockID(), null);
-    final UserFateStore<Admin> ufs = new UserFateStore<>(context, AccumuloTable.FATE.tableName(),
-        AbstractFateStore.createDummyLockID(), null);
+    final MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk, null, null);
+    final UserFateStore<Admin> ufs =
+        new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
 
     log.trace("Ensuring table and namespace locks are valid...");
 
