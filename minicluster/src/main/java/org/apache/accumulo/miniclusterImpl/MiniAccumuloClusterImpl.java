@@ -1003,7 +1003,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     } catch (RuntimeException e) {
       log.error("Error zapping zookeeper locks", e);
     }
-    control.stop(ServerType.ZOOKEEPER, null);
 
     // Clear the location of the servers in ZooCache.
     // When ZooKeeper was stopped in the previous method call,
@@ -1028,6 +1027,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
       ctx.getZooCache().clear(pred);
     }
+    control.stop(ServerType.ZOOKEEPER, null);
 
     // ACCUMULO-2985 stop the ExecutorService after we finished using it to stop accumulo procs
     if (executor != null) {

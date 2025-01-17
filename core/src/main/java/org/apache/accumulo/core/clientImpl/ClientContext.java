@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -48,6 +49,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -86,6 +88,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
@@ -235,7 +238,8 @@ public class ClientContext implements AccumuloClient {
       return zk;
     });
 
-    this.zooCache = memoize(() -> new ZooCache(getZooSession()));
+    this.zooCache = memoize(() -> new ZooCache(getZooSession(),
+        createPersistentWatcherPaths(ZooUtil.getRoot(getInstanceID()))));
     this.accumuloConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), 100, MILLISECONDS);
@@ -1062,7 +1066,9 @@ public class ClientContext implements AccumuloClient {
       // because that client could be closed, and its ZooSession also closed
       // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
       var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName()).get();
-      this.zkLockChecker = new ZookeeperLockChecker(new ZooCache(zk), getZooKeeperRoot());
+      String zkRoot = getZooKeeperRoot();
+      this.zkLockChecker =
+          new ZookeeperLockChecker(new ZooCache(zk, Set.of(zkRoot + Constants.ZTSERVERS)), zkRoot);
     }
     return this.zkLockChecker;
   }
@@ -1073,6 +1079,17 @@ public class ClientContext implements AccumuloClient {
 
   public NamespaceMapping getNamespaces() {
     return namespaces;
+  }
+
+  private static Set<String> createPersistentWatcherPaths(String zkRoot) {
+    Set<String> pathsToWatch = new HashSet<>();
+    for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
+        Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
+        Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
+        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET)) {
+      pathsToWatch.add(zkRoot + path);
+    }
+    return pathsToWatch;
   }
 
 }

@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.fate.zookeeper;
 
 import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createStrictMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
@@ -30,10 +29,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -41,23 +44,70 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
-import org.easymock.Capture;
-import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ZooCacheTest {
-  private static final String ZPATH = "/some/path/in/zk";
+
+  /**
+   * Test class that extends ZooCache to suppress the creation of the persistent recursive watchers
+   * that are created in the constructor and to provide access to the watcher.
+   */
+  private static class TestZooCache extends ZooCache {
+
+    public TestZooCache(ZooSession zk, Set<String> pathsToWatch) {
+      super(zk, pathsToWatch);
+    }
+
+    @Override
+    protected void setupWatchers(Set<String> pathsToWatch) {
+      for (String path : pathsToWatch) {
+        watchedPaths.add(path);
+      }
+    }
+
+    public void executeWatcher(WatchedEvent event) {
+      // simulate ZooKeeper calling our Watcher
+      watcher.process(event);
+    }
+
+  }
+
+  private static final String root =
+      Constants.ZROOT + "/" + UUID.randomUUID().toString() + Constants.ZTSERVERS;
+  private static final String ZPATH = root + "/testPath";
   private static final byte[] DATA = {(byte) 1, (byte) 2, (byte) 3, (byte) 4};
   private static final List<String> CHILDREN = java.util.Arrays.asList("huey", "dewey", "louie");
 
   private ZooSession zk;
-  private ZooCache zc;
+  private TestZooCache zc;
 
   @BeforeEach
   public void setUp() {
     zk = createStrictMock(ZooSession.class);
-    zc = new ZooCache(zk);
+    zc = new TestZooCache(zk, Set.of(root));
+  }
+
+  @Test
+  public void testOverlappingPaths() {
+    assertThrows(IllegalArgumentException.class,
+        () -> new ZooCache(zk, Set.of(root, root + "/localhost:9995")));
+
+    Set<String> goodPaths = Set.of("/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/compactors",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/dead/tservers",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/gc/lock",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/managers/lock",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/namespaces",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/recovery",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/root_tablet",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/sservers",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/tables",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/tservers",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/users",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/mini",
+        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/monitor/lock");
+    new ZooCache(zk, goodPaths);
+
   }
 
   @Test
@@ -78,8 +128,8 @@ public class ZooCacheTest {
     final long ephemeralOwner = 123456789L;
     Stat existsStat = new Stat();
     existsStat.setEphemeralOwner(ephemeralOwner);
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-    expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat))).andReturn(DATA);
+    expect(zk.exists(eq(ZPATH), eq(null))).andReturn(existsStat);
+    expect(zk.getData(eq(ZPATH), eq(null), eq(existsStat))).andReturn(DATA);
     replay(zk);
 
     assertFalse(zc.dataCached(ZPATH));
@@ -287,29 +337,26 @@ public class ZooCacheTest {
     WatchedEvent event =
         new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
-    zc = new ZooCache(zk, exw);
+    zc = new TestZooCache(zk, Set.of(root));
+    zc.addZooCacheWatcher(exw);
 
-    Watcher w = watchData(initialData);
-    w.process(event);
+    watchData(initialData);
+    zc.executeWatcher(event);
     assertTrue(exw.wasCalled());
     assertEquals(stillCached, zc.dataCached(ZPATH));
   }
 
-  private Watcher watchData(byte[] initialData) throws Exception {
-    Capture<Watcher> cw = EasyMock.newCapture();
+  private void watchData(byte[] initialData) throws Exception {
     Stat existsStat = new Stat();
     if (initialData != null) {
-      expect(zk.exists(eq(ZPATH), capture(cw))).andReturn(existsStat);
-      expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat)))
-          .andReturn(initialData);
+      expect(zk.exists(eq(ZPATH), eq(null))).andReturn(existsStat);
+      expect(zk.getData(eq(ZPATH), eq(null), eq(existsStat))).andReturn(initialData);
     } else {
-      expect(zk.exists(eq(ZPATH), capture(cw))).andReturn(null);
+      expect(zk.exists(eq(ZPATH), eq(null))).andReturn(null);
     }
     replay(zk);
     zc.get(ZPATH);
     assertTrue(zc.dataCached(ZPATH));
-
-    return cw.getValue();
   }
 
   @Test
@@ -401,11 +448,12 @@ public class ZooCacheTest {
   private void testWatchDataNode_Clear(Watcher.Event.KeeperState state) throws Exception {
     WatchedEvent event = new WatchedEvent(Watcher.Event.EventType.None, state, null);
     TestWatcher exw = new TestWatcher(event);
-    zc = new ZooCache(zk, exw);
+    zc = new TestZooCache(zk, Set.of(root));
+    zc.addZooCacheWatcher(exw);
 
-    Watcher w = watchData(DATA);
+    watchData(DATA);
     assertTrue(zc.dataCached(ZPATH));
-    w.process(event);
+    zc.executeWatcher(event);
     assertTrue(exw.wasCalled());
     assertFalse(zc.dataCached(ZPATH));
   }
@@ -417,7 +465,7 @@ public class ZooCacheTest {
 
   @Test
   public void testWatchChildrenNode_ChildrenChanged() throws Exception {
-    testWatchChildrenNode(CHILDREN, Watcher.Event.EventType.NodeChildrenChanged, false);
+    testWatchChildrenNode(CHILDREN, Watcher.Event.EventType.NodeChildrenChanged, true);
   }
 
   @Test
@@ -435,27 +483,25 @@ public class ZooCacheTest {
     WatchedEvent event =
         new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
-    zc = new ZooCache(zk, exw);
+    zc = new TestZooCache(zk, Set.of(root));
+    zc.addZooCacheWatcher(exw);
 
-    Watcher w = watchChildren(initialChildren);
-    w.process(event);
+    watchChildren(initialChildren);
+    zc.executeWatcher(event);
     assertTrue(exw.wasCalled());
     assertEquals(stillCached, zc.childrenCached(ZPATH));
   }
 
-  private Watcher watchChildren(List<String> initialChildren) throws Exception {
-    Capture<Watcher> cw = EasyMock.newCapture();
+  private void watchChildren(List<String> initialChildren) throws Exception {
     if (initialChildren == null) {
-      expect(zk.exists(eq(ZPATH), capture(cw))).andReturn(null);
+      expect(zk.exists(eq(ZPATH), eq(null))).andReturn(null);
     } else {
       Stat existsStat = new Stat();
-      expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-      expect(zk.getChildren(eq(ZPATH), capture(cw))).andReturn(initialChildren);
+      expect(zk.exists(eq(ZPATH), eq(null))).andReturn(existsStat);
+      expect(zk.getChildren(eq(ZPATH), eq(null))).andReturn(initialChildren);
     }
     replay(zk);
     zc.getChildren(ZPATH);
     assertTrue(zc.childrenCached(ZPATH));
-
-    return cw.getValue();
   }
 }

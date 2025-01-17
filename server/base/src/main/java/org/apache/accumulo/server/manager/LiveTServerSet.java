@@ -30,13 +30,11 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -66,7 +64,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
 import com.google.common.net.HostAndPort;
 
 public class LiveTServerSet implements ZooCacheWatcher {
@@ -209,16 +206,9 @@ public class LiveTServerSet implements ZooCacheWatcher {
   // The set of entries in zookeeper without locks, and the first time each was noticed
   private final Map<ServiceLockPath,Long> locklessServers = new HashMap<>();
 
-  private final Supplier<ZooCache> zcSupplier;
-
   public LiveTServerSet(ServerContext context, Listener cback) {
     this.cback = cback;
     this.context = context;
-    this.zcSupplier = Suppliers.memoize(() -> new ZooCache(context.getZooSession(), this));
-  }
-
-  public ZooCache getZooCache() {
-    return zcSupplier.get();
   }
 
   public synchronized void startListeningForTabletServerChanges() {
@@ -268,7 +258,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
     final TServerInfo info = current.get(tserverPath.getServer());
 
     ZcStat stat = new ZcStat();
-    Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), tserverPath, stat);
+    Optional<ServiceLockData> sld =
+        ServiceLock.getLockData(context.getZooCache(), tserverPath, stat);
 
     if (sld.isEmpty()) {
       if (info != null) {
@@ -483,7 +474,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
         log.error("FATAL: {}", msg, e);
         Halt.halt(msg, -1);
       }
-      getZooCache().clear(slp.toString());
+      context.getZooCache().clear(slp.toString());
     }
   }
 }
