@@ -29,11 +29,11 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
-import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -48,7 +48,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -69,6 +68,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 /**
  * Fault tolerant executor
@@ -81,13 +81,12 @@ public class Fate<T> {
   private final FateStore<T> store;
   private final T environment;
   private final ScheduledThreadPoolExecutor fatePoolWatcher;
-  private final ThreadPoolExecutor transactionExecutor;
+  private final ExecutorService transactionExecutor;
   private final List<TransactionRunner> runningTxRunners;
   private final ExecutorService deadResCleanerExecutor;
 
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
   public static final Duration INITIAL_DELAY = Duration.ofSeconds(3);
-  private static final Duration STOP_ATTEMPT_INTERVAL = Duration.ofSeconds(1);
   private static final Duration DEAD_RES_CLEANUP_DELAY = Duration.ofMinutes(3);
   private static final Duration POOL_WATCHER_DELAY = Duration.ofSeconds(30);
 
@@ -187,25 +186,14 @@ public class Fate<T> {
   }
 
   private class TransactionRunner implements Runnable {
-    private final AtomicReference<RunnerState> runnerState =
-        new AtomicReference<>(new RunnerState(false, false));
-
-    private class RunnerState {
-      // used to signal a TransactionRunner to stop in the case where there are too many running
-      // i.e., the property for the pool size decreased and we have excess TransactionRunners
-      private final boolean stop;
-      // whether the TransactionRunner is executing the run() method (may or may not be working on
-      // a tx, could be waiting for a tx)
-      private final boolean isRunning;
-
-      private RunnerState(boolean stop, boolean isRunning) {
-        this.stop = stop;
-        this.isRunning = isRunning;
-      }
-    }
+    // used to signal a TransactionRunner to stop in the case where there are too many running
+    // i.e., the property for the pool size decreased and we have excess TransactionRunners
+    private final AtomicBoolean stop = new AtomicBoolean(false);
+    // whether the TransactionRunner has finished running
+    private final AtomicBoolean exited = new AtomicBoolean(false);
 
     private Optional<FateTxStore<T>> reserveFateTx() throws InterruptedException {
-      while (keepRunning.get() && !runnerState.get().stop) {
+      while (keepRunning.get() && !stop.get()) {
         FateId unreservedFateId = workQueue.poll(100, MILLISECONDS);
 
         if (unreservedFateId == null) {
@@ -222,9 +210,8 @@ public class Fate<T> {
 
     @Override
     public void run() {
-      runnerState.updateAndGet(current -> new RunnerState(current.stop, true));
       try {
-        while (keepRunning.get() && !runnerState.get().stop) {
+        while (keepRunning.get() && !stop.get()) {
           FateTxStore<T> txStore = null;
           ExecutionState state = new ExecutionState();
           try {
@@ -275,7 +262,9 @@ public class Fate<T> {
           }
         }
       } finally {
-        runnerState.updateAndGet(current -> new RunnerState(current.stop, false));
+        log.trace("A TransactionRunner is exiting...");
+        Preconditions.checkState(exited.compareAndSet(false, true));
+        Preconditions.checkState(runningTxRunners.remove(this));
       }
     }
 
@@ -386,21 +375,16 @@ public class Fate<T> {
       }
     }
 
-    private void setStop() {
-      runnerState.updateAndGet(current -> new RunnerState(true, current.isRunning));
+    private boolean flagStop() {
+      return stop.compareAndSet(false, true);
     }
 
-    /**
-     * Atomically: (1) Check if the transaction runner is running and (2) set stop to false if it is
-     * running. stop is unchanged if it is not running.
-     */
-    private boolean isRunning() {
-      return runnerState.updateAndGet(current -> {
-        if (current.isRunning) {
-          return new RunnerState(false, true);
-        }
-        return current;
-      }).isRunning;
+    private boolean isExited() {
+      return exited.get();
+    }
+
+    private boolean isFlaggedToStop() {
+      return stop.get();
     }
 
   }
@@ -443,27 +427,27 @@ public class Fate<T> {
       Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf) {
     this.store = FateLogger.wrap(store, toLogStrFunc, false);
     this.environment = environment;
-    this.transactionExecutor = ThreadPools.getServerThreadPools().createExecutorService(conf,
+    final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
         Property.MANAGER_FATE_THREADPOOL_SIZE, true);
     this.workQueue = new LinkedTransferQueue<>();
-    this.runningTxRunners = new ArrayList<>();
+    this.runningTxRunners = Collections.synchronizedList(new ArrayList<>());
     this.fatePoolWatcher =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
     ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.scheduleWithFixedDelay(() -> {
       // resize the pool if the property changed
-      ThreadPools.resizePool(transactionExecutor, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
+      ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
       final int configured = conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE);
-      final int needed = configured - transactionExecutor.getActiveCount();
+      final int needed = configured - runningTxRunners.size();
       if (needed > 0) {
         // If the pool grew, then ensure that there is a TransactionRunner for each thread
         for (int i = 0; i < needed; i++) {
           try {
             var txRunner = new TransactionRunner();
             runningTxRunners.add(txRunner);
-            transactionExecutor.execute(txRunner);
+            pool.execute(txRunner);
           } catch (RejectedExecutionException e) {
             // RejectedExecutionException could be shutting down
-            if (transactionExecutor.isShutdown()) {
+            if (pool.isShutdown()) {
               // The exception is expected in this case, no need to spam the logs.
               log.trace("Error adding transaction runner to FaTE executor pool.", e);
             } else {
@@ -476,30 +460,20 @@ public class Fate<T> {
         idleCountHistory.clear();
       } else if (needed < 0) {
         // If we need the pool to shrink, then ensure excess TransactionRunners are safely stopped.
-        // Stop the necessary number of TransactionRunners, trying to stop a random one each stop
-        // attempt interval
-        final int initialSize = transactionExecutor.getActiveCount();
-        for (int i = needed; i < 0; i++) {
-          boolean stopped = false;
-          TransactionRunner stoppingTxRunner = null;
-          while (!stopped) {
-            int index = RANDOM.get().nextInt(runningTxRunners.size());
-            stoppingTxRunner = runningTxRunners.get(index);
-            stoppingTxRunner.setStop();
-            UtilWaitThread.sleep(STOP_ATTEMPT_INTERVAL.toMillis());
-            if (!stoppingTxRunner.isRunning()) {
-              log.trace("A TransactionRunner was safely stopped");
-              stopped = true;
-            } else {
-              log.trace("A TransactionRunner was not safely stopped in {} seconds... "
-                  + "Trying another TransactionRunner...", STOP_ATTEMPT_INTERVAL.toSeconds());
-            }
+        // Flag the necessary number of TransactionRunners to safely stop when they are done work
+        // on a transaction.
+        int numFlagged =
+            (int) runningTxRunners.stream().filter(TransactionRunner::isFlaggedToStop).count();
+        int numToStop = -1 * (numFlagged + needed);
+        for (var runner : runningTxRunners) {
+          if (numToStop <= 0) {
+            break;
           }
-          runningTxRunners.remove(stoppingTxRunner);
+          if (runner.flagStop()) {
+            log.trace("Flagging a TransactionRunner to stop...");
+            numToStop--;
+          }
         }
-        log.info("Fate {} thread pool {} size has successfully shrunk from {} to {}", store.type(),
-            Property.MANAGER_FATE_THREADPOOL_SIZE.getKey(), initialSize,
-            transactionExecutor.getActiveCount());
       } else {
         // The property did not change, but should it based on idle Fate threads? Maintain
         // count of the last X minutes of idle Fate threads. If zero 95% of the time, then suggest
@@ -535,6 +509,7 @@ public class Fate<T> {
         }
       }
     }, INITIAL_DELAY.toSeconds(), getPoolWatcherDelay().toSeconds(), SECONDS));
+    this.transactionExecutor = pool;
 
     ScheduledExecutorService deadResCleanerExecutor = null;
     if (runDeadResCleaner) {
@@ -563,7 +538,7 @@ public class Fate<T> {
 
   @VisibleForTesting
   public int getTxRunnersActive() {
-    return transactionExecutor.getActiveCount();
+    return runningTxRunners.size();
   }
 
   // get a transaction id back to the requester before doing any work

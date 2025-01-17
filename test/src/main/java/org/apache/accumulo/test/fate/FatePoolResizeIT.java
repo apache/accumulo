@@ -72,6 +72,7 @@ public abstract class FatePoolResizeIT extends SharedMiniClusterBase
       assertEquals(newNumThreads, fate.getTxRunnersActive());
     } finally {
       fate.shutdown(1, TimeUnit.MINUTES);
+      assertEquals(0, fate.getTxRunnersActive());
     }
   }
 
@@ -114,6 +115,7 @@ public abstract class FatePoolResizeIT extends SharedMiniClusterBase
       assertEquals(newNumThreads, fate.getTxRunnersActive());
     } finally {
       fate.shutdown(1, TimeUnit.MINUTES);
+      assertEquals(0, fate.getTxRunnersActive());
     }
   }
 
