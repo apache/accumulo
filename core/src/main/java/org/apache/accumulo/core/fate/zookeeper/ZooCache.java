@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.time.Duration;
@@ -28,17 +29,18 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,10 +54,13 @@ import com.google.common.base.Preconditions;
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
  */
 public class ZooCache {
+
+  public interface ZooCacheWatcher extends Consumer<WatchedEvent> {}
+
   private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
 
   private final ZCacheWatcher watcher = new ZCacheWatcher();
-  private final Watcher externalWatcher;
+  private final Optional<ZooCacheWatcher> externalWatcher;
 
   private static final AtomicLong nextCacheId = new AtomicLong(0);
   private final String cacheId = "ZC" + nextCacheId.incrementAndGet();
@@ -65,7 +70,7 @@ public class ZooCache {
   // their compute functions.
   private final ConcurrentMap<String,ZcNode> nodeCache;
 
-  private final ZooReader zReader;
+  private final ZooSession zk;
 
   private volatile boolean closed = false;
 
@@ -100,19 +105,6 @@ public class ZooCache {
   }
 
   private final AtomicLong updateCount = new AtomicLong(0);
-
-  /**
-   * Returns a ZooKeeper session. Calls should be made within run of ZooRunnable after caches are
-   * checked. This will be performed at each retry of the run method. Calls to this method should be
-   * made, ideally, after cache checks since other threads may have succeeded when updating the
-   * cache. Doing this will ensure that we don't pay the cost of retrieving a ZooKeeper session on
-   * each retry until we've ensured the caches aren't populated for a given node.
-   *
-   * @return ZooKeeper session.
-   */
-  private ZooKeeper getZooKeeper() {
-    return zReader.getZooKeeper();
-  }
 
   private class ZCacheWatcher implements Watcher {
     @Override
@@ -160,31 +152,39 @@ public class ZooCache {
           break;
       }
 
-      if (externalWatcher != null) {
-        externalWatcher.process(event);
-      }
+      externalWatcher.ifPresent(w -> w.accept(event));
     }
+  }
+
+  /**
+   * Creates a new cache without an external watcher.
+   *
+   * @param zk the ZooKeeper instance
+   * @throws NullPointerException if zk is {@code null}
+   */
+  public ZooCache(ZooSession zk) {
+    this(zk, Optional.empty(), Duration.ofMinutes(3));
   }
 
   /**
    * Creates a new cache. The given watcher is called whenever a watched node changes.
    *
-   * @param reader ZooKeeper reader
+   * @param zk the ZooKeeper instance
    * @param watcher watcher object
+   * @throws NullPointerException if zk or watcher is {@code null}
    */
-  public ZooCache(ZooReader reader, Watcher watcher) {
-    this(reader, watcher, Duration.ofMinutes(3));
+  public ZooCache(ZooSession zk, ZooCacheWatcher watcher) {
+    this(zk, Optional.of(watcher), Duration.ofMinutes(3));
   }
 
-  public ZooCache(ZooReader reader, Watcher watcher, Duration timeout) {
-    this.zReader = reader;
+  public ZooCache(ZooSession zk, Optional<ZooCacheWatcher> watcher, Duration timeout) {
+    this.zk = requireNonNull(zk);
     this.externalWatcher = watcher;
     RemovalListener<String,ZcNode> removalListerner = (path, zcNode, reason) -> {
       try {
         log.trace("{} removing watches for {} because {} accesses {}", cacheId, path, reason,
             zcNode == null ? -1 : zcNode.getAccessCount());
-        reader.getZooKeeper().removeWatches(path, ZooCache.this.watcher, Watcher.WatcherType.Any,
-            false);
+        zk.removeWatches(path, ZooCache.this.watcher, Watcher.WatcherType.Any, false);
       } catch (InterruptedException | KeeperException | RuntimeException e) {
         log.warn("{} failed to remove watches on path {} in zookeeper", cacheId, path, e);
       }
@@ -316,20 +316,18 @@ public class ZooCache {
           if (zcn != null && zcn.cachedChildren()) {
             return zcn;
           }
-
           try {
-            final ZooKeeper zooKeeper = getZooKeeper();
             // Register a watcher on the node to monitor creation/deletion events for the node. It
             // is possible that an event from this watch could trigger prior to calling getChildren.
             // That is ok because the compute() call on the map has a lock and processing the event
             // will block until compute() returns. After compute() returns the event processing
             // would clear the map entry.
-            Stat stat = zooKeeper.exists(zPath, watcher);
+            Stat stat = zk.exists(zPath, watcher);
             if (stat == null) {
               log.trace("{} getChildren saw that {} does not exists", cacheId, zPath);
               return ZcNode.NON_EXISTENT;
             }
-            List<String> children = zooKeeper.getChildren(zPath, watcher);
+            List<String> children = zk.getChildren(zPath, watcher);
             log.trace("{} adding {} children of {} to cache", cacheId, children.size(), zPath);
             return new ZcNode(children, zcn);
           } catch (KeeperException.NoNodeException nne) {
@@ -402,8 +400,7 @@ public class ZooCache {
            * non-existence can not be cached.
            */
           try {
-            final ZooKeeper zooKeeper = getZooKeeper();
-            Stat stat = zooKeeper.exists(zPath, watcher);
+            Stat stat = zk.exists(zPath, watcher);
             if (stat == null) {
               if (log.isTraceEnabled()) {
                 log.trace("{} zookeeper did not contain {}", cacheId, zPath);
@@ -413,7 +410,7 @@ public class ZooCache {
               byte[] data = null;
               ZcStat zstat = null;
               try {
-                data = zooKeeper.getData(zPath, watcher, stat);
+                data = zk.getData(zPath, watcher, stat);
                 zstat = new ZcStat(stat);
               } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
                 throw new ConcurrentModificationException(e1);
@@ -520,13 +517,10 @@ public class ZooCache {
 
     Predicate<String> pathPredicateToUse;
     if (log.isTraceEnabled()) {
-      pathPredicateToUse = path -> {
-        boolean testResult = pathPredicate.test(path);
-        if (testResult) {
-          log.trace("{} removing {} from cache", cacheId, path);
-        }
-        return testResult;
-      };
+      pathPredicateToUse = pathPredicate.and(path -> {
+        log.trace("removing {} from cache", path);
+        return true;
+      });
     } else {
       pathPredicateToUse = pathPredicate;
     }

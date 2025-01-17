@@ -48,7 +48,7 @@ public class FindSplits extends ManagerRepo {
   private final SplitInfo splitInfo;
 
   public FindSplits(KeyExtent extent) {
-    this.splitInfo = new SplitInfo(extent, new TreeSet<>());
+    this.splitInfo = new SplitInfo(extent, new TreeSet<>(), true);
   }
 
   @Override
@@ -156,7 +156,7 @@ public class FindSplits extends ManagerRepo {
       return null;
     }
 
-    return new PreSplit(extent, splits);
+    return new PreSplit(extent, splits, true);
   }
 
 }

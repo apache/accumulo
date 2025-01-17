@@ -81,8 +81,8 @@ public class ZooMutatorIT extends WithTestNames {
   public void concurrentMutatorTest() throws Exception {
     File newFolder = new File(tempDir, testName() + "/");
     assertTrue(newFolder.isDirectory() || newFolder.mkdir(), "failed to create dir: " + newFolder);
-    try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer(newFolder)) {
-      ZooReaderWriter zk = szk.getZooReaderWriter();
+    try (var testZk = new ZooKeeperTestingServer(newFolder); var zk = testZk.newClient()) {
+      var zrw = zk.asReaderWriter();
 
       var executor = Executors.newFixedThreadPool(16);
 
@@ -101,7 +101,7 @@ public class ZooMutatorIT extends WithTestNames {
             int count = -1;
             while (count < 200) {
               byte[] val =
-                  zk.mutateOrCreate("/test-zm", initialData.getBytes(UTF_8), this::nextValue);
+                  zrw.mutateOrCreate("/test-zm", initialData.getBytes(UTF_8), this::nextValue);
               int nextCount = getCount(val);
               assertTrue(nextCount > count, "nextCount <= count " + nextCount + " " + count);
               count = nextCount;
@@ -120,7 +120,7 @@ public class ZooMutatorIT extends WithTestNames {
       }
       executor.shutdown();
 
-      byte[] actual = zk.getData("/test-zm");
+      byte[] actual = zrw.getData("/test-zm");
       int settledCount = getCount(actual);
 
       assertTrue(settledCount >= 200);

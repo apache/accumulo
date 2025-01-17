@@ -194,7 +194,7 @@ public class CompactionCoordinator
   private final Manager manager;
 
   private final LoadingCache<String,Integer> compactorCounts;
-  private final int jobQueueInitialSize;
+  private final long jobQueueInitialSize;
 
   private volatile long coordinatorStartTime;
 
@@ -208,8 +208,8 @@ public class CompactionCoordinator
     this.security = security;
     this.manager = Objects.requireNonNull(manager);
 
-    this.jobQueueInitialSize = ctx.getConfiguration()
-        .getCount(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE);
+    this.jobQueueInitialSize =
+        ctx.getConfiguration().getAsBytes(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE);
 
     this.jobQueues = new CompactionJobQueues(jobQueueInitialSize);
 
@@ -635,8 +635,9 @@ public class CompactionCoordinator
             }
 
             tabletMutator.putExternalCompaction(externalCompactionId, ecm);
-            tabletMutator
-                .submit(tm -> tm.getExternalCompactions().containsKey(externalCompactionId));
+            tabletMutator.submit(
+                tm -> tm.getExternalCompactions().containsKey(externalCompactionId),
+                () -> "compaction reservation");
 
             var result = tabletsMutator.process().get(extent);
 
@@ -838,8 +839,8 @@ public class CompactionCoordinator
     // Start a fate transaction to commit the compaction.
     CompactionMetadata ecm = tabletMeta.getExternalCompactions().get(ecid);
     var renameOp = new RenameCompactionFile(new CompactionCommitData(ecid, extent, ecm, stats));
-    localFate.seedTransaction("COMMIT_COMPACTION", FateKey.forCompactionCommit(ecid), renameOp,
-        true);
+    localFate.seedTransaction(Fate.FateOperation.COMMIT_COMPACTION,
+        FateKey.forCompactionCommit(ecid), renameOp, true);
   }
 
   @Override
@@ -1119,9 +1120,7 @@ public class CompactionCoordinator
   private void cleanUpEmptyCompactorPathInZK() {
     final String compactorQueuesPath = this.ctx.getZooKeeperRoot() + Constants.ZCOMPACTORS;
 
-    final var zoorw = this.ctx.getZooReaderWriter();
-    final double queueSizeFactor = ctx.getConfiguration()
-        .getFraction(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR);
+    final var zoorw = this.ctx.getZooSession().asReaderWriter();
 
     try {
       var groups = zoorw.getChildren(compactorQueuesPath);
@@ -1138,7 +1137,6 @@ public class CompactionCoordinator
           CompactionJobPriorityQueue queue = getJobQueues().getQueue(cgid);
           if (queue != null) {
             queue.clearIfInactive(Duration.ofMinutes(10));
-            queue.setMaxSize(this.jobQueueInitialSize);
           }
         } else {
           int aliveCompactorsForGroup = 0;
@@ -1151,16 +1149,8 @@ public class CompactionCoordinator
               aliveCompactorsForGroup++;
             }
           }
-          CompactionJobPriorityQueue queue = getJobQueues().getQueue(cgid);
-          if (queue != null) {
-            queue.setMaxSize(Math.min(
-                Math.max(1, (int) (aliveCompactorsForGroup * queueSizeFactor)), Integer.MAX_VALUE));
-          }
-
         }
-
       }
-
     } catch (KeeperException | RuntimeException e) {
       LOG.warn("Failed to clean up compactors", e);
     } catch (InterruptedException e) {

@@ -57,19 +57,18 @@ public class ServiceStatusCmd {
    */
   public void execute(final ServerContext context, final Opts opts) {
 
-    ZooReader zooReader = context.getZooReader();
-
-    final String zooRoot = context.getZooKeeperRoot();
-    LOG.trace("zooRoot: {}", zooRoot);
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("zooRoot: {}", context.getZooKeeperRoot());
+    }
 
     final Map<ServiceStatusReport.ReportKey,StatusSummary> services = new TreeMap<>();
 
-    services.put(ServiceStatusReport.ReportKey.MANAGER, getManagerStatus(zooReader, context));
-    services.put(ServiceStatusReport.ReportKey.MONITOR, getMonitorStatus(zooReader, context));
+    services.put(ServiceStatusReport.ReportKey.MANAGER, getManagerStatus(context));
+    services.put(ServiceStatusReport.ReportKey.MONITOR, getMonitorStatus(context));
     services.put(ServiceStatusReport.ReportKey.T_SERVER, getTServerStatus(context));
     services.put(ServiceStatusReport.ReportKey.S_SERVER, getScanServerStatus(context));
     services.put(ServiceStatusReport.ReportKey.COMPACTOR, getCompactorStatus(context));
-    services.put(ServiceStatusReport.ReportKey.GC, getGcStatus(zooReader, context));
+    services.put(ServiceStatusReport.ReportKey.GC, getGcStatus(context));
 
     ServiceStatusReport report = new ServiceStatusReport(services, opts.noHosts);
 
@@ -87,9 +86,9 @@ public class ServiceStatusCmd {
    * lock data providing a service descriptor with host and port.
    */
   @VisibleForTesting
-  StatusSummary getManagerStatus(ZooReader zooReader, ServerContext context) {
+  StatusSummary getManagerStatus(ServerContext context) {
     String lockPath = context.getServerPaths().createManagerPath().toString();
-    return getStatusSummary(ServiceStatusReport.ReportKey.MANAGER, zooReader, lockPath);
+    return getStatusSummary(ServiceStatusReport.ReportKey.MANAGER, context, lockPath);
   }
 
   /**
@@ -97,9 +96,9 @@ public class ServiceStatusCmd {
    * lock data providing a service descriptor with host and port.
    */
   @VisibleForTesting
-  StatusSummary getMonitorStatus(final ZooReader zooReader, ServerContext context) {
+  StatusSummary getMonitorStatus(ServerContext context) {
     String lockPath = context.getServerPaths().createMonitorPath().toString();
-    return getStatusSummary(ServiceStatusReport.ReportKey.MONITOR, zooReader, lockPath);
+    return getStatusSummary(ServiceStatusReport.ReportKey.MONITOR, context, lockPath);
   }
 
   /**
@@ -141,9 +140,9 @@ public class ServiceStatusCmd {
    * providing GC_CLIENT=host:port
    */
   @VisibleForTesting
-  StatusSummary getGcStatus(final ZooReader zooReader, ServerContext context) {
+  StatusSummary getGcStatus(ServerContext context) {
     String lockPath = context.getServerPaths().createGarbageCollectorPath().toString();
-    return getStatusSummary(ServiceStatusReport.ReportKey.GC, zooReader, lockPath);
+    return getStatusSummary(ServiceStatusReport.ReportKey.GC, context, lockPath);
   }
 
   /**
@@ -170,8 +169,8 @@ public class ServiceStatusCmd {
    * @return service status
    */
   private StatusSummary getStatusSummary(ServiceStatusReport.ReportKey displayNames,
-      ZooReader zooReader, String lockPath) {
-    var result = readAllNodesData(zooReader, lockPath);
+      ServerContext context, String lockPath) {
+    var result = readAllNodesData(context.getZooSession().asReader(), lockPath);
     Map<String,Set<String>> byGroup = new TreeMap<>();
     result.getData().forEach(data -> {
       ServiceLockData.ServiceDescriptors sld = ServiceLockData.parseServiceDescriptors(data);
@@ -181,30 +180,6 @@ public class ServiceStatusCmd {
       });
     });
     return new StatusSummary(displayNames, byGroup.keySet(), byGroup, result.getErrorCount());
-  }
-
-  /**
-   * Read the node names from ZooKeeper. Exceptions are counted but ignored.
-   *
-   * @return Result with error count, Set of the node names.
-   */
-  @VisibleForTesting
-  Result<Set<String>> readNodeNames(final ZooReader zooReader, final String path) {
-    Set<String> nodeNames = new TreeSet<>();
-    final AtomicInteger errorCount = new AtomicInteger(0);
-    try {
-      var children = zooReader.getChildren(path);
-      if (children != null) {
-        nodeNames.addAll(children);
-      }
-    } catch (KeeperException | InterruptedException ex) {
-      if (Thread.currentThread().isInterrupted()) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException(ex);
-      }
-      errorCount.incrementAndGet();
-    }
-    return new Result<>(errorCount.get(), nodeNames);
   }
 
   /**

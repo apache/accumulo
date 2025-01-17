@@ -164,7 +164,7 @@ public abstract class AbstractRFileTest {
 
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       ConfigurationCopy cc = new ConfigurationCopy(dc);
-      cc.set(Property.TSERV_CACHE_MANAGER_IMPL, TinyLfuBlockCacheManager.class.getName());
+      cc.set(Property.GENERAL_CACHE_MANAGER_IMPL, TinyLfuBlockCacheManager.class.getName());
       try {
         manager = BlockCacheManagerFactory.getInstance(cc);
       } catch (ReflectiveOperationException e) {

@@ -101,8 +101,6 @@ public class AdminTest {
 
     String serverPath = group + "/" + server;
     String validZLockEphemeralNode = "zlock#" + UUID.randomUUID() + "#0000000000";
-    expect(ctx.getZooKeeperRoot()).andReturn(root).anyTimes();
-    expect(ctx.getZooCache()).andReturn(zc).anyTimes();
     expect(zc.getChildren(type)).andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME))
         .anyTimes();
     expect(zc.getChildren(group)).andReturn(List.of(server)).anyTimes();
@@ -116,7 +114,7 @@ public class AdminTest {
           stat.setEphemeralOwner(session);
           return new byte[0];
         });
-    expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
+    expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(root, zc)).anyTimes();
     replay(ctx, zc);
 
     assertEquals(server + "[" + Long.toHexString(session) + "]",
@@ -137,11 +135,9 @@ public class AdminTest {
     String server = "localhost:12345";
 
     String serverPath = group + "/" + server;
-    expect(ctx.getZooKeeperRoot()).andReturn(root).anyTimes();
-    expect(ctx.getZooCache()).andReturn(zc).anyTimes();
     expect(zc.getChildren(type)).andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME));
     expect(zc.getChildren(serverPath)).andReturn(Collections.emptyList());
-    expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(ctx)).anyTimes();
+    expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(root, zc)).anyTimes();
     replay(ctx, zc);
 
     // A server that isn't in ZooKeeper. Can't qualify it, should return the original

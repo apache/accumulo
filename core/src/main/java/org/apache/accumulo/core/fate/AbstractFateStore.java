@@ -101,10 +101,6 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   // Keeps track of the number of concurrent callers to waitForStatusChange()
   private final AtomicInteger concurrentStatusChangeCallers = new AtomicInteger(0);
 
-  public AbstractFateStore() {
-    this(createDummyLockID(), null, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
-  }
-
   public AbstractFateStore(ZooUtil.LockID lockID, Predicate<ZooUtil.LockID> isLockHeld) {
     this(lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
@@ -114,9 +110,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     this.maxDeferred = maxDeferred;
     this.fateIdGenerator = Objects.requireNonNull(fateIdGenerator);
     this.deferred = Collections.synchronizedMap(new HashMap<>());
-    this.lockID = Objects.requireNonNull(lockID);
-    // If the store is used for a Fate which runs a dead reservation cleaner,
-    // this should be non-null, otherwise null is fine
+    this.lockID = lockID;
     this.isLockHeld = isLockHeld;
   }
 
@@ -291,6 +285,10 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         "Collision detected for fate id " + fateId);
   }
 
+  protected void verifyLock(ZooUtil.LockID lockID, FateId fateId) {
+    Preconditions.checkState(lockID != null, "Tried to reserve " + fateId + " with null lockID");
+  }
+
   protected abstract Stream<FateIdStatus> getTransactions(EnumSet<TStatus> statuses);
 
   protected abstract TStatus _getStatus(FateId fateId);
@@ -449,15 +447,5 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     } else {
       throw new IllegalStateException("Bad node data " + txInfo);
     }
-  }
-
-  /**
-   * this is a temporary method used to create a dummy lock when using a FateStore outside the
-   * context of a Manager (one example is testing) so reservations can still be made.
-   *
-   * @return a dummy {@link ZooUtil.LockID}
-   */
-  public static ZooUtil.LockID createDummyLockID() {
-    return new ZooUtil.LockID("/path", "node", 123);
   }
 }

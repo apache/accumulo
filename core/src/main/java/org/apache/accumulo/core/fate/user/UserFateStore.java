@@ -40,6 +40,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -52,7 +53,6 @@ import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxInfoColumnFamily;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -74,6 +74,17 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   private static final com.google.common.collect.Range<Integer> REPO_RANGE =
       com.google.common.collect.Range.closed(1, MAX_REPOS);
 
+  /**
+   * Constructs a UserFateStore
+   *
+   * @param context the {@link ClientContext}
+   * @param tableName the name of the table which will store the Fate data
+   * @param lockID the {@link ZooUtil.LockID} held by the process creating this store. Should be
+   *        null if this store will be used as read-only (will not be used to reserve transactions)
+   * @param isLockHeld the {@link Predicate} used to determine if the lockID is held or not at the
+   *        time of invocation. If the store is used for a {@link Fate} which runs a dead
+   *        reservation cleaner, this should be non-null, otherwise null is fine
+   */
   public UserFateStore(ClientContext context, String tableName, ZooUtil.LockID lockID,
       Predicate<ZooUtil.LockID> isLockHeld) {
     this(context, tableName, lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
@@ -85,11 +96,6 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     super(lockID, isLockHeld, maxDeferred, fateIdGenerator);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
-  }
-
-  public UserFateStore(ClientContext context, ZooUtil.LockID lockID,
-      Predicate<ZooUtil.LockID> isLockHeld) {
-    this(context, AccumuloTable.FATE.tableName(), lockID, isLockHeld);
   }
 
   @Override
@@ -126,7 +132,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
+  public Optional<FateId> seedTransaction(Fate.FateOperation txName, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
     final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
     Supplier<FateMutator<T>> mutatorFactory = () -> newMutator(fateId).requireAbsent()
@@ -139,14 +145,15 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public boolean seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp) {
+  public boolean seedTransaction(Fate.FateOperation txName, FateId fateId, Repo<T> repo,
+      boolean autoCleanUp) {
     Supplier<FateMutator<T>> mutatorFactory =
         () -> newMutator(fateId).requireStatus(TStatus.NEW).requireUnreserved().requireAbsentKey();
     return seedTransaction(mutatorFactory, fateId.canonical(), txName, repo, autoCleanUp);
   }
 
   private boolean seedTransaction(Supplier<FateMutator<T>> mutatorFactory, String logId,
-      String txName, Repo<T> repo, boolean autoCleanUp) {
+      Fate.FateOperation txName, Repo<T> repo, boolean autoCleanUp) {
     int maxAttempts = 5;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       var mutator = mutatorFactory.get();
@@ -182,6 +189,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
+    verifyLock(lockID, fateId);
     // Create a unique FateReservation for this reservation attempt
     FateReservation reservation = FateReservation.from(lockID, UUID.randomUUID());
 

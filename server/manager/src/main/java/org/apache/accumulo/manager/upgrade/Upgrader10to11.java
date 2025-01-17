@@ -79,7 +79,7 @@ public class Upgrader10to11 implements Upgrader {
   public void upgradeZookeeper(final ServerContext context) {
     log.info("upgrade of ZooKeeper entries");
 
-    var zrw = context.getZooReaderWriter();
+    var zrw = context.getZooSession().asReaderWriter();
     var iid = context.getInstanceID();
 
     // if the replication base path (../tables/+rep) assume removed or never existed.

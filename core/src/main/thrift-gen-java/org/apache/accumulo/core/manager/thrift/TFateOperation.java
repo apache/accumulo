@@ -25,7 +25,7 @@
 package org.apache.accumulo.core.manager.thrift;
 
 
-public enum FateOperation implements org.apache.thrift.TEnum {
+public enum TFateOperation implements org.apache.thrift.TEnum {
   TABLE_CREATE(0),
   TABLE_CLONE(1),
   TABLE_DELETE(2),
@@ -34,7 +34,6 @@ public enum FateOperation implements org.apache.thrift.TEnum {
   TABLE_OFFLINE(5),
   TABLE_MERGE(6),
   TABLE_DELETE_RANGE(7),
-  OBSOLETE_TABLE_BULK_IMPORT(8),
   TABLE_COMPACT(9),
   TABLE_IMPORT(10),
   TABLE_EXPORT(11),
@@ -48,7 +47,7 @@ public enum FateOperation implements org.apache.thrift.TEnum {
 
   private final int value;
 
-  private FateOperation(int value) {
+  private TFateOperation(int value) {
     this.value = value;
   }
 
@@ -65,7 +64,7 @@ public enum FateOperation implements org.apache.thrift.TEnum {
    * @return null if the value is not found.
    */
   @org.apache.thrift.annotation.Nullable
-  public static FateOperation findByValue(int value) { 
+  public static TFateOperation findByValue(int value) { 
     switch (value) {
       case 0:
         return TABLE_CREATE;
@@ -83,8 +82,6 @@ public enum FateOperation implements org.apache.thrift.TEnum {
         return TABLE_MERGE;
       case 7:
         return TABLE_DELETE_RANGE;
-      case 8:
-        return OBSOLETE_TABLE_BULK_IMPORT;
       case 9:
         return TABLE_COMPACT;
       case 10:

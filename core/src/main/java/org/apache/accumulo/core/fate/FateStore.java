@@ -50,8 +50,8 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
   FateId create();
 
   /**
-   * Seeds a transaction with the given repo if it does not exists. A fateId will be derived from
-   * the fateKey. If seeded, sets the following data for the fateId in the store.
+   * Seeds a transaction with the given repo if it does not exist. A fateId will be derived from the
+   * fateKey. If seeded, sets the following data for the fateId in the store.
    *
    * <ul>
    * <li>Set the tx name</li>
@@ -66,7 +66,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    *         empty optional otherwise. If there was a failure this could return an empty optional
    *         when it actually succeeded.
    */
-  Optional<FateId> seedTransaction(String txName, FateKey fateKey, Repo<T> repo,
+  Optional<FateId> seedTransaction(Fate.FateOperation txName, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp);
 
   /**
@@ -84,7 +84,8 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    *         failures. When there are no failures returns true if seeded and false otherwise. If
    *         there was a failure this could return false when it actually succeeded.
    */
-  boolean seedTransaction(String txName, FateId fateId, Repo<T> repo, boolean autoCleanUp);
+  boolean seedTransaction(Fate.FateOperation txName, FateId fateId, Repo<T> repo,
+      boolean autoCleanUp);
 
   /**
    * An interface that allows read/write access to the data related to a single fate operation.
