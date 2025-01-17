@@ -220,7 +220,7 @@ public class CompactionCoordinator extends AbstractServer implements
     coordinatorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
         ServiceLock.path(lockPath), zooLockUUID);
     HAServiceLockWatcher coordinatorLockWatcher =
-        new HAServiceLockWatcher("coordinator", () -> isShutdownRequested());
+        new HAServiceLockWatcher("coordinator", () -> getShutdownComplete().get());
     while (true) {
 
       coordinatorLock.lock(coordinatorLockWatcher, coordinatorClientAddress.getBytes(UTF_8));
@@ -341,7 +341,14 @@ public class CompactionCoordinator extends AbstractServer implements
     if (coordinatorAddress.server != null) {
       coordinatorAddress.server.stop();
     }
+    getShutdownComplete().set(true);
     LOG.info("stop requested. exiting ... ");
+    try {
+      coordinatorLock.unlock();
+    } catch (Exception e) {
+      LOG.warn("Failed to release Coordinator lock", e);
+    }
+
   }
 
   private Map<String,List<HostAndPort>> getIdleCompactors() {

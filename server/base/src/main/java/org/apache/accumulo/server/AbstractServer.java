@@ -58,6 +58,7 @@ public abstract class AbstractServer
   private volatile Thread serverThread;
   private volatile Thread verificationThread;
   private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
+  private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
 
   protected AbstractServer(String appName, ServerOpts opts, String[] args) {
     this.log = LoggerFactory.getLogger(getClass().getName());
@@ -132,6 +133,10 @@ public abstract class AbstractServer
 
   public boolean isShutdownRequested() {
     return shutdownRequested.get();
+  }
+
+  public AtomicBoolean getShutdownComplete() {
+    return shutdownComplete;
   }
 
   /**

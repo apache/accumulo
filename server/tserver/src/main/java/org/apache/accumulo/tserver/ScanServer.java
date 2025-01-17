@@ -206,7 +206,6 @@ public class ScanServer extends AbstractServer
   protected TabletServerScanMetrics scanMetrics;
   private ScanServerMetrics scanServerMetrics;
   private BlockCacheMetrics blockCacheMetrics;
-  private volatile boolean shutdownComplete = false;
 
   private final ZooCache managerLockCache;
 
@@ -349,8 +348,8 @@ public class ScanServer extends AbstractServer
 
       serverLockUUID = UUID.randomUUID();
       scanServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, serverLockUUID);
-      LockWatcher lw = new ServiceLockWatcher("scan server", () -> isShutdownRequested(),
-          () -> shutdownComplete, (name) -> gcLogger.logGCInfo(getConfiguration()));
+      LockWatcher lw = new ServiceLockWatcher("scan server", () -> getShutdownComplete().get(),
+          (name) -> gcLogger.logGCInfo(getConfiguration()));
 
       // Don't use the normal ServerServices lock content, instead put the server UUID here.
       byte[] lockContent = (serverLockUUID.toString() + "," + groupName).getBytes(UTF_8);
@@ -448,8 +447,8 @@ public class ScanServer extends AbstractServer
       }
 
       gcLogger.logGCInfo(getConfiguration());
+      getShutdownComplete().set(true);
       LOG.info("stop requested. exiting ... ");
-      shutdownComplete = true;
       try {
         if (null != lock) {
           lock.unlock();

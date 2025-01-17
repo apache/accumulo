@@ -199,6 +199,7 @@ public class CompactorTest {
     private volatile boolean failedCalled = false;
     private TCompactionStatusUpdate latestState = null;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
 
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci, CompactorServerOpts compactorServerOpts) {
@@ -243,6 +244,10 @@ public class CompactorTest {
     @Override
     public boolean isShutdownRequested() {
       return shutdown.get();
+    }
+
+    public AtomicBoolean getShutdownComplete() {
+      return shutdownComplete;
     }
 
     @Override

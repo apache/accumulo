@@ -240,7 +240,6 @@ public class TabletServer extends AbstractServer
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
   private final ServerContext context;
-  private volatile boolean shutdownComplete = false;
 
   public static void main(String[] args) throws Exception {
     try (TabletServer tserver = new TabletServer(new ServerOpts(), args)) {
@@ -688,8 +687,8 @@ public class TabletServer extends AbstractServer
 
       tabletServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, UUID.randomUUID());
 
-      LockWatcher lw = new ServiceLockWatcher("tablet server", () -> isShutdownRequested(),
-          () -> shutdownComplete, (name) -> gcLogger.logGCInfo(getConfiguration()));
+      LockWatcher lw = new ServiceLockWatcher("tablet server", () -> getShutdownComplete().get(),
+          (name) -> gcLogger.logGCInfo(getConfiguration()));
 
       byte[] lockContent = new ServerServices(getClientAddressString(), Service.TSERV_CLIENT)
           .toString().getBytes(UTF_8);
@@ -1022,9 +1021,8 @@ public class TabletServer extends AbstractServer
 
     gcLogger.logGCInfo(getConfiguration());
 
+    getShutdownComplete().set(true);
     log.info("TServerInfo: stop requested. exiting ... ");
-
-    shutdownComplete = true;
     try {
       tabletServerLock.unlock();
     } catch (Exception e) {

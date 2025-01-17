@@ -171,7 +171,6 @@ public class Compactor extends AbstractServer
   private ServerAddress compactorAddress = null;
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
-  private volatile boolean shutdownComplete = false;
 
   protected Compactor(CompactorServerOpts opts, String[] args) {
     super("compactor", opts, args);
@@ -288,8 +287,8 @@ public class Compactor extends AbstractServer
     compactorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
         ServiceLock.path(zPath), compactorId);
 
-    LockWatcher lw = new ServiceLockWatcher("compactor", () -> isShutdownRequested(),
-        () -> shutdownComplete, (name) -> gcLogger.logGCInfo(getConfiguration()));
+    LockWatcher lw = new ServiceLockWatcher("compactor", () -> getShutdownComplete().get(),
+        (name) -> gcLogger.logGCInfo(getConfiguration()));
 
     try {
       byte[] lockContent =
@@ -891,8 +890,8 @@ public class Compactor extends AbstractServer
       }
 
       gcLogger.logGCInfo(getConfiguration());
+      getShutdownComplete().set(true);
       LOG.info("stop requested. exiting ... ");
-      shutdownComplete = true;
       try {
         if (null != compactorLock) {
           compactorLock.unlock();

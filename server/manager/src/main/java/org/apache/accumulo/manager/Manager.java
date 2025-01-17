@@ -1495,7 +1495,13 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
+    getShutdownComplete().set(true);
     log.info("stop requested. exiting ... ");
+    try {
+      managerLock.unlock();
+    } catch (Exception e) {
+      log.warn("Failed to release Manager lock", e);
+    }
   }
 
   @Deprecated
@@ -1656,7 +1662,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     UUID zooLockUUID = UUID.randomUUID();
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
     HAServiceLockWatcher managerLockWatcher =
-        new HAServiceLockWatcher("manager", () -> isShutdownRequested());
+        new HAServiceLockWatcher("manager", () -> getShutdownComplete().get());
 
     while (true) {
 

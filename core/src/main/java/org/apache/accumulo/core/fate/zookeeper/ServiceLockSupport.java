@@ -41,20 +41,20 @@ public class ServiceLockSupport {
     private static final Logger LOG = LoggerFactory.getLogger(HAServiceLockWatcher.class);
 
     private final String serviceName;
-    private final Supplier<Boolean> shutdownRequested;
+    private final Supplier<Boolean> shutdownComplete;
     private volatile boolean acquiredLock = false;
     private volatile boolean failedToAcquireLock = false;
 
-    public HAServiceLockWatcher(String serviceName, Supplier<Boolean> shutdownRequested) {
+    public HAServiceLockWatcher(String serviceName, Supplier<Boolean> shutdownComplete) {
       this.serviceName = serviceName;
-      this.shutdownRequested = shutdownRequested;
+      this.shutdownComplete = shutdownComplete;
     }
 
     @Override
     public void lostLock(LockLossReason reason) {
-      if (shutdownRequested.get()) {
-        LOG.warn("{} lost lock (reason = {}), not exiting because shutdown requested.", serviceName,
-            reason);
+      if (shutdownComplete.get()) {
+        LOG.warn("{} lost lock (reason = {}), not halting because shutdown is complete.",
+            serviceName, reason);
       } else {
         Halt.halt(serviceName + " lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
       }
@@ -129,28 +129,24 @@ public class ServiceLockSupport {
     private static final Logger LOG = LoggerFactory.getLogger(ServiceLockWatcher.class);
 
     private final String serviceName;
-    private final Supplier<Boolean> shuttingDown;
     private final Supplier<Boolean> shutdownComplete;
     private final Consumer<String> lostLockAction;
 
-    public ServiceLockWatcher(String serviceName, Supplier<Boolean> shuttingDown,
-        Supplier<Boolean> shutdownComplete, Consumer<String> lostLockAction) {
+    public ServiceLockWatcher(String serviceName, Supplier<Boolean> shutdownComplete,
+        Consumer<String> lostLockAction) {
       this.serviceName = serviceName;
-      this.shuttingDown = shuttingDown;
       this.shutdownComplete = shutdownComplete;
       this.lostLockAction = lostLockAction;
     }
 
     @Override
     public void lostLock(final LockLossReason reason) {
-      if (shuttingDown.get() && shutdownComplete.get()) {
-        LOG.warn("{} lost lock (reason = {}), not exiting because shutdown requested.", serviceName,
-            reason);
+      if (shutdownComplete.get()) {
+        LOG.warn("{} lost lock (reason = {}), not halting because shutdown is complete.",
+            serviceName, reason);
       } else {
         Halt.halt(1, () -> {
-          if (!shuttingDown.get()) {
-            LOG.error("{} lost lock (reason = {}), exiting.", serviceName, reason);
-          }
+          LOG.error("{} lost lock (reason = {}), exiting.", serviceName, reason);
           lostLockAction.accept(serviceName);
         });
       }

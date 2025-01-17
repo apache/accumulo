@@ -331,7 +331,14 @@ public class SimpleGarbageCollector extends AbstractServer
         gracefulShutdown(getContext().rpcCreds());
       }
     }
+    getShutdownComplete().set(true);
     log.info("stop requested. exiting ... ");
+    try {
+      gcLock.unlock();
+    } catch (Exception e) {
+      log.warn("Failed to release GarbageCollector lock", e);
+    }
+
   }
 
   private void incrementStatsForRun(GCRun gcRun) {
@@ -375,7 +382,7 @@ public class SimpleGarbageCollector extends AbstractServer
     UUID zooLockUUID = UUID.randomUUID();
     gcLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
     HAServiceLockWatcher gcLockWatcher =
-        new HAServiceLockWatcher("gc", () -> isShutdownRequested());
+        new HAServiceLockWatcher("gc", () -> getShutdownComplete().get());
 
     while (true) {
       gcLock.lock(gcLockWatcher,

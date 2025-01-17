@@ -99,6 +99,7 @@ public class CompactionCoordinatorTest {
     private final ServerAddress client;
     private final TabletClientService.Client tabletServerClient;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
 
     private Set<ExternalCompactionId> metadataCompactionIds = null;
 
@@ -131,6 +132,10 @@ public class CompactionCoordinatorTest {
     @Override
     public boolean isShutdownRequested() {
       return shutdown.get();
+    }
+
+    public AtomicBoolean getShutdownComplete() {
+      return shutdownComplete;
     }
 
     @Override
