@@ -125,6 +125,12 @@ public class ColumnVisibility {
       this.end = end;
     }
 
+    /**
+     * Creates a new node by performing a deep copy of an existing node object
+     *
+     * @param node Node object
+     * @since 2.1.4
+     */
     public Node(Node node) {
       List<Node> childrenNew = new ArrayList<>(node.children.size());
       for (Node child : node.children) {
@@ -516,6 +522,13 @@ public class ColumnVisibility {
     validate(expression);
   }
 
+  /**
+   * Creates a new column visibility by performing a deep copy of an existing column visibility
+   * object
+   *
+   * @param visibility ColumnVisibility object
+   * @since 2.1.4
+   */
   public ColumnVisibility(ColumnVisibility visibility) {
     byte[] incomingExpression = visibility.expression;
     this.expression = Arrays.copyOf(incomingExpression, incomingExpression.length);
