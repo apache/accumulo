@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.client.rfile;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -26,7 +27,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.rfile.RFile.WriterFSOptions;
@@ -83,7 +83,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
 
   @Override
   public WriterOptions withSampler(SamplerConfiguration samplerConf) {
-    Objects.requireNonNull(samplerConf);
+    requireNonNull(samplerConf);
     Map<String,String> tmp = new SamplerConfigurationImpl(samplerConf).toTablePropertiesMap();
     checkDisjoint(tableConfig, tmp, "sampler");
     this.samplerProps = tmp;
@@ -108,7 +108,8 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
     CryptoService cs =
         CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE, tableConfig);
 
-    var loadPlanCollector = splitResolver == null ? new LoadPlanCollector() : new LoadPlanCollector(splitResolver);
+    var loadPlanCollector =
+        splitResolver == null ? new LoadPlanCollector() : new LoadPlanCollector(splitResolver);
 
     if (out.getOutputStream() != null) {
       FSDataOutputStream fsdo;
@@ -132,7 +133,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
 
   @Override
   public WriterOptions withFileSystem(FileSystem fs) {
-    Objects.requireNonNull(fs);
+    requireNonNull(fs);
     out.fs = fs;
     return this;
   }
@@ -146,14 +147,14 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
 
   @Override
   public WriterOptions to(OutputStream out) {
-    Objects.requireNonNull(out);
+    requireNonNull(out);
     this.out = new OutputArgs(out);
     return this;
   }
 
   @Override
   public WriterOptions withTableProperties(Iterable<Entry<String,String>> tableConfig) {
-    Objects.requireNonNull(tableConfig);
+    requireNonNull(tableConfig);
     HashMap<String,String> cfg = new HashMap<>();
     for (Entry<String,String> entry : tableConfig) {
       cfg.put(entry.getKey(), entry.getValue());
@@ -167,7 +168,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
 
   @Override
   public WriterOptions withTableProperties(Map<String,String> tableConfig) {
-    Objects.requireNonNull(tableConfig);
+    requireNonNull(tableConfig);
     return withTableProperties(tableConfig.entrySet());
   }
 
@@ -186,7 +187,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
 
   @Override
   public WriterOptions withSummarizers(SummarizerConfiguration... summarizerConf) {
-    Objects.requireNonNull(summarizerConf);
+    requireNonNull(summarizerConf);
     Map<String,String> tmp = SummarizerConfiguration.toTableProperties(summarizerConf);
     checkDisjoint(tableConfig, tmp, "summarizer");
     this.summarizerProps = tmp;
