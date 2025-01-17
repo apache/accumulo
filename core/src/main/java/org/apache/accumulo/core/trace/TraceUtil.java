@@ -21,7 +21,9 @@ package org.apache.accumulo.core.trace;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.apache.accumulo.core.Constants;
@@ -214,8 +216,19 @@ public class TraceUtil {
   private static <T> T wrapRpc(final InvocationHandler handler, final T instance) {
     @SuppressWarnings("unchecked")
     T proxiedInstance = (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(),
-        instance.getClass().getInterfaces(), handler);
+        getInterfaces(instance.getClass()).toArray(new Class<?>[0]), handler);
     return proxiedInstance;
+  }
+
+  private static Set<Class<?>> getInterfaces(Class<?> clazz) {
+    var set = new HashSet<Class<?>>();
+    if (clazz != null) {
+      set.addAll(getInterfaces(clazz.getSuperclass()));
+      for (Class<?> interfaze : clazz.getInterfaces()) {
+        set.add(interfaze);
+      }
+    }
+    return set;
   }
 
 }

@@ -20,6 +20,7 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZGC_LOCK;
+import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
@@ -73,7 +74,7 @@ public class ServiceStatusCmdTest {
     expect(context.getZooCache()).andReturn(zooCache).anyTimes();
     expect(context.getZooSession()).andReturn(zooReader).anyTimes();
     expect(context.getZooKeeperRoot()).andReturn(zRoot).anyTimes();
-    expect(context.getServerPaths()).andReturn(new ServiceLockPaths(context)).anyTimes();
+    expect(context.getServerPaths()).andReturn(new ServiceLockPaths(zRoot, zooCache)).anyTimes();
     replay(context);
   }
 
@@ -357,21 +358,56 @@ public class ServiceStatusCmdTest {
   @Test
   public void testCompactorStatus() throws Exception {
     replay(zooReader);
+
+    UUID uuid1 = UUID.randomUUID();
+    String lock1Name = "zlock#" + uuid1 + "#0000000001";
+    UUID uuid2 = UUID.randomUUID();
+    String lock2Name = "zlock#" + uuid2 + "#0000000022";
+    UUID uuid3 = UUID.randomUUID();
+    String lock3Name = "zlock#" + uuid3 + "#0000000033";
+    UUID uuid4 = UUID.randomUUID();
+    String lock4Name = "zlock#" + uuid4 + "#0000000044";
+
+    String lock1data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostA:8080\",\"group\":\"q1\"}]}";
+    String lock2data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostC:8081\",\"group\":\"q1\"}]}";
+    String lock3data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostB:9090\",\"group\":\"q2\"}]}";
+    String lock4data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostD:9091\",\"group\":\"q2\"}]}";
+
     String lockPath = zRoot + Constants.ZCOMPACTORS;
-    expect(zooCache.getChildren(lockPath)).andReturn(List.of("q1", "q2"));
+    expect(zooCache.getChildren(lockPath)).andReturn(List.of("q1", "q2", "q3"));
     expect(zooCache.getChildren(lockPath + "/q1")).andReturn(List.of("hostA:8080", "hostC:8081"));
     expect(zooCache.getChildren(lockPath + "/q2")).andReturn(List.of("hostB:9090", "hostD:9091"));
-    expect(zooCache.getChildren(lockPath + "/q1/hostA:8080")).andReturn(List.of());
-    expect(zooCache.getChildren(lockPath + "/q1/hostC:8081")).andReturn(List.of());
-    expect(zooCache.getChildren(lockPath + "/q2/hostB:9090")).andReturn(List.of());
-    expect(zooCache.getChildren(lockPath + "/q2/hostD:9091")).andReturn(List.of());
+    // Create compactor group with dead compactor
+    expect(zooCache.getChildren(lockPath + "/q3")).andReturn(List.of("deadHost:8080"));
+
+    expect(zooCache.getChildren(lockPath + "/q1/hostA:8080")).andReturn(List.of(lock1Name));
+    expect(zooCache.get(eq(lockPath + "/q1/hostA:8080/" + lock1Name), anyObject(ZcStat.class)))
+        .andReturn(lock1data.getBytes(UTF_8));
+    expect(zooCache.getChildren(lockPath + "/q1/hostC:8081")).andReturn(List.of(lock2Name));
+    expect(zooCache.get(eq(lockPath + "/q1/hostC:8081/" + lock2Name), anyObject(ZcStat.class)))
+        .andReturn(lock2data.getBytes(UTF_8));
+    expect(zooCache.getChildren(lockPath + "/q2/hostB:9090")).andReturn(List.of(lock3Name));
+    expect(zooCache.get(eq(lockPath + "/q2/hostB:9090/" + lock3Name), anyObject(ZcStat.class)))
+        .andReturn(lock3data.getBytes(UTF_8));
+    expect(zooCache.getChildren(lockPath + "/q2/hostD:9091")).andReturn(List.of(lock4Name));
+    expect(zooCache.get(eq(lockPath + "/q2/hostD:9091/" + lock4Name), anyObject(ZcStat.class)))
+        .andReturn(lock4data.getBytes(UTF_8));
+    expect(zooCache.getChildren(lockPath + "/q3/deadHost:8080")).andReturn(List.of());
 
     replay(zooCache);
 
     ServiceStatusCmd cmd = new ServiceStatusCmd();
     StatusSummary status = cmd.getCompactorStatus(context);
+
     LOG.info("compactor group counts: {}", status);
-    assertEquals(0, status.getResourceGroups().size());
+    assertEquals(2, status.getResourceGroups().size());
+
+    LOG.info("Live compactor counts: {}", status.getServiceCount());
+    assertEquals(4, status.getServiceCount());
   }
 
   @Test

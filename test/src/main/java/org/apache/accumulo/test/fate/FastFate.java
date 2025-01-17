@@ -28,10 +28,11 @@ import org.apache.accumulo.core.fate.Repo;
 
 /**
  * A FATE which performs the dead reservation cleanup and the check on the pool size with a much
- * shorter delay between for faster testing.
+ * shorter delay between. Useful for shortening test times for tests that are waiting for one of
+ * these actions to occur.
  */
 public class FastFate<T> extends Fate<T> {
-  private static final Duration DEAD_RES_CLEANUP_DELAY = Duration.ofSeconds(15);
+  private static final Duration DEAD_RES_CLEANUP_DELAY = Duration.ofSeconds(5);
   private static final Duration POOL_WATCHER_DELAY = Duration.ofSeconds(5);
 
   public FastFate(T environment, FateStore<T> store, boolean runDeadResCleaner,

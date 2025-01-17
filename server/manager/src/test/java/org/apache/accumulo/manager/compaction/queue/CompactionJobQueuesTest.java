@@ -81,7 +81,7 @@ public class CompactionJobQueuesTest {
     var cg2 = CompactorGroupId.of("CG2");
     var cg3 = CompactorGroupId.of("CG3");
 
-    CompactionJobQueues jobQueues = new CompactionJobQueues(100);
+    CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
 
     jobQueues.beginFullScan(DataLevel.USER);
 
@@ -247,7 +247,7 @@ public class CompactionJobQueuesTest {
 
     var cg1 = CompactorGroupId.of("CG1");
 
-    CompactionJobQueues jobQueues = new CompactionJobQueues(100);
+    CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
 
     jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
     jobQueues.add(tm2, List.of(newJob((short) 2, 6, cg1)));
@@ -283,7 +283,7 @@ public class CompactionJobQueuesTest {
 
     final int numToAdd = 100_000;
 
-    CompactionJobQueues jobQueues = new CompactionJobQueues(numToAdd + 1);
+    CompactionJobQueues jobQueues = new CompactionJobQueues(10000000);
     CompactorGroupId[] groups =
         Stream.of("G1", "G2", "G3").map(CompactorGroupId::of).toArray(CompactorGroupId[]::new);
 
@@ -342,7 +342,7 @@ public class CompactionJobQueuesTest {
 
   @Test
   public void testGetAsync() throws Exception {
-    CompactionJobQueues jobQueues = new CompactionJobQueues(100);
+    CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
 
     var tid = TableId.of("1");
     var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));

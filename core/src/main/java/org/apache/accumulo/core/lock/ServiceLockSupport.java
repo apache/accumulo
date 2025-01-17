@@ -50,14 +50,11 @@ public class ServiceLockSupport {
     try {
       zrw.mkdirs(rgPath);
       zrw.putPersistentData(slp.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
-    } catch (KeeperException e) {
-      if (e.code() == KeeperException.Code.NOAUTH) {
-        LOG.error("Failed to write to ZooKeeper. Ensure that"
-            + " accumulo.properties, specifically instance.secret, is consistent.");
-      }
+    } catch (NoAuthException e) {
+      LOG.error("Failed to write to ZooKeeper. Ensure that"
+          + " accumulo.properties, specifically instance.secret, is consistent.");
       throw e;
     }
-
   }
 
   /**

@@ -18,21 +18,58 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
-import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateOpsCommandsIT;
+import org.apache.accumulo.test.fate.MultipleStoresIT.LatchTestEnv;
+import org.apache.accumulo.test.fate.TestLock;
 
 public class MetaFateOpsCommandsIT extends FateOpsCommandsIT {
+  /**
+   * This should be used for tests that will not seed a txn with work/reserve a txn. Note that this
+   * should be used in conjunction with
+   * {@link FateOpsCommandsIT#initFateNoDeadResCleaner(FateStore)}
+   */
   @Override
-  public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
+  public void executeTest(FateTestExecutor<LatchTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
-    ServerContext sctx = getCluster().getServerContext();
-    String path = sctx.getZooKeeperRoot() + Constants.ZFATE;
-    var zk = sctx.getZooSession();
-    testMethod.execute(new MetaFateStore<>(path, zk, createDummyLockID(), null), sctx);
+    ServerContext context = getCluster().getServerContext();
+    String path = context.getZooKeeperRoot() + Constants.ZFATE;
+    var zk = context.getZooSession();
+    // test should not be reserving txns or checking reservations, so null lockID and isLockHeld
+    testMethod.execute(new MetaFateStore<>(path, zk, null, null), context);
+  }
+
+  /**
+   * This should be used for tests that will seed a txn with work/reserve a txn. Note that this
+   * should be used in conjunction with
+   * {@link FateOpsCommandsIT#initFateWithDeadResCleaner(FateStore, LatchTestEnv)}
+   */
+  @Override
+  public void stopManagerAndExecuteTest(FateTestExecutor<LatchTestEnv> testMethod)
+      throws Exception {
+    stopManager();
+    ServerContext context = getCluster().getServerContext();
+    String path = context.getZooKeeperRoot() + Constants.ZFATE;
+    var zk = context.getZooSession();
+    ServiceLock testLock = null;
+    try {
+      testLock = new TestLock().createTestLock(context);
+      ZooUtil.LockID lockID = testLock.getLockID();
+      Predicate<ZooUtil.LockID> isLockHeld =
+          lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
+      testMethod.execute(new MetaFateStore<>(path, zk, lockID, isLockHeld), context);
+    } finally {
+      if (testLock != null) {
+        testLock.unlock();
+      }
+    }
   }
 }

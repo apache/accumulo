@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
+import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
+
 import java.io.File;
 
-import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.test.fate.FateStatusEnforcementIT;
 import org.apache.accumulo.test.fate.FateStoreUtil;
@@ -46,7 +47,7 @@ public class MetaFateStatusEnforcementIT extends FateStatusEnforcementIT {
   @BeforeEach
   public void beforeEachSetup() throws Exception {
     store = new MetaFateStore<>(FateStoreUtil.MetaFateZKSetup.getZkFatePath(),
-        FateStoreUtil.MetaFateZKSetup.getZk(), AbstractFateStore.createDummyLockID(), null);
+        FateStoreUtil.MetaFateZKSetup.getZk(), createDummyLockID(), null);
     fateId = store.create();
     txStore = store.reserve(fateId);
   }
