@@ -99,15 +99,20 @@ public class ExternalCompactionTestUtils {
     return String.format("r:%04d", r);
   }
 
-  public static void compact(final AccumuloClient client, String table1, int modulus,
-      String expectedQueue, boolean wait)
-      throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+  public static void addCompactionIterators(CompactionConfig config, int modulus,
+      String expectedQueue) {
     IteratorSetting iterSetting = new IteratorSetting(100, TestFilter.class);
     // make sure iterator options make it to compactor process
     iterSetting.addOption("expectedQ", expectedQueue);
     iterSetting.addOption("modulus", modulus + "");
-    CompactionConfig config =
-        new CompactionConfig().setIterators(List.of(iterSetting)).setWait(wait);
+    config.setIterators(List.of(iterSetting));
+  }
+
+  public static void compact(final AccumuloClient client, String table1, int modulus,
+      String expectedQueue, boolean wait)
+      throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    CompactionConfig config = new CompactionConfig().setWait(wait);
+    addCompactionIterators(config, modulus, expectedQueue);
     client.tableOperations().compact(table1, config);
   }
 

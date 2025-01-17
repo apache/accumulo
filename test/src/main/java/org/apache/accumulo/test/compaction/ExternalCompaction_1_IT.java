@@ -25,6 +25,7 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GR
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP6;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP8;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.addCompactionIterators;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.assertNoCompactionMetadata;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
@@ -58,12 +59,14 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
@@ -72,6 +75,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
@@ -514,6 +518,68 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       compact(client, table1, 3, GROUP4, true);
 
       verify(client, table1, 3);
+
+      List<TabletId> tabletIds;
+      // start a compaction on each tablet
+      try (var tablets = client.tableOperations().getTabletInformation(table1, new Range())) {
+        tabletIds = tablets.map(TabletInformation::getTabletId).collect(Collectors.toList());
+      }
+      // compact the even tablet with a modulus filter of 2
+      List<Range> evenRanges = new ArrayList<>();
+      for (int i = 0; i < tabletIds.size(); i += 2) {
+        var tabletId = tabletIds.get(i);
+        CompactionConfig compactionConfig = new CompactionConfig()
+            .setStartRow(tabletId.getPrevEndRow()).setEndRow(tabletId.getEndRow()).setWait(false);
+        addCompactionIterators(compactionConfig, 2, GROUP4);
+        client.tableOperations().compact(table1, compactionConfig);
+        evenRanges.add(tabletId.toRange());
+      }
+
+      // compact the odd tablets with a modulus filter of 5
+      List<Range> oddRanges = new ArrayList<>();
+      for (int i = 1; i < tabletIds.size(); i += 2) {
+        var tabletId = tabletIds.get(i);
+        CompactionConfig compactionConfig = new CompactionConfig()
+            .setStartRow(tabletId.getPrevEndRow()).setEndRow(tabletId.getEndRow()).setWait(false);
+        addCompactionIterators(compactionConfig, 5, GROUP4);
+        client.tableOperations().compact(table1, compactionConfig);
+        oddRanges.add(tabletId.toRange());
+      }
+
+      Wait.waitFor(() -> {
+        try (BatchScanner scanner = client.createBatchScanner(table1)) {
+          scanner.setRanges(evenRanges);
+          // filtered out data that was divisible by 3 and then 2 by compactions, so should end up
+          // w/ only data divisible by 6
+          int matching = 0;
+          int nonMatching = 0;
+          for (var entry : scanner) {
+            int val = Integer.parseInt(entry.getValue().toString());
+            if (val % 6 == 0) {
+              matching++;
+            } else {
+              nonMatching++;
+            }
+          }
+          boolean evenDone = matching > 0 && nonMatching == 0;
+          // filtered out data that was divisible by 3 and then 5 by compactions, so should end up
+          // w/ only data divisible by 15
+          scanner.setRanges(oddRanges);
+          matching = 0;
+          nonMatching = 0;
+          for (var entry : scanner) {
+            int val = Integer.parseInt(entry.getValue().toString());
+            if (val % 15 == 0) {
+              matching++;
+            } else {
+              nonMatching++;
+            }
+          }
+          boolean oddDone = matching > 0 && nonMatching == 0;
+          return evenDone && oddDone;
+        }
+      });
+
     }
   }
 

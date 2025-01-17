@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.function.BiPredicate;
 
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.QueueLock;
 import org.junit.jupiter.api.Test;
@@ -40,14 +41,18 @@ public class DistributedReadWriteLockTest {
     final SortedMap<Long,byte[]> locks = new TreeMap<>();
 
     @Override
-    public synchronized SortedMap<Long,byte[]> getEarlierEntries(long entry) {
+    public synchronized SortedMap<Long,byte[]> getEntries(BiPredicate<Long,byte[]> predicate) {
       SortedMap<Long,byte[]> result = new TreeMap<>();
-      result.putAll(locks.headMap(entry + 1));
+      locks.forEach((seq, lockData) -> {
+        if (predicate.test(seq, lockData)) {
+          result.put(seq, lockData);
+        }
+      });
       return result;
     }
 
     @Override
-    public synchronized void removeEntry(long entry) {
+    public synchronized void removeEntry(byte[] data, long entry) {
       synchronized (locks) {
         locks.remove(entry);
         locks.notifyAll();

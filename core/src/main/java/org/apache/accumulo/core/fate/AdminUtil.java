@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
@@ -286,19 +287,17 @@ public class AdminUtil<T> {
     List<String> lockedIds = zr.getChildren(lockPath.toString());
 
     for (String id : lockedIds) {
-
       try {
-
         FateLockPath fLockPath = FateLock.path(lockPath + "/" + id);
-        List<String> lockNodes =
-            FateLock.validateAndSort(fLockPath, zr.getChildren(fLockPath.toString()));
+        SortedSet<FateLock.FateLockNode> lockNodes =
+            FateLock.validateAndWarn(fLockPath, zr.getChildren(fLockPath.toString()));
 
         int pos = 0;
         boolean sawWriteLock = false;
 
-        for (String node : lockNodes) {
+        for (FateLock.FateLockNode node : lockNodes) {
           try {
-            byte[] data = zr.getData(lockPath + "/" + id + "/" + node);
+            byte[] data = node.lockData.getBytes(UTF_8);
             // Example data: "READ:<FateId>". FateId contains ':' hence the limit of 2
             String[] lda = new String(data, UTF_8).split(":", 2);
             FateId fateId = FateId.from(lda[1]);
