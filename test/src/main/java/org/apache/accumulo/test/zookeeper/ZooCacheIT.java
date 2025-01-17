@@ -69,7 +69,7 @@ public class ZooCacheIT {
 
     private static final ZooCacheTicker ticker = new ZooCacheTicker();
 
-    public TestZooCache(ZooSession zk, List<String> pathsToWatch) {
+    public TestZooCache(ZooSession zk, Set<String> pathsToWatch) {
       super(zk, pathsToWatch, ticker);
     }
 
@@ -105,7 +105,7 @@ public class ZooCacheIT {
 
     final String root = Constants.ZROOT + UUID.randomUUID().toString();
     final String base = root + Constants.ZTSERVERS;
-    TestZooCache zooCache = new TestZooCache(zk, List.of(base));
+    TestZooCache zooCache = new TestZooCache(zk, Set.of(base));
 
     zrw.mkdirs(base + "/test2");
     zrw.mkdirs(base + "/test3/c1");

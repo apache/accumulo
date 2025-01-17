@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -54,12 +55,12 @@ public class ZooCacheTest {
    */
   private static class TestZooCache extends ZooCache {
 
-    public TestZooCache(ZooSession zk, List<String> pathsToWatch) {
+    public TestZooCache(ZooSession zk, Set<String> pathsToWatch) {
       super(zk, pathsToWatch);
     }
 
     @Override
-    protected void setupWatchers(List<String> pathsToWatch) {
+    protected void setupWatchers(Set<String> pathsToWatch) {
       for (String path : pathsToWatch) {
         watchedPaths.add(path);
       }
@@ -84,15 +85,15 @@ public class ZooCacheTest {
   @BeforeEach
   public void setUp() {
     zk = createStrictMock(ZooSession.class);
-    zc = new TestZooCache(zk, List.of(root));
+    zc = new TestZooCache(zk, Set.of(root));
   }
 
   @Test
   public void testOverlappingPaths() {
     assertThrows(IllegalArgumentException.class,
-        () -> new ZooCache(zk, List.of(root, root + "/localhost:9995")));
+        () -> new ZooCache(zk, Set.of(root, root + "/localhost:9995")));
 
-    List<String> goodPaths = List.of("/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/compactors",
+    Set<String> goodPaths = Set.of("/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/compactors",
         "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/dead/tservers",
         "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/gc/lock",
         "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/managers/lock",
@@ -336,7 +337,7 @@ public class ZooCacheTest {
     WatchedEvent event =
         new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
-    zc = new TestZooCache(zk, List.of(root));
+    zc = new TestZooCache(zk, Set.of(root));
     zc.addZooCacheWatcher(exw);
 
     watchData(initialData);
@@ -447,7 +448,7 @@ public class ZooCacheTest {
   private void testWatchDataNode_Clear(Watcher.Event.KeeperState state) throws Exception {
     WatchedEvent event = new WatchedEvent(Watcher.Event.EventType.None, state, null);
     TestWatcher exw = new TestWatcher(event);
-    zc = new TestZooCache(zk, List.of(root));
+    zc = new TestZooCache(zk, Set.of(root));
     zc.addZooCacheWatcher(exw);
 
     watchData(DATA);
@@ -482,7 +483,7 @@ public class ZooCacheTest {
     WatchedEvent event =
         new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
-    zc = new TestZooCache(zk, List.of(root));
+    zc = new TestZooCache(zk, Set.of(root));
     zc.addZooCacheWatcher(exw);
 
     watchChildren(initialChildren);

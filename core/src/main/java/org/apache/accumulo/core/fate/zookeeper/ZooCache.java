@@ -36,11 +36,9 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
@@ -65,17 +63,6 @@ public class ZooCache {
 
   private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
 
-  public static List<String> createPersistentWatcherPaths(String zkRoot) {
-    List<String> pathsToWatch = new ArrayList<>();
-    for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
-        Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
-        Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
-        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET)) {
-      pathsToWatch.add(zkRoot + path);
-    }
-    return pathsToWatch;
-  }
-
   protected final TreeSet<String> watchedPaths = new TreeSet<>();
   // visible for tests
   protected final ZCacheWatcher watcher = new ZCacheWatcher();
@@ -96,6 +83,8 @@ public class ZooCache {
   // key and ZooCache relies on that. Not all concurrent map implementations have this behavior for
   // their compute functions.
   private final ConcurrentMap<String,ZcNode> nodeCache;
+
+  private final Set<String> pathsToWatch;
 
   private final ZooSession zk;
 
@@ -177,7 +166,9 @@ public class ZooCache {
               clear();
               break;
             case SyncConnected:
-              log.trace("{} ZooKeeper connection established, ignoring; {}", cacheId, event);
+              log.trace("{} ZooKeeper connection established, re-establishing watchers; {}",
+                  cacheId, event);
+              setupWatchers(pathsToWatch);
               break;
             case Expired:
               log.trace("{} ZooKeeper connection expired, clearing cache; {}", cacheId, event);
@@ -207,24 +198,18 @@ public class ZooCache {
    * @param zk ZooSession for this instance
    * @param pathsToWatch Paths in ZooKeeper to watch
    */
-  public ZooCache(ZooSession zk, List<String> pathsToWatch) {
-    this.zk = requireNonNull(zk);
-    this.cache = Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
-        .ticker(Ticker.systemTicker()).expireAfterAccess(CACHE_DURATION).build();
-    this.nodeCache = cache.asMap();
-
-    setupWatchers(requireNonNull(pathsToWatch));
-    log.trace("{} created new cache", cacheId, new Exception());
+  public ZooCache(ZooSession zk, Set<String> pathsToWatch) {
+    this(zk, pathsToWatch, Ticker.systemTicker());
   }
 
   // for tests that use a Ticker
-  public ZooCache(ZooSession zk, List<String> pathsToWatch, Ticker ticker) {
+  public ZooCache(ZooSession zk, Set<String> pathsToWatch, Ticker ticker) {
     this.zk = requireNonNull(zk);
     this.cache = Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
         .ticker(requireNonNull(ticker)).expireAfterAccess(CACHE_DURATION).build();
     this.nodeCache = cache.asMap();
-
-    setupWatchers(requireNonNull(pathsToWatch));
+    this.pathsToWatch = requireNonNull(pathsToWatch);
+    setupWatchers(pathsToWatch);
     log.trace("{} created new cache", cacheId, new Exception());
   }
 
@@ -233,7 +218,7 @@ public class ZooCache {
   }
 
   // Visible for testing
-  protected void setupWatchers(List<String> pathsToWatch) {
+  protected void setupWatchers(Set<String> pathsToWatch) {
 
     for (String left : pathsToWatch) {
       for (String right : pathsToWatch) {
@@ -584,7 +569,7 @@ public class ZooCache {
   public void clear(Predicate<String> pathPredicate) {
     Preconditions.checkState(!closed);
     Predicate<String> pathPredicateWrapper = path -> {
-      boolean testResult = isWatchedPath(path) && pathPredicate.test(path);
+      boolean testResult = pathPredicate.test(path);
       if (testResult) {
         updateCount.incrementAndGet();
         log.trace("{} removing {} from cache", cacheId, path);
