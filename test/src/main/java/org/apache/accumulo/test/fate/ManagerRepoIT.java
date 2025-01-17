@@ -198,7 +198,7 @@ public class ManagerRepoIT extends SharedMiniClusterBase {
       assertEquals(opid, testAmple.readTablet(extent).getOperationId());
 
       var eoRepo = new AllocateDirsAndEnsureOnline(
-          new SplitInfo(extent, new TreeSet<>(List.of(new Text("sp1")))));
+          new SplitInfo(extent, new TreeSet<>(List.of(new Text("sp1"))), true));
 
       // The repo should delete the opid and throw an exception
       assertThrows(ThriftTableOperationException.class, () -> eoRepo.call(fateId, manager));

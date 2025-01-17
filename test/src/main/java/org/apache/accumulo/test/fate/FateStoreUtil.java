@@ -30,8 +30,9 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
@@ -39,9 +40,14 @@ import org.junit.jupiter.api.io.TempDir;
 import com.google.common.collect.MoreCollectors;
 
 /**
- * A class with utility methods for testing UserFateStore and MetaFateStore
+ * A class with utilities for testing {@link org.apache.accumulo.core.fate.user.UserFateStore} and
+ * {@link org.apache.accumulo.core.fate.zookeeper.MetaFateStore}
  */
 public class FateStoreUtil {
+  // A FateOperation for testing purposes when a FateOperation is needed but whose value doesn't
+  // matter
+  public static final Fate.FateOperation TEST_FATE_OP = Fate.FateOperation.TABLE_CREATE;
+
   /**
    * Create the fate table with the exact configuration as the real Fate user instance table
    * including table properties and TabletAvailability. For use in testing UserFateStore
@@ -73,7 +79,7 @@ public class FateStoreUtil {
   @Tag(ZOOKEEPER_TESTING_SERVER)
   public static class MetaFateZKSetup {
     private static ZooKeeperTestingServer szk;
-    private static ZooReaderWriter zk;
+    private static ZooSession zk;
     private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID();
     private static String ZK_FATE_PATH;
 
@@ -82,10 +88,11 @@ public class FateStoreUtil {
      */
     public static void setup(@TempDir File tempDir) throws Exception {
       szk = new ZooKeeperTestingServer(tempDir);
-      zk = szk.getZooReaderWriter();
+      zk = szk.newClient();
       ZK_FATE_PATH = ZK_ROOT + Constants.ZFATE;
-      zk.mkdirs(ZK_FATE_PATH);
-      zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
+      var zrw = zk.asReaderWriter();
+      zrw.mkdirs(ZK_FATE_PATH);
+      zrw.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
     }
 
     /**
@@ -99,7 +106,7 @@ public class FateStoreUtil {
       return ZK_ROOT;
     }
 
-    public static ZooReaderWriter getZooReaderWriter() {
+    public static ZooSession getZk() {
       return zk;
     }
 

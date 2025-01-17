@@ -64,8 +64,8 @@ public class ZKPermHandler implements PermissionHandler {
 
   @Override
   public void initialize(ServerContext context) {
-    zooCache = new ZooCache(context.getZooReader(), null);
-    zoo = context.getZooReaderWriter();
+    zooCache = new ZooCache(context.getZooSession());
+    zoo = context.getZooSession().asReaderWriter();
     zkUserPath = context.zkUserPath();
     ZKTablePath = context.getZooKeeperRoot() + Constants.ZTABLES;
     ZKNamespacePath = context.getZooKeeperRoot() + Constants.ZNAMESPACES;

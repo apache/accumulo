@@ -20,6 +20,7 @@ package org.apache.accumulo.monitor.rest.manager;
 
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -32,6 +33,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.manager.thrift.DeadServer;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -46,6 +48,7 @@ import org.apache.accumulo.monitor.rest.tservers.DeadServerList;
 import org.apache.accumulo.monitor.rest.tservers.ServerShuttingDownInformation;
 import org.apache.accumulo.monitor.rest.tservers.ServersShuttingDown;
 import org.apache.accumulo.server.manager.state.TabletServerState;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Responsible for generating a new Manager information JSON object
@@ -173,10 +176,23 @@ public class ManagerResource {
     }
 
     DeadServerList deadServers = new DeadServerList();
+
+    String prop = monitor.getConfiguration().get(Property.MONITOR_DEAD_LIST_RG_EXCLUSIONS);
+    Set<String> exclusions = null;
+    if (StringUtils.isNotBlank(prop)) {
+      String[] rgs = prop.split(",");
+      exclusions = new HashSet<>(rgs.length);
+      for (String s : rgs) {
+        exclusions.add(s.trim());
+      }
+    }
+
     // Add new dead servers to the list
     for (DeadServer dead : mmi.deadTabletServers) {
-      deadServers
-          .addDeadServer(new DeadServerInformation(dead.server, dead.lastStatus, dead.status));
+      if (exclusions == null || !exclusions.contains(dead.getResourceGroup())) {
+        deadServers
+            .addDeadServer(new DeadServerInformation(dead.server, dead.lastStatus, dead.status));
+      }
     }
     return deadServers;
   }

@@ -57,6 +57,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -80,8 +81,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooSession;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
@@ -100,6 +100,7 @@ import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
@@ -109,6 +110,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
+import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.start.util.MiniDFSUtil;
@@ -119,9 +121,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,9 +154,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private final MiniAccumuloClusterControl clusterControl;
 
   private boolean initialized = false;
-  private ExecutorService executor;
+  private volatile ExecutorService executor;
   private ServiceLock miniLock;
-  private ZooKeeper zk;
+  private ZooSession miniLockZk;
   private AccumuloClient client;
 
   /**
@@ -524,7 +524,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       InstanceId instanceIdFromFile =
           VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
-      ZooReaderWriter zrw = getServerContext().getZooReaderWriter();
+      ZooReaderWriter zrw = getServerContext().getZooSession().asReaderWriter();
 
       String instanceName = null;
       try {
@@ -682,7 +682,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       @Override
       public void acquiredLock() {
-        log.warn("Acquired ZK lock for MiniAccumuloClusterImpl");
+        log.debug("Acquired ZK lock for MiniAccumuloClusterImpl");
         lockAcquired.set(true);
         lockWatcherInvoked.countDown();
       }
@@ -708,8 +708,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     final int timeout = (int) ConfigurationTypeHelper.getTimeInMillis(properties.getOrDefault(
         Property.INSTANCE_ZK_TIMEOUT.getKey(), Property.INSTANCE_ZK_TIMEOUT.getDefaultValue()));
     final String secret = properties.get(Property.INSTANCE_SECRET.getKey());
-    final byte[] auth = ("accumulo:" + secret).getBytes(UTF_8);
-    zk = ZooSession.getAuthenticatedSession(config.getZooKeepers(), timeout, "digest", auth);
+    miniLockZk = new ZooSession(MiniAccumuloClusterImpl.class.getSimpleName() + ".lock",
+        config.getZooKeepers(), timeout, secret);
 
     // It's possible start was called twice...
     if (miniLock == null) {
@@ -722,20 +722,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       String miniZDirPath =
           miniZInstancePath.substring(0, miniZInstancePath.indexOf("/" + miniUUID.toString()));
       try {
-        if (zk.exists(miniZDirPath, null) == null) {
-          zk.create(miniZDirPath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
-          log.info("Created: {}", miniZDirPath);
-        }
-        if (zk.exists(miniZInstancePath, null) == null) {
-          zk.create(miniZInstancePath, new byte[0], ZooUtil.PUBLIC, CreateMode.PERSISTENT);
-          log.info("Created: {}", miniZInstancePath);
-        }
+        var zrw = miniLockZk.asReaderWriter();
+        zrw.putPersistentData(miniZDirPath, new byte[0], NodeExistsPolicy.SKIP);
+        zrw.putPersistentData(miniZInstancePath, new byte[0], NodeExistsPolicy.SKIP);
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
       ServiceLockData sld = new ServiceLockData(miniUUID, "localhost", ThriftService.NONE,
           Constants.DEFAULT_RESOURCE_GROUP_NAME);
-      miniLock = new ServiceLock(zk, slp, miniUUID);
+      miniLock = new ServiceLock(miniLockZk, slp, miniUUID);
       miniLock.lock(miniLockWatcher, sld);
 
       lockWatcherInvoked.await();
@@ -981,9 +976,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       miniLock = null;
       this.getServerContext().clearServiceLock();
     }
-    if (zk != null) {
-      zk.close();
-      zk = null;
+    if (miniLockZk != null) {
+      miniLockZk.close();
+      miniLockZk = null;
     }
     if (client != null) {
       client.close();
@@ -995,9 +990,44 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     control.stop(ServerType.GARBAGE_COLLECTOR, null);
     control.stop(ServerType.MANAGER, null);
     control.stop(ServerType.TABLET_SERVER, null);
-    control.stop(ServerType.ZOOKEEPER, null);
     control.stop(ServerType.COMPACTOR, null);
     control.stop(ServerType.SCAN_SERVER, null);
+
+    // The method calls above kill the server
+    // Clean up the locks in ZooKeeper fo that if the cluster
+    // is restarted, then the processes will start right away
+    // and not wait for the old locks to be cleaned up.
+    try {
+      new ZooZap().zap(getServerContext().getSiteConfiguration(), "-manager", "-tservers",
+          "-compactors", "-sservers");
+    } catch (RuntimeException e) {
+      log.error("Error zapping zookeeper locks", e);
+    }
+    control.stop(ServerType.ZOOKEEPER, null);
+
+    // Clear the location of the servers in ZooCache.
+    // When ZooKeeper was stopped in the previous method call,
+    // the local ZooKeeper watcher did not fire. If MAC is
+    // restarted, then ZooKeeper will start on the same port with
+    // the same data, but no Watchers will fire.
+    boolean startCalled = true;
+    try {
+      getServerContext().getZooKeeperRoot();
+    } catch (IllegalStateException e) {
+      if (e.getMessage().startsWith("Accumulo not initialized")) {
+        startCalled = false;
+      }
+    }
+    if (startCalled) {
+      final ServerContext ctx = getServerContext();
+      final String zRoot = ctx.getZooKeeperRoot();
+      Predicate<String> pred = path -> false;
+      for (String lockPath : Set.of(Constants.ZMANAGER_LOCK, Constants.ZGC_LOCK,
+          Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS)) {
+        pred = pred.or(path -> path.startsWith(zRoot + lockPath));
+      }
+      ctx.getZooCache().clear(pred);
+    }
 
     // ACCUMULO-2985 stop the ExecutorService after we finished using it to stop accumulo procs
     if (executor != null) {

@@ -393,6 +393,8 @@ public interface Ample {
 
     T putCloned();
 
+    T putTabletMergeability(TabletMergeabilityMetadata tabletMergeability);
+
     /**
      * By default the server lock is automatically added to mutations unless this method is set to
      * false.

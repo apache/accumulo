@@ -20,15 +20,18 @@ package org.apache.accumulo.monitor;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.accumulo.core.client.admin.servers.ServerId.Type.SCAN_SERVER;
+import static org.apache.accumulo.core.client.admin.servers.ServerId.Type.TABLET_SERVER;
 
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -45,8 +48,8 @@ import jakarta.inject.Singleton;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.Property;
@@ -329,7 +332,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
     HostAndPort address = null;
     try {
       // Read the gc location from its lock
-      ZooReaderWriter zk = context.getZooReaderWriter();
+      ZooReaderWriter zk = context.getZooSession().asReaderWriter();
       var path = context.getServerPaths().createGarbageCollectorPath();
       List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
@@ -348,7 +351,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
         }
       }
     } catch (Exception ex) {
-      log.warn("Unable to contact the garbage collector at " + address, ex);
+      log.warn("Unable to contact the garbage collector at {}", address, ex);
     }
     return result;
   }
@@ -406,7 +409,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
     try {
       URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
       final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
-      final ZooReaderWriter zoo = context.getZooReaderWriter();
+      final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired
       zoo.delete(path);
       zoo.putEphemeralData(path, url.toString().getBytes(UTF_8));
@@ -524,73 +527,136 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
     }
   }
 
-  private final Map<HostAndPort,ScanStats> tserverScans = new HashMap<>();
-  private final Map<HostAndPort,ScanStats> sserverScans = new HashMap<>();
-  private final Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
-  private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
+  private final long expirationTimeMinutes = 1;
 
-  private long scansFetchedNanos = System.nanoTime();
-  private long compactsFetchedNanos = System.nanoTime();
-  private long ecInfoFetchedNanos = System.nanoTime();
-  private final long fetchTimeNanos = TimeUnit.MINUTES.toNanos(1);
-  private final long ageOffEntriesMillis = TimeUnit.MINUTES.toMillis(15);
-  // When there are a large amount of external compactions running the list of external compactions
-  // could consume a lot of memory. The purpose of this memoizing supplier is to try to avoid
-  // creating the list of running external compactions in memory per web request. If multiple
-  // request come in around the same time they should use the same list. It is still possible to
-  // have multiple list in memory if one request obtains a copy and then another request comes in
-  // after the timeout and the supplier recomputes the list. The longer the timeout on the supplier
-  // is the less likely we are to have multiple list of external compactions in memory, however
-  // increasing the timeout will make the monitor less responsive.
-  private final Supplier<ExternalCompactionsSnapshot> extCompactionSnapshot =
-      Suppliers.memoizeWithExpiration(() -> computeExternalCompactionsSnapshot(), fetchTimeNanos,
-          TimeUnit.NANOSECONDS);
+  // Use Suppliers.memoizeWithExpiration() to cache the results of expensive fetch operations. This
+  // avoids unnecessary repeated fetches within the expiration period and ensures that multiple
+  // requests around the same time use the same cached data.
+  private final Supplier<Map<HostAndPort,ScanStats>> tserverScansSupplier =
+      Suppliers.memoizeWithExpiration(this::fetchTServerScans, expirationTimeMinutes, MINUTES);
+
+  private final Supplier<Map<HostAndPort,ScanStats>> sserverScansSupplier =
+      Suppliers.memoizeWithExpiration(this::fetchSServerScans, expirationTimeMinutes, MINUTES);
+
+  private final Supplier<Map<HostAndPort,CompactionStats>> compactionsSupplier =
+      Suppliers.memoizeWithExpiration(this::fetchCompactions, expirationTimeMinutes, MINUTES);
+
+  private final Supplier<ExternalCompactionInfo> compactorInfoSupplier =
+      Suppliers.memoizeWithExpiration(this::fetchCompactorsInfo, expirationTimeMinutes, MINUTES);
+
+  private final Supplier<ExternalCompactionsSnapshot> externalCompactionsSupplier =
+      Suppliers.memoizeWithExpiration(this::computeExternalCompactionsSnapshot,
+          expirationTimeMinutes, MINUTES);
 
   /**
-   * Fetch the active scans but only if fetchTimeNanos has elapsed.
+   * @return active tablet server scans. Values are cached and refresh after
+   *         {@link #expirationTimeMinutes}.
    */
-  public synchronized Map<HostAndPort,ScanStats> getScans() {
-    if (System.nanoTime() - scansFetchedNanos > fetchTimeNanos) {
-      log.info("User initiated fetch of Active TabletServer Scans");
-      fetchScans();
-    }
-    return Map.copyOf(tserverScans);
-  }
-
-  public synchronized Map<HostAndPort,ScanStats> getScanServerScans() {
-    if (System.nanoTime() - scansFetchedNanos > fetchTimeNanos) {
-      log.info("User initiated fetch of Active ScanServer Scans");
-      fetchScans();
-    }
-    return Map.copyOf(sserverScans);
+  public Map<HostAndPort,ScanStats> getScans() {
+    return tserverScansSupplier.get();
   }
 
   /**
-   * Fetch the active compactions but only if fetchTimeNanos has elapsed.
+   * @return active scan server scans. Values are cached and refresh after
+   *         {@link #expirationTimeMinutes}.
    */
-  public synchronized Map<HostAndPort,CompactionStats> getCompactions() {
-    if (System.nanoTime() - compactsFetchedNanos > fetchTimeNanos) {
-      log.info("User initiated fetch of Active Compactions");
-      fetchCompactions();
-    }
-    return Map.copyOf(allCompactions);
+  public Map<HostAndPort,ScanStats> getScanServerScans() {
+    return sserverScansSupplier.get();
   }
 
-  public synchronized ExternalCompactionInfo getCompactorsInfo() {
+  /**
+   * @return active compactions. Values are cached and refresh after {@link #expirationTimeMinutes}.
+   */
+  public Map<HostAndPort,CompactionStats> getCompactions() {
+    return compactionsSupplier.get();
+  }
+
+  /**
+   * @return external compaction information. Values are cached and refresh after
+   *         {@link #expirationTimeMinutes}.
+   */
+  public ExternalCompactionInfo getCompactorsInfo() {
     if (coordinatorHost.isEmpty()) {
       throw new IllegalStateException("Tried fetching from compaction coordinator that's missing");
     }
-    if (System.nanoTime() - ecInfoFetchedNanos > fetchTimeNanos) {
-      log.info("User initiated fetch of External Compaction info");
-      Set<ServerId> compactors =
-          getContext().instanceOperations().getServers(ServerId.Type.COMPACTOR);
-      log.debug("Found compactors: " + compactors);
-      ecInfo.setFetchedTimeMillis(System.currentTimeMillis());
-      ecInfo.setCompactors(compactors);
-      ecInfo.setCoordinatorHost(coordinatorHost);
+    return compactorInfoSupplier.get();
+  }
 
-      ecInfoFetchedNanos = System.nanoTime();
+  /**
+   * @return running compactions. Values are cached and refresh after
+   *         {@link #expirationTimeMinutes}.
+   */
+  public RunningCompactions getRunningCompactions() {
+    return externalCompactionsSupplier.get().runningCompactions;
+  }
+
+  /**
+   * @return running compactor details. Values are cached and refresh after
+   *         {@link #expirationTimeMinutes}.
+   */
+  public RunningCompactorDetails getRunningCompactorDetails(ExternalCompactionId ecid) {
+    TExternalCompaction extCompaction =
+        externalCompactionsSupplier.get().ecRunningMap.get(ecid.canonical());
+    if (extCompaction == null) {
+      return null;
     }
+    return new RunningCompactorDetails(extCompaction);
+  }
+
+  private Map<HostAndPort,ScanStats> fetchScans(Collection<ServerId> servers) {
+    ServerContext context = getContext();
+    Map<HostAndPort,ScanStats> scans = new HashMap<>();
+    for (ServerId server : servers) {
+      final HostAndPort parsedServer = HostAndPort.fromString(server.toHostPortString());
+      TabletScanClientService.Client client = null;
+      try {
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
+        List<ActiveScan> activeScans = client.getActiveScans(null, context.rpcCreds());
+        scans.put(parsedServer, new ScanStats(activeScans));
+      } catch (Exception ex) {
+        log.error("Failed to get active scans from {}", server, ex);
+      } finally {
+        ThriftUtil.returnClient(client, context);
+      }
+    }
+    return Collections.unmodifiableMap(scans);
+  }
+
+  private Map<HostAndPort,ScanStats> fetchTServerScans() {
+    return fetchScans(getContext().instanceOperations().getServers(TABLET_SERVER));
+  }
+
+  private Map<HostAndPort,ScanStats> fetchSServerScans() {
+    return fetchScans(getContext().instanceOperations().getServers(SCAN_SERVER));
+  }
+
+  private Map<HostAndPort,CompactionStats> fetchCompactions() {
+    ServerContext context = getContext();
+    Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
+    for (ServerId server : context.instanceOperations().getServers(TABLET_SERVER)) {
+      final HostAndPort parsedServer = HostAndPort.fromString(server.toHostPortString());
+      Client tserver = null;
+      try {
+        tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
+        var compacts = tserver.getActiveCompactions(null, context.rpcCreds());
+        allCompactions.put(parsedServer, new CompactionStats(compacts));
+      } catch (Exception ex) {
+        log.debug("Failed to get active compactions from {}", server, ex);
+      } finally {
+        ThriftUtil.returnClient(tserver, context);
+      }
+    }
+    return Collections.unmodifiableMap(allCompactions);
+  }
+
+  private ExternalCompactionInfo fetchCompactorsInfo() {
+    Set<ServerId> compactors =
+        getContext().instanceOperations().getServers(ServerId.Type.COMPACTOR);
+    log.debug("Found compactors: {}", compactors);
+    ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
+    ecInfo.setFetchedTimeMillis(System.currentTimeMillis());
+    ecInfo.setCompactors(compactors);
+    ecInfo.setCoordinatorHost(coordinatorHost);
     return ecInfo;
   }
 
@@ -610,7 +676,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
       throw new IllegalStateException(coordinatorMissingMsg);
     }
     var ccHost = coordinatorHost.orElseThrow();
-    log.info("User initiated fetch of running External Compactions from " + ccHost);
+    log.info("User initiated fetch of running External Compactions from {}", ccHost);
     try {
       CompactionCoordinatorService.Client client =
           ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, ccHost, getContext());
@@ -631,95 +697,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
     }
   }
 
-  public RunningCompactions getRunnningCompactions() {
-    return extCompactionSnapshot.get().runningCompactions;
-  }
-
-  public RunningCompactorDetails getRunningCompactorDetails(ExternalCompactionId ecid) {
-    TExternalCompaction extCompaction =
-        extCompactionSnapshot.get().ecRunningMap.get(ecid.canonical());
-    if (extCompaction == null) {
-      return null;
-    }
-    return new RunningCompactorDetails(extCompaction);
-  }
-
-  private void fetchScans() {
-    final ServerContext context = getContext();
-    final Set<ServerId> servers = new HashSet<>();
-    servers.addAll(context.instanceOperations().getServers(ServerId.Type.SCAN_SERVER));
-    servers.addAll(context.instanceOperations().getServers(ServerId.Type.TABLET_SERVER));
-
-    for (ServerId server : servers) {
-      TabletScanClientService.Client tserver = null;
-      try {
-        HostAndPort parsedServer = HostAndPort.fromParts(server.getHost(), server.getPort());
-        tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
-        List<ActiveScan> scans = tserver.getActiveScans(null, context.rpcCreds());
-        tserverScans.put(parsedServer, new ScanStats(scans));
-        scansFetchedNanos = System.nanoTime();
-      } catch (Exception ex) {
-        log.error("Failed to get active scans from {}", server, ex);
-      } finally {
-        ThriftUtil.returnClient(tserver, context);
-      }
-    }
-    // Age off old scan information
-    Iterator<Entry<HostAndPort,ScanStats>> tserverIter = tserverScans.entrySet().iterator();
-    // clock time used for fetched for date friendly display
-    long now = System.currentTimeMillis();
-    while (tserverIter.hasNext()) {
-      Entry<HostAndPort,ScanStats> entry = tserverIter.next();
-      if (now - entry.getValue().fetched > ageOffEntriesMillis) {
-        tserverIter.remove();
-      }
-    }
-  }
-
-  private void fetchCompactions() {
-    final ServerContext context = getContext();
-
-    for (ServerId server : context.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)) {
-      final HostAndPort parsedServer = HostAndPort.fromParts(server.getHost(), server.getPort());
-      Client tserver = null;
-      try {
-        tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
-        var compacts = tserver.getActiveCompactions(null, context.rpcCreds());
-        allCompactions.put(parsedServer, new CompactionStats(compacts));
-        compactsFetchedNanos = System.nanoTime();
-      } catch (Exception ex) {
-        log.debug("Failed to get active compactions from {}", server, ex);
-      } finally {
-        ThriftUtil.returnClient(tserver, context);
-      }
-    }
-    for (ServerId server : context.instanceOperations().getServers(ServerId.Type.COMPACTOR)) {
-      final HostAndPort parsedServer = HostAndPort.fromParts(server.getHost(), server.getPort());
-      CompactorService.Client compactor = null;
-      try {
-        compactor = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, parsedServer, context);
-        var compacts = compactor.getActiveCompactions(null, context.rpcCreds());
-        allCompactions.put(parsedServer, new CompactionStats(compacts));
-        compactsFetchedNanos = System.nanoTime();
-      } catch (Exception ex) {
-        log.debug("Failed to get active compactions from {}", server, ex);
-      } finally {
-        ThriftUtil.returnClient(compactor, context);
-      }
-    }
-
-    // Age off old compaction information
-    var entryIter = allCompactions.entrySet().iterator();
-    // clock time used for fetched for date friendly display
-    long now = System.currentTimeMillis();
-    while (entryIter.hasNext()) {
-      var entry = entryIter.next();
-      if (now - entry.getValue().fetched > ageOffEntriesMillis) {
-        entryIter.remove();
-      }
-    }
-  }
-
   /**
    * Get the monitor lock in ZooKeeper
    */
@@ -731,7 +708,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
     final var monitorLockPath = context.getServerPaths().createMonitorPath();
 
     // Ensure that everything is kosher with ZK as this has changed.
-    ZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     if (zoo.exists(monitorPath)) {
       byte[] data = zoo.getData(monitorPath);
       // If the node isn't empty, it's from a previous install (has hostname:port for HTTP server)
@@ -758,8 +735,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
 
     // Get a ZooLock for the monitor
     UUID zooLockUUID = UUID.randomUUID();
-    monitorLock = new ServiceLock(zoo.getZooKeeper(), monitorLockPath, zooLockUUID);
-    HAServiceLockWatcher monitorLockWatcher = new HAServiceLockWatcher("monitor");
+    monitorLock = new ServiceLock(context.getZooSession(), monitorLockPath, zooLockUUID);
+    HAServiceLockWatcher monitorLockWatcher = new HAServiceLockWatcher(Type.MONITOR);
 
     while (true) {
       monitorLock.lock(monitorLockWatcher,

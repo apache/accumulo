@@ -61,6 +61,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -488,7 +489,7 @@ public class Manager extends AbstractServer
       log.info("SASL is enabled, creating delegation token key manager and distributor");
       final long tokenUpdateInterval =
           aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
-      keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooReaderWriter(),
+      keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooSession(),
           context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
       authenticationTokenKeyManager = new AuthenticationTokenKeyManager(context.getSecretManager(),
           keyDistributor, tokenUpdateInterval, tokenLifetime);
@@ -507,7 +508,7 @@ public class Manager extends AbstractServer
 
   void setManagerGoalState(ManagerGoalState state) {
     try {
-      getContext().getZooReaderWriter().putPersistentData(
+      getContext().getZooSession().asReaderWriter().putPersistentData(
           getContext().getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE,
           state.name().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
@@ -518,7 +519,7 @@ public class Manager extends AbstractServer
   ManagerGoalState getManagerGoalState() {
     while (true) {
       try {
-        byte[] data = getContext().getZooReaderWriter()
+        byte[] data = getContext().getZooSession().asReaderWriter()
             .getData(getContext().getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE);
         return ManagerGoalState.valueOf(new String(data, UTF_8));
       } catch (Exception e) {
@@ -635,7 +636,7 @@ public class Manager extends AbstractServer
     @Override
     public void run() {
 
-      final ZooReaderWriter zrw = getContext().getZooReaderWriter();
+      final ZooReaderWriter zrw = getContext().getZooSession().asReaderWriter();
 
       while (stillManager()) {
         try {
@@ -1199,7 +1200,7 @@ public class Manager extends AbstractServer
     // Don't call start the CompactionCoordinator until we have tservers.
     compactionCoordinator.start();
 
-    ZooReaderWriter zReaderWriter = context.getZooReaderWriter();
+    ZooReaderWriter zReaderWriter = context.getZooSession().asReaderWriter();
 
     try {
       zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
@@ -1271,8 +1272,8 @@ public class Manager extends AbstractServer
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
       var metaInstance = initializeFateInstance(context,
-          new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
-              context.getZooReaderWriter(), managerLock.getLockID(), isLockHeld));
+          new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE, context.getZooSession(),
+              managerLock.getLockID(), isLockHeld));
       var userInstance = initializeFateInstance(context, new UserFateStore<>(context,
           AccumuloTable.FATE.tableName(), managerLock.getLockID(), isLockHeld));
 
@@ -1492,7 +1493,7 @@ public class Manager extends AbstractServer
 
   private ServiceLockData getManagerLock(final ServiceLockPath zManagerLoc)
       throws KeeperException, InterruptedException {
-    var zooKeeper = getContext().getZooReaderWriter().getZooKeeper();
+    var zooKeeper = getContext().getZooSession();
     log.info("trying to get manager lock");
 
     final String managerClientAddress =
@@ -1503,14 +1504,12 @@ public class Manager extends AbstractServer
     ServiceDescriptors descriptors = new ServiceDescriptors();
     descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.MANAGER,
         managerClientAddress, this.getResourceGroup()));
-
     ServiceLockData sld = new ServiceLockData(descriptors);
-
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
+    HAServiceLockWatcher managerLockWatcher = new HAServiceLockWatcher(Type.MANAGER);
 
     while (true) {
 
-      HAServiceLockWatcher managerLockWatcher = new HAServiceLockWatcher("manager");
       managerLock.lock(managerLockWatcher, sld);
 
       managerLockWatcher.waitForChange();

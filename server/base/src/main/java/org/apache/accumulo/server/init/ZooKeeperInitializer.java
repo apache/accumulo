@@ -97,7 +97,7 @@ public class ZooKeeperInitializer {
       throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
 
-    ZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     InstanceId instanceId = context.getInstanceID();
 
     zoo.putPersistentData(Constants.ZROOT + Constants.ZINSTANCES, new byte[0],

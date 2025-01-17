@@ -173,7 +173,7 @@ public class TableZooHelper implements AutoCloseable {
     String statePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId.canonical()
         + Constants.ZTABLE_STATE;
     if (clearCachedState) {
-      context.getZooCache().clear(context.getZooKeeperRoot() + statePath);
+      context.getZooCache().clear(statePath);
       instanceToMapCache.invalidateAll();
     }
     ZooCache zc = context.getZooCache();

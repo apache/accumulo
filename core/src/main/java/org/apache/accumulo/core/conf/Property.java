@@ -294,6 +294,9 @@ public enum Property {
           + " user-implementations of pluggable Accumulo features, such as the balancer"
           + " or volume chooser.",
       "2.0.0"),
+  GENERAL_CACHE_MANAGER_IMPL("general.block.cache.manager.class",
+      TinyLfuBlockCacheManager.class.getName(), PropertyType.STRING,
+      "Specifies the class name of the block cache factory implementation.", "2.1.4"),
   GENERAL_DELEGATION_TOKEN_LIFETIME("general.delegation.token.lifetime", "7d",
       PropertyType.TIMEDURATION,
       "The length of time that delegation tokens and secret keys are valid.", "1.7.0"),
@@ -462,14 +465,12 @@ public enum Property {
       "The number of threads used to seed fate split task, the actual split work is done by fate"
           + " threads.",
       "4.0.0"),
-
-  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE(
-      "manager.compaction.major.service.queue.initial.size", "10000", PropertyType.COUNT,
-      "The initial size of each resource groups compaction job priority queue.", "4.0.0"),
-  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR(
-      "manager.compaction.major.service.queue.size.factor", "3.0", PropertyType.FRACTION,
-      "The dynamic resizing of the compaction job priority queue is based on"
-          + " the number of compactors for the group multiplied by this factor.",
+  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE("manager.compaction.major.service.queue.size",
+      "1M", PropertyType.MEMORY,
+      "The data size of each resource groups compaction job priority queue.  The memory size of "
+          + "each compaction job is estimated and the sum of these sizes per resource group will not "
+          + "exceed this setting. When the size is exceeded the lowest priority jobs are dropped as "
+          + "needed.",
       "4.0.0"),
   SPLIT_PREFIX("split.", null, PropertyType.PREFIX,
       "System wide properties related to splitting tablets.", "3.1.0"),
@@ -554,9 +555,6 @@ public enum Property {
       "Time to wait for clients to continue scans before closing a session.", "1.3.5"),
   TSERV_DEFAULT_BLOCKSIZE("tserver.default.blocksize", "1M", PropertyType.BYTES,
       "Specifies a default blocksize for the tserver caches.", "1.3.5"),
-  TSERV_CACHE_MANAGER_IMPL("tserver.cache.manager.class", TinyLfuBlockCacheManager.class.getName(),
-      PropertyType.STRING, "Specifies the class name of the block cache factory implementation.",
-      "2.0.0"),
   TSERV_DATACACHE_SIZE("tserver.cache.data.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile data blocks.", "1.3.5"),
   TSERV_INDEXCACHE_SIZE("tserver.cache.index.size", "25%", PropertyType.MEMORY,
@@ -835,6 +833,12 @@ public enum Property {
           + " controls the amount of time that process should wait before cancelling any remaining"
           + " tasks to fetch information. These background threads could end up waiting on servers"
           + " to respond or for scans to complete.",
+      "4.0.0"),
+  MONITOR_DEAD_LIST_RG_EXCLUSIONS("monitor.dead.server.rg.exclusions", "", PropertyType.STRING,
+      "The Monitor displays information about servers that it believes have died recently."
+          + " This property accepts a comma separated list of resource group names. If"
+          + " the dead servers resource group matches a resource group in this list,"
+          + " then it will be suppressed from the dead servers list in the monitor.",
       "4.0.0"),
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
@@ -1460,10 +1464,10 @@ public enum Property {
       RPC_MAX_MESSAGE_SIZE,
 
       // compaction coordiantor properties
-      MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE,
+      MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE,
 
       // block cache options
-      TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
+      GENERAL_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
       TSERV_SUMMARYCACHE_SIZE, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
 
       // blocksize options
@@ -1478,8 +1482,7 @@ public enum Property {
       COMPACTOR_MINTHREADS_TIMEOUT,
 
       // others
-      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME,
-      TSERV_SESSION_MAXIDLE, TSERV_UPDATE_SESSION_MAXIDLE);
+      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart

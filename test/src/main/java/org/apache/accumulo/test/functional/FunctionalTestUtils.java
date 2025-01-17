@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -65,7 +64,6 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -233,14 +231,15 @@ public class FunctionalTestUtils {
     try {
       AdminUtil<String> admin = new AdminUtil<>(false);
       ServerContext context = cluster.getServerContext();
-      ZooReaderWriter zk = context.getZooReaderWriter();
-      MetaFateStore<String> mfs = new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
-          zk, createDummyLockID(), null);
-      UserFateStore<String> ufs = new UserFateStore<>(context, createDummyLockID(), null);
-      Map<FateInstanceType,ReadOnlyFateStore<String>> fateStores =
-          Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
+      var zk = context.getZooSession();
+      MetaFateStore<String> readOnlyMFS =
+          new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk, null, null);
+      UserFateStore<String> readOnlyUFS =
+          new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+      Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =
+          Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
       var lockPath = context.getServerPaths().createTableLocksPath();
-      return admin.getStatus(fateStores, zk, lockPath, null, null, null);
+      return admin.getStatus(readOnlyFateStores, zk, lockPath, null, null, null);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

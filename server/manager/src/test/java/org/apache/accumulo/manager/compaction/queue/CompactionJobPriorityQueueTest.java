@@ -74,7 +74,7 @@ public class CompactionJobPriorityQueueTest {
 
     EasyMock.replay(tm, cj1, cj2);
 
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2, mj -> 1);
     assertEquals(1, queue.add(tm, List.of(cj1), 1L));
 
     MetaJob job = queue.peek();
@@ -129,7 +129,7 @@ public class CompactionJobPriorityQueueTest {
 
     EasyMock.replay(tm, cj1, cj2);
 
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2, mj -> 1);
     assertEquals(2, queue.add(tm, List.of(cj1, cj2), 1L));
 
     EasyMock.verify(tm, cj1, cj2);
@@ -186,7 +186,7 @@ public class CompactionJobPriorityQueueTest {
 
     EasyMock.replay(tm, cj1, cj2, cj3);
 
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2);
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2, mj -> 1);
     assertEquals(2, queue.add(tm, List.of(cj1, cj2, cj3), 1L));
 
     EasyMock.verify(tm, cj1, cj2, cj3);
@@ -247,7 +247,7 @@ public class CompactionJobPriorityQueueTest {
 
     TreeSet<CompactionJob> expected = new TreeSet<>(CompactionJobPrioritizer.JOB_COMPARATOR);
 
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 100);
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 1000, mj -> 10);
 
     // create and add 1000 jobs
     for (int x = 0; x < 1000; x++) {
@@ -256,7 +256,7 @@ public class CompactionJobPriorityQueueTest {
       expected.add(pair.getSecond());
     }
 
-    assertEquals(100, queue.getMaxSize());
+    assertEquals(1000, queue.getMaxSize());
     assertEquals(100, queue.getQueuedJobs());
     assertEquals(900, queue.getRejectedJobs());
     // There should be 1000 total job ages even though 900 were rejected
@@ -268,7 +268,7 @@ public class CompactionJobPriorityQueueTest {
     assertTrue(stats.getMaxAge().toMillis() > 0);
     assertTrue(stats.getAvgAge().toMillis() > 0);
 
-    // iterate over the expected set and make sure that they next job in the queue
+    // iterate over the expected set and make sure that the next job in the queue
     // matches
     int matchesSeen = 0;
     for (CompactionJob expectedJob : expected) {
@@ -312,7 +312,7 @@ public class CompactionJobPriorityQueueTest {
    */
   @Test
   public void testAsyncCancelCleanup() {
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 100);
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 100, mj -> 1);
 
     List<CompletableFuture<MetaJob>> futures = new ArrayList<>();
 
@@ -342,7 +342,7 @@ public class CompactionJobPriorityQueueTest {
 
   @Test
   public void testChangeMaxSize() {
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 100);
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 100, mj -> 1);
     assertEquals(100, queue.getMaxSize());
     queue.setMaxSize(50);
     assertEquals(50, queue.getMaxSize());
@@ -351,5 +351,4 @@ public class CompactionJobPriorityQueueTest {
     // Make sure previous value was not changed after invalid setting
     assertEquals(50, queue.getMaxSize());
   }
-
 }

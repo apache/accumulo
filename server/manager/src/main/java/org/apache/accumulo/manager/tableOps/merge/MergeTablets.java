@@ -186,6 +186,7 @@ public class MergeTablets extends ManagerRepo {
         tabletMutator.putTabletAvailability(
             DeleteRows.getMergeTabletAvailability(range, tabletAvailabilities));
         tabletMutator.putPrevEndRow(firstTabletMeta.getPrevEndRow());
+        tabletMutator.putTabletMergeability(lastTabletMeta.getTabletMergeability());
 
         // scan entries are related to a hosted tablet, this tablet is not hosted so can safely
         // delete these

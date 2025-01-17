@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
-import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -71,13 +71,11 @@ public class MetaFateStoreFateIT extends FateStoreIT {
       FateIdGenerator fateIdGenerator) throws Exception {
     ServerContext sctx = createMock(ServerContext.class);
     expect(sctx.getZooKeeperRoot()).andReturn(FateStoreUtil.MetaFateZKSetup.getZkRoot()).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(FateStoreUtil.MetaFateZKSetup.getZooReaderWriter())
-        .anyTimes();
+    expect(sctx.getZooSession()).andReturn(FateStoreUtil.MetaFateZKSetup.getZk()).anyTimes();
     replay(sctx);
-    MetaFateStore<TestEnv> store =
-        new MetaFateStore<>(FateStoreUtil.MetaFateZKSetup.getZkFatePath(),
-            FateStoreUtil.MetaFateZKSetup.getZooReaderWriter(), createDummyLockID(), null,
-            maxDeferred, fateIdGenerator);
+    MetaFateStore<TestEnv> store = new MetaFateStore<>(
+        FateStoreUtil.MetaFateZKSetup.getZkFatePath(), FateStoreUtil.MetaFateZKSetup.getZk(),
+        createDummyLockID(), null, maxDeferred, fateIdGenerator);
 
     // Check that the store has no transactions before and after each test
     assertEquals(0, store.list().count());
@@ -117,7 +115,7 @@ public class MetaFateStoreFateIT extends FateStoreIT {
       String txPath =
           FateStoreUtil.MetaFateZKSetup.getZkFatePath() + "/tx_" + fateId.getTxUUIDStr();
       Object currentNode = serializedCons.newInstance(
-          new Object[] {FateStoreUtil.MetaFateZKSetup.getZooReaderWriter().getData(txPath)});
+          new Object[] {FateStoreUtil.MetaFateZKSetup.getZk().asReader().getData(txPath)});
       TStatus currentStatus = (TStatus) status.get(currentNode);
       Optional<FateStore.FateReservation> currentReservation =
           getCurrentReservation(reservation, currentNode);
@@ -129,7 +127,7 @@ public class MetaFateStoreFateIT extends FateStoreIT {
       Object newNode = fateDataCons.newInstance(currentStatus, currentReservation.orElse(null),
           null, currentRepoDeque, currentTxInfo);
 
-      FateStoreUtil.MetaFateZKSetup.getZooReaderWriter().putPersistentData(txPath,
+      FateStoreUtil.MetaFateZKSetup.getZk().asReaderWriter().putPersistentData(txPath,
           (byte[]) nodeSerialize.invoke(newNode), NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
       throw new IllegalStateException(e);
