@@ -108,12 +108,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
     CryptoService cs =
         CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE, tableConfig);
 
-    LoadPlanCollector loadPlanCollector;
-    if (splitResolver != null) {
-      loadPlanCollector = new LoadPlanCollector(splitResolver);
-    } else {
-      loadPlanCollector = new LoadPlanCollector();
-    }
+    var loadPlanCollector = splitResolver == null ? new LoadPlanCollector() : new LoadPlanCollector(splitResolver);
 
     if (out.getOutputStream() != null) {
       FSDataOutputStream fsdo;
