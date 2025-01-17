@@ -94,8 +94,6 @@ public class RFileWriter implements AutoCloseable {
   private final FileSKVWriter writer;
   private final LRUMap<ByteSequence,Boolean> validVisibilities;
 
-  // TODO should be able to completely remove this as lower level code is already doing some things
-  // like tracking first and last keys per LG. Added to get simple initial impl before optimizing.
   private final LoadPlanCollector loadPlanCollector;
   private boolean startedLG;
   private boolean startedDefaultLG;
