@@ -243,8 +243,6 @@ public class LoadPlan {
     };
   }
 
-  private static final TableId FAKE_ID = TableId.of("999");
-
   private static class JsonDestination {
     String fileName;
     String startRow;
@@ -424,6 +422,10 @@ public class LoadPlan {
   public static LoadPlan compute(URI file, SplitResolver splitResolver) throws IOException {
     return compute(file, Map.of(), splitResolver);
   }
+
+  // KeyExtent requires a tableId and this code needs to use KeyExtent functionality but does not
+  // have a tableId or care what the tableId is. So this fake id is used with KeyExtent.
+  private static final TableId FAKE_ID = TableId.of("999");
 
   /**
    * Computes a load plan for a given rfile. This will open the rfile and find every
