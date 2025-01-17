@@ -32,11 +32,11 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
 import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedTransferQueue;
@@ -82,7 +82,7 @@ public class Fate<T> {
   private final T environment;
   private final ScheduledThreadPoolExecutor fatePoolWatcher;
   private final ExecutorService transactionExecutor;
-  private final List<TransactionRunner> runningTxRunners;
+  private final Set<TransactionRunner> runningTxRunners;
   private final ExecutorService deadResCleanerExecutor;
 
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
@@ -189,8 +189,6 @@ public class Fate<T> {
     // used to signal a TransactionRunner to stop in the case where there are too many running
     // i.e., the property for the pool size decreased and we have excess TransactionRunners
     private final AtomicBoolean stop = new AtomicBoolean(false);
-    // whether the TransactionRunner has finished running
-    private final AtomicBoolean exited = new AtomicBoolean(false);
 
     private Optional<FateTxStore<T>> reserveFateTx() throws InterruptedException {
       while (keepRunning.get() && !stop.get()) {
@@ -264,7 +262,6 @@ public class Fate<T> {
         }
       } finally {
         log.trace("A TransactionRunner is exiting...");
-        Preconditions.checkState(exited.compareAndSet(false, true));
         Preconditions.checkState(runningTxRunners.remove(this));
       }
     }
@@ -380,10 +377,6 @@ public class Fate<T> {
       return stop.compareAndSet(false, true);
     }
 
-    private boolean isExited() {
-      return exited.get();
-    }
-
     private boolean isFlaggedToStop() {
       return stop.get();
     }
@@ -431,7 +424,7 @@ public class Fate<T> {
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
         Property.MANAGER_FATE_THREADPOOL_SIZE, true);
     this.workQueue = new LinkedTransferQueue<>();
-    this.runningTxRunners = Collections.synchronizedList(new ArrayList<>());
+    this.runningTxRunners = Collections.synchronizedSet(new HashSet<>());
     this.fatePoolWatcher =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
     ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.scheduleWithFixedDelay(() -> {
