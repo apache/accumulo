@@ -20,6 +20,8 @@ package org.apache.accumulo.tserver.tablet;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 
 import java.io.ByteArrayInputStream;
@@ -92,6 +94,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionStats;
@@ -1031,7 +1034,7 @@ public class Tablet extends TabletBase {
       return currentlyUnreserved;
     });
 
-    long lastLogTime = System.nanoTime();
+    Timer lastLogTimer = Timer.startNew();
 
     // wait for reads and writes to complete
     while (writesInProgress > 0 || !runningScans.isEmpty()) {
@@ -1043,12 +1046,12 @@ public class Tablet extends TabletBase {
         return currentlyUnreserved;
       });
 
-      if (log.isDebugEnabled() && System.nanoTime() - lastLogTime > TimeUnit.SECONDS.toNanos(60)) {
+      if (log.isDebugEnabled() && lastLogTimer.hasElapsed(1, MINUTES)) {
         for (ScanDataSource activeScan : runningScans) {
           log.debug("Waiting on scan in completeClose {} {}", extent, activeScan);
         }
 
-        lastLogTime = System.nanoTime();
+        lastLogTimer.restart();
       }
 
       try {
@@ -1769,13 +1772,13 @@ public class Tablet extends TabletBase {
 
     // Clients timeout and will think that this operation failed.
     // Don't do it if we spent too long waiting for the lock
-    long now = System.nanoTime();
+    Timer lockWaitTimer = Timer.startNew();
     synchronized (this) {
       if (isClosed()) {
         throw new IOException("tablet " + extent + " is closed");
       }
 
-      long rpcTimeoutNanos = TimeUnit.MILLISECONDS.toNanos(
+      Duration rpcTimeout = Duration.ofMillis(
           (long) (getTabletServer().getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)
               * 1.1));
 
@@ -1788,9 +1791,8 @@ public class Tablet extends TabletBase {
           throw new IllegalStateException(e);
         }
 
-        long lockWait = System.nanoTime() - now;
-        if (lockWait > rpcTimeoutNanos) {
-          throw new IOException("Timeout waiting " + TimeUnit.NANOSECONDS.toSeconds(lockWait)
+        if (lockWaitTimer.hasElapsed(rpcTimeout)) {
+          throw new IOException("Timeout waiting " + lockWaitTimer.elapsed(SECONDS)
               + " seconds to get tablet lock for " + extent + " " + tid);
         }
       }
@@ -1800,9 +1802,8 @@ public class Tablet extends TabletBase {
         throw new IOException("tablet " + extent + " is closed");
       }
 
-      long lockWait = System.nanoTime() - now;
-      if (lockWait > rpcTimeoutNanos) {
-        throw new IOException("Timeout waiting " + TimeUnit.NANOSECONDS.toSeconds(lockWait)
+      if (lockWaitTimer.hasElapsed(rpcTimeout)) {
+        throw new IOException("Timeout waiting " + lockWaitTimer.elapsed(SECONDS)
             + " seconds to get tablet lock for " + extent + " " + tid);
       }
 
