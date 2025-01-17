@@ -47,7 +47,7 @@ import com.google.common.base.Preconditions;
 public class FateLock implements QueueLock {
   private static final Logger log = LoggerFactory.getLogger(FateLock.class);
 
-  private static final String PREFIX = "flock#";
+  static final String PREFIX = "flock#";
 
   private final ZooReaderWriter zoo;
   private final FateLockPath path;
@@ -78,11 +78,11 @@ public class FateLock implements QueueLock {
     public final long sequence;
     public final String lockData;
 
-    private FateLockNode(String nodeName) {
+    FateLockNode(String nodeName) {
       int len = nodeName.length();
       Preconditions.checkArgument(nodeName.startsWith(PREFIX) && nodeName.charAt(len - 11) == '#',
           "Illegal node name %s", nodeName);
-      sequence = Long.parseLong(nodeName.substring(len - 10));
+      sequence = Long.parseUnsignedLong(nodeName.substring(len - 10), 10);
       lockData = nodeName.substring(PREFIX.length(), len - 11);
     }
 
