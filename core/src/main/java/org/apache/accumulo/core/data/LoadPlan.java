@@ -388,7 +388,10 @@ public class LoadPlan {
    * exist in the table being bulk imported to. There is no requirement that the splits are
    * contiguous. For example if a table has splits C,D,E,M and we ask for splits containing row H
    * its ok to return D,M, but that could result in the file mapping to more actual tablets than
-   * needed.
+   * needed. For a row that falls before or after all table splits, use null to represent -inf and
+   * +inf. For example if a table has splits C,D,E,M and row B is resolved it is ok to return
+   * null,C. If row Q is resolved for table splits C,D,E,M it would be ok to return M,null. For a
+   * table with zero splits, the resolver should return null,null for all rows.
    *
    * @since 2.1.4
    */
