@@ -35,6 +35,7 @@ import java.util.stream.IntStream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -369,8 +370,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     var path = getContext().getServerPaths().createGarbageCollectorPath();
 
     UUID zooLockUUID = UUID.randomUUID();
-    gcLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
-    HAServiceLockWatcher gcLockWatcher = new HAServiceLockWatcher("gc");
+    gcLock = new ServiceLock(getContext().getZooSession(), path, zooLockUUID);
+    HAServiceLockWatcher gcLockWatcher = new HAServiceLockWatcher(Type.GARBAGE_COLLECTOR);
 
     while (true) {
       gcLock.lock(gcLockWatcher, new ServiceLockData(zooLockUUID, addr.toString(), ThriftService.GC,

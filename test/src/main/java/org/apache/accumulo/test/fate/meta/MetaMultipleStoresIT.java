@@ -62,7 +62,7 @@ public class MetaMultipleStoresIT extends MultipleStoresIT {
     public FateStore<SleepingTestEnv> create(ZooUtil.LockID lockID,
         Predicate<ZooUtil.LockID> isLockHeld) throws InterruptedException, KeeperException {
       return new MetaFateStore<>(FateStoreUtil.MetaFateZKSetup.getZkFatePath(),
-          FateStoreUtil.MetaFateZKSetup.getZooReaderWriter(), lockID, isLockHeld);
+          FateStoreUtil.MetaFateZKSetup.getZk(), lockID, isLockHeld);
     }
   }
 
@@ -71,7 +71,7 @@ public class MetaMultipleStoresIT extends MultipleStoresIT {
     public FateStore<LatchTestEnv> create(ZooUtil.LockID lockID,
         Predicate<ZooUtil.LockID> isLockHeld) throws InterruptedException, KeeperException {
       return new MetaFateStore<>(FateStoreUtil.MetaFateZKSetup.getZkFatePath(),
-          FateStoreUtil.MetaFateZKSetup.getZooReaderWriter(), lockID, isLockHeld);
+          FateStoreUtil.MetaFateZKSetup.getZk(), lockID, isLockHeld);
     }
   }
 }

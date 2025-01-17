@@ -79,6 +79,9 @@ public class Fate<T> {
   private final ExecutorService deadResCleanerExecutor;
 
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
+  public static final Duration INITIAL_DELAY = Duration.ofSeconds(3);
+  private static final Duration DEAD_RES_CLEANUP_DELAY = Duration.ofMinutes(3);
+  private static final Duration POOL_WATCHER_DELAY = Duration.ofSeconds(30);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final TransferQueue<FateId> workQueue;
@@ -457,7 +460,7 @@ public class Fate<T> {
           idleCountHistory.add(workQueue.getWaitingConsumerCount());
         }
       }
-    }, 3, 30, SECONDS));
+    }, INITIAL_DELAY.toSeconds(), getPoolWatcherDelay().toSeconds(), SECONDS));
     this.transactionExecutor = pool;
 
     ScheduledExecutorService deadResCleanerExecutor = null;
@@ -466,8 +469,9 @@ public class Fate<T> {
       // reservations held by dead processes, if they exist.
       deadResCleanerExecutor = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,
           store.type() + "-dead-reservation-cleaner-pool");
-      ScheduledFuture<?> deadReservationCleaner = deadResCleanerExecutor.scheduleWithFixedDelay(
-          new DeadReservationCleaner(), 3, getDeadResCleanupDelay().toSeconds(), SECONDS);
+      ScheduledFuture<?> deadReservationCleaner =
+          deadResCleanerExecutor.scheduleWithFixedDelay(new DeadReservationCleaner(),
+              INITIAL_DELAY.toSeconds(), getDeadResCleanupDelay().toSeconds(), SECONDS);
       ThreadPools.watchCriticalScheduledTask(deadReservationCleaner);
     }
     this.deadResCleanerExecutor = deadResCleanerExecutor;
@@ -477,7 +481,11 @@ public class Fate<T> {
   }
 
   public Duration getDeadResCleanupDelay() {
-    return Duration.ofMinutes(3);
+    return DEAD_RES_CLEANUP_DELAY;
+  }
+
+  public Duration getPoolWatcherDelay() {
+    return POOL_WATCHER_DELAY;
   }
 
   // get a transaction id back to the requester before doing any work

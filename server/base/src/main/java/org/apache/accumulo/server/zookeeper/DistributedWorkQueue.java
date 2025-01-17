@@ -188,7 +188,7 @@ public class DistributedWorkQueue {
     this.context = context;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
-    zoo = context.getZooReaderWriter();
+    zoo = context.getZooSession().asReaderWriter();
   }
 
   public ServerContext getContext() {

@@ -74,19 +74,20 @@ public class Utils {
     final Map<NamespaceId,String> namespaces = new HashMap<>();
     final boolean namespaceInTableName = tableName.contains(".");
     try {
-      for (String tid : context.getZooReader()
+      for (String tid : context.getZooSession().asReader()
           .getChildren(context.getZooKeeperRoot() + Constants.ZTABLES)) {
 
         final String zTablePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tid;
         try {
-          final byte[] tname = context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAME);
+          final byte[] tname =
+              context.getZooSession().asReader().getData(zTablePath + Constants.ZTABLE_NAME);
           Preconditions.checkState(tname != null, "Malformed table entry in ZooKeeper at %s",
               zTablePath);
 
           String namespaceName = Namespace.DEFAULT.name();
           if (namespaceInTableName) {
             final byte[] nId =
-                context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAMESPACE);
+                context.getZooSession().asReader().getData(zTablePath + Constants.ZTABLE_NAMESPACE);
             if (nId != null) {
               final NamespaceId namespaceId = NamespaceId.of(new String(nId, UTF_8));
               if (!namespaceId.equals(Namespace.DEFAULT.id())) {
@@ -127,7 +128,7 @@ public class Utils {
   public static <T extends AbstractId<T>> T getNextId(String name, ServerContext context,
       Function<String,T> newIdFunction) throws AcceptableThriftTableOperationException {
     try {
-      ZooReaderWriter zoo = context.getZooReaderWriter();
+      ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       final String ntp = context.getZooKeeperRoot() + Constants.ZTABLES;
       byte[] nid = zoo.mutateOrCreate(ntp, ZERO_BYTE, currentValue -> {
         BigInteger nextId = new BigInteger(new String(currentValue, UTF_8), Character.MAX_RADIX);
@@ -149,7 +150,7 @@ public class Utils {
       boolean tableMustExist, TableOperation op) throws Exception {
     if (getLock(env.getContext(), tableId, fateId, lockType).tryLock()) {
       if (tableMustExist) {
-        ZooReaderWriter zk = env.getContext().getZooReaderWriter();
+        ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
         if (!zk.exists(env.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId)) {
           throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
@@ -178,7 +179,7 @@ public class Utils {
       LockType lockType, boolean mustExist, TableOperation op) throws Exception {
     if (getLock(env.getContext(), namespaceId, fateId, lockType).tryLock()) {
       if (mustExist) {
-        ZooReaderWriter zk = env.getContext().getZooReaderWriter();
+        ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
         if (!zk.exists(
             env.getContext().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId)) {
           throw new AcceptableThriftTableOperationException(namespaceId.canonical(), "", op,
@@ -197,7 +198,7 @@ public class Utils {
     String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
 
-    ZooReaderWriter zk = env.getContext().getZooReaderWriter();
+    ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
 
     if (ZooReservation.attempt(zk, resvPath, fateId, "")) {
       return 0;
@@ -210,7 +211,7 @@ public class Utils {
       throws KeeperException, InterruptedException {
     String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
-    ZooReservation.release(env.getContext().getZooReaderWriter(), resvPath, fateId);
+    ZooReservation.release(env.getContext().getZooSession().asReaderWriter(), resvPath, fateId);
   }
 
   private static Lock getLock(ServerContext context, AbstractId<?> id, FateId fateId,
@@ -218,7 +219,7 @@ public class Utils {
     byte[] lockData = fateId.canonical().getBytes(UTF_8);
     var fLockPath =
         FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
-    FateLock qlock = new FateLock(context.getZooReaderWriter(), fLockPath);
+    FateLock qlock = new FateLock(context.getZooSession().asReaderWriter(), fLockPath);
     DistributedLock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
     if (lock != null) {
 

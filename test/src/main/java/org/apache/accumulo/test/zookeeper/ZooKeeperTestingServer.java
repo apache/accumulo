@@ -20,15 +20,10 @@ package org.apache.accumulo.test.zookeeper;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
 
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.curator.test.TestingServer;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,8 +69,8 @@ public class ZooKeeperTestingServer implements AutoCloseable {
   }
 
   @FunctionalInterface
-  public interface ZooKeeperConstructor<T extends ZooKeeper> {
-    public T construct(String connectString, int sessionTimeout, Watcher watcher)
+  public interface ZooSessionConstructor<T extends ZooSession> {
+    public T construct(String clientName, String connectString, int timeout, String instanceSecret)
         throws IOException;
   }
 
@@ -85,29 +80,18 @@ public class ZooKeeperTestingServer implements AutoCloseable {
    * used by this class to wait for the client to connect. This can be used to construct a subclass
    * of the ZooKeeper client that implements non-standard behavior for a test.
    */
-  public <T extends ZooKeeper> T newClient(ZooKeeperConstructor<T> f)
+  public <T extends ZooSession> T newClient(ZooSessionConstructor<T> f)
       throws IOException, InterruptedException {
-    var connectionLatch = new CountDownLatch(1);
-    var zoo = f.construct(zkServer.getConnectString(), 30_000, watchedEvent -> {
-      if (watchedEvent.getState() == Watcher.Event.KeeperState.SyncConnected) {
-        connectionLatch.countDown();
-      }
-    });
-    connectionLatch.await();
-    ZooUtil.digestAuth(zoo, SECRET);
-    return zoo;
+    return f.construct(ZooKeeperTestingServer.class.getSimpleName(), zkServer.getConnectString(),
+        30_000, SECRET);
   }
 
   /**
    * Create a new instance of a standard ZooKeeper client that is already connected to the testing
-   * server.
+   * server. The caller is responsible for closing the object.
    */
-  public ZooKeeper newClient() throws IOException, InterruptedException {
-    return newClient(ZooKeeper::new);
-  }
-
-  public ZooReaderWriter getZooReaderWriter() {
-    return new ZooReader(zkServer.getConnectString(), 30000).asWriter(SECRET);
+  public ZooSession newClient() throws IOException, InterruptedException {
+    return newClient(ZooSession::new);
   }
 
   @Override

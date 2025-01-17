@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
@@ -58,6 +59,52 @@ public class ResolvedCompactionJob implements CompactionJob {
   private final CompactorGroupId group;
   private final String tabletDir;
   private final boolean overlapsSelectedFiles;
+
+  private static long weigh(Range range) {
+    long estDataSize = 0;
+    if (range != null) {
+      var staryKey = range.getStartKey();
+      estDataSize += staryKey == null ? 0 : staryKey.getSize();
+      var endKey = range.getEndKey();
+      estDataSize += endKey == null ? 0 : endKey.getSize();
+    }
+    return estDataSize;
+  }
+
+  public static final SizeTrackingTreeMap.Weigher<CompactionJob> WEIGHER = job -> {
+    if (job instanceof ResolvedCompactionJob) {
+      var rcj = (ResolvedCompactionJob) job;
+      long estDataSize = 0;
+      estDataSize += rcj.selectedFateId.canonical().length();
+      for (var file : rcj.jobFiles.keySet()) {
+        estDataSize += file.getMetadataPath().length();
+        estDataSize += 24; // There are three longs in DataFileValue
+        estDataSize += weigh(file.getRange());
+      }
+
+      estDataSize += rcj.group.canonical().length();
+      estDataSize += rcj.extent.tableId().canonical().length();
+      estDataSize += rcj.extent.prevEndRow() == null ? 0 : rcj.extent.prevEndRow().getLength();
+      estDataSize += rcj.extent.endRow() == null ? 0 : rcj.extent.endRow().getLength();
+      estDataSize += rcj.tabletDir.length();
+      // Guess at how many bytes the overhead at things like pointers and primitives are taking in
+      // this object.
+      estDataSize += 64;
+      return estDataSize;
+    } else {
+      // Do not know the concrete type so weigh based on the interface methods of CompaactionJob
+      long estDataSize = 0;
+      for (var compactableFile : job.getFiles()) {
+        estDataSize += compactableFile.getUri().toString().length();
+        estDataSize += 16; // There are two longs on compactableFile, this accounts for those
+        estDataSize += weigh(compactableFile.getRange());
+      }
+
+      estDataSize += job.getGroup().canonical().length();
+
+      return estDataSize;
+    }
+  };
 
   public ResolvedCompactionJob(CompactionJob job, TabletMetadata tabletMetadata) {
     this.jobFiles = new HashMap<>();

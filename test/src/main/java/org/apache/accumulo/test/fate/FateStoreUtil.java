@@ -31,8 +31,8 @@ import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.fate.Fate;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
@@ -79,7 +79,7 @@ public class FateStoreUtil {
   @Tag(ZOOKEEPER_TESTING_SERVER)
   public static class MetaFateZKSetup {
     private static ZooKeeperTestingServer szk;
-    private static ZooReaderWriter zk;
+    private static ZooSession zk;
     private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID();
     private static String ZK_FATE_PATH;
 
@@ -88,10 +88,11 @@ public class FateStoreUtil {
      */
     public static void setup(@TempDir File tempDir) throws Exception {
       szk = new ZooKeeperTestingServer(tempDir);
-      zk = szk.getZooReaderWriter();
+      zk = szk.newClient();
       ZK_FATE_PATH = ZK_ROOT + Constants.ZFATE;
-      zk.mkdirs(ZK_FATE_PATH);
-      zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
+      var zrw = zk.asReaderWriter();
+      zrw.mkdirs(ZK_FATE_PATH);
+      zrw.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
     }
 
     /**
@@ -105,7 +106,7 @@ public class FateStoreUtil {
       return ZK_ROOT;
     }
 
-    public static ZooReaderWriter getZooReaderWriter() {
+    public static ZooSession getZk() {
       return zk;
     }
 

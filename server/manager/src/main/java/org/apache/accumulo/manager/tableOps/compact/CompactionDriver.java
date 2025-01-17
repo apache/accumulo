@@ -96,7 +96,7 @@ public class CompactionDriver extends ManagerRepo {
       return 0;
     }
 
-    ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
 
     if (isCancelled(fateId, manager.getContext())) {
       // compaction was canceled

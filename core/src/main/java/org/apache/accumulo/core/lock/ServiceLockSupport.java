@@ -21,15 +21,41 @@ package org.apache.accumulo.core.lock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoAuthException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ServiceLockSupport {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ServiceLockSupport.class);
+
+  /**
+   * Ensures that the resource group node in ZooKeeper is created for this server
+   */
+  public static void createNonHaServiceLockPath(Type server, ZooReaderWriter zrw,
+      ServiceLockPath slp) throws KeeperException, InterruptedException {
+    // The ServiceLockPath contains a resource group in the path which is not created
+    // at initialization time. If it does not exist, then create it.
+    String rgPath = slp.toString().substring(0, slp.toString().lastIndexOf("/" + slp.getServer()));
+    LOG.debug("Creating {} resource group path in zookeeper: {}", server, rgPath);
+    try {
+      zrw.mkdirs(rgPath);
+      zrw.putPersistentData(slp.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
+    } catch (NoAuthException e) {
+      LOG.error("Failed to write to ZooKeeper. Ensure that"
+          + " accumulo.properties, specifically instance.secret, is consistent.");
+      throw e;
+    }
+  }
 
   /**
    * Lock Watcher used by Highly Available services. These are services where only instance is
@@ -40,30 +66,29 @@ public class ServiceLockSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(HAServiceLockWatcher.class);
 
-    private final String serviceName;
+    private final Type server;
     private volatile boolean acquiredLock = false;
     private volatile boolean failedToAcquireLock = false;
 
-    public HAServiceLockWatcher(String serviceName) {
-      this.serviceName = serviceName;
+    public HAServiceLockWatcher(Type server) {
+      this.server = server;
     }
 
     @Override
     public void lostLock(LockLossReason reason) {
-      Halt.halt(serviceName + " lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+      Halt.halt(server + " lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
     }
 
     @Override
     public void unableToMonitorLockNode(final Exception e) {
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-      Halt.halt(-1,
-          () -> LOG.error("FATAL: No longer able to monitor {} lock node", serviceName, e));
+      Halt.halt(-1, () -> LOG.error("FATAL: No longer able to monitor {} lock node", server, e));
 
     }
 
     @Override
     public synchronized void acquiredLock() {
-      LOG.debug("Acquired {} lock", serviceName);
+      LOG.debug("Acquired {} lock", server);
 
       if (acquiredLock || failedToAcquireLock) {
         Halt.halt("Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock, -1);
@@ -75,11 +100,11 @@ public class ServiceLockSupport {
 
     @Override
     public synchronized void failedToAcquireLock(Exception e) {
-      LOG.warn("Failed to get {} lock", serviceName, e);
+      LOG.warn("Failed to get {} lock", server, e);
 
       if (e instanceof NoAuthException) {
         String msg =
-            "Failed to acquire " + serviceName + " lock due to incorrect ZooKeeper authentication.";
+            "Failed to acquire " + server + " lock due to incorrect ZooKeeper authentication.";
         LOG.error("{} Ensure instance.secret is consistent across Accumulo configuration", msg, e);
         Halt.halt(msg, -1);
       }
@@ -96,7 +121,7 @@ public class ServiceLockSupport {
     public synchronized void waitForChange() {
       while (!acquiredLock && !failedToAcquireLock) {
         try {
-          LOG.info("{} lock held by someone else, waiting for a change in state", serviceName);
+          LOG.info("{} lock held by someone else, waiting for a change in state", server);
           wait();
         } catch (InterruptedException e) {
           // empty
@@ -121,13 +146,13 @@ public class ServiceLockSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(ServiceLockWatcher.class);
 
-    private final String serviceName;
+    private final Type server;
     private final Supplier<Boolean> shuttingDown;
-    private final Consumer<String> lostLockAction;
+    private final Consumer<Type> lostLockAction;
 
-    public ServiceLockWatcher(String serviceName, Supplier<Boolean> shuttingDown,
-        Consumer<String> lostLockAction) {
-      this.serviceName = serviceName;
+    public ServiceLockWatcher(Type server, Supplier<Boolean> shuttingDown,
+        Consumer<Type> lostLockAction) {
+      this.server = server;
       this.shuttingDown = shuttingDown;
       this.lostLockAction = lostLockAction;
     }
@@ -136,15 +161,15 @@ public class ServiceLockSupport {
     public void lostLock(final LockLossReason reason) {
       Halt.halt(1, () -> {
         if (!shuttingDown.get()) {
-          LOG.error("{} lost lock (reason = {}), exiting.", serviceName, reason);
+          LOG.error("{} lost lock (reason = {}), exiting.", server, reason);
         }
-        lostLockAction.accept(serviceName);
+        lostLockAction.accept(server);
       });
     }
 
     @Override
     public void unableToMonitorLockNode(final Exception e) {
-      Halt.halt(1, () -> LOG.error("Lost ability to monitor {} lock, exiting.", serviceName, e));
+      Halt.halt(1, () -> LOG.error("Lost ability to monitor {} lock, exiting.", server, e));
     }
 
   }

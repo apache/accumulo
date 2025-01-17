@@ -31,11 +31,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -127,8 +125,8 @@ public class CompactionJobPriorityQueue {
   // behavior is not supported with a PriorityQueue. Second a PriorityQueue does not support
   // efficiently removing entries from anywhere in the queue. Efficient removal is needed for the
   // case where tablets decided to issues different compaction jobs than what is currently queued.
-  private final TreeMap<CjpqKey,MetaJob> jobQueue;
-  private final AtomicInteger maxSize;
+  private final SizeTrackingTreeMap<CjpqKey,MetaJob> jobQueue;
+  private final AtomicLong maxSize;
   private final AtomicLong rejectedJobs;
   private final AtomicLong dequeuedJobs;
   private final ArrayDeque<CompletableFuture<CompactionJob>> futures;
@@ -153,9 +151,10 @@ public class CompactionJobPriorityQueue {
 
   private final AtomicLong nextSeq = new AtomicLong(0);
 
-  public CompactionJobPriorityQueue(CompactorGroupId groupId, int maxSize) {
-    this.jobQueue = new TreeMap<>();
-    this.maxSize = new AtomicInteger(maxSize);
+  public CompactionJobPriorityQueue(CompactorGroupId groupId, long maxSize,
+      SizeTrackingTreeMap.Weigher<CompactionJob> weigher) {
+    this.jobQueue = new SizeTrackingTreeMap<>(mj -> weigher.weigh(mj.job));
+    this.maxSize = new AtomicLong(maxSize);
     this.tabletJobs = new HashMap<>();
     this.groupId = groupId;
     this.rejectedJobs = new AtomicLong(0);
@@ -239,11 +238,11 @@ public class CompactionJobPriorityQueue {
     return jobsAdded;
   }
 
-  public synchronized int getMaxSize() {
+  public synchronized long getMaxSize() {
     return maxSize.get();
   }
 
-  public synchronized void setMaxSize(int maxSize) {
+  public synchronized void setMaxSize(long maxSize) {
     Preconditions.checkArgument(maxSize > 0,
         "Maximum size of the Compaction job priority queue must be greater than 0");
     this.maxSize.set(maxSize);
@@ -258,7 +257,7 @@ public class CompactionJobPriorityQueue {
   }
 
   public synchronized long getQueuedJobs() {
-    return jobQueue.size();
+    return jobQueue.entrySize();
   }
 
   public synchronized long getLowestPriority() {
@@ -341,7 +340,7 @@ public class CompactionJobPriorityQueue {
   }
 
   private CjpqKey addJobToQueue(KeyExtent extent, CompactionJob job) {
-    if (jobQueue.size() >= maxSize.get()) {
+    if (jobQueue.dataSize() >= maxSize.get()) {
       var lastEntry = jobQueue.lastKey();
       if (job.getPriority() <= lastEntry.getPriority()) {
         // the queue is full and this job has a lower or same priority than the lowest job in the

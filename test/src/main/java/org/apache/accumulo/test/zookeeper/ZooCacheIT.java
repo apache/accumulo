@@ -29,10 +29,13 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.zookeeper.Watcher;
 import org.junit.jupiter.api.AfterEach;
@@ -44,8 +47,9 @@ import org.junit.jupiter.api.io.TempDir;
 @Tag(ZOOKEEPER_TESTING_SERVER)
 public class ZooCacheIT {
 
-  private ZooKeeperTestingServer szk = null;
-  private ZooReaderWriter zk = null;
+  private ZooKeeperTestingServer szk;
+  private ZooSession zk;
+  private ZooReaderWriter zrw;
 
   @TempDir
   private File tempDir;
@@ -53,29 +57,34 @@ public class ZooCacheIT {
   @BeforeEach
   public void setup() throws Exception {
     szk = new ZooKeeperTestingServer(tempDir);
-    zk = szk.getZooReaderWriter();
+    zk = szk.newClient();
+    zrw = zk.asReaderWriter();
   }
 
   @AfterEach
   public void teardown() throws Exception {
-    szk.close();
+    try {
+      zk.close();
+    } finally {
+      szk.close();
+    }
   }
 
   @Test
   public void testGetChildren() throws Exception {
 
     Set<String> watchesRemoved = Collections.synchronizedSet(new HashSet<>());
-    Watcher watcher = event -> {
+    ZooCacheWatcher watcher = event -> {
       if (event.getType() == Watcher.Event.EventType.ChildWatchRemoved
           || event.getType() == Watcher.Event.EventType.DataWatchRemoved) {
         watchesRemoved.add(event.getPath());
       }
     };
-    ZooCache zooCache = new ZooCache(zk, watcher, Duration.ofSeconds(3));
+    ZooCache zooCache = new ZooCache(zk, Optional.of(watcher), Duration.ofSeconds(3));
 
-    zk.mkdirs("/test2");
-    zk.mkdirs("/test3/c1");
-    zk.mkdirs("/test3/c2");
+    zrw.mkdirs("/test2");
+    zrw.mkdirs("/test3/c1");
+    zrw.mkdirs("/test3/c2");
 
     // cache non-existence of /test1 and existence of /test2 and /test3
     long uc1 = zooCache.getUpdateCount();
@@ -98,7 +107,7 @@ public class ZooCacheIT {
     assertEquals(uc4, zooCache.getUpdateCount());
 
     // Had cached non-existence of "/test1", should get a notification that it was created
-    zk.mkdirs("/test1");
+    zrw.mkdirs("/test1");
 
     Wait.waitFor(() -> {
       var children = zooCache.getChildren("/test1");
@@ -113,7 +122,7 @@ public class ZooCacheIT {
     assertEquals(uc5, zooCache.getUpdateCount());
 
     // add a child to /test3, should get a notification of the change
-    zk.mkdirs("/test3/c3");
+    zrw.mkdirs("/test3/c3");
     Wait.waitFor(() -> {
       var children = zooCache.getChildren("/test3");
       return children != null && children.size() == 3;
@@ -126,7 +135,7 @@ public class ZooCacheIT {
     assertEquals(uc6, zooCache.getUpdateCount());
 
     // remove a child from /test3
-    zk.delete("/test3/c2");
+    zrw.delete("/test3/c2");
     Wait.waitFor(() -> {
       var children = zooCache.getChildren("/test3");
       return children != null && children.size() == 2;
@@ -139,7 +148,7 @@ public class ZooCacheIT {
     assertEquals(uc7, zooCache.getUpdateCount());
 
     // remove /test2, should start caching that it does not exist
-    zk.delete("/test2");
+    zrw.delete("/test2");
     Wait.waitFor(() -> zooCache.getChildren("/test2") == null);
     long uc8 = zooCache.getUpdateCount();
     assertTrue(uc7 < uc8);
@@ -149,7 +158,7 @@ public class ZooCacheIT {
     assertEquals(uc8, zooCache.getUpdateCount());
 
     // add /test2 back, should update
-    zk.mkdirs("/test2");
+    zrw.mkdirs("/test2");
     Wait.waitFor(() -> zooCache.getChildren("/test2") != null);
     long uc9 = zooCache.getUpdateCount();
     assertTrue(uc8 < uc9);
@@ -159,12 +168,12 @@ public class ZooCacheIT {
     assertEquals(uc9, zooCache.getUpdateCount());
 
     // make multiple changes. the cache should see all of these
-    zk.delete("/test1");
-    zk.mkdirs("/test2/ca");
-    zk.delete("/test3/c1");
-    zk.mkdirs("/test3/c4");
-    zk.delete("/test3/c4");
-    zk.mkdirs("/test3/c5");
+    zrw.delete("/test1");
+    zrw.mkdirs("/test2/ca");
+    zrw.delete("/test3/c1");
+    zrw.mkdirs("/test3/c4");
+    zrw.delete("/test3/c4");
+    zrw.mkdirs("/test3/c5");
 
     Wait.waitFor(() -> {
       var children1 = zooCache.getChildren("/test1");

@@ -48,18 +48,17 @@ public class CompactionJobQueues {
   private final ConcurrentHashMap<CompactorGroupId,CompactionJobPriorityQueue> priorityQueues =
       new ConcurrentHashMap<>();
 
-  private final int queueSize;
+  private final long queueSize;
 
   private final Map<DataLevel,AtomicLong> currentGenerations;
 
-  public CompactionJobQueues(int queueSize) {
+  public CompactionJobQueues(long queueSize) {
     this.queueSize = queueSize;
     Map<DataLevel,AtomicLong> cg = new EnumMap<>(DataLevel.class);
     for (var level : DataLevel.values()) {
       cg.put(level, new AtomicLong());
     }
     currentGenerations = Collections.unmodifiableMap(cg);
-
   }
 
   public void beginFullScan(DataLevel level) {
@@ -144,7 +143,7 @@ public class CompactionJobQueues {
    */
   public CompletableFuture<CompactionJob> getAsync(CompactorGroupId groupId) {
     var pq = priorityQueues.computeIfAbsent(groupId,
-        gid -> new CompactionJobPriorityQueue(gid, queueSize));
+        gid -> new CompactionJobPriorityQueue(gid, queueSize, ResolvedCompactionJob.WEIGHER));
     return pq.getAsync();
   }
 
@@ -166,7 +165,7 @@ public class CompactionJobQueues {
     }
 
     var pq = priorityQueues.computeIfAbsent(groupId,
-        gid -> new CompactionJobPriorityQueue(gid, queueSize));
+        gid -> new CompactionJobPriorityQueue(gid, queueSize, ResolvedCompactionJob.WEIGHER));
     pq.add(extent, jobs, currentGenerations.get(DataLevel.of(extent.tableId())).get());
   }
 }

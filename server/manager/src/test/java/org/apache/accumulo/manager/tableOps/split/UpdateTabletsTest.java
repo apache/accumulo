@@ -368,7 +368,8 @@ public class UpdateTabletsTest {
     EasyMock.expect(tabletsMutator.mutateTablet(origExtent)).andReturn(tablet3Mutator);
 
     // setup processing of conditional mutations
-    Ample.ConditionalResult cr = EasyMock.niceMock(Ample.ConditionalResult.class);
+    Ample.ConditionalResult cr = EasyMock.createMock(Ample.ConditionalResult.class);
+    EasyMock.expect(cr.getExtent()).andReturn(origExtent).atLeastOnce();
     EasyMock.expect(cr.getStatus()).andReturn(Ample.ConditionalResult.Status.ACCEPTED)
         .atLeastOnce();
     EasyMock.expect(tabletsMutator.process())
