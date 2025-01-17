@@ -455,21 +455,21 @@ public class SessionManager {
         addActiveScan(activeScans, scanSession,
             isSingle ? ((SingleScanSession) scanSession).extent
                 : ((MultiScanSession) scanSession).threadPoolExtent,
-            ct, isSingle ? ScanType.SINGLE : ScanType.BATCH,
-            computeScanState(scanSession.getScanTask()), scanSession.scanParams, entry.getKey());
+            ct, isSingle ? ScanType.SINGLE : ScanType.BATCH, computeScanState(scanSession),
+            scanSession.scanParams, entry.getKey());
       }
     }));
 
     return activeScans;
   }
 
-  private ScanState computeScanState(ScanTask<?> scanTask) {
+  private ScanState computeScanState(ScanSession<?> session) {
     ScanState state = ScanState.RUNNING;
 
-    if (scanTask == null) {
-      state = ScanState.IDLE;
+    if (session.getState() == State.REMOVED) {
+      state = ScanState.CLEANING;
     } else {
-      switch (scanTask.getScanRunState()) {
+      switch (session.getScanTask().getScanRunState()) {
         case QUEUED:
           state = ScanState.QUEUED;
           break;
@@ -477,12 +477,15 @@ public class SessionManager {
           state = ScanState.IDLE;
           break;
         case RUNNING:
+          if (session.getState() == State.REMOVED) {
+            state = ScanState.ZOMBIE;
+          }
+          break;
         default:
           /* do nothing */
           break;
       }
     }
-
     return state;
   }
 
