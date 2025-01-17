@@ -125,11 +125,15 @@ public class ColumnVisibility {
       this.end = end;
     }
 
-    private Node(NodeType type, int start, int end, List<Node> children) {
-      this.type = type;
-      this.start = start;
-      this.end = end;
-      this.children = children;
+    public Node(Node node) {
+      List<Node> childrenNew = new ArrayList<>(node.children.size());
+      for (Node child : node.children) {
+        childrenNew.add(new Node(child));
+      }
+      this.type = node.type;
+      this.start = node.start;
+      this.end = node.end;
+      this.children = childrenNew;
     }
 
     public void add(Node child) {
@@ -169,18 +173,6 @@ public class ColumnVisibility {
         return new ArrayByteSequence(expression, qStart, qEnd - qStart);
       }
       return new ArrayByteSequence(expression, start, end - start);
-    }
-
-    public Node deepCopy() {
-      return deepCopy(this);
-    }
-
-    private Node deepCopy(Node node) {
-      List<Node> childrenNew = new ArrayList<>(node.children.size());
-      for (Node child : node.children) {
-        childrenNew.add(deepCopy(child));
-      }
-      return new Node(node.type, node.start, node.end, childrenNew);
     }
   }
 
@@ -306,17 +298,6 @@ public class ColumnVisibility {
     StringBuilder builder = new StringBuilder(expression.length);
     stringify(normRoot, expression, builder);
     return builder.toString().getBytes(UTF_8);
-  }
-
-  /**
-   * Prepares a deep copy of the column visibility, the new object is safe for mutable actions.
-   *
-   * @return new instance from the expression in this instance
-   */
-  public ColumnVisibility deepCopy() {
-    byte[] expressionNew = Arrays.copyOf(expression, expression.length);
-    Node nodeNew = node.deepCopy();
-    return new ColumnVisibility(expressionNew, nodeNew);
   }
 
   private static class ColumnVisibilityParser {
@@ -535,9 +516,10 @@ public class ColumnVisibility {
     validate(expression);
   }
 
-  private ColumnVisibility(byte[] expression, Node node) {
-    this.expression = expression;
-    this.node = node;
+  public ColumnVisibility(ColumnVisibility visibility) {
+    byte[] incomingExpression = visibility.expression;
+    this.expression = Arrays.copyOf(incomingExpression, incomingExpression.length);
+    this.node = new Node(visibility.node);
   }
 
   @Override
