@@ -16,33 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate.meta;
+package org.apache.accumulo.test.fate.user;
 
+import static org.apache.accumulo.test.fate.FateStoreUtil.createFateTable;
 import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 
-import java.util.UUID;
-
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.AbstractFateStore;
-import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateInterleavingIT;
+import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.test.fate.FateExecutionOrderIT;
 
-public class MetaFateInterleavingIT extends FateInterleavingIT {
-
-  // put the fate data for the test in a different location than what accumulo is using
-  private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
-  private static final String ZK_ROOT = ZooUtil.getRoot(IID);
-
+public class UserFateExecutionOrderIT extends FateExecutionOrderIT {
   @Override
-  public void executeTest(FateTestExecutor<FilTestEnv> testMethod, int maxDeferred,
+  public void executeTest(FateTestExecutor<FeoTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
-    ServerContext sctx = getCluster().getServerContext();
-    String path = ZK_ROOT + Constants.ZFATE;
-    var zk = sctx.getZooSession();
-    zk.asReaderWriter().mkdirs(ZK_ROOT);
-    testMethod.execute(new MetaFateStore<>(path, zk, createDummyLockID(), null), sctx);
+    var table = getUniqueNames(1)[0];
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+      createFateTable(client, table);
+      testMethod.execute(new UserFateStore<>(client, table, createDummyLockID(), null, maxDeferred,
+          fateIdGenerator), getCluster().getServerContext());
+      client.tableOperations().delete(table);
+    }
   }
 }
