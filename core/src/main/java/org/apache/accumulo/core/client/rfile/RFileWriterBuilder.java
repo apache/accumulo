@@ -180,7 +180,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
 
   @Override
   public WriterOptions withSplitResolver(LoadPlan.SplitResolver splitResolver) {
-    this.splitResolver = splitResolver;
+    this.splitResolver = requireNonNull(splitResolver);
     return this;
   }
 
