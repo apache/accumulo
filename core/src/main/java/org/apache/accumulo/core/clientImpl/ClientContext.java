@@ -142,7 +142,7 @@ public class ClientContext implements AccumuloClient {
   private ThriftTransportPool thriftTransportPool;
   private ZookeeperLockChecker zkLockChecker;
 
-  private volatile boolean closed = false;
+  private final AtomicBoolean closed = new AtomicBoolean();
 
   private SecurityOperations secops = null;
   private final TableOperationsImpl tableops;
@@ -157,22 +157,21 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<ZooSession> zooSession;
 
   private void ensureOpen() {
-    if (closed) {
+    if (closed.get()) {
       throw new IllegalStateException("This client was closed.");
     }
   }
 
   private ScanServerSelector createScanServerSelector() {
-    String clazz = ClientProperty.SCAN_SERVER_SELECTOR.getValue(info.getProperties());
+    String clazz = ClientProperty.SCAN_SERVER_SELECTOR.getValue(getClientProperties());
     try {
       Class<? extends ScanServerSelector> impl =
           Class.forName(clazz).asSubclass(ScanServerSelector.class);
       ScanServerSelector scanServerSelector = impl.getDeclaredConstructor().newInstance();
 
       Map<String,String> sserverProps = new HashMap<>();
-      ClientProperty
-          .getPrefix(info.getProperties(), ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey())
-          .forEach((k, v) -> {
+      ClientProperty.getPrefix(getClientProperties(),
+          ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey()).forEach((k, v) -> {
             sserverProps.put(
                 k.toString()
                     .substring(ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey().length()),
@@ -311,9 +310,8 @@ public class ClientContext implements AccumuloClient {
     return getCredentials().getToken();
   }
 
-  public Properties getProperties() {
-    ensureOpen();
-    return info.getProperties();
+  private Properties getClientProperties() {
+    return info.getClientProperties();
   }
 
   /**
@@ -396,7 +394,7 @@ public class ClientContext implements AccumuloClient {
   public synchronized BatchWriterConfig getBatchWriterConfig() {
     ensureOpen();
     if (batchWriterConfig == null) {
-      batchWriterConfig = getBatchWriterConfig(info.getProperties());
+      batchWriterConfig = getBatchWriterConfig(getClientProperties());
     }
     return batchWriterConfig;
   }
@@ -405,6 +403,7 @@ public class ClientContext implements AccumuloClient {
    * @return map of live scan server addresses to lock uuids.
    */
   public Map<String,Pair<UUID,String>> getScanServers() {
+    ensureOpen();
     Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
     String root = this.getZooKeeperRoot() + Constants.ZSSERVERS;
     var addrs = this.getZooCache().getChildren(root);
@@ -455,7 +454,7 @@ public class ClientContext implements AccumuloClient {
   public synchronized ConditionalWriterConfig getConditionalWriterConfig() {
     ensureOpen();
     if (conditionalWriterConfig == null) {
-      conditionalWriterConfig = getConditionalWriterConfig(info.getProperties());
+      conditionalWriterConfig = getConditionalWriterConfig(getClientProperties());
     }
     return conditionalWriterConfig;
   }
@@ -621,6 +620,7 @@ public class ClientContext implements AccumuloClient {
   }
 
   public Map<NamespaceId,String> getNamespaceIdToNameMap() {
+    ensureOpen();
     return Namespaces.getIdToNameMap(this);
   }
 
@@ -694,7 +694,7 @@ public class ClientContext implements AccumuloClient {
       throws TableNotFoundException {
     ensureOpen();
     Integer numQueryThreads =
-        ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS.getInteger(getProperties());
+        ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS.getInteger(getClientProperties());
     Objects.requireNonNull(numQueryThreads);
     return createBatchScanner(tableName, authorizations, numQueryThreads);
   }
@@ -702,6 +702,7 @@ public class ClientContext implements AccumuloClient {
   @Override
   public BatchScanner createBatchScanner(String tableName)
       throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    ensureOpen();
     Authorizations auths = securityOperations().getUserAuthorizations(getPrincipal());
     return createBatchScanner(tableName, auths);
   }
@@ -718,7 +719,6 @@ public class ClientContext implements AccumuloClient {
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads) throws TableNotFoundException {
-    ensureOpen();
     return createBatchDeleter(tableName, authorizations, numQueryThreads, new BatchWriterConfig());
   }
 
@@ -773,7 +773,7 @@ public class ClientContext implements AccumuloClient {
     checkArgument(authorizations != null, "authorizations is null");
     Scanner scanner =
         new ScannerImpl(this, requireNotOffline(getTableId(tableName), tableName), authorizations);
-    Integer batchSize = ClientProperty.SCANNER_BATCH_SIZE.getInteger(getProperties());
+    Integer batchSize = ClientProperty.SCANNER_BATCH_SIZE.getInteger(getClientProperties());
     if (batchSize != null) {
       scanner.setBatchSize(batchSize);
     }
@@ -829,7 +829,7 @@ public class ClientContext implements AccumuloClient {
   public Properties properties() {
     ensureOpen();
     Properties result = new Properties();
-    getProperties().forEach((key, value) -> {
+    getClientProperties().forEach((key, value) -> {
       if (!key.equals(ClientProperty.AUTH_TOKEN.getKey())) {
         result.setProperty((String) key, (String) value);
       }
@@ -844,23 +844,24 @@ public class ClientContext implements AccumuloClient {
 
   @Override
   public synchronized void close() {
-    closed = true;
-    if (zooKeeperOpened.get()) {
-      zooSession.get().close();
+    if (closed.compareAndSet(false, true)) {
+      if (zooKeeperOpened.get()) {
+        zooSession.get().close();
+      }
+      if (thriftTransportPool != null) {
+        thriftTransportPool.shutdown();
+      }
+      if (tableZooHelper != null) {
+        tableZooHelper.close();
+      }
+      if (scannerReadaheadPool != null) {
+        scannerReadaheadPool.shutdownNow(); // abort all tasks, client is shutting down
+      }
+      if (cleanupThreadPool != null) {
+        cleanupThreadPool.shutdown(); // wait for shutdown tasks to execute
+      }
+      singletonReservation.close();
     }
-    if (thriftTransportPool != null) {
-      thriftTransportPool.shutdown();
-    }
-    if (tableZooHelper != null) {
-      tableZooHelper.close();
-    }
-    if (scannerReadaheadPool != null) {
-      scannerReadaheadPool.shutdownNow(); // abort all tasks, client is shutting down
-    }
-    if (cleanupThreadPool != null) {
-      cleanupThreadPool.shutdown(); // wait for shutdown tasks to execute
-    }
-    singletonReservation.close();
   }
 
   public static class ClientBuilderImpl<T>
@@ -896,7 +897,7 @@ public class ClientContext implements AccumuloClient {
       try {
         // ClientContext closes reservation unless a RuntimeException is thrown
         ClientInfo info = cbi.getClientInfo();
-        AccumuloConfiguration config = ClientConfConverter.toAccumuloConf(info.getProperties());
+        var config = ClientConfConverter.toAccumuloConf(info.getClientProperties());
         return new ClientContext(reservation, info, config, cbi.getUncaughtExceptionHandler());
       } catch (RuntimeException e) {
         reservation.close();
@@ -1080,8 +1081,7 @@ public class ClientContext implements AccumuloClient {
   }
 
   protected long getTransportPoolMaxAgeMillis() {
-    ensureOpen();
-    return ClientProperty.RPC_TRANSPORT_IDLE_TIMEOUT.getTimeInMillis(getProperties());
+    return ClientProperty.RPC_TRANSPORT_IDLE_TIMEOUT.getTimeInMillis(getClientProperties());
   }
 
   public synchronized ThriftTransportPool getTransportPool() {
@@ -1108,6 +1108,7 @@ public class ClientContext implements AccumuloClient {
   }
 
   public NamespaceMapping getNamespaces() {
+    ensureOpen();
     return namespaces;
   }
 

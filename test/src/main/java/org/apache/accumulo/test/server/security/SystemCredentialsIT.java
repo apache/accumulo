@@ -79,7 +79,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
         default:
           throw new RuntimeException("Incorrect usage; expected to be run by test only");
       }
-      try (AccumuloClient client = Accumulo.newClient().from(context.getProperties())
+      try (AccumuloClient client = Accumulo.newClient().from(context.properties())
           .as(creds.getPrincipal(), creds.getToken()).build()) {
         client.securityOperations().authenticateUser(creds.getPrincipal(), creds.getToken());
         try (Scanner scan =

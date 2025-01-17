@@ -193,7 +193,7 @@ public class ServerInfo implements ClientInfo {
   }
 
   @Override
-  public Properties getProperties() {
+  public Properties getClientProperties() {
     Properties properties = ClientConfConverter.toProperties(getSiteConfiguration());
     properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), getZooKeepers());
     properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(),
