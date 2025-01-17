@@ -210,6 +210,7 @@ public class Fate<T> {
 
     @Override
     public void run() {
+      runningTxRunners.add(this);
       try {
         while (keepRunning.get() && !stop.get()) {
           FateTxStore<T> txStore = null;
@@ -442,9 +443,7 @@ public class Fate<T> {
         // If the pool grew, then ensure that there is a TransactionRunner for each thread
         for (int i = 0; i < needed; i++) {
           try {
-            var txRunner = new TransactionRunner();
-            runningTxRunners.add(txRunner);
-            pool.execute(txRunner);
+            pool.execute(new TransactionRunner());
           } catch (RejectedExecutionException e) {
             // RejectedExecutionException could be shutting down
             if (pool.isShutdown()) {
