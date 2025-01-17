@@ -130,7 +130,7 @@ public abstract class AbstractServer
     }
   }
 
-  protected boolean isShutdownRequested() {
+  public boolean isShutdownRequested() {
     return shutdownRequested.get();
   }
 

@@ -99,6 +99,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
+import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
@@ -257,7 +258,7 @@ public class TabletServer extends AbstractServer
     this.sessionManager = new SessionManager(context);
     this.logSorter = new LogSorter(context, aconf);
     @SuppressWarnings("deprecation")
-    var replWorker = new org.apache.accumulo.tserver.replication.ReplicationWorker(context);
+    var replWorker = new org.apache.accumulo.tserver.replication.ReplicationWorker(this);
     this.replWorker = replWorker;
     this.statsKeeper = new TabletStatsKeeper();
     final int numBusyTabletsToLog = aconf.getCount(Property.TSERV_LOG_BUSY_TABLETS_COUNT);
@@ -789,9 +790,8 @@ public class TabletServer extends AbstractServer
         .createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS, true);
 
     // TODO: Remove when Property.TSERV_WORKQ_THREADS is removed
-    DistributedWorkQueue bulkFailedCopyQ =
-        new DistributedWorkQueue(getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ,
-            getConfiguration(), getContext());
+    DistributedWorkQueue bulkFailedCopyQ = new DistributedWorkQueue(
+        getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ, getConfiguration(), this);
     try {
       bulkFailedCopyQ.startProcessing(new BulkFailedCopyProcessor(getContext()),
           distWorkQThreadPool);
@@ -800,7 +800,7 @@ public class TabletServer extends AbstractServer
     }
 
     try {
-      logSorter.startWatchingForRecoveryLogs();
+      logSorter.startWatchingForRecoveryLogs(this);
     } catch (Exception ex) {
       log.error("Error setting watches for recoveries");
       throw new RuntimeException(ex);
@@ -930,6 +930,19 @@ public class TabletServer extends AbstractServer
       }
     }
 
+    // Tell the Manager we are shutting down so that it doesn't try
+    // to assign tablets.
+    ManagerClientService.Client iface = managerConnection(getManagerAddress());
+    try {
+      iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
+          getClientAddressString());
+    } catch (TException e) {
+      LOG.error("Error informing Manager that we are shutting down, halting server", e);
+      Halt.halt("Error informing Manager that we are shutting down, exiting!", -1);
+    } finally {
+      returnManagerConnection(iface);
+    }
+
     log.debug("Stopping Replication Server");
     if (this.replServer != null) {
       this.replServer.stop();
@@ -942,7 +955,7 @@ public class TabletServer extends AbstractServer
         .getPoolBuilder(ThreadPoolNames.TSERVER_SHUTDOWN_UNLOAD_TABLET_POOL).numCoreThreads(8)
         .numMaxThreads(16).build();
 
-    ManagerClientService.Client iface = managerConnection(getManagerAddress());
+    iface = managerConnection(getManagerAddress());
     boolean managerDown = false;
 
     try {
@@ -974,6 +987,7 @@ public class TabletServer extends AbstractServer
           log.debug("Waiting on {} {} tablets to close.", futures.size(), level);
           UtilWaitThread.sleep(1000);
         }
+        log.debug("All {} tablets unloaded", level);
       }
     } finally {
       if (!managerDown) {
