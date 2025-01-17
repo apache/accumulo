@@ -311,6 +311,7 @@ public class CompactionCoordinatorTest {
     expect(tm.getExtent()).andReturn(ke).anyTimes();
     expect(tm.getFiles()).andReturn(Collections.emptySet()).anyTimes();
     expect(tm.getTableId()).andReturn(ke.tableId()).anyTimes();
+    expect(tm.getDirName()).andReturn("t-00001").anyTimes();
     Manager manager = EasyMock.createNiceMock(Manager.class);
     expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
         .anyTimes();

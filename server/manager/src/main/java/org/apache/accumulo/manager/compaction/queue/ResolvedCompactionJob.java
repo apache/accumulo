@@ -75,7 +75,9 @@ public class ResolvedCompactionJob implements CompactionJob {
     if (job instanceof ResolvedCompactionJob) {
       var rcj = (ResolvedCompactionJob) job;
       long estDataSize = 0;
-      estDataSize += rcj.selectedFateId.canonical().length();
+      if (rcj.selectedFateId != null) {
+        estDataSize += rcj.selectedFateId.canonical().length();
+      }
       for (var file : rcj.jobFiles.keySet()) {
         estDataSize += file.getMetadataPath().length();
         estDataSize += 24; // There are three longs in DataFileValue
