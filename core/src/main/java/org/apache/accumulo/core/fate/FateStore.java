@@ -66,7 +66,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    *         empty optional otherwise. If there was a failure this could return an empty optional
    *         when it actually succeeded.
    */
-  Optional<FateId> seedTransaction(Fate.FateOperation txName, FateKey fateKey, Repo<T> repo,
+  Optional<FateId> seedTransaction(Fate.FateOperation fateOp, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp);
 
   /**
@@ -84,7 +84,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    *         failures. When there are no failures returns true if seeded and false otherwise. If
    *         there was a failure this could return false when it actually succeeded.
    */
-  boolean seedTransaction(Fate.FateOperation txName, FateId fateId, Repo<T> repo,
+  boolean seedTransaction(Fate.FateOperation fateOp, FateId fateId, Repo<T> repo,
       boolean autoCleanUp);
 
   /**
