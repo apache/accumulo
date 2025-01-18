@@ -58,7 +58,7 @@ class TxnDetailsTest {
     expect(status1.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(1)).anyTimes();
     expect(status1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn("step1").anyTimes();
-    expect(status1.getFateOp()).andReturn(Fate.FateOperation.TABLE_CREATE).anyTimes();
+    expect(status1.getfateOp()).andReturn(Fate.FateOperation.TABLE_CREATE).anyTimes();
     expect(status1.getFateId()).andReturn(FateId.from("FATE:USER:" + uuid1)).anyTimes();
     expect(status1.getHeldLocks()).andReturn(List.of()).anyTimes();
     expect(status1.getWaitingLocks()).andReturn(List.of()).anyTimes();
@@ -67,7 +67,7 @@ class TxnDetailsTest {
     expect(status2.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(7)).anyTimes();
     expect(status2.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status2.getTop()).andReturn("step2").anyTimes();
-    expect(status2.getFateOp()).andReturn(Fate.FateOperation.TABLE_DELETE).anyTimes();
+    expect(status2.getfateOp()).andReturn(Fate.FateOperation.TABLE_DELETE).anyTimes();
     expect(status2.getFateId()).andReturn(FateId.from("FATE:USER:" + uuid2)).anyTimes();
     expect(status2.getHeldLocks()).andReturn(List.of()).anyTimes();
     expect(status2.getWaitingLocks()).andReturn(List.of()).anyTimes();
@@ -101,7 +101,7 @@ class TxnDetailsTest {
     expect(status1.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(1)).anyTimes();
     expect(status1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn("step1").anyTimes();
-    expect(status1.getFateOp()).andReturn(Fate.FateOperation.TABLE_COMPACT).anyTimes();
+    expect(status1.getfateOp()).andReturn(Fate.FateOperation.TABLE_COMPACT).anyTimes();
     expect(status1.getFateId()).andReturn(FateId.from("FATE:USER:" + UUID.randomUUID())).anyTimes();
     // incomplete lock info (W unknown ns id, no table))
     expect(status1.getHeldLocks()).andReturn(List.of("R:1", "R:2", "W:a")).anyTimes();

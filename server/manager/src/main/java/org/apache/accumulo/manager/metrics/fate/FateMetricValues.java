@@ -102,7 +102,7 @@ public abstract class FateMetricValues {
 
       // incr count for op type for for in_progress transactions.
       if (ReadOnlyFateStore.TStatus.IN_PROGRESS.equals(tx.getStatus())) {
-        Fate.FateOperation opType = tx.getFateOp();
+        Fate.FateOperation opType = tx.getfateOp();
         String opTypeStr = opType == null ? "UNKNOWN" : opType.name();
         opTypeCounters.merge(opTypeStr, 1L, Long::sum);
       }

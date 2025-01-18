@@ -53,13 +53,13 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public Optional<FateId> seedTransaction(Fate.FateOperation FateOp, FateKey fateKey,
+  public Optional<FateId> seedTransaction(Fate.FateOperation fateOp, FateKey fateKey,
       Repo<String> repo, boolean autoCleanUp) {
     return Optional.empty();
   }
 
   @Override
-  public boolean seedTransaction(Fate.FateOperation FateOp, FateId fateId, Repo<String> repo,
+  public boolean seedTransaction(Fate.FateOperation fateOp, FateId fateId, Repo<String> repo,
       boolean autoCleanUp) {
     return false;
   }

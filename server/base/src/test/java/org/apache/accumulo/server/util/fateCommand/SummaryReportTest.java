@@ -73,7 +73,7 @@ class SummaryReportTest {
     expect(status1.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(1)).anyTimes();
     expect(status1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn(null).anyTimes();
-    expect(status1.getFateOp()).andReturn(null).anyTimes();
+    expect(status1.getfateOp()).andReturn(null).anyTimes();
     expect(status1.getFateId()).andReturn(FateId.from("FATE:USER:" + UUID.randomUUID())).anyTimes();
     expect(status1.getHeldLocks()).andReturn(List.of()).anyTimes();
     expect(status1.getWaitingLocks()).andReturn(List.of()).anyTimes();

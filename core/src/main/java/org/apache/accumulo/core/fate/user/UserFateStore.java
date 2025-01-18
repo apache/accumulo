@@ -132,12 +132,12 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public Optional<FateId> seedTransaction(Fate.FateOperation FateOp, FateKey fateKey, Repo<T> repo,
+  public Optional<FateId> seedTransaction(Fate.FateOperation fateOp, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
     final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
     Supplier<FateMutator<T>> mutatorFactory = () -> newMutator(fateId).requireAbsent()
         .putKey(fateKey).putCreateTime(System.currentTimeMillis());
-    if (seedTransaction(mutatorFactory, fateKey + " " + fateId, FateOp, repo, autoCleanUp)) {
+    if (seedTransaction(mutatorFactory, fateKey + " " + fateId, fateOp, repo, autoCleanUp)) {
       return Optional.of(fateId);
     } else {
       return Optional.empty();
@@ -145,20 +145,20 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public boolean seedTransaction(Fate.FateOperation FateOp, FateId fateId, Repo<T> repo,
+  public boolean seedTransaction(Fate.FateOperation fateOp, FateId fateId, Repo<T> repo,
       boolean autoCleanUp) {
     Supplier<FateMutator<T>> mutatorFactory =
         () -> newMutator(fateId).requireStatus(TStatus.NEW).requireUnreserved().requireAbsentKey();
-    return seedTransaction(mutatorFactory, fateId.canonical(), FateOp, repo, autoCleanUp);
+    return seedTransaction(mutatorFactory, fateId.canonical(), fateOp, repo, autoCleanUp);
   }
 
   private boolean seedTransaction(Supplier<FateMutator<T>> mutatorFactory, String logId,
-      Fate.FateOperation FateOp, Repo<T> repo, boolean autoCleanUp) {
+      Fate.FateOperation fateOp, Repo<T> repo, boolean autoCleanUp) {
     int maxAttempts = 5;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       var mutator = mutatorFactory.get();
       mutator =
-          mutator.putName(serializeTxInfo(FateOp)).putRepo(1, repo).putStatus(TStatus.SUBMITTED);
+          mutator.putName(serializeTxInfo(fateOp)).putRepo(1, repo).putStatus(TStatus.SUBMITTED);
       if (autoCleanUp) {
         mutator = mutator.putAutoClean(serializeTxInfo(autoCleanUp));
       }
@@ -419,7 +419,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
         final ColumnFQ cq;
         switch (txInfo) {
-          case TX_NAME:
+          case FATE_OP:
             cq = TxInfoColumnFamily.TX_NAME_COLUMN;
             break;
           case AUTO_CLEAN:

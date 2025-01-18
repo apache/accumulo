@@ -33,7 +33,7 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
 
   private long running;
   private String status = "?";
-  private String FateOp = "?";
+  private String fateOp = "?";
   private String step = "?";
   private String fateId = "?";
   private List<String> locksHeld = List.of();
@@ -73,8 +73,8 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     if (txnStatus.getTop() != null) {
       step = txnStatus.getTop();
     }
-    if (txnStatus.getFateOp() != null) {
-      FateOp= txnStatus.getFateOp().name();
+    if (txnStatus.getfateOp() != null) {
+      fateOp= txnStatus.getfateOp().name();
     }
     if (txnStatus.getFateId() != null) {
       fateId = txnStatus.getFateId().canonical();
@@ -103,8 +103,8 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     return running;
   }
 
-  public String getFateOp() {
-    return FateOp;
+  public String getfateOp() {
+    return fateOp;
   }
 
   public String getStep() {
@@ -167,7 +167,7 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     String hms = String.format("%d:%02d:%02d", elapsed.toHours(), elapsed.toMinutesPart(),
         elapsed.toSecondsPart());
 
-    return hms + "\t" + fateId + "\t" + status + "\t" + FateOp + "\t" + step + "\theld:"
+    return hms + "\t" + fateId + "\t" + status + "\t" + fateOp + "\t" + step + "\theld:"
         + locksHeld.toString() + "\twaiting:" + locksWaiting.toString();
   }
 

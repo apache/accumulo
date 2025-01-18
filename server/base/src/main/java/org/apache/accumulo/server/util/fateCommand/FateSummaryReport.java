@@ -88,7 +88,7 @@ public class FateSummaryReport {
     }
     String top = txnStatus.getTop();
     stepCounts.merge(Objects.requireNonNullElse(top, "?"), 1, Integer::sum);
-    Fate.FateOperation runningRepo = txnStatus.getFateOp();
+    Fate.FateOperation runningRepo = txnStatus.getfateOp();
 
     cmdCounts.merge(runningRepo == null ? "?" : runningRepo.name(), 1, Integer::sum);
 

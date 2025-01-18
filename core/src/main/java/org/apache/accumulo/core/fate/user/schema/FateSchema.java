@@ -44,8 +44,8 @@ public class FateSchema {
     public static final String STR_NAME = "txinfo";
     public static final Text NAME = new Text(STR_NAME);
 
-    public static final String TX_NAME = "FateOp";
-    public static final ColumnFQ TX_NAME_COLUMN = new ColumnFQ(NAME, new Text(TX_NAME));
+    public static final String FATE_OP = "fateOp";
+    public static final ColumnFQ TX_NAME_COLUMN = new ColumnFQ(NAME, new Text(FATE_OP));
 
     public static final String AUTO_CLEAN = "autoclean";
     public static final ColumnFQ AUTO_CLEAN_COLUMN = new ColumnFQ(NAME, new Text(AUTO_CLEAN));
