@@ -278,12 +278,7 @@ public class NewTableConfiguration {
   public NewTableConfiguration withSplits(final SortedSet<Text> splits) {
     checkArgument(splits != null, "splits set is null");
     checkArgument(!splits.isEmpty(), "splits set is empty");
-    return withSplits(
-        splits.stream()
-            .collect(ImmutableSortedMap.toImmutableSortedMap(
-                Optional.ofNullable((Comparator<Text>) splits.comparator())
-                    .orElse(Comparator.naturalOrder()),
-                Function.identity(), t -> TabletMergeability.never())));
+    return withSplits(TabletMergeabilityUtil.userDefaultSplits(splits));
   }
 
   public NewTableConfiguration withSplits(final SortedMap<Text,TabletMergeability> splits) {
