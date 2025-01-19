@@ -66,6 +66,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -105,6 +106,7 @@ import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
@@ -263,11 +265,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // Check for possible initial splits to be added at table creation
     // Always send number of initial splits to be created, even if zero. If greater than zero,
     // add the splits to the argument List which will be used by the FATE operations.
-    int numSplits = ntc.getSplits().size();
+    int numSplits = ntc.getSplitsMap().size();
     args.add(ByteBuffer.wrap(String.valueOf(numSplits).getBytes(UTF_8)));
     if (numSplits > 0) {
-      for (Text t : ntc.getSplits()) {
-        args.add(TextUtil.getByteBuffer(t));
+      for (Entry<Text,TabletMergeability> t : ntc.getSplitsMap().entrySet()) {
+        args.add(TabletMergeabilityUtil.encodeAsBuffer(t.getKey(), t.getValue()));
       }
     }
 
@@ -475,7 +477,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public static final String SPLIT_SUCCESS_MSG = "SPLIT_SUCCEEDED";
 
   @Override
+  @SuppressWarnings("unchecked")
   public void addSplits(String tableName, SortedSet<Text> splits)
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    putSplits(tableName, TabletMergeabilityUtil.userDefaultSplits(splits));
+  }
+
+  @Override
+  public void putSplits(String tableName, SortedMap<Text,TabletMergeability> splits)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
 
     EXISTING_TABLE_NAME.validate(tableName);
@@ -487,7 +496,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     ClientTabletCache tabLocator = ClientTabletCache.getInstance(context, tableId);
 
-    SortedSet<Text> splitsTodo = Collections.synchronizedSortedSet(new TreeSet<>(splits));
+    SortedMap<Text,TabletMergeability> splitsTodo =
+        Collections.synchronizedSortedMap(new TreeMap<>(splits));
 
     final ByteBuffer EMPTY = ByteBuffer.allocate(0);
 
@@ -500,13 +510,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       tabLocator.invalidateCache();
 
-      Map<KeyExtent,List<Text>> tabletSplits =
+      Map<KeyExtent,List<Pair<Text,TabletMergeability>>> tabletSplits =
           mapSplitsToTablets(tableName, tableId, tabLocator, splitsTodo);
 
       List<CompletableFuture<Void>> futures = new ArrayList<>();
 
       // begin the fate operation for each tablet without waiting for the operation to complete
-      for (Entry<KeyExtent,List<Text>> splitsForTablet : tabletSplits.entrySet()) {
+      for (Entry<KeyExtent,List<Pair<Text,TabletMergeability>>> splitsForTablet : tabletSplits
+          .entrySet()) {
         CompletableFuture<Void> future = CompletableFuture.supplyAsync(() -> {
           var extent = splitsForTablet.getKey();
 
@@ -515,7 +526,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
           args.add(extent.endRow() == null ? EMPTY : TextUtil.getByteBuffer(extent.endRow()));
           args.add(
               extent.prevEndRow() == null ? EMPTY : TextUtil.getByteBuffer(extent.prevEndRow()));
-          splitsForTablet.getValue().forEach(split -> args.add(TextUtil.getByteBuffer(split)));
+
+          splitsForTablet.getValue()
+              .forEach(split -> args.add(TabletMergeabilityUtil.encodeAsBuffer(split)));
 
           try {
             return handleFateOperation(() -> {
@@ -533,13 +546,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
           // wait for the fate operation to complete in a separate thread pool
         }, startExecutor).thenApplyAsync(pair -> {
           final TFateId opid = pair.getFirst();
-          final List<Text> completedSplits = pair.getSecond();
+          final List<Pair<Text,TabletMergeability>> completedSplits = pair.getSecond();
 
           try {
             String status = handleFateOperation(() -> waitForFateOperation(opid), tableName);
 
             if (SPLIT_SUCCESS_MSG.equals(status)) {
-              completedSplits.forEach(splitsTodo::remove);
+              completedSplits.stream().map(Pair::getFirst).forEach(splitsTodo::remove);
             }
           } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException
               | AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
@@ -593,14 +606,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
     waitExecutor.shutdown();
   }
 
-  private Map<KeyExtent,List<Text>> mapSplitsToTablets(String tableName, TableId tableId,
-      ClientTabletCache tabLocator, SortedSet<Text> splitsTodo)
+  private Map<KeyExtent,List<Pair<Text,TabletMergeability>>> mapSplitsToTablets(String tableName,
+      TableId tableId, ClientTabletCache tabLocator, SortedMap<Text,TabletMergeability> splitsTodo)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    Map<KeyExtent,List<Text>> tabletSplits = new HashMap<>();
+    Map<KeyExtent,List<Pair<Text,TabletMergeability>>> tabletSplits = new HashMap<>();
 
-    var iterator = splitsTodo.iterator();
+    var iterator = splitsTodo.entrySet().iterator();
     while (iterator.hasNext()) {
-      var split = iterator.next();
+      var splitEntry = iterator.next();
+      var split = splitEntry.getKey();
 
       try {
         Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
@@ -624,7 +638,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
           continue;
         }
 
-        tabletSplits.computeIfAbsent(tablet.getExtent(), k -> new ArrayList<>()).add(split);
+        tabletSplits.computeIfAbsent(tablet.getExtent(), k -> new ArrayList<>())
+            .add(Pair.fromEntry(splitEntry));
 
       } catch (InvalidTabletHostingRequestException e) {
         // not expected
