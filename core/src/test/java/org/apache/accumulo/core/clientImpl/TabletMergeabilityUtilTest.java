@@ -20,7 +20,6 @@ package org.apache.accumulo.core.clientImpl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -40,9 +39,18 @@ public class TabletMergeabilityUtilTest {
   }
 
   @Test
+  public void testEncodeDecodeAlways() {
+    var text = getRandomText();
+    String json = TabletMergeabilityUtil.encode(text, TabletMergeability.always());
+    var decoded = TabletMergeabilityUtil.decode(json);
+    assertEquals(text, decoded.getFirst());
+    assertEquals(TabletMergeability.always(), decoded.getSecond());
+  }
+
+  @Test
   public void testEncodeDecodeBuffer() {
     var text = getRandomText();
-    ByteBuffer jsonBuffer =
+    var jsonBuffer =
         TabletMergeabilityUtil.encodeAsBuffer(text, TabletMergeability.after(Duration.ofDays(1)));
     var decoded = TabletMergeabilityUtil.decode(jsonBuffer);
     assertEquals(text, decoded.getFirst());
