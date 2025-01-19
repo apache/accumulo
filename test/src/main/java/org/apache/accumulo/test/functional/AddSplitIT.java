@@ -19,12 +19,13 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -32,7 +33,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
-import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -107,25 +107,35 @@ public class AddSplitIT extends AccumuloClusterHarness {
 
   @Test
   public void addSplitWithMergeabilityTest() throws Exception {
-
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(tableName);
 
-      TreeSet<Text> splits = new TreeSet<>();
-      splits.add(new Text(String.format("%09d", 333)));
-      splits.add(new Text(String.format("%09d", 666)));
+      SortedMap<Text,TabletMergeability> splits = new TreeMap<>();
+      splits.put(new Text(String.format("%09d", 333)), TabletMergeability.always());
+      splits.put(new Text(String.format("%09d", 666)), TabletMergeability.never());
+      splits.put(new Text(String.format("%09d", 888)),
+          TabletMergeability.after(Duration.ofSeconds(100)));
+      splits.put(new Text(String.format("%09d", 999)),
+          TabletMergeability.after(Duration.ofDays(1)));
 
-      c.tableOperations().putSplits(tableName,
-          TabletMergeabilityUtil.splitsWithDefault(splits, TabletMergeability.always()));
+      c.tableOperations().putSplits(tableName, splits);
       Thread.sleep(100);
-      assertEquals(splits, new TreeSet<>(c.tableOperations().listSplits(tableName)));
+      assertEquals(splits.keySet(), new TreeSet<>(c.tableOperations().listSplits(tableName)));
 
       TableId id = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       try (TabletsMetadata tm = getServerContext().getAmple().readTablets().forTable(id).build()) {
-        // New splits should be set to always
-        assertTrue(tm.stream().filter(t -> t.getEndRow() != null).allMatch(t -> TabletMergeability
-            .always().equals(t.getTabletMergeability().getTabletMergeability())));
+        tm.stream().forEach(t -> {
+          // default tablet should be set to never
+          if (t.getEndRow() == null) {
+            assertEquals(TabletMergeability.never(),
+                t.getTabletMergeability().getTabletMergeability());
+          } else {
+            // New splits should match the original setting in the map
+            assertEquals(splits.get(t.getEndRow()),
+                t.getTabletMergeability().getTabletMergeability());
+          }
+        });
       }
     }
   }

@@ -19,16 +19,21 @@
 package org.apache.accumulo.core.client.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -80,11 +85,27 @@ public class NewTableConfigurationTest {
 
   @Test
   public void testWithSplitsMap() {
+    // Test map with setting splits to all the same TabletMergeability
     NewTableConfiguration ntc = new NewTableConfiguration();
-    ntc.withSplits(TabletMergeabilityUtil.splitsWithDefault(splits, TabletMergeability.never()));
+    ntc.withSplits(
+        TabletMergeabilityUtil.splitsWithDefault(this.splits, TabletMergeability.never()));
     verifySplits(ntc.getSplits());
     assertTrue(
         ntc.getSplitsMap().values().stream().allMatch(tm -> tm.equals(TabletMergeability.never())));
+
+    // Test a mixture of all types of TabletMergeability
+    SortedMap<Text,TabletMergeability> splits = new TreeMap<>();
+    splits.put(new Text("s1"), TabletMergeability.never());
+    splits.put(new Text("s2"), TabletMergeability.always());
+    splits.put(new Text("s3"), TabletMergeability.after(Duration.ofHours(3)));
+    splits.put(new Text("s4"), TabletMergeability.after(Duration.ofDays(2)));
+
+    // Want test to fail if NewTableConfiguration were to try to modify the map passed to it.
+    splits = Collections.unmodifiableSortedMap(splits);
+    ntc = new NewTableConfiguration();
+    ntc.withSplits(splits);
+    assertNotSame(splits, ntc.getSplitsMap());
+    assertEquals(splits, ntc.getSplitsMap());
   }
 
   private void verifySplits(Collection<Text> ntcSplits) {
