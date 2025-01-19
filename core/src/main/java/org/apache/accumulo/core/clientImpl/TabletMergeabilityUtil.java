@@ -28,12 +28,17 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.admin.TabletMergeability;
+import org.apache.accumulo.core.client.admin.TabletMergeabilityInfo;
+import org.apache.accumulo.core.manager.thrift.TTabletMergeability;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -93,6 +98,31 @@ public class TabletMergeabilityUtil {
         "delay should both be set if and only if mergeability 'never' is false");
     return new Pair<>(new Text(jData.split), jData.never ? TabletMergeability.never()
         : TabletMergeability.after(Duration.ofNanos(jData.delay)));
+  }
+
+  public static TabletMergeability fromThrift(TTabletMergeability thriftTm) {
+    if (thriftTm.never) {
+      return TabletMergeability.never();
+    }
+    return TabletMergeability.after(Duration.ofNanos(thriftTm.delay));
+  }
+
+  public static TTabletMergeability toThrift(TabletMergeability tabletMergeability) {
+    if (tabletMergeability.isNever()) {
+      return new TTabletMergeability(true, -1L);
+    }
+    return new TTabletMergeability(false, tabletMergeability.getDelay().orElseThrow().toNanos());
+  }
+
+  public static TabletMergeabilityInfo toInfo(TabletMergeabilityMetadata metadata,
+      Supplier<Duration> currentTime) {
+    return new TabletMergeabilityInfo(metadata.getTabletMergeability(),
+        metadata.getSteadyTime().map(SteadyTime::getDuration), currentTime);
+  }
+
+  public static boolean isMergeable(Duration createdTime, Duration delay, Duration currentTime) {
+    var totalDelay = createdTime.plus(delay);
+    return currentTime.compareTo(totalDelay) >= 0;
   }
 
   private static class GSonData {
