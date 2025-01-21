@@ -33,8 +33,10 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -62,9 +64,11 @@ public class ZooCacheTest {
 
     @Override
     protected void setupWatchers(Set<String> pathsToWatch) {
+      TreeSet<String> wPaths = new TreeSet<>();
       for (String path : pathsToWatch) {
-        watchedPaths.add(path);
+        wPaths.add(path);
       }
+      watchedPaths = Collections.unmodifiableNavigableSet(wPaths);
     }
 
     public void executeWatcher(WatchedEvent event) {

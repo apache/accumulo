@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -64,7 +65,8 @@ public class ZooCache implements Watcher {
 
   private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
 
-  protected final TreeSet<String> watchedPaths = new TreeSet<>();
+  protected volatile NavigableSet<String> watchedPaths =
+      Collections.unmodifiableNavigableSet(new TreeSet<>());
   // visible for tests
   protected final ZCacheWatcher watcher = new ZCacheWatcher();
   private final List<ZooCacheWatcher> externalWatchers =
@@ -235,23 +237,25 @@ public class ZooCache implements Watcher {
       }
     }
 
+    TreeSet<String> wPaths = new TreeSet<>();
     try {
       for (String path : pathsToWatch) {
         zk.addPersistentRecursiveWatcher(path, this.watcher);
-        watchedPaths.add(path);
+        wPaths.add(path);
         log.info("Added persistent recursive watcher at {}", path);
       }
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error setting up persistent recursive watcher", e);
     }
     watchersSet.set(true);
+    watchedPaths = Collections.unmodifiableNavigableSet(wPaths);
 
   }
 
   private boolean isWatchedPath(String path) {
     // Check that the path is equal to, or a descendant of, a watched path
-  var floor = ts.floor(path);
-  return floor != null && (floor.equals(path) ||  path.startsWith(floor+"/"));
+    var floor = watchedPaths.floor(path);
+    return floor != null && (floor.equals(path) || path.startsWith(floor + "/"));
   }
 
   // Use this instead of Preconditions.checkState(isWatchedPath, String)
@@ -621,6 +625,7 @@ public class ZooCache implements Watcher {
       case SyncConnected:
         log.info("{} ZooKeeper connection established, re-establishing watchers; {}", cacheId,
             event);
+        clear();
         setupWatchers(pathsToWatch);
         break;
       case Closed:
