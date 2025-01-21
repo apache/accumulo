@@ -250,12 +250,8 @@ public class ZooCache implements Watcher {
 
   private boolean isWatchedPath(String path) {
     // Check that the path is equal to, or a descendant of, a watched path
-    for (String watchedPath : watchedPaths) {
-      if (path.startsWith(watchedPath)) {
-        return true;
-      }
-    }
-    return false;
+  var floor = ts.floor(path);
+  return floor != null && (floor.equals(path) ||  path.startsWith(floor+"/"));
   }
 
   // Use this instead of Preconditions.checkState(isWatchedPath, String)
