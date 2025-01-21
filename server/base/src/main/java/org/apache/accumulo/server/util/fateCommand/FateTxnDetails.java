@@ -103,7 +103,7 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     return running;
   }
 
-  public String getfateOp() {
+  public String getFateOp() {
     return fateOp;
   }
 

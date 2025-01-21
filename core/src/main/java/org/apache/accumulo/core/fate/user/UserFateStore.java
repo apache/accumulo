@@ -420,7 +420,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         final ColumnFQ cq;
         switch (txInfo) {
           case FATE_OP:
-            cq = TxInfoColumnFamily.TX_NAME_COLUMN;
+            cq = TxInfoColumnFamily.FATE_OP_COLUMN;
             break;
           case AUTO_CLEAN:
             cq = TxInfoColumnFamily.AUTO_CLEAN_COLUMN;

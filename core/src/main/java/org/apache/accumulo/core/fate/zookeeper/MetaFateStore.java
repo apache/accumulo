@@ -223,7 +223,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     if (autoCleanUp) {
       txStore.setTransactionInfo(TxInfo.AUTO_CLEAN, autoCleanUp);
     }
-    txStore.setTransactionInfo(TxInfo.TX_NAME, fateOp);
+    txStore.setTransactionInfo(TxInfo.FATE_OP, fateOp);
     txStore.setStatus(SUBMITTED);
   }
 

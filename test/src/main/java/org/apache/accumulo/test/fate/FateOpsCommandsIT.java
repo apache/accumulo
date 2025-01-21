@@ -466,7 +466,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       // Validate transaction name and transaction step from summary command
 
       for (FateTxnDetails d : report.getFateDetails()) {
-        assertEquals("TABLE_COMPACT", d.getfateOp());
+        assertEquals("TABLE_COMPACT", d.getFateOp());
         assertEquals("CompactionDriver", d.getStep());
         fateIdsStarted.add(d.getFateId());
       }
@@ -832,7 +832,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       assertTrue(fateIdsStarted.contains(d.getFateId()));
       assertEquals("NEW", d.getStatus());
       assertEquals("?", d.getStep());
-      assertEquals("?", d.getfateOp());
+      assertEquals("?", d.getFateOp());
       assertNotEquals(0, d.getRunning());
       assertEquals("[]", d.getLocksHeld().toString());
       assertEquals("[]", d.getLocksWaiting().toString());
