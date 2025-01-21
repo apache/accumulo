@@ -22,7 +22,8 @@ import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUE
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED;
-import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_MAX_SIZE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -337,7 +338,9 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     }
 
     boolean sawMetricsQ1 = false;
-    while (!sawMetricsQ1) {
+    boolean sawMetricsQ1Size = false;
+
+    while (!sawMetricsQ1 || !sawMetricsQ1Size) {
       while (!queueMetrics.isEmpty()) {
         var qm = queueMetrics.take();
         if (qm.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())
@@ -346,7 +349,14 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
             sawMetricsQ1 = true;
           }
         }
+        if (qm.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE.getName())
+            && qm.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
+          if (Integer.parseInt(qm.getValue()) > 0) {
+            sawMetricsQ1Size = true;
+          }
+        }
       }
+
       // If metrics are not found in the queue, sleep until the next poll.
       UtilWaitThread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis());
     }
@@ -366,7 +376,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getName())
           && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
         lowestPriority = Math.max(lowestPriority, Long.parseLong(metric.getValue()));
-      } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH.getName())
+      } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_MAX_SIZE.getName())
           && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
         queueSize = Integer.parseInt(metric.getValue());
       } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUES.getName())) {

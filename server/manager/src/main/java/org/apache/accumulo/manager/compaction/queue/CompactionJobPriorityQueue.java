@@ -233,12 +233,6 @@ public class CompactionJobPriorityQueue {
     return maxSize.get();
   }
 
-  public synchronized void setMaxSize(long maxSize) {
-    Preconditions.checkArgument(maxSize > 0,
-        "Maximum size of the Compaction job priority queue must be greater than 0");
-    this.maxSize.set(maxSize);
-  }
-
   public long getRejectedJobs() {
     return rejectedJobs.get();
   }
@@ -249,6 +243,10 @@ public class CompactionJobPriorityQueue {
 
   public synchronized long getQueuedJobs() {
     return jobQueue.entrySize();
+  }
+
+  public synchronized long getQueuedJobsSize() {
+    return jobQueue.dataSize();
   }
 
   public synchronized long getLowestPriority() {
