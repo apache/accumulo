@@ -237,8 +237,8 @@ public class ZooCache implements Watcher {
 
     try {
       for (String path : pathsToWatch) {
-        watchedPaths.add(path);
         zk.addPersistentRecursiveWatcher(path, this.watcher);
+        watchedPaths.add(path);
         log.info("Added persistent recursive watcher at {}", path);
       }
     } catch (KeeperException | InterruptedException e) {
