@@ -23,6 +23,7 @@ import static org.easymock.EasyMock.createStrictMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -86,6 +87,11 @@ public class ZooCacheTest {
   public void setUp() {
     zk = createStrictMock(ZooSession.class);
     zc = new TestZooCache(zk, Set.of(root));
+    // The ZooCache constructor sets an expectation
+    // of addSessionObserver being called later during
+    // the tests. Remove this expectation by calling
+    // reset
+    reset(zk);
   }
 
   @Test
@@ -339,6 +345,11 @@ public class ZooCacheTest {
     TestWatcher exw = new TestWatcher(event);
     zc = new TestZooCache(zk, Set.of(root));
     zc.addZooCacheWatcher(exw);
+    // The ZooCache constructor sets an expectation
+    // of addSessionObserver being called later during
+    // the tests. Remove this expectation by calling
+    // reset
+    reset(zk);
 
     watchData(initialData);
     zc.executeWatcher(event);
@@ -450,6 +461,11 @@ public class ZooCacheTest {
     TestWatcher exw = new TestWatcher(event);
     zc = new TestZooCache(zk, Set.of(root));
     zc.addZooCacheWatcher(exw);
+    // The ZooCache constructor sets an expectation
+    // of addSessionObserver being called later during
+    // the tests. Remove this expectation by calling
+    // reset
+    reset(zk);
 
     watchData(DATA);
     assertTrue(zc.dataCached(ZPATH));
@@ -485,6 +501,11 @@ public class ZooCacheTest {
     TestWatcher exw = new TestWatcher(event);
     zc = new TestZooCache(zk, Set.of(root));
     zc.addZooCacheWatcher(exw);
+    // The ZooCache constructor sets an expectation
+    // of addSessionObserver being called later during
+    // the tests. Remove this expectation by calling
+    // reset
+    reset(zk);
 
     watchChildren(initialChildren);
     zc.executeWatcher(event);

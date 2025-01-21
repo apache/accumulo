@@ -25,6 +25,8 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -74,7 +76,7 @@ public class ZooSession implements AutoCloseable {
     }
   }
 
-  private static class ZooSessionWatcher implements Watcher {
+  private class ZooSessionWatcher implements Watcher {
 
     private final String connectionName;
     private final AtomicReference<KeeperState> lastState = new AtomicReference<>(null);
@@ -92,6 +94,7 @@ public class ZooSession implements AutoCloseable {
       } else if (newState != oldState) {
         log.debug("{} state changed from {} to {}", connectionName, oldState, newState);
       }
+      sessionObservers.forEach(o -> o.process(event));
     }
   }
 
@@ -120,6 +123,7 @@ public class ZooSession implements AutoCloseable {
   private final String sessionName;
   private final int timeout;
   private final ZooReaderWriter zrw;
+  private final List<Watcher> sessionObservers = Collections.synchronizedList(new ArrayList<>());
 
   /**
    * Construct a new ZooKeeper client, retrying indefinitely if it doesn't work right away. The
@@ -189,6 +193,7 @@ public class ZooSession implements AutoCloseable {
               digestAuth(zk, instanceSecret);
             }
             tryAgain = false;
+
           } else {
             UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
           }
@@ -313,6 +318,17 @@ public class ZooSession implements AutoCloseable {
 
   public ZooReaderWriter asReaderWriter() {
     return zrw;
+  }
+
+  /**
+   * Events on the ZooKeeper session watcher will be propagated to all registered observers
+   */
+  public void addSessionObserver(Watcher observer) {
+    sessionObservers.add(observer);
+  }
+
+  public void removeSessionObserver(Watcher observer) {
+    sessionObservers.remove(observer);
   }
 
 }

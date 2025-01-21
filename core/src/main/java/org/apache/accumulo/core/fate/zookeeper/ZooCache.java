@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
@@ -57,7 +58,7 @@ import com.google.common.base.Preconditions;
 /**
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
  */
-public class ZooCache {
+public class ZooCache implements Watcher {
 
   public interface ZooCacheWatcher extends Consumer<WatchedEvent> {}
 
@@ -85,6 +86,7 @@ public class ZooCache {
   private final ConcurrentMap<String,ZcNode> nodeCache;
 
   private final Set<String> pathsToWatch;
+  private final AtomicBoolean watchersSet = new AtomicBoolean(false);
 
   private final ZooSession zk;
 
@@ -166,9 +168,7 @@ public class ZooCache {
               clear();
               break;
             case SyncConnected:
-              log.trace("{} ZooKeeper connection established, re-establishing watchers; {}",
-                  cacheId, event);
-              setupWatchers(pathsToWatch);
+              log.trace("{} ZooKeeper connection established, ignoring; {}", cacheId, event);
               break;
             case Expired:
               log.trace("{} ZooKeeper connection expired, clearing cache; {}", cacheId, event);
@@ -205,6 +205,7 @@ public class ZooCache {
   // for tests that use a Ticker
   public ZooCache(ZooSession zk, Set<String> pathsToWatch, Ticker ticker) {
     this.zk = requireNonNull(zk);
+    this.zk.addSessionObserver(this);
     this.cache = Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
         .ticker(requireNonNull(ticker)).expireAfterAccess(CACHE_DURATION).build();
     this.nodeCache = cache.asMap();
@@ -218,7 +219,12 @@ public class ZooCache {
   }
 
   // Visible for testing
-  protected void setupWatchers(Set<String> pathsToWatch) {
+  protected synchronized void setupWatchers(Set<String> pathsToWatch) {
+
+    if (watchersSet.get()) {
+      log.debug("Persistent Watchers already set");
+      return;
+    }
 
     for (String left : pathsToWatch) {
       for (String right : pathsToWatch) {
@@ -233,11 +239,13 @@ public class ZooCache {
       for (String path : pathsToWatch) {
         watchedPaths.add(path);
         zk.addPersistentRecursiveWatcher(path, this.watcher);
-        log.trace("Added persistent recursive watcher at {}", path);
+        log.info("Added persistent recursive watcher at {}", path);
       }
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error setting up persistent recursive watcher", e);
     }
+    watchersSet.set(true);
+
   }
 
   private boolean isWatchedPath(String path) {
@@ -525,6 +533,7 @@ public class ZooCache {
   }
 
   public void close() {
+    this.zk.removeSessionObserver(this);
     closed = true;
   }
 
@@ -605,6 +614,33 @@ public class ZooCache {
       lockData = new byte[0];
     }
     return ServiceLockData.parse(lockData);
+  }
+
+  @SuppressWarnings("deprecation")
+  @Override
+  public void process(WatchedEvent event) {
+    // ZooCache implements the Watcher interface so that it can
+    // receive events from the ZooSesssion session watcher.
+    switch (event.getState()) {
+      case SyncConnected:
+        log.info("{} ZooKeeper connection established, re-establishing watchers; {}", cacheId,
+            event);
+        setupWatchers(pathsToWatch);
+        break;
+      case Closed:
+      case Disconnected:
+        this.watchersSet.set(false);
+        break;
+      case Expired:
+      case AuthFailed:
+      case ConnectedReadOnly:
+      case NoSyncConnected:
+      case SaslAuthenticated:
+      case Unknown:
+      default:
+        break;
+
+    }
   }
 
 }
