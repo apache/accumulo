@@ -54,7 +54,7 @@ public class ZooCacheTest {
    * Test class that extends ZooCache to suppress the creation of the persistent recursive watchers
    * that are created in the constructor and to provide access to the watcher.
    */
-  private static class TestZooCache extends ZooCacheImpl {
+  private static class TestZooCache extends ZooCache {
 
     public TestZooCache(ZooSession zk, Set<String> pathsToWatch) {
       super(zk, pathsToWatch);
@@ -99,7 +99,7 @@ public class ZooCacheTest {
   @Test
   public void testOverlappingPaths() {
     assertThrows(IllegalArgumentException.class,
-        () -> new ZooCacheImpl(zk, Set.of(root, root + "/localhost:9995")));
+        () -> new ZooCache(zk, Set.of(root, root + "/localhost:9995")));
 
     Set<String> goodPaths = Set.of("/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/compactors",
         "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/dead/tservers",
@@ -114,7 +114,7 @@ public class ZooCacheTest {
         "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/users",
         "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/mini",
         "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/monitor/lock");
-    new ZooCacheImpl(zk, goodPaths);
+    new ZooCache(zk, goodPaths);
 
   }
 

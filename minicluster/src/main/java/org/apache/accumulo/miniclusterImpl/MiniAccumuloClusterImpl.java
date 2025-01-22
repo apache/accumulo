@@ -57,7 +57,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1005,27 +1004,19 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     // Clear the location of the servers in ZooCache.
-    // When ZooKeeper was stopped in the previous method call,
-    // the local ZooKeeper watcher did not fire. If MAC is
-    // restarted, then ZooKeeper will start on the same port with
-    // the same data, but no Watchers will fire.
-    boolean startCalled = true;
+    // If MAC is restarted, then ZooKeeper will start
+    // on the same port with the same data, but no Watchers will fire.
+    boolean macStarted = false;
     try {
       getServerContext().getZooKeeperRoot();
+      macStarted = true;
     } catch (IllegalStateException e) {
-      if (e.getMessage().startsWith("Accumulo not initialized")) {
-        startCalled = false;
+      if (!e.getMessage().startsWith("Accumulo not initialized")) {
+        throw e;
       }
     }
-    if (startCalled) {
-      final ServerContext ctx = getServerContext();
-      final String zRoot = ctx.getZooKeeperRoot();
-      Predicate<String> pred = path -> false;
-      for (String lockPath : Set.of(Constants.ZMANAGER_LOCK, Constants.ZGC_LOCK,
-          Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS)) {
-        pred = pred.or(path -> path.startsWith(zRoot + lockPath));
-      }
-      ctx.getZooCache().clear(pred);
+    if (macStarted) {
+      getServerContext().getZooCache().clear(path -> path.startsWith("/"));
     }
     control.stop(ServerType.ZOOKEEPER, null);
 

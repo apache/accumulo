@@ -52,7 +52,7 @@ public class CacheTestReader {
 
     try {
       try (var zk = new ZooSession(CacheTestReader.class.getSimpleName(), keepers, 30_000, null)) {
-        ZooCache zc = zk.getCache(Set.of("/")).get();
+        ZooCache zc = new ZooCache(zk, Set.of("/"));
 
         while (true) {
           if (myfile.exists() && !myfile.delete()) {

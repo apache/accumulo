@@ -28,13 +28,12 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -125,7 +124,7 @@ public class ZooSession implements AutoCloseable {
   private final String sessionName;
   private final int timeout;
   private final ZooReaderWriter zrw;
-  private final Map<TreeSet<String>,ZooCache> caches = new HashMap<>();
+  private final Map<String,Watcher> persistentWatcherPaths = new HashMap<>();
 
   /**
    * Construct a new ZooKeeper client, retrying indefinitely if it doesn't work right away. The
@@ -170,7 +169,6 @@ public class ZooSession implements AutoCloseable {
   }
 
   private synchronized ZooKeeper reconnect() {
-    caches.forEach((k, v) -> ((ZooCacheImpl) v).clear());
     ZooKeeper zk;
     if ((zk = delegate.get()) != null && zk.getState().isAlive()) {
       return zk;
@@ -196,7 +194,28 @@ public class ZooSession implements AutoCloseable {
               digestAuth(zk, instanceSecret);
             }
             tryAgain = false;
-            caches.forEach((k, v) -> ((ZooCacheImpl) v).setupWatchers(k));
+            if (!persistentWatcherPaths.isEmpty()) {
+              // We need to wait until the connection is alive, else we run into
+              // a case where addPersistentRecursiveWatchers calls verifyConnected
+              // which calls reconnect.
+              do {
+                UtilWaitThread.sleep(100);
+              } while (!zk.getState().isAlive());
+              for (Entry<String,Watcher> entry : persistentWatcherPaths.entrySet()) {
+                try {
+                  addPersistentRecursiveWatchers(Set.of(entry.getKey()), entry.getValue());
+                } catch (KeeperException e) {
+                  log.error("Error setting persistent recursive watcher at " + entry.getKey(), e);
+                  tryAgain = true;
+                  break;
+                } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt();
+                  log.error("Interrupted setting persistent recursive watcher at " + entry.getKey(),
+                      e);
+                  tryAgain = true;
+                }
+              }
+            }
           } else {
             UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
           }
@@ -299,16 +318,19 @@ public class ZooSession implements AutoCloseable {
     verifyConnected().sync(path, cb, ctx);
   }
 
-  public void addPersistentRecursiveWatcher(String path, Watcher watcher)
+  public void addPersistentRecursiveWatchers(Set<String> paths, Watcher watcher)
       throws KeeperException, InterruptedException {
-    verifyConnected().addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
+    for (String path : paths) {
+      verifyConnected().addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
+      persistentWatcherPaths.put(path, watcher);
+      log.debug("Added persistent recursive watcher at {}", path);
+    }
   }
 
   @Override
   public void close() {
     if (closed.compareAndSet(false, true)) {
-      caches.forEach((k, v) -> ((ZooCacheImpl) v).close());
-      caches.clear();
+      persistentWatcherPaths.clear();
       closeZk(delegate.getAndSet(null));
     }
   }
@@ -325,8 +347,4 @@ public class ZooSession implements AutoCloseable {
     return zrw;
   }
 
-  public Supplier<ZooCache> getCache(Set<String> pathsToWatch) {
-    return () -> caches.computeIfAbsent(new TreeSet<>(pathsToWatch),
-        zc -> new ZooCacheImpl(this, pathsToWatch));
-  }
 }

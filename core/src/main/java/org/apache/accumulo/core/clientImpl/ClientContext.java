@@ -162,6 +162,7 @@ public class ClientContext implements AccumuloClient {
   private Caches caches;
 
   private final AtomicBoolean zooKeeperOpened = new AtomicBoolean(false);
+  private final AtomicBoolean zooCacheCreated = new AtomicBoolean(false);
   private final Supplier<ZooSession> zooSession;
 
   private void ensureOpen() {
@@ -237,8 +238,12 @@ public class ClientContext implements AccumuloClient {
       return zk;
     });
 
-    this.zooCache = memoize(() -> getZooSession()
-        .getCache(createPersistentWatcherPaths(ZooUtil.getRoot(getInstanceID()))).get());
+    this.zooCache = memoize(() -> {
+      var zc = new ZooCache(getZooSession(),
+          createPersistentWatcherPaths(ZooUtil.getRoot(getInstanceID())));
+      zooCacheCreated.set(true);
+      return zc;
+    });
     this.accumuloConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), 100, MILLISECONDS);
@@ -787,6 +792,9 @@ public class ClientContext implements AccumuloClient {
   @Override
   public synchronized void close() {
     if (closed.compareAndSet(false, true)) {
+      if (zooCacheCreated.get()) {
+        zooCache.get().close();
+      }
       if (zooKeeperOpened.get()) {
         zooSession.get().close();
       }
@@ -1068,7 +1076,7 @@ public class ClientContext implements AccumuloClient {
       var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName()).get();
       String zkRoot = getZooKeeperRoot();
       this.zkLockChecker =
-          new ZookeeperLockChecker(zk.getCache(Set.of(zkRoot + Constants.ZTSERVERS)).get(), zkRoot);
+          new ZookeeperLockChecker(new ZooCache(zk, Set.of(zkRoot + Constants.ZTSERVERS)), zkRoot);
     }
     return this.zkLockChecker;
   }
