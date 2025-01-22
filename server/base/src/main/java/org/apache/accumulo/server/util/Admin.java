@@ -939,7 +939,7 @@ public class Admin implements KeywordExecutable {
 
     validateFateUserInput(fateOpsCommand);
 
-    AdminUtil<Admin> admin = new AdminUtil<>(true);
+    AdminUtil<Admin> admin = new AdminUtil<>();
     final String zkRoot = context.getZooKeeperRoot();
     var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     String fateZkPath = zkRoot + Constants.ZFATE;

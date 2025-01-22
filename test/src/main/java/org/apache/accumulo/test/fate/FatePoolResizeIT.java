@@ -33,7 +33,6 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 
@@ -161,7 +160,7 @@ public abstract class FatePoolResizeIT extends SharedMiniClusterBase
     }
   }
 
-  public static class PoolResizeTestEnv extends TestEnv {
+  public static class PoolResizeTestEnv extends FateTestRunner.TestEnv {
     private final AtomicInteger numWorkers = new AtomicInteger(0);
     private final CountDownLatch isReadyLatch = new CountDownLatch(1);
   }

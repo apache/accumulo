@@ -251,7 +251,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     int maxRetries = 3;
 
-    AdminUtil<String> admin = new AdminUtil<>(false);
+    AdminUtil<String> admin = new AdminUtil<>();
 
     while (maxRetries > 0) {
 
@@ -343,7 +343,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    */
   private boolean lookupFateInZookeeper(final String tableName) throws KeeperException {
 
-    AdminUtil<String> admin = new AdminUtil<>(false);
+    AdminUtil<String> admin = new AdminUtil<>();
 
     try {
 
@@ -377,7 +377,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   }
 
   private boolean lookupFateInAccumulo(final String tableName) throws KeeperException {
-    AdminUtil<String> admin = new AdminUtil<>(false);
+    AdminUtil<String> admin = new AdminUtil<>();
 
     try {
       TableId tableId = context.getTableId(tableName);

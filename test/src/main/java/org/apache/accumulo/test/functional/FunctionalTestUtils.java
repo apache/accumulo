@@ -229,7 +229,7 @@ public class FunctionalTestUtils {
 
   private static FateStatus getFateStatus(AccumuloCluster cluster) {
     try {
-      AdminUtil<String> admin = new AdminUtil<>(false);
+      AdminUtil<String> admin = new AdminUtil<>();
       ServerContext context = cluster.getServerContext();
       var zk = context.getZooSession();
       MetaFateStore<String> readOnlyMFS =
