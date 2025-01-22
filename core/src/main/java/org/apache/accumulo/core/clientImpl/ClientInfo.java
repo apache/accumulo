@@ -80,7 +80,7 @@ public interface ClientInfo {
   /**
    * @return All Accumulo client properties set for this connection
    */
-  Properties getProperties();
+  Properties getClientProperties();
 
   /**
    * @return hadoop Configuration
