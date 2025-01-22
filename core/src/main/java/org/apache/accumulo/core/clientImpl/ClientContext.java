@@ -1068,8 +1068,7 @@ public class ClientContext implements AccumuloClient {
       var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName()).get();
       String zkRoot = getZooKeeperRoot();
       this.zkLockChecker =
-          new ZookeeperLockChecker(zk.getCache(Set.of(zkRoot + RootTable.ZROOT_TABLET,
-              zkRoot + Constants.ZSSERVERS, zkRoot + Constants.ZTSERVERS)).get(), zkRoot);
+          new ZookeeperLockChecker(zk.getCache(Set.of(zkRoot + Constants.ZTSERVERS)).get(), zkRoot);
     }
     return this.zkLockChecker;
   }
