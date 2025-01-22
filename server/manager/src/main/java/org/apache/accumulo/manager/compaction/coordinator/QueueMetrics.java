@@ -27,7 +27,8 @@ import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUE
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED;
-import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_MAX_SIZE;
 import static org.apache.accumulo.core.metrics.MetricsUtil.formatString;
 
 import java.util.HashMap;
@@ -59,6 +60,7 @@ public class QueueMetrics implements MetricsProducer {
   private static class QueueMeters {
     private final Gauge length;
     private final Gauge jobsQueued;
+    private final Gauge jobsQueuedSize;
     private final Gauge jobsDequeued;
     private final Gauge jobsRejected;
     private final Gauge jobsLowestPriority;
@@ -72,14 +74,20 @@ public class QueueMetrics implements MetricsProducer {
       var queueId = formatString(cgid.canonical());
 
       length =
-          Gauge.builder(COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH.getName(), queue, q -> q.getMaxSize())
-              .description(COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH.getDescription())
+          Gauge.builder(COMPACTOR_JOB_PRIORITY_QUEUE_MAX_SIZE.getName(), queue, q -> q.getMaxSize())
+              .description(COMPACTOR_JOB_PRIORITY_QUEUE_MAX_SIZE.getDescription())
               .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
 
       jobsQueued = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName(), queue,
               q -> q.getQueuedJobs())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+
+      jobsQueuedSize = Gauge
+          .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE.getName(), queue,
+              q -> q.getQueuedJobsSize())
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE.getDescription())
           .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
 
       jobsDequeued = Gauge
@@ -134,6 +142,7 @@ public class QueueMetrics implements MetricsProducer {
       registry.remove(jobsMaxAge);
       registry.remove(jobsAvgAge);
       registry.remove(jobsQueueTimer);
+      registry.remove(jobsQueuedSize);
     }
   }
 

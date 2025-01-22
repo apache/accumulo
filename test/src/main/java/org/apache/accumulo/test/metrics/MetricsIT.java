@@ -149,9 +149,10 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     final int compactionPriorityQueueDequeuedBit = 2;
     final int compactionPriorityQueueRejectedBit = 3;
     final int compactionPriorityQueuePriorityBit = 4;
+    final int compactionPriorityQueueSizeBit = 5;
 
-    final BitSet trueSet = new BitSet(5);
-    trueSet.set(0, 4, true);
+    final BitSet trueSet = new BitSet(6);
+    trueSet.set(0, 5, true);
 
     final BitSet queueMetricsSeen = new BitSet(5);
 
@@ -187,7 +188,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
               seenMetrics.add(metric);
               expectedMetrics.remove(metric);
               switch (metric) {
-                case COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH:
+                case COMPACTOR_JOB_PRIORITY_QUEUE_MAX_SIZE:
                   queueMetricsSeen.set(compactionPriorityQueueLengthBit, true);
                   break;
                 case COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED:
@@ -201,6 +202,9 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
                   break;
                 case COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY:
                   queueMetricsSeen.set(compactionPriorityQueuePriorityBit, true);
+                  break;
+                case COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE:
+                  queueMetricsSeen.set(compactionPriorityQueueSizeBit, true);
                   break;
                 default:
                   break;
