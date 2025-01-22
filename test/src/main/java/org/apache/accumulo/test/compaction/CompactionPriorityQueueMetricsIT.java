@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUE
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE;
-import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_MAX_SIZE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -364,7 +363,6 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     // Set lowest priority to the lowest possible system compaction priority
     long lowestPriority = Short.MIN_VALUE;
     long rejectedCount = 0L;
-    int queueSize = 0;
 
     boolean sawQueues = false;
     // An empty queue means that the last known value is the most recent.
@@ -376,9 +374,6 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getName())
           && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
         lowestPriority = Math.max(lowestPriority, Long.parseLong(metric.getValue()));
-      } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_MAX_SIZE.getName())
-          && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
-        queueSize = Integer.parseInt(metric.getValue());
       } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUES.getName())) {
         sawQueues = true;
       } else {
@@ -402,9 +397,6 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
 
     // Multiple Queues have been created
     assertTrue(sawQueues);
-
-    // Queue size matches the intended queue size
-    assertEquals(QUEUE1_SIZE, queueSize);
 
     // Start Compactors
     getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);

@@ -54,8 +54,6 @@ public enum Metric {
       MetricDocSection.COMPACTION),
   COMPACTOR_JOB_PRIORITY_QUEUES("accumulo.compaction.queue.count", MetricType.GAUGE,
       "Number of priority queues for compaction jobs.", MetricDocSection.COMPACTION),
-  COMPACTOR_JOB_PRIORITY_QUEUE_MAX_SIZE("accumulo.compaction.queue.max.size", MetricType.GAUGE,
-      "The maximum size in bytes of all jobs.", MetricDocSection.COMPACTION),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED("accumulo.compaction.queue.jobs.dequeued",
       MetricType.GAUGE, "Count of dequeued jobs.", MetricDocSection.COMPACTION),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED("accumulo.compaction.queue.jobs.queued",

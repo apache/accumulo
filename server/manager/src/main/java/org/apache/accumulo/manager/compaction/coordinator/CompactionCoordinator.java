@@ -194,7 +194,6 @@ public class CompactionCoordinator
   private final Manager manager;
 
   private final LoadingCache<String,Integer> compactorCounts;
-  private final long jobQueueInitialSize;
 
   private volatile long coordinatorStartTime;
 
@@ -208,10 +207,10 @@ public class CompactionCoordinator
     this.security = security;
     this.manager = Objects.requireNonNull(manager);
 
-    this.jobQueueInitialSize =
+    long jobQueueMaxSize =
         ctx.getConfiguration().getAsBytes(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE);
 
-    this.jobQueues = new CompactionJobQueues(jobQueueInitialSize);
+    this.jobQueues = new CompactionJobQueues(jobQueueMaxSize);
 
     this.queueMetrics = new QueueMetrics(jobQueues);
 
