@@ -1138,14 +1138,11 @@ public class CompactionCoordinator
             queue.clearIfInactive(Duration.ofMinutes(10));
           }
         } else {
-          int aliveCompactorsForGroup = 0;
           for (String compactor : compactors) {
             String cpath = compactorQueuesPath + "/" + group + "/" + compactor;
             var lockNodes = zoorw.getChildren(compactorQueuesPath + "/" + group + "/" + compactor);
             if (lockNodes.isEmpty()) {
               deleteEmpty(zoorw, cpath);
-            } else {
-              aliveCompactorsForGroup++;
             }
           }
         }

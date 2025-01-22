@@ -19,7 +19,6 @@
 package org.apache.accumulo.manager.tableOps.create;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.manager.tableOps.Utils.getSortedSplitsFromFile;
 
 import java.io.IOException;
 import java.util.SortedMap;

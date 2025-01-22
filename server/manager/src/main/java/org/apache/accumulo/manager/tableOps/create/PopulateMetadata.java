@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.manager.tableOps.create;
 
-import static org.apache.accumulo.manager.tableOps.Utils.getSortedSplitsFromFile;
-
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.HashMap;
 import java.util.Iterator;
