@@ -294,10 +294,23 @@ public class CompactionCoordinator
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
+  private void startConfigMonitor(ScheduledThreadPoolExecutor schedExecutor) {
+    ScheduledFuture<?> future =
+        schedExecutor.scheduleWithFixedDelay(this::cleanUpInternalState, 0, 1, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+  }
+
+  private void checkForConfigChanges() {
+    long jobQueueMaxSize =
+        ctx.getConfiguration().getAsBytes(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE);
+    jobQueues.resetMaxSize(jobQueueMaxSize);
+  }
+
   @Override
   public void run() {
 
     this.coordinatorStartTime = System.currentTimeMillis();
+    startConfigMonitor(schedExecutor);
     startCompactorZKCleaner(schedExecutor);
 
     // On a re-start of the coordinator it's possible that external compactions are in-progress.

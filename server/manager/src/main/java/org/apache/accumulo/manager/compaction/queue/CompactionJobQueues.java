@@ -193,4 +193,8 @@ public class CompactionJobQueues {
     pq.add(tabletMetadata, jobs,
         currentGenerations.get(DataLevel.of(tabletMetadata.getTableId())).get());
   }
+
+  public void resetMaxSize(long size) {
+    priorityQueues.values().forEach(cjpq -> cjpq.resetMaxSize(size));
+  }
 }
