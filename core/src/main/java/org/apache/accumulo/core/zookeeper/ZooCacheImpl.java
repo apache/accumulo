@@ -106,7 +106,7 @@ public class ZooCacheImpl implements ZooCache {
           // We don't need to do anything with the cache on these events.
           break;
         case NodeDataChanged:
-          log.trace("{} node data changed; clearing {}", cacheId, event.getPath());          
+          log.trace("{} node data changed; clearing {}", cacheId, event.getPath());
           clear(path -> path.equals(event.getPath()));
           break;
         case NodeCreated:
@@ -117,7 +117,7 @@ public class ZooCacheImpl implements ZooCache {
           // affected node, then the cached children in the parent could be incorrect.
           int lastSlash = event.getPath().lastIndexOf('/');
           String parent = lastSlash == 0 ? "/" : event.getPath().substring(0, lastSlash);
-          log.trace("{} node created or deleted {}; clearing {}", cacheId, event.getPath(), parent);                    
+          log.trace("{} node created or deleted {}; clearing {}", cacheId, event.getPath(), parent);
           clear((path) -> path.startsWith(parent));
           break;
         case None:
