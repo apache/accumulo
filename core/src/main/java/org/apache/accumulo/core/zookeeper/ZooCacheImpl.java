@@ -178,6 +178,7 @@ public class ZooCacheImpl implements ZooCache {
     log.trace("{} created new cache", cacheId, new Exception());
   }
 
+  @Override
   public void addZooCacheWatcher(ZooCacheWatcher watcher) {
     externalWatchers.add(requireNonNull(watcher));
   }
