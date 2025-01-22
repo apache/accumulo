@@ -78,8 +78,6 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
@@ -105,6 +103,8 @@ import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.zookeeper.ZcStat;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
@@ -238,8 +238,8 @@ public class ClientContext implements AccumuloClient {
       return zk;
     });
 
-    this.zooCache = memoize(() -> new ZooCache(getZooSession(),
-        createPersistentWatcherPaths(ZooUtil.getRoot(getInstanceID()))));
+    this.zooCache = memoize(() -> getZooSession()
+        .getCache(createPersistentWatcherPaths(ZooUtil.getRoot(getInstanceID()))).get());
     this.accumuloConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), 100, MILLISECONDS);
@@ -1068,7 +1068,10 @@ public class ClientContext implements AccumuloClient {
       var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName()).get();
       String zkRoot = getZooKeeperRoot();
       this.zkLockChecker =
-          new ZookeeperLockChecker(new ZooCache(zk, Set.of(zkRoot + Constants.ZTSERVERS)), zkRoot);
+          new ZookeeperLockChecker(zk.getCache(Set.of(
+              zkRoot + RootTable.ZROOT_TABLET,
+              zkRoot + Constants.ZSSERVERS,
+              zkRoot + Constants.ZTSERVERS)).get(), zkRoot);
     }
     return this.zkLockChecker;
   }

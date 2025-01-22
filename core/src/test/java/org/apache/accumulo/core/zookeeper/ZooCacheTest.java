@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.fate.zookeeper;
+package org.apache.accumulo.core.zookeeper;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createStrictMock;
@@ -40,9 +40,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZooCacheWatcher;
-import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.core.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -56,7 +54,7 @@ public class ZooCacheTest {
    * Test class that extends ZooCache to suppress the creation of the persistent recursive watchers
    * that are created in the constructor and to provide access to the watcher.
    */
-  private static class TestZooCache extends ZooCache {
+  private static class TestZooCache extends ZooCacheImpl {
 
     public TestZooCache(ZooSession zk, Set<String> pathsToWatch) {
       super(zk, pathsToWatch);
@@ -101,7 +99,7 @@ public class ZooCacheTest {
   @Test
   public void testOverlappingPaths() {
     assertThrows(IllegalArgumentException.class,
-        () -> new ZooCache(zk, Set.of(root, root + "/localhost:9995")));
+        () -> new ZooCacheImpl(zk, Set.of(root, root + "/localhost:9995")));
 
     Set<String> goodPaths = Set.of("/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/compactors",
         "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/dead/tservers",
@@ -116,7 +114,7 @@ public class ZooCacheTest {
         "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/users",
         "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/mini",
         "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/monitor/lock");
-    new ZooCache(zk, goodPaths);
+    new ZooCacheImpl(zk, goodPaths);
 
   }
 

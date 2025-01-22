@@ -29,8 +29,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZooCacheImpl;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.AfterEach;
@@ -52,7 +52,7 @@ public class ZooCacheIT {
 
     @Override
     public long read() {
-      return System.nanoTime() + (advanceCounter * ZooCache.CACHE_DURATION.toNanos());
+      return System.nanoTime() + (advanceCounter * ZooCacheImpl.CACHE_DURATION.toNanos());
     }
 
     public void advance() {
@@ -65,7 +65,7 @@ public class ZooCacheIT {
 
   }
 
-  public static class TestZooCache extends ZooCache {
+  public static class TestZooCache extends ZooCacheImpl {
 
     private static final ZooCacheTicker ticker = new ZooCacheTicker();
 

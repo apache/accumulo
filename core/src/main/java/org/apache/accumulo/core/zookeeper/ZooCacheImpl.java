@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.fate.zookeeper;
+package org.apache.accumulo.core.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
@@ -32,17 +32,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.cache.Caches;
-import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
@@ -59,11 +56,9 @@ import com.google.common.base.Preconditions;
 /**
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
  */
-public class ZooCache implements Watcher {
+public class ZooCacheImpl implements ZooCache {
 
-  public interface ZooCacheWatcher extends Consumer<WatchedEvent> {}
-
-  private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
+  private static final Logger log = LoggerFactory.getLogger(ZooCacheImpl.class);
 
   protected volatile NavigableSet<String> watchedPaths =
       Collections.unmodifiableNavigableSet(new TreeSet<>());
@@ -87,42 +82,9 @@ public class ZooCache implements Watcher {
   // their compute functions.
   private final ConcurrentMap<String,ZcNode> nodeCache;
 
-  private final Set<String> pathsToWatch;
-  private final AtomicBoolean watchersSet = new AtomicBoolean(false);
-
   private final ZooSession zk;
 
   private volatile boolean closed = false;
-
-  public static class ZcStat {
-    private long ephemeralOwner;
-    private long mzxid;
-
-    public ZcStat() {}
-
-    private ZcStat(Stat stat) {
-      this.ephemeralOwner = stat.getEphemeralOwner();
-      this.mzxid = stat.getMzxid();
-    }
-
-    public long getEphemeralOwner() {
-      return ephemeralOwner;
-    }
-
-    private void set(ZcStat cachedStat) {
-      this.ephemeralOwner = cachedStat.ephemeralOwner;
-      this.mzxid = cachedStat.mzxid;
-    }
-
-    @VisibleForTesting
-    public void setEphemeralOwner(long ephemeralOwner) {
-      this.ephemeralOwner = ephemeralOwner;
-    }
-
-    public long getMzxid() {
-      return mzxid;
-    }
-  }
 
   private final AtomicLong updateCount = new AtomicLong(0);
 
@@ -144,6 +106,7 @@ public class ZooCache implements Watcher {
           // We don't need to do anything with the cache on these events.
           break;
         case NodeDataChanged:
+          log.trace("{} node data changed; clearing {}", cacheId, event.getPath());          
           clear(path -> path.equals(event.getPath()));
           break;
         case NodeCreated:
@@ -154,6 +117,7 @@ public class ZooCache implements Watcher {
           // affected node, then the cached children in the parent could be incorrect.
           int lastSlash = event.getPath().lastIndexOf('/');
           String parent = lastSlash == 0 ? "/" : event.getPath().substring(0, lastSlash);
+          log.trace("{} node created or deleted {}; clearing {}", cacheId, event.getPath(), parent);                    
           clear((path) -> path.startsWith(parent));
           break;
         case None:
@@ -177,12 +141,12 @@ public class ZooCache implements Watcher {
               clear();
               break;
             default:
-              log.warn("{} Unhandled {}", cacheId, event);
+              log.warn("{} Unhandled state {}", cacheId, event);
               break;
           }
           break;
         default:
-          log.warn("{} Unhandled {}", cacheId, event);
+          log.warn("{} Unhandled event type {}", cacheId, event);
           break;
       }
 
@@ -200,18 +164,16 @@ public class ZooCache implements Watcher {
    * @param zk ZooSession for this instance
    * @param pathsToWatch Paths in ZooKeeper to watch
    */
-  public ZooCache(ZooSession zk, Set<String> pathsToWatch) {
+  ZooCacheImpl(ZooSession zk, Set<String> pathsToWatch) {
     this(zk, pathsToWatch, Ticker.systemTicker());
   }
 
-  // for tests that use a Ticker
-  public ZooCache(ZooSession zk, Set<String> pathsToWatch, Ticker ticker) {
+  // visible for tests that use a Ticker
+  public ZooCacheImpl(ZooSession zk, Set<String> pathsToWatch, Ticker ticker) {
     this.zk = requireNonNull(zk);
-    this.zk.addSessionObserver(this);
     this.cache = Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
         .ticker(requireNonNull(ticker)).expireAfterAccess(CACHE_DURATION).build();
     this.nodeCache = cache.asMap();
-    this.pathsToWatch = requireNonNull(pathsToWatch);
     setupWatchers(pathsToWatch);
     log.trace("{} created new cache", cacheId, new Exception());
   }
@@ -220,13 +182,10 @@ public class ZooCache implements Watcher {
     externalWatchers.add(requireNonNull(watcher));
   }
 
-  // Visible for testing
-  protected synchronized void setupWatchers(Set<String> pathsToWatch) {
+  // Called on construction and when ZooKeeper connection changes
+  synchronized void setupWatchers(Set<String> pathsToWatch) {
 
-    if (watchersSet.get()) {
-      log.debug("Persistent Watchers already set");
-      return;
-    }
+    clear();
 
     for (String left : pathsToWatch) {
       for (String right : pathsToWatch) {
@@ -247,7 +206,6 @@ public class ZooCache implements Watcher {
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error setting up persistent recursive watcher", e);
     }
-    watchersSet.set(true);
     watchedPaths = Collections.unmodifiableNavigableSet(wPaths);
 
   }
@@ -255,7 +213,8 @@ public class ZooCache implements Watcher {
   private boolean isWatchedPath(String path) {
     // Check that the path is equal to, or a descendant of, a watched path
     var floor = watchedPaths.floor(path);
-    return floor != null && (floor.equals(path) || path.startsWith(floor + "/"));
+    return floor != null
+        && (floor.equals("/") || floor.equals(path) || path.startsWith(floor + "/"));
   }
 
   // Use this instead of Preconditions.checkState(isWatchedPath, String)
@@ -361,6 +320,7 @@ public class ZooCache implements Watcher {
    * @param zPath path of node
    * @return children list, or null if node has no children or does not exist
    */
+  @Override
   public List<String> getChildren(final String zPath) {
     Preconditions.checkState(!closed);
     ensureWatched(zPath);
@@ -421,6 +381,7 @@ public class ZooCache implements Watcher {
    * @param zPath path to get
    * @return path data, or null if non-existent
    */
+  @Override
   public byte[] get(final String zPath) {
     return get(zPath, null);
   }
@@ -433,6 +394,7 @@ public class ZooCache implements Watcher {
    * @param status status object to populate
    * @return path data, or null if non-existent
    */
+  @Override
   public byte[] get(final String zPath, final ZcStat status) {
     Preconditions.checkState(!closed);
     ensureWatched(zPath);
@@ -525,15 +487,15 @@ public class ZooCache implements Watcher {
   /**
    * Clears this cache.
    */
-  private void clear() {
+  void clear() {
     Preconditions.checkState(!closed);
     nodeCache.clear();
     updateCount.incrementAndGet();
     log.trace("{} cleared all from cache", cacheId);
   }
 
-  public void close() {
-    this.zk.removeSessionObserver(this);
+  void close() {
+    clear();
     closed = true;
   }
 
@@ -541,6 +503,7 @@ public class ZooCache implements Watcher {
    * Returns a monotonically increasing count of the number of time the cache was updated. If the
    * count is the same, then it means cache did not change.
    */
+  @Override
   public long getUpdateCount() {
     Preconditions.checkState(!closed);
     return updateCount.get();
@@ -552,6 +515,7 @@ public class ZooCache implements Watcher {
    * @param zPath path of node
    * @return true if data value is cached
    */
+  @Override
   @VisibleForTesting
   public boolean dataCached(String zPath) {
     ensureWatched(zPath);
@@ -565,6 +529,7 @@ public class ZooCache implements Watcher {
    * @param zPath path of node
    * @return true if children are cached
    */
+  @Override
   @VisibleForTesting
   public boolean childrenCached(String zPath) {
     ensureWatched(zPath);
@@ -575,6 +540,7 @@ public class ZooCache implements Watcher {
   /**
    * Removes all paths in the cache match the predicate.
    */
+  @Override
   public void clear(Predicate<String> pathPredicate) {
     Preconditions.checkState(!closed);
     Predicate<String> pathPredicateWrapper = path -> {
@@ -593,11 +559,16 @@ public class ZooCache implements Watcher {
    *
    * @param zPath path of top node
    */
+  @Override
   public void clear(String zPath) {
     ensureWatched(zPath);
     clear(path -> path.startsWith(zPath));
   }
 
+  /**
+   * Gets the lock data from the node in the cache at the specified path
+   */
+  @Override
   public Optional<ServiceLockData> getLockData(ServiceLockPath path) {
     ensureWatched(path.toString());
     List<String> children = ServiceLock.validateAndSort(path, getChildren(path.toString()));
@@ -614,34 +585,6 @@ public class ZooCache implements Watcher {
       lockData = new byte[0];
     }
     return ServiceLockData.parse(lockData);
-  }
-
-  @SuppressWarnings("deprecation")
-  @Override
-  public void process(WatchedEvent event) {
-    // ZooCache implements the Watcher interface so that it can
-    // receive events from the ZooSesssion session watcher.
-    switch (event.getState()) {
-      case SyncConnected:
-        log.info("{} ZooKeeper connection established, re-establishing watchers; {}", cacheId,
-            event);
-        clear();
-        setupWatchers(pathsToWatch);
-        break;
-      case Closed:
-      case Disconnected:
-        this.watchersSet.set(false);
-        break;
-      case Expired:
-      case AuthFailed:
-      case ConnectedReadOnly:
-      case NoSyncConnected:
-      case SaslAuthenticated:
-      case Unknown:
-      default:
-        break;
-
-    }
   }
 
 }

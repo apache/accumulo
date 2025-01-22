@@ -994,7 +994,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     control.stop(ServerType.SCAN_SERVER, null);
 
     // The method calls above kill the server
-    // Clean up the locks in ZooKeeper fo that if the cluster
+    // Clean up the locks in ZooKeeper for that if the cluster
     // is restarted, then the processes will start right away
     // and not wait for the old locks to be cleaned up.
     try {

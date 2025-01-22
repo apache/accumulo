@@ -32,8 +32,9 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZcStat;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.collect.ImmutableSortedMap;
@@ -147,7 +148,7 @@ public class NamespaceMapping {
   private synchronized void update() {
     final ZooCache zc = context.getZooCache();
     final String zPath = context.getZooKeeperRoot() + Constants.ZNAMESPACES;
-    final ZooCache.ZcStat stat = new ZooCache.ZcStat();
+    final ZcStat stat = new ZcStat();
 
     byte[] data = zc.get(zPath, stat);
     if (stat.getMzxid() > lastMzxid) {

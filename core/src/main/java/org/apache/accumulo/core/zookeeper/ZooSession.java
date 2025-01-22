@@ -25,13 +25,16 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -94,7 +97,6 @@ public class ZooSession implements AutoCloseable {
       } else if (newState != oldState) {
         log.debug("{} state changed from {} to {}", connectionName, oldState, newState);
       }
-      sessionObservers.forEach(o -> o.process(event));
     }
   }
 
@@ -123,7 +125,7 @@ public class ZooSession implements AutoCloseable {
   private final String sessionName;
   private final int timeout;
   private final ZooReaderWriter zrw;
-  private final List<Watcher> sessionObservers = Collections.synchronizedList(new ArrayList<>());
+  private final Map<TreeSet<String>,ZooCache> caches = new HashMap<>();
 
   /**
    * Construct a new ZooKeeper client, retrying indefinitely if it doesn't work right away. The
@@ -168,6 +170,7 @@ public class ZooSession implements AutoCloseable {
   }
 
   private synchronized ZooKeeper reconnect() {
+    caches.forEach((k, v) -> ((ZooCacheImpl) v).clear());
     ZooKeeper zk;
     if ((zk = delegate.get()) != null && zk.getState().isAlive()) {
       return zk;
@@ -193,7 +196,7 @@ public class ZooSession implements AutoCloseable {
               digestAuth(zk, instanceSecret);
             }
             tryAgain = false;
-
+            caches.forEach((k, v) -> ((ZooCacheImpl) v).setupWatchers(k));
           } else {
             UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
           }
@@ -304,6 +307,8 @@ public class ZooSession implements AutoCloseable {
   @Override
   public void close() {
     if (closed.compareAndSet(false, true)) {
+      caches.forEach((k, v) -> ((ZooCacheImpl) v).close());
+      caches.clear();
       closeZk(delegate.getAndSet(null));
     }
   }
@@ -320,15 +325,8 @@ public class ZooSession implements AutoCloseable {
     return zrw;
   }
 
-  /**
-   * Events on the ZooKeeper session watcher will be propagated to all registered observers
-   */
-  public void addSessionObserver(Watcher observer) {
-    sessionObservers.add(observer);
+  public Supplier<ZooCache> getCache(Set<String> pathsToWatch) {
+    return () -> caches.computeIfAbsent(new TreeSet<>(pathsToWatch),
+        zc -> new ZooCacheImpl(this, pathsToWatch));
   }
-
-  public void removeSessionObserver(Watcher observer) {
-    sessionObservers.remove(observer);
-  }
-
 }
