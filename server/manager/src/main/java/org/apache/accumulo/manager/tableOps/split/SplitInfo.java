@@ -18,10 +18,16 @@
  */
 package org.apache.accumulo.manager.tableOps.split;
 
-import java.io.Serializable;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.util.NavigableMap;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
+import org.apache.accumulo.core.client.admin.TabletMergeability;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.TextUtil;
@@ -36,19 +42,18 @@ public class SplitInfo implements Serializable {
   private final byte[] prevEndRow;
   private final byte[] endRow;
   private final byte[][] splits;
-  private final boolean systemCreated;
 
-  public SplitInfo(KeyExtent extent, SortedSet<Text> splits, boolean systemCreated) {
+  public SplitInfo(KeyExtent extent, SortedMap<Text,TabletMergeability> splits) {
     this.tableId = extent.tableId();
     this.prevEndRow = extent.prevEndRow() == null ? null : TextUtil.getBytes(extent.prevEndRow());
     this.endRow = extent.endRow() == null ? null : TextUtil.getBytes(extent.endRow());
     this.splits = new byte[splits.size()][];
-    this.systemCreated = systemCreated;
 
     int index = 0;
-    for (var split : splits) {
-      Preconditions.checkArgument(extent.contains(split));
-      this.splits[index] = TextUtil.getBytes(split);
+    for (var split : splits.entrySet()) {
+      Preconditions.checkArgument(extent.contains(split.getKey()));
+      this.splits[index] =
+          TabletMergeabilityUtil.encode(split.getKey(), split.getValue()).getBytes(UTF_8);
       index++;
     }
   }
@@ -61,33 +66,32 @@ public class SplitInfo implements Serializable {
     return new KeyExtent(tableId, toText(endRow), toText(prevEndRow));
   }
 
-  SortedSet<Text> getSplits() {
-    SortedSet<Text> splits = new TreeSet<>();
+  NavigableMap<Text,TabletMergeability> getSplits() {
+    NavigableMap<Text,TabletMergeability> splits = new TreeMap<>();
     for (int i = 0; i < this.splits.length; i++) {
-      splits.add(new Text(this.splits[i]));
+      var split = TabletMergeabilityUtil.decode(ByteBuffer.wrap(this.splits[i]));
+      splits.put(split.getFirst(), split.getSecond());
     }
     return splits;
   }
 
-  SortedSet<KeyExtent> getTablets() {
+  NavigableMap<KeyExtent,TabletMergeability> getTablets() {
 
     Text prev = getOriginal().prevEndRow();
 
-    TreeSet<KeyExtent> tablets = new TreeSet<>();
+    NavigableMap<KeyExtent,TabletMergeability> tablets = new TreeMap<>();
 
-    for (var split : getSplits()) {
+    for (var entry : getSplits().entrySet()) {
+      var split = entry.getKey();
       var extent = new KeyExtent(getOriginal().tableId(), split, prev);
       prev = split;
-      tablets.add(extent);
+      tablets.put(extent, entry.getValue());
     }
 
     var extent = new KeyExtent(getOriginal().tableId(), getOriginal().endRow(), prev);
-    tablets.add(extent);
+    tablets.put(extent, null);
 
     return tablets;
   }
 
-  boolean isSystemCreated() {
-    return systemCreated;
-  }
 }

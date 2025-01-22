@@ -502,7 +502,7 @@ public class ServiceStatusCmdTest {
   @Test
   public void testServiceStatusCommandOpts() {
     replay(zooReader, zooCache);
-    ServiceStatusCmd.Opts opts = new ServiceStatusCmd.Opts();
+    Admin.ServiceStatusCmdOpts opts = new Admin.ServiceStatusCmdOpts();
     assertFalse(opts.json);
     assertFalse(opts.noHosts);
   }

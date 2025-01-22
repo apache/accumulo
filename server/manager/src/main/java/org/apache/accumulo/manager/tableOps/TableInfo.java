@@ -23,10 +23,10 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.hadoop.fs.Path;
 
 public class TableInfo implements Serializable {
@@ -52,7 +52,7 @@ public class TableInfo implements Serializable {
 
   private TabletAvailability initialTabletAvailability;
 
-  private TabletMergeabilityMetadata initialTabletMergeability;
+  private TabletMergeability defaultTabletMergeability;
 
   public TabletAvailability getInitialTabletAvailability() {
     return initialTabletAvailability;
@@ -136,11 +136,11 @@ public class TableInfo implements Serializable {
     this.initialSplitSize = initialSplitSize;
   }
 
-  public TabletMergeabilityMetadata getInitialTabletMergeability() {
-    return initialTabletMergeability;
+  public TabletMergeability getDefaultTabletMergeability() {
+    return defaultTabletMergeability;
   }
 
-  public void setInitialTabletMergeability(TabletMergeabilityMetadata initialTabletMergeability) {
-    this.initialTabletMergeability = initialTabletMergeability;
+  public void setDefaultTabletMergeability(TabletMergeability defaultTabletMergeability) {
+    this.defaultTabletMergeability = defaultTabletMergeability;
   }
 }

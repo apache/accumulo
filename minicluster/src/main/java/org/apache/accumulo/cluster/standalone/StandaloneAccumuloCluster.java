@@ -144,7 +144,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public Properties getClientProperties() {
-    return info.getProperties();
+    return info.getClientProperties();
   }
 
   @Override
