@@ -132,7 +132,7 @@ public class ColumnVisibility {
      * @since 2.1.4
      */
     public Node(Node node) {
-      List<Node> childrenNew = new ArrayList<>(node.children.size());
+      List<Node> childrenNew = node.children.isEmpty() ? EMPTY : new ArrayList<>(node.children.size());
       for (Node child : node.children) {
         childrenNew.add(new Node(child));
       }
