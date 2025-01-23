@@ -192,7 +192,8 @@ public class ZooCache {
     }
 
     try {
-      zk.addPersistentRecursiveWatchers(pathsToWatch, List.of(this.watcher));
+      zk.addPersistentRecursiveWatchers(pathsToWatch, watcher);
+      clear();
       watchedPaths = Collections.unmodifiableNavigableSet(new TreeSet<>(pathsToWatch));
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error setting up persistent recursive watcher", e);
@@ -215,7 +216,12 @@ public class ZooCache {
     }
   }
 
-  private abstract static class ZooRunnable<T> {
+  // visible for tests
+  long getZKClientObjectVersion() {
+    return zk.getConnectionCounter();
+  }
+
+  private abstract class ZooRunnable<T> {
     /**
      * Runs an operation against ZooKeeper. Retries are performed by the retry method when
      * KeeperExceptions occur.
@@ -245,7 +251,13 @@ public class ZooCache {
       while (true) {
 
         try {
-          return run();
+          long counter = getZKClientObjectVersion();
+          T result = run();
+          if (counter != getZKClientObjectVersion()) {
+            setupWatchers(watchedPaths);
+            continue;
+          }
+          return result;
         } catch (KeeperException | ZcException e) {
           KeeperException ke;
           if (e instanceof ZcException) {
@@ -474,7 +486,7 @@ public class ZooCache {
   /**
    * Clears this cache.
    */
-  void clear() {
+  private void clear() {
     Preconditions.checkState(!closed);
     nodeCache.clear();
     updateCount.incrementAndGet();

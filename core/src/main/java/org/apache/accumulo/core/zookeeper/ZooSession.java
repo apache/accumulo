@@ -25,11 +25,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -125,7 +121,6 @@ public class ZooSession implements AutoCloseable {
   private final String sessionName;
   private final int timeout;
   private final ZooReaderWriter zrw;
-  private final Map<String,List<Watcher>> persistentWatcherPaths = new HashMap<>();
 
   /**
    * Construct a new ZooKeeper client, retrying indefinitely if it doesn't work right away. The
@@ -195,28 +190,6 @@ public class ZooSession implements AutoCloseable {
               digestAuth(zk, instanceSecret);
             }
             tryAgain = false;
-            if (!persistentWatcherPaths.isEmpty()) {
-              for (Entry<String,List<Watcher>> entry : persistentWatcherPaths.entrySet()) {
-                try {
-                  String path = entry.getKey();
-                  for (Watcher watcher : entry.getValue()) {
-                    zk.addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
-                    persistentWatcherPaths.computeIfAbsent(path, k -> new ArrayList<>())
-                        .add(watcher);
-                    log.debug("Added persistent recursive watcher at {}", path);
-                  }
-                } catch (KeeperException e) {
-                  log.error("Error setting persistent recursive watcher at " + entry.getKey(), e);
-                  tryAgain = true;
-                  break;
-                } catch (InterruptedException e) {
-                  Thread.currentThread().interrupt();
-                  log.error("Interrupted setting persistent recursive watcher at " + entry.getKey(),
-                      e);
-                  tryAgain = true;
-                }
-              }
-            }
           } else {
             UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
           }
@@ -319,21 +292,28 @@ public class ZooSession implements AutoCloseable {
     verifyConnected().sync(path, cb, ctx);
   }
 
-  public synchronized void addPersistentRecursiveWatchers(Set<String> paths, List<Watcher> watchers)
+  public void addPersistentRecursiveWatchers(Set<String> paths, Watcher watcher)
       throws KeeperException, InterruptedException {
-    for (String path : paths) {
-      for (Watcher watcher : watchers) {
+    boolean sameZkConnection = false;
+    do {
+      final long counter = getConnectionCounter();
+      for (String path : paths) {
         verifyConnected().addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
-        persistentWatcherPaths.computeIfAbsent(path, k -> new ArrayList<>()).add(watcher);
+        sameZkConnection = counter == getConnectionCounter();
+        if (!sameZkConnection) {
+          // It's still possible that this last watch was added, let's remove
+          // it and try the entire set again.
+          verifyConnected().removeAllWatches(path, WatcherType.PersistentRecursive, true);
+          break;
+        }
         log.debug("Added persistent recursive watcher at {}", path);
       }
-    }
+    } while (!sameZkConnection);
   }
 
   @Override
   public void close() {
     if (closed.compareAndSet(false, true)) {
-      persistentWatcherPaths.clear();
       closeZk(delegate.getAndSet(null));
     }
   }
@@ -348,6 +328,17 @@ public class ZooSession implements AutoCloseable {
 
   public ZooReaderWriter asReaderWriter() {
     return zrw;
+  }
+
+  /**
+   * Connection counter is incremented internal when ZooSession creates a new ZooKeeper client.
+   * Clients of ZooSession can use this counter as a way to determine if a new ZooKeeper connection
+   * has been created.
+   *
+   * @return connection counter
+   */
+  public long getConnectionCounter() {
+    return connectCounter.get();
   }
 
 }

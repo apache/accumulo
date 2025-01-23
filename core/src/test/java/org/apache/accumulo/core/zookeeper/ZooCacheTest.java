@@ -74,6 +74,11 @@ public class ZooCacheTest {
       watcher.process(event);
     }
 
+    @Override
+    long getZKClientObjectVersion() {
+      return 1L;
+    }
+
   }
 
   private static final String root =
@@ -89,11 +94,6 @@ public class ZooCacheTest {
   public void setUp() {
     zk = createStrictMock(ZooSession.class);
     zc = new TestZooCache(zk, Set.of(root));
-    // The ZooCache constructor sets an expectation
-    // of addSessionObserver being called later during
-    // the tests. Remove this expectation by calling
-    // reset
-    reset(zk);
   }
 
   @Test
