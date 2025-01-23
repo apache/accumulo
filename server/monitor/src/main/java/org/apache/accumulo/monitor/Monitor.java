@@ -836,7 +836,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
 
   @Override
   public void onOpened(Connection connection) {
-    log.info("New connection event");
     fetcher.newConnectionEvent();
   }
 
