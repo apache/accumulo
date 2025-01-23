@@ -207,8 +207,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       try {
         summary.processExternalCompactionList(getLongRunningCompactions());
       } catch (Exception e) {
-        LOG.warn("Error gathering running compaction information. Error message: {}",
-            e.getMessage());
+        LOG.warn("Error gathering running compaction information.", e);
       }
     }
 
