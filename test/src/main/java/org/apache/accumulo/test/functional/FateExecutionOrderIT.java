@@ -47,7 +47,7 @@ import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.Manager;
@@ -59,7 +59,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class FateInterleavingIT extends SharedMiniClusterBase {
+public class FateExecutionOrderIT extends SharedMiniClusterBase {
 
   public static class FirstOp extends ManagerRepo {
 
@@ -111,7 +111,7 @@ public class FateInterleavingIT extends SharedMiniClusterBase {
     }
   }
 
-  public static class FateInterleavingConfig implements MiniClusterConfigurationCallback {
+  public static class FateExecutionOrderITConfig implements MiniClusterConfigurationCallback {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
@@ -123,7 +123,7 @@ public class FateInterleavingIT extends SharedMiniClusterBase {
 
   @BeforeAll
   public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniClusterWithConfig(new FateInterleavingConfig());
+    SharedMiniClusterBase.startMiniClusterWithConfig(new FateExecutionOrderITConfig());
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(FATE_TRACKING_TABLE);
     }
@@ -161,8 +161,8 @@ public class FateInterleavingIT extends SharedMiniClusterBase {
 
     // Connect to the ZooKeeper that MAC is using and insert FATE operations
     final String path = getCluster().getServerContext().getZooKeeperRoot() + Constants.ZFATE;
-    final ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
-    final ZooStore<Manager> store = new org.apache.accumulo.core.fate.ZooStore<>(path, zrw);
+    final ZooSession zs = getCluster().getServerContext().getZooSession();
+    final ZooStore<Manager> store = new org.apache.accumulo.core.fate.ZooStore<>(path, zs);
 
     long txid = store.create();
     store.reserve(txid);
