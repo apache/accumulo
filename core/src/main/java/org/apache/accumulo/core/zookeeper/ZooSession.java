@@ -196,15 +196,15 @@ public class ZooSession implements AutoCloseable {
             }
             tryAgain = false;
             if (!persistentWatcherPaths.isEmpty()) {
-              // We need to wait until the connection is alive, else we run into
-              // a case where addPersistentRecursiveWatchers calls verifyConnected
-              // which calls reconnect.
-              do {
-                UtilWaitThread.sleep(100);
-              } while (!zk.getState().isAlive());
               for (Entry<String,List<Watcher>> entry : persistentWatcherPaths.entrySet()) {
                 try {
-                  addPersistentRecursiveWatchers(Set.of(entry.getKey()), entry.getValue());
+                  String path = entry.getKey();
+                  for (Watcher watcher : entry.getValue()) {
+                    verifyConnected().addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
+                    persistentWatcherPaths.computeIfAbsent(path, k -> new ArrayList<>())
+                        .add(watcher);
+                    log.debug("Added persistent recursive watcher at {}", path);
+                  }
                 } catch (KeeperException e) {
                   log.error("Error setting persistent recursive watcher at " + entry.getKey(), e);
                   tryAgain = true;
