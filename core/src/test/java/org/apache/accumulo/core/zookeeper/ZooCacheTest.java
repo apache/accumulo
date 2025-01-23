@@ -22,6 +22,7 @@ import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createStrictMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.isA;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
@@ -96,8 +97,12 @@ public class ZooCacheTest {
     zc = new TestZooCache(zk, Set.of(root));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
-  public void testOverlappingPaths() {
+  public void testOverlappingPaths() throws Exception {
+    expect(zk.getConnectionCounter()).andReturn(2L).times(2);
+    zk.addPersistentRecursiveWatchers(isA(Set.class), isA(Watcher.class));
+    replay(zk);
     assertThrows(IllegalArgumentException.class,
         () -> new ZooCache(zk, Set.of(root, root + "/localhost:9995")));
 
@@ -115,7 +120,7 @@ public class ZooCacheTest {
         "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/mini",
         "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/monitor/lock");
     new ZooCache(zk, goodPaths);
-
+    verify(zk);
   }
 
   @Test

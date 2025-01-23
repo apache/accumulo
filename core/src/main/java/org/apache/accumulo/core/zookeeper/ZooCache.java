@@ -33,7 +33,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -83,7 +82,9 @@ public class ZooCache {
 
   private volatile boolean closed = false;
 
-  private final AtomicLong updateCount = new AtomicLong(0);
+  private final AtomicLong updateCount = new AtomicLong();
+
+  private final AtomicLong zkClientTracker = new AtomicLong();
 
   class ZCacheWatcher implements Watcher {
     @Override
@@ -170,6 +171,7 @@ public class ZooCache {
   // visible for tests that use a Ticker
   public ZooCache(ZooSession zk, Set<String> pathsToWatch, Ticker ticker) {
     this.zk = requireNonNull(zk);
+    this.zkClientTracker.set(this.getZKClientObjectVersion());
     this.cache = Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
         .ticker(requireNonNull(ticker)).expireAfterAccess(CACHE_DURATION).build();
     // The concurrent map returned by Caffiene will only allow one thread to run at a time for a
@@ -182,6 +184,23 @@ public class ZooCache {
 
   public void addZooCacheWatcher(ZooCacheWatcher watcher) {
     externalWatchers.add(requireNonNull(watcher));
+  }
+
+  // visible for tests
+  long getZKClientObjectVersion() {
+    return zk.getConnectionCounter();
+  }
+
+  private boolean handleZKConnectionChange() {
+    final long currentCount = getZKClientObjectVersion();
+    final long oldCount = zkClientTracker.get();
+    if (oldCount != currentCount) {
+      if (zkClientTracker.compareAndSet(oldCount, currentCount)) {
+        setupWatchers(watchedPaths);
+      }
+      return true;
+    }
+    return false;
   }
 
   // Called on construction and when ZooKeeper connection changes
@@ -221,11 +240,6 @@ public class ZooCache {
     }
   }
 
-  // visible for tests
-  long getZKClientObjectVersion() {
-    return zk.getConnectionCounter();
-  }
-
   private abstract class ZooRunnable<T> {
     /**
      * Runs an operation against ZooKeeper. Retries are performed by the retry method when
@@ -256,10 +270,8 @@ public class ZooCache {
       while (true) {
 
         try {
-          long counter = getZKClientObjectVersion();
           T result = run();
-          if (counter != getZKClientObjectVersion()) {
-            setupWatchers(watchedPaths);
+          if (handleZKConnectionChange()) {
             continue;
           }
           return result;
@@ -292,7 +304,6 @@ public class ZooCache {
         } catch (InterruptedException e) {
           log.debug("Wait in retry() was interrupted.", e);
         }
-        LockSupport.parkNanos(sleepTime);
         if (sleepTime < 10_000) {
           sleepTime = (int) (sleepTime + sleepTime * RANDOM.get().nextDouble());
         }

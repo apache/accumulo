@@ -25,6 +25,8 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -75,7 +77,7 @@ public class ZooSession implements AutoCloseable {
     }
   }
 
-  private class ZooSessionWatcher implements Watcher {
+  private static class ZooSessionWatcher implements Watcher {
 
     private final String connectionName;
     private final AtomicReference<KeeperState> lastState = new AtomicReference<>(null);
@@ -294,23 +296,29 @@ public class ZooSession implements AutoCloseable {
 
   public void addPersistentRecursiveWatchers(Set<String> paths, Watcher watcher)
       throws KeeperException, InterruptedException {
-    boolean sameZkConnection = false;
-    do {
-      final long counter = getConnectionCounter();
-      for (String path : paths) {
-        verifyConnected().addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
-        sameZkConnection = counter == getConnectionCounter();
-        if (!sameZkConnection) {
-          // It's still possible that this last watch was added, let's remove
-          // it and try the entire set again. Cannot use WatcherType.PersistentRecursive
-          // here as that was added in 3.9.0. See
-          // https://issues.apache.org/jira/browse/ZOOKEEPER-4472
-          verifyConnected().removeWatches(path, watcher, WatcherType.Any, true);
-          break;
+
+    ZooKeeper localZK = verifyConnected();
+    Set<String> remainingPaths = new HashSet<>(paths);
+    while (true) {
+      try {
+        Iterator<String> remainingPathsIter = remainingPaths.iterator();
+        while (remainingPathsIter.hasNext()) {
+          String path = remainingPathsIter.next();
+          localZK.addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
+          remainingPathsIter.remove();
         }
-        log.debug("Added persistent recursive watcher at {}", path);
+        break;
+      } catch (KeeperException e) {
+        log.error("Error setting persistent watcher in ZooKeeper, retrying...", e);
+        ZooKeeper currentZK = verifyConnected();
+        // If ZooKeeper object is different, then reset the localZK variable
+        // and start over.
+        if (localZK != currentZK) {
+          localZK = currentZK;
+          remainingPaths = new HashSet<>(paths);
+        }
       }
-    } while (!sameZkConnection);
+    }
   }
 
   @Override
