@@ -196,7 +196,7 @@ public class ZooCache {
     }
 
     try {
-      zk.addPersistentRecursiveWatchers(pathsToWatch, this.watcher);
+      zk.addPersistentRecursiveWatchers(pathsToWatch, List.of(this.watcher));
       watchedPaths = Collections.unmodifiableNavigableSet(new TreeSet<>(pathsToWatch));
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error setting up persistent recursive watcher", e);

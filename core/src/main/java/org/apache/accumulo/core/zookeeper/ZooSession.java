@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -124,7 +125,7 @@ public class ZooSession implements AutoCloseable {
   private final String sessionName;
   private final int timeout;
   private final ZooReaderWriter zrw;
-  private final Map<String,Watcher> persistentWatcherPaths = new HashMap<>();
+  private final Map<String,List<Watcher>> persistentWatcherPaths = new HashMap<>();
 
   /**
    * Construct a new ZooKeeper client, retrying indefinitely if it doesn't work right away. The
@@ -201,7 +202,7 @@ public class ZooSession implements AutoCloseable {
               do {
                 UtilWaitThread.sleep(100);
               } while (!zk.getState().isAlive());
-              for (Entry<String,Watcher> entry : persistentWatcherPaths.entrySet()) {
+              for (Entry<String,List<Watcher>> entry : persistentWatcherPaths.entrySet()) {
                 try {
                   addPersistentRecursiveWatchers(Set.of(entry.getKey()), entry.getValue());
                 } catch (KeeperException e) {
@@ -318,12 +319,14 @@ public class ZooSession implements AutoCloseable {
     verifyConnected().sync(path, cb, ctx);
   }
 
-  public void addPersistentRecursiveWatchers(Set<String> paths, Watcher watcher)
+  public synchronized void addPersistentRecursiveWatchers(Set<String> paths, List<Watcher> watchers)
       throws KeeperException, InterruptedException {
     for (String path : paths) {
-      verifyConnected().addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
-      persistentWatcherPaths.put(path, watcher);
-      log.debug("Added persistent recursive watcher at {}", path);
+      for (Watcher watcher : watchers) {
+        verifyConnected().addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
+        persistentWatcherPaths.computeIfAbsent(path, k -> new ArrayList<>()).add(watcher);
+        log.debug("Added persistent recursive watcher at {}", path);
+      }
     }
   }
 
