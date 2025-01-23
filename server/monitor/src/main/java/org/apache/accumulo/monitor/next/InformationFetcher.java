@@ -160,7 +160,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
             "TableNotFoundException thrown while trying to gather information for table: " + table,
             e);
       } catch (Exception e) {
-        LOG.warn("Interrupted while trying to gather information for table: {}", table);
+        LOG.warn("Interrupted while trying to gather information for table: {}", table, e);
       }
     }
   }
