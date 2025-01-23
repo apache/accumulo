@@ -130,8 +130,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
           ThriftUtil.returnClient(metricsClient, ctx);
         }
       } catch (Exception e) {
-        LOG.warn("Error trying to get metrics from server: {}. Error message: {}", server,
-            e.getMessage());
+        LOG.warn("Error trying to get metrics from server: {}", server, e);
         summary.processError(server);
       }
     }
