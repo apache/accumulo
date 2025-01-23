@@ -73,7 +73,7 @@ public class RenameTable extends ManagerRepo {
           "Namespace in new table name does not match the old table name");
     }
 
-    ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
 
     Utils.getTableNameLock().lock();
     try {

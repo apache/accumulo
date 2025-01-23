@@ -61,7 +61,7 @@ public class PreDeleteTable extends ManagerRepo {
       throws KeeperException, InterruptedException {
     String deleteMarkerPath =
         createDeleteMarkerPath(environment.getContext().getInstanceID(), tableId);
-    ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = environment.getContext().getZooSession().asReaderWriter();
     zoo.putPersistentData(deleteMarkerPath, new byte[] {}, NodeExistsPolicy.SKIP);
   }
 

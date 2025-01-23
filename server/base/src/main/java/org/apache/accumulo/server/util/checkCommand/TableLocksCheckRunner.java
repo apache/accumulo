@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -61,14 +60,15 @@ public class TableLocksCheckRunner implements CheckRunner {
     final String zkRoot = context.getZooKeeperRoot();
     final var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
     final String fateZkPath = zkRoot + Constants.ZFATE;
-    final ZooReaderWriter zk = context.getZooReaderWriter();
+    final var zk = context.getZooSession();
     final ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
 
     log.trace("Ensuring table and namespace locks are valid...");
 
     var tableIds = context.tableOperations().tableIdMap().values();
     var namespaceIds = context.namespaceOperations().namespaceIdMap().values();
-    List<String> lockedIds = zk.getChildren(zTableLocksPath.toString());
+    List<String> lockedIds =
+        context.getZooSession().asReader().getChildren(zTableLocksPath.toString());
     boolean locksExist = !lockedIds.isEmpty();
 
     if (locksExist) {
