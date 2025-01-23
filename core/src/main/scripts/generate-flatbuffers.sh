@@ -25,7 +25,7 @@
 
 [[ -z $REQUIRED_FB_VERSION ]] && REQUIRED_FB_VERSION='24.3.25'
 
-# Test to see if we have thrift installed
+# Test to see if we have flatc installed
 if ! flatc --version 2>/dev/null | grep -qF "${REQUIRED_FB_VERSION}"; then
   echo "****************************************************"
   echo "*** flatc ${REQUIRED_FB_VERSION} is not available, check PATH"
