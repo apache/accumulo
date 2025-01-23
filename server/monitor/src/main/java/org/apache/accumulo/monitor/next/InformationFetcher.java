@@ -318,7 +318,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
             try {
               future.get();
             } catch (CancellationException | InterruptedException | ExecutionException e) {
-              LOG.error("Error getting status from future: {}", e.getMessage());
+              LOG.error("Error getting status from future", e);
             }
           }
         }
