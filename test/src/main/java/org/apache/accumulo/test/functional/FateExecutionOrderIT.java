@@ -157,7 +157,7 @@ public class FateExecutionOrderIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testDefaultInterleaving() throws Exception {
+  public void testExecutionOrder() throws Exception {
 
     // Connect to the ZooKeeper that MAC is using and insert FATE operations
     final String path = getCluster().getServerContext().getZooKeeperRoot() + Constants.ZFATE;
