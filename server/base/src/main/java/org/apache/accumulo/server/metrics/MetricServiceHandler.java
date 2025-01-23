@@ -58,8 +58,7 @@ public class MetricServiceHandler implements MetricService.Iface {
   @Override
   public MetricResponse getMetrics(TInfo tinfo, TCredentials credentials) throws TException {
 
-    if (!(ctx.getSecurityOperation().isSystemUser(credentials)
-        && ctx.getSecurityOperation().authenticateUser(credentials, credentials))) {
+    if (!ctx.getSecurityOperation().authenticateUser(credentials, credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
