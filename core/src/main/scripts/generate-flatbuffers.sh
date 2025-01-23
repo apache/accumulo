@@ -43,7 +43,7 @@ if ! flatc --version 2>/dev/null | grep -qF "${REQUIRED_FB_VERSION}"; then
   # See FlatBuffers README and/or https://flatbuffers.dev for more information
 fi
 
-# Run this scrip from the accumulo/core directory, for exampe:
+# Run this script from the accumulo/core directory, for example:
 #
 # src/main/scripts/generate-flatbuffers.sh
 
