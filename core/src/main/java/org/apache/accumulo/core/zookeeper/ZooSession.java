@@ -302,8 +302,10 @@ public class ZooSession implements AutoCloseable {
         sameZkConnection = counter == getConnectionCounter();
         if (!sameZkConnection) {
           // It's still possible that this last watch was added, let's remove
-          // it and try the entire set again.
-          verifyConnected().removeAllWatches(path, WatcherType.PersistentRecursive, true);
+          // it and try the entire set again. Cannot use WatcherType.PersistentRecursive
+          // here as that was added in 3.9.0. See
+          // https://issues.apache.org/jira/browse/ZOOKEEPER-4472
+          verifyConnected().removeWatches(path, watcher, WatcherType.Any, true);
           break;
         }
         log.debug("Added persistent recursive watcher at {}", path);

@@ -117,6 +117,11 @@ public class ZooCache {
           log.trace("{} node created or deleted {}; clearing {}", cacheId, event.getPath(), parent);
           clear((path) -> path.startsWith(parent));
           break;
+        case PersistentWatchRemoved:
+          log.trace(
+              "{} persistent watch removed {} which is only done in ZooSession.addPersistentRecursiveWatchers; ignoring;",
+              cacheId, event.getPath());
+          break;
         case None:
           switch (event.getState()) {
             case Closed:
