@@ -294,7 +294,7 @@ public class CompactionCoordinator
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
-  private void startConfigMonitor(ScheduledThreadPoolExecutor schedExecutor) {
+  protected void startConfigMonitor(ScheduledThreadPoolExecutor schedExecutor) {
     ScheduledFuture<?> future =
         schedExecutor.scheduleWithFixedDelay(this::cleanUpInternalState, 0, 1, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
