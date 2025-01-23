@@ -200,7 +200,7 @@ public class ZooSession implements AutoCloseable {
                 try {
                   String path = entry.getKey();
                   for (Watcher watcher : entry.getValue()) {
-                    verifyConnected().addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
+                    zk.addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
                     persistentWatcherPaths.computeIfAbsent(path, k -> new ArrayList<>())
                         .add(watcher);
                     log.debug("Added persistent recursive watcher at {}", path);
