@@ -197,7 +197,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
           }
         }
       } catch (TTransportException e) {
-        LOG.error("Unable to get Compaction coordinator at {}", hp);
+        LOG.error("Unable to get Compaction coordinator at {}", hp, e);
         throw new IllegalStateException(coordinatorMissingMsg, e);
       }
     }
