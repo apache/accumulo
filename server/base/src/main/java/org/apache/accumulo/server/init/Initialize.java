@@ -43,8 +43,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -547,7 +545,6 @@ public class Initialize implements KeywordExecutable {
       log.error("Problem trying to get Volume configuration", e);
       success = false;
     } finally {
-      SingletonManager.setMode(Mode.CLOSED);
       if (!success) {
         System.exit(-1);
       }
