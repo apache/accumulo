@@ -224,7 +224,8 @@ public class ClientContext implements AccumuloClient {
 
     this.zooSession = memoize(() -> {
       var zk = info
-          .getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")").get();
+          .getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")", "")
+          .get();
       zooKeeperOpened.set(true);
       return zk;
     });
@@ -1100,7 +1101,7 @@ public class ClientContext implements AccumuloClient {
       // so, it can't rely on being able to continue to use the same client's ZooCache,
       // because that client could be closed, and its ZooSession also closed
       // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
-      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName()).get();
+      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(), "").get();
       this.zkLockChecker =
           new ZookeeperLockChecker(new ZooCache(zk), getZooKeeperRoot() + Constants.ZTSERVERS);
     }
