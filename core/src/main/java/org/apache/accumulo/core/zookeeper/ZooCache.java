@@ -174,7 +174,7 @@ public class ZooCache {
     this.zkClientTracker.set(this.getZKClientObjectVersion());
     this.cache = Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
         .ticker(requireNonNull(ticker)).expireAfterAccess(CACHE_DURATION).build();
-    // The concurrent map returned by Caffiene will only allow one thread to run at a time for a
+    // The concurrent map returned by Caffeine will only allow one thread to run at a time for a
     // given key and ZooCache relies on that. Not all concurrent map implementations have this
     // behavior for their compute functions.
     this.nodeCache = cache.asMap();
