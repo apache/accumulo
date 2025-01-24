@@ -58,11 +58,11 @@ public class FateLockTest {
         Integer.MIN_VALUE / 1000, -40}) {
       var seq = String.format("%010d", i);
       if (seq.length() == 10) {
-        assertThrows(NumberFormatException.class, () -> new FateLock.FateLockNode(
-            FateLock.PREFIX + fateId.canonical() + "#" + String.format("%010d", i)));
+        assertThrows(NumberFormatException.class,
+            () -> new FateLock.FateLockNode(FateLock.PREFIX + fateId.canonical() + "#" + seq));
       } else if (seq.length() == 11) {
-        assertThrows(IllegalArgumentException.class, () -> new FateLock.FateLockNode(
-            FateLock.PREFIX + fateId.canonical() + "#" + String.format("%010d", i)));
+        assertThrows(IllegalArgumentException.class,
+            () -> new FateLock.FateLockNode(FateLock.PREFIX + fateId.canonical() + "#" + seq));
       } else {
         fail("Unexpected length " + seq.length());
       }
