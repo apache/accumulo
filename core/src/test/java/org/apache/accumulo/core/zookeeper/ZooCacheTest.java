@@ -116,40 +116,18 @@ public class ZooCacheTest {
 
   @Test
   public void testGet() throws Exception {
-    testGet(false);
-  }
-
-  @Test
-  public void testGet_FillStat() throws Exception {
-    testGet(true);
-  }
-
-  private void testGet(boolean fillStat) throws Exception {
-    ZcStat myStat = null;
-    if (fillStat) {
-      myStat = new ZcStat();
-    }
-    final long ephemeralOwner = 123456789L;
-    Stat existsStat = new Stat();
-    existsStat.setEphemeralOwner(ephemeralOwner);
-    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
-    expect(zk.getData(ZPATH, null, existsStat)).andReturn(DATA);
+    expect(zk.getData(ZPATH, null, new Stat())).andReturn(DATA);
     replay(zk);
 
     assertFalse(zc.dataCached(ZPATH));
-    assertArrayEquals(DATA, (fillStat ? zc.get(ZPATH, myStat) : zc.get(ZPATH)));
+    assertSame(DATA, zc.get(ZPATH));
     verify(zk);
-    if (fillStat) {
-      assertEquals(ephemeralOwner, myStat.getEphemeralOwner());
-    }
-
-    assertTrue(zc.dataCached(ZPATH));
-    assertSame(DATA, zc.get(ZPATH)); // cache hit
   }
 
   @Test
   public void testGet_NonExistent() throws Exception {
-    expect(zk.exists(ZPATH, null)).andReturn(null);
+    expect(zk.getData(ZPATH, null, new Stat()))
+        .andThrow(new KeeperException.NoNodeException(ZPATH));
     replay(zk);
 
     assertNull(zc.get(ZPATH));
@@ -177,54 +155,26 @@ public class ZooCacheTest {
   }
 
   private void testGet_Retry(Exception e) throws Exception {
-    expect(zk.exists(ZPATH, null)).andThrow(e);
     Stat existsStat = new Stat();
-    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
-    expect(zk.getData(ZPATH, null, existsStat)).andReturn(DATA);
-    replay(zk);
-
-    assertArrayEquals(DATA, zc.get(ZPATH));
-    verify(zk);
-  }
-
-  @Test
-  public void testGet_Retry2_NoNode() throws Exception {
-    testGet_Retry2(new KeeperException.NoNodeException(ZPATH));
-  }
-
-  @Test
-  public void testGet_Retry2_ConnectionLoss() throws Exception {
-    testGet_Retry2(new KeeperException.ConnectionLossException());
-  }
-
-  @Test
-  public void testGet_Retry2_BadVersion() throws Exception {
-    testGet_Retry2(new KeeperException.BadVersionException(ZPATH));
-  }
-
-  @Test
-  public void testGet_Retry2_Interrupted() throws Exception {
-    testGet_Retry2(new InterruptedException());
-  }
-
-  private void testGet_Retry2(Exception e) throws Exception {
-    Stat existsStat = new Stat();
-    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
     expect(zk.getData(ZPATH, null, existsStat)).andThrow(e);
-    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
-    expect(zk.getData(ZPATH, null, existsStat)).andReturn(DATA);
+    if (!(e instanceof KeeperException.NoNodeException
+        || e instanceof KeeperException.BadVersionException)) {
+      // Retry will not happen on NoNodeException or BadVersionException
+      expect(zk.getData(ZPATH, null, existsStat)).andReturn(DATA);
+    }
     replay(zk);
 
-    assertArrayEquals(DATA, zc.get(ZPATH));
+    if (e instanceof KeeperException.NoNodeException
+        || e instanceof KeeperException.BadVersionException) {
+      assertNull(zc.get(ZPATH));
+    } else {
+      assertArrayEquals(DATA, zc.get(ZPATH));
+    }
     verify(zk);
   }
-
-  // ---
 
   @Test
   public void testGetChildren() throws Exception {
-    Stat existsStat = new Stat();
-    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
     expect(zk.getChildren(ZPATH, null)).andReturn(CHILDREN);
     replay(zk);
 
@@ -239,8 +189,6 @@ public class ZooCacheTest {
 
   @Test
   public void testGetChildren_NoKids() throws Exception {
-    Stat existsStat = new Stat();
-    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
     expect(zk.getChildren(ZPATH, null)).andReturn(List.of());
     replay(zk);
 
@@ -251,24 +199,8 @@ public class ZooCacheTest {
   }
 
   @Test
-  public void testGetChildren_RaceCondition() throws Exception {
-    // simulate the node being deleted between calling zookeeper.exists and zookeeper.getChildren
-    Stat existsStat = new Stat();
-    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
-    expect(zk.getChildren(ZPATH, null)).andThrow(new KeeperException.NoNodeException(ZPATH));
-    expect(zk.exists(ZPATH, null)).andReturn(null);
-    replay(zk);
-    assertNull(zc.getChildren(ZPATH));
-    verify(zk);
-    assertNull(zc.getChildren(ZPATH));
-  }
-
-  @Test
   public void testGetChildren_Retry() throws Exception {
-    Stat existsStat = new Stat();
-    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
     expect(zk.getChildren(ZPATH, null)).andThrow(new KeeperException.BadVersionException(ZPATH));
-    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
     expect(zk.getChildren(ZPATH, null)).andReturn(CHILDREN);
     replay(zk);
 
@@ -281,7 +213,7 @@ public class ZooCacheTest {
   public void testGetChildren_NoNode() throws Exception {
     assertFalse(zc.childrenCached(ZPATH));
     assertFalse(zc.dataCached(ZPATH));
-    expect(zk.exists(ZPATH, null)).andReturn(null);
+    expect(zk.getChildren(ZPATH, null)).andThrow(new KeeperException.NoNodeException(ZPATH));
     replay(zk);
 
     assertNull(zc.getChildren(ZPATH));
@@ -331,7 +263,7 @@ public class ZooCacheTest {
 
   @Test
   public void testWatchDataNode_NoneSyncConnected() throws Exception {
-    testWatchDataNode(null, Watcher.Event.EventType.None, true);
+    testWatchDataNode(null, Watcher.Event.EventType.None, false);
   }
 
   private void testWatchDataNode(byte[] initialData, Watcher.Event.EventType eventType,
@@ -342,23 +274,22 @@ public class ZooCacheTest {
     zc = new TestZooCache(zk, Set.of(root));
     zc.addZooCacheWatcher(exw);
 
-    watchData(initialData);
+    watchData(initialData, stillCached);
     zc.executeWatcher(event);
     assertTrue(exw.wasCalled());
     assertEquals(stillCached, zc.dataCached(ZPATH));
   }
 
-  private void watchData(byte[] initialData) throws Exception {
+  private void watchData(byte[] initialData, boolean cached) throws Exception {
     Stat existsStat = new Stat();
     if (initialData != null) {
-      expect(zk.exists(ZPATH, null)).andReturn(existsStat);
       expect(zk.getData(ZPATH, null, existsStat)).andReturn(initialData);
     } else {
-      expect(zk.exists(ZPATH, null)).andReturn(null);
+      expect(zk.getData(ZPATH, null, existsStat)).andReturn(null);
     }
     replay(zk);
     zc.get(ZPATH);
-    assertTrue(zc.dataCached(ZPATH));
+    assertEquals(initialData != null, zc.dataCached(ZPATH));
   }
 
   @Test
@@ -387,24 +318,12 @@ public class ZooCacheTest {
 
     var uc1 = zc.getUpdateCount();
 
-    final long ephemeralOwner1 = 123456789L;
-    Stat existsStat1 = new Stat();
-    existsStat1.setEphemeralOwner(ephemeralOwner1);
-
-    final long ephemeralOwner2 = 987654321L;
-    Stat existsStat2 = new Stat();
-    existsStat2.setEphemeralOwner(ephemeralOwner2);
-
     if (getDataFirst) {
-      expect(zk.exists(ZPATH, null)).andReturn(existsStat1);
-      expect(zk.getData(ZPATH, null, existsStat1)).andReturn(DATA);
-      expect(zk.exists(ZPATH, null)).andReturn(existsStat2);
+      expect(zk.getData(ZPATH, null, new Stat())).andReturn(DATA);
       expect(zk.getChildren(ZPATH, null)).andReturn(CHILDREN);
     } else {
-      expect(zk.exists(ZPATH, null)).andReturn(existsStat2);
       expect(zk.getChildren(ZPATH, null)).andReturn(CHILDREN);
-      expect(zk.exists(ZPATH, null)).andReturn(existsStat1);
-      expect(zk.getData(ZPATH, null, existsStat1)).andReturn(DATA);
+      expect(zk.getData(ZPATH, null, new Stat())).andReturn(DATA);
     }
 
     replay(zk);
@@ -412,7 +331,6 @@ public class ZooCacheTest {
     if (getDataFirst) {
       var zcStat = new ZcStat();
       var data = zc.get(ZPATH, zcStat);
-      assertEquals(ephemeralOwner1, zcStat.getEphemeralOwner());
       assertArrayEquals(DATA, data);
     } else {
       var children = zc.getChildren(ZPATH);
@@ -427,7 +345,6 @@ public class ZooCacheTest {
     } else {
       var zcStat = new ZcStat();
       var data = zc.get(ZPATH, zcStat);
-      assertEquals(ephemeralOwner1, zcStat.getEphemeralOwner());
       assertArrayEquals(DATA, data);
     }
     var uc3 = zc.getUpdateCount();
@@ -439,7 +356,6 @@ public class ZooCacheTest {
     var data = zc.get(ZPATH, zcStat);
     // the stat is associated with the data so should aways see the one returned by the call to get
     // data and not get children
-    assertEquals(ephemeralOwner1, zcStat.getEphemeralOwner());
     assertArrayEquals(DATA, data);
     var children = zc.getChildren(ZPATH);
     assertEquals(CHILDREN, children);
@@ -453,7 +369,7 @@ public class ZooCacheTest {
     zc = new TestZooCache(zk, Set.of(root));
     zc.addZooCacheWatcher(exw);
 
-    watchData(DATA);
+    watchData(DATA, true);
     assertTrue(zc.dataCached(ZPATH));
     zc.executeWatcher(event);
     assertTrue(exw.wasCalled());
@@ -496,10 +412,8 @@ public class ZooCacheTest {
 
   private void watchChildren(List<String> initialChildren) throws Exception {
     if (initialChildren == null) {
-      expect(zk.exists(ZPATH, null)).andReturn(null);
+      expect(zk.getChildren(ZPATH, null)).andReturn(List.of());
     } else {
-      Stat existsStat = new Stat();
-      expect(zk.exists(ZPATH, null)).andReturn(existsStat);
       expect(zk.getChildren(ZPATH, null)).andReturn(initialChildren);
     }
     replay(zk);

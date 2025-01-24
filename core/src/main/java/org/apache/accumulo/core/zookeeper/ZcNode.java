@@ -83,7 +83,7 @@ class ZcNode {
    * stat.
    */
   ZcNode(byte[] data, ZcStat zstat, ZcNode existing) {
-    this.data = Objects.requireNonNull(data);
+    this.data = data;
     this.stat = Objects.requireNonNull(zstat);
     if (existing == null) {
       this.children = null;
@@ -98,7 +98,6 @@ class ZcNode {
    * @throws IllegalStateException in the case where the node exists and the data was never set
    */
   byte[] getData() {
-    Preconditions.checkState(cachedData());
     accessCount.incrementAndGet();
     return data;
   }

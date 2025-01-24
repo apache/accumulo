@@ -119,7 +119,7 @@ public class ZooCache {
           clear((path) -> path.startsWith(parent));
           break;
         case PersistentWatchRemoved:
-          log.trace(
+          log.warn(
               "{} persistent watch removed {} which is only done in ZooSession.addPersistentRecursiveWatchers; ignoring;",
               cacheId, event.getPath());
           break;
@@ -334,7 +334,7 @@ public class ZooCache {
   }
 
   /**
-   * Gets the children of the given node. A watch is established by this call.
+   * Gets the children of the given node.
    *
    * @param zPath path of node
    * @return children list, or null if node has no children or does not exist
@@ -360,23 +360,12 @@ public class ZooCache {
             return zcn;
           }
           try {
-            // Register a watcher on the node to monitor creation/deletion events for the node. It
-            // is possible that an event from this watch could trigger prior to calling getChildren.
-            // That is ok because the compute() call on the map has a lock and processing the event
-            // will block until compute() returns. After compute() returns the event processing
-            // would clear the map entry.
-            Stat stat = zk.exists(zPath, null);
-            if (stat == null) {
-              log.trace("{} getChildren saw that {} does not exists", cacheId, zPath);
-              return ZcNode.NON_EXISTENT;
-            }
             List<String> children = zk.getChildren(zPath, null);
             log.trace("{} adding {} children of {} to cache", cacheId, children.size(), zPath);
             return new ZcNode(children, zcn);
           } catch (KeeperException.NoNodeException nne) {
-            log.trace("{} get children saw race condition for {}, node deleted after exists call",
-                cacheId, zPath);
-            throw new ConcurrentModificationException(nne);
+            log.trace("{} getChildren saw that {} does not exists", cacheId, zPath);
+            return ZcNode.NON_EXISTENT;
           } catch (KeeperException e) {
             throw new ZcException(e);
           } catch (InterruptedException e) {
@@ -393,8 +382,7 @@ public class ZooCache {
   }
 
   /**
-   * Gets data at the given path. Status information is not returned. A watch is established by this
-   * call.
+   * Gets data at the given path. Status information is not returned.
    *
    * @param zPath path to get
    * @return path data, or null if non-existent
@@ -405,7 +393,7 @@ public class ZooCache {
 
   /**
    * Gets data at the given path, filling status information into the given <code>Stat</code>
-   * object. A watch is established by this call.
+   * object.
    *
    * @param zPath path to get
    * @param status status object to populate
@@ -435,44 +423,27 @@ public class ZooCache {
           if (zcn != null && zcn.cachedData()) {
             return zcn;
           }
-          /*
-           * The following call to exists() is important, since we are caching that a node does not
-           * exist. Once the node comes into existence, it will be added to the cache. But this
-           * notification of a node coming into existence will only be given if exists() was
-           * previously called. If the call to exists() is bypassed and only getData() is called
-           * with a special case that looks for Code.NONODE in the KeeperException, then
-           * non-existence can not be cached.
-           */
           try {
-            Stat stat = zk.exists(zPath, null);
-            if (stat == null) {
-              if (log.isTraceEnabled()) {
-                log.trace("{} zookeeper did not contain {}", cacheId, zPath);
-              }
+            byte[] data = null;
+            Stat stat = new Stat();
+            ZcStat zstat = null;
+            try {
+              data = zk.getData(zPath, null, stat);
+              zstat = new ZcStat(stat);
+            } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
+              log.trace("{} zookeeper did not contain {}", cacheId, zPath);
               return ZcNode.NON_EXISTENT;
-            } else {
-              byte[] data = null;
-              ZcStat zstat = null;
-              try {
-                data = zk.getData(zPath, null, stat);
-                zstat = new ZcStat(stat);
-              } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
-                throw new ConcurrentModificationException(e1);
-              } catch (InterruptedException e) {
-                throw new ZcInterruptedException(e);
-              }
-              if (log.isTraceEnabled()) {
-                log.trace("{} zookeeper contained {} {}", cacheId, zPath,
-                    (data == null ? null : new String(data, UTF_8)));
-              }
-              return new ZcNode(data, zstat, zcn);
+            } catch (InterruptedException e) {
+              throw new ZcInterruptedException(e);
             }
+            if (log.isTraceEnabled()) {
+              log.trace("{} zookeeper contained {} {}", cacheId, zPath,
+                  (data == null ? null : new String(data, UTF_8)));
+            }
+            return new ZcNode(data, zstat, zcn);
           } catch (KeeperException ke) {
             throw new ZcException(ke);
-          } catch (InterruptedException e) {
-            throw new ZcInterruptedException(e);
           }
-
         });
 
         // update this after the compute call completes when the change is visible
