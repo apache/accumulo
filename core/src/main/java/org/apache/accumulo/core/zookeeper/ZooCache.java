@@ -62,8 +62,8 @@ public class ZooCache {
 
   private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
 
-  protected volatile NavigableSet<String> watchedPaths =
-      Collections.unmodifiableNavigableSet(new TreeSet<>());
+  private final NavigableSet<String> watchedPaths;
+
   // visible for tests
   protected final ZCacheWatcher watcher = new ZCacheWatcher();
   private final List<ZooCacheWatcher> externalWatchers =
@@ -178,7 +178,8 @@ public class ZooCache {
     // given key and ZooCache relies on that. Not all concurrent map implementations have this
     // behavior for their compute functions.
     this.nodeCache = cache.asMap();
-    setupWatchers(pathsToWatch);
+    this.watchedPaths = Collections.unmodifiableNavigableSet(new TreeSet<>(pathsToWatch));
+    setupWatchers();
     log.trace("{} created new cache", cacheId, new Exception());
   }
 
@@ -191,12 +192,15 @@ public class ZooCache {
     return zk.getConnectionCounter();
   }
 
+  /**
+   * @return true if ZK has changed; false otherwise
+   */
   private boolean handleZKConnectionChange() {
     final long currentCount = getZKClientObjectVersion();
     final long oldCount = zkClientTracker.get();
     if (oldCount != currentCount) {
       if (zkClientTracker.compareAndSet(oldCount, currentCount)) {
-        setupWatchers(watchedPaths);
+        setupWatchers();
       }
       return true;
     }
@@ -204,10 +208,10 @@ public class ZooCache {
   }
 
   // Called on construction and when ZooKeeper connection changes
-  synchronized void setupWatchers(Set<String> pathsToWatch) {
+  synchronized void setupWatchers() {
 
-    for (String left : pathsToWatch) {
-      for (String right : pathsToWatch) {
+    for (String left : watchedPaths) {
+      for (String right : watchedPaths) {
         if (!left.equals(right) && left.contains(right)) {
           throw new IllegalArgumentException(
               "Overlapping paths found in paths to watch. left: " + left + ", right: " + right);
@@ -216,9 +220,8 @@ public class ZooCache {
     }
 
     try {
-      zk.addPersistentRecursiveWatchers(pathsToWatch, watcher);
+      zk.addPersistentRecursiveWatchers(watchedPaths, watcher);
       clear();
-      watchedPaths = Collections.unmodifiableNavigableSet(new TreeSet<>(pathsToWatch));
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error setting up persistent recursive watcher", e);
     }
@@ -232,8 +235,6 @@ public class ZooCache {
         && (floor.equals("/") || floor.equals(path) || path.startsWith(floor + "/"));
   }
 
-  // Use this instead of Preconditions.checkState(isWatchedPath, String)
-  // so that we are not creating String unnecessarily.
   private void ensureWatched(String path) {
     if (!isWatchedPath(path)) {
       throw new IllegalStateException("Supplied path " + path + " is not watched by this ZooCache");
@@ -502,7 +503,7 @@ public class ZooCache {
   /**
    * Clears this cache.
    */
-  private void clear() {
+  protected void clear() {
     Preconditions.checkState(!closed);
     nodeCache.clear();
     updateCount.incrementAndGet();

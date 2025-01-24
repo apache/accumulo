@@ -18,13 +18,10 @@
  */
 package org.apache.accumulo.core.zookeeper;
 
-import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createStrictMock;
-import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.isA;
 import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,10 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -62,12 +57,8 @@ public class ZooCacheTest {
     }
 
     @Override
-    protected void setupWatchers(Set<String> pathsToWatch) {
-      TreeSet<String> wPaths = new TreeSet<>();
-      for (String path : pathsToWatch) {
-        wPaths.add(path);
-      }
-      watchedPaths = Collections.unmodifiableNavigableSet(wPaths);
+    protected void setupWatchers() {
+      clear();
     }
 
     public void executeWatcher(WatchedEvent event) {
@@ -141,8 +132,8 @@ public class ZooCacheTest {
     final long ephemeralOwner = 123456789L;
     Stat existsStat = new Stat();
     existsStat.setEphemeralOwner(ephemeralOwner);
-    expect(zk.exists(eq(ZPATH), eq(null))).andReturn(existsStat);
-    expect(zk.getData(eq(ZPATH), eq(null), eq(existsStat))).andReturn(DATA);
+    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
+    expect(zk.getData(ZPATH, null, existsStat)).andReturn(DATA);
     replay(zk);
 
     assertFalse(zc.dataCached(ZPATH));
@@ -158,7 +149,7 @@ public class ZooCacheTest {
 
   @Test
   public void testGet_NonExistent() throws Exception {
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(null);
+    expect(zk.exists(ZPATH, null)).andReturn(null);
     replay(zk);
 
     assertNull(zc.get(ZPATH));
@@ -186,10 +177,10 @@ public class ZooCacheTest {
   }
 
   private void testGet_Retry(Exception e) throws Exception {
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andThrow(e);
+    expect(zk.exists(ZPATH, null)).andThrow(e);
     Stat existsStat = new Stat();
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-    expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat))).andReturn(DATA);
+    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
+    expect(zk.getData(ZPATH, null, existsStat)).andReturn(DATA);
     replay(zk);
 
     assertArrayEquals(DATA, zc.get(ZPATH));
@@ -218,10 +209,10 @@ public class ZooCacheTest {
 
   private void testGet_Retry2(Exception e) throws Exception {
     Stat existsStat = new Stat();
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-    expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat))).andThrow(e);
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-    expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat))).andReturn(DATA);
+    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
+    expect(zk.getData(ZPATH, null, existsStat)).andThrow(e);
+    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
+    expect(zk.getData(ZPATH, null, existsStat)).andReturn(DATA);
     replay(zk);
 
     assertArrayEquals(DATA, zc.get(ZPATH));
@@ -233,8 +224,8 @@ public class ZooCacheTest {
   @Test
   public void testGetChildren() throws Exception {
     Stat existsStat = new Stat();
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-    expect(zk.getChildren(eq(ZPATH), anyObject(Watcher.class))).andReturn(CHILDREN);
+    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
+    expect(zk.getChildren(ZPATH, null)).andReturn(CHILDREN);
     replay(zk);
 
     assertFalse(zc.childrenCached(ZPATH));
@@ -249,8 +240,8 @@ public class ZooCacheTest {
   @Test
   public void testGetChildren_NoKids() throws Exception {
     Stat existsStat = new Stat();
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-    expect(zk.getChildren(eq(ZPATH), anyObject(Watcher.class))).andReturn(List.of());
+    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
+    expect(zk.getChildren(ZPATH, null)).andReturn(List.of());
     replay(zk);
 
     assertEquals(List.of(), zc.getChildren(ZPATH));
@@ -263,10 +254,9 @@ public class ZooCacheTest {
   public void testGetChildren_RaceCondition() throws Exception {
     // simulate the node being deleted between calling zookeeper.exists and zookeeper.getChildren
     Stat existsStat = new Stat();
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-    expect(zk.getChildren(eq(ZPATH), anyObject(Watcher.class)))
-        .andThrow(new KeeperException.NoNodeException(ZPATH));
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(null);
+    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
+    expect(zk.getChildren(ZPATH, null)).andThrow(new KeeperException.NoNodeException(ZPATH));
+    expect(zk.exists(ZPATH, null)).andReturn(null);
     replay(zk);
     assertNull(zc.getChildren(ZPATH));
     verify(zk);
@@ -276,11 +266,10 @@ public class ZooCacheTest {
   @Test
   public void testGetChildren_Retry() throws Exception {
     Stat existsStat = new Stat();
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-    expect(zk.getChildren(eq(ZPATH), anyObject(Watcher.class)))
-        .andThrow(new KeeperException.BadVersionException(ZPATH));
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-    expect(zk.getChildren(eq(ZPATH), anyObject(Watcher.class))).andReturn(CHILDREN);
+    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
+    expect(zk.getChildren(ZPATH, null)).andThrow(new KeeperException.BadVersionException(ZPATH));
+    expect(zk.exists(ZPATH, null)).andReturn(existsStat);
+    expect(zk.getChildren(ZPATH, null)).andReturn(CHILDREN);
     replay(zk);
 
     assertEquals(CHILDREN, zc.getChildren(ZPATH));
@@ -292,7 +281,7 @@ public class ZooCacheTest {
   public void testGetChildren_NoNode() throws Exception {
     assertFalse(zc.childrenCached(ZPATH));
     assertFalse(zc.dataCached(ZPATH));
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(null);
+    expect(zk.exists(ZPATH, null)).andReturn(null);
     replay(zk);
 
     assertNull(zc.getChildren(ZPATH));
@@ -352,11 +341,6 @@ public class ZooCacheTest {
     TestWatcher exw = new TestWatcher(event);
     zc = new TestZooCache(zk, Set.of(root));
     zc.addZooCacheWatcher(exw);
-    // The ZooCache constructor sets an expectation
-    // of addSessionObserver being called later during
-    // the tests. Remove this expectation by calling
-    // reset
-    reset(zk);
 
     watchData(initialData);
     zc.executeWatcher(event);
@@ -367,10 +351,10 @@ public class ZooCacheTest {
   private void watchData(byte[] initialData) throws Exception {
     Stat existsStat = new Stat();
     if (initialData != null) {
-      expect(zk.exists(eq(ZPATH), eq(null))).andReturn(existsStat);
-      expect(zk.getData(eq(ZPATH), eq(null), eq(existsStat))).andReturn(initialData);
+      expect(zk.exists(ZPATH, null)).andReturn(existsStat);
+      expect(zk.getData(ZPATH, null, existsStat)).andReturn(initialData);
     } else {
-      expect(zk.exists(eq(ZPATH), eq(null))).andReturn(null);
+      expect(zk.exists(ZPATH, null)).andReturn(null);
     }
     replay(zk);
     zc.get(ZPATH);
@@ -412,15 +396,15 @@ public class ZooCacheTest {
     existsStat2.setEphemeralOwner(ephemeralOwner2);
 
     if (getDataFirst) {
-      expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat1);
-      expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat1))).andReturn(DATA);
-      expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat2);
-      expect(zk.getChildren(eq(ZPATH), anyObject(Watcher.class))).andReturn(CHILDREN);
+      expect(zk.exists(ZPATH, null)).andReturn(existsStat1);
+      expect(zk.getData(ZPATH, null, existsStat1)).andReturn(DATA);
+      expect(zk.exists(ZPATH, null)).andReturn(existsStat2);
+      expect(zk.getChildren(ZPATH, null)).andReturn(CHILDREN);
     } else {
-      expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat2);
-      expect(zk.getChildren(eq(ZPATH), anyObject(Watcher.class))).andReturn(CHILDREN);
-      expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat1);
-      expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat1))).andReturn(DATA);
+      expect(zk.exists(ZPATH, null)).andReturn(existsStat2);
+      expect(zk.getChildren(ZPATH, null)).andReturn(CHILDREN);
+      expect(zk.exists(ZPATH, null)).andReturn(existsStat1);
+      expect(zk.getData(ZPATH, null, existsStat1)).andReturn(DATA);
     }
 
     replay(zk);
@@ -468,11 +452,6 @@ public class ZooCacheTest {
     TestWatcher exw = new TestWatcher(event);
     zc = new TestZooCache(zk, Set.of(root));
     zc.addZooCacheWatcher(exw);
-    // The ZooCache constructor sets an expectation
-    // of addSessionObserver being called later during
-    // the tests. Remove this expectation by calling
-    // reset
-    reset(zk);
 
     watchData(DATA);
     assertTrue(zc.dataCached(ZPATH));
@@ -508,11 +487,6 @@ public class ZooCacheTest {
     TestWatcher exw = new TestWatcher(event);
     zc = new TestZooCache(zk, Set.of(root));
     zc.addZooCacheWatcher(exw);
-    // The ZooCache constructor sets an expectation
-    // of addSessionObserver being called later during
-    // the tests. Remove this expectation by calling
-    // reset
-    reset(zk);
 
     watchChildren(initialChildren);
     zc.executeWatcher(event);
@@ -522,11 +496,11 @@ public class ZooCacheTest {
 
   private void watchChildren(List<String> initialChildren) throws Exception {
     if (initialChildren == null) {
-      expect(zk.exists(eq(ZPATH), eq(null))).andReturn(null);
+      expect(zk.exists(ZPATH, null)).andReturn(null);
     } else {
       Stat existsStat = new Stat();
-      expect(zk.exists(eq(ZPATH), eq(null))).andReturn(existsStat);
-      expect(zk.getChildren(eq(ZPATH), eq(null))).andReturn(initialChildren);
+      expect(zk.exists(ZPATH, null)).andReturn(existsStat);
+      expect(zk.getChildren(ZPATH, null)).andReturn(initialChildren);
     }
     replay(zk);
     zc.getChildren(ZPATH);

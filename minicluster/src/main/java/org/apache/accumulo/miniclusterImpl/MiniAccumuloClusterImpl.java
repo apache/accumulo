@@ -992,8 +992,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     control.stop(ServerType.COMPACTOR, null);
     control.stop(ServerType.SCAN_SERVER, null);
 
-    // The method calls above kill the server
-    // Clean up the locks in ZooKeeper for that if the cluster
+    // Clean up the locks in ZooKeeper so that if the cluster
     // is restarted, then the processes will start right away
     // and not wait for the old locks to be cleaned up.
     try {
@@ -1004,8 +1003,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     // Clear the location of the servers in ZooCache.
-    // If MAC is restarted, then ZooKeeper will start
-    // on the same port with the same data, but no Watchers will fire.
     boolean macStarted = false;
     try {
       getServerContext().getZooKeeperRoot();

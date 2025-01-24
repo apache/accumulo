@@ -671,8 +671,8 @@ public class ServiceLock implements Watcher {
     return ServiceLockData.parse(data);
   }
 
-  public static Optional<ServiceLockData> getLockData(
-      ZooCache zc, ServiceLockPath path, ZcStat stat) {
+  public static Optional<ServiceLockData> getLockData(ZooCache zc, ServiceLockPath path,
+      ZcStat stat) {
 
     List<String> children = validateAndSort(path, zc.getChildren(path.toString()));
 

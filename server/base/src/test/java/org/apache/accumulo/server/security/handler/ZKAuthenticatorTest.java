@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.matches;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,7 +47,6 @@ import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.Test;
 
@@ -149,10 +147,10 @@ public class ZKAuthenticatorTest {
     expect(context.zkUserPath()).andReturn(ZooUtil.getRoot(instanceId) + Constants.ZUSERS)
         .anyTimes();
     expect(zk.getChildren(anyObject(), anyObject())).andReturn(Arrays.asList(principal)).anyTimes();
-    expect(zk.exists(matches(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal),
-        anyObject(Watcher.class))).andReturn(new Stat()).anyTimes();
+    expect(zk.exists(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal, null))
+        .andReturn(new Stat()).anyTimes();
     expect(context.getZooCache()).andReturn(zc).anyTimes();
-    expect(zc.get(matches(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal)))
+    expect(zc.get(ZooUtil.getRoot(instanceId) + Constants.ZUSERS + "/" + principal))
         .andReturn(newHash);
     replay(context, zk, zc);
 
