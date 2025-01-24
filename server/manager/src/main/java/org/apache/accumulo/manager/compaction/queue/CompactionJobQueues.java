@@ -48,7 +48,7 @@ public class CompactionJobQueues {
   private final ConcurrentHashMap<CompactorGroupId,CompactionJobPriorityQueue> priorityQueues =
       new ConcurrentHashMap<>();
 
-  private final long queueSize;
+  private volatile long queueSize;
 
   private final Map<DataLevel,AtomicLong> currentGenerations;
 
@@ -195,6 +195,7 @@ public class CompactionJobQueues {
   }
 
   public void resetMaxSize(long size) {
-    priorityQueues.values().forEach(cjpq -> cjpq.resetMaxSize(size));
+    this.queueSize = size;
+    priorityQueues.values().forEach(cjpq -> cjpq.resetMaxSize(this.queueSize));
   }
 }
