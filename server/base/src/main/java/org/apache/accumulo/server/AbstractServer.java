@@ -118,7 +118,10 @@ public abstract class AbstractServer
             + " does not have the appropriate permissions.");
       }
     } catch (ThriftSecurityException e) {
-      log.warn("Error trying to determine if user has permissions to shutdown server", e);
+      log.error(
+          "Error trying to determine if user has permissions to shutdown server, ignoring request",
+          e);
+      return;
     }
 
     if (shutdownRequested.compareAndSet(false, true)) {
