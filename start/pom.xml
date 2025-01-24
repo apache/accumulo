@@ -92,7 +92,7 @@
             </goals>
             <phase>process-test-classes</phase>
             <configuration>
-              <executable>${project.basedir}/src/test/shell/makeTestJars.sh</executable>
+              <executable>${project.version}/src/test/shell/makeTestJars.sh</executable>
             </configuration>
           </execution>
           <execution>
@@ -102,7 +102,7 @@
             </goals>
             <phase>process-test-classes</phase>
             <configuration>
-              <executable>${project.basedir}/src/test/shell/makeHelloWorldJars.sh</executable>
+              <executable>${project.version}/start/src/test/shell/makeHelloWorldJars.sh</executable>
             </configuration>
           </execution>
         </executions>
