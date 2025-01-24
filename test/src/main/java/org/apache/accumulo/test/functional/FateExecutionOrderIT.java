@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -157,7 +158,7 @@ public class FateExecutionOrderIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testDefaultInterleaving() throws Exception {
+  public void testExecutionOrder() throws Exception {
 
     // Connect to the ZooKeeper that MAC is using and insert FATE operations
     final String path = getCluster().getServerContext().getZooKeeperRoot() + Constants.ZFATE;
@@ -214,12 +215,9 @@ public class FateExecutionOrderIT extends SharedMiniClusterBase {
 
       assertTrue(
           subset.values().stream().allMatch(v -> new String(v.get(), UTF_8).startsWith("FirstOp")));
-      assertEquals(2, subset.keySet().stream()
-          .filter(k -> k.getColumnFamily().toString().equals("TXID:" + txid)).count());
-      assertEquals(2, subset.keySet().stream()
-          .filter(k -> k.getColumnFamily().toString().equals("TXID:" + txid2)).count());
-      assertEquals(2, subset.keySet().stream()
-          .filter(k -> k.getColumnFamily().toString().equals("TXID:" + txid3)).count());
+      checkOperation(subset, txid);
+      checkOperation(subset, txid2);
+      checkOperation(subset, txid3);
 
       subset.clear();
       remaining.set(6);
@@ -230,12 +228,9 @@ public class FateExecutionOrderIT extends SharedMiniClusterBase {
 
       assertTrue(subset.values().stream()
           .allMatch(v -> new String(v.get(), UTF_8).startsWith("SecondOp")));
-      assertEquals(2, subset.keySet().stream()
-          .filter(k -> k.getColumnFamily().toString().equals("TXID:" + txid)).count());
-      assertEquals(2, subset.keySet().stream()
-          .filter(k -> k.getColumnFamily().toString().equals("TXID:" + txid2)).count());
-      assertEquals(2, subset.keySet().stream()
-          .filter(k -> k.getColumnFamily().toString().equals("TXID:" + txid3)).count());
+      checkOperation(subset, txid);
+      checkOperation(subset, txid2);
+      checkOperation(subset, txid3);
 
       subset.clear();
       remaining.set(6);
@@ -246,12 +241,9 @@ public class FateExecutionOrderIT extends SharedMiniClusterBase {
 
       assertTrue(
           subset.values().stream().allMatch(v -> new String(v.get(), UTF_8).startsWith("LastOp")));
-      assertEquals(2, subset.keySet().stream()
-          .filter(k -> k.getColumnFamily().toString().equals("TXID:" + txid)).count());
-      assertEquals(2, subset.keySet().stream()
-          .filter(k -> k.getColumnFamily().toString().equals("TXID:" + txid2)).count());
-      assertEquals(2, subset.keySet().stream()
-          .filter(k -> k.getColumnFamily().toString().equals("TXID:" + txid3)).count());
+      checkOperation(subset, txid);
+      checkOperation(subset, txid2);
+      checkOperation(subset, txid3);
 
       assertFalse(iter.hasNext());
 
@@ -260,6 +252,17 @@ public class FateExecutionOrderIT extends SharedMiniClusterBase {
           .forEachRemaining((e) -> System.out.println(e.getKey() + " -> " + e.getValue()));
 
     }
+  }
+
+  private void checkOperation(SortedMap<Key,Value> subset, long txid) {
+    // Extract entries for the tx
+    TreeMap<Key,
+        Value> txEntries = subset.entrySet().stream()
+            .filter(e -> e.getKey().getColumnFamily().toString().equals("TXID:" + txid)).collect(
+                Collectors.toMap(Entry::getKey, Entry::getValue, (e1, e2) -> e2, TreeMap::new));
+    assertEquals(2, txEntries.size());
+    assertTrue(new String(txEntries.firstEntry().getValue().get(), UTF_8).endsWith("::isReady"));
+    assertTrue(new String(txEntries.lastEntry().getValue().get(), UTF_8).endsWith("::call"));
   }
 
 }
