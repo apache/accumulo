@@ -30,6 +30,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -397,5 +398,32 @@ public class CompactionJobQueuesTest {
     assertTrue(future5.isDone());
     assertTrue(future6.isCompletedExceptionally());
     assertTrue(future6.isDone());
+  }
+
+  @Test
+  public void testResetSize() throws Exception {
+    CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
+
+    var tid = TableId.of("1");
+    var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));
+
+    var cg1 = CompactorGroupId.of("CG1");
+    var cg2 = CompactorGroupId.of("CG2");
+
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
+
+    assertEquals(Set.of(cg1), jobQueues.getQueueIds());
+    assertEquals(1000000, jobQueues.getQueueMaxSize(cg1));
+
+    jobQueues.resetMaxSize(500000);
+
+    assertEquals(Set.of(cg1), jobQueues.getQueueIds());
+    assertEquals(500000, jobQueues.getQueueMaxSize(cg1));
+
+    // create a new queue and ensure it uses the updated max size
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg2)));
+    assertEquals(Set.of(cg1, cg2), jobQueues.getQueueIds());
+    assertEquals(500000, jobQueues.getQueueMaxSize(cg1));
+    assertEquals(500000, jobQueues.getQueueMaxSize(cg2));
   }
 }

@@ -55,17 +55,6 @@ import org.slf4j.LoggerFactory;
 public class AdminUtil<T> {
   private static final Logger log = LoggerFactory.getLogger(AdminUtil.class);
 
-  private final boolean exitOnError;
-
-  /**
-   * Constructor
-   *
-   * @param exitOnError <code>System.exit(1)</code> on error if true
-   */
-  public AdminUtil(boolean exitOnError) {
-    this.exitOnError = exitOnError;
-  }
-
   /**
    * FATE transaction status, including lock information.
    */

@@ -59,7 +59,7 @@ public class TableLocksCheckRunner implements CheckRunner {
   private static Admin.CheckCommand.CheckStatus checkTableLocks(ServerContext context,
       Admin.CheckCommand.CheckStatus status)
       throws InterruptedException, KeeperException, AccumuloException, AccumuloSecurityException {
-    final AdminUtil<Admin> admin = new AdminUtil<>(true);
+    final AdminUtil<Admin> admin = new AdminUtil<>();
     final String zkRoot = context.getZooKeeperRoot();
     final var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     final String fateZkPath = zkRoot + Constants.ZFATE;

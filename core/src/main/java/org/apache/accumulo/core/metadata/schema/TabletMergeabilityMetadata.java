@@ -58,6 +58,18 @@ public class TabletMergeabilityMetadata implements Serializable {
     return tabletMergeability;
   }
 
+  public boolean isNever() {
+    return tabletMergeability.isNever();
+  }
+
+  public boolean isAlways() {
+    return tabletMergeability.isAlways();
+  }
+
+  public Optional<Duration> getDelay() {
+    return tabletMergeability.getDelay();
+  }
+
   public Optional<SteadyTime> getSteadyTime() {
     return Optional.ofNullable(steadyTime);
   }
@@ -132,6 +144,14 @@ public class TabletMergeabilityMetadata implements Serializable {
 
   public static TabletMergeabilityMetadata after(Duration delay, SteadyTime currentTime) {
     return new TabletMergeabilityMetadata(TabletMergeability.after(delay), currentTime);
+  }
+
+  public static TabletMergeabilityMetadata toMetadata(TabletMergeability mergeability,
+      SteadyTime currentTime) {
+    if (mergeability.isNever()) {
+      return TabletMergeabilityMetadata.never();
+    }
+    return after(mergeability.getDelay().orElseThrow(), currentTime);
   }
 
   public static Value toValue(TabletMergeabilityMetadata tmm) {

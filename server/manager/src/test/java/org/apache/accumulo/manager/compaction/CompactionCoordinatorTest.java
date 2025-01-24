@@ -137,6 +137,9 @@ public class CompactionCoordinatorTest {
     }
 
     @Override
+    protected void startConfigMonitor(ScheduledThreadPoolExecutor schedExecutor) {}
+
+    @Override
     public void compactionCompleted(TInfo tinfo, TCredentials credentials,
         String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
         throws ThriftSecurityException {}

@@ -193,7 +193,6 @@ public class CompactionCoordinator
   private final Manager manager;
 
   private final LoadingCache<String,Integer> compactorCounts;
-  private final long jobQueueInitialSize;
 
   private volatile long coordinatorStartTime;
 
@@ -207,10 +206,10 @@ public class CompactionCoordinator
     this.security = security;
     this.manager = Objects.requireNonNull(manager);
 
-    this.jobQueueInitialSize =
+    long jobQueueMaxSize =
         ctx.getConfiguration().getAsBytes(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE);
 
-    this.jobQueues = new CompactionJobQueues(jobQueueInitialSize);
+    this.jobQueues = new CompactionJobQueues(jobQueueMaxSize);
 
     this.queueMetrics = new QueueMetrics(jobQueues);
 
@@ -294,10 +293,23 @@ public class CompactionCoordinator
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
+  protected void startConfigMonitor(ScheduledThreadPoolExecutor schedExecutor) {
+    ScheduledFuture<?> future =
+        schedExecutor.scheduleWithFixedDelay(this::checkForConfigChanges, 0, 1, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+  }
+
+  private void checkForConfigChanges() {
+    long jobQueueMaxSize =
+        ctx.getConfiguration().getAsBytes(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE);
+    jobQueues.resetMaxSize(jobQueueMaxSize);
+  }
+
   @Override
   public void run() {
 
     this.coordinatorStartTime = System.currentTimeMillis();
+    startConfigMonitor(schedExecutor);
     startCompactorZKCleaner(schedExecutor);
 
     // On a re-start of the coordinator it's possible that external compactions are in-progress.
@@ -1021,14 +1033,11 @@ public class CompactionCoordinator
             queue.clearIfInactive(Duration.ofMinutes(10));
           }
         } else {
-          int aliveCompactorsForGroup = 0;
           for (String compactor : compactors) {
             String cpath = compactorQueuesPath + "/" + group + "/" + compactor;
             var lockNodes = zoorw.getChildren(compactorQueuesPath + "/" + group + "/" + compactor);
             if (lockNodes.isEmpty()) {
               deleteEmpty(zoorw, cpath);
-            } else {
-              aliveCompactorsForGroup++;
             }
           }
         }

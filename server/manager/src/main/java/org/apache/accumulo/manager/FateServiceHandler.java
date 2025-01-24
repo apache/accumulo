@@ -34,7 +34,6 @@ import static org.apache.accumulo.core.util.Validators.sameNamespaceAs;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Base64;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,8 +41,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -53,9 +52,11 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -80,9 +81,9 @@ import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
-import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
@@ -257,7 +258,7 @@ class FateServiceHandler implements FateService.Iface {
         manager.fate(type).seedTransaction(op, fateId,
             new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
                 splitsPath, splitCount, splitsDirsPath, initialTableState,
-                initialTabletAvailability, namespaceId, TabletMergeabilityMetadata.never())),
+                initialTabletAvailability, namespaceId, TabletMergeability.never())),
             autoCleanup, goalMessage);
 
         break;
@@ -752,16 +753,18 @@ class FateServiceHandler implements FateService.Iface {
         endRow = endRow.getLength() == 0 ? null : endRow;
         prevEndRow = prevEndRow.getLength() == 0 ? null : prevEndRow;
 
-        SortedSet<Text> splits = arguments.subList(SPLIT_OFFSET, arguments.size()).stream()
-            .map(ByteBufferUtil::toText).collect(Collectors.toCollection(TreeSet::new));
+        SortedMap<Text,
+            TabletMergeability> splits = arguments.subList(SPLIT_OFFSET, arguments.size()).stream()
+                .map(TabletMergeabilityUtil::decode).collect(
+                    Collectors.toMap(Pair::getFirst, Pair::getSecond, (a, b) -> a, TreeMap::new));
 
         KeyExtent extent = new KeyExtent(tableId, endRow, prevEndRow);
 
         Predicate<Text> outOfBoundsTest =
             split -> !extent.contains(split) || split.equals(extent.endRow());
 
-        if (splits.stream().anyMatch(outOfBoundsTest)) {
-          splits.stream().filter(outOfBoundsTest).forEach(split -> log
+        if (splits.keySet().stream().anyMatch(outOfBoundsTest)) {
+          splits.keySet().stream().filter(outOfBoundsTest).forEach(split -> log
               .warn("split for {} is out of bounds : {}", extent, TextUtil.truncate(split)));
 
           throw new ThriftTableOperationException(tableId.canonical(), null, tableOp,
@@ -774,8 +777,8 @@ class FateServiceHandler implements FateService.Iface {
 
         Predicate<Text> oversizedTest = split -> split.getLength() > maxSplitSize;
 
-        if (splits.stream().anyMatch(oversizedTest)) {
-          splits.stream().filter(oversizedTest)
+        if (splits.keySet().stream().anyMatch(oversizedTest)) {
+          splits.keySet().stream().filter(oversizedTest)
               .forEach(split -> log.warn(
                   "split exceeds max configured split size len:{}  max:{} extent:{} split:{}",
                   split.getLength(), maxSplitSize, extent, TextUtil.truncate(split)));
@@ -925,11 +928,11 @@ class FateServiceHandler implements FateService.Iface {
       final int splitCount, final int splitOffset) throws IOException {
     FileSystem fs = splitsPath.getFileSystem(manager.getContext().getHadoopConf());
     try (FSDataOutputStream stream = fs.create(splitsPath)) {
-      // base64 encode because splits can contain binary
       for (int i = splitOffset; i < splitCount + splitOffset; i++) {
+        // This is already encoded as json
         byte[] splitBytes = ByteBufferUtil.toBytes(arguments.get(i));
-        String encodedSplit = Base64.getEncoder().encodeToString(splitBytes);
-        stream.write((encodedSplit + '\n').getBytes(UTF_8));
+        stream.write(splitBytes);
+        stream.write("\n".getBytes(UTF_8));
       }
     } catch (IOException e) {
       log.error("Error in FateServiceHandler while writing splits to {}: {}", splitsPath,

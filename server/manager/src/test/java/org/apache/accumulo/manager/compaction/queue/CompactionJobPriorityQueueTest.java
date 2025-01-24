@@ -327,14 +327,53 @@ public class CompactionJobPriorityQueueTest {
   }
 
   @Test
-  public void testChangeMaxSize() {
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 100, mj -> 1);
-    assertEquals(100, queue.getMaxSize());
-    queue.setMaxSize(50);
-    assertEquals(50, queue.getMaxSize());
-    assertThrows(IllegalArgumentException.class, () -> queue.setMaxSize(0));
-    assertThrows(IllegalArgumentException.class, () -> queue.setMaxSize(-1));
-    // Make sure previous value was not changed after invalid setting
-    assertEquals(50, queue.getMaxSize());
+  public void testResetMaxSize() {
+    TreeSet<CompactionJob> expected = new TreeSet<>(CompactionJobPrioritizer.JOB_COMPARATOR);
+
+    // create a queue with a weigher that gives each job a data size of 10
+    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 1000, mj -> 10);
+
+    // create and add 200 jobs, because of the queue size 100 should be dropped.
+    for (int x = 0; x < 200; x++) {
+      Pair<KeyExtent,CompactionJob> pair = createJob();
+      queue.add(pair.getFirst(), Set.of(pair.getSecond()), 1L);
+      expected.add(pair.getSecond());
+    }
+
+    assertEquals(1000, queue.getMaxSize());
+    assertEquals(0, queue.getDequeuedJobs());
+    assertEquals(100, queue.getQueuedJobs());
+    assertEquals(100, queue.getRejectedJobs());
+
+    // reset the max size, this should cause the 50 lowest priority jobs to be dropped from the
+    // queue
+    queue.resetMaxSize(500);
+
+    assertEquals(500, queue.getMaxSize());
+    assertEquals(0, queue.getDequeuedJobs());
+    assertEquals(50, queue.getQueuedJobs());
+    assertEquals(150, queue.getRejectedJobs());
+
+    // ensure what is left in the queue is the 50 highest priority jobs
+    int matchesSeen = 0;
+    for (CompactionJob expectedJob : expected) {
+      var queuedJob = queue.poll();
+      if (queuedJob == null) {
+        break;
+      }
+      assertEquals(expectedJob.getPriority(), queuedJob.getPriority());
+      assertEquals(expectedJob.getFiles(), queuedJob.getFiles());
+      matchesSeen++;
+    }
+
+    assertEquals(50, matchesSeen);
+
+    assertEquals(500, queue.getMaxSize());
+    assertEquals(50, queue.getDequeuedJobs());
+    assertEquals(0, queue.getQueuedJobs());
+    assertEquals(150, queue.getRejectedJobs());
+
+    // try setting an illegal value
+    assertThrows(IllegalArgumentException.class, () -> queue.resetMaxSize(-100));
   }
 }
