@@ -222,7 +222,8 @@ public class ZooCache {
     try {
       zk.addPersistentRecursiveWatchers(watchedPaths, watcher);
       clear();
-      log.trace("{} Reinitialized persistent watchers and cleared cache {}", cacheId, getZKClientObjectVersion());
+      log.trace("{} Reinitialized persistent watchers and cleared cache {}", cacheId,
+          getZKClientObjectVersion());
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error setting up persistent recursive watcher", e);
     }
