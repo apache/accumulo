@@ -20,6 +20,7 @@ package org.apache.accumulo.core.fate.zookeeper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.UUID;
 
@@ -55,10 +56,19 @@ public class FateLockTest {
     // does not support this, so make sure it fails if this happens.
     for (int i : new int[] {Integer.MIN_VALUE, Integer.MIN_VALUE / 2, Integer.MIN_VALUE / 10,
         Integer.MIN_VALUE / 1000, -40}) {
-      assertThrows(IllegalArgumentException.class, () -> new FateLock.FateLockNode(
-          FateLock.PREFIX + fateId.canonical() + "#" + String.format("%010d", i)));
+      var seq = String.format("%010d", i);
+      if (seq.length() == 10) {
+        assertThrows(NumberFormatException.class, () -> new FateLock.FateLockNode(
+            FateLock.PREFIX + fateId.canonical() + "#" + String.format("%010d", i)));
+      } else if (seq.length() == 11) {
+        assertThrows(IllegalArgumentException.class, () -> new FateLock.FateLockNode(
+            FateLock.PREFIX + fateId.canonical() + "#" + String.format("%010d", i)));
+      } else {
+        fail("Unexpected length " + seq.length());
+      }
     }
 
+    // Test a negative number that is not formatted w/ %010d
     assertThrows(IllegalArgumentException.class, () -> new FateLock.FateLockNode(
         FateLock.PREFIX + fateId.canonical() + "#" + String.format("%d", -40)));
   }
