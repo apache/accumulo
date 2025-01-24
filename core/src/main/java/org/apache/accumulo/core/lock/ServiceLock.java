@@ -672,7 +672,7 @@ public class ServiceLock implements Watcher {
   }
 
   public static Optional<ServiceLockData> getLockData(
-      org.apache.accumulo.core.zookeeper.ZooCache zc, ServiceLockPath path, ZcStat stat) {
+      ZooCache zc, ServiceLockPath path, ZcStat stat) {
 
     List<String> children = validateAndSort(path, zc.getChildren(path.toString()));
 
