@@ -180,7 +180,7 @@ public class ZooCache {
     this.nodeCache = cache.asMap();
     this.watchedPaths = Collections.unmodifiableNavigableSet(new TreeSet<>(pathsToWatch));
     setupWatchers();
-    log.trace("{} created new cache", cacheId, new Exception());
+    log.trace("{} created new cache watching {}", cacheId, pathsToWatch, new Exception());
   }
 
   public void addZooCacheWatcher(ZooCacheWatcher watcher) {
@@ -222,6 +222,7 @@ public class ZooCache {
     try {
       zk.addPersistentRecursiveWatchers(watchedPaths, watcher);
       clear();
+      log.trace("{} Reinitialized persistent watchers and cleared cache {}", cacheId, getZKClientObjectVersion());
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error setting up persistent recursive watcher", e);
     }
