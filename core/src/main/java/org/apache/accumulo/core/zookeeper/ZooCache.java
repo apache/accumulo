@@ -180,7 +180,7 @@ public class ZooCache {
     this.nodeCache = cache.asMap();
     this.watchedPaths = Collections.unmodifiableNavigableSet(new TreeSet<>(pathsToWatch));
     setupWatchers();
-    log.trace("{} created new cache", cacheId, new Exception());
+    log.trace("{} created new cache watching {}", cacheId, pathsToWatch, new Exception());
   }
 
   public void addZooCacheWatcher(ZooCacheWatcher watcher) {
