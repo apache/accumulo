@@ -19,8 +19,10 @@
 package org.apache.accumulo.core.zookeeper;
 
 import static org.easymock.EasyMock.createStrictMock;
+import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.isA;
+import static org.easymock.EasyMock.isNull;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -41,6 +43,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
+import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -88,8 +91,8 @@ public class ZooCacheTest {
     zc = new TestZooCache(zk, Set.of(root));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
+  @SuppressWarnings("unchecked")
   public void testOverlappingPaths() throws Exception {
     expect(zk.getConnectionCounter()).andReturn(2L).times(2);
     zk.addPersistentRecursiveWatchers(isA(Set.class), isA(Watcher.class));
@@ -115,11 +118,30 @@ public class ZooCacheTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
+  public void testUnwatchedPaths() throws Exception {
+    expect(zk.getConnectionCounter()).andReturn(2L).anyTimes();
+    zk.addPersistentRecursiveWatchers(isA(Set.class), isA(Watcher.class));
+    replay(zk);
+    ZooCache cache = new ZooCache(zk, Set.of(root));
+    assertThrows(IllegalStateException.class, () -> cache.get("/some/unknown/path"));
+    assertThrows(IllegalStateException.class, () -> cache.getChildren("/some/unknown/path"));
+    verify(zk);
+  }
+
+  @Test
   public void testGet() throws Exception {
-    expect(zk.getData(ZPATH, null, new Stat())).andReturn(DATA);
+
+    expect(zk.getData(eq(ZPATH), isNull(), isA(Stat.class))).andAnswer(() -> {
+      ((Stat) EasyMock.getCurrentArguments()[2]).setEphemeralOwner(123456789);
+      return DATA;
+    });
     replay(zk);
 
     assertFalse(zc.dataCached(ZPATH));
+    ZcStat zcStat = new ZcStat();
+    assertSame(DATA, zc.get(ZPATH, zcStat));
+    assertEquals(123456789, zcStat.getEphemeralOwner());
     assertSame(DATA, zc.get(ZPATH));
     verify(zk);
   }
@@ -145,11 +167,6 @@ public class ZooCacheTest {
   }
 
   @Test
-  public void testGet_Retry_BadVersion() throws Exception {
-    testGet_Retry(new KeeperException.BadVersionException(ZPATH));
-  }
-
-  @Test
   public void testGet_Retry_Interrupted() throws Exception {
     testGet_Retry(new InterruptedException());
   }
@@ -157,8 +174,7 @@ public class ZooCacheTest {
   private void testGet_Retry(Exception e) throws Exception {
     Stat existsStat = new Stat();
     expect(zk.getData(ZPATH, null, existsStat)).andThrow(e);
-    if (!(e instanceof KeeperException.NoNodeException
-        || e instanceof KeeperException.BadVersionException)) {
+    if (!(e instanceof KeeperException.NoNodeException)) {
       // Retry will not happen on NoNodeException or BadVersionException
       expect(zk.getData(ZPATH, null, existsStat)).andReturn(DATA);
     }
@@ -263,7 +279,7 @@ public class ZooCacheTest {
 
   @Test
   public void testWatchDataNode_NoneSyncConnected() throws Exception {
-    testWatchDataNode(null, Watcher.Event.EventType.None, false);
+    testWatchDataNode(null, Watcher.Event.EventType.None, true);
   }
 
   private void testWatchDataNode(byte[] initialData, Watcher.Event.EventType eventType,
@@ -285,11 +301,12 @@ public class ZooCacheTest {
     if (initialData != null) {
       expect(zk.getData(ZPATH, null, existsStat)).andReturn(initialData);
     } else {
-      expect(zk.getData(ZPATH, null, existsStat)).andReturn(null);
+      expect(zk.getData(ZPATH, null, existsStat))
+          .andThrow(new KeeperException.NoNodeException(ZPATH));
     }
     replay(zk);
     zc.get(ZPATH);
-    assertEquals(initialData != null, zc.dataCached(ZPATH));
+    assertTrue(zc.dataCached(ZPATH));
   }
 
   @Test

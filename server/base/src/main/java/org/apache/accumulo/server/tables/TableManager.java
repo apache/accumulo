@@ -276,11 +276,10 @@ public class TableManager {
 
       switch (zType) {
         case NodeChildrenChanged:
-          if (zPath != null && zPath.equals(tablesPrefix)) {
-            updateTableStateCache();
-          } else {
-            log.warn("Unexpected path {} in {}", zPath, event);
-          }
+          // According to documentation we should not receive this event now
+          // that ZooCache is using Persistent Watchers. Not logging an error here.
+          // According to https://issues.apache.org/jira/browse/ZOOKEEPER-4475 we
+          // may receive this event (Fixed in 3.9.0)
           break;
         case NodeCreated:
         case NodeDataChanged:

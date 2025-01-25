@@ -25,7 +25,6 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.Optional;
@@ -297,8 +296,6 @@ public class ZooCache {
           }
         } catch (InterruptedException | ZcInterruptedException e) {
           log.info("Zookeeper error, will retry", e);
-        } catch (ConcurrentModificationException e) {
-          log.debug("Zookeeper was modified, will retry");
         }
 
         try {
@@ -432,7 +429,7 @@ public class ZooCache {
             try {
               data = zk.getData(zPath, null, stat);
               zstat = new ZcStat(stat);
-            } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
+            } catch (KeeperException.NoNodeException e1) {
               log.trace("{} zookeeper did not contain {}", cacheId, zPath);
               return ZcNode.NON_EXISTENT;
             } catch (InterruptedException e) {

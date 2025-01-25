@@ -83,7 +83,7 @@ class ZcNode {
    * stat.
    */
   ZcNode(byte[] data, ZcStat zstat, ZcNode existing) {
-    this.data = data;
+    this.data = Objects.requireNonNull(data);
     this.stat = Objects.requireNonNull(zstat);
     if (existing == null) {
       this.children = null;
