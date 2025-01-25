@@ -360,6 +360,26 @@ public class CompactionJobPriorityQueue {
     }
   }
 
+  public synchronized void resetMaxSize(long size) {
+    Preconditions.checkArgument(size > 0);
+    long oldSize = maxSize.getAndSet(size);
+    if (oldSize != size) {
+      // remove the lowest priority jobs if the current queue data size exceeds the new max size
+      long removed = 0;
+      while (jobQueue.dataSize() > maxSize.get()) {
+        var last = jobQueue.pollLastEntry();
+        if (last == null) {
+          break;
+        } else {
+          rejectedJobs.getAndIncrement();
+          removed++;
+        }
+      }
+      log.debug("Adjusted max size for compaction queue {} from {} to {} removing {} jobs.",
+          groupId, oldSize, size, removed);
+    }
+  }
+
   public CompactionJobPriorityQueueStats getJobQueueStats() {
     return jobQueueStats.get();
   }
