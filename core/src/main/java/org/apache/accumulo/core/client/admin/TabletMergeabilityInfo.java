@@ -55,22 +55,17 @@ public class TabletMergeabilityInfo {
   }
 
   /**
-   * Returns the time of the Manager when the TabletMergeability was set on the tablet. This will be
-   * empty if TabletMergeability is set to never
-   *
-   * @return the insertion time is set or else empty
+   * If the TabletMergeability is configured with a delay this returns an estimate of the elapsed
+   * time since the delay was initially set. Returns optional.empty() if the tablet was configured
+   * with a TabletMergeability of never.
    */
-  public Optional<Duration> getInsertionTime() {
-    return insertionTime;
-  }
-
-  /**
-   * Returns the current time of the Manager
-   *
-   * @return the current time
-   */
-  public Duration getCurrentTime() {
-    return currentTime.get();
+  public Optional<Duration> getElapsed() {
+    // It's possible the "current time" is read from the manager and then a tablets insertion time
+    // is read much later and this could cause a negative read, in this case set the elapsed time to
+    // zero. Avoiding this would require an RPC per call to this method to get the latest manager
+    // time, so since this is an estimate return zero for this case.
+    return insertionTime.map(it -> currentTime.get().minus(it))
+        .map(elapsed -> elapsed.isNegative() ? Duration.ZERO : elapsed);
   }
 
   /**

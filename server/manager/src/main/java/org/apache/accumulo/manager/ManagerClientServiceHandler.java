@@ -662,7 +662,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public long getManagerTime(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException {
+  public long getManagerTimeNanos(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException {
     manager.security.authenticateUser(credentials, credentials);
     return manager.getSteadyTime().getNanos();
   }

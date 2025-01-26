@@ -71,7 +71,7 @@ public class ManagerClientService {
 
     public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> updateTabletMergeability(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,TTabletMergeability> splits) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.thrift.TException;
 
-    public long getManagerTime(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public long getManagerTimeNanos(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
   }
 
@@ -119,7 +119,7 @@ public class ManagerClientService {
 
     public void updateTabletMergeability(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,TTabletMergeability> splits, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> resultHandler) throws org.apache.thrift.TException;
 
-    public void getManagerTime(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler) throws org.apache.thrift.TException;
+    public void getManagerTimeNanos(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -815,31 +815,31 @@ public class ManagerClientService {
     }
 
     @Override
-    public long getManagerTime(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public long getManagerTimeNanos(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_getManagerTime(tinfo, credentials);
-      return recv_getManagerTime();
+      send_getManagerTimeNanos(tinfo, credentials);
+      return recv_getManagerTimeNanos();
     }
 
-    public void send_getManagerTime(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    public void send_getManagerTimeNanos(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
     {
-      getManagerTime_args args = new getManagerTime_args();
+      getManagerTimeNanos_args args = new getManagerTimeNanos_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
-      sendBase("getManagerTime", args);
+      sendBase("getManagerTimeNanos", args);
     }
 
-    public long recv_getManagerTime() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public long recv_getManagerTimeNanos() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      getManagerTime_result result = new getManagerTime_result();
-      receiveBase(result, "getManagerTime");
+      getManagerTimeNanos_result result = new getManagerTimeNanos_result();
+      receiveBase(result, "getManagerTimeNanos");
       if (result.isSetSuccess()) {
         return result.success;
       }
       if (result.sec != null) {
         throw result.sec;
       }
-      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getManagerTime failed: unknown result");
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getManagerTimeNanos failed: unknown result");
     }
 
   }
@@ -1780,17 +1780,17 @@ public class ManagerClientService {
     }
 
     @Override
-    public void getManagerTime(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler) throws org.apache.thrift.TException {
+    public void getManagerTimeNanos(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getManagerTime_call method_call = new getManagerTime_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
+      getManagerTimeNanos_call method_call = new getManagerTimeNanos_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class getManagerTime_call extends org.apache.thrift.async.TAsyncMethodCall<java.lang.Long> {
+    public static class getManagerTimeNanos_call extends org.apache.thrift.async.TAsyncMethodCall<java.lang.Long> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      public getManagerTime_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getManagerTimeNanos_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1798,8 +1798,8 @@ public class ManagerClientService {
 
       @Override
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getManagerTime", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        getManagerTime_args args = new getManagerTime_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getManagerTimeNanos", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        getManagerTimeNanos_args args = new getManagerTimeNanos_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.write(prot);
@@ -1813,7 +1813,7 @@ public class ManagerClientService {
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        return (new Client(prot)).recv_getManagerTime();
+        return (new Client(prot)).recv_getManagerTimeNanos();
       }
     }
 
@@ -1851,7 +1851,7 @@ public class ManagerClientService {
       processMap.put("getDelegationToken", new getDelegationToken());
       processMap.put("requestTabletHosting", new requestTabletHosting());
       processMap.put("updateTabletMergeability", new updateTabletMergeability());
-      processMap.put("getManagerTime", new getManagerTime());
+      processMap.put("getManagerTimeNanos", new getManagerTimeNanos());
       return processMap;
     }
 
@@ -2593,14 +2593,14 @@ public class ManagerClientService {
       }
     }
 
-    public static class getManagerTime<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getManagerTime_args> {
-      public getManagerTime() {
-        super("getManagerTime");
+    public static class getManagerTimeNanos<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getManagerTimeNanos_args> {
+      public getManagerTimeNanos() {
+        super("getManagerTimeNanos");
       }
 
       @Override
-      public getManagerTime_args getEmptyArgsInstance() {
-        return new getManagerTime_args();
+      public getManagerTimeNanos_args getEmptyArgsInstance() {
+        return new getManagerTimeNanos_args();
       }
 
       @Override
@@ -2614,10 +2614,10 @@ public class ManagerClientService {
       }
 
       @Override
-      public getManagerTime_result getResult(I iface, getManagerTime_args args) throws org.apache.thrift.TException {
-        getManagerTime_result result = new getManagerTime_result();
+      public getManagerTimeNanos_result getResult(I iface, getManagerTimeNanos_args args) throws org.apache.thrift.TException {
+        getManagerTimeNanos_result result = new getManagerTimeNanos_result();
         try {
-          result.success = iface.getManagerTime(args.tinfo, args.credentials);
+          result.success = iface.getManagerTimeNanos(args.tinfo, args.credentials);
           result.setSuccessIsSet(true);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
@@ -2660,7 +2660,7 @@ public class ManagerClientService {
       processMap.put("getDelegationToken", new getDelegationToken());
       processMap.put("requestTabletHosting", new requestTabletHosting());
       processMap.put("updateTabletMergeability", new updateTabletMergeability());
-      processMap.put("getManagerTime", new getManagerTime());
+      processMap.put("getManagerTimeNanos", new getManagerTimeNanos());
       return processMap;
     }
 
@@ -4250,14 +4250,14 @@ public class ManagerClientService {
       }
     }
 
-    public static class getManagerTime<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getManagerTime_args, java.lang.Long> {
-      public getManagerTime() {
-        super("getManagerTime");
+    public static class getManagerTimeNanos<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getManagerTimeNanos_args, java.lang.Long> {
+      public getManagerTimeNanos() {
+        super("getManagerTimeNanos");
       }
 
       @Override
-      public getManagerTime_args getEmptyArgsInstance() {
-        return new getManagerTime_args();
+      public getManagerTimeNanos_args getEmptyArgsInstance() {
+        return new getManagerTimeNanos_args();
       }
 
       @Override
@@ -4266,7 +4266,7 @@ public class ManagerClientService {
         return new org.apache.thrift.async.AsyncMethodCallback<java.lang.Long>() { 
           @Override
           public void onComplete(java.lang.Long o) {
-            getManagerTime_result result = new getManagerTime_result();
+            getManagerTimeNanos_result result = new getManagerTimeNanos_result();
             result.success = o;
             result.setSuccessIsSet(true);
             try {
@@ -4283,7 +4283,7 @@ public class ManagerClientService {
           public void onError(java.lang.Exception e) {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
-            getManagerTime_result result = new getManagerTime_result();
+            getManagerTimeNanos_result result = new getManagerTimeNanos_result();
             if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
@@ -4317,8 +4317,8 @@ public class ManagerClientService {
       }
 
       @Override
-      public void start(I iface, getManagerTime_args args, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler) throws org.apache.thrift.TException {
-        iface.getManagerTime(args.tinfo, args.credentials,resultHandler);
+      public void start(I iface, getManagerTimeNanos_args args, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler) throws org.apache.thrift.TException {
+        iface.getManagerTimeNanos(args.tinfo, args.credentials,resultHandler);
       }
     }
 
@@ -30532,14 +30532,14 @@ public class ManagerClientService {
   }
 
   @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-  public static class getManagerTime_args implements org.apache.thrift.TBase<getManagerTime_args, getManagerTime_args._Fields>, java.io.Serializable, Cloneable, Comparable<getManagerTime_args>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getManagerTime_args");
+  public static class getManagerTimeNanos_args implements org.apache.thrift.TBase<getManagerTimeNanos_args, getManagerTimeNanos_args._Fields>, java.io.Serializable, Cloneable, Comparable<getManagerTimeNanos_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getManagerTimeNanos_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getManagerTime_argsStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getManagerTime_argsTupleSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getManagerTimeNanos_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getManagerTimeNanos_argsTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
@@ -30618,13 +30618,13 @@ public class ManagerClientService {
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getManagerTime_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getManagerTimeNanos_args.class, metaDataMap);
     }
 
-    public getManagerTime_args() {
+    public getManagerTimeNanos_args() {
     }
 
-    public getManagerTime_args(
+    public getManagerTimeNanos_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials)
     {
@@ -30636,7 +30636,7 @@ public class ManagerClientService {
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public getManagerTime_args(getManagerTime_args other) {
+    public getManagerTimeNanos_args(getManagerTimeNanos_args other) {
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
@@ -30646,8 +30646,8 @@ public class ManagerClientService {
     }
 
     @Override
-    public getManagerTime_args deepCopy() {
-      return new getManagerTime_args(this);
+    public getManagerTimeNanos_args deepCopy() {
+      return new getManagerTimeNanos_args(this);
     }
 
     @Override
@@ -30661,7 +30661,7 @@ public class ManagerClientService {
       return this.tinfo;
     }
 
-    public getManagerTime_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
+    public getManagerTimeNanos_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -30686,7 +30686,7 @@ public class ManagerClientService {
       return this.credentials;
     }
 
-    public getManagerTime_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
+    public getManagerTimeNanos_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -30760,12 +30760,12 @@ public class ManagerClientService {
 
     @Override
     public boolean equals(java.lang.Object that) {
-      if (that instanceof getManagerTime_args)
-        return this.equals((getManagerTime_args)that);
+      if (that instanceof getManagerTimeNanos_args)
+        return this.equals((getManagerTimeNanos_args)that);
       return false;
     }
 
-    public boolean equals(getManagerTime_args that) {
+    public boolean equals(getManagerTimeNanos_args that) {
       if (that == null)
         return false;
       if (this == that)
@@ -30808,7 +30808,7 @@ public class ManagerClientService {
     }
 
     @Override
-    public int compareTo(getManagerTime_args other) {
+    public int compareTo(getManagerTimeNanos_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
@@ -30856,7 +30856,7 @@ public class ManagerClientService {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("getManagerTime_args(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getManagerTimeNanos_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -30905,17 +30905,17 @@ public class ManagerClientService {
       }
     }
 
-    private static class getManagerTime_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class getManagerTimeNanos_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public getManagerTime_argsStandardScheme getScheme() {
-        return new getManagerTime_argsStandardScheme();
+      public getManagerTimeNanos_argsStandardScheme getScheme() {
+        return new getManagerTimeNanos_argsStandardScheme();
       }
     }
 
-    private static class getManagerTime_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<getManagerTime_args> {
+    private static class getManagerTimeNanos_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<getManagerTimeNanos_args> {
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol iprot, getManagerTime_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getManagerTimeNanos_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -30955,7 +30955,7 @@ public class ManagerClientService {
       }
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol oprot, getManagerTime_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getManagerTimeNanos_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -30975,17 +30975,17 @@ public class ManagerClientService {
 
     }
 
-    private static class getManagerTime_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class getManagerTimeNanos_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public getManagerTime_argsTupleScheme getScheme() {
-        return new getManagerTime_argsTupleScheme();
+      public getManagerTimeNanos_argsTupleScheme getScheme() {
+        return new getManagerTimeNanos_argsTupleScheme();
       }
     }
 
-    private static class getManagerTime_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<getManagerTime_args> {
+    private static class getManagerTimeNanos_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<getManagerTimeNanos_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, getManagerTime_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, getManagerTimeNanos_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
         if (struct.isSetTinfo()) {
@@ -31004,7 +31004,7 @@ public class ManagerClientService {
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, getManagerTime_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, getManagerTimeNanos_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
@@ -31026,14 +31026,14 @@ public class ManagerClientService {
   }
 
   @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-  public static class getManagerTime_result implements org.apache.thrift.TBase<getManagerTime_result, getManagerTime_result._Fields>, java.io.Serializable, Cloneable, Comparable<getManagerTime_result>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getManagerTime_result");
+  public static class getManagerTimeNanos_result implements org.apache.thrift.TBase<getManagerTimeNanos_result, getManagerTimeNanos_result._Fields>, java.io.Serializable, Cloneable, Comparable<getManagerTimeNanos_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getManagerTimeNanos_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.I64, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getManagerTime_resultStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getManagerTime_resultTupleSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getManagerTimeNanos_resultStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getManagerTimeNanos_resultTupleSchemeFactory();
 
     public long success; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
@@ -31114,13 +31114,13 @@ public class ManagerClientService {
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getManagerTime_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getManagerTimeNanos_result.class, metaDataMap);
     }
 
-    public getManagerTime_result() {
+    public getManagerTimeNanos_result() {
     }
 
-    public getManagerTime_result(
+    public getManagerTimeNanos_result(
       long success,
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
@@ -31133,7 +31133,7 @@ public class ManagerClientService {
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public getManagerTime_result(getManagerTime_result other) {
+    public getManagerTimeNanos_result(getManagerTimeNanos_result other) {
       __isset_bitfield = other.__isset_bitfield;
       this.success = other.success;
       if (other.isSetSec()) {
@@ -31142,8 +31142,8 @@ public class ManagerClientService {
     }
 
     @Override
-    public getManagerTime_result deepCopy() {
-      return new getManagerTime_result(this);
+    public getManagerTimeNanos_result deepCopy() {
+      return new getManagerTimeNanos_result(this);
     }
 
     @Override
@@ -31157,7 +31157,7 @@ public class ManagerClientService {
       return this.success;
     }
 
-    public getManagerTime_result setSuccess(long success) {
+    public getManagerTimeNanos_result setSuccess(long success) {
       this.success = success;
       setSuccessIsSet(true);
       return this;
@@ -31181,7 +31181,7 @@ public class ManagerClientService {
       return this.sec;
     }
 
-    public getManagerTime_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
+    public getManagerTimeNanos_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -31255,12 +31255,12 @@ public class ManagerClientService {
 
     @Override
     public boolean equals(java.lang.Object that) {
-      if (that instanceof getManagerTime_result)
-        return this.equals((getManagerTime_result)that);
+      if (that instanceof getManagerTimeNanos_result)
+        return this.equals((getManagerTimeNanos_result)that);
       return false;
     }
 
-    public boolean equals(getManagerTime_result that) {
+    public boolean equals(getManagerTimeNanos_result that) {
       if (that == null)
         return false;
       if (this == that)
@@ -31301,7 +31301,7 @@ public class ManagerClientService {
     }
 
     @Override
-    public int compareTo(getManagerTime_result other) {
+    public int compareTo(getManagerTimeNanos_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
@@ -31348,7 +31348,7 @@ public class ManagerClientService {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("getManagerTime_result(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getManagerTimeNanos_result(");
       boolean first = true;
 
       sb.append("success:");
@@ -31389,17 +31389,17 @@ public class ManagerClientService {
       }
     }
 
-    private static class getManagerTime_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class getManagerTimeNanos_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public getManagerTime_resultStandardScheme getScheme() {
-        return new getManagerTime_resultStandardScheme();
+      public getManagerTimeNanos_resultStandardScheme getScheme() {
+        return new getManagerTimeNanos_resultStandardScheme();
       }
     }
 
-    private static class getManagerTime_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<getManagerTime_result> {
+    private static class getManagerTimeNanos_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<getManagerTimeNanos_result> {
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol iprot, getManagerTime_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getManagerTimeNanos_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -31438,7 +31438,7 @@ public class ManagerClientService {
       }
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol oprot, getManagerTime_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getManagerTimeNanos_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -31458,17 +31458,17 @@ public class ManagerClientService {
 
     }
 
-    private static class getManagerTime_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class getManagerTimeNanos_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public getManagerTime_resultTupleScheme getScheme() {
-        return new getManagerTime_resultTupleScheme();
+      public getManagerTimeNanos_resultTupleScheme getScheme() {
+        return new getManagerTimeNanos_resultTupleScheme();
       }
     }
 
-    private static class getManagerTime_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<getManagerTime_result> {
+    private static class getManagerTimeNanos_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<getManagerTimeNanos_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, getManagerTime_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, getManagerTimeNanos_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
         if (struct.isSetSuccess()) {
@@ -31487,7 +31487,7 @@ public class ManagerClientService {
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, getManagerTime_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, getManagerTimeNanos_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {

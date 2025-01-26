@@ -2290,7 +2290,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     var currentTime = Suppliers.memoize(() -> {
       try {
         return Duration.ofNanos(ThriftClientTypes.MANAGER.execute(context,
-            client -> client.getManagerTime(TraceUtil.traceInfo(), context.rpcCreds())));
+            client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds())));
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new IllegalStateException(e);
       }

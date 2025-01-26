@@ -37,7 +37,9 @@ public class TabletMergeability implements Serializable {
   private final Duration delay;
 
   private TabletMergeability(Duration delay) {
-    this.delay = Objects.requireNonNull(delay);
+    this.delay = delay;
+    Preconditions.checkArgument(!delay.isNegative(), "Delay '%s' must not be negative.",
+        delay.toNanos());
   }
 
   // Edge case for NEVER
@@ -122,14 +124,15 @@ public class TabletMergeability implements Serializable {
 
   /**
    * Creates a {@link TabletMergeability} that signals a tablet has a delay to a point in the future
-   * before it is automatically eligible to be merged. The duration must be positive value.
+   * before it is automatically eligible to be merged. The duration must be greater than or equal to
+   * 0. A delay of 0 means a Tablet is immediately eligible to be merged.
    *
    * @param delay the duration of the delay
    *
    * @return a {@link TabletMergeability} from the given delay.
    */
   public static TabletMergeability after(Duration delay) {
-    Preconditions.checkArgument(delay.toNanos() >= 0, "Duration of delay must be greater than 0.");
+    // Delay will be validated that it is >=0 inside the constructor
     return new TabletMergeability(delay);
   }
 
