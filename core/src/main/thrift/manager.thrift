@@ -463,7 +463,7 @@ service ManagerClientService {
     2:client.ThriftTableOperationException toe
   )
 
-  i64 getManagerTime(
+  i64 getManagerTimeNanos(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
