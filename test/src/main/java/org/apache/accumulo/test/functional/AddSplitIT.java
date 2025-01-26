@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -32,6 +33,9 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -53,6 +57,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.ImmutableMap;
 
 public class AddSplitIT extends AccumuloClusterHarness {
 
@@ -257,6 +263,68 @@ public class AddSplitIT extends AccumuloClusterHarness {
       assertEquals(Duration.ofDays(1), split4Tmi.getTabletMergeability().getDelay().orElseThrow());
       assertTrue(split4Tmi.getElapsed().orElseThrow().toNanos() > 0);
 
+    }
+  }
+
+  @Test
+  public void concurrentAddSplitTest() throws Exception {
+    var threads = 10;
+    var service = Executors.newFixedThreadPool(threads);
+    var latch = new CountDownLatch(threads);
+
+    String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().create(tableName);
+
+      // Create a map to hold all splits to verify later
+      SortedMap<Text,TabletMergeability> allSplits =
+          Collections.synchronizedNavigableMap(new TreeMap<>());
+      var commonBuilder = ImmutableMap.<Text,TabletMergeability>builder();
+      for (int i = 0; i < 50; i++) {
+        commonBuilder.put(new Text(String.format("%09d", i)),
+            TabletMergeability.after(Duration.ofHours(1 + i)));
+      }
+
+      // create 50 splits that will be added to all threads
+      var commonSplits = commonBuilder.build();
+      allSplits.putAll(commonSplits);
+
+      // Spin up 10 threads and concurrently submit all 50 existing splits
+      // as well as 50 unique splits, this should create a collision with fate
+      // and cause retries
+      for (int i = 1; i <= threads; i++) {
+        var start = i * 100;
+        service.execute(() -> {
+          // add the 50 common splits
+          SortedMap<Text,TabletMergeability> splits = new TreeMap<>(commonSplits);
+          // create 50 unique splits
+          for (int j = start; j < start + 50; j++) {
+            splits.put(new Text(String.format("%09d", j)),
+                TabletMergeability.after(Duration.ofHours(1 + j)));
+          }
+          // make sure all splits are captured
+          allSplits.putAll(splits);
+          // Wait for all 10 threads to be ready before calling putSplits()
+          // to increase the chance of collisions
+          latch.countDown();
+          try {
+            latch.await();
+            c.tableOperations().putSplits(tableName, splits);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        });
+      }
+
+      // Wait for all 10 threads to finish
+      service.shutdown();
+      assertTrue(service.awaitTermination(2, TimeUnit.MINUTES));
+
+      // Verify we have 550 splits and then all splits are correctly set
+      assertEquals(50 + (threads * 50), allSplits.size());
+      TableId id = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+      verifySplits(id, allSplits);
+      verifySplitsWithApi(c, tableName, allSplits);
     }
   }
 
