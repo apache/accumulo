@@ -42,6 +42,7 @@ import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
@@ -129,6 +130,8 @@ public class RestartIT extends AccumuloClusterHarness {
       control.stopAllServers(ServerType.TABLET_SERVER);
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
       control.stopAllServers(ServerType.MONITOR);
+
+      new ZooZap().zap(getServerContext().getSiteConfiguration(), "-tservers");
 
       ZooCache zcache = ((ClientContext) c).getZooCache();
       var zLockPath = getServerContext().getServerPaths().createManagerPath();

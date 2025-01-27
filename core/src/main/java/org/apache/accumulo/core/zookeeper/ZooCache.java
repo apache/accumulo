@@ -149,7 +149,13 @@ public class ZooCache {
           break;
       }
 
-      externalWatchers.forEach(ew -> ew.accept(event));
+      externalWatchers.forEach(ew -> {
+        try {
+          ew.accept(event);
+        } catch (Exception e) {
+          log.warn("Failed to call external watcher", e);
+        }
+      });
     }
   }
 

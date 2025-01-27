@@ -209,6 +209,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
   public LiveTServerSet(ServerContext context, Listener cback) {
     this.cback = cback;
     this.context = context;
+    this.context.getZooCache().addZooCacheWatcher(this);
   }
 
   public synchronized void startListeningForTabletServerChanges() {
@@ -305,7 +306,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     if (event.getPath() != null) {
       if (event.getPath().endsWith(Constants.ZTSERVERS)) {
         scanServers();
-      } else {
+      } else if (event.getPath().contains(Constants.ZTSERVERS)) {
         try {
           final ServiceLockPath slp =
               ServiceLockPaths.parse(Optional.of(Constants.ZTSERVERS), event.getPath());
@@ -322,6 +323,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
         } catch (IllegalArgumentException e) {
           log.debug("Received event for path that can't be parsed, path: " + event.getPath());
         }
+      } else {
+        // we don't care about other paths
       }
     }
   }
