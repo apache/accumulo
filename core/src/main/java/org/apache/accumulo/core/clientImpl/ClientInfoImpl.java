@@ -29,7 +29,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -52,7 +52,7 @@ public class ClientInfoImpl implements ClientInfo {
   private final Supplier<AuthenticationToken> tokenSupplier;
   private final Supplier<Configuration> hadoopConf;
   private final Supplier<InstanceId> instanceId;
-  private final Function<String,ZooSession> zooSessionForName;
+  private final BiFunction<String,String,ZooSession> zooSessionForName;
 
   public ClientInfoImpl(Properties properties, Optional<AuthenticationToken> tokenOpt) {
     this.properties = requireNonNull(properties);
@@ -60,10 +60,11 @@ public class ClientInfoImpl implements ClientInfo {
     this.tokenSupplier = requireNonNull(tokenOpt).map(Suppliers::ofInstance)
         .orElse(memoize(() -> ClientProperty.getAuthenticationToken(properties)));
     this.hadoopConf = memoize(Configuration::new);
-    this.zooSessionForName =
-        name -> new ZooSession(name, getZooKeepers(), getZooKeepersSessionTimeOut(), null);
+    this.zooSessionForName = (name, rootPath) -> new ZooSession(name, getZooKeepers() + rootPath,
+        getZooKeepersSessionTimeOut(), null);
     this.instanceId = memoize(() -> {
-      try (var zk = getZooKeeperSupplier(getClass().getSimpleName() + ".getInstanceName()").get()) {
+      try (var zk =
+          getZooKeeperSupplier(getClass().getSimpleName() + ".getInstanceId()", "").get()) {
         return ZooUtil.getInstanceId(zk, getInstanceName());
       }
     });
@@ -80,8 +81,8 @@ public class ClientInfoImpl implements ClientInfo {
   }
 
   @Override
-  public Supplier<ZooSession> getZooKeeperSupplier(String clientName) {
-    return () -> zooSessionForName.apply(clientName);
+  public Supplier<ZooSession> getZooKeeperSupplier(String clientName, String rootPath) {
+    return () -> zooSessionForName.apply(requireNonNull(clientName), requireNonNull(rootPath));
   }
 
   @Override
