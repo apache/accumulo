@@ -1095,7 +1095,7 @@ public class ClientContext implements AccumuloClient {
     for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
         Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
         Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
-        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET)) {
+        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK)) {
       pathsToWatch.add(zkRoot + path);
     }
     return pathsToWatch;
