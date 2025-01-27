@@ -98,6 +98,8 @@ class ZcNode {
    * @throws IllegalStateException in the case where the node exists and the data was never set
    */
   byte[] getData() {
+    Preconditions.checkState(cachedData());
+    ;
     accessCount.incrementAndGet();
     return data;
   }
