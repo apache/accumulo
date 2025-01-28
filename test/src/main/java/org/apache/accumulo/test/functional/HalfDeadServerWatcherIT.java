@@ -100,8 +100,7 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
       TreeMap<KeyExtent,TabletData> results = super.splitTablet(tablet, splitPoint);
       if (!tablet.getExtent().isMeta()) {
         final TableId tid = tablet.getExtent().tableId();
-        final String zooRoot = this.getContext().getZooKeeperRoot();
-        final String tableZPath = zooRoot + Constants.ZTABLES + "/" + tid.canonical();
+        final String tableZPath = Constants.ZTABLES + "/" + tid.canonical();
         try {
           this.getContext().getZooSession().asReaderWriter().exists(tableZPath, new StuckWatcher());
         } catch (KeeperException | InterruptedException e) {
@@ -184,9 +183,8 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
 
       // Delete the lock for the TabletServer
       final ServerContext ctx = getServerContext();
-      final String zooRoot = ctx.getZooKeeperRoot();
-      ctx.getZooSession().asReaderWriter().recursiveDelete(
-          zooRoot + Constants.ZTSERVERS + "/" + tservers.get(0), NodeMissingPolicy.FAIL);
+      ctx.getZooSession().asReaderWriter()
+          .recursiveDelete(Constants.ZTSERVERS + "/" + tservers.get(0), NodeMissingPolicy.FAIL);
 
       Wait.waitFor(() -> pingServer(client, tservers.get(0)) == false, 60_000);
       return true;

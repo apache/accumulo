@@ -126,12 +126,10 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testClientConfiguration() throws Exception {
 
-    final String zooRoot = getCluster().getServerContext().getZooKeeperRoot();
     final ZooReaderWriter zk = getCluster().getServerContext().getZooSession().asReaderWriter();
-    final String scanServerRoot = zooRoot + Constants.ZSSERVERS;
 
     // Ensure no scan servers running
-    Wait.waitFor(() -> zk.getChildren(scanServerRoot).size() == 0);
+    Wait.waitFor(() -> zk.getChildren(Constants.ZSSERVERS).size() == 0);
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];

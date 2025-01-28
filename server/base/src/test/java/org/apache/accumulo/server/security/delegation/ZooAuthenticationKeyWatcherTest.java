@@ -42,7 +42,6 @@ import javax.crypto.KeyGenerator;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
@@ -70,7 +69,7 @@ public class ZooAuthenticationKeyWatcherTest {
 
   private ZooSession zk;
   private InstanceId instanceId;
-  private String baseNode;
+  private final String baseNode = Constants.ZDELEGATION_TOKEN_KEYS;
   private long tokenLifetime = DAYS.toMillis(7);
   private AuthenticationTokenSecretManager secretManager;
   private ZooAuthenticationKeyWatcher keyWatcher;
@@ -79,7 +78,6 @@ public class ZooAuthenticationKeyWatcherTest {
   public void setupMocks() {
     zk = createMock(ZooSession.class);
     instanceId = InstanceId.of(UUID.randomUUID());
-    baseNode = ZooUtil.getRoot(instanceId) + Constants.ZDELEGATION_TOKEN_KEYS;
     secretManager = new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
     expect(zk.asReader()).andReturn(new ZooReader(zk)).once();

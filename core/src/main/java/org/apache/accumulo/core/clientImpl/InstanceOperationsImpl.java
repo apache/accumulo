@@ -235,14 +235,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<String> getTabletServers() {
     ZooCache cache = context.getZooCache();
-    String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
     List<String> results = new ArrayList<>();
-    for (String candidate : cache.getChildren(path)) {
-      var children = cache.getChildren(path + "/" + candidate);
+    for (String candidate : cache.getChildren(Constants.ZTSERVERS)) {
+      var children = cache.getChildren(Constants.ZTSERVERS + "/" + candidate);
       if (children != null && !children.isEmpty()) {
         var copy = new ArrayList<>(children);
         Collections.sort(copy);
-        var data = cache.get(path + "/" + candidate + "/" + copy.get(0));
+        var data = cache.get(Constants.ZTSERVERS + "/" + candidate + "/" + copy.get(0));
         if (data != null && !"manager".equals(new String(data, UTF_8))) {
           results.add(candidate);
         }

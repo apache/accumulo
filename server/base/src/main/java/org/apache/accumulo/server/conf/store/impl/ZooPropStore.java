@@ -87,13 +87,12 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     }
 
     try {
-      var path = ZooUtil.getRoot(instanceId);
-      if (zrw.exists(path, propStoreWatcher)) {
+      if (zrw.exists("/", propStoreWatcher)) {
         log.debug("Have a ZooKeeper connection and found instance node: {}", instanceId);
         zkReadyMon.setReady();
       } else {
-        throw new IllegalStateException("Instance may not have been initialized, root node: " + path
-            + " does not exist in ZooKeeper");
+        throw new IllegalStateException(
+            "Instance may not have been initialized, root node does not exist in ZooKeeper");
       }
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();

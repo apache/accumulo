@@ -48,7 +48,6 @@ import java.util.UUID;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
@@ -269,8 +268,6 @@ public class ZooInfoViewerTest {
     var mockTableIdMap = Map.of(TableId.of("t"), "t_table");
     expect(context.getTableIdToNameMap()).andReturn(mockTableIdMap).once();
 
-    var tBasePath = ZooUtil.getRoot(iid) + ZTABLES;
-
     var tProps = new VersionedProperties(123, Instant.now(), Map.of("t1", "tv1"));
     var tPropBytes = propCodec.toBytes(tProps);
     TableId tid = TableId.of("t");
@@ -286,7 +283,7 @@ public class ZooInfoViewerTest {
           return tPropBytes;
         }).once();
 
-    expect(zk.getData(tBasePath + "/t" + ZTABLE_NAMESPACE, null, null))
+    expect(zk.getData(ZTABLES + "/t" + ZTABLE_NAMESPACE, null, null))
         .andReturn("+default".getBytes(UTF_8)).anyTimes();
 
     context.close();

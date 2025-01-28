@@ -109,7 +109,7 @@ public class ZooKeeperInitializer {
         ZooUtil.NodeExistsPolicy.FAIL);
 
     // setup the instance
-    String zkInstanceRoot = context.getZooKeeperRoot();
+    String zkInstanceRoot = ZooUtil.getRoot(instanceId);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES, Constants.ZTABLES_INITIAL_ID,
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES,

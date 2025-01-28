@@ -217,7 +217,7 @@ public class Upgrader10to11 implements Upgrader {
    * {@code /accumulo/INSTANCE_ID/tables/+rep}
    */
   static String buildRepTablePath(final InstanceId iid) {
-    return ZooUtil.getRoot(iid) + ZTABLES + "/" + REPLICATION_ID.canonical();
+    return ZTABLES + "/" + REPLICATION_ID.canonical();
   }
 
   private void deleteReplicationTableZkEntries(ZooReaderWriter zrw, InstanceId iid) {

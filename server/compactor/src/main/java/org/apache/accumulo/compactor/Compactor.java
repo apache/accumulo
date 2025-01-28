@@ -218,8 +218,8 @@ public class Compactor extends AbstractServer
         }
 
         if (job.getKind() == TCompactionKind.USER) {
-          String zTablePath = getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
-              + extent.tableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
+          String zTablePath =
+              Constants.ZTABLES + "/" + extent.tableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
           byte[] id = getContext().getZooCache().get(zTablePath);
           if (id == null) {
             // table probably deleted
@@ -254,8 +254,7 @@ public class Compactor extends AbstractServer
     String hostPort = ExternalCompactionUtil.getHostPortString(clientAddress);
 
     ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
-    String compactorQueuePath =
-        getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + this.queueName;
+    String compactorQueuePath = Constants.ZCOMPACTORS + "/" + this.queueName;
     String zPath = compactorQueuePath + "/" + hostPort;
 
     try {

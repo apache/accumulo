@@ -534,12 +534,10 @@ public class TabletMetadata {
   public static synchronized Set<TServerInstance> getLiveTServers(ClientContext context) {
     final Set<TServerInstance> liveServers = new HashSet<>();
 
-    final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-
-    for (String child : context.getZooCache().getChildren(path)) {
-      checkServer(context, path, child).ifPresent(liveServers::add);
+    for (String child : context.getZooCache().getChildren(Constants.ZTSERVERS)) {
+      checkServer(context, Constants.ZTSERVERS, child).ifPresent(liveServers::add);
     }
-    log.trace("Found {} live tservers at ZK path: {}", liveServers.size(), path);
+    log.trace("Found {} live tservers at ZK path: {}", liveServers.size(), Constants.ZTSERVERS);
 
     return liveServers;
   }

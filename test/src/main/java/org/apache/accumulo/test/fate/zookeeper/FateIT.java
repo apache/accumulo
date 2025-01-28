@@ -57,7 +57,6 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -184,7 +183,6 @@ public class FateIT {
   private static ZooSession zk = null;
   private static ZooReaderWriter zrw = null;
   private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
-  private static final String ZK_ROOT = ZooUtil.getRoot(IID);
   private static final NamespaceId NS = NamespaceId.of("testNameSpace");
   private static final TableId TID = TableId.of("testTable");
 
@@ -201,11 +199,11 @@ public class FateIT {
     testZk = new ZooKeeperTestingServer(tempDir);
     zk = testZk.newClient();
     zrw = zk.asReaderWriter();
-    zrw.mkdirs(ZK_ROOT + Constants.ZFATE);
-    zrw.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
-    zrw.mkdirs(ZK_ROOT + Constants.ZNAMESPACES + "/" + NS.canonical());
-    zrw.mkdirs(ZK_ROOT + Constants.ZTABLE_STATE + "/" + TID.canonical());
-    zrw.mkdirs(ZK_ROOT + Constants.ZTABLES + "/" + TID.canonical());
+    zrw.mkdirs(Constants.ZFATE);
+    zrw.mkdirs(Constants.ZTABLE_LOCKS);
+    zrw.mkdirs(Constants.ZNAMESPACES + "/" + NS.canonical());
+    zrw.mkdirs(Constants.ZTABLE_STATE + "/" + TID.canonical());
+    zrw.mkdirs(Constants.ZTABLES + "/" + TID.canonical());
   }
 
   @AfterAll
@@ -227,7 +225,6 @@ public class FateIT {
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
     expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
@@ -299,7 +296,6 @@ public class FateIT {
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
     expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
@@ -339,7 +335,6 @@ public class FateIT {
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
     expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
@@ -381,7 +376,6 @@ public class FateIT {
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
     expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
@@ -428,7 +422,6 @@ public class FateIT {
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
     expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
     expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
@@ -487,8 +480,8 @@ public class FateIT {
    */
   private static TStatus getTxStatus(ZooReaderWriter zrw, long txid)
       throws KeeperException, InterruptedException {
-    zrw.sync(ZK_ROOT);
-    String txdir = String.format("%s%s/tx_%016x", ZK_ROOT, Constants.ZFATE, txid);
+    zrw.sync("/");
+    String txdir = String.format("%s/tx_%016x", Constants.ZFATE, txid);
     return TStatus.valueOf(new String(zrw.getData(txdir), UTF_8));
   }
 

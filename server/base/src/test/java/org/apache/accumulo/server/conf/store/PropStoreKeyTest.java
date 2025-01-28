@@ -36,7 +36,6 @@ import java.util.UUID;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -95,16 +94,16 @@ public class PropStoreKeyTest {
 
   @Test
   public void fromPathTest() {
-    var t1 = PropStoreKey.fromPath(ZooUtil.getRoot(instanceId) + ZTABLES + "/t1" + ZCONFIG);
+    var t1 = PropStoreKey.fromPath(ZTABLES + "/t1" + ZCONFIG, instanceId);
     assertNotNull(t1);
     assertEquals(TableId.of("t1"), t1.getId());
 
-    var n1 = PropStoreKey.fromPath(ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/n1" + ZCONFIG);
+    var n1 = PropStoreKey.fromPath(ZNAMESPACES + "/n1" + ZCONFIG, instanceId);
     assertNotNull(n1);
     assertEquals(NamespaceId.of("n1"), n1.getId());
     assertNotNull(n1.getId());
 
-    var s1 = PropStoreKey.fromPath(ZooUtil.getRoot(instanceId) + ZCONFIG);
+    var s1 = PropStoreKey.fromPath(ZCONFIG, instanceId);
     assertNotNull(s1);
     // system config returns instance id as id placeholder
     assertEquals(instanceId, s1.getId());
@@ -113,28 +112,23 @@ public class PropStoreKeyTest {
   @Test
   public void invalidKeysTest() {
     // too short
-    assertNull(PropStoreKey.fromPath(ZROOT));
+    assertNull(PropStoreKey.fromPath(ZROOT, instanceId));
 
     // not a system config
-    assertTrue(
-        PropStoreKey.fromPath(ZooUtil.getRoot(instanceId) + ZCONFIG) instanceof SystemPropKey);
-    assertNull(PropStoreKey.fromPath("/foo"));
-    assertNull(PropStoreKey.fromPath(ZooUtil.getRoot(instanceId) + "/foo"));
-    assertNull(PropStoreKey.fromPath(ZooUtil.getRoot(instanceId) + ZCONFIG + "/foo"));
+    assertTrue(PropStoreKey.fromPath(ZCONFIG, instanceId) instanceof SystemPropKey);
+    assertNull(PropStoreKey.fromPath("/foo", instanceId));
+    assertNull(PropStoreKey.fromPath(ZCONFIG + "/foo", instanceId));
 
-    assertTrue(PropStoreKey
-        .fromPath(ZooUtil.getRoot(instanceId) + ZTABLES + "/a" + ZCONFIG) instanceof TablePropKey);
-    assertNull(PropStoreKey.fromPath(ZooUtil.getRoot(instanceId) + ZTABLES + ZCONFIG));
-    assertNull(PropStoreKey.fromPath(ZooUtil.getRoot(instanceId) + "/invalid/a" + ZCONFIG));
-    assertNull(
-        PropStoreKey.fromPath(ZooUtil.getRoot(instanceId) + ZTABLES + "/a" + ZCONFIG + "/foo"));
+    assertTrue(PropStoreKey.fromPath(ZTABLES + "/a" + ZCONFIG, instanceId) instanceof TablePropKey);
+    assertNull(PropStoreKey.fromPath(ZTABLES + ZCONFIG, instanceId));
+    assertNull(PropStoreKey.fromPath("/invalid/a" + ZCONFIG, instanceId));
+    assertNull(PropStoreKey.fromPath(ZTABLES + "/a" + ZCONFIG + "/foo", instanceId));
 
-    assertTrue(PropStoreKey.fromPath(
-        ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/a" + ZCONFIG) instanceof NamespacePropKey);
-    assertNull(PropStoreKey.fromPath(ZooUtil.getRoot(instanceId) + ZNAMESPACES + ZCONFIG));
-    assertNull(PropStoreKey.fromPath(ZooUtil.getRoot(instanceId) + "/invalid/a" + ZCONFIG));
-    assertNull(
-        PropStoreKey.fromPath(ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/a" + ZCONFIG + "/foo"));
+    assertTrue(PropStoreKey.fromPath(ZNAMESPACES + "/a" + ZCONFIG,
+        instanceId) instanceof NamespacePropKey);
+    assertNull(PropStoreKey.fromPath(ZNAMESPACES + ZCONFIG, instanceId));
+    assertNull(PropStoreKey.fromPath("/invalid/a" + ZCONFIG, instanceId));
+    assertNull(PropStoreKey.fromPath(ZNAMESPACES + "/a" + ZCONFIG + "/foo", instanceId));
   }
 
   @Test

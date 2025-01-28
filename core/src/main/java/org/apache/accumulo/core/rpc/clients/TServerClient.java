@@ -79,9 +79,6 @@ public interface TServerClient<C extends TServiceClient> {
     }
 
     final long rpcTimeout = context.getClientTimeoutInMillis();
-    final String tserverZooPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-    final String sserverZooPath = context.getZooKeeperRoot() + Constants.ZSSERVERS;
-    final String compactorZooPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
     final ZooCache zc = context.getZooCache();
 
     final List<String> serverPaths = new ArrayList<>();
@@ -90,22 +87,22 @@ public interface TServerClient<C extends TServiceClient> {
       // The entire set will be checked in the code below to validate
       // that the path is correct and the lock is held and will return the
       // correct one.
-      serverPaths.add(tserverZooPath + "/" + debugHost);
-      serverPaths.add(sserverZooPath + "/" + debugHost);
-      zc.getChildren(compactorZooPath).forEach(compactorGroup -> {
-        serverPaths.add(compactorZooPath + "/" + compactorGroup + "/" + debugHost);
+      serverPaths.add(Constants.ZTSERVERS + "/" + debugHost);
+      serverPaths.add(Constants.ZSSERVERS + "/" + debugHost);
+      zc.getChildren(Constants.ZCOMPACTORS).forEach(compactorGroup -> {
+        serverPaths.add(Constants.ZCOMPACTORS + "/" + compactorGroup + "/" + debugHost);
       });
     } else {
-      zc.getChildren(tserverZooPath).forEach(tserverAddress -> {
-        serverPaths.add(tserverZooPath + "/" + tserverAddress);
+      zc.getChildren(Constants.ZTSERVERS).forEach(tserverAddress -> {
+        serverPaths.add(Constants.ZTSERVERS + "/" + tserverAddress);
       });
       if (type == ThriftClientTypes.CLIENT) {
-        zc.getChildren(sserverZooPath).forEach(sserverAddress -> {
-          serverPaths.add(sserverZooPath + "/" + sserverAddress);
+        zc.getChildren(Constants.ZSSERVERS).forEach(sserverAddress -> {
+          serverPaths.add(Constants.ZSSERVERS + "/" + sserverAddress);
         });
-        zc.getChildren(compactorZooPath).forEach(compactorGroup -> {
-          zc.getChildren(compactorZooPath + "/" + compactorGroup).forEach(compactorAddress -> {
-            serverPaths.add(compactorZooPath + "/" + compactorGroup + "/" + compactorAddress);
+        zc.getChildren(Constants.ZCOMPACTORS).forEach(compactorGroup -> {
+          zc.getChildren(Constants.ZCOMPACTORS + "/" + compactorGroup).forEach(compactorAddress -> {
+            serverPaths.add(Constants.ZCOMPACTORS + "/" + compactorGroup + "/" + compactorAddress);
           });
         });
       }

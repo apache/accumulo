@@ -83,11 +83,9 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
   public void testRefRemovalOnShutdown() throws Exception {
 
     ServerContext ctx = getCluster().getServerContext();
-    String zooRoot = ctx.getZooKeeperRoot();
     ZooReaderWriter zrw = ctx.getZooSession().asReaderWriter();
-    String scanServerRoot = zooRoot + Constants.ZSSERVERS;
 
-    Wait.waitFor(() -> zrw.getChildren(scanServerRoot).size() == 0);
+    Wait.waitFor(() -> zrw.getChildren(Constants.ZSSERVERS).size() == 0);
 
     // Stop normal ScanServers so that we can start our custom implementation
     // that shuts down after 3 batch scans
@@ -95,7 +93,7 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
         ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME);
 
     // Wait for the ScanServer to register in ZK
-    Wait.waitFor(() -> zrw.getChildren(scanServerRoot).size() == 1);
+    Wait.waitFor(() -> zrw.getChildren(Constants.ZSSERVERS).size() == 1);
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];

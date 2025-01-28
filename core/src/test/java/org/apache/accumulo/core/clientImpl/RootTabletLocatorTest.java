@@ -31,7 +31,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +46,6 @@ public class RootTabletLocatorTest {
     var instanceId = InstanceId.of(UUID.randomUUID());
     zc = createMock(ZooCache.class);
     context = createMock(ClientContext.class);
-    expect(context.getZooKeeperRoot()).andReturn(ZooUtil.getRoot(instanceId)).anyTimes();
     expect(context.getZooCache()).andReturn(zc).anyTimes();
     lockChecker = createMock(TabletServerLockChecker.class);
     replay(context, zc, lockChecker);
@@ -64,7 +62,7 @@ public class RootTabletLocatorTest {
 
     verify(zc);
     reset(zc);
-    zc.clear(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/server");
+    zc.clear(Constants.ZTSERVERS + "/server");
     expectLastCall().once();
     replay(zc);
 

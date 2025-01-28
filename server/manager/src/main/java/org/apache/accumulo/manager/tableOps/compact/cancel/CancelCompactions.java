@@ -68,31 +68,29 @@ public class CancelCompactions extends ManagerRepo {
 
   public static void mutateZooKeeper(long tid, TableId tableId, Manager environment)
       throws Exception {
-    String zCompactID = environment.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
-        + tableId + Constants.ZTABLE_COMPACT_ID;
-    String zCancelID = environment.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
-        + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
     ZooReaderWriter zoo = environment.getContext().getZooSession().asReaderWriter();
 
-    byte[] currentValue = zoo.getData(zCompactID);
+    byte[] currentValue =
+        zoo.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID);
 
     String cvs = new String(currentValue, UTF_8);
     String[] tokens = cvs.split(",");
     final long flushID = Long.parseLong(tokens[0]);
 
-    zoo.mutateExisting(zCancelID, currentValue2 -> {
-      long cid = Long.parseLong(new String(currentValue2, UTF_8));
+    zoo.mutateExisting(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID,
+        currentValue2 -> {
+          long cid = Long.parseLong(new String(currentValue2, UTF_8));
 
-      if (cid < flushID) {
-        log.debug("{} setting cancel compaction id to {} for {}", FateTxId.formatTid(tid), flushID,
-            tableId);
-        return Long.toString(flushID).getBytes(UTF_8);
-      } else {
-        log.debug("{} leaving cancel compaction id as {} for {}", FateTxId.formatTid(tid), cid,
-            tableId);
-        return Long.toString(cid).getBytes(UTF_8);
-      }
-    });
+          if (cid < flushID) {
+            log.debug("{} setting cancel compaction id to {} for {}", FateTxId.formatTid(tid),
+                flushID, tableId);
+            return Long.toString(flushID).getBytes(UTF_8);
+          } else {
+            log.debug("{} leaving cancel compaction id as {} for {}", FateTxId.formatTid(tid), cid,
+                tableId);
+            return Long.toString(cid).getBytes(UTF_8);
+          }
+        });
   }
 }

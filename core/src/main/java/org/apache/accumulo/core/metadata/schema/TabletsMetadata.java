@@ -60,7 +60,6 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -584,14 +583,14 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
   private static TabletMetadata getRootMetadata(ClientContext ctx,
       ReadConsistency readConsistency) {
-    String zkRoot = ctx.getZooKeeperRoot();
     switch (readConsistency) {
       case EVENTUAL:
-        return getRootMetadata(zkRoot, ctx.getZooCache());
+        return new RootTabletMetadata(
+            new String(ctx.getZooCache().get(RootTable.ZROOT_TABLET), UTF_8)).toTabletMetadata();
       case IMMEDIATE:
         ZooReader zooReader = ctx.getZooSession().asReader();
         try {
-          var path = zkRoot + RootTable.ZROOT_TABLET;
+          var path = RootTable.ZROOT_TABLET;
           // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from
           // zookeeper
           zooReader.sync(path);
@@ -603,11 +602,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       default:
         throw new IllegalArgumentException("Unknown consistency level " + readConsistency);
     }
-  }
-
-  public static TabletMetadata getRootMetadata(String zkRoot, ZooCache zc) {
-    byte[] jsonBytes = zc.get(zkRoot + RootTable.ZROOT_TABLET);
-    return new RootTabletMetadata(new String(jsonBytes, UTF_8)).toTabletMetadata();
   }
 
   private final AutoCloseable closeable;

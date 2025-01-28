@@ -43,7 +43,6 @@ public class MonitorUtilTest {
   public void beforeEachTest() {
     zr = mock(ZooReader.class);
     context = mock(ClientContext.class);
-    expect(context.getZooKeeperRoot()).andReturn("/root");
   }
 
   @AfterEach
