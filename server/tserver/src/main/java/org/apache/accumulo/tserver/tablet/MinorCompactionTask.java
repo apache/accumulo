@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -41,6 +45,8 @@ class MinorCompactionTask implements Runnable {
   private final long flushId;
   private final MinorCompactionReason mincReason;
 
+  private final long pauseLimit;
+
   MinorCompactionTask(Tablet tablet, CommitSession commitSession, long flushId,
       MinorCompactionReason mincReason) {
     this.tablet = tablet;
@@ -49,6 +55,17 @@ class MinorCompactionTask implements Runnable {
     this.commitSession = commitSession;
     this.flushId = flushId;
     this.mincReason = mincReason;
+    this.pauseLimit = tablet.getContext().getTableConfiguration(tablet.extent.tableId())
+        .getCount(Property.TABLE_FILE_PAUSE);
+  }
+
+  private static void checkMinorCompactionFiles(String tableId, long pauseLimit,
+      long currentFileCount) throws AcceptableThriftTableOperationException {
+    if (pauseLimit > 0 && currentFileCount > pauseLimit) {
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT,
+          TableOperationExceptionType.OTHER, "Attempted to perform minor compaction with "
+              + currentFileCount + " files, exceeding the configured limit of " + pauseLimit);
+    }
   }
 
   @Override
@@ -56,6 +73,14 @@ class MinorCompactionTask implements Runnable {
     tablet.minorCompactionStarted();
     try {
       Span span = TraceUtil.startSpan(this.getClass(), "minorCompaction");
+      try {
+        long currentFileCount = tablet.getTabletMemory().getNumEntries();
+        checkMinorCompactionFiles(tablet.extent.tableId().canonical(), pauseLimit,
+            currentFileCount); // Add pause check here
+      } catch (AcceptableThriftTableOperationException e) {
+        log.warn("Minor compaction paused due to file count for tablet {}", tablet.extent);
+        return;
+      }
       try (Scope scope = span.makeCurrent()) {
         Span span2 = TraceUtil.startSpan(this.getClass(), "waitForCommits");
         try (Scope scope2 = span2.makeCurrent()) {

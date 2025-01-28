@@ -382,7 +382,8 @@ public class Tablet extends TabletBase {
     boolean failed = false;
     long start = System.currentTimeMillis();
     timer.incrementStatusMinor();
-
+    long pauseLimit =
+        getContext().getTableConfiguration(extent.tableId()).getCount(Property.TABLE_FILE_PAUSE);
     long count = 0;
 
     String oldName = Thread.currentThread().getName();
@@ -392,7 +393,13 @@ public class Tablet extends TabletBase {
       Span span = TraceUtil.startSpan(this.getClass(), "minorCompact::write");
       try (Scope scope = span.makeCurrent()) {
         count = memTable.getNumEntries();
-
+        if (count > pauseLimit && pauseLimit > 0) {
+          log.debug(
+              "tablet {} has {} entries, which exceeds the pause limit of {}, pausing minor compaction.",
+              this.extent, count, pauseLimit);
+          failed = true; // Set the failed flag
+          return null;
+        }
         MinorCompactor compactor = new MinorCompactor(tabletServer, this, memTable, tmpDatafile,
             mincReason, tableConfiguration);
         stats = compactor.call();
