@@ -94,7 +94,7 @@ public class ResolvedCompactionJob implements CompactionJob {
       estDataSize += 64;
       return estDataSize;
     } else {
-      // Do not know the concrete type so weigh based on the interface methods of CompaactionJob
+      // Do not know the concrete type so weigh based on the interface methods of CompactionJob
       long estDataSize = 0;
       for (var compactableFile : job.getFiles()) {
         estDataSize += compactableFile.getUri().toString().length();
