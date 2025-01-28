@@ -182,7 +182,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     @Override
     public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
       Timer timer = Timer.startNew();
-      while (timer.hasElapsed(time, unit)) {
+      while (!timer.hasElapsed(time, unit)) {
         if (tryLock()) {
           return true;
         }
