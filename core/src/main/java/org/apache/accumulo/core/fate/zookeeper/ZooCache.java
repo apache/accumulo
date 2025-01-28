@@ -33,6 +33,7 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
@@ -524,6 +525,33 @@ public class ZooCache {
       statCache.keySet().removeIf(path -> path.startsWith(zPath));
 
       immutableCache = new ImmutableCacheCopies(++updateCount, cache, statCache, childrenCache);
+    } finally {
+      cacheWriteLock.unlock();
+    }
+  }
+
+  /**
+   * Removes all paths in the cache match the predicate.
+   */
+  public void clear(Predicate<String> pathPredicate) {
+    Preconditions.checkState(!closed);
+    Predicate<String> pathPredicateToUse;
+    if (log.isTraceEnabled()) {
+      pathPredicateToUse = pathPredicate.and(path -> {
+        log.trace("removing {} from cache", path);
+        return true;
+      });
+    } else {
+      pathPredicateToUse = pathPredicate;
+    }
+    cacheWriteLock.lock();
+    try {
+      cache.keySet().removeIf(pathPredicateToUse);
+      childrenCache.keySet().removeIf(pathPredicateToUse);
+      statCache.keySet().removeIf(pathPredicateToUse);
+
+      immutableCache = new ImmutableCacheCopies(++updateCount, cache, statCache, childrenCache);
+
     } finally {
       cacheWriteLock.unlock();
     }
