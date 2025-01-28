@@ -203,9 +203,11 @@ public enum TabletGoalState {
 
   private static TabletGoalState trace(TabletGoalState tabletGoalState, TabletMetadata tm,
       String reason) {
-    // The prev row column for the table may not have been fetched so can not call tm.getExtent()
-    log.trace("Computed goal state of {} for {} because {}", tabletGoalState,
-        TabletsSection.encodeRow(tm.getTableId(), tm.getEndRow()), reason);
+    if (log.isTraceEnabled()) {
+      // The prev row column for the table may not have been fetched so can not call tm.getExtent()
+      log.trace("Computed goal state of {} for {} because {}", tabletGoalState,
+          TabletsSection.encodeRow(tm.getTableId(), tm.getEndRow()), reason);
+    }
     return tabletGoalState;
   }
 

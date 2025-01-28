@@ -55,9 +55,11 @@ public enum TabletState {
   }
 
   private static TabletState trace(TabletState tabletState, TabletMetadata tm) {
-    // The prev row column for the table may not have been fetched so can not call tm.getExtent()
-    log.trace("Computed state of {} for {}", tabletState,
-        TabletsSection.encodeRow(tm.getTableId(), tm.getEndRow()));
+    if (log.isTraceEnabled()) {
+      // The prev row column for the table may not have been fetched so can not call tm.getExtent()
+      log.trace("Computed state of {} for {}", tabletState,
+          TabletsSection.encodeRow(tm.getTableId(), tm.getEndRow()));
+    }
     return tabletState;
   }
 }
