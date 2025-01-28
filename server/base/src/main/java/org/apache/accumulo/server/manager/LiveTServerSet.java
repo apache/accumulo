@@ -55,6 +55,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.core.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.zookeeper.KeeperException;
@@ -263,19 +264,26 @@ public class LiveTServerSet implements ZooCacheWatcher {
         ServiceLock.getLockData(context.getZooCache(), tserverPath, stat);
 
     if (sld.isEmpty()) {
+      log.trace("lock does not exist for server: {}", tserverPath.getServer());
       if (info != null) {
         doomed.add(info.instance);
         current.remove(tserverPath.getServer());
+        log.trace("removed {} from current set and adding to doomed list", tserverPath.getServer());
       }
 
       Long firstSeen = locklessServers.get(tserverPath);
       if (firstSeen == null) {
         locklessServers.put(tserverPath, System.currentTimeMillis());
+        log.trace("first seen, added {} to list of lockless servers", tserverPath.getServer());
       } else if (System.currentTimeMillis() - firstSeen > MINUTES.toMillis(10)) {
         deleteServerNode(tserverPath.toString());
         locklessServers.remove(tserverPath);
+        log.trace(
+            "deleted zookeeper node for server: {}, has been without lock for over 10 minutes",
+            tserverPath.getServer());
       }
     } else {
+      log.trace("Lock exists for server: {}, adding to current set", tserverPath.getServer());
       locklessServers.remove(tserverPath);
       HostAndPort address = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
       String resourceGroup = sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
@@ -299,34 +307,59 @@ public class LiveTServerSet implements ZooCacheWatcher {
   @Override
   public void accept(WatchedEvent event) {
 
+    log.trace("Received event: {}", event);
     // its important that these event are propagated by ZooCache, because this ensures when reading
     // zoocache that is has already processed the event and cleared
     // relevant nodes before code below reads from zoocache
-
-    if (event.getPath() != null) {
-      if (event.getPath().endsWith(Constants.ZTSERVERS)) {
+    final String tserverZPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+    if (event.getPath() != null && event.getPath().startsWith(tserverZPath)) {
+      if (event.getPath().equals(tserverZPath)) {
         scanServers();
       } else if (event.getPath().contains(Constants.ZTSERVERS)) {
-        try {
-          final ServiceLockPath slp =
-              ServiceLockPaths.parse(Optional.of(Constants.ZTSERVERS), event.getPath());
-          if (slp.getType().equals(Constants.ZTSERVERS)) {
-            try {
-              final Set<TServerInstance> updates = new HashSet<>();
-              final Set<TServerInstance> doomed = new HashSet<>();
-              checkServer(updates, doomed, slp);
-              this.cback.update(this, doomed, updates);
-            } catch (Exception ex) {
-              log.error("Error processing event for tserver: " + slp.toString(), ex);
-            }
-          }
-        } catch (IllegalArgumentException e) {
+        // It's possible that the path contains more than the tserver address, it
+        // could contain it's children. We need to fix the path before parsing it
+        // path should be: zooKeeperRoot + Constants.ZTSERVERS + "/" + resourceGroup + "/" address
+        String pathToUse = null;
+        String remaining = event.getPath().substring(tserverZPath.length() + 1);
+        int numSlashes = StringUtils.countMatches(remaining, '/');
+        if (numSlashes == 1) {
+          // event path is the server
+          pathToUse = event.getPath();
+        } else if (numSlashes > 1) {
+          // event path is the children of the server, maybe zlock
+          int idx = remaining.indexOf("/");
+          String rg = remaining.substring(0, idx);
+          String server = remaining.substring(idx + 1, remaining.indexOf("/", idx + 1));
+          pathToUse = tserverZPath + "/" + rg + "/" + server;
+        } else {
+          // malformed path
+          pathToUse = null;
           log.debug("Received event for path that can't be parsed, path: " + event.getPath());
+        }
+        if (pathToUse != null) {
+          try {
+            final ServiceLockPath slp =
+                ServiceLockPaths.parse(Optional.of(Constants.ZTSERVERS), pathToUse);
+            if (slp.getType().equals(Constants.ZTSERVERS)) {
+              try {
+                log.trace("Processing event for server: {}", slp.toString());
+                final Set<TServerInstance> updates = new HashSet<>();
+                final Set<TServerInstance> doomed = new HashSet<>();
+                checkServer(updates, doomed, slp);
+                this.cback.update(this, doomed, updates);
+              } catch (Exception ex) {
+                log.error("Error processing event for tserver: " + slp.toString(), ex);
+              }
+            }
+          } catch (IllegalArgumentException e) {
+            log.debug("Received event for path that can't be parsed, path: " + event.getPath());
+          }
         }
       } else {
         // we don't care about other paths
       }
     }
+
   }
 
   public synchronized TServerConnection getConnection(TServerInstance server) {
