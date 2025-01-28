@@ -23,6 +23,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
+import java.util.List;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,9 +47,31 @@ public class ZookeeperLockCheckerTest {
 
   @Test
   public void testInvalidateCache() {
-    zc.clear(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/server");
+    expect(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/server"))
+        .andReturn(List.of("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001"));
+    zc.clear(context.getZooKeeperRoot() + Constants.ZTSERVERS
+        + "/server/zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001");
     replay(zc);
     zklc.invalidateCache("server");
     verify(zc);
   }
+
+  @Test
+  public void testInvalidateCacheInvalidLock() {
+    expect(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/server"))
+        .andReturn(List.of("myLock"));
+    replay(zc);
+    zklc.invalidateCache("server");
+    verify(zc);
+  }
+
+  @Test
+  public void testInvalidateCacheNoLocks() {
+    expect(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/server"))
+        .andReturn(List.of(""));
+    replay(zc);
+    zklc.invalidateCache("server");
+    verify(zc);
+  }
+
 }

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import java.util.List;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
@@ -46,7 +48,14 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   @Override
   public void invalidateCache(String tserver) {
-    zc.clear(root + "/" + tserver);
+    String serverPath = root + "/" + tserver;
+    var tserverZPath = ServiceLock.path(serverPath);
+    List<String> children =
+        ServiceLock.validateAndSort(tserverZPath, zc.getChildren(tserverZPath.toString()));
+    if (!children.isEmpty()) {
+      String lockNode = children.get(0);
+      zc.clear(serverPath + "/" + lockNode);
+    }
   }
 
 }
