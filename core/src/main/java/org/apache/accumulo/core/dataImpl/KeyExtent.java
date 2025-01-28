@@ -28,9 +28,11 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
@@ -55,6 +57,8 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.BinaryComparable;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -558,6 +562,28 @@ public class KeyExtent implements Comparable<KeyExtent> {
       digester.update(endRow().getBytes(), 0, endRow().getLength());
     }
     return Base64.getEncoder().encodeToString(digester.digest());
+  }
+
+  public String toBase64() {
+    DataOutputBuffer buffer = new DataOutputBuffer();
+    try {
+      writeTo(buffer);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+
+    return Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
+  }
+
+  public static KeyExtent fromBase64(String encoded) {
+    byte[] data = Base64.getDecoder().decode(encoded);
+    DataInputBuffer buffer = new DataInputBuffer();
+    buffer.reset(data, data.length);
+    try {
+      return KeyExtent.readFrom(buffer);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
 }
