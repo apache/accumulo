@@ -144,7 +144,9 @@ public class ZooZap implements KeywordExecutable {
                 zrw.recursiveDelete(tserverPath.toString(), NodeMissingPolicy.SKIP);
               } else {
                 if (!zrw.getChildren(tserverPath.toString()).isEmpty()) {
-                  if (!ServiceLock.deleteLock(zrw, tserverPath, "tserver")) {
+                  try {
+                    ServiceLock.deleteLock(zrw, tserverPath);
+                  } catch (RuntimeException e) {
                     message("Did not delete " + tserverPath, opts);
                   }
                 }

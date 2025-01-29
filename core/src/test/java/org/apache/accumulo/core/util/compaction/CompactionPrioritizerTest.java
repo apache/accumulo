@@ -37,7 +37,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.clientImpl.Namespace;
@@ -60,10 +59,9 @@ public class CompactionPrioritizerTest {
       files.add(CompactableFile
           .create(URI.create("hdfs://foonn/accumulo/tables/5/" + tablet + "/" + i + ".rf"), 4, 4));
     }
-    return new CompactionJobImpl(
-        CompactionJobPrioritizer.createPriority(Namespace.DEFAULT.id(), TableId.of("5"), kind,
-            totalFiles, numFiles, totalFiles * 2),
-        CompactorGroupId.of("test"), files, kind, Optional.of(false));
+    return new CompactionJobImpl(CompactionJobPrioritizer.createPriority(Namespace.DEFAULT.id(),
+        TableId.of("5"), kind, totalFiles, numFiles, totalFiles * 2), CompactorGroupId.of("test"),
+        files, kind);
   }
 
   @Test
