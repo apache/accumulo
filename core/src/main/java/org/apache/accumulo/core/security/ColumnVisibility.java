@@ -28,7 +28,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.TreeSet;
 
-import org.apache.accumulo.access.AccessExpression;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -521,19 +520,23 @@ public class ColumnVisibility {
    * @see #ColumnVisibility(String)
    */
   public ColumnVisibility(byte[] expression) {
-    validate(expression);
+    this(expression, true);
   }
 
   /**
-   * Creates a column visibility for a Mutation from an AccessExpression.
+   * Creates a column visibility for a mutation from a string already encoded in UTF-8 bytes. Allows
+   * validation to be skipped for use with accumulo-access AccessExpressions
    *
    * @param expression visibility expression, encoded as UTF-8 bytes
-   * @see #ColumnVisibility(String)
-   * @since 2.1.4
+   * @param validate enables or disables validation and parse tree generation
    */
-  public ColumnVisibility(AccessExpression expression) {
-    // AccessExpression is a validated immutable object, so no need to re validate
-    this.expression = expression.getExpression().getBytes(UTF_8);
+  private ColumnVisibility(byte[] expression, boolean validate) {
+    if (validate) {
+      validate(expression);
+    } else {
+      this.expression = Arrays.copyOf(expression, expression.length);
+      this.node = EMPTY_NODE;
+    }
   }
 
   /**
@@ -636,5 +639,19 @@ public class ColumnVisibility {
     }
 
     return VisibilityEvaluator.escape(term, true);
+  }
+
+  /**
+   * Creates a column visibility for a Mutation that skips validation and does not generate a parse
+   * tree This method exists to allow users to utilize accumulo AccessExpressions in 2.1 and should
+   * not be used otherwise
+   *
+   * @param incomingExpression visibility expression, encoded as UTF-8 bytes
+   * @see #ColumnVisibility(String)
+   * @since 2.1.4
+   */
+  @Deprecated(since = "2.1.4")
+  public static ColumnVisibility fromAccessExpression(byte[] incomingExpression) {
+    return new ColumnVisibility(incomingExpression, false);
   }
 }
