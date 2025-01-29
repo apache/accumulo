@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.lock;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
@@ -747,33 +746,6 @@ public class ServiceLock implements Watcher {
     LOG.debug("Deleting all at path {} due to lock deletion", pathToDelete);
     zk.recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
 
-  }
-
-  public static boolean deleteLock(ZooReaderWriter zk, ServiceLockPath path, String lockData)
-      throws InterruptedException, KeeperException {
-
-    List<String> children = validateAndSort(path, zk.getChildren(path.toString()));
-
-    if (children.isEmpty()) {
-      throw new IllegalStateException("No lock is held at " + path);
-    }
-
-    String lockNode = children.get(0);
-
-    if (!lockNode.startsWith(ZLOCK_PREFIX)) {
-      throw new IllegalStateException("Node " + lockNode + " at " + path + " is not a lock node");
-    }
-
-    byte[] data = zk.getData(path + "/" + lockNode);
-
-    if (lockData.equals(new String(data, UTF_8))) {
-      String pathToDelete = path + "/" + lockNode;
-      LOG.debug("Deleting all at path {} due to lock deletion", pathToDelete);
-      zk.recursiveDelete(pathToDelete, NodeMissingPolicy.FAIL);
-      return true;
-    }
-
-    return false;
   }
 
   /**
