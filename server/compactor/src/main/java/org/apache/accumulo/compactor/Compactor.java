@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -60,12 +61,13 @@ import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLockSupport.ServiceLockWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.FileOperations;
@@ -89,7 +91,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
@@ -175,6 +176,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected Compactor(CompactorServerOpts opts, String[] args) {
     super("compactor", opts, args);
     queueName = opts.getQueueName();
+    ClusterConfigParser.validateGroupNames(Set.of(queueName));
   }
 
   private long getTotalEntriesRead() {
@@ -285,20 +287,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     compactorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
         ServiceLock.path(zPath), compactorId);
-    LockWatcher lw = new LockWatcher() {
-      @Override
-      public void lostLock(final LockLossReason reason) {
-        Halt.halt(1, () -> {
-          LOG.error("Compactor lost lock (reason = {}), exiting.", reason);
-          gcLogger.logGCInfo(getConfiguration());
-        });
-      }
 
-      @Override
-      public void unableToMonitorLockNode(final Exception e) {
-        Halt.halt(1, () -> LOG.error("Lost ability to monitor Compactor lock, exiting.", e));
-      }
-    };
+    LockWatcher lw = new ServiceLockWatcher("compactor", () -> false,
+        (name) -> gcLogger.logGCInfo(getConfiguration()));
 
     try {
       byte[] lockContent =

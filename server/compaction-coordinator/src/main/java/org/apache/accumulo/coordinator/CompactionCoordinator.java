@@ -58,6 +58,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -223,11 +224,11 @@ public class CompactionCoordinator extends AbstractServer
         ServiceLock.path(lockPath), zooLockUUID);
     while (true) {
 
-      CoordinatorLockWatcher coordinatorLockWatcher = new CoordinatorLockWatcher();
+      HAServiceLockWatcher coordinatorLockWatcher = new HAServiceLockWatcher("coordinator");
       coordinatorLock.lock(coordinatorLockWatcher, coordinatorClientAddress.getBytes(UTF_8));
 
       coordinatorLockWatcher.waitForChange();
-      if (coordinatorLockWatcher.isAcquiredLock()) {
+      if (coordinatorLockWatcher.isLockAcquired()) {
         break;
       }
       if (!coordinatorLockWatcher.isFailedToAcquireLock()) {

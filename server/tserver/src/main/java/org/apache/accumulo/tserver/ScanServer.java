@@ -53,6 +53,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -63,8 +64,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLockSupport.ServiceLockWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -85,7 +86,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException;
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -280,6 +280,7 @@ public class ScanServer extends AbstractServer
     delegate = newThriftScanClientHandler(new WriteTracker());
 
     this.groupName = Objects.requireNonNull(opts.getGroupName());
+    ClusterConfigParser.validateGroupNames(Set.of(groupName));
 
     ThreadPools.watchCriticalScheduledTask(getContext().getScheduledExecutor()
         .scheduleWithFixedDelay(() -> cleanUpReservedFiles(scanServerReservationExpiration),
@@ -347,24 +348,8 @@ public class ScanServer extends AbstractServer
 
       serverLockUUID = UUID.randomUUID();
       scanServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, serverLockUUID);
-
-      LockWatcher lw = new LockWatcher() {
-
-        @Override
-        public void lostLock(final LockLossReason reason) {
-          Halt.halt(serverStopRequested ? 0 : 1, () -> {
-            if (!serverStopRequested) {
-              LOG.error("Lost tablet server lock (reason = {}), exiting.", reason);
-            }
-            gcLogger.logGCInfo(getConfiguration());
-          });
-        }
-
-        @Override
-        public void unableToMonitorLockNode(final Exception e) {
-          Halt.halt(1, () -> LOG.error("Lost ability to monitor scan server lock, exiting.", e));
-        }
-      };
+      LockWatcher lw = new ServiceLockWatcher("scan server", () -> serverStopRequested,
+          (name) -> gcLogger.logGCInfo(getConfiguration()));
 
       // Don't use the normal ServerServices lock content, instead put the server UUID here.
       byte[] lockContent = (serverLockUUID.toString() + "," + groupName).getBytes(UTF_8);
