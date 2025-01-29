@@ -65,8 +65,9 @@ public class FindCompactionTmpFilesIT extends SharedMiniClusterBase {
     }
 
     for (int i = 0; i < numFiles; i++) {
-      ReferencedTabletFile rtf = TabletNameGenerator.getNextDataFilenameForMajc(false, context, tm,
-          (s) -> {}, ExternalCompactionId.generate(UUID.randomUUID()));
+      ReferencedTabletFile rtf =
+          TabletNameGenerator.getNextDataFilenameForMajc(false, context, tm.getExtent(),
+              tm.getDirName(), (s) -> {}, ExternalCompactionId.generate(UUID.randomUUID()));
       paths.add(rtf.getPath());
     }
     return paths;
