@@ -109,10 +109,6 @@ public class MinorCompactor extends FileCompactor {
             }
           }
 
-          // log.debug(String.format("MinC %,d recs in | %,d recs out | %,d recs/sec | %6.3f secs |
-          // %,d bytes ",map.size(), entriesCompacted,
-          // (int)(map.size()/((t2 - t1)/1000.0)), (t2 - t1)/1000.0, estimatedSizeInBytes()));
-
           if (reportedProblem) {
             ProblemReports.getInstance(tabletServer.getContext())
                 .deleteProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName);
