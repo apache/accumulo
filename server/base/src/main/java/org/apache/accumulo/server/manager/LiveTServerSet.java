@@ -352,7 +352,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
               }
             }
           } catch (IllegalArgumentException e) {
-            log.debug("Received event for path that can't be parsed, path: " + event.getPath());
+            log.debug("Received event for path that can't be parsed, path: {} pathToUse:{} ", event.getPath(),pathToUse);
           }
         }
       } else {
