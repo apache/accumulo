@@ -269,7 +269,7 @@ public class TableManager {
           }
         }
         if (tableId == null) {
-          log.warn("Unknown path in {}", event);
+          log.trace("Unhandled path {}", event);
           return;
         }
       }
