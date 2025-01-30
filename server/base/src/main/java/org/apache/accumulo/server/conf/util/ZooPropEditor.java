@@ -306,7 +306,7 @@ public class ZooPropEditor implements KeywordExecutable {
 
   private static class NullWatcher extends PropStoreWatcher {
     public NullWatcher(ReadyMonitor zkReadyMonitor) {
-      super(zkReadyMonitor);
+      super(zkReadyMonitor, null);
     }
   }
 }

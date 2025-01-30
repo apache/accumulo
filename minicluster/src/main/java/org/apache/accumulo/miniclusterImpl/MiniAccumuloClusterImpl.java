@@ -341,11 +341,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     // @formatter:off
     var hardcodedArgs = Stream.of(
-        "-Dapple.awt.UIElement=true",
-        "-Djava.net.preferIPv4Stack=true",
-        "-XX:+PerfDisableSharedMem",
-        "-XX:+AlwaysPreTouch",
-        Main.class.getName(), clazz.getName());
+            "-Dapple.awt.UIElement=true",
+            "-Djava.net.preferIPv4Stack=true",
+            "-XX:+PerfDisableSharedMem",
+            "-XX:+AlwaysPreTouch",
+            Main.class.getName(), clazz.getName());
     // @formatter:on
 
     // concatenate all the args sources into a single list of args

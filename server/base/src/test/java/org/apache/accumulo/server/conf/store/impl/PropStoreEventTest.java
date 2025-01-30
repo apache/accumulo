@@ -76,6 +76,8 @@ public class PropStoreEventTest {
     expect(context.getZooKeepersSessionTimeOut()).andReturn(500).anyTimes();
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
+    expect(zrw.exists(eq("/"), anyObject())).andReturn(true).anyTimes();
+
     readyMonitor = createMock(ReadyMonitor.class);
   }
 
@@ -89,7 +91,7 @@ public class PropStoreEventTest {
 
     var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
-    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
+    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor, instanceId);
 
     WatchedEvent zkEvent = createMock(WatchedEvent.class);
     expect(zkEvent.getPath()).andReturn(tablePropKey.getPath()).once();
@@ -118,7 +120,7 @@ public class PropStoreEventTest {
 
     var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
-    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
+    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor, instanceId);
 
     WatchedEvent zkEvent = createMock(WatchedEvent.class);
     expect(zkEvent.getPath()).andReturn(tablePropKey.getPath()).once();
@@ -148,7 +150,7 @@ public class PropStoreEventTest {
 
     var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
-    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
+    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor, instanceId);
 
     WatchedEvent zkEvent = createMock(WatchedEvent.class);
     expect(zkEvent.getType()).andReturn(Watcher.Event.EventType.None);
@@ -180,7 +182,7 @@ public class PropStoreEventTest {
 
     var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
-    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
+    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor, instanceId);
 
     WatchedEvent zkEvent = createMock(WatchedEvent.class);
     expect(zkEvent.getType()).andReturn(Watcher.Event.EventType.None);
@@ -213,7 +215,7 @@ public class PropStoreEventTest {
 
     var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
-    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
+    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor, instanceId);
     readyMonitor.setReady();
     expectLastCall().once();
 
@@ -252,7 +254,7 @@ public class PropStoreEventTest {
       return propCodec.toBytes(vProps);
     }).once();
 
-    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
+    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor, instanceId);
 
     replay(context, zk, zrw, readyMonitor);
 

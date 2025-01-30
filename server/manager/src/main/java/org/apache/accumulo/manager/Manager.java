@@ -1293,20 +1293,20 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     ZooReaderWriter zReaderWriter = context.getZooSession().asReaderWriter();
 
     try {
-      zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
+      zReaderWriter.getChildren(Constants.ZRECOVERY, new Watcher() {
         @Override
         public void process(WatchedEvent event) {
           nextEvent.event("Noticed recovery changes %s", event.getType());
           try {
             // watcher only fires once, add it back
-            zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, this);
+            zReaderWriter.getChildren(Constants.ZRECOVERY, this);
           } catch (Exception e) {
             log.error("Failed to add log recovery watcher back", e);
           }
         }
       });
     } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException("Unable to read " + zroot + Constants.ZRECOVERY, e);
+      throw new IllegalStateException("Unable to read " + Constants.ZRECOVERY, e);
     }
 
     watchers.add(new TabletGroupWatcher(this,

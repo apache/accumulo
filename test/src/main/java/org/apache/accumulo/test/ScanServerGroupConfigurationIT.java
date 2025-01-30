@@ -150,7 +150,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
 
         // Start a ScanServer. No group specified, should be in the default group.
         getCluster().getClusterControl().start(ServerType.SCAN_SERVER, "localhost");
-        Wait.waitFor(() -> zk.getChildren(scanServerRoot).size() == 1, 30_000);
+        Wait.waitFor(() -> zk.getChildren(Constants.ZSSERVERS).size() == 1, 30_000);
         Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
             (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
             == true);
@@ -170,7 +170,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
         // and the scripts need to be updated.
         getCluster()._exec(ScanServer.class, ServerType.SCAN_SERVER, Map.of(),
             new String[] {"-o", "sserver.group=GROUP1"});
-        Wait.waitFor(() -> zk.getChildren(scanServerRoot).size() == 2);
+        Wait.waitFor(() -> zk.getChildren(Constants.ZSSERVERS).size() == 2);
         Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
             (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
             == true);

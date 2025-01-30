@@ -105,7 +105,7 @@ public class Upgrader11to12 implements Upgrader {
       var zrw = context.getZooSession().asReaderWriter();
 
       // clean up nodes no longer in use
-      zrw.recursiveDelete(ZROOT_TABLET + ZTRACERS, ZooUtil.NodeMissingPolicy.SKIP);
+      zrw.recursiveDelete(ZTRACERS, ZooUtil.NodeMissingPolicy.SKIP);
 
       Stat stat = new Stat();
       byte[] rootData = zrw.getData(ZROOT_TABLET, stat);

@@ -130,7 +130,7 @@ public class PropCacheCaffeineImplZkIT {
 
     ReadyMonitor readyMonitor = new ReadyMonitor("test", zk.getSessionTimeout());
 
-    PropStoreWatcher propStoreWatcher = new PropStoreWatcher(readyMonitor);
+    PropStoreWatcher propStoreWatcher = new PropStoreWatcher(readyMonitor, INSTANCE_ID);
 
     var propLoader = new ZooPropLoader(zk, VersionedPropCodec.getDefault(), propStoreWatcher);
     PropCacheCaffeineImpl cache = new PropCacheCaffeineImpl.Builder(propLoader).build();

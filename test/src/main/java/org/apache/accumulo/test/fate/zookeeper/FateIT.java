@@ -219,7 +219,7 @@ public class FateIT {
   @Timeout(30)
   public void testTransactionStatus() throws Exception {
 
-    final ZooStore<Manager> zooStore = new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk);
+    final ZooStore<Manager> zooStore = new ZooStore<>(Constants.ZFATE, zk);
     final AgeOffStore<Manager> store = new AgeOffStore<>(zooStore, 3000, System::currentTimeMillis);
 
     Manager manager = createMock(Manager.class);
@@ -290,7 +290,7 @@ public class FateIT {
 
   @Test
   public void testCancelWhileNew() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk);
+    final ZooStore<Manager> zooStore = new ZooStore<>(Constants.ZFATE, zk);
     final AgeOffStore<Manager> store = new AgeOffStore<>(zooStore, 3000, System::currentTimeMillis);
 
     Manager manager = createMock(Manager.class);
@@ -329,7 +329,7 @@ public class FateIT {
 
   @Test
   public void testCancelWhileSubmittedAndRunning() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk);
+    final ZooStore<Manager> zooStore = new ZooStore<>(Constants.ZFATE, zk);
     final AgeOffStore<Manager> store = new AgeOffStore<>(zooStore, 3000, System::currentTimeMillis);
 
     Manager manager = createMock(Manager.class);
@@ -370,7 +370,7 @@ public class FateIT {
 
   @Test
   public void testCancelWhileInCall() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk);
+    final ZooStore<Manager> zooStore = new ZooStore<>(Constants.ZFATE, zk);
     final AgeOffStore<Manager> store = new AgeOffStore<>(zooStore, 3000, System::currentTimeMillis);
 
     Manager manager = createMock(Manager.class);
@@ -416,7 +416,7 @@ public class FateIT {
      * is called and throws an exception (in call() or isReady()). It is then expected that: 1)
      * undo() is called on Repo3, 2) undo() is called on Repo2, 3) undo() is called on Repo1
      */
-    final ZooStore<Manager> zooStore = new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk);
+    final ZooStore<Manager> zooStore = new ZooStore<>(Constants.ZFATE, zk);
     final AgeOffStore<Manager> store = new AgeOffStore<>(zooStore, 3000, System::currentTimeMillis);
 
     Manager manager = createMock(Manager.class);

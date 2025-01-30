@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
@@ -67,9 +68,11 @@ public class PropStoreWatcher implements Watcher {
   private final Map<PropStoreKey<?>,Set<PropChangeListener>> listeners = new HashMap<>();
 
   private final ReadyMonitor zkReadyMonitor;
+  private final InstanceId instanceId;
 
-  public PropStoreWatcher(final ReadyMonitor zkReadyMonitor) {
+  public PropStoreWatcher(final ReadyMonitor zkReadyMonitor, final InstanceId instanceId) {
     this.zkReadyMonitor = zkReadyMonitor;
+    this.instanceId = instanceId;
   }
 
   public void registerListener(final PropStoreKey<?> propStoreKey,
@@ -100,7 +103,7 @@ public class PropStoreWatcher implements Watcher {
       case NodeDataChanged:
         path = event.getPath();
         log.trace("handle change event for path: {}", path);
-        propStoreKey = PropStoreKey.fromPath(path);
+        propStoreKey = PropStoreKey.fromPath(path, instanceId);
         if (propStoreKey != null) {
           signalZkChangeEvent(propStoreKey);
         }
@@ -108,7 +111,7 @@ public class PropStoreWatcher implements Watcher {
       case NodeDeleted:
         path = event.getPath();
         log.trace("handle delete event for path: {}", path);
-        propStoreKey = PropStoreKey.fromPath(path);
+        propStoreKey = PropStoreKey.fromPath(path, instanceId);
         if (propStoreKey != null) {
           // notify listeners
           Set<PropChangeListener> snapshot = getListenerSnapshot(propStoreKey);

@@ -78,6 +78,8 @@ public class ZooPropStoreTest {
     expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
     expect(zk.getSessionTimeout()).andReturn(2_000).anyTimes();
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
+
+    expect(zrw.exists(eq("/"), anyObject())).andReturn(true).anyTimes();
   }
 
   @AfterEach
@@ -376,9 +378,9 @@ public class ZooPropStoreTest {
     }
   }
 
-  private static class TestWatcher extends PropStoreWatcher {
+  private class TestWatcher extends PropStoreWatcher {
     public TestWatcher(ReadyMonitor zkReadyMonitor) {
-      super(zkReadyMonitor);
+      super(zkReadyMonitor, instanceId);
     }
   }
 

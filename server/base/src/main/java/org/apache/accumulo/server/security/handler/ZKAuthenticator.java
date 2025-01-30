@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -41,16 +42,15 @@ import org.slf4j.LoggerFactory;
 // Utility class for adding all authentication info into ZK
 public final class ZKAuthenticator implements Authenticator {
   private static final Logger log = LoggerFactory.getLogger(ZKAuthenticator.class);
+  private final String zkUserPath = Constants.ZUSERS;
 
   private ServerContext context;
-  private String zkUserPath;
   private ZooCache zooCache;
 
   @Override
   public void initialize(ServerContext context) {
     this.context = context;
     zooCache = new ZooCache(context.getZooSession());
-    zkUserPath = context.zkUserPath();
   }
 
   @Override
