@@ -214,9 +214,8 @@ public class CompactionFinalizer {
   }
 
   private void notifyTservers() {
-    try {
-      Iterator<ExternalCompactionFinalState> finalStates =
-          context.getAmple().getExternalCompactionFinalStates().iterator();
+    try (var finalStatesStream = context.getAmple().getExternalCompactionFinalStates()) {
+      Iterator<ExternalCompactionFinalState> finalStates = finalStatesStream.iterator();
       while (finalStates.hasNext()) {
         ExternalCompactionFinalState state = finalStates.next();
         LOG.debug("Found external compaction in final state: {}, queueing for tserver notification",
