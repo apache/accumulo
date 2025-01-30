@@ -317,7 +317,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     scanner.setRange(ExternalCompactionSection.getRange());
     int pLen = ExternalCompactionSection.getRowPrefix().length();
-    return scanner.stream()
+    return scanner.stream().onClose(scanner::close)
         .map(e -> ExternalCompactionFinalState.fromJson(
             ExternalCompactionId.of(e.getKey().getRowData().toString().substring(pLen)),
             e.getValue().toString()));
