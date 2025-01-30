@@ -865,6 +865,10 @@ public class TabletServer extends AbstractServer
 
     HostAndPort managerHost;
     while (!isShutdownRequested()) {
+      if (Thread.currentThread().isInterrupted()) {
+        LOG.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
 
       updateIdleStatus(getOnlineTablets().isEmpty());
 
@@ -876,7 +880,7 @@ public class TabletServer extends AbstractServer
         try {
           // wait until a message is ready to send, or a server stop
           // was requested
-          while (mm == null && !isShutdownRequested()) {
+          while (mm == null && !isShutdownRequested() && !Thread.currentThread().isInterrupted()) {
             mm = managerMessages.poll(1, TimeUnit.SECONDS);
             updateIdleStatus(getOnlineTablets().isEmpty());
           }
@@ -889,8 +893,8 @@ public class TabletServer extends AbstractServer
 
           // if while loop does not execute at all and mm != null,
           // then finally block should place mm back on queue
-          while (!isShutdownRequested() && mm != null && client != null
-              && client.getOutputProtocol() != null
+          while (!Thread.currentThread().isInterrupted() && !isShutdownRequested() && mm != null
+              && client != null && client.getOutputProtocol() != null
               && client.getOutputProtocol().getTransport() != null
               && client.getOutputProtocol().getTransport().isOpen()) {
             try {

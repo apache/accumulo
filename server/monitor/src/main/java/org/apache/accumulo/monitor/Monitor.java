@@ -528,6 +528,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     monitorInitialized.set(true);
 
     while (!isShutdownRequested()) {
+      if (Thread.currentThread().isInterrupted()) {
+        LOG.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
       try {
         Thread.sleep(1000);
       } catch (InterruptedException e) {

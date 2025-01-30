@@ -309,6 +309,10 @@ public class CompactionCoordinator extends AbstractServer implements
 
     LOG.info("Starting loop to check tservers for compaction summaries");
     while (!isShutdownRequested()) {
+      if (Thread.currentThread().isInterrupted()) {
+        LOG.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
       try {
         long start = System.currentTimeMillis();
 

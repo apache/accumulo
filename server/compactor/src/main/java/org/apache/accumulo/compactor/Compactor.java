@@ -698,6 +698,10 @@ public class Compactor extends AbstractServer
       final AtomicReference<Throwable> err = new AtomicReference<>();
 
       while (!isShutdownRequested()) {
+        if (Thread.currentThread().isInterrupted()) {
+          LOG.info("Server process thread has been interrupted, shutting down");
+          break;
+        }
         try {
           // mark compactor as idle while not in the compaction loop
           updateIdleStatus(true);

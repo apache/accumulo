@@ -194,6 +194,10 @@ public class SimpleGarbageCollector extends AbstractServer
         });
 
     while (!isShutdownRequested()) {
+      if (Thread.currentThread().isInterrupted()) {
+        LOG.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
       try {
         Span outerSpan = TraceUtil.startSpan(this.getClass(), "gc");
         try (Scope outerScope = outerSpan.makeCurrent()) {

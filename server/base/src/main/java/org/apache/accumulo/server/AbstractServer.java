@@ -150,13 +150,19 @@ public abstract class AbstractServer
    * public void run() {
    *   // setup server and start threads
    *   while (!isShutdownRequested()) {
+   *     if (Thread.currentThread().isInterrupted()) {
+   *       LOG.info("Server process thread has been interrupted, shutting down");
+   *       break;
+   *     }
    *     try {
    *       // sleep or other things
    *     } catch (InterruptedException e) {
-   *       requestShutdown();
+   *       gracefulShutdown();
    *     }
    *   }
    *   // shut down server
+   *   getShutdownComplete().set(true);
+   *   ServiceLock.unlock(serverLock);
    * }
    * </pre>
    */

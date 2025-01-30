@@ -403,6 +403,10 @@ public class ScanServer extends AbstractServer
 
     try {
       while (!isShutdownRequested()) {
+        if (Thread.currentThread().isInterrupted()) {
+          LOG.info("Server process thread has been interrupted, shutting down");
+          break;
+        }
         try {
           Thread.sleep(1000);
           updateIdleStatus(sessionManager.getActiveScans().isEmpty()

@@ -1443,6 +1443,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     managerInitialized.set(true);
 
     while (!isShutdownRequested() && clientService.isServing()) {
+      if (Thread.currentThread().isInterrupted()) {
+        LOG.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
       try {
         Thread.sleep(500);
       } catch (InterruptedException e) {
