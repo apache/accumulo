@@ -79,7 +79,7 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
 
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 1; i <= 4; i++) {
-        splits.add(new Text(Integer.toString(i)));
+        splits.add(new Text(String.format("%03d", i)));
       }
       client.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
 
@@ -89,8 +89,10 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
       AtomicInteger iteration = new AtomicInteger(0);
       Wait.waitFor(() -> {
 
+        String rowToWrite = String.format("%03d", iteration.get());
+
         // Write data that should fill or partially fill the WAL
-        writeData(client, tableName);
+        writeData(client, tableName, rowToWrite);
 
         // Check the current number of WALs in use
         long walCount = getWalCount(getServerContext());
@@ -115,11 +117,11 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
   /**
    * Writes data to a single tablet until the total written data size exceeds 2 * TSERV_WAL_MAX_SIZE
    */
-  private void writeData(AccumuloClient client, String table) throws Exception {
+  private void writeData(AccumuloClient client, String table, String rowToWrite) throws Exception {
     try (BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig())) {
       long totalWritten = 0;
       while (totalWritten < 2 * hdfsMinBlockSize) {
-        Mutation m = new Mutation("target_row");
+        Mutation m = new Mutation(rowToWrite);
         m.put("cf", "cq", "value");
         bw.addMutation(m);
         totalWritten += m.estimatedMemoryUsed();
