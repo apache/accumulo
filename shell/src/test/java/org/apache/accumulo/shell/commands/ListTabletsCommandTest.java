@@ -23,12 +23,14 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -171,9 +173,10 @@ public class ListTabletsCommandTest {
             .putFile(sf31, dfv31).putWal(le1).putWal(le2).putDirName("t-dir3").build(LOCATION);
 
     TabletInformationImpl[] tabletInformation = new TabletInformationImpl[3];
-    tabletInformation[0] = new TabletInformationImpl(tm1, "HOSTED");
-    tabletInformation[1] = new TabletInformationImpl(tm2, "HOSTED");
-    tabletInformation[2] = new TabletInformationImpl(tm3, "UNASSIGNED");
+    Supplier<Duration> currentTime = () -> Duration.ofHours(1);
+    tabletInformation[0] = new TabletInformationImpl(tm1, "HOSTED", currentTime);
+    tabletInformation[1] = new TabletInformationImpl(tm2, "HOSTED", currentTime);
+    tabletInformation[2] = new TabletInformationImpl(tm3, "UNASSIGNED", currentTime);
 
     AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     ClientContext context = EasyMock.createMock(ClientContext.class);
