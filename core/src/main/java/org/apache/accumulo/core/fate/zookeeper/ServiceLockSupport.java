@@ -41,16 +41,23 @@ public class ServiceLockSupport {
     private static final Logger LOG = LoggerFactory.getLogger(HAServiceLockWatcher.class);
 
     private final String serviceName;
+    private final Supplier<Boolean> shutdownComplete;
     private volatile boolean acquiredLock = false;
     private volatile boolean failedToAcquireLock = false;
 
-    public HAServiceLockWatcher(String serviceName) {
+    public HAServiceLockWatcher(String serviceName, Supplier<Boolean> shutdownComplete) {
       this.serviceName = serviceName;
+      this.shutdownComplete = shutdownComplete;
     }
 
     @Override
     public void lostLock(LockLossReason reason) {
-      Halt.halt(serviceName + " lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+      if (shutdownComplete.get()) {
+        LOG.warn("{} lost lock (reason = {}), not halting because shutdown is complete.",
+            serviceName, reason);
+      } else {
+        Halt.halt(serviceName + " lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+      }
     }
 
     @Override
@@ -122,24 +129,27 @@ public class ServiceLockSupport {
     private static final Logger LOG = LoggerFactory.getLogger(ServiceLockWatcher.class);
 
     private final String serviceName;
-    private final Supplier<Boolean> shuttingDown;
+    private final Supplier<Boolean> shutdownComplete;
     private final Consumer<String> lostLockAction;
 
-    public ServiceLockWatcher(String serviceName, Supplier<Boolean> shuttingDown,
+    public ServiceLockWatcher(String serviceName, Supplier<Boolean> shutdownComplete,
         Consumer<String> lostLockAction) {
       this.serviceName = serviceName;
-      this.shuttingDown = shuttingDown;
+      this.shutdownComplete = shutdownComplete;
       this.lostLockAction = lostLockAction;
     }
 
     @Override
     public void lostLock(final LockLossReason reason) {
-      Halt.halt(1, () -> {
-        if (!shuttingDown.get()) {
+      if (shutdownComplete.get()) {
+        LOG.warn("{} lost lock (reason = {}), not halting because shutdown is complete.",
+            serviceName, reason);
+      } else {
+        Halt.halt(1, () -> {
           LOG.error("{} lost lock (reason = {}), exiting.", serviceName, reason);
-        }
-        lostLockAction.accept(serviceName);
-      });
+          lostLockAction.accept(serviceName);
+        });
+      }
     }
 
     @Override

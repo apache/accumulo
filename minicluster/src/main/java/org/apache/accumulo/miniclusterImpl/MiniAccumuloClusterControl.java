@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -528,4 +529,69 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     stop(server, hostname);
   }
 
+  public void refreshProcesses(ServerType type) {
+    switch (type) {
+      case COMPACTION_COORDINATOR:
+        if (!coordinatorProcess.isAlive()) {
+          coordinatorProcess = null;
+        }
+        break;
+      case COMPACTOR:
+        compactorProcesses.removeIf(process -> !process.isAlive());
+        break;
+      case GARBAGE_COLLECTOR:
+        if (!gcProcess.isAlive()) {
+          gcProcess = null;
+        }
+        break;
+      case MANAGER:
+      case MASTER:
+        if (!managerProcess.isAlive()) {
+          managerProcess = null;
+        }
+        break;
+      case MONITOR:
+        if (!monitor.isAlive()) {
+          monitor = null;
+        }
+        break;
+      case SCAN_SERVER:
+        scanServerProcesses.removeIf(process -> !process.isAlive());
+        break;
+      case TABLET_SERVER:
+        tabletServerProcesses.removeIf(process -> !process.isAlive());
+        break;
+      case ZOOKEEPER:
+        if (!zooKeeperProcess.isAlive()) {
+          zooKeeperProcess = null;
+        }
+        break;
+      default:
+        throw new IllegalArgumentException("Unhandled type: " + type);
+    }
+  }
+
+  public Set<Process> getProcesses(ServerType type) {
+    switch (type) {
+      case COMPACTION_COORDINATOR:
+        return coordinatorProcess == null ? Set.of() : Set.of(coordinatorProcess);
+      case COMPACTOR:
+        return Set.copyOf(compactorProcesses);
+      case GARBAGE_COLLECTOR:
+        return gcProcess == null ? Set.of() : Set.of(gcProcess);
+      case MANAGER:
+      case MASTER:
+        return managerProcess == null ? Set.of() : Set.of(managerProcess);
+      case MONITOR:
+        return monitor == null ? Set.of() : Set.of(monitor);
+      case SCAN_SERVER:
+        return Set.copyOf(scanServerProcesses);
+      case TABLET_SERVER:
+        return Set.copyOf(tabletServerProcesses);
+      case ZOOKEEPER:
+        return zooKeeperProcess == null ? Set.of() : Set.of(zooKeeperProcess);
+      default:
+        throw new IllegalArgumentException("Unhandled type: " + type);
+    }
+  }
 }

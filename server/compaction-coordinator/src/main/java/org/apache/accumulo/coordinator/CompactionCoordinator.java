@@ -65,6 +65,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -75,7 +76,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -103,8 +103,8 @@ import com.google.common.collect.Sets;
 
 import io.micrometer.core.instrument.Tag;
 
-public class CompactionCoordinator extends AbstractServer
-    implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
+public class CompactionCoordinator extends AbstractServer implements
+    CompactionCoordinatorService.Iface, LiveTServerSet.Listener, ServerProcessService.Iface {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
 
@@ -136,9 +136,6 @@ public class CompactionCoordinator extends AbstractServer
   protected LiveTServerSet tserverSet;
 
   private ServiceLock coordinatorLock;
-
-  // Exposed for tests
-  protected volatile Boolean shutdown = false;
 
   private final ScheduledThreadPoolExecutor schedExecutor;
 
@@ -222,9 +219,10 @@ public class CompactionCoordinator extends AbstractServer
 
     coordinatorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
         ServiceLock.path(lockPath), zooLockUUID);
+    HAServiceLockWatcher coordinatorLockWatcher =
+        new HAServiceLockWatcher("coordinator", () -> getShutdownComplete().get());
     while (true) {
 
-      HAServiceLockWatcher coordinatorLockWatcher = new HAServiceLockWatcher("coordinator");
       coordinatorLock.lock(coordinatorLockWatcher, coordinatorClientAddress.getBytes(UTF_8));
 
       coordinatorLockWatcher.waitForChange();
@@ -247,7 +245,7 @@ public class CompactionCoordinator extends AbstractServer
    * @throws UnknownHostException host unknown
    */
   protected ServerAddress startCoordinatorClientService() throws UnknownHostException {
-    var processor = ThriftProcessorTypes.getCoordinatorTProcessor(this, getContext());
+    var processor = ThriftProcessorTypes.getCoordinatorTProcessor(this, this, getContext());
     @SuppressWarnings("deprecation")
     var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
         Property.GENERAL_MAX_MESSAGE_SIZE);
@@ -310,31 +308,51 @@ public class CompactionCoordinator extends AbstractServer
     startDeadCompactionDetector();
 
     LOG.info("Starting loop to check tservers for compaction summaries");
-    while (!shutdown) {
-      long start = System.currentTimeMillis();
+    while (!isShutdownRequested()) {
+      if (Thread.currentThread().isInterrupted()) {
+        LOG.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
+      try {
+        long start = System.currentTimeMillis();
 
-      updateSummaries();
+        updateSummaries();
 
-      long now = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
 
-      Map<String,List<HostAndPort>> idleCompactors = getIdleCompactors();
-      TIME_COMPACTOR_LAST_CHECKED.forEach((queue, lastCheckTime) -> {
-        if ((now - lastCheckTime) > getMissingCompactorWarningTime()
-            && QUEUE_SUMMARIES.isCompactionsQueued(queue) && idleCompactors.containsKey(queue)) {
-          LOG.warn("No compactors have checked in with coordinator for queue {} in {}ms", queue,
-              getMissingCompactorWarningTime());
+        Map<String,List<HostAndPort>> idleCompactors = getIdleCompactors();
+        TIME_COMPACTOR_LAST_CHECKED.forEach((queue, lastCheckTime) -> {
+          if ((now - lastCheckTime) > getMissingCompactorWarningTime()
+              && QUEUE_SUMMARIES.isCompactionsQueued(queue) && idleCompactors.containsKey(queue)) {
+            LOG.warn("No compactors have checked in with coordinator for queue {} in {}ms", queue,
+                getMissingCompactorWarningTime());
+          }
+        });
+
+        long checkInterval = getTServerCheckInterval();
+        long duration = (System.currentTimeMillis() - start);
+        if (checkInterval - duration > 0) {
+          LOG.debug("Waiting {}ms for next tserver check", (checkInterval - duration));
+          Thread.sleep(checkInterval - duration);
         }
-      });
-
-      long checkInterval = getTServerCheckInterval();
-      long duration = (System.currentTimeMillis() - start);
-      if (checkInterval - duration > 0) {
-        LOG.debug("Waiting {}ms for next tserver check", (checkInterval - duration));
-        UtilWaitThread.sleep(checkInterval - duration);
+      } catch (InterruptedException e) {
+        LOG.info("Interrupt Exception received, shutting down");
+        gracefulShutdown(getContext().rpcCreds());
       }
     }
 
-    LOG.info("Shutting down");
+    LOG.debug("Stopping Thrift Servers");
+    if (coordinatorAddress.server != null) {
+      coordinatorAddress.server.stop();
+    }
+    getShutdownComplete().set(true);
+    LOG.info("stop requested. exiting ... ");
+    try {
+      coordinatorLock.unlock();
+    } catch (Exception e) {
+      LOG.warn("Failed to release Coordinator lock", e);
+    }
+
   }
 
   private Map<String,List<HostAndPort>> getIdleCompactors() {

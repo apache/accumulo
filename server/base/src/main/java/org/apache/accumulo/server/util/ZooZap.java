@@ -141,7 +141,9 @@ public class ZooZap implements KeywordExecutable {
           } else {
             var zLockPath = ServiceLock.path(tserversPath + "/" + child);
             if (!zoo.getChildren(zLockPath.toString()).isEmpty()) {
-              if (!ServiceLock.deleteLock(zoo, zLockPath, "tserver")) {
+              try {
+                ServiceLock.deleteLock(zoo, zLockPath);
+              } catch (RuntimeException e) {
                 message("Did not delete " + tserversPath + "/" + child, opts);
               }
             }
