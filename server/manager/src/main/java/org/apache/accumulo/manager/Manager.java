@@ -96,6 +96,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
@@ -164,8 +165,8 @@ import io.opentelemetry.context.Scope;
  * <p>
  * The manager will also coordinate log recoveries and reports general status.
  */
-public class Manager extends AbstractServer
-    implements LiveTServerSet.Listener, TableObserver, CurrentState, HighlyAvailableService {
+public class Manager extends AbstractServer implements LiveTServerSet.Listener, TableObserver,
+    CurrentState, HighlyAvailableService, ServerProcessService.Iface {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
@@ -1243,7 +1244,7 @@ public class Manager extends AbstractServer
 
     ServerAddress sa;
     var processor =
-        ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy, getContext());
+        ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler, haProxy, getContext());
 
     try {
       @SuppressWarnings("deprecation")
@@ -1441,10 +1442,23 @@ public class Manager extends AbstractServer
     // The manager is fully initialized. Clients are allowed to connect now.
     managerInitialized.set(true);
 
-    while (clientService.isServing()) {
-      sleepUninterruptibly(500, MILLISECONDS);
+    while (!isShutdownRequested() && clientService.isServing()) {
+      if (Thread.currentThread().isInterrupted()) {
+        LOG.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        log.info("Interrupt Exception received, shutting down");
+        gracefulShutdown(context.rpcCreds());
+      }
     }
-    log.info("Shutting down fate.");
+
+    LOG.debug("Stopping Thrift Servers");
+    sa.server.stop();
+
+    log.debug("Shutting down fate.");
     fate().shutdown();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
@@ -1485,7 +1499,13 @@ public class Manager extends AbstractServer
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
-    log.info("exiting");
+    getShutdownComplete().set(true);
+    log.info("stop requested. exiting ... ");
+    try {
+      managerLock.unlock();
+    } catch (Exception e) {
+      log.warn("Failed to release Manager lock", e);
+    }
   }
 
   @Deprecated
@@ -1645,9 +1665,11 @@ public class Manager extends AbstractServer
 
     UUID zooLockUUID = UUID.randomUUID();
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
+    HAServiceLockWatcher managerLockWatcher =
+        new HAServiceLockWatcher("manager", () -> getShutdownComplete().get());
+
     while (true) {
 
-      HAServiceLockWatcher managerLockWatcher = new HAServiceLockWatcher("manager");
       managerLock.lock(managerLockWatcher, managerClientAddress.getBytes(UTF_8));
 
       managerLockWatcher.waitForChange();

@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -62,6 +63,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
@@ -79,6 +81,7 @@ import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,6 +102,13 @@ public class Admin implements KeywordExecutable {
   private static class SubCommandOpts {
     @Parameter(names = {"-h", "-?", "--help", "-help"}, help = true)
     public boolean help = false;
+  }
+
+  @Parameters(
+      commandDescription = "signal the server process to shutdown normally, finishing anything it might be working on, but not starting any new tasks")
+  static class GracefulShutdownCommand extends SubCommandOpts {
+    @Parameter(required = true, names = {"-a", "--address"}, description = "<host:port>")
+    String address = null;
   }
 
   @Parameters(commandDescription = "stop the tablet server on the given hosts")
@@ -311,6 +321,9 @@ public class Admin implements KeywordExecutable {
     FateOpsCommand fateOpsCommand = new FateOpsCommand();
     cl.addCommand("fate", fateOpsCommand);
 
+    GracefulShutdownCommand gracefulShutdownCommand = new GracefulShutdownCommand();
+    cl.addCommand("signalShutdown", gracefulShutdownCommand);
+
     ListInstancesCommand listInstancesOpts = new ListInstancesCommand();
     cl.addCommand("listInstances", listInstancesOpts);
 
@@ -401,6 +414,8 @@ public class Admin implements KeywordExecutable {
 
       } else if (cl.getParsedCommand().equals("stop")) {
         stopTabletServer(context, stopOpts.args, stopOpts.force);
+      } else if (cl.getParsedCommand().equals("signalShutdown")) {
+        signalGracefulShutdown(context, gracefulShutdownCommand.address);
       } else if (cl.getParsedCommand().equals("dumpConfig")) {
         printConfig(context, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
@@ -546,6 +561,25 @@ public class Admin implements KeywordExecutable {
 
     ThriftClientTypes.MANAGER.executeVoid(context,
         client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
+  }
+
+  // Visible for tests
+  public static void signalGracefulShutdown(final ClientContext context, String address) {
+
+    Objects.requireNonNull(address, "address not set");
+    final HostAndPort hp = HostAndPort.fromString(address);
+    ServerProcessService.Client client = null;
+    try {
+      client = ThriftClientTypes.SERVER_PROCESS.getServerProcessConnection(context, log,
+          hp.getHost(), hp.getPort());
+      client.gracefulShutdown(context.rpcCreds());
+    } catch (TException e) {
+      throw new RuntimeException("Error invoking graceful shutdown for server: " + hp, e);
+    } finally {
+      if (client != null) {
+        ThriftUtil.returnClient(client, context);
+      }
+    }
   }
 
   private static void stopTabletServer(final ClientContext context, List<String> servers,

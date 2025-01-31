@@ -22,12 +22,13 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.TStore;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.server.ServerOpts;
 import org.slf4j.LoggerFactory;
 
-public class FlakyFateManager extends Manager {
+public class FlakyFateManager extends Manager implements ServerProcessService.Iface {
 
   protected FlakyFateManager(ServerOpts opts, String[] args) throws IOException {
     super(opts, args);

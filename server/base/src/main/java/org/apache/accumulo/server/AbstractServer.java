@@ -21,14 +21,18 @@ package org.apache.accumulo.server;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -41,7 +45,8 @@ import com.google.common.base.Preconditions;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
-public abstract class AbstractServer implements AutoCloseable, MetricsProducer, Runnable {
+public abstract class AbstractServer
+    implements AutoCloseable, MetricsProducer, Runnable, ServerProcessService.Iface {
 
   private final ServerContext context;
   protected final String applicationName;
@@ -52,6 +57,8 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   private volatile long idlePeriodStartNanos = 0L;
   private volatile Thread serverThread;
   private volatile Thread verificationThread;
+  private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
+  private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
 
   protected AbstractServer(String appName, ServerOpts opts, String[] args) {
     this.log = LoggerFactory.getLogger(getClass().getName());
@@ -102,8 +109,62 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     }
   }
 
+  @Override
+  public void gracefulShutdown(TCredentials credentials) {
+
+    try {
+      if (!context.getSecurityOperation().canPerformSystemActions(credentials)) {
+        log.warn("Ignoring shutdown request, user " + credentials.getPrincipal()
+            + " does not have the appropriate permissions.");
+      }
+    } catch (ThriftSecurityException e) {
+      log.error(
+          "Error trying to determine if user has permissions to shutdown server, ignoring request",
+          e);
+      return;
+    }
+
+    if (shutdownRequested.compareAndSet(false, true)) {
+      // Don't interrupt the server thread, that will cause
+      // IO operations to fail as the servers are finishing
+      // their work.
+      log.info("Graceful shutdown initiated.");
+    } else {
+      log.warn("Graceful shutdown previously requested.");
+    }
+  }
+
+  public boolean isShutdownRequested() {
+    return shutdownRequested.get();
+  }
+
+  public AtomicBoolean getShutdownComplete() {
+    return shutdownComplete;
+  }
+
   /**
-   * Run this server in a main thread
+   * Run this server in a main thread. The server's run method should set up the server, then wait
+   * on isShutdownRequested() to return false, like so:
+   *
+   * <pre>
+   * public void run() {
+   *   // setup server and start threads
+   *   while (!isShutdownRequested()) {
+   *     if (Thread.currentThread().isInterrupted()) {
+   *       LOG.info("Server process thread has been interrupted, shutting down");
+   *       break;
+   *     }
+   *     try {
+   *       // sleep or other things
+   *     } catch (InterruptedException e) {
+   *       gracefulShutdown();
+   *     }
+   *   }
+   *   // shut down server
+   *   getShutdownComplete().set(true);
+   *   ServiceLock.unlock(serverLock);
+   * }
+   * </pre>
    */
   public void runServer() throws Exception {
     final AtomicReference<Throwable> err = new AtomicReference<>();
@@ -115,6 +176,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
       verificationThread.interrupt();
       verificationThread.join();
     }
+    log.info(getClass().getSimpleName() + " process shut down.");
     Throwable thrown = err.get();
     if (thrown != null) {
       if (thrown instanceof Error) {

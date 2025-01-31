@@ -33,6 +33,7 @@ import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -50,6 +51,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.Halt;
@@ -183,7 +186,7 @@ public class CompactorTest {
 
   }
 
-  public class SuccessfulCompactor extends Compactor {
+  public class SuccessfulCompactor extends Compactor implements ServerProcessService.Iface {
 
     private final Logger LOG = LoggerFactory.getLogger(SuccessfulCompactor.class);
 
@@ -195,6 +198,8 @@ public class CompactorTest {
     private volatile boolean completedCalled = false;
     private volatile boolean failedCalled = false;
     private TCompactionStatusUpdate latestState = null;
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
 
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci, CompactorServerOpts compactorServerOpts) {
@@ -227,8 +232,22 @@ public class CompactorTest {
     protected TNextCompactionJob getNextJob(Supplier<UUID> uuid) throws RetriesExceededException {
       LOG.info("Attempting to get next job, eci = {}", eci);
       currentCompactionId.set(eci);
-      this.shutdown = true;
+      gracefulShutdown(null);
       return new TNextCompactionJob(job, 1);
+    }
+
+    @Override
+    public void gracefulShutdown(TCredentials creds) {
+      shutdown.set(true);
+    }
+
+    @Override
+    public boolean isShutdownRequested() {
+      return shutdown.get();
+    }
+
+    public AtomicBoolean getShutdownComplete() {
+      return shutdownComplete;
     }
 
     @Override
@@ -283,7 +302,7 @@ public class CompactorTest {
 
   }
 
-  public class FailedCompactor extends SuccessfulCompactor {
+  public class FailedCompactor extends SuccessfulCompactor implements ServerProcessService.Iface {
 
     FailedCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci, CompactorServerOpts compactorServerOpts) {
@@ -298,7 +317,8 @@ public class CompactorTest {
     }
   }
 
-  public class InterruptedCompactor extends SuccessfulCompactor {
+  public class InterruptedCompactor extends SuccessfulCompactor
+      implements ServerProcessService.Iface {
 
     InterruptedCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci, CompactorServerOpts compactorServerOpts) {
