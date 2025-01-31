@@ -67,6 +67,8 @@ import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -839,5 +841,27 @@ public class RFileClientTest {
         .withFileSystem(localFs).withIndexCache(1000000).withDataCache(10000000).build();
     assertEquals(testData, toMap(scanner));
     scanner.close();
+  }
+
+  @Test
+  public void testFileSystemFromUri() throws Exception {
+    String localFsClass = "LocalFileSystem";
+
+    String fileUri = "hdfs://127.0.0.5:8080/bulk-xyx/file1.rf";
+    // There was a bug in the code where the default hadoop file system was always used. This test
+    // checks that the hadoop filesystem used it based on the URI and not the default filesystem. In
+    // this env the default file system is the local hadoop file system.
+    var exception = assertThrows(IOException.class, () -> RFile.newWriter().to(fileUri).build());
+    // Ensure the DistributedFileSystem was used.
+    assertTrue(Arrays.stream(exception.getStackTrace())
+        .anyMatch(ste -> ste.getClassName().contains(DistributedFileSystem.class.getName())));
+    assertTrue(Arrays.stream(exception.getStackTrace())
+        .noneMatch(ste -> ste.getClassName().contains(localFsClass)));
+
+    // verify the assumptions this test is making about the local filesystem being the default.
+    var exception2 = assertThrows(IllegalArgumentException.class,
+        () -> FileSystem.get(new Configuration()).open(new Path(fileUri)));
+    assertTrue(Arrays.stream(exception2.getStackTrace())
+        .anyMatch(ste -> ste.getClassName().contains(localFsClass)));
   }
 }
