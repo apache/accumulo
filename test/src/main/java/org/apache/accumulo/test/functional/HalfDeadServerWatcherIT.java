@@ -38,6 +38,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -63,7 +64,8 @@ import org.slf4j.LoggerFactory;
  */
 public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
 
-  public static class HalfDeadTabletServer extends TabletServer {
+  public static class HalfDeadTabletServer extends TabletServer
+      implements ServerProcessService.Iface {
 
     private static final Logger LOG = LoggerFactory.getLogger(HalfDeadTabletServer.class);
 

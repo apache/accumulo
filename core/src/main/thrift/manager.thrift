@@ -351,6 +351,15 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
   )
+  
+  void tabletServerStopping(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string tabletServer
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
 
   void setSystemProperty(
     1:client.TInfo tinfo
