@@ -35,6 +35,7 @@ import java.util.stream.IntStream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -50,7 +51,6 @@ import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsInfo;
-import org.apache.accumulo.core.metrics.thrift.MetricSource;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -64,7 +64,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
-import org.apache.accumulo.server.metrics.MetricServiceHandler;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -95,7 +94,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   private final Timer lastCompactorCheck = Timer.startNew();
 
   SimpleGarbageCollector(ConfigOpts opts, String[] args) {
-    super("gc", opts, ServerContext::new, args);
+    super(ServerId.Type.GARBAGE_COLLECTOR, opts, ServerContext::new, args);
 
     final AccumuloConfiguration conf = getConfiguration();
 
@@ -417,8 +416,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   private HostAndPort startStatsService() {
-    MetricServiceHandler metricHandler = createMetricServiceHandler(MetricSource.GARBAGE_COLLECTOR);
-    var processor = ThriftProcessorTypes.getGcTProcessor(this, this, metricHandler, getContext());
+    var processor = ThriftProcessorTypes.getGcTProcessor(this, this, getContext());
     IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
@@ -428,7 +426,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         getContext().getServerSslParams(), getContext().getSaslParams(), 0,
         getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
         addresses);
-    metricHandler.setHost(server.address);
+    setHostname(server.address);
     log.debug("Starting garbage collector listening on " + server.address);
     return server.address;
   }

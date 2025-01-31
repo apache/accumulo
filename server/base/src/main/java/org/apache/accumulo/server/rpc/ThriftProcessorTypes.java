@@ -24,7 +24,6 @@ import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
-import org.apache.accumulo.core.metrics.thrift.MetricService;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
@@ -34,7 +33,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.accumulo.server.metrics.MetricServiceHandler;
 import org.apache.thrift.TBaseProcessor;
 import org.apache.thrift.TMultiplexedProcessor;
 import org.apache.thrift.TProcessor;
@@ -84,9 +82,6 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   private static final ThriftProcessorTypes<ManagerClientService.Client> MANAGER =
       new ThriftProcessorTypes<>(ThriftClientTypes.MANAGER);
 
-  private static final ThriftProcessorTypes<MetricService.Client> METRICS =
-      new ThriftProcessorTypes<>(ThriftClientTypes.METRICS);
-
   @VisibleForTesting
   public static final ThriftProcessorTypes<TabletServerClientService.Client> TABLET_SERVER =
       new ThriftProcessorTypes<>(ThriftClientTypes.TABLET_SERVER);
@@ -106,8 +101,7 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
 
   public static TMultiplexedProcessor getCompactorTProcessor(
       ServerProcessService.Iface processHandler, ClientServiceHandler clientHandler,
-      CompactorService.Iface serviceHandler, MetricServiceHandler metricHandler,
-      ServerContext context) {
+      CompactorService.Iface serviceHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(CLIENT.getServiceName(), CLIENT.getTProcessor(
         ClientService.Processor.class, ClientService.Iface.class, clientHandler, context));
@@ -116,30 +110,24 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
             ServerProcessService.Iface.class, processHandler, context));
     muxProcessor.registerProcessor(COMPACTOR.getServiceName(), COMPACTOR.getTProcessor(
         CompactorService.Processor.class, CompactorService.Iface.class, serviceHandler, context));
-    muxProcessor.registerProcessor(METRICS.getServiceName(), METRICS.getTProcessor(
-        MetricService.Processor.class, MetricService.Iface.class, metricHandler, context));
     return muxProcessor;
   }
 
   public static TMultiplexedProcessor getGcTProcessor(ServerProcessService.Iface processHandler,
-      GCMonitorService.Iface serviceHandler, MetricServiceHandler metricHandler,
-      ServerContext context) {
+      GCMonitorService.Iface serviceHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
         SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
             ServerProcessService.Iface.class, processHandler, context));
     muxProcessor.registerProcessor(GC.getServiceName(), GC.getTProcessor(
         GCMonitorService.Processor.class, GCMonitorService.Iface.class, serviceHandler, context));
-    muxProcessor.registerProcessor(METRICS.getServiceName(), METRICS.getTProcessor(
-        MetricService.Processor.class, MetricService.Iface.class, metricHandler, context));
     return muxProcessor;
   }
 
   public static TMultiplexedProcessor getManagerTProcessor(
       ServerProcessService.Iface processHandler, FateService.Iface fateServiceHandler,
       CompactionCoordinatorService.Iface coordinatorServiceHandler,
-      ManagerClientService.Iface managerServiceHandler, MetricServiceHandler metricHandler,
-      ServerContext context) {
+      ManagerClientService.Iface managerServiceHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
         SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
@@ -152,15 +140,12 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
     muxProcessor.registerProcessor(MANAGER.getServiceName(),
         MANAGER.getTProcessor(ManagerClientService.Processor.class,
             ManagerClientService.Iface.class, managerServiceHandler, context));
-    muxProcessor.registerProcessor(METRICS.getServiceName(), METRICS.getTProcessor(
-        MetricService.Processor.class, MetricService.Iface.class, metricHandler, context));
     return muxProcessor;
   }
 
   public static TMultiplexedProcessor getScanServerTProcessor(
       ServerProcessService.Iface processHandler, ClientServiceHandler clientHandler,
-      TabletScanClientService.Iface tserverHandler, MetricServiceHandler metricHandler,
-      ServerContext context) {
+      TabletScanClientService.Iface tserverHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(CLIENT.getServiceName(), CLIENT.getTProcessor(
         ClientService.Processor.class, ClientService.Iface.class, clientHandler, context));
@@ -170,8 +155,6 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
     muxProcessor.registerProcessor(TABLET_SCAN.getServiceName(),
         TABLET_SCAN.getTProcessor(TabletScanClientService.Processor.class,
             TabletScanClientService.Iface.class, tserverHandler, context));
-    muxProcessor.registerProcessor(METRICS.getServiceName(), METRICS.getTProcessor(
-        MetricService.Processor.class, MetricService.Iface.class, metricHandler, context));
     return muxProcessor;
   }
 
@@ -180,8 +163,7 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
       TabletServerClientService.Iface tserverHandler,
       TabletScanClientService.Iface tserverScanHandler,
       TabletIngestClientService.Iface tserverIngestHandler,
-      TabletManagementClientService.Iface tserverMgmtHandler, MetricServiceHandler metricHandler,
-      ServerContext context) {
+      TabletManagementClientService.Iface tserverMgmtHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
         SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
@@ -200,8 +182,6 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
     muxProcessor.registerProcessor(TABLET_MGMT.getServiceName(),
         TABLET_MGMT.getTProcessor(TabletManagementClientService.Processor.class,
             TabletManagementClientService.Iface.class, tserverMgmtHandler, context));
-    muxProcessor.registerProcessor(METRICS.getServiceName(), METRICS.getTProcessor(
-        MetricService.Processor.class, MetricService.Iface.class, metricHandler, context));
     return muxProcessor;
   }
 

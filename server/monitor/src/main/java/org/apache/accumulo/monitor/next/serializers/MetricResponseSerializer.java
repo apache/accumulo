@@ -23,7 +23,7 @@ import java.nio.ByteBuffer;
 
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
-import org.apache.accumulo.core.metrics.thrift.MetricResponse;
+import org.apache.accumulo.core.process.thrift.MetricResponse;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;

@@ -22,7 +22,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.metrics.thrift;
+package org.apache.accumulo.core.process.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
 public class MetricResponse implements org.apache.thrift.TBase<MetricResponse, MetricResponse._Fields>, java.io.Serializable, Cloneable, Comparable<MetricResponse> {
@@ -691,7 +691,7 @@ public class MetricResponse implements org.apache.thrift.TBase<MetricResponse, M
         switch (schemeField.id) {
           case 1: // SERVER_TYPE
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-              struct.serverType = org.apache.accumulo.core.metrics.thrift.MetricSource.findByValue(iprot.readI32());
+              struct.serverType = org.apache.accumulo.core.process.thrift.MetricSource.findByValue(iprot.readI32());
               struct.setServerTypeIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -848,7 +848,7 @@ public class MetricResponse implements org.apache.thrift.TBase<MetricResponse, M
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet incoming = iprot.readBitSet(5);
       if (incoming.get(0)) {
-        struct.serverType = org.apache.accumulo.core.metrics.thrift.MetricSource.findByValue(iprot.readI32());
+        struct.serverType = org.apache.accumulo.core.process.thrift.MetricSource.findByValue(iprot.readI32());
         struct.setServerTypeIsSet(true);
       }
       if (incoming.get(1)) {

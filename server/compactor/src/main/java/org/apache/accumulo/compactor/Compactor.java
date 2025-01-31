@@ -47,6 +47,7 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -92,7 +93,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.thrift.MetricSource;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -119,7 +119,6 @@ import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.metrics.MetricServiceHandler;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -172,7 +171,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
   protected Compactor(ConfigOpts opts, String[] args) {
-    super("compactor", opts, ServerContext::new, args);
+    super(ServerId.Type.COMPACTOR, opts, ServerContext::new, args);
   }
 
   @Override
@@ -321,14 +320,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected ServerAddress startCompactorClientService() throws UnknownHostException {
 
     ClientServiceHandler clientHandler = new ClientServiceHandler(getContext());
-    MetricServiceHandler metricHandler = createMetricServiceHandler(MetricSource.COMPACTOR);
     var processor = ThriftProcessorTypes.getCompactorTProcessor(this, clientHandler,
-        getCompactorThriftHandlerInterface(), metricHandler, getContext());
+        getCompactorThriftHandlerInterface(), getContext());
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
         Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK);
-    metricHandler.setHost(sp.address);
+    setHostname(sp.address);
     LOG.info("address = {}", sp.address);
     return sp;
   }

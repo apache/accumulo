@@ -43,8 +43,8 @@ import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.metrics.thrift.MetricResponse;
-import org.apache.accumulo.core.metrics.thrift.MetricService.Client;
+import org.apache.accumulo.core.process.thrift.MetricResponse;
+import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -121,7 +121,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     @Override
     public void run() {
       try {
-        Client metricsClient = ThriftUtil.getClient(ThriftClientTypes.METRICS,
+        Client metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS,
             HostAndPort.fromParts(server.getHost(), server.getPort()), ctx);
         try {
           MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(), ctx.rpcCreds());

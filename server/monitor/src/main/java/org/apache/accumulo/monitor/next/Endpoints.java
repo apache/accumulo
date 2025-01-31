@@ -45,7 +45,7 @@ import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
-import org.apache.accumulo.core.metrics.thrift.MetricResponse;
+import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.ProcessSummary;

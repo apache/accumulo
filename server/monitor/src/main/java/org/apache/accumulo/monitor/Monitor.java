@@ -123,7 +123,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
   }
 
   Monitor(ConfigOpts opts, String[] args) {
-    super("monitor", opts, ServerContext::new, args);
+    super(ServerId.Type.MONITOR, opts, ServerContext::new, args);
     START_TIME = System.currentTimeMillis();
     this.connStats = new ConnectionStatistics();
     this.fetcher = new InformationFetcher(getContext(), connStats::getConnections);

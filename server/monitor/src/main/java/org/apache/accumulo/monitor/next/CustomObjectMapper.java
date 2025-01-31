@@ -24,7 +24,7 @@ import jakarta.ws.rs.ext.Provider;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
-import org.apache.accumulo.core.metrics.thrift.MetricResponse;
+import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.monitor.next.serializers.CumulativeDistributionSummarySerializer;
 import org.apache.accumulo.monitor.next.serializers.FMetricSerializer;

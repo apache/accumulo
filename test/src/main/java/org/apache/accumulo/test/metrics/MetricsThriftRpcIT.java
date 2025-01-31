@@ -40,9 +40,9 @@ import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
-import org.apache.accumulo.core.metrics.thrift.MetricResponse;
-import org.apache.accumulo.core.metrics.thrift.MetricService.Client;
-import org.apache.accumulo.core.metrics.thrift.MetricSource;
+import org.apache.accumulo.core.process.thrift.MetricResponse;
+import org.apache.accumulo.core.process.thrift.MetricSource;
+import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -113,7 +113,7 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
       Set<ServerId> managers = client.instanceOperations().getServers(ServerId.Type.MANAGER);
       assertEquals(1, managers.size());
       ServerId managerServer = managers.iterator().next();
-      Client metricsClient = ThriftUtil.getClient(ThriftClientTypes.METRICS,
+      Client metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS,
           HostAndPort.fromParts(managerServer.getHost(), managerServer.getPort()), cc);
       try {
         MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
@@ -130,7 +130,7 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
       assertTrue(sld.isPresent(), "Garbage Collector ZooKeeper lock data not found");
       String location = sld.orElseThrow().getAddressString(ThriftService.GC);
       HostAndPort hp = HostAndPort.fromString(location);
-      metricsClient = ThriftUtil.getClient(ThriftClientTypes.METRICS, hp, cc);
+      metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS, hp, cc);
       try {
         MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
             getCluster().getServerContext().rpcCreds());
@@ -144,7 +144,7 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
       Set<ServerId> compactors = client.instanceOperations().getServers(ServerId.Type.COMPACTOR);
       assertEquals(4, compactors.size());
       for (ServerId server : compactors) {
-        metricsClient = ThriftUtil.getClient(ThriftClientTypes.METRICS,
+        metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS,
             HostAndPort.fromParts(server.getHost(), server.getPort()), cc);
         try {
           MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
@@ -159,7 +159,7 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
       Set<ServerId> sservers = client.instanceOperations().getServers(ServerId.Type.SCAN_SERVER);
       assertEquals(3, sservers.size());
       for (ServerId server : sservers) {
-        metricsClient = ThriftUtil.getClient(ThriftClientTypes.METRICS,
+        metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS,
             HostAndPort.fromParts(server.getHost(), server.getPort()), cc);
         try {
           MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
@@ -174,7 +174,7 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
       Set<ServerId> tservers = client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
       assertEquals(2, tservers.size());
       for (ServerId server : tservers) {
-        metricsClient = ThriftUtil.getClient(ThriftClientTypes.METRICS,
+        metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS,
             HostAndPort.fromParts(server.getHost(), server.getPort()), cc);
         try {
           MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),

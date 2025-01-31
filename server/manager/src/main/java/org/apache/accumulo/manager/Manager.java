@@ -61,6 +61,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -108,7 +109,6 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.thrift.MetricSource;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
@@ -143,7 +143,6 @@ import org.apache.accumulo.server.manager.state.DeadServerList;
 import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
-import org.apache.accumulo.server.metrics.MetricServiceHandler;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -461,7 +460,7 @@ public class Manager extends AbstractServer
 
   protected Manager(ConfigOpts opts, Function<SiteConfiguration,ServerContext> serverContextFactory,
       String[] args) throws IOException {
-    super("manager", opts, serverContextFactory, args);
+    super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
     ServerContext context = super.getContext();
     balancerEnvironment = new BalancerEnvironmentImpl(context);
 
@@ -1138,9 +1137,8 @@ public class Manager extends AbstractServer
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
 
     ServerAddress sa;
-    MetricServiceHandler metricHandler = createMetricServiceHandler(MetricSource.MANAGER);
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
-        compactionCoordinator.getThriftService(), haProxy, metricHandler, getContext());
+        compactionCoordinator.getThriftService(), haProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
@@ -1150,7 +1148,7 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }
     clientService = sa.server;
-    metricHandler.setHost(sa.address);
+    setHostname(sa.address);
     log.info("Started Manager client service at {}", sa.address);
 
     // block until we can obtain the ZK lock for the manager

@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
-import org.apache.accumulo.core.metrics.thrift.MetricResponse;
+import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 
 import com.google.flatbuffers.FlatBufferBuilder;
