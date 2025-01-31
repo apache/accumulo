@@ -858,10 +858,19 @@ public class RFileClientTest {
     assertTrue(Arrays.stream(exception.getStackTrace())
         .noneMatch(ste -> ste.getClassName().contains(localFsClass)));
 
+    var exception2 = assertThrows(RuntimeException.class, () -> {
+      var scanner = RFile.newScanner().from(fileUri).build();
+      scanner.iterator();
+    });
+    assertTrue(Arrays.stream(exception2.getCause().getStackTrace())
+        .anyMatch(ste -> ste.getClassName().contains(DistributedFileSystem.class.getName())));
+    assertTrue(Arrays.stream(exception2.getCause().getStackTrace())
+        .noneMatch(ste -> ste.getClassName().contains(localFsClass)));
+
     // verify the assumptions this test is making about the local filesystem being the default.
-    var exception2 = assertThrows(IllegalArgumentException.class,
+    var exception3 = assertThrows(IllegalArgumentException.class,
         () -> FileSystem.get(new Configuration()).open(new Path(fileUri)));
-    assertTrue(Arrays.stream(exception2.getStackTrace())
+    assertTrue(Arrays.stream(exception3.getStackTrace())
         .anyMatch(ste -> ste.getClassName().contains(localFsClass)));
   }
 }
