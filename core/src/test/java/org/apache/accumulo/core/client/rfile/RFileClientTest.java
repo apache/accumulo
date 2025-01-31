@@ -1058,4 +1058,38 @@ public class RFileClientTest {
     assertTrue(e.getMessage().contains("Unexpected path"));
     assertEquals(0, writer.getLoadPlan(new Path(testFile).getName()).getDestinations().size());
   }
+
+  @Test
+  public void testComputeLoadPlanWithPath() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    SortedSet<Text> splits =
+        Stream.of("001", "002", "003", "004", "005", "006", "007", "008", "009").map(Text::new)
+            .collect(Collectors.toCollection(TreeSet::new));
+    var splitResolver = LoadPlan.SplitResolver.from(splits);
+
+    String testFile = createTmpTestFile();
+    var writer = RFile.newWriter().to(testFile).withFileSystem(localFs)
+        .withSplitResolver(splitResolver).build();
+    writer.startDefaultLocalityGroup();
+    writer.append(new Key("001", "V4"), "test");
+    writer.append(new Key("002", "V4"), "test");
+    writer.append(new Key("003", "V4"), "test");
+    writer.append(new Key("004", "V4"), "test");
+    writer.close();
+
+    var e = assertThrows(IllegalArgumentException.class, () -> writer.getLoadPlan(testFile));
+    assertTrue(e.getMessage().contains("Unexpected path"));
+    assertEquals(4, writer.getLoadPlan(new Path(testFile).getName()).getDestinations().size());
+    assertEquals(4,
+        LoadPlan.compute(new File(testFile).toURI(), splitResolver).getDestinations().size());
+
+    String hdfsHost = "127.0.0.5:8080";
+    String fileUri = "hdfs://" + hdfsHost + "/bulk-xyx/file1.rf";
+    URI uri = new URI(fileUri);
+    var err = assertThrows(RuntimeException.class, () -> LoadPlan.compute(uri, splitResolver));
+    assertTrue(err.getMessage().contains("to " + hdfsHost + " failed on connection exception"));
+    assertTrue(Arrays.stream(err.getCause().getStackTrace())
+        .anyMatch(ste -> ste.getClassName().contains(DistributedFileSystem.class.getName())));
+  }
 }
