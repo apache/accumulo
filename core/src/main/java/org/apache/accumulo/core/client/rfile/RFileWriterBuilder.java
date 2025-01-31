@@ -125,7 +125,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
     } else {
       return new RFileWriter(
           fileops.newWriterBuilder()
-              .forFile(out.path.toString(), out.getFileSystem(), out.getConf(), cs)
+              .forFile(out.path.toString(), out.getFileSystem(out.path), out.getConf(), cs)
               .withTableConfiguration(acuconf).withStartDisabled().build(),
           visCacheSize, loadPlanCollector);
     }
