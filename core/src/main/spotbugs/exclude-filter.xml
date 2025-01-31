@@ -39,7 +39,6 @@
       <Package name="org.apache.accumulo.core.tabletscan.thrift" />
       <Package name="org.apache.accumulo.core.tabletserver.thrift" />
       <Package name="org.apache.accumulo.core.trace.thrift" />
-      <Package name="org.apache.accumulo.core.metrics.thrift" />
       <Package name="org.apache.accumulo.core.metrics.flatbuffers" />
     </Or>
   </Match>
