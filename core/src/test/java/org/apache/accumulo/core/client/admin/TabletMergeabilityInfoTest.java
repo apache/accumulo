@@ -75,7 +75,7 @@ public class TabletMergeabilityInfoTest {
         Optional.of(Duration.ofDays(1)), () -> Duration.ofDays(10));
     assertTrue(tmi.isMergeable());
     assertTrue(tmi.getTabletMergeability().isAlways());
-    assertTrue(tmi.getElapsed().orElseThrow().toNanos() > 0);
+    assertEquals(Duration.ofDays(9), tmi.getElapsed().orElseThrow());
     assertEquals(Duration.ZERO, tmi.getRemaining().orElseThrow());
   }
 
@@ -97,6 +97,14 @@ public class TabletMergeabilityInfoTest {
     assertEquals(Duration.ofDays(6), tmi2.getDelay().orElseThrow());
     assertEquals(Duration.ofDays(9), tmi2.getElapsed().orElseThrow());
     assertEquals(Duration.ZERO, tmi2.getRemaining().orElseThrow());
+
+    // test insertion time after current steady time
+    var tmi3 = new TabletMergeabilityInfo(TabletMergeability.after(Duration.ofDays(2)),
+        Optional.of(Duration.ofDays(11)), () -> Duration.ofDays(10));
+    assertFalse(tmi3.isMergeable());
+    assertEquals(Duration.ofDays(2), tmi3.getDelay().orElseThrow());
+    assertEquals(Duration.ZERO, tmi3.getElapsed().orElseThrow());
+    assertEquals(Duration.ofDays(2), tmi3.getRemaining().orElseThrow());
   }
 
 }
