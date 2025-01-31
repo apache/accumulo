@@ -45,6 +45,8 @@ public class TabletMergeabilityInfo {
     // if TabletMergeability is NEVER
     Preconditions.checkArgument(tabletMergeability.isNever() == insertionTime.isEmpty(),
         "insertionTime must not be empty if and only if TabletMergeability delay is >= 0");
+    insertionTime.ifPresent(
+        it -> Preconditions.checkArgument(!it.isNegative(), "insertionTime must not be negative"));
   }
 
   /**
@@ -60,12 +62,51 @@ public class TabletMergeabilityInfo {
    * with a TabletMergeability of never.
    */
   public Optional<Duration> getElapsed() {
-    // It's possible the "current time" is read from the manager and then a tablets insertion time
-    // is read much later and this could cause a negative read, in this case set the elapsed time to
-    // zero. Avoiding this would require an RPC per call to this method to get the latest manager
-    // time, so since this is an estimate return zero for this case.
+    // @formatter:off
+    /*
+     * It's possible the "current time" is read from the manager and then a tablets insertion time
+     * is read later and this could cause a negative read, in this case set the elapsed time to
+     * zero.  For example:
+     *
+     * 1. Thread_1 starts reading tablet info objects
+     * 2. Thread_1 reads TabletMergeabilityInfo for tablet_X. This causes the memoized
+     *    current steady time supplier to be set to 5.
+     * 3. Thread_2 updates TabletMergeability for tablet_Y. It sets the insertion steady
+     *    time for the update to 7.
+     * 4. Thread_1 reads TabletMergeabilityInfo for tablet_Y. To compute elapsed it
+     *    does 5 - 7 = -2. In this case, just return 0.
+     */
+    // @formatter:on
     return insertionTime.map(it -> currentTime.get().minus(it))
         .map(elapsed -> elapsed.isNegative() ? Duration.ZERO : elapsed);
+  }
+
+  /**
+   * If the TabletMergeability is configured with a delay this returns an estimate of the remaining
+   * time since the delay was initially set. Returns optional.empty() if the tablet was configured
+   * with a TabletMergeability of never.
+   */
+  public Optional<Duration> getRemaining() {
+    // Delay should always be set if insertionTime is not empty
+    // getElapsed() and getDelay() are guaranteed to both be >= 0
+    return getElapsed().map(elapsed -> tabletMergeability.getDelay().orElseThrow().minus(elapsed))
+        .map(remaining -> remaining.isNegative() ? Duration.ZERO : remaining);
+  }
+
+  /**
+   * Returns an Optional duration of the configured {@link TabletMergeability} delay which is one
+   * of:
+   *
+   * <ul>
+   * <li>empty (never)</li>
+   * <li>0 (now)</li>
+   * <li>positive delay</li>
+   * </ul>
+   *
+   * @return the configured mergeability delay or empty if mergeability is NEVER
+   */
+  public Optional<Duration> getDelay() {
+    return tabletMergeability.getDelay();
   }
 
   /**

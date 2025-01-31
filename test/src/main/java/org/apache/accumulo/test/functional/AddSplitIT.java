@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -45,6 +46,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
+import org.apache.accumulo.core.client.admin.TabletMergeabilityInfo;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -243,27 +245,37 @@ public class AddSplitIT extends AccumuloClusterHarness {
       assertTrue(split1Tmi.isMergeable());
       assertTrue(split1Tmi.getTabletMergeability().isAlways());
       assertTrue(split1Tmi.getElapsed().orElseThrow().toNanos() > 0);
+      assertEquals(Duration.ZERO, split1Tmi.getRemaining().orElseThrow());
+      assertEquals(computeRemaining(split1Tmi), split1Tmi.getRemaining());
 
       // Set to never
       var split2Tmi = tableInfo.get(split2).getTabletMergeabilityInfo();
       assertFalse(split2Tmi.isMergeable());
       assertTrue(split2Tmi.getTabletMergeability().isNever());
       assertTrue(split2Tmi.getElapsed().isEmpty());
+      assertTrue(split2Tmi.getDelay().isEmpty());
+      assertTrue(split2Tmi.getRemaining().isEmpty());
 
       // Set to a delay of 1 ms and current time should have elapsed long enough
       var split3Tmi = tableInfo.get(split3).getTabletMergeabilityInfo();
       assertTrue(split3Tmi.isMergeable());
-      assertEquals(Duration.ofMillis(1),
-          split3Tmi.getTabletMergeability().getDelay().orElseThrow());
+      assertEquals(Duration.ofMillis(1), split3Tmi.getDelay().orElseThrow());
       assertTrue(split3Tmi.getElapsed().orElseThrow().toNanos() > 0);
+      assertEquals(computeRemaining(split3Tmi), split3Tmi.getRemaining());
 
       // Set to a delay of 1 day and current time has NOT elapsed long enough
       var split4Tmi = tableInfo.get(split4).getTabletMergeabilityInfo();
       assertFalse(split4Tmi.isMergeable());
-      assertEquals(Duration.ofDays(1), split4Tmi.getTabletMergeability().getDelay().orElseThrow());
+      assertEquals(Duration.ofDays(1), split4Tmi.getDelay().orElseThrow());
       assertTrue(split4Tmi.getElapsed().orElseThrow().toNanos() > 0);
-
+      assertEquals(computeRemaining(split4Tmi), split4Tmi.getRemaining());
     }
+  }
+
+  // test remaining matches logic in the TabletMergeabilityInfo class
+  private static Optional<Duration> computeRemaining(TabletMergeabilityInfo tmi) {
+    return tmi.getDelay().map(delay -> delay.minus(tmi.getElapsed().orElseThrow()))
+        .map(remaining -> remaining.isNegative() ? Duration.ZERO : remaining);
   }
 
   @Test

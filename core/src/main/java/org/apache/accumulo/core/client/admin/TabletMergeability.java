@@ -76,7 +76,8 @@ public class TabletMergeability implements Serializable {
    * <li>positive delay</li>
    * </ul>
    *
-   * @return the configured mergeability delay
+   *
+   * @return the configured mergeability delay or empty if mergeability is NEVER
    */
   public Optional<Duration> getDelay() {
     return Optional.ofNullable(delay);
