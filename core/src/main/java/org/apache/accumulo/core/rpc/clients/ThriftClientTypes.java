@@ -60,6 +60,9 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
   public static final TabletManagementClientServiceThriftClient TABLET_MGMT =
       new TabletManagementClientServiceThriftClient("tablet");
 
+  public static final ServerProcessServiceThriftClient SERVER_PROCESS =
+      new ServerProcessServiceThriftClient("process");
+
   /**
    * execute method with supplied client returning object of type R
    *
