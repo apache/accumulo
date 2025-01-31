@@ -35,13 +35,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue.CompactionJobPriorityQueueStats;
-import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues.MetaJob;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
@@ -59,8 +57,6 @@ public class CompactionJobPriorityQueueTest {
     CompactableFile file4 = EasyMock.createMock(CompactableFileImpl.class);
 
     KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("z"), new Text("a"));
-    TabletMetadata tm = EasyMock.createMock(TabletMetadata.class);
-    EasyMock.expect(tm.getExtent()).andReturn(extent).anyTimes();
 
     CompactionJob cj1 = EasyMock.createMock(CompactionJob.class);
     EasyMock.expect(cj1.getGroup()).andReturn(GROUP).anyTimes();
@@ -72,14 +68,14 @@ public class CompactionJobPriorityQueueTest {
     EasyMock.expect(cj2.getPriority()).andReturn((short) 5).anyTimes();
     EasyMock.expect(cj2.getFiles()).andReturn(Set.of(file2, file3, file4)).anyTimes();
 
-    EasyMock.replay(tm, cj1, cj2);
+    EasyMock.replay(cj1, cj2);
 
     CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2, mj -> 1);
-    assertEquals(1, queue.add(tm, List.of(cj1), 1L));
+    assertEquals(1, queue.add(extent, List.of(cj1), 1L));
 
-    MetaJob job = queue.peek();
-    assertEquals(cj1, job.getJob());
-    assertEquals(Set.of(file1), job.getJob().getFiles());
+    CompactionJob job = queue.peek();
+    assertEquals(cj1, job);
+    assertEquals(Set.of(file1), job.getFiles());
 
     assertEquals(10L, queue.getLowestPriority());
     assertEquals(2, queue.getMaxSize());
@@ -88,12 +84,11 @@ public class CompactionJobPriorityQueueTest {
     assertEquals(1, queue.getQueuedJobs());
 
     // replace the files for the same tablet
-    assertEquals(1, queue.add(tm, List.of(cj2), 1L));
+    assertEquals(1, queue.add(extent, List.of(cj2), 1L));
 
     job = queue.peek();
-    assertEquals(cj2, job.getJob());
-    assertEquals(Set.of(file2, file3, file4), job.getJob().getFiles());
-    assertEquals(tm, job.getTabletMetadata());
+    assertEquals(cj2, job);
+    assertEquals(Set.of(file2, file3, file4), job.getFiles());
 
     assertEquals(5L, queue.getLowestPriority());
     assertEquals(2, queue.getMaxSize());
@@ -101,7 +96,7 @@ public class CompactionJobPriorityQueueTest {
     assertEquals(0, queue.getRejectedJobs());
     assertEquals(1, queue.getQueuedJobs());
 
-    EasyMock.verify(tm, cj1, cj2);
+    EasyMock.verify(cj1, cj2);
 
   }
 
@@ -114,8 +109,6 @@ public class CompactionJobPriorityQueueTest {
     CompactableFile file4 = EasyMock.createMock(CompactableFileImpl.class);
 
     KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("z"), new Text("a"));
-    TabletMetadata tm = EasyMock.createMock(TabletMetadata.class);
-    EasyMock.expect(tm.getExtent()).andReturn(extent).anyTimes();
 
     CompactionJob cj1 = EasyMock.createMock(CompactionJob.class);
     EasyMock.expect(cj1.getGroup()).andReturn(GROUP).anyTimes();
@@ -127,26 +120,24 @@ public class CompactionJobPriorityQueueTest {
     EasyMock.expect(cj2.getPriority()).andReturn((short) 5).anyTimes();
     EasyMock.expect(cj2.getFiles()).andReturn(Set.of(file2, file3, file4)).anyTimes();
 
-    EasyMock.replay(tm, cj1, cj2);
+    EasyMock.replay(cj1, cj2);
 
     CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2, mj -> 1);
-    assertEquals(2, queue.add(tm, List.of(cj1, cj2), 1L));
+    assertEquals(2, queue.add(extent, List.of(cj1, cj2), 1L));
 
-    EasyMock.verify(tm, cj1, cj2);
+    EasyMock.verify(cj1, cj2);
 
     assertEquals(5L, queue.getLowestPriority());
     assertEquals(2, queue.getMaxSize());
     assertEquals(0, queue.getDequeuedJobs());
     assertEquals(0, queue.getRejectedJobs());
     assertEquals(2, queue.getQueuedJobs());
-    MetaJob job = queue.poll();
-    assertEquals(cj1, job.getJob());
-    assertEquals(tm, job.getTabletMetadata());
+    CompactionJob job = queue.poll();
+    assertEquals(cj1, job);
     assertEquals(1, queue.getDequeuedJobs());
 
     job = queue.poll();
-    assertEquals(cj2, job.getJob());
-    assertEquals(tm, job.getTabletMetadata());
+    assertEquals(cj2, job);
     assertEquals(2, queue.getDequeuedJobs());
 
     job = queue.poll();
@@ -166,8 +157,6 @@ public class CompactionJobPriorityQueueTest {
     CompactableFile file6 = EasyMock.createMock(CompactableFileImpl.class);
 
     KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("z"), new Text("a"));
-    TabletMetadata tm = EasyMock.createMock(TabletMetadata.class);
-    EasyMock.expect(tm.getExtent()).andReturn(extent).anyTimes();
 
     CompactionJob cj1 = EasyMock.createMock(CompactionJob.class);
     EasyMock.expect(cj1.getGroup()).andReturn(GROUP).anyTimes();
@@ -184,12 +173,12 @@ public class CompactionJobPriorityQueueTest {
     EasyMock.expect(cj3.getPriority()).andReturn((short) 1).anyTimes();
     EasyMock.expect(cj3.getFiles()).andReturn(Set.of(file5, file6)).anyTimes();
 
-    EasyMock.replay(tm, cj1, cj2, cj3);
+    EasyMock.replay(cj1, cj2, cj3);
 
     CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 2, mj -> 1);
-    assertEquals(2, queue.add(tm, List.of(cj1, cj2, cj3), 1L));
+    assertEquals(2, queue.add(extent, List.of(cj1, cj2, cj3), 1L));
 
-    EasyMock.verify(tm, cj1, cj2, cj3);
+    EasyMock.verify(cj1, cj2, cj3);
 
     assertEquals(5L, queue.getLowestPriority());
     assertEquals(2, queue.getMaxSize());
@@ -199,16 +188,15 @@ public class CompactionJobPriorityQueueTest {
     // One tablet was added with jobs
     assertEquals(1, queue.getJobAges().size());
 
-    MetaJob job = queue.poll();
-    assertEquals(cj1, job.getJob());
-    assertEquals(tm, job.getTabletMetadata());
+    CompactionJob job = queue.poll();
+    // assertEquals(cj1, job.getJob());
+    // assertEquals(tm, job.getTabletMetadata());
     assertEquals(1, queue.getDequeuedJobs());
     // still 1 job left so should still have a timer
     assertEquals(1, queue.getJobAges().size());
 
     job = queue.poll();
-    assertEquals(cj2, job.getJob());
-    assertEquals(tm, job.getTabletMetadata());
+    assertEquals(cj2, job);
     assertEquals(2, queue.getDequeuedJobs());
     // no more jobs so timer should be gone
     assertTrue(queue.getJobAges().isEmpty());
@@ -220,7 +208,7 @@ public class CompactionJobPriorityQueueTest {
 
   private static int counter = 1;
 
-  private Pair<TabletMetadata,CompactionJob> createJob() {
+  private Pair<KeyExtent,CompactionJob> createJob() {
 
     // Use an ever increasing tableId
     KeyExtent extent = new KeyExtent(TableId.of("" + counter++), new Text("z"), new Text("a"));
@@ -231,15 +219,13 @@ public class CompactionJobPriorityQueueTest {
     }
 
     CompactionJob job = EasyMock.createMock(CompactionJob.class);
-    TabletMetadata tm = EasyMock.createMock(TabletMetadata.class);
-    EasyMock.expect(tm.getExtent()).andReturn(extent).anyTimes();
     EasyMock.expect(job.getGroup()).andReturn(GROUP).anyTimes();
     EasyMock.expect(job.getPriority()).andReturn((short) counter).anyTimes();
     EasyMock.expect(job.getFiles()).andReturn(files).anyTimes();
 
-    EasyMock.replay(tm, job);
+    EasyMock.replay(job);
 
-    return new Pair<>(tm, job);
+    return new Pair<>(extent, job);
   }
 
   @Test
@@ -251,7 +237,7 @@ public class CompactionJobPriorityQueueTest {
 
     // create and add 1000 jobs
     for (int x = 0; x < 1000; x++) {
-      Pair<TabletMetadata,CompactionJob> pair = createJob();
+      Pair<KeyExtent,CompactionJob> pair = createJob();
       queue.add(pair.getFirst(), Set.of(pair.getSecond()), 1L);
       expected.add(pair.getSecond());
     }
@@ -272,12 +258,12 @@ public class CompactionJobPriorityQueueTest {
     // matches
     int matchesSeen = 0;
     for (CompactionJob expectedJob : expected) {
-      MetaJob queuedJob = queue.poll();
+      CompactionJob queuedJob = queue.poll();
       if (queuedJob == null) {
         break;
       }
-      assertEquals(expectedJob.getPriority(), queuedJob.getJob().getPriority());
-      assertEquals(expectedJob.getFiles(), queuedJob.getJob().getFiles());
+      assertEquals(expectedJob.getPriority(), queuedJob.getPriority());
+      assertEquals(expectedJob.getFiles(), queuedJob.getFiles());
       matchesSeen++;
     }
 
@@ -314,7 +300,7 @@ public class CompactionJobPriorityQueueTest {
   public void testAsyncCancelCleanup() {
     CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 100, mj -> 1);
 
-    List<CompletableFuture<MetaJob>> futures = new ArrayList<>();
+    List<CompletableFuture<CompactionJob>> futures = new ArrayList<>();
 
     int maxFuturesSize = 0;
 
@@ -349,7 +335,7 @@ public class CompactionJobPriorityQueueTest {
 
     // create and add 200 jobs, because of the queue size 100 should be dropped.
     for (int x = 0; x < 200; x++) {
-      Pair<TabletMetadata,CompactionJob> pair = createJob();
+      Pair<KeyExtent,CompactionJob> pair = createJob();
       queue.add(pair.getFirst(), Set.of(pair.getSecond()), 1L);
       expected.add(pair.getSecond());
     }
@@ -371,12 +357,12 @@ public class CompactionJobPriorityQueueTest {
     // ensure what is left in the queue is the 50 highest priority jobs
     int matchesSeen = 0;
     for (CompactionJob expectedJob : expected) {
-      MetaJob queuedJob = queue.poll();
+      var queuedJob = queue.poll();
       if (queuedJob == null) {
         break;
       }
-      assertEquals(expectedJob.getPriority(), queuedJob.getJob().getPriority());
-      assertEquals(expectedJob.getFiles(), queuedJob.getJob().getFiles());
+      assertEquals(expectedJob.getPriority(), queuedJob.getPriority());
+      assertEquals(expectedJob.getFiles(), queuedJob.getFiles());
       matchesSeen++;
     }
 

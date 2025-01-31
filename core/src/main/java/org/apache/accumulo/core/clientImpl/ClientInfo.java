@@ -50,7 +50,7 @@ public interface ClientInfo {
   /**
    * @return a Supplier for creating new ZooKeeper client instances based on the configuration
    */
-  Supplier<ZooSession> getZooKeeperSupplier(String clientName);
+  Supplier<ZooSession> getZooKeeperSupplier(String clientName, String rootPath);
 
   /**
    * @return Zookeeper connection information for Accumulo instance
