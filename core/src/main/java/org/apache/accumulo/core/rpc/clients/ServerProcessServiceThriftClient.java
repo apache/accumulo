@@ -18,53 +18,38 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
+import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
-import java.util.Set;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 
 import com.google.common.net.HostAndPort;
 
-public interface ManagerClient<C extends TServiceClient> {
+public class ServerProcessServiceThriftClient extends ThriftClientTypes<Client> {
 
-  default C getManagerConnection(Logger log, ThriftClientTypes<C> type, ClientContext context) {
-    checkArgument(context != null, "context is null");
-
-    Set<ServerId> managers = context.instanceOperations().getServers(ServerId.Type.MANAGER);
-
-    if (managers == null || managers.isEmpty()) {
-      log.debug("No managers...");
-      return null;
-    }
-
-    final String managerLocation = managers.iterator().next().toHostPortString();
-    if (managerLocation.equals("0.0.0.0:0")) {
-      // The Manager creates the lock with an initial address of 0.0.0.0:0, then
-      // later updates the lock contents with the actual address after everything
-      // is started.
-      log.debug("Manager is up and lock acquired, waiting for address...");
-      return null;
-    }
-    HostAndPort manager = HostAndPort.fromString(managerLocation);
-    try {
-      // Manager requests can take a long time: don't ever time out
-      return ThriftUtil.getClientNoTimeout(type, manager, context);
-    } catch (TTransportException tte) {
-      Throwable cause = tte.getCause();
-      if (cause != null && cause instanceof UnknownHostException) {
-        // do not expect to recover from this
-        throw new IllegalStateException(tte);
-      }
-      log.debug("Failed to connect to manager=" + manager + ", will retry... ", tte);
-      return null;
-    }
+  protected ServerProcessServiceThriftClient(String serviceName) {
+    super(serviceName, new Client.Factory());
   }
 
+  public Client getServerProcessConnection(ClientContext context, Logger log, String hostname,
+      int port) {
+    HostAndPort serverProcess = HostAndPort.fromParts(hostname, port);
+    try {
+      // Manager requests can take a long time: don't ever time out
+      return ThriftUtil.getClientNoTimeout(this, serverProcess, context);
+    } catch (TTransportException tte) {
+      Throwable cause = tte.getCause();
+      if (cause instanceof UnknownHostException) {
+        // do not expect to recover from this
+        throw new UncheckedIOException((UnknownHostException) cause);
+      }
+      log.debug("Failed to connect to process at " + serverProcess + ", will retry... ", tte);
+      return null;
+    }
+
+  }
 }

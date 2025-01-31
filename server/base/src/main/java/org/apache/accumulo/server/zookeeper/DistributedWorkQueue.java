@@ -37,6 +37,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
@@ -60,7 +61,7 @@ public class DistributedWorkQueue {
 
   private final ZooReaderWriter zoo;
   private final String path;
-  private final ServerContext context;
+  private final AbstractServer server;
   private final long timerInitialDelay;
   private final long timerPeriod;
 
@@ -86,6 +87,11 @@ public class DistributedWorkQueue {
     Collections.shuffle(children, RANDOM.get());
     try {
       for (final String child : children) {
+
+        // Don't accept work if the server is shutting down
+        if (server.isShutdownRequested()) {
+          return;
+        }
 
         if (child.equals(LOCKS_NODE)) {
           continue;
@@ -176,23 +182,27 @@ public class DistributedWorkQueue {
     void process(String workID, byte[] data);
   }
 
-  public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context) {
+  public DistributedWorkQueue(String path, AccumuloConfiguration config, AbstractServer server) {
     // Preserve the old delay and period
-    this(path, config, context, RANDOM.get().nextInt(toIntExact(MINUTES.toMillis(1))),
+    this(path, config, server, RANDOM.get().nextInt(toIntExact(MINUTES.toMillis(1))),
         MINUTES.toMillis(1));
   }
 
-  public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context,
+  public DistributedWorkQueue(String path, AccumuloConfiguration config, AbstractServer server,
       long timerInitialDelay, long timerPeriod) {
     this.path = path;
-    this.context = context;
+    this.server = server;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
-    zoo = context.getZooSession().asReaderWriter();
+    zoo = server.getContext().getZooSession().asReaderWriter();
   }
 
   public ServerContext getContext() {
-    return context;
+    return server.getContext();
+  }
+
+  public AbstractServer getServer() {
+    return server;
   }
 
   public long getCheckInterval() {
@@ -254,7 +264,7 @@ public class DistributedWorkQueue {
 
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
     ThreadPools.watchCriticalScheduledTask(
-        context.getScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
+        server.getContext().getScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
           @Override
           public void run() {
             log.debug("Looking for work in {}", path);

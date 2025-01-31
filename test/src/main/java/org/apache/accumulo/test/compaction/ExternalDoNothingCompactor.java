@@ -66,7 +66,7 @@ public class ExternalDoNothingCompactor extends Compactor {
 
     // Set this to true so that only 1 external compaction is run
     final AtomicReference<FileCompactor> ref = new AtomicReference<>();
-    this.shutdown = true;
+    gracefulShutdown(getContext().rpcCreds());
 
     return new FileCompactorRunnable() {
 

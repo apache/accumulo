@@ -67,16 +67,23 @@ public class ServiceLockSupport {
     private static final Logger LOG = LoggerFactory.getLogger(HAServiceLockWatcher.class);
 
     private final Type server;
+    private final Supplier<Boolean> shutdownComplete;
     private volatile boolean acquiredLock = false;
     private volatile boolean failedToAcquireLock = false;
 
-    public HAServiceLockWatcher(Type server) {
+    public HAServiceLockWatcher(Type server, Supplier<Boolean> shutdownComplete) {
       this.server = server;
+      this.shutdownComplete = shutdownComplete;
     }
 
     @Override
     public void lostLock(LockLossReason reason) {
-      Halt.halt(server + " lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+      if (shutdownComplete.get()) {
+        LOG.warn("{} lost lock (reason = {}), not halting because shutdown is complete.", server,
+            reason);
+      } else {
+        Halt.halt(server + " lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+      }
     }
 
     @Override
@@ -147,24 +154,27 @@ public class ServiceLockSupport {
     private static final Logger LOG = LoggerFactory.getLogger(ServiceLockWatcher.class);
 
     private final Type server;
-    private final Supplier<Boolean> shuttingDown;
+    private final Supplier<Boolean> shutdownComplete;
     private final Consumer<Type> lostLockAction;
 
-    public ServiceLockWatcher(Type server, Supplier<Boolean> shuttingDown,
+    public ServiceLockWatcher(Type server, Supplier<Boolean> shutdownComplete,
         Consumer<Type> lostLockAction) {
       this.server = server;
-      this.shuttingDown = shuttingDown;
+      this.shutdownComplete = shutdownComplete;
       this.lostLockAction = lostLockAction;
     }
 
     @Override
     public void lostLock(final LockLossReason reason) {
-      Halt.halt(1, () -> {
-        if (!shuttingDown.get()) {
+      if (shutdownComplete.get()) {
+        LOG.warn("{} lost lock (reason = {}), not halting because shutdown is complete.", server,
+            reason);
+      } else {
+        Halt.halt(1, () -> {
           LOG.error("{} lost lock (reason = {}), exiting.", server, reason);
-        }
-        lostLockAction.accept(server);
-      });
+          lostLockAction.accept(server);
+        });
+      }
     }
 
     @Override
