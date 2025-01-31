@@ -1081,8 +1081,7 @@ public class RFileClientTest {
     var e = assertThrows(IllegalArgumentException.class, () -> writer.getLoadPlan(testFile));
     assertTrue(e.getMessage().contains("Unexpected path"));
     assertEquals(4, writer.getLoadPlan(new Path(testFile).getName()).getDestinations().size());
-    assertEquals(4,
-        LoadPlan.compute(new File(testFile).toURI(), splitResolver).getDestinations().size());
+    assertEquals(4, LoadPlan.compute(new URI(testFile), splitResolver).getDestinations().size());
 
     String hdfsHost = "127.0.0.5:8080";
     String fileUri = "hdfs://" + hdfsHost + "/bulk-xyx/file1.rf";
