@@ -18,10 +18,8 @@
  */
 package org.apache.accumulo.core.fate.zookeeper;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -74,36 +72,15 @@ public class FateLock implements QueueLock {
     final LockType lockType;
     final FateId fateId;
 
-    FateLockEntry(LockType lockType, FateId fateId) {
+    private FateLockEntry(LockType lockType, FateId fateId) {
       this.lockType = Objects.requireNonNull(lockType);
       this.fateId = Objects.requireNonNull(fateId);
     }
 
     private FateLockEntry(String entry) {
-      // TODO can byte constructor be removed?
-      this(entry.getBytes(UTF_8));
-    }
-
-    private FateLockEntry(byte[] entry) {
-      if (entry == null || entry.length < 1) {
-        throw new IllegalArgumentException();
-      }
-
-      int split = -1;
-      for (int i = 0; i < entry.length; i++) {
-        if (entry[i] == ':') {
-          split = i;
-          break;
-        }
-      }
-
-      if (split == -1) {
-        throw new IllegalArgumentException();
-      }
-
-      this.lockType = LockType.valueOf(new String(entry, 0, split, UTF_8));
-      this.fateId =
-          FateId.from(new String(Arrays.copyOfRange(entry, split + 1, entry.length), UTF_8));
+      var fields = entry.split(":", 2);
+      this.lockType = LockType.valueOf(fields[0]);
+      this.fateId = FateId.from(fields[1]);
     }
 
     public LockType getLockType() {
@@ -114,15 +91,8 @@ public class FateLock implements QueueLock {
       return fateId;
     }
 
-    public byte[] serialize() {
-      // TODO redo for serialization into name
-      byte[] typeBytes = lockType.name().getBytes(UTF_8);
-      byte[] fateIdBytes = fateId.canonical().getBytes(UTF_8);
-      byte[] result = new byte[fateIdBytes.length + 1 + typeBytes.length];
-      System.arraycopy(typeBytes, 0, result, 0, typeBytes.length);
-      result[typeBytes.length] = ':';
-      System.arraycopy(fateIdBytes, 0, result, typeBytes.length + 1, fateIdBytes.length);
-      return result;
+    public String serialize() {
+      return lockType.name() + ":" + fateId.canonical();
     }
 
     @Override
@@ -146,13 +116,12 @@ public class FateLock implements QueueLock {
       return new FateLockEntry(lockType, fateId);
     }
 
-    public static FateLockEntry deserialize(byte[] serialized) {
+    public static FateLockEntry deserialize(String serialized) {
       return new FateLockEntry(serialized);
     }
 
     @Override
     public int compareTo(FateLockEntry o) {
-      // TODO determine how it sorted before this change
       int cmp = lockType.compareTo(o.lockType);
       if (cmp == 0) {
         cmp = fateId.compareTo(o.fateId);
@@ -170,46 +139,46 @@ public class FateLock implements QueueLock {
     this.path = requireNonNull(path);
   }
 
-  // TODO rename to NodeName
-  public static class FateLockNode implements Comparable<FateLockNode> {
+  public static class NodeName implements Comparable<NodeName> {
     public final long sequence;
-    public final FateLockEntry lockData;
+    public final Supplier<FateLockEntry> fateLockEntry;
 
-    FateLockNode(String nodeName) {
+    NodeName(String nodeName) {
       int len = nodeName.length();
       Preconditions.checkArgument(nodeName.startsWith(PREFIX) && nodeName.charAt(len - 11) == '#',
           "Illegal node name %s", nodeName);
       sequence = Long.parseUnsignedLong(nodeName.substring(len - 10), 10);
-      lockData = new FateLockEntry(nodeName.substring(PREFIX.length(), len - 11));
+      fateLockEntry = Suppliers
+          .memoize(() -> FateLockEntry.deserialize(nodeName.substring(PREFIX.length(), len - 11)));
     }
 
     @Override
-    public int compareTo(FateLockNode o) {
+    public int compareTo(NodeName o) {
       int cmp = Long.compare(sequence, o.sequence);
       if (cmp == 0) {
-        cmp = lockData.compareTo(o.lockData);
+        cmp = fateLockEntry.get().compareTo(o.fateLockEntry.get());
       }
       return cmp;
     }
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof FateLockNode) {
-        return this.compareTo((FateLockNode) o) == 0;
+      if (o instanceof NodeName) {
+        return this.compareTo((NodeName) o) == 0;
       }
       return false;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(sequence, lockData);
+      return Objects.hash(sequence, fateLockEntry.get());
     }
   }
 
   @Override
   public long addEntry(FateLockEntry entry) {
 
-    String dataString = new String(entry.serialize(), UTF_8);
+    String dataString = entry.serialize();
     Preconditions.checkState(!dataString.contains("#"));
 
     String newPath;
@@ -220,7 +189,7 @@ public class FateLock implements QueueLock {
               zoo.putPersistentSequential(path + "/" + PREFIX + dataString + "#", new byte[0]);
           String[] parts = newPath.split("/");
           String last = parts[parts.length - 1];
-          return new FateLockNode(last).sequence;
+          return new NodeName(last).sequence;
         } catch (NoNodeException nne) {
           // the parent does not exist so try to create it
           zoo.putPersistentData(path.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
@@ -245,12 +214,11 @@ public class FateLock implements QueueLock {
       }
 
       for (String name : children) {
-        var parsed = new FateLockNode(name);
-        // TODO supplier probably not need becaue always parsing now
-        if (predicate.test(parsed.sequence, () -> parsed.lockData)) {
+        var parsed = new NodeName(name);
+        if (predicate.test(parsed.sequence, parsed.fateLockEntry)) {
           // Use a supplier so we don't need to deserialize unless the calling code cares about
           // the value for that entry.
-          result.put(parsed.sequence, Suppliers.memoize(() -> parsed.lockData));
+          Preconditions.checkState(result.put(parsed.sequence, parsed.fateLockEntry) == null);
         }
       }
     } catch (KeeperException | InterruptedException ex) {
@@ -261,7 +229,7 @@ public class FateLock implements QueueLock {
 
   @Override
   public void removeEntry(FateLockEntry data, long entry) {
-    String dataString = new String(data.serialize(), UTF_8);
+    String dataString = data.serialize();
     Preconditions.checkState(!dataString.contains("#"));
     try {
       zoo.recursiveDelete(path + String.format("/%s%s#%010d", PREFIX, dataString, entry),
@@ -280,10 +248,10 @@ public class FateLock implements QueueLock {
   /**
    * Validate and sort child nodes at this lock path by the lock prefix
    */
-  public static SortedSet<FateLockNode> validateAndWarn(FateLockPath path, List<String> children) {
+  public static SortedSet<NodeName> validateAndWarn(FateLockPath path, List<String> children) {
     log.trace("validating and sorting children at path {}", path);
 
-    SortedSet<FateLockNode> validChildren = new TreeSet<>();
+    SortedSet<NodeName> validChildren = new TreeSet<>();
 
     if (children == null || children.isEmpty()) {
       return validChildren;
@@ -292,7 +260,7 @@ public class FateLock implements QueueLock {
     children.forEach(c -> {
       log.trace("Validating {}", c);
       try {
-        var fateLockNode = new FateLockNode(c);
+        var fateLockNode = new NodeName(c);
         validChildren.add(fateLockNode);
       } catch (RuntimeException e) {
         log.warn("Illegal fate lock node {}", c, e);

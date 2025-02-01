@@ -154,7 +154,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         return;
       }
       log.debug("Removing lock entry {} fateId {} lockType {}", entry, this.fateId, getType());
-      qlock.removeEntry(new FateLockEntry(this.getType(), this.fateId), entry);
+      qlock.removeEntry(FateLockEntry.from(this.getType(), this.fateId), entry);
       entry = -1;
     }
 
@@ -205,10 +205,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
   }
 
   public static DistributedLock recoverLock(QueueLock qlock, FateId fateId) {
-    SortedMap<Long,Supplier<FateLockEntry>> entries = qlock.getEntries((seq, lockData) -> {
-      // TODO fix this lambda
-      return lockData.get().fateId.equals(fateId);
-    });
+    SortedMap<Long,Supplier<FateLockEntry>> entries =
+        qlock.getEntries((seq, lockData) -> lockData.get().fateId.equals(fateId));
 
     switch (entries.size()) {
       case 0:

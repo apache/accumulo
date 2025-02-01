@@ -34,23 +34,24 @@ public class FateLockTest {
   public void testParsing() {
     var fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     // ZooKeeper docs state that sequence numbers are formatted using %010d
-    var lockNode = new FateLock.FateLockNode(
-        FateLock.PREFIX + fateId.canonical() + "#" + String.format("%010d", 40));
+    String lockData = "WRITE:" + fateId.canonical();
+    var lockNode =
+        new FateLock.NodeName(FateLock.PREFIX + lockData + "#" + String.format("%010d", 40));
     assertEquals(40, lockNode.sequence);
-    assertEquals(fateId.canonical(), lockNode.lockData);
+    assertEquals(lockData, lockNode.fateLockEntry.get().serialize());
 
     assertThrows(IllegalArgumentException.class,
-        () -> new FateLock.FateLockNode(fateId.canonical() + "#" + String.format("%010d", 40)));
-    assertThrows(IllegalArgumentException.class, () -> new FateLock.FateLockNode(
-        FateLock.PREFIX + fateId.canonical() + "#" + String.format("%d", 40)));
-    assertThrows(IllegalArgumentException.class, () -> new FateLock.FateLockNode(
-        FateLock.PREFIX + fateId.canonical() + "#" + String.format("%09d", 40)));
-    assertThrows(IllegalArgumentException.class, () -> new FateLock.FateLockNode(
-        FateLock.PREFIX + fateId.canonical() + "#" + String.format("%011d", 40)));
+        () -> new FateLock.NodeName(lockData + "#" + String.format("%010d", 40)));
     assertThrows(IllegalArgumentException.class,
-        () -> new FateLock.FateLockNode(FateLock.PREFIX + fateId.canonical() + "#abc"));
-    assertThrows(IllegalArgumentException.class, () -> new FateLock.FateLockNode(
-        FateLock.PREFIX + fateId.canonical() + String.format("%010d", 40)));
+        () -> new FateLock.NodeName(FateLock.PREFIX + lockData + "#" + String.format("%d", 40)));
+    assertThrows(IllegalArgumentException.class,
+        () -> new FateLock.NodeName(FateLock.PREFIX + lockData + "#" + String.format("%09d", 40)));
+    assertThrows(IllegalArgumentException.class,
+        () -> new FateLock.NodeName(FateLock.PREFIX + lockData + "#" + String.format("%011d", 40)));
+    assertThrows(IllegalArgumentException.class,
+        () -> new FateLock.NodeName(FateLock.PREFIX + lockData + "#abc"));
+    assertThrows(IllegalArgumentException.class,
+        () -> new FateLock.NodeName(FateLock.PREFIX + lockData + String.format("%010d", 40)));
 
     // ZooKeeper docs state that sequence numbers can roll and become negative. The FateLock code
     // does not support this, so make sure it fails if this happens.
@@ -59,17 +60,17 @@ public class FateLockTest {
       var seq = String.format("%010d", i);
       if (seq.length() == 10) {
         assertThrows(NumberFormatException.class,
-            () -> new FateLock.FateLockNode(FateLock.PREFIX + fateId.canonical() + "#" + seq));
+            () -> new FateLock.NodeName(FateLock.PREFIX + lockData + "#" + seq));
       } else if (seq.length() == 11) {
         assertThrows(IllegalArgumentException.class,
-            () -> new FateLock.FateLockNode(FateLock.PREFIX + fateId.canonical() + "#" + seq));
+            () -> new FateLock.NodeName(FateLock.PREFIX + lockData + "#" + seq));
       } else {
         fail("Unexpected length " + seq.length());
       }
     }
 
     // Test a negative number that is not formatted w/ %010d
-    assertThrows(IllegalArgumentException.class, () -> new FateLock.FateLockNode(
-        FateLock.PREFIX + fateId.canonical() + "#" + String.format("%d", -40)));
+    assertThrows(IllegalArgumentException.class,
+        () -> new FateLock.NodeName(FateLock.PREFIX + lockData + "#" + String.format("%d", -40)));
   }
 }

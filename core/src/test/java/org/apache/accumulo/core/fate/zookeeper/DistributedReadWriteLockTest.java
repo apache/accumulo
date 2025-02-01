@@ -153,7 +153,7 @@ public class DistributedReadWriteLockTest {
     assertEquals(LockType.READ, entry.getLockType());
     assertEquals(FateId.from(FateInstanceType.USER, uuid), entry.getFateId());
 
-    byte[] serialized = entry.serialize();
+    String serialized = entry.serialize();
     var deserialized = FateLockEntry.deserialize(serialized);
     assertEquals(entry, deserialized);
   }

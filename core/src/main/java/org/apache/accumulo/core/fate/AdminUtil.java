@@ -40,7 +40,7 @@ import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.ReadOnlyFateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
-import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
 import org.apache.accumulo.core.fate.zookeeper.FateLock.FateLockPath;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -279,17 +279,19 @@ public class AdminUtil<T> {
     for (String id : lockedIds) {
       try {
         FateLockPath fLockPath = FateLock.path(lockPath + "/" + id);
-        SortedSet<FateLock.FateLockNode> lockNodes =
+        SortedSet<FateLock.NodeName> lockNodes =
             FateLock.validateAndWarn(fLockPath, zr.getChildren(fLockPath.toString()));
 
         int pos = 0;
         boolean sawWriteLock = false;
 
-        for (FateLock.FateLockNode node : lockNodes) {
+        for (FateLock.NodeName node : lockNodes) {
           try {
-            FateId fateId = node.lockData.getFateId();
+            FateLock.FateLockEntry fateLockEntry = node.fateLockEntry.get();
+            var fateId = fateLockEntry.getFateId();
+            var lockType = fateLockEntry.getLockType();
 
-            if (node.lockData.getLockType() == DistributedReadWriteLock.LockType.WRITE) {
+            if (lockType == LockType.WRITE) {
               sawWriteLock = true;
             }
 
@@ -297,15 +299,14 @@ public class AdminUtil<T> {
 
             if (pos == 0) {
               locks = heldLocks;
-            } else if (node.lockData.getLockType() == DistributedReadWriteLock.LockType.READ
-                && !sawWriteLock) {
+            } else if (lockType == LockType.READ && !sawWriteLock) {
               locks = heldLocks;
             } else {
               locks = waitingLocks;
             }
 
             locks.computeIfAbsent(fateId, k -> new ArrayList<>())
-                .add(node.lockData.getLockType().name().charAt(0) + ":" + id);
+                .add(lockType.name().charAt(0) + ":" + id);
 
           } catch (Exception e) {
             log.error("{}", e.getMessage(), e);
