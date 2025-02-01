@@ -22,15 +22,23 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 class FSConfArgs {
 
   FileSystem fs;
   Configuration conf;
 
+  FileSystem getFileSystem(Path path) throws IOException {
+    if (fs == null) {
+      return path.getFileSystem(getConf());
+    }
+    return fs;
+  }
+
   FileSystem getFileSystem() throws IOException {
     if (fs == null) {
-      fs = FileSystem.get(getConf());
+      return FileSystem.get(getConf());
     }
     return fs;
   }
