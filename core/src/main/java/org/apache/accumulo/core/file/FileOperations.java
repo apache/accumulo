@@ -55,6 +55,11 @@ public abstract class FileOperations {
       Set.of(Constants.BULK_LOAD_MAPPING, Constants.BULK_RENAME_FILE,
           FileOutputCommitter.SUCCEEDED_FILE_NAME, HADOOP_JOBHISTORY_LOCATION);
 
+  public static boolean isBulkWorkingFile(String fileName) {
+    return fileName.startsWith(Constants.BULK_WORKING_PREFIX)
+        || bulkWorkingFiles.contains(fileName);
+  }
+
   public static Set<String> getValidExtensions() {
     return validExtensions;
   }
