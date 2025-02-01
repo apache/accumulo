@@ -1136,7 +1136,7 @@ public class Manager extends AbstractServer
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
 
     ServerAddress sa;
-    var processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler,
+    var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
         compactionCoordinator.getThriftService(), haProxy, getContext());
 
     try {
@@ -1335,13 +1335,26 @@ public class Manager extends AbstractServer
     // The manager is fully initialized. Clients are allowed to connect now.
     managerInitialized.set(true);
 
-    while (clientService.isServing()) {
-      sleepUninterruptibly(500, MILLISECONDS);
+    while (!isShutdownRequested() && clientService.isServing()) {
+      if (Thread.currentThread().isInterrupted()) {
+        log.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        log.info("Interrupt Exception received, shutting down");
+        gracefulShutdown(context.rpcCreds());
+      }
     }
-    log.info("Shutting down fate.");
+
+    log.debug("Shutting down fate.");
     getFateRefs().keySet().forEach(type -> fate(type).shutdown(0, MINUTES));
 
     splitter.stop();
+
+    log.debug("Stopping Thrift Servers");
+    sa.server.stop();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {
@@ -1376,7 +1389,13 @@ public class Manager extends AbstractServer
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
-    log.info("exiting");
+    getShutdownComplete().set(true);
+    log.info("stop requested. exiting ... ");
+    try {
+      managerLock.unlock();
+    } catch (Exception e) {
+      log.warn("Failed to release Manager lock", e);
+    }
   }
 
   protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
@@ -1502,7 +1521,8 @@ public class Manager extends AbstractServer
         managerClientAddress, this.getResourceGroup()));
     ServiceLockData sld = new ServiceLockData(descriptors);
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
-    HAServiceLockWatcher managerLockWatcher = new HAServiceLockWatcher(Type.MANAGER);
+    HAServiceLockWatcher managerLockWatcher =
+        new HAServiceLockWatcher(Type.MANAGER, () -> getShutdownComplete().get());
 
     while (true) {
 

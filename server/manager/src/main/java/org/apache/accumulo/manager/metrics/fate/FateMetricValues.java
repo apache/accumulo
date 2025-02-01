@@ -76,7 +76,7 @@ public abstract class FateMetricValues {
   protected static <T extends AbstractBuilder<T,U>,U extends FateMetricValues> T
       getFateMetrics(final ReadOnlyFateStore<FateMetrics<U>> fateStore, T builder) {
 
-    AdminUtil<FateMetrics<U>> admin = new AdminUtil<>(false);
+    AdminUtil<FateMetrics<U>> admin = new AdminUtil<>();
 
     List<AdminUtil.TransactionStatus> currFates =
         admin.getTransactionStatus(Map.of(fateStore.type(), fateStore), null, null, null);

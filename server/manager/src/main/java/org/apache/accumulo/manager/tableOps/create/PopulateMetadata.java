@@ -18,19 +18,24 @@
  */
 package org.apache.accumulo.manager.tableOps.create;
 
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.TreeMap;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
@@ -58,29 +63,34 @@ class PopulateMetadata extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
-    SortedSet<Text> splits;
+    SortedMap<Text,TabletMergeability> splits;
     Map<Text,Text> splitDirMap;
 
     if (tableInfo.getInitialSplitSize() > 0) {
-      splits = Utils.getSortedSetFromFile(env, tableInfo.getSplitPath(), true);
+      splits = Utils.getSortedSplitsFromFile(env, tableInfo.getSplitPath());
       SortedSet<Text> dirs = Utils.getSortedSetFromFile(env, tableInfo.getSplitDirsPath(), false);
       splitDirMap = createSplitDirectoryMap(splits, dirs);
     } else {
-      splits = new TreeSet<>();
+      splits = new TreeMap<>();
       splitDirMap = Map.of();
     }
 
-    writeSplitsToMetadataTable(env.getContext(), splits, splitDirMap, env.getManagerLock());
+    writeSplitsToMetadataTable(env.getContext(), splits, splitDirMap, env.getSteadyTime());
 
     return new FinishCreateTable(tableInfo);
   }
 
-  private void writeSplitsToMetadataTable(ServerContext context, SortedSet<Text> splits,
-      Map<Text,Text> data, ServiceLock lock) {
+  private void writeSplitsToMetadataTable(ServerContext context,
+      SortedMap<Text,TabletMergeability> splits, Map<Text,Text> data, SteadyTime steadyTime) {
     try (var tabletsMutator = context.getAmple().mutateTablets()) {
       Text prevSplit = null;
-      Iterable<Text> iter = () -> Stream.concat(splits.stream(), Stream.of((Text) null)).iterator();
-      for (Text split : iter) {
+      Iterable<Entry<Text,TabletMergeability>> iter =
+          () -> Stream.concat(splits.entrySet().stream(),
+              Stream.of(new SimpleImmutableEntry<Text,TabletMergeability>(null,
+                  tableInfo.getDefaultTabletMergeability())))
+              .iterator();
+      for (Entry<Text,TabletMergeability> entry : iter) {
+        var split = entry.getKey();
         var extent = new KeyExtent(tableInfo.getTableId(), split, prevSplit);
 
         var tabletMutator = tabletsMutator.mutateTablet(extent);
@@ -92,7 +102,8 @@ class PopulateMetadata extends ManagerRepo {
         tabletMutator.putDirName(dirName);
         tabletMutator.putTime(new MetadataTime(0, tableInfo.getTimeType()));
         tabletMutator.putTabletAvailability(tableInfo.getInitialTabletAvailability());
-        tabletMutator.putTabletMergeability(tableInfo.getInitialTabletMergeability());
+        tabletMutator.putTabletMergeability(
+            TabletMergeabilityMetadata.toMetadata(entry.getValue(), steadyTime));
         tabletMutator.mutate();
 
         prevSplit = split;
@@ -109,10 +120,11 @@ class PopulateMetadata extends ManagerRepo {
   /**
    * Create a map containing an association between each split directory and a split value.
    */
-  private Map<Text,Text> createSplitDirectoryMap(SortedSet<Text> splits, SortedSet<Text> dirs) {
+  private Map<Text,Text> createSplitDirectoryMap(SortedMap<Text,TabletMergeability> splits,
+      SortedSet<Text> dirs) {
     Preconditions.checkArgument(splits.size() == dirs.size());
     Map<Text,Text> data = new HashMap<>();
-    Iterator<Text> s = splits.iterator();
+    Iterator<Text> s = splits.keySet().iterator();
     Iterator<Text> d = dirs.iterator();
     while (s.hasNext() && d.hasNext()) {
       data.put(s.next(), d.next());

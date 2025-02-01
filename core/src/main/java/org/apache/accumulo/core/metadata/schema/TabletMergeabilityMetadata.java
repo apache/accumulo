@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.admin.TabletMergeability;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.time.SteadyTime;
 
@@ -58,6 +59,18 @@ public class TabletMergeabilityMetadata implements Serializable {
     return tabletMergeability;
   }
 
+  public boolean isNever() {
+    return tabletMergeability.isNever();
+  }
+
+  public boolean isAlways() {
+    return tabletMergeability.isAlways();
+  }
+
+  public Optional<Duration> getDelay() {
+    return tabletMergeability.getDelay();
+  }
+
   public Optional<SteadyTime> getSteadyTime() {
     return Optional.ofNullable(steadyTime);
   }
@@ -68,8 +81,8 @@ public class TabletMergeabilityMetadata implements Serializable {
     }
     // Steady time should never be null unless TabletMergeability is NEVER
     Preconditions.checkState(steadyTime != null, "SteadyTime should be set");
-    var totalDelay = steadyTime.getDuration().plus(tabletMergeability.getDelay().orElseThrow());
-    return currentTime.getDuration().compareTo(totalDelay) >= 0;
+    return TabletMergeabilityUtil.isMergeable(steadyTime.getDuration(),
+        tabletMergeability.getDelay().orElseThrow(), currentTime.getDuration());
   }
 
   private static class GSonData {
@@ -132,6 +145,14 @@ public class TabletMergeabilityMetadata implements Serializable {
 
   public static TabletMergeabilityMetadata after(Duration delay, SteadyTime currentTime) {
     return new TabletMergeabilityMetadata(TabletMergeability.after(delay), currentTime);
+  }
+
+  public static TabletMergeabilityMetadata toMetadata(TabletMergeability mergeability,
+      SteadyTime currentTime) {
+    if (mergeability.isNever()) {
+      return TabletMergeabilityMetadata.never();
+    }
+    return after(mergeability.getDelay().orElseThrow(), currentTime);
   }
 
   public static Value toValue(TabletMergeabilityMetadata tmm) {

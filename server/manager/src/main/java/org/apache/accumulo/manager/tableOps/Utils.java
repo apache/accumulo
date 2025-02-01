@@ -25,7 +25,9 @@ import java.math.BigInteger;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -33,9 +35,11 @@ import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Namespaces;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.AbstractId;
@@ -48,6 +52,7 @@ import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooReservation;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
@@ -216,11 +221,10 @@ public class Utils {
 
   private static Lock getLock(ServerContext context, AbstractId<?> id, FateId fateId,
       LockType lockType) {
-    byte[] lockData = fateId.canonical().getBytes(UTF_8);
     var fLockPath =
         FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
     FateLock qlock = new FateLock(context.getZooSession().asReaderWriter(), fLockPath);
-    DistributedLock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
+    DistributedLock lock = DistributedReadWriteLock.recoverLock(qlock, fateId);
     if (lock != null) {
 
       // Validate the recovered lock type
@@ -230,7 +234,7 @@ public class Utils {
                 + " on object " + id + ". Expected " + lockType + " lock instead.");
       }
     } else {
-      DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
+      DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, fateId);
       switch (lockType) {
         case WRITE:
           lock = locker.writeLock();
@@ -272,6 +276,21 @@ public class Utils {
       while (file.hasNextLine()) {
         String line = file.nextLine();
         data.add(encoded ? new Text(Base64.getDecoder().decode(line)) : new Text(line));
+      }
+    }
+    return data;
+  }
+
+  public static SortedMap<Text,TabletMergeability> getSortedSplitsFromFile(Manager manager,
+      Path path) throws IOException {
+    FileSystem fs = path.getFileSystem(manager.getContext().getHadoopConf());
+    var data = new TreeMap<Text,TabletMergeability>();
+    try (var file = new java.util.Scanner(fs.open(path), UTF_8)) {
+      while (file.hasNextLine()) {
+        String line = file.nextLine();
+        log.trace("split line: {}", line);
+        Pair<Text,TabletMergeability> splitTm = TabletMergeabilityUtil.decode(line);
+        data.put(splitTm.getFirst(), splitTm.getSecond());
       }
     }
     return data;

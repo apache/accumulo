@@ -61,6 +61,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -83,6 +84,7 @@ import org.apache.accumulo.core.spi.scan.ScanDispatch;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.CompactionStats;
@@ -409,8 +411,15 @@ public class Tablet extends TabletBase {
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId, mincReason);
       } catch (Exception e) {
-        TraceUtil.setException(span2, e, true);
-        throw e;
+        final ServiceLock tserverLock = tabletServer.getLock();
+        if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
+          log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
+              + " Halting...", getExtent(), e);
+          Halt.halt("TabletServer lock does not exist", -1);
+        } else {
+          TraceUtil.setException(span2, e, true);
+          throw e;
+        }
       } finally {
         span2.end();
       }

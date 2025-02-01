@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
-import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
+import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 
 import java.util.UUID;
 
@@ -28,16 +28,16 @@ import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateInterleavingIT;
+import org.apache.accumulo.test.fate.FateExecutionOrderIT;
 
-public class MetaFateInterleavingIT extends FateInterleavingIT {
+public class MetaFateExecutionOrderIT extends FateExecutionOrderIT {
 
   // put the fate data for the test in a different location than what accumulo is using
   private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
   private static final String ZK_ROOT = ZooUtil.getRoot(IID);
 
   @Override
-  public void executeTest(FateTestExecutor<FilTestEnv> testMethod, int maxDeferred,
+  public void executeTest(FateTestExecutor<FeoTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
     ServerContext sctx = getCluster().getServerContext();
     String path = ZK_ROOT + Constants.ZFATE;

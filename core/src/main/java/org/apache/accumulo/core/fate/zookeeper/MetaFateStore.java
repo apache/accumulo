@@ -83,6 +83,17 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     return path + "/tx_" + fateId.getTxUUIDStr();
   }
 
+  /**
+   * Constructs a MetaFateStore
+   *
+   * @param path the path in ZK where the fate data will reside
+   * @param zk the {@link ZooSession}
+   * @param lockID the {@link ZooUtil.LockID} held by the process creating this store. Should be
+   *        null if this store will be used as read-only (will not be used to reserve transactions)
+   * @param isLockHeld the {@link Predicate} used to determine if the lockID is held or not at the
+   *        time of invocation. If the store is used for a {@link Fate} which runs a dead
+   *        reservation cleaner, this should be non-null, otherwise null is fine
+   */
   public MetaFateStore(String path, ZooSession zk, ZooUtil.LockID lockID,
       Predicate<ZooUtil.LockID> isLockHeld) throws KeeperException, InterruptedException {
     this(path, zk, lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
@@ -99,11 +110,6 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     this.zrw.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
   }
-
-  /**
-   * For testing only
-   */
-  MetaFateStore() {}
 
   @Override
   public FateId create() {
@@ -124,8 +130,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   private Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
-    final var reservation = FateReservation.from(lockID, UUID.randomUUID());
     final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
+    verifyLock(lockID, fateId);
+    final var reservation = FateReservation.from(lockID, UUID.randomUUID());
 
     try {
       byte[] newSerFateData =
@@ -136,8 +143,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
                 // node if it doesn't yet exist:
                 // TStatus = TStatus.NEW, FateReservation = reservation, FateKey = fateKey
                 // This might occur if there was a ZK server fault and the same write is running a
-                // 2nd
-                // time
+                // 2nd time
                 // 2) The existing node for fateId has:
                 // TStatus = TStatus.NEW, no FateReservation present, FateKey = fateKey
                 // The fateId is NEW/unseeded and not reserved, so we can allow it to be reserved
@@ -223,6 +229,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
+    verifyLock(lockID, fateId);
     // uniquely identify this attempt to reserve the fate operation data
     FateReservation reservation = FateReservation.from(lockID, UUID.randomUUID());
 

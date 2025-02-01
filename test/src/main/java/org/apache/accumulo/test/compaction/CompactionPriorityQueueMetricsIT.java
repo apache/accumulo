@@ -22,7 +22,7 @@ import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUE
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED;
-import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -109,7 +109,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   public static final String QUEUE1 = "METRICSQ1";
   public static final String QUEUE1_METRIC_LABEL = MetricsUtil.formatString(QUEUE1);
   public static final String QUEUE1_SERVICE = "Q1";
-  public static final int QUEUE1_SIZE = 6;
+  public static final int QUEUE1_SIZE = 10 * 1024;
 
   // Metrics collector Thread
   final LinkedBlockingQueue<TestStatsDSink.Metric> queueMetrics = new LinkedBlockingQueue<>();
@@ -202,7 +202,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
           Property.COMPACTION_SERVICE_PREFIX.getKey() + QUEUE1_SERVICE + ".planner.opts.groups",
           "[{'group':'" + QUEUE1 + "'}]");
 
-      cfg.setProperty(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE, "6");
+      cfg.setProperty(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE, "10K");
       cfg.getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 0);
 
       // This test waits for dead compactors to be absent in zookeeper. The following setting will
@@ -337,7 +337,9 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     }
 
     boolean sawMetricsQ1 = false;
-    while (!sawMetricsQ1) {
+    boolean sawMetricsQ1Size = false;
+
+    while (!sawMetricsQ1 || !sawMetricsQ1Size) {
       while (!queueMetrics.isEmpty()) {
         var qm = queueMetrics.take();
         if (qm.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())
@@ -346,7 +348,14 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
             sawMetricsQ1 = true;
           }
         }
+        if (qm.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE.getName())
+            && qm.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
+          if (Integer.parseInt(qm.getValue()) > 0) {
+            sawMetricsQ1Size = true;
+          }
+        }
       }
+
       // If metrics are not found in the queue, sleep until the next poll.
       UtilWaitThread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis());
     }
@@ -354,7 +363,6 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     // Set lowest priority to the lowest possible system compaction priority
     long lowestPriority = Short.MIN_VALUE;
     long rejectedCount = 0L;
-    int queueSize = 0;
 
     boolean sawQueues = false;
     // An empty queue means that the last known value is the most recent.
@@ -366,9 +374,6 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getName())
           && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
         lowestPriority = Math.max(lowestPriority, Long.parseLong(metric.getValue()));
-      } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH.getName())
-          && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
-        queueSize = Integer.parseInt(metric.getValue());
       } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUES.getName())) {
         sawQueues = true;
       } else {
@@ -392,9 +397,6 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
 
     // Multiple Queues have been created
     assertTrue(sawQueues);
-
-    // Queue size matches the intended queue size
-    assertEquals(QUEUE1_SIZE, queueSize);
 
     // Start Compactors
     getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);

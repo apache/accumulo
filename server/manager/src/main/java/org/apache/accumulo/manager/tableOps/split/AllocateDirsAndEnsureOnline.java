@@ -99,7 +99,7 @@ public class AllocateDirsAndEnsureOnline extends ManagerRepo {
       // same dir name each time it runs again making it idempotent.
       List<String> dirs = new ArrayList<>();
 
-      splitInfo.getSplits().forEach(split -> {
+      splitInfo.getSplits().keySet().forEach(split -> {
         String dirName = TabletNameGenerator.createTabletDirectoryName(manager.getContext(), split);
         dirs.add(dirName);
         log.trace("{} allocated dir name {}", fateId, dirName);

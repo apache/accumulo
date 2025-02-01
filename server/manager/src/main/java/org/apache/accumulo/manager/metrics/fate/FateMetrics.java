@@ -53,7 +53,7 @@ public abstract class FateMetrics<T extends FateMetricValues> implements Metrics
   private static final String OP_TYPE_TAG = "op.type";
 
   protected final ServerContext context;
-  protected final ReadOnlyFateStore<FateMetrics<T>> fateStore;
+  protected final ReadOnlyFateStore<FateMetrics<T>> readOnlyFateStore;
   protected final long refreshDelay;
 
   protected final AtomicLong totalCurrentOpsCount = new AtomicLong(0);
@@ -62,14 +62,14 @@ public abstract class FateMetrics<T extends FateMetricValues> implements Metrics
   public FateMetrics(final ServerContext context, final long minimumRefreshDelay) {
     this.context = context;
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
-    this.fateStore = Objects.requireNonNull(buildStore(context));
+    this.readOnlyFateStore = Objects.requireNonNull(buildReadOnlyStore(context));
 
     for (TStatus status : TStatus.values()) {
       txStatusCounters.put(status, new AtomicLong(0));
     }
   }
 
-  protected abstract ReadOnlyFateStore<FateMetrics<T>> buildStore(ServerContext context);
+  protected abstract ReadOnlyFateStore<FateMetrics<T>> buildReadOnlyStore(ServerContext context);
 
   protected abstract T getMetricValues();
 
@@ -95,7 +95,7 @@ public abstract class FateMetrics<T extends FateMetricValues> implements Metrics
 
   @Override
   public void registerMetrics(final MeterRegistry registry) {
-    String type = fateStore.type().name().toLowerCase();
+    String type = readOnlyFateStore.type().name().toLowerCase();
 
     Gauge.builder(FATE_OPS.getName(), totalCurrentOpsCount, AtomicLong::get)
         .description(FATE_OPS.getDescription()).register(registry);

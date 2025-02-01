@@ -465,14 +465,12 @@ public enum Property {
       "The number of threads used to seed fate split task, the actual split work is done by fate"
           + " threads.",
       "4.0.0"),
-
-  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE(
-      "manager.compaction.major.service.queue.initial.size", "10000", PropertyType.COUNT,
-      "The initial size of each resource groups compaction job priority queue.", "4.0.0"),
-  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR(
-      "manager.compaction.major.service.queue.size.factor", "3.0", PropertyType.FRACTION,
-      "The dynamic resizing of the compaction job priority queue is based on"
-          + " the number of compactors for the group multiplied by this factor.",
+  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE("manager.compaction.major.service.queue.size",
+      "1M", PropertyType.MEMORY,
+      "The data size of each resource groups compaction job priority queue.  The memory size of "
+          + "each compaction job is estimated and the sum of these sizes per resource group will not "
+          + "exceed this setting. When the size is exceeded the lowest priority jobs are dropped as "
+          + "needed.",
       "4.0.0"),
   SPLIT_PREFIX("split.", null, PropertyType.PREFIX,
       "System wide properties related to splitting tablets.", "3.1.0"),
@@ -1460,7 +1458,7 @@ public enum Property {
       RPC_MAX_MESSAGE_SIZE,
 
       // compaction coordiantor properties
-      MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE,
+      MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE,
 
       // block cache options
       GENERAL_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,

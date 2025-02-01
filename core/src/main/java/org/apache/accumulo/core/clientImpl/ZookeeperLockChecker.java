@@ -38,10 +38,10 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
   private final String root;
   private final ServiceLockPaths lockPaths;
 
-  ZookeeperLockChecker(ZooCache zooCache, String zkRoot, ServiceLockPaths serviceLockPaths) {
+  ZookeeperLockChecker(ZooCache zooCache, String zkRoot) {
     this.zc = requireNonNull(zooCache);
     this.root = requireNonNull(zkRoot);
-    this.lockPaths = requireNonNull(serviceLockPaths);
+    this.lockPaths = new ServiceLockPaths(this.root, this.zc);
   }
 
   public boolean doesTabletServerLockExist(String server) {

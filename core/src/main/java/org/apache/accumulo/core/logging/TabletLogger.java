@@ -36,7 +36,6 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -147,20 +146,18 @@ public class TabletLogger {
         Collections2.transform(inputs, StoredTabletFile::toMinimalString));
   }
 
-  public static void compacting(TabletMetadata tabletMetadata, ExternalCompactionId cid,
+  public static void compacting(KeyExtent extent, FateId selectedFateId, ExternalCompactionId cid,
       String compactorAddress, CompactionJob job) {
     if (fileLog.isDebugEnabled()) {
       if (job.getKind() == CompactionKind.USER) {
-        var fateId = tabletMetadata.getSelectedFiles().getFateId();
         fileLog.debug(
             "Compacting {} driver:{} id:{} group:{} compactor:{} priority:{} size:{} kind:{} files:{}",
-            tabletMetadata.getExtent(), fateId, cid, job.getGroup(), compactorAddress,
-            job.getPriority(), getSize(job.getFiles()), job.getKind(),
-            asMinimalString(job.getFiles()));
+            extent, selectedFateId, cid, job.getGroup(), compactorAddress, job.getPriority(),
+            getSize(job.getFiles()), job.getKind(), asMinimalString(job.getFiles()));
       } else {
         fileLog.debug(
             "Compacting {} id:{} group:{} compactor:{} priority:{} size:{} kind:{} files:{}",
-            tabletMetadata.getExtent(), cid, job.getGroup(), compactorAddress, job.getPriority(),
+            extent, cid, job.getGroup(), compactorAddress, job.getPriority(),
             getSize(job.getFiles()), job.getKind(), asMinimalString(job.getFiles()));
       }
     }

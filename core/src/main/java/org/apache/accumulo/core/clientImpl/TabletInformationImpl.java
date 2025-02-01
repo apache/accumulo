@@ -18,10 +18,14 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
+import org.apache.accumulo.core.client.admin.TabletMergeabilityInfo;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -34,8 +38,10 @@ public class TabletInformationImpl implements TabletInformation {
   private long estimatedSize;
   private long estimatedEntries;
   private final String tabletState;
+  private final Supplier<Duration> currentTime;
 
-  public TabletInformationImpl(TabletMetadata tabletMetadata, String tabletState) {
+  public TabletInformationImpl(TabletMetadata tabletMetadata, String tabletState,
+      Supplier<Duration> currentTime) {
     this.tabletMetadata = tabletMetadata;
     estimatedEntries = 0L;
     estimatedSize = 0L;
@@ -44,6 +50,7 @@ public class TabletInformationImpl implements TabletInformation {
       estimatedSize += dfv.getSize();
     }
     this.tabletState = tabletState;
+    this.currentTime = Objects.requireNonNull(currentTime);
   }
 
   @Override
@@ -91,6 +98,11 @@ public class TabletInformationImpl implements TabletInformation {
   @Override
   public TabletAvailability getTabletAvailability() {
     return tabletMetadata.getTabletAvailability();
+  }
+
+  @Override
+  public TabletMergeabilityInfo getTabletMergeabilityInfo() {
+    return TabletMergeabilityUtil.toInfo(tabletMetadata.getTabletMergeability(), currentTime);
   }
 
   @Override
