@@ -148,6 +148,8 @@ public class FateLock implements QueueLock {
       Preconditions.checkArgument(nodeName.startsWith(PREFIX) && nodeName.charAt(len - 11) == '#',
           "Illegal node name %s", nodeName);
       sequence = Long.parseUnsignedLong(nodeName.substring(len - 10), 10);
+      // Use a supplier so we don't need to deserialize unless the calling code cares about
+      // the value for that entry.
       fateLockEntry = Suppliers
           .memoize(() -> FateLockEntry.deserialize(nodeName.substring(PREFIX.length(), len - 11)));
     }
@@ -216,8 +218,6 @@ public class FateLock implements QueueLock {
       for (String name : children) {
         var parsed = new NodeName(name);
         if (predicate.test(parsed.sequence, parsed.fateLockEntry)) {
-          // Use a supplier so we don't need to deserialize unless the calling code cares about
-          // the value for that entry.
           Preconditions.checkState(result.put(parsed.sequence, parsed.fateLockEntry) == null);
         }
       }
