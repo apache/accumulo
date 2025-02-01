@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.fate.FateId;
@@ -45,14 +46,19 @@ public class DistributedReadWriteLockTest {
     final SortedMap<Long,FateLockEntry> locks = new TreeMap<>();
 
     @Override
-    public synchronized SortedMap<Long,Supplier<FateLockEntry>> getEarlierEntries(long entry) {
+    public synchronized SortedMap<Long,Supplier<FateLockEntry>>
+        getEntries(BiPredicate<Long,Supplier<FateLockEntry>> predicate) {
       SortedMap<Long,Supplier<FateLockEntry>> result = new TreeMap<>();
-      locks.headMap(entry + 1).forEach((k, v) -> result.put(k, () -> v));
+      locks.forEach((seq, lockData) -> {
+        if (predicate.test(seq, () -> lockData)) {
+          result.put(seq, () -> lockData);
+        }
+      });
       return result;
     }
 
     @Override
-    public synchronized void removeEntry(long entry) {
+    public synchronized void removeEntry(FateLockEntry data, long entry) {
       synchronized (locks) {
         locks.remove(entry);
         locks.notifyAll();
@@ -147,7 +153,7 @@ public class DistributedReadWriteLockTest {
     assertEquals(LockType.READ, entry.getLockType());
     assertEquals(FateId.from(FateInstanceType.USER, uuid), entry.getFateId());
 
-    byte[] serialized = entry.serialize();
+    String serialized = entry.serialize();
     var deserialized = FateLockEntry.deserialize(serialized);
     assertEquals(entry, deserialized);
   }

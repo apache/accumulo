@@ -27,6 +27,7 @@ import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.fate.FateId;
@@ -50,9 +51,10 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
   // them,
   // a writer only runs when they are at the top of the queue.
   public interface QueueLock {
-    SortedMap<Long,Supplier<FateLockEntry>> getEarlierEntries(long entry);
+    SortedMap<Long,Supplier<FateLockEntry>>
+        getEntries(BiPredicate<Long,Supplier<FateLockEntry>> predicate);
 
-    void removeEntry(long entry);
+    void removeEntry(FateLockEntry data, long seq);
 
     long addEntry(FateLockEntry entry);
   }
@@ -115,7 +117,9 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         entry = qlock.addEntry(FateLockEntry.from(this.getType(), this.fateId));
         log.info("Added lock entry {} fateId {} lockType {}", entry, fateId, getType());
       }
-      SortedMap<Long,Supplier<FateLockEntry>> entries = qlock.getEarlierEntries(entry);
+
+      SortedMap<Long,Supplier<FateLockEntry>> entries =
+          qlock.getEntries((seq, lockData) -> seq <= entry);
       for (Entry<Long,Supplier<FateLockEntry>> entry : entries.entrySet()) {
         if (entry.getKey().equals(this.entry)) {
           return true;
@@ -150,7 +154,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         return;
       }
       log.debug("Removing lock entry {} fateId {} lockType {}", entry, this.fateId, getType());
-      qlock.removeEntry(entry);
+      qlock.removeEntry(FateLockEntry.from(this.getType(), this.fateId), entry);
       entry = -1;
     }
 
@@ -181,7 +185,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         entry = qlock.addEntry(FateLockEntry.from(this.getType(), this.fateId));
         log.info("Added lock entry {} fateId {} lockType {}", entry, this.fateId, getType());
       }
-      SortedMap<Long,Supplier<FateLockEntry>> entries = qlock.getEarlierEntries(entry);
+      SortedMap<Long,Supplier<FateLockEntry>> entries =
+          qlock.getEntries((seq, locData) -> seq <= entry);
       Iterator<Entry<Long,Supplier<FateLockEntry>>> iterator = entries.entrySet().iterator();
       if (!iterator.hasNext()) {
         throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry
@@ -200,19 +205,26 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
   }
 
   public static DistributedLock recoverLock(QueueLock qlock, FateId fateId) {
-    SortedMap<Long,Supplier<FateLockEntry>> entries = qlock.getEarlierEntries(Long.MAX_VALUE);
-    for (Entry<Long,Supplier<FateLockEntry>> entry : entries.entrySet()) {
-      FateLockEntry lockEntry = entry.getValue().get();
-      if (fateId.equals(lockEntry.getFateId())) {
+    SortedMap<Long,Supplier<FateLockEntry>> entries =
+        qlock.getEntries((seq, lockData) -> lockData.get().fateId.equals(fateId));
+
+    switch (entries.size()) {
+      case 0:
+        return null;
+      case 1:
+        var entry = entries.entrySet().iterator().next();
+        FateLockEntry lockEntry = entry.getValue().get();
         switch (lockEntry.getLockType()) {
           case READ:
             return new ReadLock(qlock, lockEntry.getFateId(), entry.getKey());
           case WRITE:
             return new WriteLock(qlock, lockEntry.getFateId(), entry.getKey());
+          default:
+            throw new IllegalStateException("Unknown lock type " + lockEntry.getLockType());
         }
-      }
+      default:
+        throw new IllegalStateException("Found more than one lock node " + entries);
     }
-    return null;
   }
 
   @Override
