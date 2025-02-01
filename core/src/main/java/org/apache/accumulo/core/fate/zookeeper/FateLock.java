@@ -18,14 +18,20 @@
  */
 package org.apache.accumulo.core.fate.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.QueueLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -34,6 +40,8 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NotEmptyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Suppliers;
 
 /**
  * A persistent lock mechanism in ZooKeeper used for locking tables during FaTE operations.
@@ -59,6 +67,81 @@ public class FateLock implements QueueLock {
     }
   }
 
+  public static class FateLockEntry {
+    final LockType lockType;
+    final FateId fateId;
+
+    private FateLockEntry(LockType lockType, FateId fateId) {
+      this.lockType = Objects.requireNonNull(lockType);
+      this.fateId = Objects.requireNonNull(fateId);
+    }
+
+    private FateLockEntry(byte[] entry) {
+      if (entry == null || entry.length < 1) {
+        throw new IllegalArgumentException();
+      }
+
+      int split = -1;
+      for (int i = 0; i < entry.length; i++) {
+        if (entry[i] == ':') {
+          split = i;
+          break;
+        }
+      }
+
+      if (split == -1) {
+        throw new IllegalArgumentException();
+      }
+
+      this.lockType = LockType.valueOf(new String(entry, 0, split, UTF_8));
+      this.fateId =
+          FateId.from(new String(Arrays.copyOfRange(entry, split + 1, entry.length), UTF_8));
+    }
+
+    public LockType getLockType() {
+      return lockType;
+    }
+
+    public FateId getFateId() {
+      return fateId;
+    }
+
+    public byte[] serialize() {
+      byte[] typeBytes = lockType.name().getBytes(UTF_8);
+      byte[] fateIdBytes = fateId.canonical().getBytes(UTF_8);
+      byte[] result = new byte[fateIdBytes.length + 1 + typeBytes.length];
+      System.arraycopy(typeBytes, 0, result, 0, typeBytes.length);
+      result[typeBytes.length] = ':';
+      System.arraycopy(fateIdBytes, 0, result, typeBytes.length + 1, fateIdBytes.length);
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+
+      FateLockEntry lockEntry = (FateLockEntry) o;
+      return lockType == lockEntry.lockType && fateId.equals(lockEntry.fateId);
+    }
+
+    @Override
+    public int hashCode() {
+      int result = lockType.hashCode();
+      result = 31 * result + fateId.hashCode();
+      return result;
+    }
+
+    public static FateLockEntry from(LockType lockType, FateId fateId) {
+      return new FateLockEntry(lockType, fateId);
+    }
+
+    public static FateLockEntry deserialize(byte[] serialized) {
+      return new FateLockEntry(serialized);
+    }
+  }
+
   public static FateLockPath path(String path) {
     return new FateLockPath(path);
   }
@@ -69,12 +152,12 @@ public class FateLock implements QueueLock {
   }
 
   @Override
-  public long addEntry(byte[] data) {
+  public long addEntry(FateLockEntry entry) {
     String newPath;
     try {
       while (true) {
         try {
-          newPath = zoo.putPersistentSequential(path + "/" + PREFIX, data);
+          newPath = zoo.putPersistentSequential(path + "/" + PREFIX, entry.serialize());
           String[] parts = newPath.split("/");
           String last = parts[parts.length - 1];
           return Long.parseLong(last.substring(PREFIX.length()));
@@ -89,8 +172,8 @@ public class FateLock implements QueueLock {
   }
 
   @Override
-  public SortedMap<Long,byte[]> getEarlierEntries(long entry) {
-    SortedMap<Long,byte[]> result = new TreeMap<>();
+  public SortedMap<Long,Supplier<FateLockEntry>> getEarlierEntries(long entry) {
+    SortedMap<Long,Supplier<FateLockEntry>> result = new TreeMap<>();
     try {
       List<String> children = Collections.emptyList();
       try {
@@ -106,7 +189,9 @@ public class FateLock implements QueueLock {
           long order = Long.parseLong(name.substring(PREFIX.length()));
           if (order <= entry) {
             byte[] data = zoo.getData(path + "/" + name);
-            result.put(order, data);
+            // Use a supplier so we don't need to deserialize unless the calling code cares about
+            // the value for that entry.
+            result.put(order, Suppliers.memoize(() -> FateLockEntry.deserialize(data)));
           }
         } catch (KeeperException.NoNodeException ex) {
           // ignored
