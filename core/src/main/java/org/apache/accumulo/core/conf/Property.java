@@ -28,6 +28,8 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.print.DocFlavor.STRING;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.data.constraints.NoDeleteConstraint;
@@ -400,6 +402,11 @@ public enum Property {
       "The Manager will notify TabletServers that a Tablet needs to be refreshed after certain operations"
           + " are performed (e.g. Bulk Import). This property specifies the maximum number of threads in a"
           + " ThreadPool in the Manager that will be used to request these refresh operations.",
+      "4.0.0"),
+  MANAGER_TABLET_MERGEABILITY_INTERVAL("manager.tablet.mergeability.interval", "24h",
+      PropertyType.TIMEDURATION,
+      "Time to wait between scanning tables to identify ranges of tablets that can be "
+          + " auto-merged. Valid ranges will be have merge fate ops submitted.",
       "4.0.0"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
@@ -904,6 +911,8 @@ public enum Property {
   TABLE_ONDEMAND_UNLOADER("tserver.ondemand.tablet.unloader",
       "org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader", PropertyType.CLASSNAME,
       "The class that will be used to determine which on-demand Tablets to unload.", "4.0.0"),
+  TABLE_MAX_MERGEABILITY_THRESHOLD("table.mergeability.threshold", ".25", PropertyType.FRACTION,
+      "A tablet is mergeable until it reaches this percentage of the split threshold.", "1.3.5"),
 
   // Crypto-related properties
   @Experimental

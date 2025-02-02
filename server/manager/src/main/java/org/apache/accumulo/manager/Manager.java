@@ -122,6 +122,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
+import org.apache.accumulo.manager.merge.FindMergeableRangeTask;
 import org.apache.accumulo.manager.metrics.BalancerMetrics;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
@@ -1291,6 +1292,13 @@ public class Manager extends AbstractServer
 
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(() -> ScanServerMetadataEntries.clean(context), 10, 10, MINUTES));
+
+    // TODO - create new threadpool?
+    var tabletMergeabilityInterval =
+        getConfiguration().getDuration(Property.MANAGER_TABLET_MERGEABILITY_INTERVAL);
+    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
+        new FindMergeableRangeTask(this), tabletMergeabilityInterval.toMillis(),
+        tabletMergeabilityInterval.toMillis(), MILLISECONDS));
 
     // Make sure that we have a secret key (either a new one or an old one from ZK) before we start
     // the manager client service.
