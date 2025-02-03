@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
+import org.apache.accumulo.core.client.admin.TabletMergeabilityInfo;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
@@ -129,6 +130,11 @@ public class SystemInformation {
     @Override
     public TabletAvailability getTabletAvailability() {
       return tabletInfo.getTabletAvailability();
+    }
+
+    @Override
+    public TabletMergeabilityInfo getTabletMergeabilityInfo() {
+      return tabletInfo.getTabletMergeabilityInfo();
     }
 
   }
