@@ -175,6 +175,13 @@ struct TFateId {
   2:string txUUIDStr
 }
 
+struct TTabletMergeability {
+  // Use a flag for "never" instead of something like a -1 delay
+  // in case we want to change how we represent never in the future
+  1:bool never
+  2:i64 delay
+}
+
 service FateService {
 
   // register a fate operation by reserving an opid
@@ -453,5 +460,22 @@ service ManagerClientService {
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException toe
+  )
+
+  list<data.TKeyExtent> updateTabletMergeability(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string tableName
+    4:map<data.TKeyExtent,TTabletMergeability> splits
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftTableOperationException toe
+  )
+
+  i64 getManagerTimeNanos(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
   )
 }

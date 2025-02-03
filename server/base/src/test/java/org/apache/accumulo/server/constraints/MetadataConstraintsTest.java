@@ -663,7 +663,7 @@ public class MetadataConstraintsTest {
     TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":1,\"never\"=true}"));
     assertViolation(mc, m, (short) 4006);
 
-    // SteadyTime must be set if delay positive
+    // SteadyTime must be set if delay is set
     m = new Mutation(new Text("0;foo"));
     TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":10,\"never\"=false}"));
     assertViolation(mc, m, (short) 4006);

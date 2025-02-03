@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.DelegationTokenConfigSerializer;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
@@ -64,11 +65,14 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
+import org.apache.accumulo.core.manager.thrift.TTabletMergeability;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -626,6 +630,54 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     manager.mustBeOnline(tableId);
 
     manager.hostOndemand(Lists.transform(extents, KeyExtent::fromThrift));
+  }
+
+  @Override
+  public List<TKeyExtent> updateTabletMergeability(TInfo tinfo, TCredentials credentials,
+      String tableName, Map<TKeyExtent,TTabletMergeability> splits)
+      throws ThriftTableOperationException, ThriftSecurityException {
+
+    final TableId tableId = getTableId(manager.getContext(), tableName);
+    NamespaceId namespaceId = getNamespaceIdFromTableId(null, tableId);
+
+    if (!manager.security.canSplitTablet(credentials, tableId, namespaceId)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+      for (Entry<TKeyExtent,TTabletMergeability> split : splits.entrySet()) {
+        var currentTime = manager.getSteadyTime();
+        var extent = KeyExtent.fromThrift(split.getKey());
+        var tabletMergeability = TabletMergeabilityUtil.fromThrift(split.getValue());
+
+        // Update the TabletMergeabilty metadata with the current manager time as
+        // long as there is no existing operation set
+        var updatedTm = TabletMergeabilityMetadata.toMetadata(tabletMergeability, currentTime);
+        tabletsMutator.mutateTablet(extent).requireAbsentOperation()
+            .putTabletMergeability(updatedTm)
+            .submit(tm -> updatedTm.equals(tm.getTabletMergeability()),
+                () -> "update TabletMergeability for " + extent + " to " + updatedTm);
+      }
+
+      var results = tabletsMutator.process();
+      List<TKeyExtent> updated = new ArrayList<>();
+      results.forEach((key, result) -> {
+        if (result.getStatus() == Status.ACCEPTED) {
+          updated.add(result.getExtent().toThrift());
+        } else {
+          log.debug("Unable to update TableMergeabilty: {}", result.getExtent());
+        }
+      });
+      return updated;
+    }
+  }
+
+  @Override
+  public long getManagerTimeNanos(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException {
+    manager.security.authenticateUser(credentials, credentials);
+    return manager.getSteadyTime().getNanos();
   }
 
   protected TableId getTableId(ClientContext context, String tableName)
