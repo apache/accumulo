@@ -26,7 +26,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -166,7 +166,7 @@ public class ECAdmin implements KeywordExecutable {
 
   private void runningCompactions(ServerContext context, boolean details) {
     CompactionCoordinatorService.Client coordinatorClient = null;
-    TExternalCompactionList running;
+    TExternalCompactionMap running;
     try {
       coordinatorClient = getCoordinatorClient(context);
       running = coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());

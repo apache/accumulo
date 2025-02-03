@@ -44,7 +44,15 @@ public interface ManagerClient<C extends TServiceClient> {
       return null;
     }
 
-    HostAndPort manager = HostAndPort.fromString(managers.iterator().next().toHostPortString());
+    final String managerLocation = managers.iterator().next().toHostPortString();
+    if (managerLocation.equals("0.0.0.0:0")) {
+      // The Manager creates the lock with an initial address of 0.0.0.0:0, then
+      // later updates the lock contents with the actual address after everything
+      // is started.
+      log.debug("Manager is up and lock acquired, waiting for address...");
+      return null;
+    }
+    HostAndPort manager = HostAndPort.fromString(managerLocation);
     try {
       // Manager requests can take a long time: don't ever time out
       return ThriftUtil.getClientNoTimeout(type, manager, context);

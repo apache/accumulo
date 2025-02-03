@@ -76,4 +76,10 @@ public interface TabletInformation {
    */
   TabletAvailability getTabletAvailability();
 
+  /**
+   * @return the TabletMergeabilityInfo object
+   *
+   * @since 4.0.0
+   */
+  TabletMergeabilityInfo getTabletMergeabilityInfo();
 }

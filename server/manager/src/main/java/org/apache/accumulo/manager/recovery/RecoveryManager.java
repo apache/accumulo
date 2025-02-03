@@ -77,7 +77,7 @@ public class RecoveryManager {
     try {
       List<String> workIDs =
           new DistributedWorkQueue(manager.getContext().getZooKeeperRoot() + Constants.ZRECOVERY,
-              manager.getConfiguration(), manager.getContext()).getWorkQueued();
+              manager.getConfiguration(), manager).getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
       log.warn("{}", e.getMessage(), e);
@@ -130,7 +130,7 @@ public class RecoveryManager {
       throws KeeperException, InterruptedException {
     String work = source + "|" + destination;
     new DistributedWorkQueue(manager.getContext().getZooKeeperRoot() + Constants.ZRECOVERY,
-        manager.getConfiguration(), manager.getContext()).addWork(sortId, work.getBytes(UTF_8));
+        manager.getConfiguration(), manager).addWork(sortId, work.getBytes(UTF_8));
 
     synchronized (this) {
       sortsQueued.add(sortId);
