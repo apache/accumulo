@@ -97,6 +97,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
@@ -168,8 +169,8 @@ import io.opentelemetry.context.Scope;
  * <p>
  * The manager will also coordinate log recoveries and reports general status.
  */
-public class Manager extends AbstractServer
-    implements LiveTServerSet.Listener, TableObserver, CurrentState, HighlyAvailableService {
+public class Manager extends AbstractServer implements LiveTServerSet.Listener, TableObserver,
+    CurrentState, HighlyAvailableService, ServerProcessService.Iface {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
@@ -445,7 +446,7 @@ public class Manager extends AbstractServer
       log.info("SASL is enabled, creating delegation token key manager and distributor");
       final long tokenUpdateInterval =
           aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
-      keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooReaderWriter(),
+      keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooSession(),
           context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
       authenticationTokenKeyManager = new AuthenticationTokenKeyManager(context.getSecretManager(),
           keyDistributor, tokenUpdateInterval, tokenLifetime);
@@ -467,10 +468,10 @@ public class Manager extends AbstractServer
     synchronized (mergeLock) {
       try {
         String path = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
-        if (!context.getZooReaderWriter().exists(path)) {
+        if (!context.getZooSession().asReaderWriter().exists(path)) {
           return new MergeInfo();
         }
-        byte[] data = context.getZooReaderWriter().getData(path);
+        byte[] data = context.getZooSession().asReaderWriter().getData(path);
         DataInputBuffer in = new DataInputBuffer();
         in.reset(data, data.length);
         MergeInfo info = new MergeInfo();
@@ -494,7 +495,7 @@ public class Manager extends AbstractServer
           + info.getExtent().tableId() + "/merge";
       info.setState(state);
       if (state.equals(MergeState.NONE)) {
-        context.getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
+        context.getZooSession().asReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
       } else {
         DataOutputBuffer out = new DataOutputBuffer();
         try {
@@ -502,7 +503,7 @@ public class Manager extends AbstractServer
         } catch (IOException ex) {
           throw new AssertionError("Unlikely", ex);
         }
-        context.getZooReaderWriter().putPersistentData(path, out.getData(),
+        context.getZooSession().asReaderWriter().putPersistentData(path, out.getData(),
             state.equals(MergeState.STARTED) ? ZooUtil.NodeExistsPolicy.FAIL
                 : ZooUtil.NodeExistsPolicy.OVERWRITE);
       }
@@ -514,7 +515,7 @@ public class Manager extends AbstractServer
   public void clearMergeState(TableId tableId) throws KeeperException, InterruptedException {
     synchronized (mergeLock) {
       String path = getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
-      getContext().getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
+      getContext().getZooSession().asReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
       mergeLock.notifyAll();
     }
     nextEvent.event("Merge state of %s cleared", tableId);
@@ -522,7 +523,7 @@ public class Manager extends AbstractServer
 
   void setManagerGoalState(ManagerGoalState state) {
     try {
-      getContext().getZooReaderWriter().putPersistentData(
+      getContext().getZooSession().asReaderWriter().putPersistentData(
           getContext().getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE,
           state.name().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
@@ -533,7 +534,7 @@ public class Manager extends AbstractServer
   ManagerGoalState getManagerGoalState() {
     while (true) {
       try {
-        byte[] data = getContext().getZooReaderWriter()
+        byte[] data = getContext().getZooSession().asReaderWriter()
             .getData(getContext().getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE);
         return ManagerGoalState.valueOf(new String(data, UTF_8));
       } catch (Exception e) {
@@ -750,7 +751,7 @@ public class Manager extends AbstractServer
     @Override
     public void run() {
 
-      final ZooReaderWriter zrw = getContext().getZooReaderWriter();
+      final ZooReaderWriter zrw = getContext().getZooSession().asReaderWriter();
       final String sserverZNodePath = getContext().getZooKeeperRoot() + Constants.ZSSERVERS;
 
       while (stillManager()) {
@@ -1243,7 +1244,7 @@ public class Manager extends AbstractServer
 
     ServerAddress sa;
     var processor =
-        ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy, getContext());
+        ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler, haProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
@@ -1293,7 +1294,7 @@ public class Manager extends AbstractServer
       Thread.currentThread().interrupt();
     }
 
-    ZooReaderWriter zReaderWriter = context.getZooReaderWriter();
+    ZooReaderWriter zReaderWriter = context.getZooSession().asReaderWriter();
 
     try {
       zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
@@ -1363,7 +1364,7 @@ public class Manager extends AbstractServer
       final AgeOffStore<Manager> store =
           new AgeOffStore<>(
               new org.apache.accumulo.core.fate.ZooStore<>(
-                  context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()),
+                  context.getZooKeeperRoot() + Constants.ZFATE, context.getZooSession()),
               HOURS.toMillis(8), System::currentTimeMillis);
 
       Fate<Manager> f = initializeFateInstance(store, getConfiguration());
@@ -1422,10 +1423,23 @@ public class Manager extends AbstractServer
     // The manager is fully initialized. Clients are allowed to connect now.
     managerInitialized.set(true);
 
-    while (clientService.isServing()) {
-      sleepUninterruptibly(500, MILLISECONDS);
+    while (!isShutdownRequested() && clientService.isServing()) {
+      if (Thread.currentThread().isInterrupted()) {
+        LOG.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        log.info("Interrupt Exception received, shutting down");
+        gracefulShutdown(context.rpcCreds());
+      }
     }
-    log.info("Shutting down fate.");
+
+    LOG.debug("Stopping Thrift Servers");
+    sa.server.stop();
+
+    log.debug("Shutting down fate.");
     fate().shutdown();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
@@ -1458,7 +1472,13 @@ public class Manager extends AbstractServer
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
-    log.info("exiting");
+    getShutdownComplete().set(true);
+    log.info("stop requested. exiting ... ");
+    try {
+      managerLock.unlock();
+    } catch (Exception e) {
+      log.warn("Failed to release Manager lock", e);
+    }
   }
 
   protected Fate<Manager> initializeFateInstance(TStore<Manager> store,
@@ -1564,7 +1584,7 @@ public class Manager extends AbstractServer
 
   private ServiceLockData getManagerLock(final ServiceLockPath zManagerLoc)
       throws KeeperException, InterruptedException {
-    var zooKeeper = getContext().getZooReaderWriter().getZooKeeper();
+    var zooKeeper = getContext().getZooSession();
     log.info("trying to get manager lock");
 
     final String managerClientAddress =
@@ -1575,9 +1595,11 @@ public class Manager extends AbstractServer
         new ServiceLockData(zooLockUUID, managerClientAddress, ThriftService.MANAGER);
 
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
+    HAServiceLockWatcher managerLockWatcher =
+        new HAServiceLockWatcher("manager", () -> getShutdownComplete().get());
+
     while (true) {
 
-      HAServiceLockWatcher managerLockWatcher = new HAServiceLockWatcher("manager");
       managerLock.lock(managerLockWatcher, sld);
 
       managerLockWatcher.waitForChange();

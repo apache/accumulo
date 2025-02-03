@@ -394,22 +394,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   }
 
-  /**
-   * Given a zooCache and instanceId, look up the instance name.
-   */
-  public static String lookupInstanceName(ZooCache zooCache, InstanceId instanceId) {
-    checkArgument(zooCache != null, "zooCache is null");
-    checkArgument(instanceId != null, "instanceId is null");
-    for (String name : zooCache.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
-      var bytes = zooCache.get(Constants.ZROOT + Constants.ZINSTANCES + "/" + name);
-      InstanceId iid = InstanceId.of(new String(bytes, UTF_8));
-      if (iid.equals(instanceId)) {
-        return name;
-      }
-    }
-    return null;
-  }
-
   @Override
   public InstanceId getInstanceId() {
     return context.getInstanceID();

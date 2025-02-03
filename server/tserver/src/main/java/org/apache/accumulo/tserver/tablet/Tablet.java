@@ -68,6 +68,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -91,6 +92,7 @@ import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
@@ -490,8 +492,15 @@ public class Tablet extends TabletBase {
             flushId);
         storedFile.ifPresent(stf -> compactable.filesAdded());
       } catch (Exception e) {
-        TraceUtil.setException(span2, e, true);
-        throw e;
+        final ServiceLock tserverLock = tabletServer.getLock();
+        if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
+          log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
+              + " Halting...", getExtent(), e);
+          Halt.halt("TabletServer lock does not exist", -1);
+        } else {
+          TraceUtil.setException(span2, e, true);
+          throw e;
+        }
       } finally {
         span2.end();
       }
@@ -678,7 +687,7 @@ public class Tablet extends TabletBase {
     try {
       String zTablePath = tabletServer.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
           + extent.tableId() + Constants.ZTABLE_FLUSH_ID;
-      String id = new String(context.getZooReaderWriter().getData(zTablePath), UTF_8);
+      String id = new String(context.getZooSession().asReaderWriter().getData(zTablePath), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
       throw new RuntimeException("Exception on " + extent + " getting flush ID", e);
@@ -704,7 +713,8 @@ public class Tablet extends TabletBase {
           + extent.tableId() + Constants.ZTABLE_COMPACT_ID;
 
       String[] tokens =
-          new String(context.getZooReaderWriter().getData(zTablePath), UTF_8).split(",");
+          new String(context.getZooSession().asReaderWriter().getData(zTablePath), UTF_8)
+              .split(",");
       long compactID = Long.parseLong(tokens[0]);
 
       CompactionConfig overlappingConfig = null;

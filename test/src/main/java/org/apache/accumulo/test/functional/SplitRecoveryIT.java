@@ -95,9 +95,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
   private void run(ServerContext c) throws Exception {
     var zPath = ServiceLock.path(c.getZooKeeperRoot() + "/testLock");
-    ZooReaderWriter zoo = c.getZooReaderWriter();
+    ZooReaderWriter zoo = c.getZooSession().asReaderWriter();
     zoo.putPersistentData(zPath.toString(), new byte[0], NodeExistsPolicy.OVERWRITE);
-    ServiceLock zl = new ServiceLock(zoo.getZooKeeper(), zPath, UUID.randomUUID());
+    ServiceLock zl = new ServiceLock(c.getZooSession(), zPath, UUID.randomUUID());
     boolean gotLock = zl.tryLock(new LockWatcher() {
 
       @SuppressFBWarnings(value = "DM_EXIT",

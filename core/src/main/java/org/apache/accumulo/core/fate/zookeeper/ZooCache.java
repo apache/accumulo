@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.Collections;
@@ -31,15 +32,17 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,10 +54,13 @@ import com.google.common.base.Preconditions;
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
  */
 public class ZooCache {
+
+  public interface ZooCacheWatcher extends Consumer<WatchedEvent> {}
+
   private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
 
   private final ZCacheWatcher watcher = new ZCacheWatcher();
-  private final Watcher externalWatcher;
+  private final Optional<ZooCacheWatcher> externalWatcher;
 
   private final ReadWriteLock cacheLock = new ReentrantReadWriteLock(false);
   private final Lock cacheWriteLock = cacheLock.writeLock();
@@ -64,7 +70,7 @@ public class ZooCache {
   private final HashMap<String,ZcStat> statCache;
   private final HashMap<String,List<String>> childrenCache;
 
-  private final ZooReader zReader;
+  private final ZooSession zk;
 
   private volatile boolean closed = false;
 
@@ -139,19 +145,6 @@ public class ZooCache {
   private volatile ImmutableCacheCopies immutableCache = new ImmutableCacheCopies(0);
   private long updateCount = 0;
 
-  /**
-   * Returns a ZooKeeper session. Calls should be made within run of ZooRunnable after caches are
-   * checked. This will be performed at each retry of the run method. Calls to this method should be
-   * made, ideally, after cache checks since other threads may have succeeded when updating the
-   * cache. Doing this will ensure that we don't pay the cost of retrieving a ZooKeeper session on
-   * each retry until we've ensured the caches aren't populated for a given node.
-   *
-   * @return ZooKeeper session.
-   */
-  private ZooKeeper getZooKeeper() {
-    return zReader.getZooKeeper();
-  }
-
   private class ZCacheWatcher implements Watcher {
     @Override
     public void process(WatchedEvent event) {
@@ -196,20 +189,33 @@ public class ZooCache {
           break;
       }
 
-      if (externalWatcher != null) {
-        externalWatcher.process(event);
-      }
+      externalWatcher.ifPresent(w -> w.accept(event));
     }
+  }
+
+  /**
+   * Creates a new cache without an external watcher.
+   *
+   * @param zk the ZooKeeper instance
+   * @throws NullPointerException if zk is {@code null}
+   */
+  public ZooCache(ZooSession zk) {
+    this(zk, Optional.empty());
   }
 
   /**
    * Creates a new cache. The given watcher is called whenever a watched node changes.
    *
-   * @param reader ZooKeeper reader
+   * @param zk the ZooKeeper instance
    * @param watcher watcher object
+   * @throws NullPointerException if zk or watcher is {@code null}
    */
-  public ZooCache(ZooReader reader, Watcher watcher) {
-    this.zReader = reader;
+  public ZooCache(ZooSession zk, ZooCacheWatcher watcher) {
+    this(zk, Optional.of(watcher));
+  }
+
+  private ZooCache(ZooSession zk, Optional<ZooCacheWatcher> watcher) {
+    this.zk = requireNonNull(zk);
     this.cache = new HashMap<>();
     this.statCache = new HashMap<>();
     this.childrenCache = new HashMap<>();
@@ -305,9 +311,7 @@ public class ZooCache {
             return childrenCache.get(zPath);
           }
 
-          final ZooKeeper zooKeeper = getZooKeeper();
-
-          List<String> children = zooKeeper.getChildren(zPath, watcher);
+          List<String> children = zk.getChildren(zPath, watcher);
           if (children != null) {
             children = List.copyOf(children);
           }
@@ -377,8 +381,7 @@ public class ZooCache {
          */
         cacheWriteLock.lock();
         try {
-          final ZooKeeper zooKeeper = getZooKeeper();
-          Stat stat = zooKeeper.exists(zPath, watcher);
+          Stat stat = zk.exists(zPath, watcher);
           byte[] data = null;
           if (stat == null) {
             if (log.isTraceEnabled()) {
@@ -386,7 +389,7 @@ public class ZooCache {
             }
           } else {
             try {
-              data = zooKeeper.getData(zPath, watcher, stat);
+              data = zk.getData(zPath, watcher, stat);
               zstat = new ZcStat(stat);
             } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
               throw new ConcurrentModificationException();
@@ -522,6 +525,33 @@ public class ZooCache {
       statCache.keySet().removeIf(path -> path.startsWith(zPath));
 
       immutableCache = new ImmutableCacheCopies(++updateCount, cache, statCache, childrenCache);
+    } finally {
+      cacheWriteLock.unlock();
+    }
+  }
+
+  /**
+   * Removes all paths in the cache match the predicate.
+   */
+  public void clear(Predicate<String> pathPredicate) {
+    Preconditions.checkState(!closed);
+    Predicate<String> pathPredicateToUse;
+    if (log.isTraceEnabled()) {
+      pathPredicateToUse = pathPredicate.and(path -> {
+        log.trace("removing {} from cache", path);
+        return true;
+      });
+    } else {
+      pathPredicateToUse = pathPredicate;
+    }
+    cacheWriteLock.lock();
+    try {
+      cache.keySet().removeIf(pathPredicateToUse);
+      childrenCache.keySet().removeIf(pathPredicateToUse);
+      statCache.keySet().removeIf(pathPredicateToUse);
+
+      immutableCache = new ImmutableCacheCopies(++updateCount, cache, statCache, childrenCache);
+
     } finally {
       cacheWriteLock.unlock();
     }

@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -88,6 +89,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.constraints.SystemEnvironment;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -472,6 +474,63 @@ public class BulkNewIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void testComputeLoadPlan() throws Exception {
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      addSplits(c, tableName, "0333 0666 0999 1333 1666");
+
+      String dir = getDir("/testBulkFile-");
+
+      Map<String,Set<String>> hashes = new HashMap<>();
+      String h1 = writeData(dir + "/f1.", aconf, 0, 333);
+      hashes.put("0333", new HashSet<>(List.of(h1)));
+      String h2 = writeData(dir + "/f2.", aconf, 0, 666);
+      hashes.get("0333").add(h2);
+      hashes.put("0666", new HashSet<>(List.of(h2)));
+      String h3 = writeData(dir + "/f3.", aconf, 334, 700);
+      hashes.get("0666").add(h3);
+      hashes.put("0999", new HashSet<>(List.of(h3)));
+      hashes.put("1333", Set.of());
+      hashes.put("1666", Set.of());
+      hashes.put("null", Set.of());
+
+      SortedSet<Text> splits = new TreeSet<>(c.tableOperations().listSplits(tableName));
+
+      for (String filename : List.of("f1.rf", "f2.rf", "f3.rf")) {
+        // The body of this loop simulates what each reducer would do
+        Path path = new Path(dir + "/" + filename);
+
+        // compute the load plan for the rfile
+        URI file = path.toUri();
+        String lpJson = LoadPlan.compute(file, LoadPlan.SplitResolver.from(splits)).toJson();
+
+        // save the load plan to a file
+        Path lpPath = new Path(path.getParent(), path.getName().replace(".rf", ".lp"));
+        try (var output = getCluster().getFileSystem().create(lpPath, false)) {
+          IOUtils.write(lpJson, output, UTF_8);
+        }
+      }
+
+      // This simulates the code that would run after the map reduce job and bulk import the files
+      var builder = LoadPlan.builder();
+      for (var status : getCluster().getFileSystem().listStatus(new Path(dir),
+          p -> p.getName().endsWith(".lp"))) {
+        try (var input = getCluster().getFileSystem().open(status.getPath())) {
+          String lpJson = IOUtils.toString(input, UTF_8);
+          builder.addPlan(LoadPlan.fromJson(lpJson));
+        }
+      }
+
+      LoadPlan lpAll = builder.build();
+
+      c.tableOperations().importDirectory(dir).to(tableName).plan(lpAll).load();
+
+      verifyData(c, tableName, 0, 700, false);
+      verifyMetadata(c, tableName, hashes);
+    }
+  }
+
+  @Test
   public void testEmptyDir() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String dir = getDir("/testBulkFile-");
@@ -616,7 +675,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
         String endRow = tablet.getEndRow() == null ? "null" : tablet.getEndRow().toString();
 
-        assertEquals(expectedHashes.get(endRow), fileHashes);
+        assertEquals(expectedHashes.get(endRow), fileHashes, "endRow " + endRow);
 
         endRowsSeen.add(endRow);
       }

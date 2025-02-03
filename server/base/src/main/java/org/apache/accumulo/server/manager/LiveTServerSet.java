@@ -27,7 +27,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
@@ -36,6 +38,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -57,13 +60,13 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NotEmptyException;
 import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Suppliers;
 import com.google.common.net.HostAndPort;
 
-public class LiveTServerSet implements Watcher {
+public class LiveTServerSet implements ZooCacheWatcher {
 
   public interface Listener {
     void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added);
@@ -73,7 +76,6 @@ public class LiveTServerSet implements Watcher {
 
   private final Listener cback;
   private final ServerContext context;
-  private ZooCache zooCache;
 
   public class TServerConnection {
     private final HostAndPort address;
@@ -233,19 +235,22 @@ public class LiveTServerSet implements Watcher {
   // as above, indexed by TServerInstance
   private final Map<TServerInstance,TServerInfo> currentInstances = new HashMap<>();
 
+  private final ConcurrentHashMap<String,TServerInfo> serversShuttingDown =
+      new ConcurrentHashMap<>();
+
   // The set of entries in zookeeper without locks, and the first time each was noticed
   private final Map<String,Long> locklessServers = new HashMap<>();
+
+  private final Supplier<ZooCache> zcSupplier;
 
   public LiveTServerSet(ServerContext context, Listener cback) {
     this.cback = cback;
     this.context = context;
+    this.zcSupplier = Suppliers.memoize(() -> new ZooCache(context.getZooSession(), this));
   }
 
-  public synchronized ZooCache getZooCache() {
-    if (zooCache == null) {
-      zooCache = new ZooCache(context.getZooReader(), this);
-    }
-    return zooCache;
+  public ZooCache getZooCache() {
+    return zcSupplier.get();
   }
 
   public synchronized void startListeningForTabletServerChanges() {
@@ -253,6 +258,19 @@ public class LiveTServerSet implements Watcher {
 
     ThreadPools.watchCriticalScheduledTask(this.context.getScheduledExecutor()
         .scheduleWithFixedDelay(this::scanServers, 0, 5000, TimeUnit.MILLISECONDS));
+  }
+
+  public void tabletServerShuttingDown(String server) {
+
+    TServerInfo info = null;
+    synchronized (this) {
+      info = current.get(server);
+    }
+    if (info != null) {
+      serversShuttingDown.put(server, info);
+    } else {
+      log.info("Tablet Server reported it's shutting down, but not in list of current servers");
+    }
   }
 
   public synchronized void scanServers() {
@@ -280,7 +298,7 @@ public class LiveTServerSet implements Watcher {
 
   private void deleteServerNode(String serverNode) throws InterruptedException, KeeperException {
     try {
-      context.getZooReaderWriter().delete(serverNode);
+      context.getZooSession().asReaderWriter().delete(serverNode);
     } catch (NotEmptyException ex) {
       // acceptable race condition:
       // tserver created the lock under this server's node after our last check
@@ -304,6 +322,7 @@ public class LiveTServerSet implements Watcher {
         doomed.add(info.instance);
         current.remove(zPath);
         currentInstances.remove(info.instance);
+        serversShuttingDown.remove(zPath);
       }
 
       Long firstSeen = locklessServers.get(zPath);
@@ -334,7 +353,7 @@ public class LiveTServerSet implements Watcher {
   }
 
   @Override
-  public void process(WatchedEvent event) {
+  public void accept(WatchedEvent event) {
 
     // its important that these event are propagated by ZooCache, because this ensures when reading
     // zoocache that is has already processed the event and cleared
@@ -379,7 +398,9 @@ public class LiveTServerSet implements Watcher {
   }
 
   public synchronized Set<TServerInstance> getCurrentServers() {
-    return new HashSet<>(currentInstances.keySet());
+    Set<TServerInstance> current = currentInstances.keySet();
+    serversShuttingDown.values().forEach(tsi -> current.remove(tsi.instance));
+    return new HashSet<>(current);
   }
 
   public synchronized int size() {
@@ -432,7 +453,7 @@ public class LiveTServerSet implements Watcher {
     log.info("Removing zookeeper lock for {}", server);
     String fullpath = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + zPath;
     try {
-      context.getZooReaderWriter().recursiveDelete(fullpath, SKIP);
+      context.getZooSession().asReaderWriter().recursiveDelete(fullpath, SKIP);
     } catch (Exception e) {
       String msg = "error removing tablet server lock";
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility

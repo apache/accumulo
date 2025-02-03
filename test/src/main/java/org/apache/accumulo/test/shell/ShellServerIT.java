@@ -214,7 +214,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       }
       Thread.sleep(20);
       ts.exec("importtable " + table2 + " " + import_, true);
-      ts.exec("config -t " + table2 + " -np", true, "345M", true);
+      ts.exec("config -t " + table2, true, "345M", true);
       ts.exec("getsplits -t " + table2, true, "row5", true);
       ts.exec("constraint --list -t " + table2, true, "VisibilityConstraint=2", true);
       ts.exec("online " + table, true);
@@ -240,14 +240,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
       for (int i = 0; i < 50; i++) {
         String expected = (100 + i) + "M";
         ts.exec("config -t " + table + " -s table.split.threshold=" + expected, true);
-        ts.exec("config -t " + table + " -np -f table.split.threshold", true, expected, true);
+        ts.exec("config -t " + table + " -f table.split.threshold", true, expected, true);
 
         ts.exec("config -t " + table + " -s table.scan.max.memory=" + expected, true);
-        ts.exec("config -t " + table + " -np -f table.scan.max.memory", true, expected, true);
+        ts.exec("config -t " + table + " -f table.scan.max.memory", true, expected, true);
 
         String bExpected = ((i % 2) == 0) ? "true" : "false";
         ts.exec("config -t " + table + " -s table.bloom.enabled=" + bExpected, true);
-        ts.exec("config -t " + table + " -np -f table.bloom.enabled", true, bExpected, true);
+        ts.exec("config -t " + table + " -f table.bloom.enabled", true, bExpected, true);
       }
     }
   }
@@ -654,7 +654,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("table " + clone);
     ts.exec("scan", true, "value", true);
     ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
-    ts.exec("config -t " + clone + " -np", true, "123M", true);
+    ts.exec("config -t " + clone, true, "123M", true);
     ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
     ts.exec("deletetable -f " + table);
     ts.exec("deletetable -f " + clone);
@@ -683,7 +683,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("table " + clone);
     ts.exec("scan", false, "TableOfflineException", true);
     ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
-    ts.exec("config -t " + clone + " -np", true, "123M", true);
+    ts.exec("config -t " + clone, true, "123M", true);
     ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
     ts.exec("deletetable -f " + table);
     ts.exec("deletetable -f " + clone);
@@ -1027,7 +1027,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertEquals(10, countkeys(table));
     ts.exec("deletemany -f -b row8");
     assertEquals(8, countkeys(table));
-    ts.exec("scan -t " + table + " -np", true, "row8", false);
+    ts.exec("scan -t " + table, true, "row8", false);
     make10();
     ts.exec("deletemany -f -b row4 -e row5");
     assertEquals(8, countkeys(table));
@@ -1112,7 +1112,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     expectedDefault.add("row2 cf1:cq []\t2468ace");
     ArrayList<String> actualDefault = new ArrayList<>(4);
     boolean isFirst = true;
-    for (String s : ts.exec("scan -np", true).split("[\n\r]+")) {
+    for (String s : ts.exec("scan", true).split("[\n\r]+")) {
       if (isFirst) {
         isFirst = false;
       } else {
@@ -1128,7 +1128,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("formatter -t formatter_test -f " + HexFormatter.class.getName(), true);
     ArrayList<String> actualFormatted = new ArrayList<>(4);
     isFirst = true;
-    for (String s : ts.exec("scan -np", true).split("[\n\r]+")) {
+    for (String s : ts.exec("scan", true).split("[\n\r]+")) {
       if (isFirst) {
         isFirst = false;
       } else {
@@ -1239,7 +1239,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void help() throws Exception {
-    ts.exec("help -np", true, "Help Commands", true);
+    ts.exec("help", true, "Help Commands", true);
     ts.exec("?", true, "Help Commands", true);
     for (String c : ("bye exit quit about help info ? "
         + "deleteiter deletescaniter listiter setiter setscaniter "
@@ -1304,7 +1304,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + table, true);
     ts.exec("notable", true);
     ts.exec("importdirectory -t " + table + " -i " + importDir + " true", true);
-    ts.exec("scan -t " + table + " -np -b 0 -e 2", true, "0-->" + nonce, true);
+    ts.exec("scan -t " + table + " -b 0 -e 2", true, "0-->" + nonce, true);
     ts.exec("scan -t " + table + " -b 00000098 -e 00000100", true, "99-->" + nonce, true);
     // Attempt to re-import without -i option, error should occur
     ts.exec("importdirectory -t " + table + " " + importDir + " true", false);
@@ -1568,7 +1568,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     Thread.sleep(250);
 
-    ts.exec("scan -np", true, "foo", false);
+    ts.exec("scan ", true, "foo", false);
 
     ts.exec("constraint -a FooConstraint", true);
 
@@ -1677,7 +1677,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   private int countkeys(String table) {
-    ts.exec("scan -np -t " + table);
+    ts.exec("scan -t " + table);
     return ts.output.get().split("\n").length - 1;
   }
 
@@ -1685,17 +1685,17 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void scans() throws Exception {
     ts.exec("createtable t");
     make10();
-    String result = ts.exec("scan -np -b row1 -e row1");
+    String result = ts.exec("scan -b row1 -e row1");
     assertEquals(2, result.split("\n").length);
-    result = ts.exec("scan -np -b row3 -e row5");
+    result = ts.exec("scan -b row3 -e row5");
     assertEquals(4, result.split("\n").length);
-    result = ts.exec("scan -np -r row3");
+    result = ts.exec("scan -r row3");
     assertEquals(2, result.split("\n").length);
-    result = ts.exec("scan -np -b row:");
+    result = ts.exec("scan -b row:");
     assertEquals(1, result.split("\n").length);
-    result = ts.exec("scan -np -b row");
+    result = ts.exec("scan -b row");
     assertEquals(11, result.split("\n").length);
-    result = ts.exec("scan -np -e row:");
+    result = ts.exec("scan -e row:");
     assertEquals(11, result.split("\n").length);
     ts.exec("deletetable -f t");
   }
@@ -1737,21 +1737,21 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // The implementation of ValueReversingIterator in the FAKE context does nothing, the value is
     // not reversed.
-    result = ts.exec("scan -pn baz -np -b row1 -e row1");
+    result = ts.exec("scan -pn baz -b row1 -e row1");
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("value"));
-    result = ts.exec("scan -pn baz -np -b row3 -e row5");
+    result = ts.exec("scan -pn baz -b row3 -e row5");
     assertEquals(4, result.split("\n").length);
     assertTrue(result.contains("value"));
-    result = ts.exec("scan -pn baz -np -r row3");
+    result = ts.exec("scan -pn baz -r row3");
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("value"));
-    result = ts.exec("scan -pn baz -np -b row:");
+    result = ts.exec("scan -pn baz -b row:");
     assertEquals(1, result.split("\n").length);
-    result = ts.exec("scan -pn baz -np -b row");
+    result = ts.exec("scan -pn baz -b row");
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("value"));
-    result = ts.exec("scan -pn baz -np -e row:");
+    result = ts.exec("scan -pn baz -e row:");
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("value"));
 
@@ -1759,25 +1759,25 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // Override the table classloader context with the REAL implementation of
     // ValueReversingIterator, which does reverse the value.
-    result = ts.exec("scan -pn baz -np -b row1 -e row1 -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -b row1 -e row1 -cc " + REAL_CONTEXT);
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -pn baz -np -b row3 -e row5 -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -b row3 -e row5 -cc " + REAL_CONTEXT);
     assertEquals(4, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -pn baz -np -r row3 -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -r row3 -cc " + REAL_CONTEXT);
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -pn baz -np -b row: -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -b row: -cc " + REAL_CONTEXT);
     assertEquals(1, result.split("\n").length);
-    result = ts.exec("scan -pn baz -np -b row -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -b row -cc " + REAL_CONTEXT);
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -pn baz -np -e row: -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -e row: -cc " + REAL_CONTEXT);
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
@@ -1931,7 +1931,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private List<String> getFiles(String tableId) {
     ts.output.clear();
 
-    ts.exec("scan -t " + AccumuloTable.METADATA.tableName() + " -np -c file -b " + tableId + " -e "
+    ts.exec("scan -t " + AccumuloTable.METADATA.tableName() + " -c file -b " + tableId + " -e "
         + tableId + "~");
 
     log.debug("countFiles(): {}", ts.output.get());

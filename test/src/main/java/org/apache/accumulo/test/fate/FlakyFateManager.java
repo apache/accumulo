@@ -24,11 +24,12 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.TStore;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.slf4j.LoggerFactory;
 
-public class FlakyFateManager extends Manager {
+public class FlakyFateManager extends Manager implements ServerProcessService.Iface {
 
   protected FlakyFateManager(ConfigOpts opts, String[] args) throws IOException {
     super(opts, args);

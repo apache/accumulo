@@ -589,7 +589,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       case EVENTUAL:
         return getRootMetadata(zkRoot, ctx.getZooCache());
       case IMMEDIATE:
-        ZooReader zooReader = ctx.getZooReader();
+        ZooReader zooReader = ctx.getZooSession().asReader();
         try {
           var path = zkRoot + RootTable.ZROOT_TABLET;
           // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from

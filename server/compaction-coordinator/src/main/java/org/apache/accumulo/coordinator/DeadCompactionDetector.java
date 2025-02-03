@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
@@ -106,15 +107,18 @@ public class DeadCompactionDetector {
     });
 
     // Determine which compactions are currently committing and remove those
-    context.getAmple().getExternalCompactionFinalStates()
-        .map(ecfs -> ecfs.getExternalCompactionId()).forEach(ecid -> {
-          if (tabletCompactions.remove(ecid) != null) {
-            log.trace("Removed compaction {} that is committing", ecid);
-          }
-          if (this.deadCompactions.remove(ecid) != null) {
-            log.trace("Removed {} from the dead compaction map, it's committing", ecid);
-          }
-        });
+    try (
+        var externalCompactionFinalStates = context.getAmple().getExternalCompactionFinalStates()) {
+      externalCompactionFinalStates.map(ExternalCompactionFinalState::getExternalCompactionId)
+          .forEach(ecid -> {
+            if (tabletCompactions.remove(ecid) != null) {
+              log.trace("Removed compaction {} that is committing", ecid);
+            }
+            if (this.deadCompactions.remove(ecid) != null) {
+              log.trace("Removed {} from the dead compaction map, it's committing", ecid);
+            }
+          });
+    }
 
     tabletCompactions.forEach((ecid, extent) -> {
       var count = this.deadCompactions.merge(ecid, 1L, Long::sum);

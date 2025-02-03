@@ -16,28 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.fate.zookeeper;
+namespace java org.apache.accumulo.core.process.thrift
+namespace cpp org.apache.accumulo.core.process.thrift
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+include "security.thrift"
 
-import org.apache.zookeeper.ZooKeeper;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
+service ServerProcessService {
 
-public class ZooSessionTest {
-
-  private static final int TIMEOUT_SECONDS = 10;
-  private static final String UNKNOWN_HOST = "hostname.that.should.not.exist.example.com:2181";
-
-  @Test
-  @Timeout(TIMEOUT_SECONDS * 4)
-  public void testUnknownHost() {
-    assertThrows(RuntimeException.class, () -> {
-      ZooKeeper session = ZooSession.connect(UNKNOWN_HOST, (int) SECONDS.toMillis(TIMEOUT_SECONDS),
-          null, null, null);
-      session.close();
-    });
-  }
+  oneway void gracefulShutdown(
+    1:security.TCredentials credentials  
+  )
 
 }
+ 

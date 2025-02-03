@@ -243,7 +243,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       Thread.sleep(SECONDS.toMillis(3L));
 
       ServerContext serverContext = getCluster().getServerContext();
-      ZooReaderWriter zrw = serverContext.getZooReaderWriter();
+      ZooReaderWriter zrw = serverContext.getZooSession().asReaderWriter();
 
       // validate that a world-readable node has expected perms to validate test method
       var noAcl = zrw.getACL(ZooUtil.getRoot(serverContext.getInstanceID()));

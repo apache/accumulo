@@ -39,12 +39,9 @@ public class ActiveAssignmentRunnable implements Runnable {
 
   public ActiveAssignmentRunnable(ConcurrentHashMap<KeyExtent,RunnableStartedAt> activeAssignments,
       KeyExtent extent, Runnable delegate) {
-    requireNonNull(activeAssignments);
-    requireNonNull(extent);
-    requireNonNull(delegate);
-    this.activeAssignments = activeAssignments;
-    this.extent = extent;
-    this.delegate = delegate;
+    this.activeAssignments = requireNonNull(activeAssignments);
+    this.extent = requireNonNull(extent);
+    this.delegate = requireNonNull(delegate);
   }
 
   @Override
