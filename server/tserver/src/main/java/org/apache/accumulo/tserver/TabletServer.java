@@ -77,7 +77,6 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
@@ -169,8 +168,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = TimeUnit.HOURS.toMillis(1);
 
-  final ZooCache managerLockCache;
-
   final TabletServerLogger logger;
 
   private TabletServerMetrics metrics;
@@ -238,7 +235,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
     super(ServerId.Type.TABLET_SERVER, opts, serverContextFactory, args);
     context = super.getContext();
-    this.managerLockCache = new ZooCache(context.getZooSession());
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
@@ -487,11 +483,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   @Override
   public ServiceLock getLock() {
     return tabletServerLock;
-  }
-
-  @Override
-  public ZooCache getManagerLockCache() {
-    return managerLockCache;
   }
 
   private void announceExistence() {

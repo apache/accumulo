@@ -25,7 +25,10 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -37,6 +40,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.zookeeper.AddWatchMode;
 import org.apache.zookeeper.AsyncCallback.StringCallback;
 import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.CreateMode;
@@ -290,6 +294,33 @@ public class ZooSession implements AutoCloseable {
     verifyConnected().sync(path, cb, ctx);
   }
 
+  public void addPersistentRecursiveWatchers(Set<String> paths, Watcher watcher)
+      throws KeeperException, InterruptedException {
+
+    ZooKeeper localZK = verifyConnected();
+    Set<String> remainingPaths = new HashSet<>(paths);
+    while (true) {
+      try {
+        Iterator<String> remainingPathsIter = remainingPaths.iterator();
+        while (remainingPathsIter.hasNext()) {
+          String path = remainingPathsIter.next();
+          localZK.addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
+          remainingPathsIter.remove();
+        }
+        break;
+      } catch (KeeperException e) {
+        log.error("Error setting persistent watcher in ZooKeeper, retrying...", e);
+        ZooKeeper currentZK = verifyConnected();
+        // If ZooKeeper object is different, then reset the localZK variable
+        // and start over.
+        if (localZK != currentZK) {
+          localZK = currentZK;
+          remainingPaths = new HashSet<>(paths);
+        }
+      }
+    }
+  }
+
   @Override
   public void close() {
     if (closed.compareAndSet(false, true)) {
@@ -307,6 +338,17 @@ public class ZooSession implements AutoCloseable {
 
   public ZooReaderWriter asReaderWriter() {
     return zrw;
+  }
+
+  /**
+   * Connection counter is incremented internal when ZooSession creates a new ZooKeeper client.
+   * Clients of ZooSession can use this counter as a way to determine if a new ZooKeeper connection
+   * has been created.
+   *
+   * @return connection counter
+   */
+  public long getConnectionCounter() {
+    return connectCounter.get();
   }
 
 }
