@@ -279,7 +279,8 @@ public class LoadPlan {
 
   }
 
-  private static final Gson gson = new GsonBuilder().disableJdkUnsafe().serializeNulls().create();
+  private static final Gson gson =
+      new GsonBuilder().disableHtmlEscaping().disableJdkUnsafe().serializeNulls().create();
 
   /**
    * Serializes the load plan to json that looks like the following. The values of startRow and
