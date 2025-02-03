@@ -37,6 +37,8 @@ import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -60,10 +62,11 @@ public class SplitMillionIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(SplitMillionIT.class);
 
   public static class XFilter extends Filter {
+    private static final ByteSequence X_BS = new ArrayByteSequence("x");
 
     @Override
     public boolean accept(Key k, Value v) {
-      return !k.getColumnQualifierData().toString().equals("x");
+      return !k.getColumnQualifierData().equals(X_BS);
     }
   }
 
