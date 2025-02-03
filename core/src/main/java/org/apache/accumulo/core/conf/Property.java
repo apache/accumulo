@@ -828,6 +828,12 @@ public enum Property {
           + " The resources that are used by default can be seen in"
           + " `accumulo/server/monitor/src/main/resources/templates/default.ftl`.",
       "2.0.0"),
+  MONITOR_FETCH_TIMEOUT("monitor.fetch.timeout", "5m", PropertyType.TIMEDURATION,
+      "The Monitor fetches information for display in a set of background threads. This property"
+          + " controls the amount of time that process should wait before cancelling any remaining"
+          + " tasks to fetch information. These background threads could end up waiting on servers"
+          + " to respond or for scans to complete.",
+      "4.0.0"),
   MONITOR_DEAD_LIST_RG_EXCLUSIONS("monitor.dead.server.rg.exclusions", "", PropertyType.STRING,
       "The Monitor displays information about servers that it believes have died recently."
           + " This property accepts a comma separated list of resource group names. If"

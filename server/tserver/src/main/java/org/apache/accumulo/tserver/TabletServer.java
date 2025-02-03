@@ -236,7 +236,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   protected TabletServer(ConfigOpts opts,
       Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
-    super("tserver", opts, serverContextFactory, args);
+    super(ServerId.Type.TABLET_SERVER, opts, serverContextFactory, args);
     context = super.getContext();
     this.managerLockCache = new ZooCache(context.getZooSession());
     final AccumuloConfiguration aconf = getConfiguration();
@@ -479,6 +479,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         ThriftProcessorTypes.getTabletServerTProcessor(this, clientHandler, thriftClientHandler,
             scanClientHandler, thriftClientHandler, thriftClientHandler, getContext());
     HostAndPort address = startServer(clientAddress.getHost(), processor);
+    setHostname(address);
     log.info("address = {}", address);
     return address;
   }

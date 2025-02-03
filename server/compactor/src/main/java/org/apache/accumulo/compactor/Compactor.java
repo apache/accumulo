@@ -47,6 +47,7 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -170,7 +171,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
   protected Compactor(ConfigOpts opts, String[] args) {
-    super("compactor", opts, ServerContext::new, args);
+    super(ServerId.Type.COMPACTOR, opts, ServerContext::new, args);
   }
 
   @Override
@@ -325,6 +326,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
         Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK);
+    setHostname(sp.address);
     LOG.info("address = {}", sp.address);
     return sp;
   }

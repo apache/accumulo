@@ -50,6 +50,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -206,7 +207,7 @@ public class ScanServer extends AbstractServer
   private final ZooCache managerLockCache;
 
   public ScanServer(ConfigOpts opts, String[] args) {
-    super("sserver", opts, ServerContext::new, args);
+    super(ServerId.Type.SCAN_SERVER, opts, ServerContext::new, args);
 
     context = super.getContext();
     LOG.info("Version " + Constants.VERSION);
@@ -311,6 +312,7 @@ public class ScanServer extends AbstractServer
         "Thrift Client Server", Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS,
         Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK);
 
+    setHostname(sp.address);
     LOG.info("address = {}", sp.address);
     return sp;
   }
