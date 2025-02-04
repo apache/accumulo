@@ -30,19 +30,14 @@ import java.util.Objects;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Interner;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.base.Preconditions;
 
 public abstract class TabletLocator {
 
@@ -81,62 +76,17 @@ public abstract class TabletLocator {
    */
   public abstract void invalidateCache(ClientContext context, String server);
 
-  private static class LocatorKey {
-    InstanceId instanceId;
-    TableId tableId;
-
-    LocatorKey(InstanceId instanceId, TableId table) {
-      this.instanceId = instanceId;
-      this.tableId = table;
-    }
-
-    @Override
-    public int hashCode() {
-      return instanceId.hashCode() + tableId.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o instanceof LocatorKey) {
-        return equals((LocatorKey) o);
-      }
-      return false;
-    }
-
-    public boolean equals(LocatorKey lk) {
-      return instanceId.equals(lk.instanceId) && tableId.equals(lk.tableId);
-    }
-
-  }
-
-  private static final HashMap<LocatorKey,TabletLocator> locators = new HashMap<>();
-  private static boolean enabled = true;
-
-  public static synchronized void clearLocators() {
+  public static synchronized void clearLocators(ClientContext context) {
+    final var locators = context.tabletLocators();
     for (TabletLocator locator : locators.values()) {
       locator.isValid = false;
     }
     locators.clear();
   }
 
-  static synchronized boolean isEnabled() {
-    return enabled;
-  }
-
-  static synchronized void disable() {
-    clearLocators();
-    enabled = false;
-  }
-
-  static synchronized void enable() {
-    enabled = true;
-  }
-
   public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
-    Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
-        + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
-    LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
-    TabletLocator tl = locators.get(key);
+    final var locators = context.tabletLocators();
+    TabletLocator tl = locators.get(tableId);
     if (tl == null) {
       MetadataLocationObtainer mlo = new MetadataLocationObtainer();
 
@@ -150,30 +100,10 @@ public abstract class TabletLocator {
         tl = new TabletLocatorImpl(tableId, getLocator(context, AccumuloTable.METADATA.tableId()),
             mlo, context.getTServerLockChecker());
       }
-      locators.put(key, tl);
+      locators.put(tableId, tl);
     }
 
     return tl;
-  }
-
-  static {
-    SingletonManager.register(new SingletonService() {
-
-      @Override
-      public boolean isEnabled() {
-        return TabletLocator.isEnabled();
-      }
-
-      @Override
-      public void enable() {
-        TabletLocator.enable();
-      }
-
-      @Override
-      public void disable() {
-        TabletLocator.disable();
-      }
-    });
   }
 
   public static class TabletLocations {
