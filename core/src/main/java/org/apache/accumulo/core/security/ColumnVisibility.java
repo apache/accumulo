@@ -297,7 +297,10 @@ public class ColumnVisibility {
    */
   @Deprecated(since = "3.1.0")
   public byte[] flatten() {
-    return AccessExpression.of(expression, true).getExpression().getBytes(UTF_8);
+    Node normRoot = normalize(nodeSupplier.get(), expression);
+    StringBuilder builder = new StringBuilder(expression.length);
+    stringify(normRoot, expression, builder);
+    return builder.toString().getBytes(UTF_8);
   }
 
   @Deprecated
