@@ -425,8 +425,11 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSystem fs = this.fs.getFileSystemByPath(dataFile.getPath());
         FileSKVIterator reader;
 
+        int blocksToPrefetch = env.getIteratorScope() == IteratorUtil.IteratorScope.majc ? 2 : 0;
+
         reader = fileFactory.newReaderBuilder().forFile(dataFile, fs, fs.getConf(), cryptoService)
-            .withTableConfiguration(acuTableConf).dropCachesBehind().build();
+            .withTableConfiguration(acuTableConf).dropCachesBehind().prefetch(blocksToPrefetch)
+            .build();
 
         readers.add(reader);
 
