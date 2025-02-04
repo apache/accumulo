@@ -23,6 +23,7 @@ public enum ThreadPoolNames {
   ACCUMULO_POOL_PREFIX("accumulo.pool"),
   BATCH_WRITER_SEND_POOL("accumulo.pool.batch.writer.send"),
   BATCH_WRITER_BIN_MUTATIONS_POOL("accumulo.pool.batch.writer.bin.mutations"),
+  BLOCK_READ_AHEAD_POOL("accumulo.pool.block.read.ahead"),
   BLOOM_LOADER_POOL("accumulo.pool.bloom.loader"),
   BULK_IMPORT_CLIENT_LOAD_POOL("accumulo.pool.bulk.import.client.bulk.load"),
   BULK_IMPORT_CLIENT_BULK_THREADS_POOL("accumulo.pool.bulk.import.client.bulk.threads"),

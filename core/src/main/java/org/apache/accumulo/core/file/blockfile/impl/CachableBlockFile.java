@@ -26,10 +26,13 @@ import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.file.rfile.BlockIndex;
+import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
+import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
@@ -37,6 +40,8 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCache.Loader;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.util.threads.ThreadPoolNames;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -67,7 +72,9 @@ public class CachableBlockFile {
   public static class CachableBuilder {
     String cacheId = null;
     IoeSupplier<FSDataInputStream> inputSupplier = null;
+    IoeSupplier<Long> blockSizeSupplier = null;
     IoeSupplier<Long> lengthSupplier = null;
+    int numPrefetchBlocks = 0;
     Cache<String,Long> fileLenCache = null;
     volatile CacheProvider cacheProvider = CacheProvider.NULL_PROVIDER;
     Configuration hadoopConf = null;
@@ -79,10 +86,11 @@ public class CachableBlockFile {
     }
 
     public CachableBuilder fsPath(FileSystem fs, Path dataFile) {
-      return fsPath(fs, dataFile, false);
+      return fsPath(fs, dataFile, false, 0);
     }
 
-    public CachableBuilder fsPath(FileSystem fs, Path dataFile, boolean dropCacheBehind) {
+    public CachableBuilder fsPath(FileSystem fs, Path dataFile, boolean dropCacheBehind,
+        int blocksToPrefetch) {
       this.cacheId = pathToCacheId(dataFile);
       this.inputSupplier = () -> {
         FSDataInputStream is = fs.open(dataFile);
@@ -102,6 +110,7 @@ public class CachableBlockFile {
         return is;
       };
       this.lengthSupplier = () -> fs.getFileStatus(dataFile).getLen();
+      this.numPrefetchBlocks = blocksToPrefetch;
       return this;
     }
 
@@ -147,6 +156,8 @@ public class CachableBlockFile {
 
     private final IoeSupplier<FSDataInputStream> inputSupplier;
     private final IoeSupplier<Long> lengthSupplier;
+    private final int numPrefetchBlocks;
+    private final ThreadPoolExecutor blockPrefetchThreads;
     private final AtomicReference<BCFile.Reader> bcfr = new AtomicReference<>();
 
     private static final String ROOT_BLOCK_NAME = "!RootData";
@@ -372,10 +383,18 @@ public class CachableBlockFile {
       this.cacheId = Objects.requireNonNull(b.cacheId);
       this.inputSupplier = b.inputSupplier;
       this.lengthSupplier = b.lengthSupplier;
+      this.numPrefetchBlocks = b.numPrefetchBlocks;
       this.fileLenCache = b.fileLenCache;
       this.cacheProvider = b.cacheProvider;
       this.conf = b.hadoopConf;
       this.cryptoService = Objects.requireNonNull(b.cryptoService);
+      if (this.numPrefetchBlocks > 0) {
+        this.blockPrefetchThreads =
+            ThreadPools.getServerThreadPools().getPoolBuilder(ThreadPoolNames.BLOCK_READ_AHEAD_POOL)
+                .numCoreThreads(this.numPrefetchBlocks).build();
+      } else {
+        this.blockPrefetchThreads = null;
+      }
     }
 
     /**
@@ -422,6 +441,60 @@ public class CachableBlockFile {
       return new CachedBlockRead(_currBlock);
     }
 
+    public CachableBlockFile.CachedBlockRead getDataBlock(int version, int startBlock,
+        IndexIterator iiter, IndexEntry indexEntry) throws IOException {
+
+      final BlockCache dataBlockCache = cacheProvider.getDataCache();
+
+      if (version == 3 || version == 4) {
+        final int thisBlockIndex = startBlock + iiter.previousIndex();
+        if (numPrefetchBlocks > 0 && dataBlockCache != null) {
+          // move forward in the index and prefetch the blocks
+          int fetched = 0;
+          for (int i = 0; i < numPrefetchBlocks; i++) {
+            if (iiter.hasNext()) {
+              iiter.next();
+              this.blockPrefetchThreads.execute(() -> {
+                int blockIndex = startBlock + iiter.previousIndex();
+                String name = this.cacheId + "O" + blockIndex;
+                dataBlockCache.getBlock(name, new OffsetBlockLoader(blockIndex, false));
+              });
+              fetched++;
+            }
+          }
+          // rewind the index iterator
+          for (int j = 0; j < fetched; j++) {
+            iiter.previousIndex();
+          }
+        }
+        return getDataBlock(thisBlockIndex);
+      } else {
+        if (numPrefetchBlocks > 0 && dataBlockCache != null) {
+          // move forward in the index and prefetch the blocks
+          int fetched = 0;
+          for (int i = 0; i < numPrefetchBlocks; i++) {
+            if (iiter.hasNext()) {
+              final IndexEntry next = iiter.next();
+              this.blockPrefetchThreads.execute(() -> {
+                final long offset = next.getOffset();
+                String name = this.cacheId + "R" + offset;
+                dataBlockCache.getBlock(name,
+                    new RawBlockLoader(offset, next.getCompressedSize(), next.getRawSize(), false));
+              });
+              fetched++;
+            }
+          }
+          // rewind the index iterator
+          for (int j = 0; j < fetched; j++) {
+            iiter.previousIndex();
+          }
+        }
+        return getDataBlock(indexEntry.getOffset(), indexEntry.getCompressedSize(),
+            indexEntry.getRawSize());
+      }
+
+    }
+
     /**
      * It is intended that once the BlockRead object is returned to the caller, that the caller will
      * read the entire block and then call close on the BlockRead class.
@@ -430,7 +503,7 @@ public class CachableBlockFile {
      * read from disk and other threads check the cache before it has been inserted.
      */
 
-    public CachedBlockRead getDataBlock(int blockIndex) throws IOException {
+    private CachedBlockRead getDataBlock(int blockIndex) throws IOException {
       BlockCache _dCache = cacheProvider.getDataCache();
       if (_dCache != null) {
         String _lookup = this.cacheId + "O" + blockIndex;
@@ -444,7 +517,7 @@ public class CachableBlockFile {
       return new CachedBlockRead(_currBlock);
     }
 
-    public CachedBlockRead getDataBlock(long offset, long compressedSize, long rawSize)
+    private CachedBlockRead getDataBlock(long offset, long compressedSize, long rawSize)
         throws IOException {
       BlockCache _dCache = cacheProvider.getDataCache();
       if (_dCache != null) {
