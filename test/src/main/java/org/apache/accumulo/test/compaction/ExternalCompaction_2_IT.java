@@ -28,7 +28,7 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.co
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionCompleted;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionRunning;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getFinalStatesForTable;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getFinalStateForTableCount;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getRunningCompactions;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.row;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.waitForCompactionStartAndReturnEcids;
@@ -60,6 +60,7 @@ import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -165,8 +166,8 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
           .startCoordinator(TestCompactionCoordinatorForOfflineTable.class);
 
       TableId tid = getCluster().getServerContext().getTableId(table1);
-      // Confirm that no final state is in the metadata table
-      assertEquals(0, getFinalStatesForTable(getCluster(), tid).count());
+      assertEquals(0, getFinalStateForTableCount(getCluster(), tid),
+          "Expected no final state is in the metadata table");
 
       // Offline the table when the compaction starts
       final AtomicBoolean succeededInTakingOffline = new AtomicBoolean(false);
@@ -209,20 +210,17 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       confirmCompactionCompleted(getCluster().getServerContext(), ecids,
           TCompactionState.SUCCEEDED);
 
-      // Confirm that final state is in the metadata table
-      assertEquals(1, getFinalStatesForTable(getCluster(), tid).count());
+      assertEquals(1, getFinalStateForTableCount(getCluster(), tid),
+          "Expected 1 final state in the metadata table");
 
       // Online the table
       client.tableOperations().online(table1);
 
       // wait for compaction to be committed by tserver or test timeout
-      long finalStateCount = getFinalStatesForTable(getCluster(), tid).count();
-      while (finalStateCount > 0) {
-        finalStateCount = getFinalStatesForTable(getCluster(), tid).count();
-        if (finalStateCount > 0) {
-          UtilWaitThread.sleep(50);
-        }
-      }
+      Wait.waitFor(() -> {
+        LOG.info("Waiting for compaction completed marker to disappear");
+        return getFinalStateForTableCount(getCluster(), tid) == 0;
+      }, 120_000, 500);
 
       // We need to cancel the compaction or delete the table here because we initiate a user
       // compaction above in the test. Even though the external compaction was cancelled

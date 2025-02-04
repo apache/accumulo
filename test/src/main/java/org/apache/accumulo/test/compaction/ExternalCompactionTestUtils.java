@@ -99,6 +99,12 @@ public class ExternalCompactionTestUtils {
         .filter(state -> state.getExtent().tableId().equals(tid));
   }
 
+  public static long getFinalStateForTableCount(AccumuloCluster cluster, TableId tid) {
+    try (var finalStatesForTable = getFinalStatesForTable(cluster, tid)) {
+      return finalStatesForTable.count();
+    }
+  }
+
   public static void compact(final AccumuloClient client, String table1, int modulus,
       String expectedQueue, boolean wait)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
