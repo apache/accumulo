@@ -33,12 +33,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.ReadOnlyFateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
 import org.apache.accumulo.core.fate.zookeeper.FateLock.FateLockPath;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -54,17 +56,6 @@ import org.slf4j.LoggerFactory;
  */
 public class AdminUtil<T> {
   private static final Logger log = LoggerFactory.getLogger(AdminUtil.class);
-
-  private final boolean exitOnError;
-
-  /**
-   * Constructor
-   *
-   * @param exitOnError <code>System.exit(1)</code> on error if true
-   */
-  public AdminUtil(boolean exitOnError) {
-    this.exitOnError = exitOnError;
-  }
 
   /**
    * FATE transaction status, including lock information.
@@ -286,24 +277,21 @@ public class AdminUtil<T> {
     List<String> lockedIds = zr.getChildren(lockPath.toString());
 
     for (String id : lockedIds) {
-
       try {
-
         FateLockPath fLockPath = FateLock.path(lockPath + "/" + id);
-        List<String> lockNodes =
-            FateLock.validateAndSort(fLockPath, zr.getChildren(fLockPath.toString()));
+        SortedSet<FateLock.NodeName> lockNodes =
+            FateLock.validateAndWarn(fLockPath, zr.getChildren(fLockPath.toString()));
 
         int pos = 0;
         boolean sawWriteLock = false;
 
-        for (String node : lockNodes) {
+        for (FateLock.NodeName node : lockNodes) {
           try {
-            byte[] data = zr.getData(lockPath + "/" + id + "/" + node);
-            // Example data: "READ:<FateId>". FateId contains ':' hence the limit of 2
-            String[] lda = new String(data, UTF_8).split(":", 2);
-            FateId fateId = FateId.from(lda[1]);
+            FateLock.FateLockEntry fateLockEntry = node.fateLockEntry.get();
+            var fateId = fateLockEntry.getFateId();
+            var lockType = fateLockEntry.getLockType();
 
-            if (lda[0].charAt(0) == 'W') {
+            if (lockType == LockType.WRITE) {
               sawWriteLock = true;
             }
 
@@ -311,13 +299,14 @@ public class AdminUtil<T> {
 
             if (pos == 0) {
               locks = heldLocks;
-            } else if (lda[0].charAt(0) == 'R' && !sawWriteLock) {
+            } else if (lockType == LockType.READ && !sawWriteLock) {
               locks = heldLocks;
             } else {
               locks = waitingLocks;
             }
 
-            locks.computeIfAbsent(fateId, k -> new ArrayList<>()).add(lda[0].charAt(0) + ":" + id);
+            locks.computeIfAbsent(fateId, k -> new ArrayList<>())
+                .add(lockType.name().charAt(0) + ":" + id);
 
           } catch (Exception e) {
             log.error("{}", e.getMessage(), e);

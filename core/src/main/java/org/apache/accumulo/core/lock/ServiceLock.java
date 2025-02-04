@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.lock;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -27,8 +26,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
@@ -36,6 +33,8 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UuidUtil;
+import org.apache.accumulo.core.zookeeper.ZcStat;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -671,8 +670,8 @@ public class ServiceLock implements Watcher {
     return ServiceLockData.parse(data);
   }
 
-  public static Optional<ServiceLockData> getLockData(
-      org.apache.accumulo.core.fate.zookeeper.ZooCache zc, ServiceLockPath path, ZcStat stat) {
+  public static Optional<ServiceLockData> getLockData(ZooCache zc, ServiceLockPath path,
+      ZcStat stat) {
 
     List<String> children = validateAndSort(path, zc.getChildren(path.toString()));
 
@@ -743,33 +742,6 @@ public class ServiceLock implements Watcher {
     LOG.debug("Deleting all at path {} due to lock deletion", pathToDelete);
     zk.recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
 
-  }
-
-  public static boolean deleteLock(ZooReaderWriter zk, ServiceLockPath path, String lockData)
-      throws InterruptedException, KeeperException {
-
-    List<String> children = validateAndSort(path, zk.getChildren(path.toString()));
-
-    if (children.isEmpty()) {
-      throw new IllegalStateException("No lock is held at " + path);
-    }
-
-    String lockNode = children.get(0);
-
-    if (!lockNode.startsWith(ZLOCK_PREFIX)) {
-      throw new IllegalStateException("Node " + lockNode + " at " + path + " is not a lock node");
-    }
-
-    byte[] data = zk.getData(path + "/" + lockNode);
-
-    if (lockData.equals(new String(data, UTF_8))) {
-      String pathToDelete = path + "/" + lockNode;
-      LOG.debug("Deleting all at path {} due to lock deletion", pathToDelete);
-      zk.recursiveDelete(pathToDelete, NodeMissingPolicy.FAIL);
-      return true;
-    }
-
-    return false;
   }
 
   /**

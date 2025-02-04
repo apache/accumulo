@@ -25,11 +25,11 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.test.fate.FateInterleavingIT;
+import org.apache.accumulo.test.fate.FateExecutionOrderIT;
 
-public class UserFateInterleavingIT extends FateInterleavingIT {
+public class UserFateExecutionOrderIT extends FateExecutionOrderIT {
   @Override
-  public void executeTest(FateTestExecutor<FilTestEnv> testMethod, int maxDeferred,
+  public void executeTest(FateTestExecutor<FeoTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
     var table = getUniqueNames(1)[0];
     try (ClientContext client =

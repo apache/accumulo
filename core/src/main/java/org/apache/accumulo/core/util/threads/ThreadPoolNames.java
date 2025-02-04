@@ -60,6 +60,7 @@ public enum ThreadPoolNames {
   TSERVER_ASSIGNMENT_POOL("accumulo.pool.tserver.assignment"),
   TSERVER_MIGRATIONS_POOL("accumulo.pool.tserver.migrations"),
   TSERVER_MINOR_COMPACTOR_POOL("accumulo.pool.tserver.minor.compactor"),
+  TSERVER_SHUTDOWN_UNLOAD_TABLET_POOL("accumulo.pool.tserver.shutdown.tablet.unload"),
   TSERVER_SUMMARY_FILE_RETRIEVER_POOL("accumulo.pool.tserver.summary.file.retriever.pool"),
   TSERVER_SUMMARY_PARTITION_POOL("accumulo.pool.tserver.summary.partition"),
   TSERVER_SUMMARY_REMOTE_POOL("accumulo.pool.tserver.summary.remote"),

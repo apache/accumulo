@@ -52,7 +52,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -100,15 +100,20 @@ public class ExternalCompactionTestUtils {
     return String.format("r:%04d", r);
   }
 
-  public static void compact(final AccumuloClient client, String table1, int modulus,
-      String expectedQueue, boolean wait)
-      throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+  public static void addCompactionIterators(CompactionConfig config, int modulus,
+      String expectedQueue) {
     IteratorSetting iterSetting = new IteratorSetting(100, TestFilter.class);
     // make sure iterator options make it to compactor process
     iterSetting.addOption("expectedQ", expectedQueue);
     iterSetting.addOption("modulus", modulus + "");
-    CompactionConfig config =
-        new CompactionConfig().setIterators(List.of(iterSetting)).setWait(wait);
+    config.setIterators(List.of(iterSetting));
+  }
+
+  public static void compact(final AccumuloClient client, String table1, int modulus,
+      String expectedQueue, boolean wait)
+      throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    CompactionConfig config = new CompactionConfig().setWait(wait);
+    addCompactionIterators(config, modulus, expectedQueue);
     client.tableOperations().compact(table1, config);
   }
 
@@ -246,12 +251,12 @@ public class ExternalCompactionTestUtils {
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  public static TExternalCompactionList getRunningCompactions(ClientContext context,
+  public static TExternalCompactionMap getRunningCompactions(ClientContext context,
       Optional<HostAndPort> coordinatorHost) throws TException {
     CompactionCoordinatorService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
     try {
-      TExternalCompactionList running =
+      TExternalCompactionMap running =
           client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
       return running;
     } finally {
@@ -259,12 +264,12 @@ public class ExternalCompactionTestUtils {
     }
   }
 
-  private static TExternalCompactionList getCompletedCompactions(ClientContext context,
+  private static TExternalCompactionMap getCompletedCompactions(ClientContext context,
       Optional<HostAndPort> coordinatorHost) throws Exception {
     CompactionCoordinatorService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
     try {
-      TExternalCompactionList completed =
+      TExternalCompactionMap completed =
           client.getCompletedCompactions(TraceUtil.traceInfo(), context.rpcCreds());
       return completed;
     } finally {
@@ -325,7 +330,7 @@ public class ExternalCompactionTestUtils {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
     while (matches == 0) {
-      TExternalCompactionList running =
+      TExternalCompactionMap running =
           ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
       if (running.getCompactions() != null) {
         for (ExternalCompactionId ecid : ecids) {
@@ -351,14 +356,14 @@ public class ExternalCompactionTestUtils {
     }
 
     // The running compaction should be removed
-    TExternalCompactionList running =
+    TExternalCompactionMap running =
         ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
     while (running.getCompactions() != null && running.getCompactions().keySet().stream()
         .anyMatch((e) -> ecids.contains(ExternalCompactionId.of(e)))) {
       running = ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
     }
     // The compaction should be in the completed list with the expected state
-    TExternalCompactionList completed =
+    TExternalCompactionMap completed =
         ExternalCompactionTestUtils.getCompletedCompactions(ctx, coordinatorHost);
     while (completed.getCompactions() == null) {
       UtilWaitThread.sleep(50);

@@ -244,7 +244,7 @@ public class CompactionIT extends CompactionBaseIT {
         LOG.debug("Plan job priority is {}:{}", job.getKind(), job.getPriority());
         return new CompactionJobImpl(
             job.getKind() == CompactionKind.SYSTEM ? Short.MAX_VALUE : job.getPriority(),
-            job.getGroup(), job.getFiles(), job.getKind(), Optional.empty());
+            job.getGroup(), job.getFiles(), job.getKind());
       }).collect(toList());
     }
   }

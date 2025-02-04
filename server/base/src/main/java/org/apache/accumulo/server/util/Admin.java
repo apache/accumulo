@@ -73,7 +73,6 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
@@ -83,6 +82,7 @@ import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
@@ -95,6 +95,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.tables.TableMap;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -109,6 +110,7 @@ import org.apache.accumulo.server.util.checkCommand.TableLocksCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.UserFilesCheckRunner;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,27 +132,36 @@ public class Admin implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Admin.class);
   private final CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
 
-  static class AdminOpts extends ServerUtilOpts {
-    @Parameter(names = {"-f", "--force"},
-        description = "force the given server to stop by removing its lock")
-    boolean force = false;
+  private static class SubCommandOpts {
+    @Parameter(names = {"-h", "-?", "--help", "-help"}, help = true)
+    public boolean help = false;
+  }
+
+  @Parameters(
+      commandDescription = "signal the server process to shutdown normally, finishing anything it might be working on, but not starting any new tasks")
+  static class GracefulShutdownCommand extends SubCommandOpts {
+    @Parameter(required = true, names = {"-a", "--address"}, description = "<host:port>")
+    String address = null;
   }
 
   @Parameters(commandDescription = "stop the tablet server on the given hosts")
-  static class StopCommand {
+  static class StopCommand extends SubCommandOpts {
+    @Parameter(names = {"-f", "--force"},
+        description = "force the given server to stop by removing its lock")
+    boolean force = false;
     @Parameter(description = "<host> {<host> ... }")
     List<String> args = new ArrayList<>();
   }
 
   @Parameters(commandDescription = "Ping tablet servers.  If no arguments, pings all.")
-  static class PingCommand {
+  static class PingCommand extends SubCommandOpts {
     @Parameter(description = "{<host> ... }")
     List<String> args = new ArrayList<>();
   }
 
   @Parameters(commandNames = "check",
       commandDescription = "Performs checks for problems in Accumulo.")
-  public static class CheckCommand {
+  public static class CheckCommand extends SubCommandOpts {
     @Parameter(names = "list",
         description = "Lists the different checks that can be run, the description of each check, and the other check(s) each check depends on.")
     boolean list;
@@ -243,13 +254,13 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(commandDescription = "stop the manager")
-  static class StopManagerCommand {}
+  static class StopManagerCommand extends SubCommandOpts {}
 
   @Parameters(commandDescription = "stop all tablet servers and the manager")
-  static class StopAllCommand {}
+  static class StopAllCommand extends SubCommandOpts {}
 
   @Parameters(commandDescription = "list Accumulo instances in zookeeper")
-  static class ListInstancesCommand {
+  static class ListInstancesCommand extends SubCommandOpts {
     @Parameter(names = "--print-errors", description = "display errors while listing instances")
     boolean printErrors = false;
     @Parameter(names = "--print-all",
@@ -258,13 +269,13 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(commandDescription = "Accumulo volume utility")
-  static class VolumesCommand {
+  static class VolumesCommand extends SubCommandOpts {
     @Parameter(names = {"-l", "--list"}, description = "list volumes currently in use")
     boolean printErrors = false;
   }
 
   @Parameters(commandDescription = "print out non-default configuration settings")
-  static class DumpConfigCommand {
+  static class DumpConfigCommand extends SubCommandOpts {
     @Parameter(names = {"-a", "--all"},
         description = "print the system and all table configurations")
     boolean allConfiguration = false;
@@ -282,7 +293,7 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(commandDescription = "Verify all Tablets are assigned to tablet servers")
-  static class VerifyTabletAssignmentsCommand {
+  static class VerifyTabletAssignmentsCommand extends SubCommandOpts {
     @Parameter(names = {"-v", "--verbose"},
         description = "verbose mode (prints locations of tablets)")
     boolean verbose = false;
@@ -297,14 +308,14 @@ public class Admin implements KeywordExecutable {
 
   @Parameters(
       commandDescription = "List or delete Tablet Server locks. Default with no arguments is to list the locks.")
-  static class TabletServerLocksCommand {
+  static class TabletServerLocksCommand extends SubCommandOpts {
     @Parameter(names = "-delete", description = "specify a tablet server lock to delete")
     String delete = null;
   }
 
   @Parameters(
       commandDescription = "Deletes specific instance name or id from zookeeper or cleans up all old instances.")
-  static class DeleteZooInstanceCommand {
+  static class DeleteZooInstanceCommand extends SubCommandOpts {
     @Parameter(names = {"-i", "--instance"}, description = "the instance name or id to delete")
     String instance;
     @Parameter(names = {"-c", "--clean"},
@@ -317,7 +328,7 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(commandDescription = "Restore Zookeeper data from a file.")
-  static class RestoreZooCommand {
+  static class RestoreZooCommand extends SubCommandOpts {
     @Parameter(names = "--overwrite")
     boolean overwrite = false;
 
@@ -327,7 +338,7 @@ public class Admin implements KeywordExecutable {
 
   @Parameters(commandNames = "fate",
       commandDescription = "Operations performed on the Manager FaTE system.")
-  static class FateOpsCommand {
+  static class FateOpsCommand extends SubCommandOpts {
     @Parameter(description = "[<FateId>...]")
     List<String> fateIdList = new ArrayList<>();
 
@@ -394,6 +405,15 @@ public class Admin implements KeywordExecutable {
     }
   }
 
+  @Parameters(commandDescription = "show service status")
+  public static class ServiceStatusCmdOpts extends SubCommandOpts {
+    @Parameter(names = "--json", description = "provide output in json format (--noHosts ignored)")
+    boolean json = false;
+    @Parameter(names = "--noHosts",
+        description = "provide a summary of service counts without host details")
+    boolean noHosts = false;
+  }
+
   public static void main(String[] args) {
     new Admin().execute(args);
   }
@@ -416,13 +436,12 @@ public class Admin implements KeywordExecutable {
   @SuppressFBWarnings(value = "DM_EXIT", justification = "System.exit okay for CLI tool")
   @Override
   public void execute(final String[] args) {
-    boolean everything;
 
-    AdminOpts opts = new AdminOpts();
+    ServerUtilOpts opts = new ServerUtilOpts();
     JCommander cl = new JCommander(opts);
     cl.setProgramName("accumulo admin");
 
-    ServiceStatusCmd.Opts serviceStatusCommandOpts = new ServiceStatusCmd.Opts();
+    ServiceStatusCmdOpts serviceStatusCommandOpts = new ServiceStatusCmdOpts();
     cl.addCommand("serviceStatus", serviceStatusCommandOpts);
 
     ChangeSecretCommand changeSecretCommand = new ChangeSecretCommand();
@@ -439,6 +458,9 @@ public class Admin implements KeywordExecutable {
 
     FateOpsCommand fateOpsCommand = new FateOpsCommand();
     cl.addCommand("fate", fateOpsCommand);
+
+    GracefulShutdownCommand gracefulShutdownCommand = new GracefulShutdownCommand();
+    cl.addCommand("signalShutdown", gracefulShutdownCommand);
 
     ListInstancesCommand listInstancesOpts = new ListInstancesCommand();
     cl.addCommand("listInstances", listInstancesOpts);
@@ -470,9 +492,19 @@ public class Admin implements KeywordExecutable {
 
     cl.parse(args);
 
-    if (opts.help || cl.getParsedCommand() == null) {
+    if (cl.getParsedCommand() == null) {
       cl.usage();
       return;
+    }
+
+    for (var command : cl.getCommands().entrySet()) {
+      var objects = command.getValue().getObjects();
+      for (var obj : objects) {
+        if (obj instanceof SubCommandOpts && ((SubCommandOpts) obj).help) {
+          command.getValue().usage();
+          return;
+        }
+      }
     }
 
     try (ServerContext context = opts.getServerContext()) {
@@ -493,7 +525,9 @@ public class Admin implements KeywordExecutable {
           rc = 4;
         }
       } else if (cl.getParsedCommand().equals("stop")) {
-        stopTabletServer(context, stopOpts.args, opts.force);
+        stopTabletServer(context, stopOpts.args, stopOpts.force);
+      } else if (cl.getParsedCommand().equals("signalShutdown")) {
+        signalGracefulShutdown(context, gracefulShutdownCommand.address);
       } else if (cl.getParsedCommand().equals("dumpConfig")) {
         printConfig(context, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
@@ -513,17 +547,21 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("fate")) {
         executeFateOpsCommand(context, fateOpsCommand);
       } else if (cl.getParsedCommand().equals("serviceStatus")) {
-        printServiceStatus(context, serviceStatusCommandOpts);
+        ServiceStatusCmd ssc = new ServiceStatusCmd();
+        ssc.execute(context, serviceStatusCommandOpts.json, serviceStatusCommandOpts.noHosts);
       } else if (cl.getParsedCommand().equals("check")) {
         executeCheckCommand(context, checkCommand, opts);
-      } else {
-        everything = cl.getParsedCommand().equals("stopAll");
+      } else if (cl.getParsedCommand().equals("stopManager")
+          || cl.getParsedCommand().equals("stopAll")) {
+        boolean everything = cl.getParsedCommand().equals("stopAll");
 
         if (everything) {
           flushAll(context);
         }
 
         stopServer(context, everything);
+      } else {
+        cl.usage();
       }
 
       if (rc != 0) {
@@ -541,11 +579,6 @@ public class Admin implements KeywordExecutable {
     } finally {
       SingletonManager.setMode(Mode.CLOSED);
     }
-  }
-
-  private static void printServiceStatus(ServerContext context, ServiceStatusCmd.Opts opts) {
-    ServiceStatusCmd ssc = new ServiceStatusCmd();
-    ssc.execute(context, opts);
   }
 
   private static int ping(ClientContext context, List<String> args) {
@@ -640,6 +673,25 @@ public class Admin implements KeywordExecutable {
 
     ThriftClientTypes.MANAGER.executeVoid(context,
         client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
+  }
+
+  // Visible for tests
+  public static void signalGracefulShutdown(final ClientContext context, String address) {
+
+    Objects.requireNonNull(address, "address not set");
+    final HostAndPort hp = HostAndPort.fromString(address);
+    ServerProcessService.Client client = null;
+    try {
+      client = ThriftClientTypes.SERVER_PROCESS.getServerProcessConnection(context, log,
+          hp.getHost(), hp.getPort());
+      client.gracefulShutdown(context.rpcCreds());
+    } catch (TException e) {
+      throw new RuntimeException("Error invoking graceful shutdown for server: " + hp, e);
+    } finally {
+      if (client != null) {
+        ThriftUtil.returnClient(client, context);
+      }
+    }
   }
 
   private static void stopTabletServer(final ClientContext context, List<String> servers,
@@ -920,7 +972,7 @@ public class Admin implements KeywordExecutable {
 
     validateFateUserInput(fateOpsCommand);
 
-    AdminUtil<Admin> admin = new AdminUtil<>(true);
+    AdminUtil<Admin> admin = new AdminUtil<>();
     final String zkRoot = context.getZooKeeperRoot();
     var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     String fateZkPath = zkRoot + Constants.ZFATE;

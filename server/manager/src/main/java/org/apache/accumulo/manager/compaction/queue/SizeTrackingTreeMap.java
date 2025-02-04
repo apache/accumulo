@@ -28,7 +28,7 @@ import com.google.common.base.Preconditions;
  * This class wraps a treemap and tracks the data size of everything added and removed from the
  * treemap.
  */
-class SizeTrackingTreeMap<K,V> {
+public class SizeTrackingTreeMap<K,V> {
 
   private static class ValueWrapper<V2> {
     final V2 val;
