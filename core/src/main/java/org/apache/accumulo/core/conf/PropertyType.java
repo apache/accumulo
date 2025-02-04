@@ -22,7 +22,9 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -30,6 +32,7 @@ import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.commons.lang3.Range;
 import org.apache.hadoop.fs.Path;
@@ -39,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonParser;
 
 /**
  * Types of {@link Property} values. Each type has a short name, a description, and a regex which
@@ -136,7 +140,7 @@ public enum PropertyType {
           + " interpreted based on the context of the property to which it applies."),
 
   JSON("json", new ValidJson(),
-      "An arbitrary string that is represents a valid, parsable generic json object."
+      "An arbitrary string that represents a valid, parsable generic json object."
           + "The validity of the json object in the context of the property usage is not checked by this type."),
   BOOLEAN("boolean", in(false, null, "true", "false"),
       "Has a value of either 'true' or 'false' (case-insensitive)"),
@@ -145,7 +149,21 @@ public enum PropertyType {
 
   FILENAME_EXT("file name extension", in(true, RFile.EXTENSION),
       "One of the currently supported filename extensions for storing table data files. "
-          + "Currently, only " + RFile.EXTENSION + " is supported.");
+          + "Currently, only " + RFile.EXTENSION + " is supported."),
+
+  USER_FATE_CONFIG("user fate config", new ValidUserFateConfig(),
+      "An arbitrary string that: 1. Represents a valid, parsable generic json object. "
+          + "2. the keys of the json are strings which contain a comma-separated list of fate operations. "
+          + "3. the values of the json are integers which represent the number of threads assigned to the fate operations. "
+          + "4. all possible user fate operations are present in the json. "
+          + "5. no fate operations are repeated."),
+
+  META_FATE_CONFIG("meta fate config", new ValidMetaFateConfig(),
+      "An arbitrary string that: 1. Represents a valid, parsable generic json object. "
+          + "2. the keys of the json are strings which contain a comma-separated list of fate operations. "
+          + "3. the values of the json are integers which represent the number of threads assigned to the fate operations. "
+          + "4. all possible meta fate operations are present in the json. "
+          + "5. no fate operations are repeated.");
 
   private final String shortname;
   private final String format;
@@ -391,6 +409,62 @@ public enum PropertyType {
           "Invalid port range specification, must use M-N notation.");
     }
 
+  }
+
+  private static class ValidFateConfig implements Predicate<String> {
+    private final Set<Fate.FateOperation> allFateOps;
+
+    private ValidFateConfig(Set<Fate.FateOperation> allFateOps) {
+      this.allFateOps = allFateOps;
+    }
+
+    @Override
+    public boolean test(String s) {
+      final Set<Fate.FateOperation> seenFateOps;
+
+      try {
+        final var json = JsonParser.parseString(s).getAsJsonObject();
+        seenFateOps = new HashSet<>();
+
+        for (var entry : json.entrySet()) {
+          var key = entry.getKey();
+          var val = entry.getValue().getAsInt();
+          if (val <= 0) {
+            return false;
+          }
+          var fateOpsStrArr = key.split(",");
+          for (String fateOpStr : fateOpsStrArr) {
+            Fate.FateOperation fateOp = Fate.FateOperation.valueOf(fateOpStr);
+            if (seenFateOps.contains(fateOp)) {
+              return false;
+            }
+            seenFateOps.add(fateOp);
+          }
+        }
+      } catch (Exception e) {
+        return false;
+      }
+
+      return allFateOps.equals(seenFateOps);
+    }
+  }
+
+  private static class ValidUserFateConfig extends ValidFateConfig {
+    private static final Set<Fate.FateOperation> allFateOps =
+        Fate.FateOperation.getAllUserFateOps();
+
+    private ValidUserFateConfig() {
+      super(allFateOps);
+    }
+  }
+
+  private static class ValidMetaFateConfig extends ValidFateConfig {
+    private static final Set<Fate.FateOperation> allFateOps =
+        Fate.FateOperation.getAllMetaFateOps();
+
+    private ValidMetaFateConfig() {
+      super(allFateOps);
+    }
   }
 
 }

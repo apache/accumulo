@@ -20,6 +20,7 @@ package org.apache.accumulo.test.fate;
 
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL;
+import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -42,8 +43,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -54,7 +53,6 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -186,10 +184,8 @@ public abstract class FateInterleavingIT extends SharedMiniClusterBase
   }
 
   protected Fate<FilTestEnv> initializeFate(AccumuloClient client, FateStore<FilTestEnv> store) {
-    ConfigurationCopy config = new ConfigurationCopy();
-    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    return new Fate<>(new FilTestEnv(client), store, false, r -> r + "", config);
+    return new Fate<>(new FilTestEnv(client), store, false, r -> r + "",
+        FateTestUtil.createTestFateConfig(1));
   }
 
   private static Entry<String,String> toIdStep(Entry<Key,Value> e) {
@@ -215,7 +211,7 @@ public abstract class FateInterleavingIT extends SharedMiniClusterBase
       var txStore = store.reserve(fateIds[i]);
       try {
         txStore.push(new FirstOp());
-        txStore.setTransactionInfo(TxInfo.TX_NAME, "TEST_" + i);
+        txStore.setTransactionInfo(TxInfo.TX_NAME, TEST_FATE_OP);
         txStore.setStatus(SUBMITTED);
       } finally {
         txStore.unreserve(Duration.ZERO);
@@ -336,7 +332,7 @@ public abstract class FateInterleavingIT extends SharedMiniClusterBase
       var txStore = store.reserve(fateIds[i]);
       try {
         txStore.push(new FirstNonInterleavingOp());
-        txStore.setTransactionInfo(TxInfo.TX_NAME, "TEST_" + i);
+        txStore.setTransactionInfo(TxInfo.TX_NAME, TEST_FATE_OP);
         txStore.setStatus(SUBMITTED);
       } finally {
         txStore.unreserve(Duration.ZERO);

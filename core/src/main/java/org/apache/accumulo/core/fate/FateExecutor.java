@@ -1,0 +1,477 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.accumulo.core.fate;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.IN_PROGRESS;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL;
+import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
+
+import java.time.Duration;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TransferQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.fate.Fate.TxInfo;
+import org.apache.accumulo.core.fate.FateStore.FateTxStore;
+import org.apache.accumulo.core.util.ShutdownUtil;
+import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.threads.ThreadPoolNames;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+
+/**
+ * Handles finding and working on FATE work. Only finds/works on fate operations that it is assigned
+ * to work on defined by 'fateOps'
+ */
+public class FateExecutor<T> {
+  private static final Logger log = LoggerFactory.getLogger(FateExecutor.class);
+  private final Logger runnerLog = LoggerFactory.getLogger(TransactionRunner.class);
+
+  private final T environment;
+  private final Fate<T> fate;
+  private final Thread workFinder;
+  private final TransferQueue<FateId> workQueue;
+  private final String poolName;
+  private final ThreadPoolExecutor transactionExecutor;
+  private final Set<TransactionRunner> runningTxRunners;
+  private final Set<Fate.FateOperation> fateOps;
+  private final ConcurrentLinkedQueue<Integer> idleCountHistory = new ConcurrentLinkedQueue<>();
+
+  public FateExecutor(Fate<T> fate, T environment, Set<Fate.FateOperation> fateOps, int poolSize) {
+    final String operatesOn = fate.getStore().type().name().toLowerCase() + "."
+        + fateOps.stream().map(fo -> fo.name().toLowerCase()).collect(Collectors.joining("."));
+    final String transactionRunnerPoolName =
+        ThreadPoolNames.MANAGER_FATE_POOL_PREFIX.poolName + operatesOn;
+    final String workFinderThreadName = "fate.work.finder." + operatesOn;
+
+    this.fate = fate;
+    this.environment = environment;
+    this.fateOps = Collections.unmodifiableSet(fateOps);
+    this.workQueue = new LinkedTransferQueue<>();
+    this.runningTxRunners = Collections.synchronizedSet(new HashSet<>());
+    this.poolName = transactionRunnerPoolName;
+    this.transactionExecutor =
+        ThreadPools.getServerThreadPools().getPoolBuilder(transactionRunnerPoolName)
+            .numCoreThreads(poolSize).enableThreadPoolMetrics().build();
+
+    this.workFinder = Threads.createThread(workFinderThreadName, new WorkFinder());
+    this.workFinder.start();
+  }
+
+  protected String getPoolName() {
+    return poolName;
+  }
+
+  protected ThreadPoolExecutor getTransactionExecutor() {
+    return transactionExecutor;
+  }
+
+  /**
+   * @return an unmodifiable, shallow copy of the currently running transaction runners
+   */
+  protected Set<TransactionRunner> getRunningTxRunners() {
+    Set<TransactionRunner> copy;
+    synchronized (runningTxRunners) {
+      copy = new HashSet<>(runningTxRunners);
+    }
+    return Collections.unmodifiableSet(copy);
+  }
+
+  protected Set<Fate.FateOperation> getFateOps() {
+    return fateOps;
+  }
+
+  /**
+   * Initiates the shutdown of this FateExecutor. This means the pool executing TransactionRunners
+   * will no longer accept new TransactionRunners, the currently running TransactionRunners will
+   * terminate after they are done with their current transaction, if applicable, and the work
+   * finder is interrupted. {@link #isShutdown()} returns true after this is called.
+   */
+  protected void initiateShutdown() {
+    transactionExecutor.shutdown();
+    synchronized (runningTxRunners) {
+      runningTxRunners.forEach(TransactionRunner::flagStop);
+    }
+    workFinder.interrupt();
+  }
+
+  /**
+   * @return true if {@link #initiateShutdown()} has previously been called on this FateExecutor.
+   *         The FateExecutor may or may not still have running threads. To check that, see
+   *         {@link #isAlive()}
+   */
+  protected boolean isShutdown() {
+    return transactionExecutor.isShutdown();
+  }
+
+  protected void shutdownNow() {
+    transactionExecutor.shutdownNow();
+  }
+
+  protected void waitForShutdown(long start, long timeout, TimeUnit timeUnit)
+      throws InterruptedException {
+    if (timeout > 0) {
+      while (((System.nanoTime() - start) < timeUnit.toNanos(timeout)) && isAlive()) {
+        if (!transactionExecutor.awaitTermination(1, SECONDS)) {
+          log.debug("Fate {} is waiting for worker threads for fate ops {} to terminate",
+              fate.getStore().type(), fateOps);
+          continue;
+        }
+
+        workFinder.join(1_000);
+        if (workFinder.isAlive()) {
+          log.debug("Fate {} is waiting for work finder thread for fate ops {} to terminate",
+              fate.getStore().type(), fateOps);
+          workFinder.interrupt();
+        }
+      }
+
+      if (isAlive()) {
+        log.warn(
+            "Waited for {}ms for the {} fate executor operating on fate ops {} to stop, but it"
+                + " is still running. Summary of run state of its threads: work finder:{}"
+                + " transaction executor:{}",
+            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), fate.getStore().type(),
+            fateOps, workFinder.isAlive(), !transactionExecutor.isTerminated());
+      }
+    }
+  }
+
+  /**
+   * This fate executor is defined as being alive if any of its threads are running
+   */
+  protected boolean isAlive() {
+    return !transactionExecutor.isTerminated() || workFinder.isAlive();
+  }
+
+  protected ConcurrentLinkedQueue<Integer> getIdleCountHistory() {
+    return idleCountHistory;
+  }
+
+  protected TransferQueue<FateId> getWorkQueue() {
+    return workQueue;
+  }
+
+  /**
+   * A single thread that finds transactions to work on and queues them up. Do not want each worker
+   * thread going to the store and looking for work as it would place more load on the store.
+   */
+  private class WorkFinder implements Runnable {
+
+    @Override
+    public void run() {
+      while (fate.getKeepRunning().get() && !isShutdown()) {
+        try {
+          fate.getStore().runnable(fate.getKeepRunning(), fateIdStatus -> {
+            // The FateId with the fate operation 'fateOp' is workable by this FateExecutor if
+            // 1) This FateExecutor is assigned to work on 'fateOp' ('fateOp' is in 'fateOps')
+            // 2) The transaction was cancelled while NEW. This is an edge case that needs to be
+            // handled since this is the only case where we will have a runnable transaction
+            // that doesn't have a name. We allow any FateExecutor to work on this since this case
+            // should be rare and won't put much load on any one FateExecutor
+            var status = fateIdStatus.getStatus();
+            var fateOp = fateIdStatus.getFateOperation().orElse(null);
+            if (fateOps.contains(fateOp) || txCancelledWhileNew(status, fateOp)) {
+              while (fate.getKeepRunning().get() && !isShutdown()) {
+                try {
+                  // The reason for calling transfer instead of queueing is avoid rescanning the
+                  // storage layer and adding the same thing over and over. For example if all
+                  // threads were busy, the queue size was 100, and there are three runnable things
+                  // in the store. Do not want to keep scanning the store adding those same 3
+                  // runnable things until the queue is full.
+                  if (workQueue.tryTransfer(fateIdStatus.getFateId(), 100, MILLISECONDS)) {
+                    break;
+                  }
+                } catch (InterruptedException e) {
+                  throw new IllegalStateException(e);
+                }
+              }
+            }
+          });
+        } catch (Exception e) {
+          if (!fate.getKeepRunning().get() || isShutdown()) {
+            log.debug("Expected failure while attempting to find work for fate: either fate is "
+                + "being shutdown and therefore all fate threads are being shutdown or the "
+                + "fate threads assigned to work on {} were invalidated by config changes "
+                + "and are being shutdown", fateOps, e);
+          } else {
+            log.warn("Unexpected failure while attempting to find work for fate", e);
+          }
+
+          workQueue.clear();
+        }
+      }
+    }
+
+    private boolean txCancelledWhileNew(TStatus status, Fate.FateOperation fateOp) {
+      if (fateOp == null) {
+        // The only time a transaction should be runnable and not have a fate operation is if
+        // it was cancelled while NEW (and now is FAILED_IN_PROGRESS)
+        Preconditions.checkState(status == FAILED_IN_PROGRESS);
+        return true;
+      }
+      return false;
+    }
+  }
+
+  protected class TransactionRunner implements Runnable {
+    // used to signal a TransactionRunner to stop in the case where there are too many running
+    // i.e.,
+    // 1. the property for the pool size decreased so we have to stop excess TransactionRunners
+    // or
+    // 2. this FateExecutor is no longer valid from config changes so we need to shutdown this
+    // FateExecutor
+    private final AtomicBoolean stop = new AtomicBoolean(false);
+
+    private Optional<FateTxStore<T>> reserveFateTx() throws InterruptedException {
+      while (fate.getKeepRunning().get() && !stop.get()) {
+        FateId unreservedFateId = workQueue.poll(100, MILLISECONDS);
+
+        if (unreservedFateId == null) {
+          continue;
+        }
+        var optionalopStore = fate.getStore().tryReserve(unreservedFateId);
+        if (optionalopStore.isPresent()) {
+          return optionalopStore;
+        }
+      }
+
+      return Optional.empty();
+    }
+
+    @Override
+    public void run() {
+      runningTxRunners.add(this);
+      try {
+        while (fate.getKeepRunning().get() && !stop.get()) {
+          FateTxStore<T> txStore = null;
+          ExecutionState state = new ExecutionState();
+          try {
+            var optionalopStore = reserveFateTx();
+            if (optionalopStore.isPresent()) {
+              txStore = optionalopStore.orElseThrow();
+            } else {
+              continue;
+            }
+            state.status = txStore.getStatus();
+            state.op = txStore.top();
+            if (state.status == FAILED_IN_PROGRESS) {
+              processFailed(txStore, state.op);
+            } else if (state.status == SUBMITTED || state.status == IN_PROGRESS) {
+              try {
+                execute(txStore, state);
+                if (state.op != null && state.deferTime != 0) {
+                  // The current op is not ready to execute
+                  continue;
+                }
+              } catch (StackOverflowException e) {
+                // the op that failed to push onto the stack was never executed, so no need to undo
+                // it just transition to failed and undo the ops that executed
+                transitionToFailed(txStore, e);
+                continue;
+              } catch (Exception e) {
+                blockIfHadoopShutdown(txStore.getID(), e);
+                transitionToFailed(txStore, e);
+                continue;
+              }
+
+              if (state.op == null) {
+                // transaction is finished
+                String ret = state.prevOp.getReturn();
+                if (ret != null) {
+                  txStore.setTransactionInfo(TxInfo.RETURN_VALUE, ret);
+                }
+                txStore.setStatus(SUCCESSFUL);
+                doCleanUp(txStore);
+              }
+            }
+          } catch (Exception e) {
+            runnerLog.error("Uncaught exception in FATE runner thread.", e);
+          } finally {
+            if (txStore != null) {
+              txStore.unreserve(Duration.ofMillis(state.deferTime));
+            }
+          }
+        }
+      } finally {
+        log.trace("A TransactionRunner is exiting...");
+        Preconditions.checkState(runningTxRunners.remove(this));
+      }
+    }
+
+    private class ExecutionState {
+      Repo<T> prevOp = null;
+      Repo<T> op = null;
+      long deferTime = 0;
+      TStatus status;
+    }
+
+    // Executes as many steps of a fate operation as possible
+    private void execute(final FateTxStore<T> txStore, final ExecutionState state)
+        throws Exception {
+      while (state.op != null && state.deferTime == 0) {
+        state.deferTime = executeIsReady(txStore.getID(), state.op);
+
+        if (state.deferTime == 0) {
+          if (state.status == SUBMITTED) {
+            txStore.setStatus(IN_PROGRESS);
+            state.status = IN_PROGRESS;
+          }
+
+          state.prevOp = state.op;
+          state.op = executeCall(txStore.getID(), state.op);
+
+          if (state.op != null) {
+            // persist the completion of this step before starting to run the next so in the case of
+            // process death the completed steps are not rerun
+            txStore.push(state.op);
+          }
+        }
+      }
+    }
+
+    /**
+     * The Hadoop Filesystem registers a java shutdown hook that closes the file system. This can
+     * cause threads to get spurious IOException. If this happens, instead of failing a FATE
+     * transaction just wait for process to die. When the manager start elsewhere the FATE
+     * transaction can resume.
+     */
+    private void blockIfHadoopShutdown(FateId fateId, Exception e) {
+      if (ShutdownUtil.isShutdownInProgress()) {
+
+        if (e instanceof AcceptableException) {
+          log.debug("Ignoring exception possibly caused by Hadoop Shutdown hook. {} ", fateId, e);
+        } else if (isIOException(e)) {
+          log.info("Ignoring exception likely caused by Hadoop Shutdown hook. {} ", fateId, e);
+        } else {
+          // sometimes code will catch an IOException caused by the hadoop shutdown hook and throw
+          // another exception without setting the cause.
+          log.warn("Ignoring exception possibly caused by Hadoop Shutdown hook. {} ", fateId, e);
+        }
+
+        while (true) {
+          // Nothing is going to work well at this point, so why even try. Just wait for the end,
+          // preventing this FATE thread from processing further work and likely failing.
+          sleepUninterruptibly(1, MINUTES);
+        }
+      }
+    }
+
+    private void transitionToFailed(FateTxStore<T> txStore, Exception e) {
+      final String msg = "Failed to execute Repo " + txStore.getID();
+      // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
+      // as a warning. They're a normal, handled failure condition.
+      if (e instanceof AcceptableException) {
+        var tableOpEx = (AcceptableThriftTableOperationException) e;
+        log.info("{} for table:{}({}) saw acceptable exception: {}", msg, tableOpEx.getTableName(),
+            tableOpEx.getTableId(), tableOpEx.getDescription());
+      } else {
+        log.warn(msg, e);
+      }
+      txStore.setTransactionInfo(TxInfo.EXCEPTION, e);
+      txStore.setStatus(FAILED_IN_PROGRESS);
+      log.info("Updated status for Repo with {} to FAILED_IN_PROGRESS", txStore.getID());
+    }
+
+    private void processFailed(FateTxStore<T> txStore, Repo<T> op) {
+      while (op != null) {
+        undo(txStore.getID(), op);
+
+        txStore.pop();
+        op = txStore.top();
+      }
+
+      txStore.setStatus(FAILED);
+      doCleanUp(txStore);
+    }
+
+    private void doCleanUp(FateTxStore<T> txStore) {
+      Boolean autoClean = (Boolean) txStore.getTransactionInfo(TxInfo.AUTO_CLEAN);
+      if (autoClean != null && autoClean) {
+        txStore.delete();
+      } else {
+        // no longer need persisted operations, so delete them to save space in case
+        // TX is never cleaned up...
+        while (txStore.top() != null) {
+          txStore.pop();
+        }
+      }
+    }
+
+    private void undo(FateId fateId, Repo<T> op) {
+      try {
+        op.undo(fateId, environment);
+      } catch (Exception e) {
+        log.warn("Failed to undo Repo, " + fateId, e);
+      }
+    }
+
+    protected boolean flagStop() {
+      return stop.compareAndSet(false, true);
+    }
+
+    protected boolean isFlaggedToStop() {
+      return stop.get();
+    }
+
+  }
+
+  protected long executeIsReady(FateId fateId, Repo<T> op) throws Exception {
+    var startTime = Timer.startNew();
+    var deferTime = op.isReady(fateId, environment);
+    log.debug("Running {}.isReady() {} took {} ms and returned {}", op.getName(), fateId,
+        startTime.elapsed(MILLISECONDS), deferTime);
+    return deferTime;
+  }
+
+  protected Repo<T> executeCall(FateId fateId, Repo<T> op) throws Exception {
+    var startTime = Timer.startNew();
+    var next = op.call(fateId, environment);
+    log.debug("Running {}.call() {} took {} ms and returned {}", op.getName(), fateId,
+        startTime.elapsed(MILLISECONDS), next == null ? "null" : next.getName());
+
+    return next;
+  }
+
+  @Override
+  public String toString() {
+    return String.format("FateExecutor:{FateOps=%s,PoolSize:%s}", fateOps, runningTxRunners.size());
+  }
+}

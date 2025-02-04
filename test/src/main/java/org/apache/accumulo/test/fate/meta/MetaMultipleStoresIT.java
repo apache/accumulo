@@ -24,7 +24,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.test.fate.FateStoreUtil;
+import org.apache.accumulo.test.fate.FateTestUtil;
 import org.apache.accumulo.test.fate.MultipleStoresIT;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
@@ -37,12 +37,12 @@ public class MetaMultipleStoresIT extends MultipleStoresIT {
 
   @BeforeAll
   public static void setup() throws Exception {
-    FateStoreUtil.MetaFateZKSetup.setup(tempDir);
+    FateTestUtil.MetaFateZKSetup.setup(tempDir);
   }
 
   @AfterAll
   public static void teardown() throws Exception {
-    FateStoreUtil.MetaFateZKSetup.teardown();
+    FateTestUtil.MetaFateZKSetup.teardown();
   }
 
   @Override
@@ -61,8 +61,8 @@ public class MetaMultipleStoresIT extends MultipleStoresIT {
     @Override
     public FateStore<SleepingTestEnv> create(ZooUtil.LockID lockID,
         Predicate<ZooUtil.LockID> isLockHeld) throws InterruptedException, KeeperException {
-      return new MetaFateStore<>(FateStoreUtil.MetaFateZKSetup.getZkFatePath(),
-          FateStoreUtil.MetaFateZKSetup.getZk(), lockID, isLockHeld);
+      return new MetaFateStore<>(FateTestUtil.MetaFateZKSetup.getZkFatePath(),
+          FateTestUtil.MetaFateZKSetup.getZk(), lockID, isLockHeld);
     }
   }
 
@@ -70,8 +70,8 @@ public class MetaMultipleStoresIT extends MultipleStoresIT {
     @Override
     public FateStore<LatchTestEnv> create(ZooUtil.LockID lockID,
         Predicate<ZooUtil.LockID> isLockHeld) throws InterruptedException, KeeperException {
-      return new MetaFateStore<>(FateStoreUtil.MetaFateZKSetup.getZkFatePath(),
-          FateStoreUtil.MetaFateZKSetup.getZk(), lockID, isLockHeld);
+      return new MetaFateStore<>(FateTestUtil.MetaFateZKSetup.getZkFatePath(),
+          FateTestUtil.MetaFateZKSetup.getZk(), lockID, isLockHeld);
     }
   }
 }

@@ -35,7 +35,7 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT;
-import org.apache.accumulo.test.fate.FateStoreUtil;
+import org.apache.accumulo.test.fate.FateTestUtil;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
@@ -48,20 +48,20 @@ public class MetaFateIT extends FateIT {
 
   @BeforeAll
   public static void setup() throws Exception {
-    FateStoreUtil.MetaFateZKSetup.setup(tempDir);
+    FateTestUtil.MetaFateZKSetup.setup(tempDir);
   }
 
   @AfterAll
   public static void teardown() throws Exception {
-    FateStoreUtil.MetaFateZKSetup.teardown();
+    FateTestUtil.MetaFateZKSetup.teardown();
   }
 
   @Override
   public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
       FateIdGenerator fateIdGenerator) throws Exception {
-    String zkRoot = FateStoreUtil.MetaFateZKSetup.getZkRoot();
-    var zk = FateStoreUtil.MetaFateZKSetup.getZk();
-    String fatePath = FateStoreUtil.MetaFateZKSetup.getZkFatePath();
+    String zkRoot = FateTestUtil.MetaFateZKSetup.getZkRoot();
+    var zk = FateTestUtil.MetaFateZKSetup.getZk();
+    String fatePath = FateTestUtil.MetaFateZKSetup.getZkFatePath();
     ServerContext sctx = createMock(ServerContext.class);
     expect(sctx.getZooKeeperRoot()).andReturn(zkRoot).anyTimes();
     expect(sctx.getZooSession()).andReturn(zk).anyTimes();
@@ -87,7 +87,7 @@ public class MetaFateIT extends FateIT {
    */
   private static TStatus getTxStatus(ZooSession zk, FateId fateId)
       throws KeeperException, InterruptedException {
-    String zkRoot = FateStoreUtil.MetaFateZKSetup.getZkRoot();
+    String zkRoot = FateTestUtil.MetaFateZKSetup.getZkRoot();
     var zrw = zk.asReaderWriter();
     zrw.sync(zkRoot);
     String txdir = String.format("%s%s/tx_%s", zkRoot, Constants.ZFATE, fateId.getTxUUIDStr());

@@ -59,6 +59,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -236,7 +237,10 @@ public class ExternalCompactionTestUtils {
     cfg.setProperty(Property.COMPACTOR_MIN_JOB_WAIT_TIME, "100ms");
     cfg.setProperty(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "1s");
     cfg.setProperty(Property.GENERAL_THREADPOOL_SIZE, "10");
-    cfg.setProperty(Property.MANAGER_FATE_THREADPOOL_SIZE, "10");
+    cfg.setProperty(Property.MANAGER_USER_FATE_CONFIG, "{\"" + Fate.FateOperation
+        .getAllUserFateOps().stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 10}");
+    cfg.setProperty(Property.MANAGER_META_FATE_CONFIG, "{\"" + Fate.FateOperation
+        .getAllMetaFateOps().stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 10}");
     cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "1s");
     // use raw local file system so walogs sync and flush will work
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());

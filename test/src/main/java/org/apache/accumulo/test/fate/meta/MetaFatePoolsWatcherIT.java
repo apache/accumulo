@@ -16,43 +16,51 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate.user;
+package org.apache.accumulo.test.fate.meta;
 
-import static org.apache.accumulo.test.fate.FateStoreUtil.createFateTable;
 import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.clientImpl.ClientContext;
+import java.io.File;
+
 import org.apache.accumulo.core.fate.AbstractFateStore;
-import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.test.fate.FatePoolResizeIT;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.fate.FatePoolsWatcherIT;
+import org.apache.accumulo.test.fate.FateTestUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.io.TempDir;
 
-public class UserFatePoolResizeIT extends FatePoolResizeIT {
-
-  private String table;
+public class MetaFatePoolsWatcherIT extends FatePoolsWatcherIT {
+  @TempDir
+  private static File tempDir;
 
   @BeforeAll
   public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniCluster();
+    FateTestUtil.MetaFateZKSetup.setup(tempDir);
   }
 
   @AfterAll
-  public static void teardown() {
-    SharedMiniClusterBase.stopMiniCluster();
+  public static void teardown() throws Exception {
+    FateTestUtil.MetaFateZKSetup.teardown();
   }
 
   @Override
   public void executeTest(FateTestExecutor<PoolResizeTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
-    table = getUniqueNames(1)[0];
-    try (ClientContext client =
-        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
-      createFateTable(client, table);
-      testMethod.execute(new UserFateStore<>(client, table, createDummyLockID(), null, maxDeferred,
-          fateIdGenerator), getCluster().getServerContext());
-    }
+    String zkRoot = FateTestUtil.MetaFateZKSetup.getZkRoot();
+    var zk = FateTestUtil.MetaFateZKSetup.getZk();
+    String fatePath = FateTestUtil.MetaFateZKSetup.getZkFatePath();
+    ServerContext sctx = createMock(ServerContext.class);
+    expect(sctx.getZooKeeperRoot()).andReturn(zkRoot).anyTimes();
+    expect(sctx.getZooSession()).andReturn(zk).anyTimes();
+    replay(sctx);
+
+    testMethod.execute(
+        new MetaFateStore<>(fatePath, zk, createDummyLockID(), null, maxDeferred, fateIdGenerator),
+        sctx);
   }
 }
