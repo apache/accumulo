@@ -125,6 +125,24 @@ public class ColumnVisibility {
       this.end = end;
     }
 
+    /**
+     * Creates a new node by performing a deep copy of an existing node object
+     *
+     * @param node Node object
+     * @since 2.1.4
+     */
+    public Node(Node node) {
+      List<Node> childrenNew =
+          node.children.isEmpty() ? EMPTY : new ArrayList<>(node.children.size());
+      for (Node child : node.children) {
+        childrenNew.add(new Node(child));
+      }
+      this.type = node.type;
+      this.start = node.start;
+      this.end = node.end;
+      this.children = childrenNew;
+    }
+
     public void add(Node child) {
       if (children == EMPTY) {
         children = new ArrayList<>();
@@ -503,6 +521,19 @@ public class ColumnVisibility {
    */
   public ColumnVisibility(byte[] expression) {
     validate(expression);
+  }
+
+  /**
+   * Creates a new column visibility by performing a deep copy of an existing column visibility
+   * object
+   *
+   * @param visibility ColumnVisibility object
+   * @since 2.1.4
+   */
+  public ColumnVisibility(ColumnVisibility visibility) {
+    byte[] incomingExpression = visibility.expression;
+    this.expression = Arrays.copyOf(incomingExpression, incomingExpression.length);
+    this.node = new Node(visibility.node);
   }
 
   @Override
