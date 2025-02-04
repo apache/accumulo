@@ -221,11 +221,10 @@ public class Utils {
 
   private static Lock getLock(ServerContext context, AbstractId<?> id, FateId fateId,
       LockType lockType) {
-    byte[] lockData = fateId.canonical().getBytes(UTF_8);
     var fLockPath =
         FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
     FateLock qlock = new FateLock(context.getZooSession().asReaderWriter(), fLockPath);
-    DistributedLock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
+    DistributedLock lock = DistributedReadWriteLock.recoverLock(qlock, fateId);
     if (lock != null) {
 
       // Validate the recovered lock type
@@ -235,7 +234,7 @@ public class Utils {
                 + " on object " + id + ". Expected " + lockType + " lock instead.");
       }
     } else {
-      DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
+      DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, fateId);
       switch (lockType) {
         case WRITE:
           lock = locker.writeLock();

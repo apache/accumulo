@@ -33,6 +33,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGEABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
@@ -104,6 +105,7 @@ import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationArguments;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
@@ -182,6 +184,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 
 public class TableOperationsImpl extends TableOperationsHelper {
 
@@ -510,10 +513,32 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       tabLocator.invalidateCache();
 
-      Map<KeyExtent,List<Pair<Text,TabletMergeability>>> tabletSplits =
-          mapSplitsToTablets(tableName, tableId, tabLocator, splitsTodo);
+      var splitsToTablets = mapSplitsToTablets(tableName, tableId, tabLocator, splitsTodo);
+      Map<KeyExtent,List<Pair<Text,TabletMergeability>>> tabletSplits = splitsToTablets.newSplits;
+      Map<KeyExtent,TabletMergeability> existingSplits = splitsToTablets.existingSplits;
 
       List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+      // Handle existing updates
+      if (!existingSplits.isEmpty()) {
+        futures.add(CompletableFuture.supplyAsync(() -> {
+          try {
+            var tSplits = existingSplits.entrySet().stream().collect(Collectors.toMap(
+                e -> e.getKey().toThrift(), e -> TabletMergeabilityUtil.toThrift(e.getValue())));
+            return ThriftClientTypes.MANAGER.executeTableCommand(context,
+                client -> client.updateTabletMergeability(TraceUtil.traceInfo(), context.rpcCreds(),
+                    tableName, tSplits));
+          } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+            // This exception type is used because it makes it easier in the foreground thread to do
+            // exception analysis when using CompletableFuture.
+            throw new CompletionException(e);
+          }
+        }, startExecutor).thenApplyAsync(updated -> {
+          // Remove the successfully updated tablets from the list, failures will be retried
+          updated.forEach(tke -> splitsTodo.remove(KeyExtent.fromThrift(tke).endRow()));
+          return null;
+        }, waitExecutor));
+      }
 
       // begin the fate operation for each tablet without waiting for the operation to complete
       for (Entry<KeyExtent,List<Pair<Text,TabletMergeability>>> splitsForTablet : tabletSplits
@@ -606,10 +631,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     waitExecutor.shutdown();
   }
 
-  private Map<KeyExtent,List<Pair<Text,TabletMergeability>>> mapSplitsToTablets(String tableName,
-      TableId tableId, ClientTabletCache tabLocator, SortedMap<Text,TabletMergeability> splitsTodo)
+  private SplitsToTablets mapSplitsToTablets(String tableName, TableId tableId,
+      ClientTabletCache tabLocator, SortedMap<Text,TabletMergeability> splitsTodo)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    Map<KeyExtent,List<Pair<Text,TabletMergeability>>> tabletSplits = new HashMap<>();
+    Map<KeyExtent,List<Pair<Text,TabletMergeability>>> newSplits = new HashMap<>();
+    Map<KeyExtent,TabletMergeability> existingSplits = new HashMap<>();
 
     var iterator = splitsTodo.entrySet().iterator();
     while (iterator.hasNext()) {
@@ -632,13 +658,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
           tablet = tabLocator.findTablet(context, split, false, LocationNeed.NOT_REQUIRED);
         }
 
+        // For splits that already exist collect them so we can update them
+        // separately
         if (split.equals(tablet.getExtent().endRow())) {
-          // split already exists, so remove it
-          iterator.remove();
+          existingSplits.put(tablet.getExtent(), splitEntry.getValue());
           continue;
         }
 
-        tabletSplits.computeIfAbsent(tablet.getExtent(), k -> new ArrayList<>())
+        newSplits.computeIfAbsent(tablet.getExtent(), k -> new ArrayList<>())
             .add(Pair.fromEntry(splitEntry));
 
       } catch (InvalidTabletHostingRequestException e) {
@@ -646,7 +673,18 @@ public class TableOperationsImpl extends TableOperationsHelper {
         throw new AccumuloException(e);
       }
     }
-    return tabletSplits;
+    return new SplitsToTablets(newSplits, existingSplits);
+  }
+
+  private static class SplitsToTablets {
+    final Map<KeyExtent,List<Pair<Text,TabletMergeability>>> newSplits;
+    final Map<KeyExtent,TabletMergeability> existingSplits;
+
+    private SplitsToTablets(Map<KeyExtent,List<Pair<Text,TabletMergeability>>> newSplits,
+        Map<KeyExtent,TabletMergeability> existingSplits) {
+      this.newSplits = Objects.requireNonNull(newSplits);
+      this.existingSplits = Objects.requireNonNull(existingSplits);
+    }
   }
 
   @Override
@@ -2244,10 +2282,19 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     TabletsMetadata tabletsMetadata =
         context.getAmple().readTablets().forTable(tableId).overlapping(scanRangeStart, true, null)
-            .fetch(AVAILABILITY, LOCATION, DIR, PREV_ROW, FILES, LAST, LOGS, SUSPEND)
+            .fetch(AVAILABILITY, LOCATION, DIR, PREV_ROW, FILES, LAST, LOGS, SUSPEND, MERGEABILITY)
             .checkConsistency().build();
 
     Set<TServerInstance> liveTserverSet = TabletMetadata.getLiveTServers(context);
+
+    var currentTime = Suppliers.memoize(() -> {
+      try {
+        return Duration.ofNanos(ThriftClientTypes.MANAGER.execute(context,
+            client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds())));
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        throw new IllegalStateException(e);
+      }
+    });
 
     return tabletsMetadata.stream().peek(tm -> {
       if (scanRangeStart != null && tm.getEndRow() != null
@@ -2257,8 +2304,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }).takeWhile(tm -> tm.getPrevEndRow() == null
         || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
-        .map(tm -> new TabletInformationImpl(tm,
-            TabletState.compute(tm, liveTserverSet).toString()));
+        .map(tm -> new TabletInformationImpl(tm, TabletState.compute(tm, liveTserverSet).toString(),
+            currentTime));
   }
 
 }

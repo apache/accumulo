@@ -34,10 +34,10 @@ import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 
 import com.github.benmanes.caffeine.cache.Cache;
 

@@ -28,8 +28,8 @@ import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.slf4j.Logger;
@@ -51,9 +51,6 @@ public class CompactionJobQueues {
   private volatile long queueSize;
 
   private final Map<DataLevel,AtomicLong> currentGenerations;
-
-  private SizeTrackingTreeMap.Weigher<MetaJob> weigher =
-      val -> val.getTabletMetadata().toString().length() + val.getJob().toString().length();
 
   public CompactionJobQueues(long queueSize) {
     this.queueSize = queueSize;
@@ -83,13 +80,13 @@ public class CompactionJobQueues {
         .forEach(pq -> pq.removeOlderGenerations(level, currentGenerations.get(level).get()));
   }
 
-  public void add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
+  public void add(KeyExtent extent, Collection<CompactionJob> jobs) {
     if (jobs.size() == 1) {
       var executorId = jobs.iterator().next().getGroup();
-      add(tabletMetadata, executorId, jobs);
+      add(extent, executorId, jobs);
     } else {
       jobs.stream().collect(Collectors.groupingBy(CompactionJob::getGroup))
-          .forEach(((groupId, compactionJobs) -> add(tabletMetadata, groupId, compactionJobs)));
+          .forEach(((groupId, compactionJobs) -> add(extent, groupId, compactionJobs)));
     }
   }
 
@@ -138,39 +135,19 @@ public class CompactionJobQueues {
     return count;
   }
 
-  public static class MetaJob {
-    private final CompactionJob job;
-
-    // the metadata from which the compaction job was derived
-    private final TabletMetadata tabletMetadata;
-
-    public MetaJob(CompactionJob job, TabletMetadata tabletMetadata) {
-      this.job = job;
-      this.tabletMetadata = tabletMetadata;
-    }
-
-    public CompactionJob getJob() {
-      return job;
-    }
-
-    public TabletMetadata getTabletMetadata() {
-      return tabletMetadata;
-    }
-  }
-
   /**
    * Asynchronously get a compaction job from the queue. If the queue currently has jobs then a
    * completed future will be returned containing the highest priority job in the queue. If the
    * queue is currently empty, then an uncompleted future will be returned and later when something
    * is added to the queue the future will be completed.
    */
-  public CompletableFuture<MetaJob> getAsync(CompactorGroupId groupId) {
+  public CompletableFuture<CompactionJob> getAsync(CompactorGroupId groupId) {
     var pq = priorityQueues.computeIfAbsent(groupId,
-        gid -> new CompactionJobPriorityQueue(gid, queueSize, weigher));
+        gid -> new CompactionJobPriorityQueue(gid, queueSize, ResolvedCompactionJob.WEIGHER));
     return pq.getAsync();
   }
 
-  public MetaJob poll(CompactorGroupId groupId) {
+  public CompactionJob poll(CompactorGroupId groupId) {
     var prioQ = priorityQueues.get(groupId);
     if (prioQ == null) {
       return null;
@@ -179,19 +156,17 @@ public class CompactionJobQueues {
     return prioQ.poll();
   }
 
-  private void add(TabletMetadata tabletMetadata, CompactorGroupId groupId,
-      Collection<CompactionJob> jobs) {
+  private void add(KeyExtent extent, CompactorGroupId groupId, Collection<CompactionJob> jobs) {
 
     if (log.isTraceEnabled()) {
-      log.trace("Adding jobs to queue {} {} {}", groupId, tabletMetadata.getExtent(),
+      log.trace("Adding jobs to queue {} {} {}", groupId, extent,
           jobs.stream().map(job -> "#files:" + job.getFiles().size() + ",prio:" + job.getPriority()
               + ",kind:" + job.getKind()).collect(Collectors.toList()));
     }
 
     var pq = priorityQueues.computeIfAbsent(groupId,
-        gid -> new CompactionJobPriorityQueue(gid, queueSize, weigher));
-    pq.add(tabletMetadata, jobs,
-        currentGenerations.get(DataLevel.of(tabletMetadata.getTableId())).get());
+        gid -> new CompactionJobPriorityQueue(gid, queueSize, ResolvedCompactionJob.WEIGHER));
+    pq.add(extent, jobs, currentGenerations.get(DataLevel.of(extent.tableId())).get());
   }
 
   public void resetMaxSize(long size) {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.fate.zookeeper;
+package org.apache.accumulo.core.zookeeper;
 
 import java.util.List;
 import java.util.Objects;
@@ -62,7 +62,7 @@ class ZcNode {
   }
 
   private final byte[] data;
-  private final ZooCache.ZcStat stat;
+  private final ZcStat stat;
   private final List<String> children;
   private final Discovered discovered;
 
@@ -115,7 +115,7 @@ class ZcNode {
    * Creates a new ZcNode that combines the children from an existing ZcNode and sets the data and
    * stat.
    */
-  ZcNode(byte[] data, ZooCache.ZcStat zstat, ZcNode existing) {
+  ZcNode(byte[] data, ZcStat zstat, ZcNode existing) {
     if (existing == null) {
       this.discovered = Discovered.DATA_ONLY;
       this.children = null;
@@ -148,6 +148,7 @@ class ZcNode {
    */
   byte[] getData() {
     Preconditions.checkState(cachedData());
+    ;
     accessCount.incrementAndGet();
     return data;
   }
@@ -157,7 +158,7 @@ class ZcNode {
    *         exist
    * @throws IllegalStateException in the case where the node exists and the data was never set
    */
-  ZooCache.ZcStat getStat() {
+  ZcStat getStat() {
     Preconditions.checkState(cachedData());
     return stat;
   }

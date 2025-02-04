@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import java.util.function.Supplier;
+
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -25,6 +27,7 @@ import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
@@ -62,7 +65,7 @@ public enum TabletGoalState {
 
     // Always follow through with assignments
     if (currentState == TabletState.ASSIGNED) {
-      return HOSTED;
+      return trace(HOSTED, tm, "tablet is in assigned state");
     }
 
     KeyExtent extent = tm.getExtent();
@@ -75,7 +78,7 @@ public enum TabletGoalState {
       if (!params.isParentLevelUpgraded()) {
         // The place where this tablet stores its metadata was not upgraded, so do not assign this
         // tablet yet.
-        return UNASSIGNED;
+        return trace(UNASSIGNED, tm, "parent level not upgraded");
       }
 
       // When an operation id is set tablets need to be unassigned unless there are still wals. When
@@ -83,11 +86,11 @@ public enum TabletGoalState {
       // tablets do not need to recover wals.
       if (tm.getOperationId() != null && (tm.getLogs().isEmpty()
           || tm.getOperationId().getType() == TabletOperationType.DELETING)) {
-        return TabletGoalState.UNASSIGNED;
+        return trace(UNASSIGNED, tm, () -> "operation id " + tm.getOperationId() + " is set");
       }
 
       if (!params.isTableOnline(tm.getTableId())) {
-        return UNASSIGNED;
+        return trace(UNASSIGNED, tm, "table is not online");
       }
 
       // Only want to override the HOSTED goal for tablet availability if there are no walog
@@ -98,10 +101,11 @@ public enum TabletGoalState {
       if (tm.getLogs().isEmpty()) {
         switch (tm.getTabletAvailability()) {
           case UNHOSTED:
-            return UNASSIGNED;
+            return trace(UNASSIGNED, tm, "tablet availability is UNHOSTED");
           case ONDEMAND:
             if (!tm.getHostingRequested()) {
-              return UNASSIGNED;
+              return trace(UNASSIGNED, tm,
+                  "tablet availability is ONDEMAND and no hosting requested");
             }
             break;
           default:
@@ -111,7 +115,7 @@ public enum TabletGoalState {
 
       TServerInstance dest = params.getMigrations().get(extent);
       if (dest != null && tm.hasCurrent() && !dest.equals(tm.getLocation().getServerInstance())) {
-        return UNASSIGNED;
+        return trace(UNASSIGNED, tm, () -> "tablet has a migration to " + dest);
       }
 
       if (currentState == TabletState.HOSTED && balancer != null) {
@@ -143,7 +147,7 @@ public enum TabletGoalState {
           });
 
           if (reassign) {
-            return UNASSIGNED;
+            return trace(UNASSIGNED, tm, "the balancer requested reassignment");
           }
         } else {
           log.warn("Could not find resource group for tserver {}, did not consult balancer to"
@@ -155,19 +159,21 @@ public enum TabletGoalState {
 
       if (params.getVolumeReplacements().size() > 0
           && VolumeUtil.needsVolumeReplacement(params.getVolumeReplacements(), tm)) {
-        return UNASSIGNED;
+        return trace(UNASSIGNED, tm, "tablet has volumes needing replacement");
       }
 
       if (tm.hasCurrent()
           && params.getServersToShutdown().contains(tm.getLocation().getServerInstance())) {
         if (params.canSuspendTablets()) {
-          return SUSPENDED;
+          return trace(SUSPENDED, tm,
+              () -> "tablet is assigned to " + tm.getLocation() + " that is being shutdown");
         } else {
-          return UNASSIGNED;
+          return trace(UNASSIGNED, tm,
+              () -> "tablet is assigned to " + tm.getLocation() + " that is being shutdown");
         }
       }
     }
-    return systemGoalState;
+    return trace(systemGoalState, tm, "it's the system goal state");
   }
 
   private static TabletGoalState getSystemGoalState(TabletMetadata tm,
@@ -193,5 +199,24 @@ public enum TabletGoalState {
       default:
         throw new IllegalStateException("Unknown Manager State");
     }
+  }
+
+  private static TabletGoalState trace(TabletGoalState tabletGoalState, TabletMetadata tm,
+      String reason) {
+    if (log.isTraceEnabled()) {
+      // The prev row column for the table may not have been fetched so can not call tm.getExtent()
+      log.trace("Computed goal state of {} for {} because {}", tabletGoalState,
+          TabletsSection.encodeRow(tm.getTableId(), tm.getEndRow()), reason);
+    }
+    return tabletGoalState;
+  }
+
+  private static TabletGoalState trace(TabletGoalState tabletGoalState, TabletMetadata tm,
+      Supplier<String> reason) {
+    if (log.isTraceEnabled()) {
+      log.trace("Computed goal state of {} for {} because {}", tabletGoalState,
+          TabletsSection.encodeRow(tm.getTableId(), tm.getEndRow()), reason.get());
+    }
+    return tabletGoalState;
   }
 }

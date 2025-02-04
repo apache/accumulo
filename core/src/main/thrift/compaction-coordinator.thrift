@@ -56,6 +56,10 @@ struct TExternalCompaction {
 }
 
 struct TExternalCompactionList {
+  1:list<TExternalCompaction> compactions
+}
+
+struct TExternalCompactionMap {
   1:map<string,TExternalCompaction> compactions
 }
 
@@ -116,7 +120,16 @@ service CompactionCoordinatorService {
   /*
    * Called by the Monitor to get progress information
    */
-  TExternalCompactionList getRunningCompactions(
+  TExternalCompactionMap getRunningCompactions(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+  )
+
+  /*
+   * Called by the Monitor to get longest running compactions, returns
+   * a map of group name to size-limited list of the oldest compactions, oldest first.
+   */
+  map<string,TExternalCompactionList> getLongRunningCompactions(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
   )
@@ -124,7 +137,7 @@ service CompactionCoordinatorService {
   /*
    * Called by the Monitor to get progress information
    */
-  TExternalCompactionList getCompletedCompactions(
+  TExternalCompactionMap getCompletedCompactions(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
   )
