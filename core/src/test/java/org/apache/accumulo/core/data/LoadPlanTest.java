@@ -119,7 +119,7 @@ public class LoadPlanTest {
     builder.loadFileTo("f1.rf", RangeType.TABLE, null, "003");
     builder.loadFileTo("f2.rf", RangeType.FILE, "004", "007");
     builder.loadFileTo("f1.rf", RangeType.TABLE, "005", "006");
-    builder.loadFileTo("f3.rf", RangeType.TABLE, "008", null);
+    builder.loadFileTo("f3.rf", RangeType.TABLE, new byte[] {0, 1, 2, 3, 4, 5, 6}, null);
     String json = builder.build().toJson();
 
     String b64003 = Base64.getUrlEncoder().encodeToString("003".getBytes(UTF_8));
@@ -127,13 +127,13 @@ public class LoadPlanTest {
     String b64005 = Base64.getUrlEncoder().encodeToString("005".getBytes(UTF_8));
     String b64006 = Base64.getUrlEncoder().encodeToString("006".getBytes(UTF_8));
     String b64007 = Base64.getUrlEncoder().encodeToString("007".getBytes(UTF_8));
-    String b64008 = Base64.getUrlEncoder().encodeToString("008".getBytes(UTF_8));
+    String b64binary = Base64.getUrlEncoder().encodeToString(new byte[] {0, 1, 2, 3, 4, 5, 6});
 
     String expected = "{'destinations':[{'fileName':'f1.rf','startRow':null,'endRow':'" + b64003
         + "','rangeType':'TABLE'},{'fileName':'f2.rf','startRow':'" + b64004 + "','endRow':'"
         + b64007 + "','rangeType':'FILE'},{'fileName':'f1.rf','startRow':'" + b64005
         + "','endRow':'" + b64006 + "','rangeType':'TABLE'},{'fileName':'f3.rf','startRow':'"
-        + b64008 + "','endRow':null,'rangeType':'TABLE'}]}";
+        + b64binary + "','endRow':null,'rangeType':'TABLE'}]}";
 
     assertEquals(expected.replace("'", "\""), json);
   }
