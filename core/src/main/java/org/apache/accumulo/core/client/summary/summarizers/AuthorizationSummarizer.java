@@ -81,11 +81,11 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
       if (vis.length() > 0) {
         Set<ByteSequence> auths = cache.get(vis);
         if (auths == null) {
-          auths = new HashSet<>();
-          for (String auth : AccessExpression.of(vis.toArray()).getAuthorizations().asSet()) {
-            auths.add(new ArrayByteSequence(auth));
-          }
-          cache.put(new ArrayByteSequence(vis), auths);
+          var newAuths = new HashSet<ByteSequence>();
+          AccessExpression.findAuthorizations(vis.toArray(),
+              auth -> newAuths.add(new ArrayByteSequence(auth)));
+          cache.put(new ArrayByteSequence(vis), newAuths);
+          auths = newAuths;
         }
 
         for (ByteSequence auth : auths) {
