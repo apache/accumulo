@@ -23,17 +23,25 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.ConfigCheckUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
 import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -42,6 +50,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * versions match expectations. Checks include:
  * <ul>
  * <li>ACL validation of ZooKeeper nodes</li>
+ * <li>No FATE transactions are present</li>
+ * <li>All Configuration properties are valid</li>
  * </ul>
  */
 public class PreUpgradeValidation {
@@ -54,7 +64,14 @@ public class PreUpgradeValidation {
       log.debug("already at current data version: {}, skipping validation", cv);
       return;
     }
-    validateACLs(context);
+
+    try {
+      validateACLs(context);
+      abortIfFateTransactions(context);
+      validateProperties(context);
+    } catch (Exception e) {
+      fail(e);
+    }
   }
 
   private void validateACLs(ServerContext context) {
@@ -106,6 +123,68 @@ public class PreUpgradeValidation {
       log.debug("Invalid ACL passed, cannot parse id from '{}'", acl);
       return "";
     }
+  }
+
+  private static void validateProperties(ServerContext context) {
+    log.info("Validating configuration properties.");
+    ConfigCheckUtil.validate(context.getSiteConfiguration(), "site configuration");
+    ConfigCheckUtil.validate(context.getConfiguration(), "system configuration");
+    try {
+      for (String ns : context.namespaceOperations().list()) {
+        ConfigCheckUtil.validate(
+            context.namespaceOperations().getNamespaceProperties(ns).entrySet(),
+            ns + " namespace configuration");
+      }
+      for (String table : context.tableOperations().list()) {
+        ConfigCheckUtil.validate(context.tableOperations().getTableProperties(table).entrySet(),
+            table + " table configuration");
+      }
+    } catch (AccumuloException | AccumuloSecurityException | NamespaceNotFoundException
+        | TableNotFoundException e) {
+      throw new IllegalStateException("Error checking properties", e);
+    }
+    try {
+      CheckCompactionConfig.validate(context.getConfiguration(), Level.INFO);
+    } catch (RuntimeException | ReflectiveOperationException e) {
+      throw new IllegalStateException("Error validating compaction configuration", e);
+    }
+    log.info("Configuration properties validated.");
+  }
+
+  /**
+   * Since Fate serializes class names, we need to make sure there are no queued transactions from a
+   * previous version before continuing an upgrade. The status of the operations is irrelevant;
+   * those in SUCCESSFUL status cause the same problem as those just queued.
+   * <p>
+   * Note that the Manager should not allow write access to Fate until after all upgrade steps are
+   * complete.
+   * <p>
+   * Should be called as a guard before performing any upgrade steps, after determining that an
+   * upgrade is needed.
+   * <p>
+   * see ACCUMULO-2519
+   */
+  public static void abortIfFateTransactions(ServerContext context) {
+    try {
+      // The current version of the code creates the new accumulo.fate table on upgrade, so no
+      // attempt is made to read it here. Attempting to read it this point would likely cause a hang
+      // as tablets are not assigned when this is called. The Fate code is not used to read from
+      // zookeeper below because the serialization format changed in zookeeper, that is why a direct
+      // read is performed.
+      if (!context.getZooSession().asReader()
+          .getChildren(context.getZooKeeperRoot() + Constants.ZFATE).isEmpty()) {
+        throw new AccumuloException("Aborting upgrade because there are"
+            + " outstanding FATE transactions from a previous Accumulo version."
+            + " You can start the tservers and then use the shell to delete completed "
+            + " transactions. If there are incomplete transactions, you will need to roll"
+            + " back and fix those issues. Please see the following page for more information: "
+            + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
+      }
+    } catch (Exception exception) {
+      log.error("Problem verifying Fate readiness", exception);
+      throw new IllegalStateException("FATEs are present", exception);
+    }
+    log.info("Completed FATE validation. No FATEs present.");
   }
 
   @SuppressFBWarnings(value = "DM_EXIT",
