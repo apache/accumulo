@@ -136,7 +136,7 @@ public class FateLogger {
       }
 
       @Override
-      public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
+      public void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer) {
         store.runnable(keepWaiting, idConsumer);
       }
 

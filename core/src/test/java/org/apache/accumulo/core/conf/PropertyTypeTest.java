@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.WithTestNames;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -217,6 +218,80 @@ public class PropertyTypeTest extends WithTestNames {
   public void testTypeFILENAME_EXT() {
     valid(RFile.EXTENSION, "rf");
     invalid(null, "RF", "map", "", "MAP", "rF", "Rf", " rf ");
+  }
+
+  @Test
+  public void testTypeUSER_FATE_CONFIG() {
+    var allUserFateOps = Fate.FateOperation.getAllUserFateOps();
+    int poolSize1 = allUserFateOps.size() / 2;
+    var validPool1Ops =
+        allUserFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
+    var validPool2Ops =
+        allUserFateOps.stream().map(Enum::name).skip(poolSize1).collect(Collectors.joining(","));
+    var invalidPool1Ops =
+        allUserFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
+    var invalidPool2Ops = allUserFateOps.stream().map(Enum::name).skip(poolSize1 + 1)
+        .collect(Collectors.joining(","));
+    // should be valid: one pool for all ops, order should not matter, all ops split across
+    // multiple pools
+    valid(
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + "\": 10}",
+        "{\"" + validPool2Ops + "," + validPool1Ops + "\": 10}",
+        "{\"" + validPool1Ops + "\": 2, \"" + validPool2Ops + "\": 3}");
+    // should be invalid: invalid json, null, missing FateOperation, pool size of 0, pool size of
+    // -1, invalid pool size, invalid key, same FateOperation repeated in a different pool, invalid
+    // FateOperation
+    invalid("", null, "{\"" + invalidPool1Ops + "\": 2, \"" + invalidPool2Ops + "\": 3}",
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 0}",
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + "\": -1}",
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": x}",
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(", "))
+            + "\": 10}",
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + "\": 10, \""
+            + allUserFateOps.stream().map(Enum::name).limit(1).collect(Collectors.joining(","))
+            + "\": 10}",
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + ",INVALID_FATEOP\": 10}");
+  }
+
+  @Test
+  public void testTypeMETA_FATE_CONFIG() {
+    var allMetaFateOps = Fate.FateOperation.getAllMetaFateOps();
+    int poolSize1 = allMetaFateOps.size() / 2;
+    var validPool1Ops =
+        allMetaFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
+    var validPool2Ops =
+        allMetaFateOps.stream().map(Enum::name).skip(poolSize1).collect(Collectors.joining(","));
+    var invalidPool1Ops =
+        allMetaFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
+    var invalidPool2Ops = allMetaFateOps.stream().map(Enum::name).skip(poolSize1 + 1)
+        .collect(Collectors.joining(","));
+    // should be valid: one pool for all ops, order should not matter, all ops split across
+    // multiple pools
+    valid(
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + "\": 10}",
+        "{\"" + validPool2Ops + "," + validPool1Ops + "\": 10}",
+        "{\"" + validPool1Ops + "\": 2, \"" + validPool2Ops + "\": 3}");
+    // should be invalid: invalid json, null, missing FateOperation, pool size of 0, pool size of
+    // -1, invalid pool size, invalid key, same FateOperation repeated in a different pool, invalid
+    // FateOperation
+    invalid("", null, "{\"" + invalidPool1Ops + "\": 2, \"" + invalidPool2Ops + "\": 3}",
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 0}",
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + "\": -1}",
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": x}",
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(", "))
+            + "\": 10}",
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + "\": 10, \""
+            + allMetaFateOps.stream().map(Enum::name).limit(1).collect(Collectors.joining(","))
+            + "\": 10}",
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + ",INVALID_FATEOP\": 10}");
   }
 
 }
