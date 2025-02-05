@@ -20,7 +20,6 @@ package org.apache.accumulo.core.zookeeper;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.base.Preconditions;
 
@@ -68,8 +67,6 @@ class ZcNode {
 
   static final ZcNode NON_EXISTENT = new ZcNode();
 
-  private final AtomicLong accessCount = new AtomicLong(0);
-
   private ZcNode() {
     this.data = null;
     this.stat = null;
@@ -116,6 +113,10 @@ class ZcNode {
    * stat.
    */
   ZcNode(byte[] data, ZcStat zstat, ZcNode existing) {
+
+    this.data = Objects.requireNonNull(data);
+    this.stat = Objects.requireNonNull(zstat);
+
     if (existing == null) {
       this.discovered = Discovered.DATA_ONLY;
       this.children = null;
@@ -136,27 +137,24 @@ class ZcNode {
           throw new IllegalStateException("Unknown enum " + existing.discovered);
       }
     }
-
-    this.data = Objects.requireNonNull(data);
-    this.stat = Objects.requireNonNull(zstat);
   }
 
   /**
    * @return the data if the node exists and the data was set OR return null when the node does not
    *         exist
-   * @throws IllegalStateException in the case where the node exists and the data was never set
+   * @throws IllegalStateException in the case where the node exists and the data was never set.
+   *         This is thrown when {@link #cachedData()} returns false.
    */
   byte[] getData() {
     Preconditions.checkState(cachedData());
-    ;
-    accessCount.incrementAndGet();
     return data;
   }
 
   /**
    * @return the stat if the node exists and the stat was set OR return null when the node does not
    *         exist
-   * @throws IllegalStateException in the case where the node exists and the data was never set
+   * @throws IllegalStateException in the case where the node exists and the data was never set.
+   *         This is thrown when {@link #cachedData()} returns false.
    */
   ZcStat getStat() {
     Preconditions.checkState(cachedData());
@@ -166,11 +164,11 @@ class ZcNode {
   /**
    * @return the children if the node exists and the children were set OR return null when the node
    *         does not exist exists
-   * @throws IllegalStateException in the case where the node exists and the children were never set
+   * @throws IllegalStateException in the case where the node exists and the children were never
+   *         set. This is thrown when {@link #cachedChildren()} returns false.
    */
   List<String> getChildren() {
     Preconditions.checkState(cachedChildren());
-    accessCount.incrementAndGet();
     return children;
   }
 
@@ -186,9 +184,5 @@ class ZcNode {
    */
   boolean cachedData() {
     return discovered != Discovered.CHILDREN_ONLY;
-  }
-
-  public long getAccessCount() {
-    return accessCount.get();
   }
 }
