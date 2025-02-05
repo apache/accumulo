@@ -185,7 +185,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     try (Scanner scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
       IteratorSetting is = new IteratorSetting(11, MemoryFreeingIterator.class, Map.of());
       scanner.addScanIterator(is);
-      Iterables.size(scanner); // consume the key/values
+      var unused = Iterables.size(scanner); // consume the key/values
     }
   }
 
@@ -389,7 +389,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         // MemoryConsumingIterator on the server side and call seek on it as it
         // has the readahead threshold set. We can confirm that this is the case
         // by looking at the metrics after the call.
-        memoryConsumingScanner.iterator();
+        var unused = memoryConsumingScanner.iterator();
         waitFor(() -> 1 == LOW_MEM_DETECTED.get());
 
         // Grab the current paused count, the number of rows fetched by the memoryConsumingScanner
