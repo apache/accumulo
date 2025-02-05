@@ -394,7 +394,7 @@ public class ScanServer extends AbstractServer
       try {
         // Attempt to process all existing log sorting work and start a background
         // thread to look for log sorting work in the future
-        logSorter.startWatchingForRecoveryLogs();
+        logSorter.startWatchingForRecoveryLogs(threadPoolSize);
       } catch (Exception ex) {
         LOG.error("Error starting LogSorter");
         throw new RuntimeException(ex);
