@@ -178,7 +178,8 @@ public class ZooCache {
   // visible for tests that use a Ticker
   public ZooCache(ZooSession zk, Set<String> pathsToWatch, Ticker ticker) {
     this.zk = requireNonNull(zk);
-    this.zkClientTracker.set(this.getZKClientObjectVersion());
+    // this initial value is meant to indicate watchers were never setup
+    this.zkClientTracker.set(-1);
     this.cache = Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
         .ticker(requireNonNull(ticker)).expireAfterAccess(CACHE_DURATION).build();
     // The concurrent map returned by Caffeine will only allow one thread to run at a time for a
@@ -196,7 +197,11 @@ public class ZooCache {
 
   // visible for tests
   long getZKClientObjectVersion() {
-    return zk.getConnectionCounter();
+    long counter = zk.getConnectionCounter();
+    // -1 is used to signify ZK has not been setup in this code and this code assume ZooSession will
+    // always return something >= 0.
+    Preconditions.checkState(counter >= 0);
+    return counter;
   }
 
   /**
@@ -206,16 +211,20 @@ public class ZooCache {
     final long currentCount = getZKClientObjectVersion();
     final long oldCount = zkClientTracker.get();
     if (oldCount != currentCount) {
-      if (zkClientTracker.compareAndSet(oldCount, currentCount)) {
-        setupWatchers();
-      }
-      return true;
+      return setupWatchers();
     }
     return false;
   }
 
   // Called on construction and when ZooKeeper connection changes
-  synchronized void setupWatchers() {
+  synchronized boolean setupWatchers() {
+
+    final long currentCount = getZKClientObjectVersion();
+    final long oldCount = zkClientTracker.get();
+
+    if (currentCount == oldCount) {
+      return false;
+    }
 
     for (String left : watchedPaths) {
       for (String right : watchedPaths) {
@@ -227,10 +236,12 @@ public class ZooCache {
     }
 
     try {
-      zk.addPersistentRecursiveWatchers(watchedPaths, watcher);
+      long zkId = zk.addPersistentRecursiveWatchers(watchedPaths, watcher);
+      zkClientTracker.set(zkId);
       clear();
       log.trace("{} Reinitialized persistent watchers and cleared cache {}", cacheId,
           zkClientTracker.get());
+      return true;
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error setting up persistent recursive watcher", e);
     }
