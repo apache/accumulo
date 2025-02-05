@@ -313,8 +313,8 @@ public class LogSorter {
    * thread to look for log sorting work in the future that will be processed by the
    * ThreadPoolExecutor
    */
-  public void startWatchingForRecoveryLogs() throws KeeperException, InterruptedException {
-    int threadPoolSize = this.conf.getCount(Property.TSERV_WAL_SORT_MAX_CONCURRENT);
+  public void startWatchingForRecoveryLogs(int threadPoolSize)
+      throws KeeperException, InterruptedException {
     ThreadPoolExecutor threadPool =
         ThreadPools.getServerThreadPools().getPoolBuilder(TSERVER_WAL_SORT_CONCURRENT_POOL)
             .numCoreThreads(threadPoolSize).enableThreadPoolMetrics().build();
