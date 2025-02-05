@@ -43,7 +43,7 @@ class ZcNode {
     NON_EXISTENT,
     /**
      * ZooCache knows the node existed and what its children were because a successful call was made
-     * to ZooKepper to get children. However zoocache has never requested the nodes data and does
+     * to ZooKeeper to get children. However zoocache has never requested the nodes data and does
      * not know its data.
      */
     CHILDREN_ONLY,
