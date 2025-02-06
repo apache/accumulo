@@ -19,10 +19,12 @@
 package org.apache.accumulo.server.util;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
@@ -46,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auto.service.AutoService;
 import com.google.common.net.HostAndPort;
 
@@ -66,13 +69,16 @@ public class ECAdmin implements KeywordExecutable {
 
   @Parameters(commandDescription = "list the running compactions")
   static class RunningCommand {
-    @Parameter(names = {"-d", "--details"},
-        description = "display details about the running compactions")
+    @Parameter(names = { "-d", "--details" }, description = "display details about the running compactions")
     boolean details = false;
+
+    @Parameter(names = { "-f", "--format" }, description = "output format: json, csv (default: human-readable)")
+    String format = "human"; // Default format
   }
 
   @Parameters(commandDescription = "list all compactors in zookeeper")
-  static class ListCompactorsCommand {}
+  static class ListCompactorsCommand {
+  }
 
   public static void main(String[] args) {
     new ECAdmin().execute(args);
@@ -123,7 +129,7 @@ public class ECAdmin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("cancel")) {
         cancelCompaction(context, cancelOps.ecid);
       } else if (cl.getParsedCommand().equals("running")) {
-        runningCompactions(context, runningOpts.details);
+        runningCompactions(context, runningOpts.details, runningOpts.format);
       } else {
         log.error("Unknown command {}", cl.getParsedCommand());
         cl.usage();
@@ -156,7 +162,7 @@ public class ECAdmin implements KeywordExecutable {
     if (compactors.isEmpty()) {
       System.out.println("No Compactors found.");
     } else {
-      Map<String,List<ServerId>> m = new TreeMap<>();
+      Map<String, List<ServerId>> m = new TreeMap<>();
       compactors.forEach(csi -> {
         m.putIfAbsent(csi.getResourceGroup(), new ArrayList<>()).add(csi);
       });
@@ -164,47 +170,89 @@ public class ECAdmin implements KeywordExecutable {
     }
   }
 
-  private void runningCompactions(ServerContext context, boolean details) {
-    CompactionCoordinatorService.Client coordinatorClient = null;
-    TExternalCompactionList running;
-    try {
-      coordinatorClient = getCoordinatorClient(context);
-      running = coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
-      if (running == null) {
-        System.out.println("No running compactions found.");
-        return;
-      }
-      var ecidMap = running.getCompactions();
-      if (ecidMap == null) {
-        System.out.println("No running compactions found.");
-        return;
-      }
-      ecidMap.forEach((ecid, ec) -> {
-        if (ec != null) {
-          var runningCompaction = new RunningCompaction(ec);
-          var addr = runningCompaction.getCompactorAddress();
-          var kind = runningCompaction.getJob().kind;
-          var group = runningCompaction.getGroupName();
-          var ke = KeyExtent.fromThrift(runningCompaction.getJob().extent);
-          System.out.format("%s %s %s %s TableId: %s\n", ecid, addr, kind, group, ke.tableId());
-          if (details) {
-            var runningCompactionInfo = new RunningCompactionInfo(ec);
-            var status = runningCompactionInfo.status;
-            var last = runningCompactionInfo.lastUpdate;
-            var duration = runningCompactionInfo.duration;
-            var numFiles = runningCompactionInfo.numFiles;
-            var progress = runningCompactionInfo.progress;
-            System.out.format("  %s Last Update: %dms Duration: %dms Files: %d Progress: %.2f%%\n",
-                status, last, duration, numFiles, progress);
-          }
-        }
-      });
-    } catch (Exception e) {
-      throw new IllegalStateException("Unable to get running compactions.", e);
-    } finally {
-      ThriftUtil.returnClient(coordinatorClient, context);
+  private void runningCompactions(ServerContext context, boolean details, String format) {
+  CompactionCoordinatorService.Client coordinatorClient = null;
+  TExternalCompactionList running;
+  
+  try {
+    coordinatorClient = getCoordinatorClient(context);
+    running = coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+
+    if (running == null || running.getCompactions() == null) {
+      System.out.println("No running compactions found.");
+      return;
     }
+
+    var ecidMap = running.getCompactions();
+    List<Map<String, Object>> compactionData = new ArrayList<>();
+
+    ecidMap.forEach((ecid, ec) -> {
+      if (ec != null) {
+        var runningCompaction = new RunningCompaction(ec);
+        var addr = runningCompaction.getCompactorAddress();
+        var kind = runningCompaction.getJob().kind;
+        var group = runningCompaction.getGroupName();
+        var ke = KeyExtent.fromThrift(runningCompaction.getJob().extent);
+        
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("ecid", ecid);
+        entry.put("address", addr);
+        entry.put("kind", kind);
+        entry.put("group", group);
+        entry.put("tableId", ke.tableId());
+
+        if (details) {
+          var runningCompactionInfo = new RunningCompactionInfo(ec);
+          entry.put("status", runningCompactionInfo.status);
+          entry.put("lastUpdateMs", runningCompactionInfo.lastUpdate);
+          entry.put("durationMs", runningCompactionInfo.duration);
+          entry.put("numFiles", runningCompactionInfo.numFiles);
+          entry.put("progress", runningCompactionInfo.progress);
+        }
+
+        compactionData.add(entry);
+      }
+    });
+
+    // Handle output format
+    switch (format.toLowerCase()) {
+      case "json":
+        ObjectMapper objectMapper = new ObjectMapper();
+        System.out.println(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(compactionData));
+        break;
+      case "csv":
+        if (compactionData.isEmpty()) {
+          System.out.println("No running compactions found.");
+          return;
+        }
+        // Convert to CSV format
+        List<String> csvLines = new ArrayList<>();
+        var headers = String.join(",", compactionData.get(0).keySet());
+        csvLines.add(headers);
+        csvLines.addAll(compactionData.stream()
+            .map(row -> row.values().stream().map(Object::toString).collect(Collectors.joining(",")))
+            .collect(Collectors.toList()));
+        System.out.println(String.join("\n", csvLines));
+        break;
+      default:
+        // Default human-readable output
+        compactionData.forEach(entry -> {
+          System.out.printf("%s %s %s %s TableId: %s\n",
+              entry.get("ecid"), entry.get("address"), entry.get("kind"),
+              entry.get("group"), entry.get("tableId"));
+          if (details) {
+            System.out.printf("  %s Last Update: %dms Duration: %dms Files: %d Progress: %.2f%%\n",
+                entry.get("status"), entry.get("lastUpdateMs"), entry.get("durationMs"),
+                entry.get("numFiles"), entry.get("progress"));
+          }
+        });
+    }
+  } catch (Exception e) {
+    throw new IllegalStateException("Unable to get running compactions.", e);
+  } finally {
+    ThriftUtil.returnClient(coordinatorClient, context);
   }
+}
 
   private CompactionCoordinatorService.Client getCoordinatorClient(ServerContext context) {
     var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
