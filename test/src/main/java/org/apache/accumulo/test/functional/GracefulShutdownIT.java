@@ -164,7 +164,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
 
       // Restart Garbage Collector
       final ServiceLockPath gcLockPath =
-          ServiceLock.path(ctx.getZooKeeperRoot() + Constants.ZGC_LOCK);
+          ServiceLock.path(Constants.ZGC_LOCK);
       Optional<ServiceLockData> data = ServiceLock.getLockData(ctx.getZooSession(), gcLockPath);
       assertTrue(data.isPresent());
       final HostAndPort gcAddress = data.orElseThrow().getAddress(ThriftService.GC);

@@ -32,7 +32,6 @@ import java.util.Properties;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -64,8 +63,8 @@ public class ClientInfoImpl implements ClientInfo {
     this.zooSessionForName = (name, rootPath) -> new ZooSession(name, getZooKeepers() + rootPath,
         getZooKeepersSessionTimeOut(), null);
     this.instanceId = memoize(() -> {
-      try (var zk = getZooKeeperSupplier(getClass().getSimpleName() + ".getInstanceId()",
-          Constants.ZROOT + getInstanceId()).get()) {
+      try (var zk =
+          getZooKeeperSupplier(getClass().getSimpleName() + ".getInstanceId()", "").get()) {
         return ZooUtil.getInstanceId(zk, getInstanceName());
       }
     });

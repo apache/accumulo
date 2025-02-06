@@ -158,8 +158,8 @@ public class Initialize implements KeywordExecutable {
 
     InstanceId instanceId = InstanceId.of(UUID.randomUUID());
     ZooKeeperInitializer zki = new ZooKeeperInitializer();
-    zki.initInstanceNameAndId(zoo, instanceId, opts.clearInstanceName, instanceNamePath);
     zki.initializeConfig(instanceId, zoo);
+    zki.initInstanceNameAndId(zoo, instanceId, opts.clearInstanceName, instanceNamePath);
 
     try (ServerContext context =
         ServerContext.initialize(initConfig.getSiteConf(), instanceName, instanceId)) {
