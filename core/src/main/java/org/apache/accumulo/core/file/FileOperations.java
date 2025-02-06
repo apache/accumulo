@@ -323,7 +323,7 @@ public abstract class FileOperations {
         FSDataOutputStream outputStream, boolean startEnabled) {
       return new FileOptions(tableConfiguration, file, fs, fsConf, compression, outputStream,
           startEnabled, NULL_PROVIDER, null, false, cryptoService, null, null, true,
-          dropCacheBehind, prefetchBlocks);
+          dropCacheBehind, 0);
     }
 
     protected FileOptions toReaderBuilderOptions(CacheProvider cacheProvider,
@@ -335,7 +335,7 @@ public abstract class FileOperations {
 
     protected FileOptions toIndexReaderBuilderOptions(Cache<String,Long> fileLenCache) {
       return new FileOptions(tableConfiguration, file, fs, fsConf, null, null, false, NULL_PROVIDER,
-          fileLenCache, false, cryptoService, null, null, true, dropCacheBehind, prefetchBlocks);
+          fileLenCache, false, cryptoService, null, null, true, dropCacheBehind, 0);
     }
 
     protected FileOptions toScanReaderBuilderOptions(Range range, Set<ByteSequence> columnFamilies,

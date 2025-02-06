@@ -448,8 +448,10 @@ public class CachableBlockFile {
 
       if (version == 3 || version == 4) {
         final int thisBlockIndex = startBlock + iiter.previousIndex();
+        // TODO: Question - does pre-fetching a block cause any type of
+        // issue with the underlying FSDataInputStream?
         if (numPrefetchBlocks > 0 && dataBlockCache != null) {
-          // move forward in the index and prefetch the blocks
+          // move forward in the index and prefetch the data blocks
           int fetched = 0;
           for (int i = 0; i < numPrefetchBlocks; i++) {
             if (iiter.hasNext()) {
@@ -470,7 +472,7 @@ public class CachableBlockFile {
         return getDataBlock(thisBlockIndex);
       } else {
         if (numPrefetchBlocks > 0 && dataBlockCache != null) {
-          // move forward in the index and prefetch the blocks
+          // move forward in the index and prefetch the data blocks
           int fetched = 0;
           for (int i = 0; i < numPrefetchBlocks; i++) {
             if (iiter.hasNext()) {
