@@ -350,7 +350,7 @@ public class SimpleGarbageCollector extends AbstractServer
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
-    var path = ServiceLock.path(getContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
+    var path = ServiceLock.path(Constants.ZGC_LOCK);
 
     UUID zooLockUUID = UUID.randomUUID();
     gcLock = new ServiceLock(getContext().getZooSession(), path, zooLockUUID);

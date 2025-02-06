@@ -121,7 +121,7 @@ public class ZooZap implements KeywordExecutable {
       var zrw = zk.asReaderWriter();
 
       if (opts.zapManager) {
-        String managerLockPath = ZooUtil.getRoot(iid) + Constants.ZMANAGER_LOCK;
+        String managerLockPath = Constants.ZMANAGER_LOCK;
 
         try {
           zapDirectory(zrw, managerLockPath, opts);
@@ -131,7 +131,7 @@ public class ZooZap implements KeywordExecutable {
       }
 
       if (opts.zapTservers) {
-        String tserversPath = ZooUtil.getRoot(iid) + Constants.ZTSERVERS;
+        String tserversPath = Constants.ZTSERVERS;
         try {
           List<String> children = zrw.getChildren(tserversPath);
           for (String child : children) {
@@ -156,7 +156,7 @@ public class ZooZap implements KeywordExecutable {
       }
 
       if (opts.zapCoordinators) {
-        final String coordinatorPath = ZooUtil.getRoot(iid) + Constants.ZCOORDINATOR_LOCK;
+        final String coordinatorPath = Constants.ZCOORDINATOR_LOCK;
         try {
           if (zrw.exists(coordinatorPath)) {
             zapDirectory(zrw, coordinatorPath, opts);
@@ -167,7 +167,7 @@ public class ZooZap implements KeywordExecutable {
       }
 
       if (opts.zapCompactors) {
-        String compactorsBasepath = ZooUtil.getRoot(iid) + Constants.ZCOMPACTORS;
+        String compactorsBasepath = Constants.ZCOMPACTORS;
         try {
           if (zrw.exists(compactorsBasepath)) {
             List<String> queues = zrw.getChildren(compactorsBasepath);
@@ -183,7 +183,7 @@ public class ZooZap implements KeywordExecutable {
       }
 
       if (opts.zapScanServers) {
-        String sserversPath = ZooUtil.getRoot(iid) + Constants.ZSSERVERS;
+        String sserversPath = Constants.ZSSERVERS;
         try {
           if (zrw.exists(sserversPath)) {
             List<String> children = zrw.getChildren(sserversPath);
