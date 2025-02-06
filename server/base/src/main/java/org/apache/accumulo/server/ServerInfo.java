@@ -29,6 +29,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
@@ -57,9 +58,8 @@ public class ServerInfo implements ClientInfo {
   // set things up using the config file, the instanceId from HDFS, and ZK for the instanceName
   static ServerInfo fromServerConfig(SiteConfiguration siteConfig) {
     final Function<ServerInfo,String> instanceNameFromZk = si -> {
-      try (var zk =
-          si.getZooKeeperSupplier(ServerInfo.class.getSimpleName() + ".getInstanceName()", "")
-              .get()) {
+      try (var zk = si.getZooKeeperSupplier(ServerInfo.class.getSimpleName() + ".getInstanceName()",
+          Constants.ZROOT + si.getInstanceId()).get()) {
         return ZooUtil.getInstanceName(zk, si.getInstanceId());
       }
     };
