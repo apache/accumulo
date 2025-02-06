@@ -178,7 +178,7 @@ public class ECAdmin implements KeywordExecutable {
     coordinatorClient = getCoordinatorClient(context);
     running = coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
 
-    if (running == null || running.getCompactions() == null) {
+    if (running == null || running.getCompactionsSize() == 0) {
       System.out.println("No running compactions found.");
       return;
     }
