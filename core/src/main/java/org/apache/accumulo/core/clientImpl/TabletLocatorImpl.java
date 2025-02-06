@@ -108,12 +108,12 @@ public class TabletLocatorImpl extends TabletLocator {
     void invalidateCache(String server);
   }
 
-  private class LockCheckerSession {
+  class LockCheckerSession {
 
     private final HashSet<Pair<String,String>> okLocks = new HashSet<>();
     private final HashSet<Pair<String,String>> invalidLocks = new HashSet<>();
 
-    private TabletLocation checkLock(TabletLocation tl) {
+    TabletLocation checkLock(TabletLocation tl) {
       // the goal of this class is to minimize calls out to lockChecker under that assumption that
       // its a resource synchronized among many threads... want to
       // avoid fine grained synchronization when binning lots of mutations or ranges... remember
