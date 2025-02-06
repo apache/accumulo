@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -180,15 +181,13 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
     @Override
     public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
-      long now = System.currentTimeMillis();
-      long returnTime = now + MILLISECONDS.convert(time, unit);
-      while (returnTime > now) {
+      Timer timer = Timer.startNew();
+      while (!timer.hasElapsed(time, unit)) {
         if (tryLock()) {
           return true;
         }
         // TODO: do something better than poll - ACCUMULO-1310
         UtilWaitThread.sleep(100);
-        now = System.currentTimeMillis();
       }
       return false;
     }
