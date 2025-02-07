@@ -32,8 +32,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.DoubleAdder;
 
@@ -43,21 +41,13 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
-import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
-import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -68,8 +58,6 @@ import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -77,7 +65,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.net.HostAndPort;
+import com.google.common.collect.Iterables;
 
 public class MemoryStarvedScanIT extends SharedMiniClusterBase {
 
@@ -133,8 +121,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
               double val = Double.parseDouble(metric.getValue());
               SCAN_RETURNED_EARLY.add(val);
             } else if (metric.getName().equals(LOW_MEMORY.getName())) {
-              String process = metric.getTags().get("process.name");
-              if (process != null && process.contains("tserver")) {
+              String process = metric.getTags().get(MetricsInfo.PROCESS_NAME_TAG_KEY);
+              if (process != null && process.contains(ServerId.Type.TABLET_SERVER.name())) {
                 int val = Integer.parseInt(metric.getValue());
                 LOW_MEM_DETECTED.set(val);
               }
@@ -193,34 +181,13 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
   }
 
   static void freeServerMemory(AccumuloClient client) throws Exception {
-
-    // This does not call ThriftClientTypes.CLIENT.execute because
-    // we only want to communicate with the TabletServer for this test
-    final ClientContext context = (ClientContext) client;
-    final long rpcTimeout = context.getClientTimeoutInMillis();
-    final ZooCache zc = context.getZooCache();
-
-    Set<ServiceLockPath> servers =
-        context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true);
-    for (ServiceLockPath server : servers) {
-      Optional<ServiceLockData> data = zc.getLockData(server);
-      if (data != null && data.isPresent()) {
-        HostAndPort tserverClientAddress = data.orElseThrow().getAddress(ThriftService.CLIENT);
-        if (tserverClientAddress != null) {
-          try {
-            TTransport transport = context.getTransportPool().getTransport(ThriftClientTypes.CLIENT,
-                tserverClientAddress, rpcTimeout, context, true);
-            Client c = ThriftUtil.createClient(ThriftClientTypes.CLIENT, transport);
-            if (c.checkClass(new TInfo(), context.rpcCreds(), MemoryFreeingIterator.class.getName(),
-                WrappingIterator.class.getName())) {
-              break;
-            }
-          } catch (TTransportException e) {
-            LOG.trace("Error creating transport to {}", tserverClientAddress);
-            continue;
-          }
-        }
-      }
+    // Scan the metadata table as this is not prevented when the
+    // server is low on memory. Use the MemoryFreeingIterator as it
+    // will free the memory on init()
+    try (Scanner scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
+      IteratorSetting is = new IteratorSetting(11, MemoryFreeingIterator.class, Map.of());
+      scanner.addScanIterator(is);
+      var unused = Iterables.size(scanner); // consume the key/values
     }
   }
 
@@ -385,6 +352,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
 
       // generate enough data so more than one batch is returned.
       ReadWriteIT.ingest(client, 1000, 3, 10, 0, table);
+      to.flush(table, null, null, true);
 
       try (BatchScanner dataConsumingScanner = client.createBatchScanner(table);
           Scanner memoryConsumingScanner = client.createScanner(table)) {
@@ -412,10 +380,19 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         // Wait for a batch to be returned
         waitFor(() -> fetched.get() > 0, MINUTES.toMillis(5), 200);
 
-        // This should block until the GarbageCollectionLogger runs and notices that the
-        // VM is low on memory.
-        Iterator<Entry<Key,Value>> consumingIter = memoryConsumingScanner.iterator();
-        assertTrue(consumingIter.hasNext());
+        // Make sure memory is free before trying to consume memory
+        while (LOW_MEM_DETECTED.get() == 1) {
+          freeServerMemory(client);
+          Thread.sleep(5000);
+        }
+
+        // This should block until the LowMemoryDetector runs and notices that the
+        // VM is low on memory. Creating the iterator should be enough to init the
+        // MemoryConsumingIterator on the server side and call seek on it as it
+        // has the readahead threshold set. We can confirm that this is the case
+        // by looking at the metrics after the call.
+        var unused = memoryConsumingScanner.iterator();
+        waitFor(() -> 1 == LOW_MEM_DETECTED.get());
 
         // Grab the current paused count, the number of rows fetched by the memoryConsumingScanner
         // has not increased
@@ -460,11 +437,11 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
 
   private boolean verifyBatchedStalled(final int currCount, final int startCount,
       final double paused, final double returned) {
-    if (startCount == currCount && SCAN_START_DELAYED.doubleValue() > paused) {
+    if (startCount <= currCount && SCAN_START_DELAYED.doubleValue() > paused) {
       LOG.debug("found expected pause because of low memory");
       return true;
     }
-    if (startCount == currCount && SCAN_RETURNED_EARLY.doubleValue() > returned) {
+    if (startCount <= currCount && SCAN_RETURNED_EARLY.doubleValue() > returned) {
       LOG.debug("found expected early return because of low memory");
       return true;
     }

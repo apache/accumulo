@@ -61,6 +61,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -78,7 +79,6 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -120,6 +120,7 @@ import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
+import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.metrics.BalancerMetrics;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
@@ -459,7 +460,7 @@ public class Manager extends AbstractServer
 
   protected Manager(ConfigOpts opts, Function<SiteConfiguration,ServerContext> serverContextFactory,
       String[] args) throws IOException {
-    super("manager", opts, serverContextFactory, args);
+    super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
     ServerContext context = super.getContext();
     balancerEnvironment = new BalancerEnvironmentImpl(context);
 
@@ -1136,7 +1137,7 @@ public class Manager extends AbstractServer
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
 
     ServerAddress sa;
-    var processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler,
+    var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
         compactionCoordinator.getThriftService(), haProxy, getContext());
 
     try {
@@ -1156,6 +1157,11 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
+
+    // Set the HostName **after** initially creating the lock. The lock data is
+    // updated below with the correct address. This prevents clients from accessing
+    // the Manager until all of the internal processes are started.
+    setHostname(sa.address);
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     ManagerMetrics managerMetrics = new ManagerMetrics(getConfiguration(), this);
@@ -1312,12 +1318,12 @@ public class Manager extends AbstractServer
       log.info("AuthenticationTokenSecretManager is initialized");
     }
 
-    String address = sa.address.toString();
     UUID uuid = sld.getServerUUID(ThriftService.MANAGER);
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
         ThriftService.FATE}) {
-      descriptors.addService(new ServiceDescriptor(uuid, svc, address, this.getResourceGroup()));
+      descriptors
+          .addService(new ServiceDescriptor(uuid, svc, getHostname(), this.getResourceGroup()));
     }
 
     sld = new ServiceLockData(descriptors);
@@ -1335,13 +1341,26 @@ public class Manager extends AbstractServer
     // The manager is fully initialized. Clients are allowed to connect now.
     managerInitialized.set(true);
 
-    while (clientService.isServing()) {
-      sleepUninterruptibly(500, MILLISECONDS);
+    while (!isShutdownRequested() && clientService.isServing()) {
+      if (Thread.currentThread().isInterrupted()) {
+        log.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        log.info("Interrupt Exception received, shutting down");
+        gracefulShutdown(context.rpcCreds());
+      }
     }
-    log.info("Shutting down fate.");
+
+    log.debug("Shutting down fate.");
     getFateRefs().keySet().forEach(type -> fate(type).shutdown(0, MINUTES));
 
     splitter.stop();
+
+    log.debug("Stopping Thrift Servers");
+    sa.server.stop();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {
@@ -1376,7 +1395,13 @@ public class Manager extends AbstractServer
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
-    log.info("exiting");
+    getShutdownComplete().set(true);
+    log.info("stop requested. exiting ... ");
+    try {
+      managerLock.unlock();
+    } catch (Exception e) {
+      log.warn("Failed to release Manager lock", e);
+    }
   }
 
   protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
@@ -1502,7 +1527,8 @@ public class Manager extends AbstractServer
         managerClientAddress, this.getResourceGroup()));
     ServiceLockData sld = new ServiceLockData(descriptors);
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
-    HAServiceLockWatcher managerLockWatcher = new HAServiceLockWatcher(Type.MANAGER);
+    HAServiceLockWatcher managerLockWatcher =
+        new HAServiceLockWatcher(Type.MANAGER, () -> getShutdownComplete().get());
 
     while (true) {
 

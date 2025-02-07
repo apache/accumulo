@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -48,6 +49,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -76,8 +78,6 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
@@ -86,6 +86,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
@@ -102,6 +103,8 @@ import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.zookeeper.ZcStat;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
@@ -159,6 +162,7 @@ public class ClientContext implements AccumuloClient {
   private Caches caches;
 
   private final AtomicBoolean zooKeeperOpened = new AtomicBoolean(false);
+  private final AtomicBoolean zooCacheCreated = new AtomicBoolean(false);
   private final Supplier<ZooSession> zooSession;
 
   private void ensureOpen() {
@@ -235,7 +239,12 @@ public class ClientContext implements AccumuloClient {
       return zk;
     });
 
-    this.zooCache = memoize(() -> new ZooCache(getZooSession()));
+    this.zooCache = memoize(() -> {
+      var zc = new ZooCache(getZooSession(),
+          createPersistentWatcherPaths(ZooUtil.getRoot(getInstanceID())));
+      zooCacheCreated.set(true);
+      return zc;
+    });
     this.accumuloConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), 100, MILLISECONDS);
@@ -784,6 +793,9 @@ public class ClientContext implements AccumuloClient {
   @Override
   public synchronized void close() {
     if (closed.compareAndSet(false, true)) {
+      if (zooCacheCreated.get()) {
+        zooCache.get().close();
+      }
       if (zooKeeperOpened.get()) {
         zooSession.get().close();
       }
@@ -1063,7 +1075,9 @@ public class ClientContext implements AccumuloClient {
       // because that client could be closed, and its ZooSession also closed
       // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
       var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(), "").get();
-      this.zkLockChecker = new ZookeeperLockChecker(new ZooCache(zk), getZooKeeperRoot());
+      String zkRoot = getZooKeeperRoot();
+      this.zkLockChecker =
+          new ZookeeperLockChecker(new ZooCache(zk, Set.of(zkRoot + Constants.ZTSERVERS)), zkRoot);
     }
     return this.zkLockChecker;
   }
@@ -1075,6 +1089,17 @@ public class ClientContext implements AccumuloClient {
   public NamespaceMapping getNamespaces() {
     ensureOpen();
     return namespaces;
+  }
+
+  private static Set<String> createPersistentWatcherPaths(String zkRoot) {
+    Set<String> pathsToWatch = new HashSet<>();
+    for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
+        Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
+        Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
+        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK)) {
+      pathsToWatch.add(zkRoot + path);
+    }
+    return pathsToWatch;
   }
 
 }
