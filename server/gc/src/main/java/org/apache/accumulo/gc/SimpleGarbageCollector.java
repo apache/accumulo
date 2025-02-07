@@ -261,15 +261,16 @@ public class SimpleGarbageCollector extends AbstractServer
 
             switch (action) {
               case "compact":
-                accumuloClient.tableOperations().compact(AccumuloTable.METADATA.name(), null, null,
-                    true, true);
-                accumuloClient.tableOperations().compact(AccumuloTable.ROOT.name(), null, null,
+                accumuloClient.tableOperations().compact(AccumuloTable.METADATA.tableName(), null,
+                    null, true, true);
+                accumuloClient.tableOperations().compact(AccumuloTable.ROOT.tableName(), null, null,
                     true, true);
                 break;
               case "flush":
-                accumuloClient.tableOperations().flush(AccumuloTable.METADATA.name(), null, null,
+                accumuloClient.tableOperations().flush(AccumuloTable.METADATA.tableName(), null,
+                    null, true);
+                accumuloClient.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null,
                     true);
-                accumuloClient.tableOperations().flush(AccumuloTable.ROOT.name(), null, null, true);
                 break;
               default:
                 log.trace("'none - no action' or invalid value provided: {}", action);
