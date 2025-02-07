@@ -215,7 +215,7 @@ public class MiniAccumuloConfigImpl {
             zooKeeperPort = PortUtils.getRandomFreePort();
           }
 
-          zkHost = "localhost:" + zooKeeperPort;
+          zkHost = "127.0.0.1:" + zooKeeperPort;
         }
         siteConfig.put(Property.INSTANCE_ZK_HOST.getKey(), zkHost);
       }
