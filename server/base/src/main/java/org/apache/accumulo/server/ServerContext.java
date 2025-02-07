@@ -140,8 +140,15 @@ public class ServerContext extends ClientContext {
    * Used during initialization to set the instance name and ID.
    */
   public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
-      InstanceId instanceID) {
-    return new ServerContext(ServerInfo.initialize(siteConfig, instanceName, instanceID));
+      InstanceId instanceId) {
+    return new ServerContext(ServerInfo.initialize(siteConfig, instanceName, instanceId)) {
+
+      @Override
+      public InstanceId getInstanceID() {
+        return instanceId;
+      }
+
+    };
   }
 
   /**

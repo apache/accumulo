@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -57,18 +58,17 @@ public class ServerInfo implements ClientInfo {
   // set things up using the config file, the instanceId from HDFS, and ZK for the instanceName
   static ServerInfo fromServerConfig(SiteConfiguration siteConfig) {
     final Function<ServerInfo,String> instanceNameFromZk = si -> {
+      InstanceId iid = VolumeManager.getInstanceIDFromHdfs(
+          si.getServerDirs().getInstanceIdLocation(si.getVolumeManager().getFirst()),
+          si.getHadoopConf());
       try (var zk =
           si.getZooKeeperSupplier(ServerInfo.class.getSimpleName() + ".getInstanceName()", "")
               .get()) {
-        return ZooUtil.getInstanceName(zk, si.getInstanceId());
+        return ZooUtil.getInstanceName(zk, iid);
       }
     };
-    final Function<ServerInfo,
-        InstanceId> instanceIdFromHdfs = si -> VolumeManager.getInstanceIDFromHdfs(
-            si.getServerDirs().getInstanceIdLocation(si.getVolumeManager().getFirst()),
-            si.getHadoopConf());
     return new ServerInfo(siteConfig, GET_ZK_HOSTS_FROM_CONFIG, GET_ZK_TIMEOUT_FROM_CONFIG,
-        instanceNameFromZk, instanceIdFromHdfs);
+        instanceNameFromZk, Optional.empty());
   }
 
   // set things up using a provided instanceName and InstanceId to initialize the system, but still
@@ -79,15 +79,14 @@ public class ServerInfo implements ClientInfo {
     requireNonNull(instanceName);
     requireNonNull(instanceId);
     return new ServerInfo(siteConfig, GET_ZK_HOSTS_FROM_CONFIG, GET_ZK_TIMEOUT_FROM_CONFIG,
-        si -> instanceName, si -> instanceId);
+        si -> instanceName, Optional.of(instanceId));
   }
 
   // set things up using the config file, and the client config for a server-side CLI utility
   static ServerInfo fromServerAndClientConfig(SiteConfiguration siteConfig, ClientInfo info) {
     // ClientInfo.getInstanceId looks up the ID in ZK using the provided instance name
     return new ServerInfo(siteConfig, si -> info.getZooKeepers(),
-        si -> info.getZooKeepersSessionTimeOut(), si -> info.getInstanceName(),
-        si -> info.getInstanceId());
+        si -> info.getZooKeepersSessionTimeOut(), si -> info.getInstanceName(), Optional.empty());
   }
 
   static ServerInfo forTesting(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
@@ -108,7 +107,6 @@ public class ServerInfo implements ClientInfo {
   private final Supplier<ServerDirs> serverDirs;
   private final Supplier<String> zooKeepers;
   private final Supplier<Integer> zooKeepersSessionTimeOut; // can't memoize IntSupplier
-  private final Supplier<InstanceId> instanceId;
   private final Supplier<String> instanceName;
   private final Supplier<Credentials> credentials;
   private final BiFunction<String,String,ZooSession> zooSessionForName;
@@ -121,13 +119,12 @@ public class ServerInfo implements ClientInfo {
   // direction only
   private ServerInfo(SiteConfiguration siteConfig, Function<ServerInfo,String> zkHostsFunction,
       ToIntFunction<ServerInfo> zkTimeoutFunction, Function<ServerInfo,String> instanceNameFunction,
-      Function<ServerInfo,InstanceId> instanceIdFunction) {
+      Optional<InstanceId> instanceId) {
     SingletonManager.setMode(Mode.SERVER);
     this.siteConfig = requireNonNull(siteConfig);
     requireNonNull(zkHostsFunction);
     requireNonNull(zkTimeoutFunction);
     requireNonNull(instanceNameFunction);
-    requireNonNull(instanceIdFunction);
 
     this.hadoopConf = memoize(Configuration::new);
     this.volumeManager = memoize(() -> {
@@ -138,8 +135,13 @@ public class ServerInfo implements ClientInfo {
       }
     });
     this.serverDirs = memoize(() -> new ServerDirs(getSiteConfiguration(), getHadoopConf()));
-    this.credentials =
-        memoize(() -> SystemCredentials.get(getInstanceId(), getSiteConfiguration()));
+    this.credentials = memoize(() -> {
+      InstanceId iid = instanceId.isPresent() ? instanceId.orElseThrow()
+          : VolumeManager.getInstanceIDFromHdfs(
+              getServerDirs().getInstanceIdLocation(getVolumeManager().getFirst()),
+              getHadoopConf());
+      return SystemCredentials.get(iid, getSiteConfiguration());
+    });
 
     this.zooSessionForName = (name, rootPath) -> new ZooSession(name, getZooKeepers() + rootPath,
         getZooKeepersSessionTimeOut(), getSiteConfiguration().get(Property.INSTANCE_SECRET));
@@ -147,7 +149,6 @@ public class ServerInfo implements ClientInfo {
     // from here on, set up the suppliers based on what was passed in, to support different cases
     this.zooKeepers = memoize(() -> zkHostsFunction.apply(this));
     this.zooKeepersSessionTimeOut = memoize(() -> zkTimeoutFunction.applyAsInt(this));
-    this.instanceId = memoize(() -> instanceIdFunction.apply(this));
     this.instanceName = memoize(() -> instanceNameFunction.apply(this));
   }
 
@@ -157,11 +158,6 @@ public class ServerInfo implements ClientInfo {
 
   public VolumeManager getVolumeManager() {
     return volumeManager.get();
-  }
-
-  @Override
-  public InstanceId getInstanceId() {
-    return instanceId.get();
   }
 
   @Override

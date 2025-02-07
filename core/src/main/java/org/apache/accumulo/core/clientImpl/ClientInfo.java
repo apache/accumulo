@@ -26,7 +26,6 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.hadoop.conf.Configuration;
 
@@ -41,11 +40,6 @@ public interface ClientInfo {
    * @return Accumulo instance name
    */
   String getInstanceName();
-
-  /**
-   * @return Accumulo instanceId
-   */
-  InstanceId getInstanceId();
 
   /**
    * @return a Supplier for creating new ZooKeeper client instances based on the configuration

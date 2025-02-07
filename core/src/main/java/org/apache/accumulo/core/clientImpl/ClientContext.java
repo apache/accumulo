@@ -155,6 +155,7 @@ public class ClientContext implements AccumuloClient {
 
   private final AtomicBoolean zooKeeperOpened = new AtomicBoolean(false);
   private final Supplier<ZooSession> zooSession;
+  private final Supplier<InstanceId> instanceId;
 
   private void ensureOpen() {
     if (closed.get()) {
@@ -229,6 +230,9 @@ public class ClientContext implements AccumuloClient {
       zooKeeperOpened.set(true);
       return zk;
     });
+
+    this.instanceId =
+        memoize(() -> ZooUtil.getInstanceId(this.zooSession.get(), getInstanceName()));
 
     this.zooCache = memoize(() -> new ZooCache(getZooSession()));
     this.accumuloConf = serverConf;
@@ -550,7 +554,7 @@ public class ClientContext implements AccumuloClient {
    */
   public InstanceId getInstanceID() {
     ensureOpen();
-    return info.getInstanceId();
+    return this.instanceId.get();
   }
 
   public String getZooKeeperRoot() {

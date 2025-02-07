@@ -642,79 +642,76 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       waitForProcessStart(tsp, "TabletServer" + tsExpectedCount);
     }
 
-    String secret = getSiteConfiguration().get(Property.INSTANCE_SECRET);
     String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + getInstanceName();
-    try (var zk = new ZooSession(MiniAccumuloClusterImpl.class.getSimpleName() + ".verifyUp()",
-        getZooKeepers(), 60000, secret)) {
-      var rdr = zk.asReader();
-      InstanceId instanceId = null;
-      for (int i = 0; i < numTries; i++) {
-        try {
-          // make sure it's up enough we can perform operations successfully
-          rdr.sync("/");
-          // wait for the instance to be created
-          instanceId = InstanceId.of(new String(rdr.getData(instanceNamePath), UTF_8));
-          break;
-        } catch (KeeperException e) {
-          log.warn("Error trying to read instance id from zookeeper: {}", e.getMessage());
-          log.debug("Unable to read instance id from zookeeper.", e);
-        }
-        Thread.sleep(1000);
-      }
-
-      if (instanceId == null) {
-        try {
-          log.warn("******* COULD NOT FIND INSTANCE ID - DUMPING ZK ************");
-          log.warn("Connected to ZooKeeper: {}", getZooKeepers());
-          log.warn("Looking for instanceId at {}", instanceNamePath);
-          ZKUtil.visitSubTreeDFS(zk, Constants.ZROOT, false,
-              (rc, path, ctx, name) -> log.warn("{}", path));
-          log.warn("******* END ZK DUMP ************");
-        } catch (KeeperException e) {
-          log.error("Error dumping zk", e);
-        }
-        throw new IllegalStateException("Unable to find instance id from zookeeper.");
-      }
-
-      String rootPath = ZooUtil.getRoot(instanceId);
-      int tsActualCount = 0;
+    ZooSession zk = getServerContext().getZooSession();
+    var rdr = zk.asReader();
+    InstanceId instanceId = null;
+    for (int i = 0; i < numTries; i++) {
       try {
-        while (tsActualCount < tsExpectedCount) {
-          tsActualCount = 0;
-          String tserverPath = rootPath + Constants.ZTSERVERS;
-          for (String child : rdr.getChildren(tserverPath)) {
-            if (rdr.getChildren(tserverPath + "/" + child).isEmpty()) {
-              log.info("TServer " + tsActualCount + " not yet present in ZooKeeper");
-            } else {
-              tsActualCount++;
-              log.info("TServer " + tsActualCount + " present in ZooKeeper");
-            }
-          }
-          Thread.sleep(500);
-        }
+        // make sure it's up enough we can perform operations successfully
+        rdr.sync("/");
+        // wait for the instance to be created
+        instanceId = InstanceId.of(new String(rdr.getData(instanceNamePath), UTF_8));
+        break;
       } catch (KeeperException e) {
-        throw new IllegalStateException("Unable to read TServer information from zookeeper.", e);
+        log.warn("Error trying to read instance id from zookeeper: {}", e.getMessage());
+        log.debug("Unable to read instance id from zookeeper.", e);
       }
-
-      try {
-        while (rdr.getChildren(rootPath + Constants.ZMANAGER_LOCK).isEmpty()) {
-          log.info("Manager not yet present in ZooKeeper");
-          Thread.sleep(500);
-        }
-      } catch (KeeperException e) {
-        throw new IllegalStateException("Unable to read Manager information from zookeeper.", e);
-      }
-
-      try {
-        while (rdr.getChildren(rootPath + Constants.ZGC_LOCK).isEmpty()) {
-          log.info("GC not yet present in ZooKeeper");
-          Thread.sleep(500);
-        }
-      } catch (KeeperException e) {
-        throw new IllegalStateException("Unable to read GC information from zookeeper.", e);
-      }
-
+      Thread.sleep(1000);
     }
+
+    if (instanceId == null) {
+      try {
+        log.warn("******* COULD NOT FIND INSTANCE ID - DUMPING ZK ************");
+        log.warn("Connected to ZooKeeper: {}", getZooKeepers());
+        log.warn("Looking for instanceId at {}", instanceNamePath);
+        ZKUtil.visitSubTreeDFS(zk, Constants.ZROOT, false,
+            (rc, path, ctx, name) -> log.warn("{}", path));
+        log.warn("******* END ZK DUMP ************");
+      } catch (KeeperException e) {
+        log.error("Error dumping zk", e);
+      }
+      throw new IllegalStateException("Unable to find instance id from zookeeper.");
+    }
+
+    String rootPath = ZooUtil.getRoot(instanceId);
+    int tsActualCount = 0;
+    try {
+      while (tsActualCount < tsExpectedCount) {
+        tsActualCount = 0;
+        String tserverPath = rootPath + Constants.ZTSERVERS;
+        for (String child : rdr.getChildren(tserverPath)) {
+          if (rdr.getChildren(tserverPath + "/" + child).isEmpty()) {
+            log.info("TServer " + tsActualCount + " not yet present in ZooKeeper");
+          } else {
+            tsActualCount++;
+            log.info("TServer " + tsActualCount + " present in ZooKeeper");
+          }
+        }
+        Thread.sleep(500);
+      }
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Unable to read TServer information from zookeeper.", e);
+    }
+
+    try {
+      while (rdr.getChildren(rootPath + Constants.ZMANAGER_LOCK).isEmpty()) {
+        log.info("Manager not yet present in ZooKeeper");
+        Thread.sleep(500);
+      }
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Unable to read Manager information from zookeeper.", e);
+    }
+
+    try {
+      while (rdr.getChildren(rootPath + Constants.ZGC_LOCK).isEmpty()) {
+        log.info("GC not yet present in ZooKeeper");
+        Thread.sleep(500);
+      }
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Unable to read GC information from zookeeper.", e);
+    }
+
   }
 
   private List<String> buildRemoteDebugParams(int port) {
@@ -795,18 +792,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // is restarted, then the processes will start right away
     // and not wait for the old locks to be cleaned up.
     try {
-      new ZooZap().zap(getServerContext().getSiteConfiguration(), "-manager",
-          "-compaction-coordinators", "-tservers", "-compactors", "-sservers");
+      new ZooZap().zap(getServerContext().getZooSession(),
+          getServerContext().getSiteConfiguration(), "-manager", "-compaction-coordinators",
+          "-tservers", "-compactors", "-sservers");
     } catch (RuntimeException e) {
       log.error("Error zapping zookeeper locks", e);
     }
-    control.stop(ServerType.ZOOKEEPER, null);
 
     // Clear the location of the servers in ZooCache.
-    // When ZooKeeper was stopped in the previous method call,
-    // the local ZooKeeper watcher did not fire. If MAC is
-    // restarted, then ZooKeeper will start on the same port with
-    // the same data, but no Watchers will fire.
+    // If MAC is restarted, then ZooKeeper will start
+    // on the same port with the same data and the
+    // start of the server processes will wait until
+    // the pre-existing ephemeral locks time out.
     boolean startCalled = true;
     try {
       getServerContext().getZooKeeperRoot();
@@ -815,6 +812,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         startCalled = false;
       }
     }
+    // It's possible that the call above to getZooKeeperRoot will
+    // try to connect to ZooKeeper to get the instanceId. Stop
+    // ZooKeeper after the call above.
+    control.stop(ServerType.ZOOKEEPER, null);
     if (startCalled) {
       final ServerContext ctx = getServerContext();
       final String zRoot = ctx.getZooKeeperRoot();

@@ -163,7 +163,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     // that performs read-ahead of KV pairs is not started.
     scanner.setReadaheadThreshold(Long.MAX_VALUE);
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    // This should block until the GarbageCollectionLogger runs and notices that the
+    // This should block until the LowMemoryDetector runs and notices that the
     // VM is low on memory.
     assertTrue(iter.hasNext());
   }
@@ -173,7 +173,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     scanner.addScanIterator(new IteratorSetting(11, MemoryConsumingIterator.class, Map.of()));
     scanner.setRanges(Collections.singletonList(new Range()));
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    // This should block until the GarbageCollectionLogger runs and notices that the
+    // This should block until the LowMemoryDetector runs and notices that the
     // VM is low on memory.
     assertTrue(iter.hasNext());
   }
@@ -259,7 +259,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
           currentCount = fetched.get();
         }
 
-        // This should block until the GarbageCollectionLogger runs and notices that the
+        // This should block until the LowMemoryDetector runs and notices that the
         // VM is low on memory.
         Iterator<Entry<Key,Value>> consumingIter = memoryConsumingScanner.iterator();
         assertTrue(consumingIter.hasNext());
@@ -385,11 +385,10 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         }
 
         // This should block until the LowMemoryDetector runs and notices that the
-        // VM is low on memory. Creating the iterator should be enough to init the
-        // MemoryConsumingIterator on the server side and call seek on it as it
-        // has the readahead threshold set. We can confirm that this is the case
+        // VM is low on memory. We can confirm that this is the case
         // by looking at the metrics after the call.
-        var unused = memoryConsumingScanner.iterator();
+        var memoryConsumingIter = memoryConsumingScanner.iterator();
+        assertTrue(memoryConsumingIter.hasNext());
         waitFor(() -> 1 == LOW_MEM_DETECTED.get());
 
         // Grab the current paused count, the number of rows fetched by the memoryConsumingScanner
@@ -496,7 +495,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
           currentCount = fetched.get();
         }
 
-        // This should block until the GarbageCollectionLogger runs and notices that the
+        // This should block until the LowMemoryDetector runs and notices that the
         // VM is low on memory.
         Iterator<Entry<Key,Value>> consumingIter = memoryConsumingScanner.iterator();
         assertTrue(consumingIter.hasNext());
