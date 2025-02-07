@@ -86,6 +86,7 @@ public class TabletLocatorImpl extends TabletLocator {
   protected Text lastTabletRow;
 
   private final TreeSet<KeyExtent> badExtents = new TreeSet<>();
+  private final HashSet<String> badServers = new HashSet<>();
   private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
   private final Lock rLock = rwLock.readLock();
   private final Lock wLock = rwLock.writeLock();
@@ -447,16 +448,10 @@ public class TabletLocatorImpl extends TabletLocator {
 
   @Override
   public void invalidateCache(ClientContext context, String server) {
-    int invalidatedCount = 0;
 
     wLock.lock();
     try {
-      for (TabletLocation cacheEntry : metaCache.values()) {
-        if (cacheEntry.getTserverLocation().equals(server)) {
-          badExtents.add(cacheEntry.getExtent());
-          invalidatedCount++;
-        }
-      }
+      badServers.add(server);
     } finally {
       wLock.unlock();
     }
@@ -464,10 +459,8 @@ public class TabletLocatorImpl extends TabletLocator {
     lockChecker.invalidateCache(server);
 
     if (log.isTraceEnabled()) {
-      log.trace("invalidated {} cache entries  table={} server={}", invalidatedCount, tableId,
-          server);
+      log.trace("queued invalidation for table={} server={}", tableId, server);
     }
-
   }
 
   @Override
@@ -726,7 +719,7 @@ public class TabletLocatorImpl extends TabletLocator {
   private void processInvalidated(ClientContext context, LockCheckerSession lcSession)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
 
-    if (badExtents.isEmpty()) {
+    if (badExtents.isEmpty() && badServers.isEmpty()) {
       return;
     }
 
@@ -735,7 +728,7 @@ public class TabletLocatorImpl extends TabletLocator {
       if (!writeLockHeld) {
         rLock.unlock();
         wLock.lock();
-        if (badExtents.isEmpty()) {
+        if (badExtents.isEmpty() && badServers.isEmpty()) {
           return;
         }
       }
@@ -745,6 +738,26 @@ public class TabletLocatorImpl extends TabletLocator {
       for (KeyExtent be : badExtents) {
         lookups.add(be.toMetaRange());
         removeOverlapping(metaCache, be);
+      }
+
+      if (!badServers.isEmpty()) {
+        int removedCount = 0;
+        var locationIterator = metaCache.values().iterator();
+        while (locationIterator.hasNext()) {
+          TabletLocation cacheEntry = locationIterator.next();
+          if (badServers.contains(cacheEntry.getTserverLocation())) {
+            locationIterator.remove();
+            lookups.add(cacheEntry.getExtent().toMetaRange());
+            removedCount++;
+          }
+        }
+
+        if (log.isTraceEnabled()) {
+          log.trace("Invalidated {} cache entries for table {} related to servers {}", removedCount,
+              tableId, badServers);
+        }
+
+        badServers.clear();
       }
 
       lookups = Range.mergeOverlapping(lookups);
