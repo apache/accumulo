@@ -18,6 +18,13 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -28,6 +35,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadataCheck;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.time.SteadyTime;
@@ -152,5 +160,10 @@ public class CompactionReservationCheck implements TabletMetadataCheck {
     }
 
     return true;
+  }
+
+  @Override
+  public Set<ColumnType> columnsToRead() {
+    return Set.of(PREV_ROW, OPID, SELECTED, FILES, ECOMP, USER_COMPACTION_REQUESTED);
   }
 }
