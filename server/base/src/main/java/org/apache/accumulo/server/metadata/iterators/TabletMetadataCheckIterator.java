@@ -102,7 +102,7 @@ public class TabletMetadataCheckIterator implements SortedKeyValueIterator<Key,V
 
     if (source.hasTop()) {
       var tabletMetadata = TabletMetadata.convertRow(new IteratorAdapter(source),
-          EnumSet.allOf(TabletMetadata.ColumnType.class), false, false);
+          EnumSet.copyOf(colsToRead), false, false);
 
       // TODO checking the prev end row here is redundant w/ other checks that ample currently
       // does.. however we could try to make all checks eventually use this class
