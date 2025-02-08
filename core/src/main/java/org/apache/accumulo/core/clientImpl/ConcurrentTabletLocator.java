@@ -18,7 +18,17 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.clientImpl.TabletLocatorImpl.END_ROW_COMPARATOR;
+import static org.apache.accumulo.core.clientImpl.TabletLocatorImpl.LockCheckerSession;
+import static org.apache.accumulo.core.clientImpl.TabletLocatorImpl.MAX_TEXT;
+import static org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletLocationObtainer;
+import static org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
+import static org.apache.accumulo.core.clientImpl.TabletLocatorImpl.addMutation;
+import static org.apache.accumulo.core.clientImpl.TabletLocatorImpl.isContiguous;
+import static org.apache.accumulo.core.clientImpl.TabletLocatorImpl.locateTabletInCache;
+import static org.apache.accumulo.core.clientImpl.TabletLocatorImpl.removeOverlapping;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,17 +44,36 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparator;
 
 public class ConcurrentTabletLocator extends TabletLocator {
 
+  protected TabletLocator parent;
   private ConcurrentSkipListMap<Text,TabletLocation> metaCache =
       new ConcurrentSkipListMap<>(END_ROW_COMPARATOR);
-  private BlockingQueue<Text> lookupQueue = new LinkedBlockingQueue<>();
+  protected TabletLocationObtainer locationObtainer;
+  private final TabletServerLockChecker lockChecker;
   private final Lock lookupLock = new ReentrantLock();
+  protected Text lastTabletRow;
+  private final TableId tableId;
+
+  public ConcurrentTabletLocator(TableId tableId, TabletLocator parent, TabletLocationObtainer tlo,
+      TabletServerLockChecker tslc) {
+    this.tableId = tableId;
+    this.parent = parent;
+    this.locationObtainer = tlo;
+    this.lockChecker = tslc;
+
+    this.lastTabletRow = new Text(tableId.canonical());
+    lastTabletRow.append(new byte[] {'<'}, 0, 1);
+  }
 
   @Override
   public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
@@ -55,54 +84,38 @@ public class ConcurrentTabletLocator extends TabletLocator {
       row.append(new byte[] {0}, 0, 1);
     }
 
-    // this does no locking when all the needed info is in the cache already and is much simpler
-    // than the code in TabletLocatorImpl which tries w/ a read lock first and on miss switches to a
-    // write lock
-    TabletLocation tl = locateTabletInCache(row);
-    while (tl == null) {
-      // TODO sleep w/ backoff
-      requestLookup(row);
-      tl = locateTabletInCache(row);
+    LockCheckerSession lcSession = new LockCheckerSession(lockChecker);
+    TabletLocation tl = locateTablet(context, row, retry, lcSession);
+    while (retry && tl == null) {
+      sleepUninterruptibly(100, MILLISECONDS);
+      tl = locateTablet(context, row, retry, lcSession);
     }
 
     return tl;
+    // TODO add logging that is same as TabletLocatorImpl
   }
 
-  /**
-   * This function gathers all work from all threads that currently need to do metadata lookups and
-   * processes them all together. The goal of this function is to avoid N threads that all want the
-   * same tablet metadata from doing N metadata lookups. This function attempt to take the N
-   * metadata lookup needs and reduce them to a single metadata lookup for the client.
-   *
-   * @param row
-   */
-  private void requestLookup(Text row) {
-    // Add lookup request to queue outside the lock, whatever thread gets the lock will process this
-    // work. If a thread is currently processing a lookup, then new request will build up in the
-    // queue until its done and when its done one thread will process all the work for all waiting
-    // threads.
-    lookupQueue.add(row);
-    lookupLock.lock();
-    try {
-      if (lookupQueue.isEmpty()) {
-        // some other thread processed our request, so nothing to do
-        return;
+  private TabletLocation locateTablet(ClientContext context, Text row, boolean retry,
+      LockCheckerSession lcSession)
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    TabletLocation tl = lcSession.checkLock(locateTabletInCache(metaCache, row));
+    if (tl == null) {
+      // This lock is not protecting any in memory data structures in this class its only purpose is
+      // to limit concurrent metadata lookups to one at a time.
+      lookupLock.lock();
+      try {
+        // while waiting for the lock its possible another thread did a metadata lookup that would
+        // satisfy this request, so check again before reading the metadata table
+        tl = lcSession.checkLock(locateTabletInCache(metaCache, row));
+        if (tl == null) {
+          lookupTabletLocation(context, row, retry, lcSession);
+        }
+      } finally {
+        lookupLock.unlock();
       }
-
-      // TODO could filter out anything that is now in the cache, could have been added since the
-      // lookup miss and there may not be anything to do at this point
-
-      ArrayList<Text> lookupsToProcess = new ArrayList<>();
-      lookupQueue.drainTo(lookupsToProcess);
-
-      // TODO process all the queued work from all threads in lookupsToProcess using a batch scanner
-      // and update the cache. Could collapse the requested lookups into ranges and use a batch
-      // scanner to get the top N tablets for each range.
-
-    } finally {
-      lookupLock.unlock();
+      tl = lcSession.checkLock(locateTabletInCache(metaCache, row));
     }
-
+    return tl;
   }
 
   @Override
@@ -114,49 +127,121 @@ public class ConcurrentTabletLocator extends TabletLocator {
 
     // this is also much simpler than the existing code because it does not do the switch from read
     // lock to write lock
-    do {
-      TabletLocatorImpl.LockCheckerSession lcSession = null;
-      ArrayList<T> notInCache = new ArrayList<>();
-      Text row = new Text();
+    LockCheckerSession lcSession = new LockCheckerSession(lockChecker);
+    Text row = new Text();
 
-      for (T mutation : mutations) {
+    // Make a first past where only the cache is examined, this is done to avoid always sorting the
+    // mutations.
+    ArrayList<T> notInCache = new ArrayList<>();
+    for (T mutation : mutations) {
+      row.set(mutation.getRow());
+      TabletLocation tl = lcSession.checkLock(locateTabletInCache(metaCache, row));
+      if (tl == null || !addMutation(binnedMutations, mutation, tl, lcSession)) {
+        notInCache.add(mutation);
+      }
+    }
+
+    if (!notInCache.isEmpty()) {
+      // it is best to do the metadata lookups in sorted order as this may as this maximizes the
+      // chance that looking up one row in the metadata table will also cover the row after it that
+      // need the be looked up
+      notInCache.sort((o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0,
+          o1.getRow().length, o2.getRow(), 0, o2.getRow().length));
+      for (T mutation : notInCache) {
+        // TODO this seems like it could have terrible performance in the case where tablets do not
+        // have locations and a metadata lookup is done for each mutation. This problem also exists
+        // in TabletLocatorImpl. In main 4280 addressed this problem, may want to explore fixing in
+        // 2.1.
         row.set(mutation.getRow());
-        TabletLocation tl = locateTabletInCache(row);
+        lookupTabletLocation(context, row, false, lcSession);
+        TabletLocation tl = lcSession.checkLock(locateTabletInCache(metaCache, row));
         if (tl == null || !addMutation(binnedMutations, mutation, tl, lcSession)) {
-          notInCache.add(mutation);
+          failures.add(mutation);
         }
       }
+    }
 
-      if (!notInCache.isEmpty()) {
-        binnedMutations.clear();
-        // TODO sleep w/ backoff
-        // request coordinated lookup of the missing extents
-        requestLookups(notInCache);
-      }
-
-    } while (binnedMutations.isEmpty());
+    // TODO add logging that is same as TabletLocatorImpl
   }
 
-  private <T extends Mutation> void requestLookups(ArrayList<T> notInCache) {
-    // TODO
-  }
-
+  // TODO this code was mostly copied from TabletLocatorImpl w/ small changes
   @Override
   public List<Range> binRanges(ClientContext context, List<Range> ranges,
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    // TODO implement
-    throw new UnsupportedOperationException();
+
+    List<Range> failures = new ArrayList<>();
+    List<TabletLocation> tabletLocations = new ArrayList<>();
+
+    LockCheckerSession lcSession = new LockCheckerSession(lockChecker);
+
+    l1: for (Range range : ranges) {
+
+      tabletLocations.clear();
+
+      Text startRow;
+
+      if (range.getStartKey() != null) {
+        startRow = range.getStartKey().getRow();
+      } else {
+        startRow = new Text();
+      }
+
+      TabletLocation tl = null;
+
+      tl = locateTablet(context, startRow, false, lcSession);
+
+      if (tl == null) {
+        failures.add(range);
+        continue;
+      }
+
+      tabletLocations.add(tl);
+
+      while (tl.tablet_extent.endRow() != null
+          && !range.afterEndKey(new Key(tl.tablet_extent.endRow()).followingKey(PartialKey.ROW))) {
+
+        Text row = new Text(tl.tablet_extent.endRow());
+        row.append(new byte[] {0}, 0, 1);
+        tl = locateTablet(context, row, false, lcSession);
+
+        if (tl == null) {
+          failures.add(range);
+          continue l1;
+        }
+        tabletLocations.add(tl);
+      }
+
+      // Ensure the extents found are non overlapping and have no holes. When reading some extents
+      // from the cache and other from the metadata table in the loop above we may end up with
+      // non-contiguous extents. This can happen when a subset of exents are placed in the cache and
+      // then after that merges and splits happen.
+      if (isContiguous(tabletLocations)) {
+        for (TabletLocation tl2 : tabletLocations) {
+          TabletLocatorImpl.addRange(binnedRanges, tl2.tablet_location, tl2.tablet_extent, range);
+        }
+      } else {
+        failures.add(range);
+        // These extents in the cache are not contiguous, so something is wrong. Clear them out in
+        // the cache to force a reread from metadata table the next go around.
+        tabletLocations
+            .forEach(tabletLocation -> removeOverlapping(metaCache, tabletLocation.tablet_extent));
+      }
+
+    }
+
+    return failures;
+    // TODO add logging that is same as TabletLocatorImpl
   }
 
   @Override
   public void invalidateCache(KeyExtent failedExtent) {
-    metaCache.remove(getCacheKey(failedExtent));
+    removeOverlapping(metaCache, failedExtent);
   }
 
   @Override
   public void invalidateCache(Collection<KeyExtent> keySet) {
-    keySet.forEach(extent -> metaCache.remove(getCacheKey(extent)));
+    keySet.forEach(extent -> removeOverlapping(metaCache, extent));
   }
 
   @Override
@@ -186,48 +271,96 @@ public class ConcurrentTabletLocator extends TabletLocator {
     }
   }
 
-  private Text getCacheKey(KeyExtent extent) {
-    // TODO handle null end row
-    return extent.endRow();
-  }
+  // TODO this code was copied from TabletLocatorImpl and really small changes were made, attempt to
+  // share code
+  private void lookupTabletLocation(ClientContext context, Text row, boolean retry,
+      LockCheckerSession lcSession)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    Text metadataRow = new Text(tableId.canonical());
+    metadataRow.append(new byte[] {';'}, 0, 1);
+    metadataRow.append(row.getBytes(), 0, row.getLength());
+    TabletLocation ptl = parent.locateTablet(context, metadataRow, false, retry);
 
-  // TODO was copied from TabletLocatorImpl, could share code w/ TabletLocatorImpl
-  private TabletLocation locateTabletInCache(Text row) {
+    if (ptl != null) {
+      TabletLocations locations =
+          locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
+      while (locations != null && locations.getLocations().isEmpty()
+          && locations.getLocationless().isEmpty()) {
+        // try the next tablet, the current tablet does not have any tablets that overlap the row
+        Text er = ptl.tablet_extent.endRow();
+        if (er != null && er.compareTo(lastTabletRow) < 0) {
+          // System.out.println("er "+er+" ltr "+lastTabletRow);
+          ptl = parent.locateTablet(context, er, true, retry);
+          if (ptl != null) {
+            locations =
+                locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
+          } else {
+            break;
+          }
+        } else {
+          break;
+        }
+      }
 
-    Map.Entry<Text,TabletLocation> entry = metaCache.ceilingEntry(row);
+      if (locations == null) {
+        return;
+      }
 
-    if (entry != null) {
-      KeyExtent ke = entry.getValue().tablet_extent;
-      if (ke.prevEndRow() == null || ke.prevEndRow().compareTo(row) < 0) {
-        return entry.getValue();
+      // cannot assume the list contains contiguous key extents... so it is probably
+      // best to deal with each extent individually
+
+      Text lastEndRow = null;
+      for (TabletLocation tabletLocation : locations.getLocations()) {
+
+        KeyExtent ke = tabletLocation.tablet_extent;
+        TabletLocation locToCache;
+
+        // create new location if current prevEndRow == endRow
+        if ((lastEndRow != null) && (ke.prevEndRow() != null)
+            && ke.prevEndRow().equals(lastEndRow)) {
+          locToCache = new TabletLocation(new KeyExtent(ke.tableId(), ke.endRow(), lastEndRow),
+              tabletLocation.tablet_location, tabletLocation.tablet_session);
+        } else {
+          locToCache = tabletLocation;
+        }
+
+        // save endRow for next iteration
+        lastEndRow = locToCache.tablet_extent.endRow();
+
+        updateCache(locToCache, lcSession);
       }
     }
-    return null;
+
   }
 
-  // TODO was copied from TabletLocatorImpl, could share code w/ TabletLocatorImpl
-  private <T extends Mutation> boolean addMutation(
-      Map<String,TabletServerMutations<T>> binnedMutations, T mutation, TabletLocation tl,
-      TabletLocatorImpl.LockCheckerSession lcSession) {
-    TabletServerMutations<T> tsm = binnedMutations.get(tl.tablet_location);
-
-    if (tsm == null) {
-      // do lock check once per tserver here to make binning faster
-      boolean lockHeld = lcSession.checkLock(tl) != null;
-      if (lockHeld) {
-        tsm = new TabletServerMutations<>(tl.tablet_session);
-        binnedMutations.put(tl.tablet_location, tsm);
-      } else {
-        return false;
-      }
+  // TODO this code was copied from TabletLocatorImpl and really small changes were made, attempt to
+  // share code
+  private void updateCache(TabletLocation tabletLocation, LockCheckerSession lcSession) {
+    if (!tabletLocation.tablet_extent.tableId().equals(tableId)) {
+      // sanity check
+      throw new IllegalStateException(
+          "Unexpected extent returned " + tableId + "  " + tabletLocation.tablet_extent);
     }
 
-    // its possible the same tserver could be listed with different sessions
-    if (tsm.getSession().equals(tl.tablet_session)) {
-      tsm.addMutation(tl.tablet_extent, mutation);
-      return true;
+    if (tabletLocation.tablet_location == null) {
+      // sanity check
+      throw new IllegalStateException(
+          "Cannot add null locations to cache " + tableId + "  " + tabletLocation.tablet_extent);
     }
 
-    return false;
+    // clear out any overlapping extents in cache
+    removeOverlapping(metaCache, tabletLocation.tablet_extent);
+
+    // do not add to cache unless lock is held
+    if (lcSession.checkLock(tabletLocation) == null) {
+      return;
+    }
+
+    // add it to cache
+    Text er = tabletLocation.tablet_extent.endRow();
+    if (er == null) {
+      er = MAX_TEXT;
+    }
+    metaCache.put(er, tabletLocation);
   }
 }

@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -108,10 +109,15 @@ public class TabletLocatorImpl extends TabletLocator {
     void invalidateCache(String server);
   }
 
-  class LockCheckerSession {
+  static class LockCheckerSession {
 
+    private final TabletServerLockChecker lockChecker;
     private final HashSet<Pair<String,String>> okLocks = new HashSet<>();
     private final HashSet<Pair<String,String>> invalidLocks = new HashSet<>();
+
+    LockCheckerSession(TabletServerLockChecker lockChecker) {
+      this.lockChecker = lockChecker;
+    }
 
     TabletLocation checkLock(TabletLocation tl) {
       // the goal of this class is to minimize calls out to lockChecker under that assumption that
@@ -177,7 +183,7 @@ public class TabletLocatorImpl extends TabletLocator {
     ArrayList<T> notInCache = new ArrayList<>();
     Text row = new Text();
 
-    LockCheckerSession lcSession = new LockCheckerSession();
+    LockCheckerSession lcSession = new LockCheckerSession(lockChecker);
 
     rLock.lock();
     try {
@@ -239,7 +245,7 @@ public class TabletLocatorImpl extends TabletLocator {
 
   }
 
-  private <T extends Mutation> boolean addMutation(
+  static <T extends Mutation> boolean addMutation(
       Map<String,TabletServerMutations<T>> binnedMutations, T mutation, TabletLocation tl,
       LockCheckerSession lcSession) {
     TabletServerMutations<T> tsm = binnedMutations.get(tl.tablet_location);
@@ -379,7 +385,7 @@ public class TabletLocatorImpl extends TabletLocator {
       timer = Timer.startNew();
     }
 
-    LockCheckerSession lcSession = new LockCheckerSession();
+    LockCheckerSession lcSession = new LockCheckerSession(lockChecker);
 
     List<Range> failures;
     rLock.lock();
@@ -498,7 +504,7 @@ public class TabletLocatorImpl extends TabletLocator {
 
     while (true) {
 
-      LockCheckerSession lcSession = new LockCheckerSession();
+      LockCheckerSession lcSession = new LockCheckerSession(lockChecker);
       TabletLocation tl = _locateTablet(context, row, skipRow, retry, true, lcSession);
 
       if (retry && tl == null) {
@@ -613,7 +619,7 @@ public class TabletLocatorImpl extends TabletLocator {
     }
   }
 
-  static void removeOverlapping(TreeMap<Text,TabletLocation> metaCache, KeyExtent nke) {
+  static void removeOverlapping(NavigableMap<Text,TabletLocation> metaCache, KeyExtent nke) {
     Iterator<Entry<Text,TabletLocation>> iter;
 
     if (nke.prevEndRow() == null) {
@@ -655,6 +661,10 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   private TabletLocation locateTabletInCache(Text row) {
+    return locateTabletInCache(metaCache, row);
+  }
+
+  static TabletLocation locateTabletInCache(NavigableMap<Text,TabletLocation> metaCache, Text row) {
 
     Entry<Text,TabletLocation> entry = metaCache.ceilingEntry(row);
 
