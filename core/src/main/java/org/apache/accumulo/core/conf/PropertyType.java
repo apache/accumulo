@@ -151,19 +151,22 @@ public enum PropertyType {
       "One of the currently supported filename extensions for storing table data files. "
           + "Currently, only " + RFile.EXTENSION + " is supported."),
 
-  USER_FATE_CONFIG("user fate config", new ValidUserFateConfig(),
+  FATE_USER_CONFIG(ValidUserFateConfig.NAME, new ValidUserFateConfig(),
       "An arbitrary string that: 1. Represents a valid, parsable generic json object. "
           + "2. the keys of the json are strings which contain a comma-separated list of fate operations. "
           + "3. the values of the json are integers which represent the number of threads assigned to the fate operations. "
           + "4. all possible user fate operations are present in the json. "
           + "5. no fate operations are repeated."),
 
-  META_FATE_CONFIG("meta fate config", new ValidMetaFateConfig(),
+  FATE_META_CONFIG(ValidMetaFateConfig.NAME, new ValidMetaFateConfig(),
       "An arbitrary string that: 1. Represents a valid, parsable generic json object. "
           + "2. the keys of the json are strings which contain a comma-separated list of fate operations. "
           + "3. the values of the json are integers which represent the number of threads assigned to the fate operations. "
           + "4. all possible meta fate operations are present in the json. "
-          + "5. no fate operations are repeated.");
+          + "5. no fate operations are repeated."),
+  FATE_THREADPOOL_SIZE("(deprecated) Manager FATE thread pool size", new FateThreadPoolSize(),
+      "No format check. Allows any value to be set but will warn the user that the"
+          + " property is no longer used.");
 
   private final String shortname;
   private final String format;
@@ -412,10 +415,13 @@ public enum PropertyType {
   }
 
   private static class ValidFateConfig implements Predicate<String> {
+    private static final Logger log = LoggerFactory.getLogger(ValidFateConfig.class);
     private final Set<Fate.FateOperation> allFateOps;
+    private final String name;
 
-    private ValidFateConfig(Set<Fate.FateOperation> allFateOps) {
+    private ValidFateConfig(Set<Fate.FateOperation> allFateOps, String name) {
       this.allFateOps = allFateOps;
+      this.name = name;
     }
 
     @Override
@@ -430,40 +436,63 @@ public enum PropertyType {
           var key = entry.getKey();
           var val = entry.getValue().getAsInt();
           if (val <= 0) {
+            log.warn(
+                "Invalid entry {} in {}. Must be a valid thread pool size. Property was unchanged.",
+                entry, name);
             return false;
           }
           var fateOpsStrArr = key.split(",");
           for (String fateOpStr : fateOpsStrArr) {
             Fate.FateOperation fateOp = Fate.FateOperation.valueOf(fateOpStr);
             if (seenFateOps.contains(fateOp)) {
+              log.warn("Duplicate fate operation {} seen in {}. Property was unchanged.", fateOp,
+                  name);
               return false;
             }
             seenFateOps.add(fateOp);
           }
         }
       } catch (Exception e) {
+        log.warn("Exception from attempting to set {}. Property was unchanged.", name, e);
         return false;
       }
 
-      return allFateOps.equals(seenFateOps);
+      var allFateOpsSeen = allFateOps.equals(seenFateOps);
+      if (!allFateOpsSeen) {
+        log.warn(
+            "Not all fate operations found in {}. Expected to see {} but saw {}. Property was unchanged.",
+            name, allFateOps, seenFateOps);
+      }
+      return allFateOpsSeen;
     }
   }
 
   private static class ValidUserFateConfig extends ValidFateConfig {
-    private static final Set<Fate.FateOperation> allFateOps =
-        Fate.FateOperation.getAllUserFateOps();
+    private static final String NAME = "fate user config";
 
     private ValidUserFateConfig() {
-      super(allFateOps);
+      super(Fate.FateOperation.getAllUserFateOps(), NAME);
     }
   }
 
   private static class ValidMetaFateConfig extends ValidFateConfig {
-    private static final Set<Fate.FateOperation> allFateOps =
-        Fate.FateOperation.getAllMetaFateOps();
+    private static final String NAME = "fate meta config";
 
     private ValidMetaFateConfig() {
-      super(allFateOps);
+      super(Fate.FateOperation.getAllMetaFateOps(), NAME);
+    }
+  }
+
+  private static class FateThreadPoolSize implements Predicate<String> {
+    private static final Logger log = LoggerFactory.getLogger(FateThreadPoolSize.class);
+
+    @Override
+    public boolean test(String s) {
+      log.warn(
+          "The manager fate thread pool size property is no longer used. See the {} and {} for "
+              + "the replacements to this property.",
+          ValidUserFateConfig.NAME, ValidMetaFateConfig.NAME);
+      return true;
     }
   }
 

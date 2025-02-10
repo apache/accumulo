@@ -208,7 +208,8 @@ public class FateExecutor<T> {
             // should be rare and won't put much load on any one FateExecutor
             var status = fateIdStatus.getStatus();
             var fateOp = fateIdStatus.getFateOperation().orElse(null);
-            if (fateOps.contains(fateOp) || txCancelledWhileNew(status, fateOp)) {
+            if ((fateOp != null && fateOps.contains(fateOp))
+                || txCancelledWhileNew(status, fateOp)) {
               while (fate.getKeepRunning().get() && !isShutdown()) {
                 try {
                   // The reason for calling transfer instead of queueing is avoid rescanning the

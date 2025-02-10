@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -379,8 +380,8 @@ public class Fate<T> {
       var key = entry.getKey();
       var val = entry.getValue().getAsInt();
       var fateOpsStrArr = key.split(",");
-      Set<FateOperation> fateOpsSet =
-          Arrays.stream(fateOpsStrArr).map(FateOperation::valueOf).collect(Collectors.toSet());
+      Set<FateOperation> fateOpsSet = Arrays.stream(fateOpsStrArr).map(FateOperation::valueOf)
+          .collect(Collectors.toCollection(TreeSet::new));
 
       poolConfigs.put(fateOpsSet, val);
     }
@@ -397,8 +398,8 @@ public class Fate<T> {
   }
 
   protected Property getFateConfigProp() {
-    return this.store.type() == FateInstanceType.USER ? Property.MANAGER_USER_FATE_CONFIG
-        : Property.MANAGER_META_FATE_CONFIG;
+    return this.store.type() == FateInstanceType.USER ? Property.MANAGER_FATE_USER_CONFIG
+        : Property.MANAGER_FATE_META_CONFIG;
   }
 
   public Duration getDeadResCleanupDelay() {

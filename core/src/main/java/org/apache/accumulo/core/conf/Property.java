@@ -429,22 +429,29 @@ public enum Property {
   MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL("manager.fate.metrics.min.update.interval", "60s",
       PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval.",
       "1.9.3"),
-  MANAGER_USER_FATE_CONFIG("manager.user.fate.config", "{"
+  @Deprecated(since = "4.0.0")
+  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "64",
+      PropertyType.FATE_THREADPOOL_SIZE,
+      "Previously, the number of threads used to run fault-tolerant executions (FATE)."
+          + " This is no longer used in 4.0+. MANAGER_FATE_USER_CONFIG and"
+          + " MANAGER_FATE_META_CONFIG are the replacement and must be set instead.",
+      "1.4.3"),
+  MANAGER_FATE_USER_CONFIG("manager.fate.user.config", "{"
       + "\"TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER\": 1,"
       + "\"TABLE_BULK_IMPORT2\": 2,"
       + "\"TABLE_COMPACT,TABLE_CANCEL_COMPACT,COMMIT_COMPACTION\": 4,"
       + "\"TABLE_MERGE,TABLE_DELETE_RANGE,TABLE_SPLIT,SYSTEM_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT\": 2"
-      + "}", PropertyType.USER_FATE_CONFIG,
+      + "}", PropertyType.FATE_USER_CONFIG,
       "The number of threads used to run user-initiated fault-tolerant "
           + "executions (FATE). These are primarily table operations like merge. Each key/value "
           + "of the provided JSON corresponds to one thread pool. Each key is a list of one or "
           + "more FATE operations and each value is the number of threads that will be assigned "
           + "to the pool.",
       "4.0.0"),
-  MANAGER_META_FATE_CONFIG("manager.meta.fate.config",
+  MANAGER_FATE_META_CONFIG("manager.fate.meta.config",
       "{\"TABLE_COMPACT,TABLE_CANCEL_COMPACT,COMMIT_COMPACTION\": 4,"
           + "\"TABLE_MERGE,TABLE_DELETE_RANGE,TABLE_SPLIT,SYSTEM_SPLIT\": 2}",
-      PropertyType.META_FATE_CONFIG,
+      PropertyType.FATE_META_CONFIG,
       "The number of threads used to run system-initiated fault-tolerant "
           + "executions (FATE). These are primarily table operations like merge. Each key/value "
           + "of the provided JSON corresponds to one thread pool. Each key is a list of one or "
@@ -455,7 +462,7 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The interval at which to check if the number of idle Fate threads has consistently been zero."
           + " The way this is checked is an approximation. Logs a warning in the Manager log to change"
-          + " MANAGER_USER_FATE_CONFIG or MANAGER_META_FATE_CONFIG. A value less than a minute disables"
+          + " MANAGER_FATE_USER_CONFIG or MANAGER_FATE_META_CONFIG. A value less than a minute disables"
           + " this check and has a maximum value of 60m.",
       "4.0.0"),
   MANAGER_STATUS_THREAD_POOL_SIZE("manager.status.threadpool.size", "0", PropertyType.COUNT,

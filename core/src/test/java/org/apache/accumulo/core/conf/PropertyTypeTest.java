@@ -221,7 +221,7 @@ public class PropertyTypeTest extends WithTestNames {
   }
 
   @Test
-  public void testTypeUSER_FATE_CONFIG() {
+  public void testTypeFATE_USER_CONFIG() {
     var allUserFateOps = Fate.FateOperation.getAllUserFateOps();
     int poolSize1 = allUserFateOps.size() / 2;
     var validPool1Ops =
@@ -258,7 +258,7 @@ public class PropertyTypeTest extends WithTestNames {
   }
 
   @Test
-  public void testTypeMETA_FATE_CONFIG() {
+  public void testTypeFATE_META_CONFIG() {
     var allMetaFateOps = Fate.FateOperation.getAllMetaFateOps();
     int poolSize1 = allMetaFateOps.size() / 2;
     var validPool1Ops =
@@ -292,6 +292,11 @@ public class PropertyTypeTest extends WithTestNames {
             + "\": 10}",
         "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
             + ",INVALID_FATEOP\": 10}");
+  }
+
+  @Test
+  public void testTypeFATE_THREADPOOL_SIZE() {
+    // nothing to test, this type is used for a deprecated property and will accept any prop value.
   }
 
 }

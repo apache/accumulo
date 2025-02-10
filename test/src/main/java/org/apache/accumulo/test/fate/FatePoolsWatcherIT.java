@@ -362,10 +362,10 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
     // {<other half/SET2>}: 5
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_USER_FATE_CONFIG, "{\""
+    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\""
         + USER_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 4,\""
         + USER_FATE_OPS_SET2.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 5}");
-    config.set(Property.MANAGER_META_FATE_CONFIG, "{\""
+    config.set(Property.MANAGER_FATE_META_CONFIG, "{\""
         + META_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 4,\""
         + META_FATE_OPS_SET2.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 5}");
     config.set(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL, "60m");
@@ -376,12 +376,12 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
     // {<half the FATE ops/SET1>}: 10
     // {<other half minus one/SET3>}: 9
     // {<remaining FATE op/SET4>}: 8
-    config.set(Property.MANAGER_USER_FATE_CONFIG, "{\""
+    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\""
         + USER_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 10,"
         + "\"" + USER_FATE_OPS_SET3.stream().map(Enum::name).collect(Collectors.joining(","))
         + "\": 9,\"" + USER_FATE_OPS_SET4.stream().map(Enum::name).collect(Collectors.joining(","))
         + "\": 8}");
-    config.set(Property.MANAGER_META_FATE_CONFIG, "{\""
+    config.set(Property.MANAGER_FATE_META_CONFIG, "{\""
         + META_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 10,"
         + "\"" + META_FATE_OPS_SET3.stream().map(Enum::name).collect(Collectors.joining(","))
         + "\": 9,\"" + META_FATE_OPS_SET4.stream().map(Enum::name).collect(Collectors.joining(","))
@@ -389,9 +389,9 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
   }
 
   private void changeConfigIncTest2(ConfigurationCopy config, int numThreads) {
-    config.set(Property.MANAGER_USER_FATE_CONFIG, "{\"" + Fate.FateOperation.getAllUserFateOps()
+    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\"" + Fate.FateOperation.getAllUserFateOps()
         .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
-    config.set(Property.MANAGER_META_FATE_CONFIG, "{\"" + Fate.FateOperation.getAllMetaFateOps()
+    config.set(Property.MANAGER_FATE_META_CONFIG, "{\"" + Fate.FateOperation.getAllMetaFateOps()
         .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
   }
 
@@ -401,12 +401,12 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
     // {<remaining FATE op/SET4>}: 6
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_USER_FATE_CONFIG, "{\""
+    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\""
         + USER_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 4,"
         + "\"" + USER_FATE_OPS_SET3.stream().map(Enum::name).collect(Collectors.joining(","))
         + "\": 5,\"" + USER_FATE_OPS_SET4.stream().map(Enum::name).collect(Collectors.joining(","))
         + "\": 6}");
-    config.set(Property.MANAGER_META_FATE_CONFIG, "{\""
+    config.set(Property.MANAGER_FATE_META_CONFIG, "{\""
         + META_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 4,"
         + "\"" + META_FATE_OPS_SET3.stream().map(Enum::name).collect(Collectors.joining(","))
         + "\": 5,\"" + META_FATE_OPS_SET4.stream().map(Enum::name).collect(Collectors.joining(","))
@@ -418,10 +418,10 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
   private void changeConfigDecTest(ConfigurationCopy config) {
     // {<half the FATE ops/SET1>}: 3
     // {<other half/SET2>}: 2
-    config.set(Property.MANAGER_USER_FATE_CONFIG, "{\""
+    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\""
         + USER_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 3,\""
         + USER_FATE_OPS_SET2.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 2}");
-    config.set(Property.MANAGER_META_FATE_CONFIG, "{\""
+    config.set(Property.MANAGER_FATE_META_CONFIG, "{\""
         + META_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 3,\""
         + META_FATE_OPS_SET2.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 2}");
   }
@@ -429,9 +429,9 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
   private AccumuloConfiguration configIdleHistoryTest() {
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_USER_FATE_CONFIG, "{\""
+    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\""
         + ALL_USER_FATE_OPS.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 2}");
-    config.set(Property.MANAGER_META_FATE_CONFIG, "{\""
+    config.set(Property.MANAGER_FATE_META_CONFIG, "{\""
         + ALL_META_FATE_OPS.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 2}");
     config.set(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL, "1m");
     return config;

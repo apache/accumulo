@@ -82,9 +82,9 @@ public class FateTestUtil {
     ConfigurationCopy config = new ConfigurationCopy();
     // this value isn't important, just needs to be set
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_USER_FATE_CONFIG, "{\"" + Fate.FateOperation.getAllUserFateOps()
+    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\"" + Fate.FateOperation.getAllUserFateOps()
         .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
-    config.set(Property.MANAGER_META_FATE_CONFIG, "{\"" + Fate.FateOperation.getAllMetaFateOps()
+    config.set(Property.MANAGER_FATE_META_CONFIG, "{\"" + Fate.FateOperation.getAllMetaFateOps()
         .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
     config.set(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL, "60m");
     return config;
