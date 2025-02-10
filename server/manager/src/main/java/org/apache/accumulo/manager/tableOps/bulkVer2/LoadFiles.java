@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
@@ -63,6 +64,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -92,6 +94,7 @@ class LoadFiles extends ManagerRepo {
 
   @Override
   public long isReady(long tid, Manager manager) throws Exception {
+    log.info("Starting bulk import for {} (tid = {})", bulkInfo.sourceDir, FateTxId.formatTid(tid));
     if (manager.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (tid = "
           + FateTxId.formatTid(tid) + ")");
@@ -371,10 +374,16 @@ class LoadFiles extends ManagerRepo {
 
       int cmp;
 
+      long wastedIterations = 0;
+      Timer timer = Timer.startNew();
+
       // skip tablets until we find the prevEndRow of loadRange
       while ((cmp = PREV_COMP.compare(currTablet.getPrevEndRow(), loadRange.prevEndRow())) < 0) {
+        wastedIterations++;
         currTablet = tabletIter.next();
       }
+
+      long wastedMillis = timer.elapsed(MILLISECONDS);
 
       if (cmp != 0) {
         throw new IllegalStateException(
@@ -393,6 +402,12 @@ class LoadFiles extends ManagerRepo {
 
       if (cmp != 0) {
         throw new IllegalStateException("Unexpected end row " + currTablet + " " + loadRange);
+      }
+
+      if (wastedIterations > 0) {
+        log.debug(
+            "Skipped {} tablets searching for prevEndRow of loadRange in {} ms to return {} tablets total in {}ms.",
+            wastedIterations, wastedMillis, tablets.size(), timer.elapsed(MILLISECONDS));
       }
 
       return tablets;

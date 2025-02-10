@@ -338,10 +338,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     List<KeyExtent> result = new ArrayList<>();
     Text row = new Text();
-    long iterationCount = 0;
     while (true) {
-      iterationCount++;
-
       row = nextRowFunction.apply(row);
       if (row == null) {
         break;
@@ -356,8 +353,6 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       }
     }
 
-    log.debug("performed {} iterations to identify {} overlapping tablets", iterationCount,
-        result.size());
     return result;
   }
 
