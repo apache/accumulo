@@ -249,6 +249,7 @@ public class LoadPlan {
     String endRow;
     RangeType rangeType;
 
+    @SuppressWarnings("unused")
     JsonDestination() {}
 
     JsonDestination(Destination destination) {
@@ -270,6 +271,7 @@ public class LoadPlan {
   private static final class JsonAll {
     List<JsonDestination> destinations;
 
+    @SuppressWarnings("unused")
     JsonAll() {}
 
     JsonAll(List<Destination> destinations) {

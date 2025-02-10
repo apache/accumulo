@@ -607,7 +607,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@value METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED}</td>
+ * <td>{@value #METRICS_MANAGER_BALANCER_MIGRATIONS_NEEDED}</td>
  * <td>Gauge</td>
  * <td>The number of migrations that need to complete before the system is balanced</td>
  * </tr>

@@ -529,6 +529,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     stop(server, hostname);
   }
 
+  @SuppressWarnings("removal")
   public void refreshProcesses(ServerType type) {
     switch (type) {
       case COMPACTION_COORDINATOR:
@@ -571,6 +572,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     }
   }
 
+  @SuppressWarnings("removal")
   public Set<Process> getProcesses(ServerType type) {
     switch (type) {
       case COMPACTION_COORDINATOR:
