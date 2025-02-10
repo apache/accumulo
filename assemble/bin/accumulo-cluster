@@ -471,6 +471,12 @@ function control_services() {
           fi
         fi
       done
+      if [[ $operation == "stop" || $operation == "kill" ]]; then
+        echo "Cleaning tablet server entries from zookeeper for resource group $group"
+        if ! isDebug; then
+          "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -tservers -group "$group"
+        fi
+      fi
       echo "done"
     done
   fi
@@ -520,6 +526,12 @@ function control_services() {
           execute_command "$operation" "$sserver" sserver "$group" "-o" "sserver.group=$group"
         fi
       done
+      if [[ $operation == "stop" || $operation == "kill" ]]; then
+        echo "Cleaning scan server entries from zookeeper for resource group $group"
+        if ! isDebug; then
+          "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -sservers -group "$group"
+        fi
+      fi
     done
   fi
 
@@ -538,6 +550,12 @@ function control_services() {
           execute_command "$operation" "$compactor" compactor "$group" "-o" "compactor.group=$group"
         fi
       done
+      if [[ $operation == "stop" || $operation == "kill" ]]; then
+        echo "Cleaning compactor entries from zookeeper for resource group $group"
+        if ! isDebug; then
+          "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -compactors -group "$group"
+        fi
+      fi
     done
   fi
 
