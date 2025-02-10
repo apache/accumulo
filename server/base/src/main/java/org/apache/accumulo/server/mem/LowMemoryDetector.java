@@ -108,8 +108,8 @@ public class LowMemoryDetector {
     double freeMemoryPercentage = conf.getFraction(Property.GENERAL_LOW_MEM_DETECTOR_THRESHOLD);
 
     memCheckTimeLock.lock();
-    LowMemDetectorState localState = state.get();
     try {
+      LowMemDetectorState localState = state.get();
       final long now = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
 
       List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
