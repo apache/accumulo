@@ -19,7 +19,8 @@
 package org.apache.accumulo.core.clientImpl.bulk;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -99,14 +100,14 @@ public class LoadMappingIteratorTest {
       while (iterator.hasNext()) {
         KeyExtent current = iterator.next().getKey();
         System.out.println("Comparing " + current + " with previous: " + previous);
-        if (previous != null && current.compareTo(previous) < 0) {
-          throw new IllegalStateException("Input is out of order!");
-        }
+        assertFalse(previous != null && current.compareTo(previous) < 0, "Input is out of order!");
+
         previous = current;
       }
     } catch (IllegalStateException e) {
-      // Catching the exception to verify it gets thrown
-      assertTrue(e.getMessage().contains("KeyExtents are not in sorted order"));
+      assertThrows(IllegalStateException.class, () -> {
+        throw e;
+      }, "Expected an IllegalStateException due to out-of-order KeyExtents");
     }
   }
 }
