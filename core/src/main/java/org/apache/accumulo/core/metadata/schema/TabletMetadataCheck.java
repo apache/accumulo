@@ -43,13 +43,13 @@ import java.util.Set;
 public interface TabletMetadataCheck {
 
   Set<TabletMetadata.ColumnType> ALL_COLUMNS =
-      Collections.unmodifiableSet(EnumSet.noneOf(TabletMetadata.ColumnType.class));
+      Collections.unmodifiableSet(EnumSet.allOf(TabletMetadata.ColumnType.class));
 
   boolean canUpdate(TabletMetadata tabletMetadata);
 
   /**
-   * Determines what tablet metadata columns are read on the server side. Return the empty set to
-   * read all tablet metadata columns.
+   * Determines what tablet metadata columns are read on the server side. Return
+   * {@link #ALL_COLUMNS} to read all of a tablets metadata.
    */
   default Set<TabletMetadata.ColumnType> columnsToRead() {
     return ALL_COLUMNS;
