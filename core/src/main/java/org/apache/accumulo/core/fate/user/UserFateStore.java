@@ -79,8 +79,9 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
    *
    * @param context the {@link ClientContext}
    * @param tableName the name of the table which will store the Fate data
-   * @param lockID the {@link ZooUtil.LockID} held by the process creating this store. Should be
-   *        null if this store will be used as read-only (will not be used to reserve transactions)
+   * @param lockID the {@link org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID} held by the
+   *        process creating this store. Should be null if this store will be used as read-only
+   *        (will not be used to reserve transactions)
    * @param isLockHeld the {@link Predicate} used to determine if the lockID is held or not at the
    *        time of invocation. If the store is used for a {@link Fate} which runs a dead
    *        reservation cleaner, this should be non-null, otherwise null is fine
