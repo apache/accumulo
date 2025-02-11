@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -248,6 +249,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
         scanner.setBatchSize(1);
         int count = 0;
         for (Entry<Key,Value> e : scanner) {
+          assertNotNull(e);
           count++;
           if (count == 2) {
             Admin.signalGracefulShutdown(ctx, sserver.toString());

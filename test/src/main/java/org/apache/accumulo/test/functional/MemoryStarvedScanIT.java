@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metrics.Metric.SCAN_PAUSED_FOR_MEM;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RETURN_FOR_MEM;
 import static org.apache.accumulo.test.util.Wait.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
@@ -185,7 +186,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     try (Scanner scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
       IteratorSetting is = new IteratorSetting(11, MemoryFreeingIterator.class, Map.of());
       scanner.addScanIterator(is);
-      var unused = Iterables.size(scanner); // consume the key/values
+      assertNotEquals(0, Iterables.size(scanner)); // consume the key/values
     }
   }
 
