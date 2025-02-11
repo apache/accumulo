@@ -258,6 +258,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
     assertTrue(accumuloClient.tableOperations().list().containsAll(tables));
     assertTrue(accumuloClient.tableOperations().list().containsAll(clones));
+    assertFalse(accumuloClient.tableOperations().list().contains("test1.table"));
 
     // Read and write data to tables w/ the same name in different namespaces to ensure no wires are
     // crossed.
@@ -280,6 +281,13 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     for (var table : Sets.union(tables, clones)) {
       assertThrows(TableExistsException.class,
           () -> accumuloClient.tableOperations().create(table));
+    }
+
+    for (var srcTable : List.of("metadata", "test1.table2")) {
+      for (var destTable : Sets.union(tables, clones)) {
+        assertThrows(TableExistsException.class, () -> accumuloClient.tableOperations()
+            .clone(srcTable, destTable, CloneConfiguration.empty()));
+      }
     }
 
     // TODO test export/import w/ diff table names
