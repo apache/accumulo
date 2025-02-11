@@ -40,6 +40,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -248,13 +249,34 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertTrue(accumuloClient.tableOperations().list().containsAll(tables));
     assertTrue(accumuloClient.tableOperations().list().containsAll(clones));
 
+    // Rename a table to a tablename that exists in another namespace
     tableOps.rename("test1.table1", "test1.metadata");
 
     tables = new HashSet<>(tables);
     tables.remove("test1.table1");
+    tables.add("test1.metadata");
 
     assertTrue(accumuloClient.tableOperations().list().containsAll(tables));
     assertTrue(accumuloClient.tableOperations().list().containsAll(clones));
+
+    // Read and write data to tables w/ the same name in different namespaces to ensure no wires are
+    // crossed.
+    for (var table : Sets.union(tables, clones)) {
+      try (var writer = accumuloClient.createBatchWriter(table)) {
+        Mutation m = new Mutation("self");
+        m.put("table", "name", table);
+        writer.addMutation(m);
+      }
+    }
+
+    for (var table : Sets.union(tables, clones)) {
+      try (var scanner = accumuloClient.createScanner(table)) {
+        var seenValues =
+            scanner.stream().map(e -> e.getValue().toString()).collect(Collectors.toSet());
+        assertEquals(Set.of(table), seenValues);
+      }
+    }
+
     // TODO test export/import w/ diff table names
   }
 
