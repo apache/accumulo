@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -214,6 +215,47 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertTrue(tableOps.exists(t0));
     assertThrows(AccumuloException.class,
         () -> tableOps.setProperty(t0, Property.TABLE_BLOOM_ENABLED.getKey(), "foo"));
+  }
+
+  @Test
+  public void createTablesWithSameNameInDifferentNamespace() throws Exception {
+    TableOperations tableOps = accumuloClient.tableOperations();
+    String[] names = getUniqueNames(2);
+
+    accumuloClient.namespaceOperations().create("test1");
+    accumuloClient.namespaceOperations().create("test2");
+
+    var tables = Set.of("test1.table1", "test1.table2", "test1.root", "test2.table1",
+        "test2.table2", "test2.metadata", "table1", "table2", "metadata");
+
+    for (String table : tables) {
+      tableOps.create(table);
+    }
+
+    assertTrue(accumuloClient.tableOperations().list().containsAll(tables));
+
+    accumuloClient.namespaceOperations().create("test3");
+
+    Set<String> clones = new HashSet<>();
+    for (String table : tables) {
+      if (table.startsWith("test1.")) {
+        var clone = table.replace("test1.", "test3.");
+        tableOps.clone(table, clone, CloneConfiguration.empty());
+        clones.add(clone);
+      }
+    }
+
+    assertTrue(accumuloClient.tableOperations().list().containsAll(tables));
+    assertTrue(accumuloClient.tableOperations().list().containsAll(clones));
+
+    tableOps.rename("test1.table1", "test1.metadata");
+
+    tables = new HashSet<>(tables);
+    tables.remove("test1.table1");
+
+    assertTrue(accumuloClient.tableOperations().list().containsAll(tables));
+    assertTrue(accumuloClient.tableOperations().list().containsAll(clones));
+    // TODO test export/import w/ diff table names
   }
 
   @Test

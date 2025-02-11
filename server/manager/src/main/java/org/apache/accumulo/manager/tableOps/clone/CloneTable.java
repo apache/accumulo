@@ -42,7 +42,7 @@ public class CloneTable extends ManagerRepo {
     cloneInfo.tableName = tableName;
     cloneInfo.propertiesToExclude = propertiesToExclude;
     cloneInfo.propertiesToSet = propertiesToSet;
-    cloneInfo.srcNamespaceId = namespaceId;
+    cloneInfo.srcNamespaceId = namespaceId; // TODO this seems like the dest table id
     cloneInfo.keepOffline = keepOffline;
   }
 
