@@ -277,6 +277,11 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       }
     }
 
+    for (var table : Sets.union(tables, clones)) {
+      assertThrows(TableExistsException.class,
+          () -> accumuloClient.tableOperations().create(table));
+    }
+
     // TODO test export/import w/ diff table names
   }
 
