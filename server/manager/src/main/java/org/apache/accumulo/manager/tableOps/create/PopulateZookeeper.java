@@ -29,10 +29,13 @@ import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.util.PropUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class PopulateZookeeper extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
+  private static final Logger log = LoggerFactory.getLogger(PopulateZookeeper.class);
 
   private final TableInfo tableInfo;
 
@@ -54,7 +57,7 @@ class PopulateZookeeper extends ManagerRepo {
     try {
       // write tableName & tableId to zookeeper
       Utils.checkTableNameDoesNotExist(manager.getContext(), tableInfo.getTableName(),
-          tableInfo.getTableId(), TableOperation.CREATE);
+          tableInfo.getNamespaceId(), tableInfo.getTableId(), TableOperation.CREATE);
 
       manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
           tableInfo.getTableName());
