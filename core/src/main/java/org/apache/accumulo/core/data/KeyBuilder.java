@@ -203,7 +203,7 @@ public class KeyBuilder {
      *
      * @param columnQualifier the column qualifier to use for the {@link Key}
      * @return this builder
-     * @ince 3.1.0
+     * @since 3.1.0
      */
     ColumnVisibilityStep qualifier(final ByteSequence columnQualifier);
 
