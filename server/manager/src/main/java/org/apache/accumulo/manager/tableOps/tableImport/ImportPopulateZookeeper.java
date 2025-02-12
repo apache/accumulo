@@ -77,8 +77,8 @@ class ImportPopulateZookeeper extends ManagerRepo {
     Utils.getTableNameLock().lock();
     try {
       // write tableName & tableId to zookeeper
-      Utils.checkTableNameDoesNotExist(env.getContext(), tableInfo.tableName, tableInfo.tableId,
-          TableOperation.CREATE);
+      Utils.checkTableNameDoesNotExist(env.getContext(), tableInfo.tableName, tableInfo.namespaceId,
+          tableInfo.tableId, TableOperation.CREATE);
 
       String namespace = TableNameUtil.qualify(tableInfo.tableName).getFirst();
       NamespaceId namespaceId = Namespaces.getNamespaceId(env.getContext(), namespace);
