@@ -80,7 +80,7 @@ public class Utils {
             final byte[] nId =
                 context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAMESPACE);
             if (destNamespaceId.canonical().equals(new String(nId, UTF_8))
-                && !tableId.equals(TableId.of(tid))) {
+                && !tableId.canonical().equals(tid)) {
               throw new AcceptableThriftTableOperationException(tid, tableName, operation,
                   TableOperationExceptionType.EXISTS, null);
             }
