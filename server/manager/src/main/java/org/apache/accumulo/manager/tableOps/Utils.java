@@ -23,8 +23,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
@@ -32,9 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -58,8 +54,6 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 public class Utils {
   private static final byte[] ZERO_BYTE = {'0'};
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
@@ -68,10 +62,11 @@ public class Utils {
    * Checks that a table name is only used by the specified table id or not used at all.
    */
   public static void checkTableNameDoesNotExist(ServerContext context, String tableName,
-      TableId tableId, TableOperation operation) throws AcceptableThriftTableOperationException {
+      NamespaceId destNamespaceId, TableId tableId, TableOperation operation)
+      throws AcceptableThriftTableOperationException {
 
-    final Map<NamespaceId,String> namespaces = new HashMap<>();
-    final boolean namespaceInTableName = tableName.contains(".");
+    var newTableName = TableNameUtil.qualify(tableName).getSecond();
+
     try {
       for (String tid : context.getZooReader()
           .getChildren(context.getZooKeeperRoot() + Constants.ZTABLES)) {
@@ -79,36 +74,17 @@ public class Utils {
         final String zTablePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tid;
         try {
           final byte[] tname = context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAME);
-          Preconditions.checkState(tname != null, "Malformed table entry in ZooKeeper at %s",
-              zTablePath);
 
-          String namespaceName = Namespace.DEFAULT.name();
-          if (namespaceInTableName) {
+          if (newTableName.equals(new String(tname, UTF_8))) {
+            // only make RPCs to get the namespace when the table names are equal
             final byte[] nId =
                 context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAMESPACE);
-            if (nId != null) {
-              final NamespaceId namespaceId = NamespaceId.of(new String(nId, UTF_8));
-              if (!namespaceId.equals(Namespace.DEFAULT.id())) {
-                namespaceName = namespaces.get(namespaceId);
-                if (namespaceName == null) {
-                  try {
-                    namespaceName = Namespaces.getNamespaceName(context, namespaceId);
-                    namespaces.put(namespaceId, namespaceName);
-                  } catch (NamespaceNotFoundException e) {
-                    throw new AcceptableThriftTableOperationException(null, tableName,
-                        TableOperation.CREATE, TableOperationExceptionType.OTHER,
-                        "Table (" + tableId.canonical() + ") contains reference to namespace ("
-                            + namespaceId + ") that doesn't exist");
-                  }
-                }
-              }
+            if (destNamespaceId.canonical().equals(new String(nId, UTF_8))
+                && !tableId.canonical().equals(tid)) {
+              throw new AcceptableThriftTableOperationException(tid, tableName, operation,
+                  TableOperationExceptionType.EXISTS, null);
             }
-          }
 
-          if (tableName.equals(TableNameUtil.qualified(new String(tname, UTF_8), namespaceName))
-              && !tableId.equals(TableId.of(tid))) {
-            throw new AcceptableThriftTableOperationException(tid, tableName, operation,
-                TableOperationExceptionType.EXISTS, null);
           }
         } catch (NoNodeException nne) {
           log.trace("skipping tableId {}, either being created or has been deleted.", tid, nne);
