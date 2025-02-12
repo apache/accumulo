@@ -289,8 +289,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
             .clone(srcTable, destTable, CloneConfiguration.empty()));
       }
     }
-
-    // TODO test export/import w/ diff table names
   }
 
   @Test
