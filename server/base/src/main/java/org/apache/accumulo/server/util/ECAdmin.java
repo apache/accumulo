@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -32,7 +32,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
@@ -45,9 +44,10 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auto.service.AutoService;
+import com.google.common.net.HostAndPort;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -166,7 +166,7 @@ public class ECAdmin implements KeywordExecutable {
 
   private void runningCompactions(ServerContext context, boolean details, String format) {
     CompactionCoordinatorService.Client coordinatorClient = null;
-    TExternalCompactionList running;
+    TExternalCompactionMap running;
     try {
       coordinatorClient = getCoordinatorClient(context);
       running = coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
@@ -195,7 +195,7 @@ public class ECAdmin implements KeywordExecutable {
         var runningCompaction = new RunningCompaction(ec);
         var addr = runningCompaction.getCompactorAddress();
         var kind = runningCompaction.getJob().kind;
-        var group = runningCompaction.getQueueName();
+        var group = runningCompaction.getGroupName();
         var ke = KeyExtent.fromThrift(runningCompaction.getJob().extent);
         String tableId = ke.tableId().canonical();
 
@@ -255,9 +255,9 @@ public class ECAdmin implements KeywordExecutable {
       // Print JSON
       if ("json".equalsIgnoreCase(format)) {
         try {
-          System.out.println(
-              new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(jsonOutput));
-        } catch (JsonProcessingException e) {
+          Gson gson = new GsonBuilder().setPrettyPrinting().create();
+          System.out.println(gson.toJson(jsonOutput));
+        } catch (Exception e) {
           log.error("Error generating JSON output", e);
         }
       }
