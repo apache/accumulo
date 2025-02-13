@@ -286,20 +286,26 @@ class FateServiceHandler implements FateService.Iface {
           keepOffline = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(2)));
         }
 
+        NamespaceId srcNamespaceId;
         NamespaceId namespaceId;
         try {
+          srcNamespaceId = manager.getContext().getNamespaceId(srcTableId);
           namespaceId = Namespaces.getNamespaceId(manager.getContext(),
               TableNameUtil.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
           // shouldn't happen, but possible once cloning between namespaces is supported
           throw new ThriftTableOperationException(null, tableName, tableOp,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
+        } catch (TableNotFoundException e) {
+          // shouldn't happen, but possible once cloning between namespaces is supported
+          throw new ThriftTableOperationException(srcTableId.canonical(), null, tableOp,
+              TableOperationExceptionType.NOTFOUND, "");
         }
 
         final boolean canCloneTable;
         try {
           canCloneTable =
-              manager.security.canCloneTable(c, srcTableId, tableName, namespaceId, namespaceId);
+              manager.security.canCloneTable(c, srcTableId, tableName, namespaceId, srcNamespaceId);
         } catch (ThriftSecurityException e) {
           throwIfTableMissingSecurityException(e, srcTableId, null, TableOperation.CLONE);
           throw e;
@@ -336,9 +342,9 @@ class FateServiceHandler implements FateService.Iface {
           goalMessage += " and keep offline.";
         }
 
-        manager.fate().seedTransaction(
-            op.toString(), opid, new TraceRepo<>(new CloneTable(c.getPrincipal(), namespaceId,
-                srcTableId, tableName, propertiesToSet, propertiesToExclude, keepOffline)),
+        manager.fate().seedTransaction(op.toString(), opid,
+            new TraceRepo<>(new CloneTable(c.getPrincipal(), srcNamespaceId, srcTableId,
+                namespaceId, tableName, propertiesToSet, propertiesToExclude, keepOffline)),
             autoCleanup, goalMessage);
 
         break;
