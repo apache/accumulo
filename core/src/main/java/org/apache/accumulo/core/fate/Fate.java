@@ -160,9 +160,11 @@ public class Fate<T> {
             while (keepRunning.get()) {
               try {
                 // The reason for calling transfer instead of queueing is avoid rescanning the
-                // storage layer and adding the same thing over and over. For example if all threads
+                // storage layer and adding the same thing over and over. For example if all
+                // threads
                 // were busy, the queue size was 100, and there are three runnable things in the
-                // store. Do not want to keep scanning the store adding those same 3 runnable things
+                // store. Do not want to keep scanning the store adding those same 3 runnable
+                // things
                 // until the queue is full.
                 if (workQueue.tryTransfer(fateId, 100, MILLISECONDS)) {
                   break;
@@ -186,8 +188,10 @@ public class Fate<T> {
   }
 
   private class TransactionRunner implements Runnable {
-    // used to signal a TransactionRunner to stop in the case where there are too many running
-    // i.e., the property for the pool size decreased and we have excess TransactionRunners
+    // used to signal a TransactionRunner to stop in the case where there are too
+    // many running
+    // i.e., the property for the pool size decreased and we have excess
+    // TransactionRunners
     private final AtomicBoolean stop = new AtomicBoolean(false);
 
     private Optional<FateTxStore<T>> reserveFateTx() throws InterruptedException {
@@ -232,7 +236,8 @@ public class Fate<T> {
                   continue;
                 }
               } catch (StackOverflowException e) {
-                // the op that failed to push onto the stack was never executed, so no need to undo
+                // the op that failed to push onto the stack was never executed, so no need to
+                // undo
                 // it just transition to failed and undo the ops that executed
                 transitionToFailed(txStore, e);
                 continue;
@@ -289,7 +294,8 @@ public class Fate<T> {
           state.op = executeCall(txStore.getID(), state.op);
 
           if (state.op != null) {
-            // persist the completion of this step before starting to run the next so in the case of
+            // persist the completion of this step before starting to run the next so in the
+            // case of
             // process death the completed steps are not rerun
             txStore.push(state.op);
           }
@@ -311,13 +317,15 @@ public class Fate<T> {
         } else if (isIOException(e)) {
           log.info("Ignoring exception likely caused by Hadoop Shutdown hook. {} ", fateId, e);
         } else {
-          // sometimes code will catch an IOException caused by the hadoop shutdown hook and throw
+          // sometimes code will catch an IOException caused by the hadoop shutdown hook
+          // and throw
           // another exception without setting the cause.
           log.warn("Ignoring exception possibly caused by Hadoop Shutdown hook. {} ", fateId, e);
         }
 
         while (true) {
-          // Nothing is going to work well at this point, so why even try. Just wait for the end,
+          // Nothing is going to work well at this point, so why even try. Just wait for
+          // the end,
           // preventing this FATE thread from processing further work and likely failing.
           sleepUninterruptibly(1, MINUTES);
         }
@@ -326,7 +334,8 @@ public class Fate<T> {
 
     private void transitionToFailed(FateTxStore<T> txStore, Exception e) {
       final String msg = "Failed to execute Repo " + txStore.getID();
-      // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
+      // Certain FATE ops that throw exceptions don't need to be propagated up to the
+      // Monitor
       // as a warning. They're a normal, handled failure condition.
       if (e instanceof AcceptableException) {
         var tableOpEx = (AcceptableThriftTableOperationException) e;
@@ -427,23 +436,24 @@ public class Fate<T> {
     this.runningTxRunners = Collections.synchronizedSet(new HashSet<>());
     this.fatePoolWatcher =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
+
     ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.scheduleWithFixedDelay(() -> {
       // resize the pool if the property changed
       ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
+
       final int configured = conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE);
       final int needed = configured - runningTxRunners.size();
+
       if (needed > 0) {
-        // If the pool grew, then ensure that there is a TransactionRunner for each thread
+        // If the pool grew, then ensure that there is a TransactionRunner for each
+        // thread
         for (int i = 0; i < needed; i++) {
           try {
             pool.execute(new TransactionRunner());
           } catch (RejectedExecutionException e) {
-            // RejectedExecutionException could be shutting down
             if (pool.isShutdown()) {
-              // The exception is expected in this case, no need to spam the logs.
               log.trace("Error adding transaction runner to FaTE executor pool.", e);
             } else {
-              // This is bad, FaTE may no longer work!
               log.error("Error adding transaction runner to FaTE executor pool.", e);
             }
             break;
@@ -451,9 +461,6 @@ public class Fate<T> {
         }
         idleCountHistory.clear();
       } else if (needed < 0) {
-        // If we need the pool to shrink, then ensure excess TransactionRunners are safely stopped.
-        // Flag the necessary number of TransactionRunners to safely stop when they are done work
-        // on a transaction.
         int numFlagged =
             (int) runningTxRunners.stream().filter(TransactionRunner::isFlaggedToStop).count();
         int numToStop = -1 * (numFlagged + needed);
@@ -467,46 +474,19 @@ public class Fate<T> {
           }
         }
       } else {
-        // The property did not change, but should it based on idle Fate threads? Maintain
-        // count of the last X minutes of idle Fate threads. If zero 95% of the time, then suggest
-        // that the MANAGER_FATE_THREADPOOL_SIZE be increased.
-        final long interval = Math.min(60, TimeUnit.MILLISECONDS
-            .toMinutes(conf.getTimeInMillis(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL)));
-        if (interval == 0) {
-          idleCountHistory.clear();
-        } else {
-          if (idleCountHistory.size() >= interval * 2) { // this task runs every 30s
-            int zeroFateThreadsIdleCount = 0;
-            for (Integer idleConsumerCount : idleCountHistory) {
-              if (idleConsumerCount == 0) {
-                zeroFateThreadsIdleCount++;
-              }
-            }
-            boolean needMoreThreads =
-                (zeroFateThreadsIdleCount / (double) idleCountHistory.size()) >= 0.95;
-            if (needMoreThreads) {
-              log.warn(
-                  "All Fate threads appear to be busy for the last {} minutes,"
-                      + " consider increasing property: {}",
-                  interval, Property.MANAGER_FATE_THREADPOOL_SIZE.getKey());
-              // Clear the history so that we don't log for interval minutes.
-              idleCountHistory.clear();
-            } else {
-              while (idleCountHistory.size() >= interval * 2) {
-                idleCountHistory.remove();
-              }
-            }
-          }
-          idleCountHistory.add(workQueue.getWaitingConsumerCount());
+        // Updated condition: use getWaitingConsumerCount() instead of tracking idle
+        // history
+        if (workQueue.getWaitingConsumerCount() == 0) {
+          log.warn("All Fate threads appear to be busy, consider increasing property: {}",
+              Property.MANAGER_FATE_THREADPOOL_SIZE.getKey());
         }
       }
     }, INITIAL_DELAY.toSeconds(), getPoolWatcherDelay().toSeconds(), SECONDS));
+
     this.transactionExecutor = pool;
 
     ScheduledExecutorService deadResCleanerExecutor = null;
     if (runDeadResCleaner) {
-      // Create a dead reservation cleaner for this store that will periodically clean up
-      // reservations held by dead processes, if they exist.
       deadResCleanerExecutor = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,
           store.type() + "-dead-reservation-cleaner-pool");
       ScheduledFuture<?> deadReservationCleaner =
