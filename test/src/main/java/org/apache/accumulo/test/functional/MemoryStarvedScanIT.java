@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metrics.Metric.SCAN_PAUSED_FOR_MEM;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RETURN_FOR_MEM;
 import static org.apache.accumulo.test.util.Wait.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
@@ -165,7 +166,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     // that performs read-ahead of KV pairs is not started.
     scanner.setReadaheadThreshold(Long.MAX_VALUE);
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    // This should block until the GarbageCollectionLogger runs and notices that the
+    // This should block until the LowMemoryDetector runs and notices that the
     // VM is low on memory.
     assertTrue(iter.hasNext());
   }
@@ -175,7 +176,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     scanner.addScanIterator(new IteratorSetting(11, MemoryConsumingIterator.class, Map.of()));
     scanner.setRanges(Collections.singletonList(new Range()));
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    // This should block until the GarbageCollectionLogger runs and notices that the
+    // This should block until the LowMemoryDetector runs and notices that the
     // VM is low on memory.
     assertTrue(iter.hasNext());
   }
@@ -187,7 +188,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     try (Scanner scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
       IteratorSetting is = new IteratorSetting(11, MemoryFreeingIterator.class, Map.of());
       scanner.addScanIterator(is);
-      var unused = Iterables.size(scanner); // consume the key/values
+      assertNotEquals(0, Iterables.size(scanner)); // consume the key/values
     }
   }
 
@@ -261,7 +262,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
           currentCount = fetched.get();
         }
 
-        // This should block until the GarbageCollectionLogger runs and notices that the
+        // This should block until the LowMemoryDetector runs and notices that the
         // VM is low on memory.
         Iterator<Entry<Key,Value>> consumingIter = memoryConsumingScanner.iterator();
         assertTrue(consumingIter.hasNext());
@@ -331,8 +332,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
             && SCAN_START_DELAYED.doubleValue() >= paused);
         waitFor(() -> 1 == LOW_MEM_DETECTED.get());
 
-        freeServerMemory(client);
       } finally {
+        freeServerMemory(client);
         to.delete(table);
       }
     }
@@ -387,11 +388,9 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         }
 
         // This should block until the LowMemoryDetector runs and notices that the
-        // VM is low on memory. Creating the iterator should be enough to init the
-        // MemoryConsumingIterator on the server side and call seek on it as it
-        // has the readahead threshold set. We can confirm that this is the case
-        // by looking at the metrics after the call.
-        var unused = memoryConsumingScanner.iterator();
+        // VM is low on memory.
+        Iterator<Entry<Key,Value>> consumingIter = memoryConsumingScanner.iterator();
+        assertTrue(consumingIter.hasNext());
         waitFor(() -> 1 == LOW_MEM_DETECTED.get());
 
         // Grab the current paused count, the number of rows fetched by the memoryConsumingScanner
@@ -498,7 +497,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
           currentCount = fetched.get();
         }
 
-        // This should block until the GarbageCollectionLogger runs and notices that the
+        // This should block until the LowMemoryDetector runs and notices that the
         // VM is low on memory.
         Iterator<Entry<Key,Value>> consumingIter = memoryConsumingScanner.iterator();
         assertTrue(consumingIter.hasNext());

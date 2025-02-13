@@ -259,10 +259,11 @@ public interface Ample {
   interface ConditionalResult {
 
     /**
-     * This enum was created instead of using {@link ConditionalWriter.Status} because Ample has
-     * automated handling for most of the statuses of the conditional writer and therefore only a
-     * subset are expected to be passed out of Ample. This enum represents the subset that Ample
-     * will actually return.
+     * This enum was created instead of using
+     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status} because Ample has automated
+     * handling for most of the statuses of the conditional writer and therefore only a subset are
+     * expected to be passed out of Ample. This enum represents the subset that Ample will actually
+     * return.
      */
     enum Status {
       ACCEPTED, REJECTED

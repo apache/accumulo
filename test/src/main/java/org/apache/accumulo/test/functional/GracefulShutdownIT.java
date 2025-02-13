@@ -270,6 +270,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
         scanner.setBatchSize(1);
         int count = 0;
         for (Entry<Key,Value> e : scanner) {
+          assertNotNull(e);
           count++;
           if (count == 2) {
             Admin.signalGracefulShutdown(ctx, sserver.toString());

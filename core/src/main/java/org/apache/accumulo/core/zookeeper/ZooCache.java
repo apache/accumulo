@@ -266,21 +266,12 @@ public class ZooCache {
      * Runs an operation against ZooKeeper. Retries are performed by the retry method when
      * KeeperExceptions occur.
      *
-     * Changes were made in ACCUMULO-4388 so that the run method no longer accepts Zookeeper as an
-     * argument, and instead relies on the ZooRunnable implementation to call
-     * {@link #getZooKeeper()}. Performing the call to retrieving a ZooKeeper Session after caches
-     * are checked has the benefit of limiting ZK connections and blocking as a result of obtaining
-     * these sessions.
-     *
      * @return T the result of the runnable
      */
     abstract T run() throws KeeperException, InterruptedException;
 
     /**
-     * Retry will attempt to call the run method. Run should make a call to {@link #getZooKeeper()}
-     * after checks to cached information are made. This change, per ACCUMULO-4388 ensures that we
-     * don't create a ZooKeeper session when information is cached, and access to ZooKeeper is
-     * unnecessary.
+     * Retry will attempt to call the run method.
      *
      * @return result of the runnable access success ( i.e. no exceptions ).
      */

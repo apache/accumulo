@@ -237,7 +237,6 @@ public class ServiceStatusCmd {
    * Provides explicit method names instead of generic getFirst to get the error count and getSecond
    * hosts information
    *
-   * @param <A> errorCount
    * @param <B> hosts
    */
   private static class Result<B> extends Pair<Integer,B> {
