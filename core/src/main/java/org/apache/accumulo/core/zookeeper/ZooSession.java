@@ -25,10 +25,12 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -37,6 +39,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.zookeeper.AddWatchMode;
 import org.apache.zookeeper.AsyncCallback.StringCallback;
 import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.CreateMode;
@@ -50,6 +53,8 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  * A ZooKeeper client facade that maintains a ZooKeeper delegate instance. If the delegate instance
@@ -111,10 +116,20 @@ public class ZooSession implements AutoCloseable {
     zoo.addAuthInfo("digest", ("accumulo:" + requireNonNull(secret)).getBytes(UTF_8));
   }
 
-  private final AtomicBoolean closed = new AtomicBoolean();
-  private final AtomicLong connectCounter;
+  private static class ZookeeperAndCounter {
+    final ZooKeeper zookeeper;
+    final long connectionCount;
+
+    private ZookeeperAndCounter(ZooKeeper zookeeper, long connectionCount) {
+      Preconditions.checkArgument(connectionCount >= 0);
+      this.zookeeper = Objects.requireNonNull(zookeeper);
+      this.connectionCount = connectionCount;
+    }
+  }
+
+  private boolean closed = false;
   private final String connectString;
-  private final AtomicReference<ZooKeeper> delegate = new AtomicReference<>();
+  private final AtomicReference<ZookeeperAndCounter> delegate = new AtomicReference<>();
   private final String instanceSecret;
   private final String sessionName;
   private final int timeout;
@@ -151,24 +166,32 @@ public class ZooSession implements AutoCloseable {
     // information for logging which instance of ZooSession this is
     this.sessionName =
         String.format("%s[%s_%s]", getClass().getSimpleName(), clientName, UUID.randomUUID());
-    this.connectCounter = new AtomicLong(); // incremented when we need to create a new delegate
     this.zrw = new ZooReaderWriter(this);
   }
 
   private ZooKeeper verifyConnected() {
-    if (closed.get()) {
-      throw new IllegalStateException(sessionName + " was closed");
+    var zkac = delegate.get();
+    if (zkac != null && zkac.zookeeper.getState().isAlive()) {
+      return zkac.zookeeper;
+    } else {
+      return reconnect().zookeeper;
     }
-    return delegate.updateAndGet(zk -> (zk != null && zk.getState().isAlive()) ? zk : reconnect());
   }
 
-  private synchronized ZooKeeper reconnect() {
-    ZooKeeper zk;
-    if ((zk = delegate.get()) != null && zk.getState().isAlive()) {
-      return zk;
+  private synchronized ZookeeperAndCounter reconnect() {
+    if (closed) {
+      throw new IllegalStateException(sessionName + " was closed");
     }
-    zk = null;
-    var reconnectName = String.format("%s#%s", sessionName, connectCounter.getAndIncrement());
+
+    ZookeeperAndCounter zkac;
+    if ((zkac = delegate.get()) != null && zkac.zookeeper.getState().isAlive()) {
+      return zkac;
+    }
+
+    final long nextCounter = (zkac == null ? 0 : zkac.connectionCount) + 1;
+    zkac = null;
+
+    var reconnectName = String.format("%s#%s", sessionName, nextCounter);
     log.debug("{} (re-)connecting to {} with timeout {}{}", reconnectName, connectString, timeout,
         instanceSecret == null ? "" : " with auth");
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
@@ -177,6 +200,8 @@ public class ZooSession implements AutoCloseable {
     long sleepTime = 100;
 
     long startTime = System.nanoTime();
+
+    ZooKeeper zk = null;
 
     while (tryAgain) {
       try {
@@ -232,7 +257,10 @@ public class ZooSession implements AutoCloseable {
         }
       }
     }
-    return zk;
+
+    zkac = new ZookeeperAndCounter(zk, nextCounter);
+    delegate.set(zkac);
+    return zkac;
   }
 
   public void addAuthInfo(String scheme, byte[] auth) {
@@ -290,10 +318,42 @@ public class ZooSession implements AutoCloseable {
     verifyConnected().sync(path, cb, ctx);
   }
 
+  public long addPersistentRecursiveWatchers(Set<String> paths, Watcher watcher)
+      throws KeeperException, InterruptedException {
+    ZookeeperAndCounter localZkac = reconnect();
+
+    Set<String> remainingPaths = new HashSet<>(paths);
+    while (true) {
+      try {
+        Iterator<String> remainingPathsIter = remainingPaths.iterator();
+        while (remainingPathsIter.hasNext()) {
+          String path = remainingPathsIter.next();
+          localZkac.zookeeper.addWatch(path, watcher, AddWatchMode.PERSISTENT_RECURSIVE);
+          remainingPathsIter.remove();
+        }
+
+        return localZkac.connectionCount;
+      } catch (KeeperException e) {
+        log.error("Error setting persistent watcher in ZooKeeper, retrying...", e);
+        ZookeeperAndCounter currentZkac = reconnect();
+        // If ZooKeeper object is different, then reset the localZK variable
+        // and start over.
+        if (localZkac != currentZkac) {
+          localZkac = currentZkac;
+          remainingPaths = new HashSet<>(paths);
+        }
+      }
+    }
+  }
+
   @Override
-  public void close() {
-    if (closed.compareAndSet(false, true)) {
-      closeZk(delegate.getAndSet(null));
+  public synchronized void close() {
+    if (!closed) {
+      var zkac = delegate.getAndSet(null);
+      if (zkac != null) {
+        closeZk(zkac.zookeeper);
+      }
+      closed = true;
     }
   }
 
@@ -307,6 +367,23 @@ public class ZooSession implements AutoCloseable {
 
   public ZooReaderWriter asReaderWriter() {
     return zrw;
+  }
+
+  /**
+   * Connection counter is incremented internal when ZooSession creates a new ZooKeeper client.
+   * Clients of ZooSession can use this counter as a way to determine if a new ZooKeeper connection
+   * has been created.
+   *
+   * @return connection counter
+   */
+  public long getConnectionCounter() {
+    var zkac = delegate.get();
+    if (delegate.get() == null) {
+      // If null then this is closed or in the process of opening. If closed reconnect will throw an
+      // exception. If in the process of opening, then reconnect will wait for that to finish.
+      return reconnect().connectionCount;
+    }
+    return zkac.connectionCount;
   }
 
 }

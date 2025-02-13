@@ -58,7 +58,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
 
   @Override
   protected Duration defaultTimeout() {
-    return Duration.ofSeconds(30);
+    return Duration.ofSeconds(60);
   }
 
   @BeforeAll

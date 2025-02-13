@@ -25,7 +25,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -44,18 +43,16 @@ public class ZKAuthorizor implements Authorizor {
 
   private ServerContext context;
   private String zkUserPath;
-  private ZooCache zooCache;
 
   @Override
   public void initialize(ServerContext context) {
     this.context = context;
-    zooCache = new ZooCache(context.getZooSession());
     zkUserPath = context.zkUserPath();
   }
 
   @Override
   public Authorizations getCachedUserAuthorizations(String user) {
-    byte[] authsBytes = zooCache.get(zkUserPath + "/" + user + ZKUserAuths);
+    byte[] authsBytes = context.getZooCache().get(zkUserPath + "/" + user + ZKUserAuths);
     if (authsBytes != null) {
       return ZKSecurityTool.convertAuthorizations(authsBytes);
     }
@@ -105,11 +102,9 @@ public class ZKAuthorizor implements Authorizor {
   @Override
   public void dropUser(String user) throws AccumuloSecurityException {
     try {
-      synchronized (zooCache) {
-        ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
-        zoo.recursiveDelete(zkUserPath + "/" + user + ZKUserAuths, NodeMissingPolicy.SKIP);
-        zooCache.clear(zkUserPath + "/" + user);
-      }
+      context.getZooSession().asReaderWriter()
+          .recursiveDelete(zkUserPath + "/" + user + ZKUserAuths, NodeMissingPolicy.SKIP);
+      context.getZooCache().clear((path) -> path.startsWith(zkUserPath + "/" + user));
     } catch (InterruptedException e) {
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
@@ -127,12 +122,10 @@ public class ZKAuthorizor implements Authorizor {
   public void changeAuthorizations(String user, Authorizations authorizations)
       throws AccumuloSecurityException {
     try {
-      synchronized (zooCache) {
-        zooCache.clear();
-        context.getZooSession().asReaderWriter().putPersistentData(
-            zkUserPath + "/" + user + ZKUserAuths,
-            ZKSecurityTool.convertAuthorizations(authorizations), NodeExistsPolicy.OVERWRITE);
-      }
+      String userAuths = zkUserPath + "/" + user + ZKUserAuths;
+      context.getZooCache().clear(userAuths);
+      context.getZooSession().asReaderWriter().putPersistentData(userAuths,
+          ZKSecurityTool.convertAuthorizations(authorizations), NodeExistsPolicy.OVERWRITE);
     } catch (KeeperException e) {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);

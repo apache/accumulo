@@ -20,10 +20,15 @@ package org.apache.accumulo.core.metadata;
 
 import java.util.Set;
 
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public enum TabletState {
   UNASSIGNED, ASSIGNED, HOSTED, ASSIGNED_TO_DEAD_SERVER, SUSPENDED;
+
+  private static final Logger log = LoggerFactory.getLogger(TabletState.class);
 
   public static TabletState compute(TabletMetadata tm, Set<TServerInstance> liveTServers) {
     TabletMetadata.Location current = null;
@@ -34,18 +39,27 @@ public enum TabletState {
       future = tm.getLocation();
     }
     if (future != null) {
-      return liveTServers.contains(future.getServerInstance()) ? TabletState.ASSIGNED
-          : TabletState.ASSIGNED_TO_DEAD_SERVER;
+      return trace(liveTServers.contains(future.getServerInstance()) ? TabletState.ASSIGNED
+          : TabletState.ASSIGNED_TO_DEAD_SERVER, tm);
     } else if (current != null) {
       if (liveTServers.contains(current.getServerInstance())) {
-        return TabletState.HOSTED;
+        return trace(TabletState.HOSTED, tm);
       } else {
-        return TabletState.ASSIGNED_TO_DEAD_SERVER;
+        return trace(TabletState.ASSIGNED_TO_DEAD_SERVER, tm);
       }
     } else if (tm.getSuspend() != null) {
-      return TabletState.SUSPENDED;
+      return trace(TabletState.SUSPENDED, tm);
     } else {
-      return TabletState.UNASSIGNED;
+      return trace(TabletState.UNASSIGNED, tm);
     }
+  }
+
+  private static TabletState trace(TabletState tabletState, TabletMetadata tm) {
+    if (log.isTraceEnabled()) {
+      // The prev row column for the table may not have been fetched so can not call tm.getExtent()
+      log.trace("Computed state of {} for {}", tabletState,
+          TabletsSection.encodeRow(tm.getTableId(), tm.getEndRow()));
+    }
+    return tabletState;
   }
 }
