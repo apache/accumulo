@@ -173,7 +173,7 @@ public class ECAdmin implements KeywordExecutable {
 
   private void runningCompactions(ServerContext context, boolean details, String format) {
     CompactionCoordinatorService.Client coordinatorClient = null;
-    TExternalCompactionList running;
+    TExternalCompactionMap running;
 
     try {
       coordinatorClient = getCoordinatorClient(context);
