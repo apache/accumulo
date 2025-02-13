@@ -188,8 +188,9 @@ public class ECAdmin implements KeywordExecutable {
       for (var entry : running.getCompactions().entrySet()) {
         String ecid = entry.getKey();
         var ec = entry.getValue();
-        if (ec == null)
+        if (ec == null) {
           continue;
+        }
 
         var runningCompaction = new RunningCompaction(ec);
         var addr = runningCompaction.getCompactorAddress();
