@@ -18,9 +18,11 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
@@ -44,6 +46,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -58,6 +61,7 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
@@ -202,7 +206,74 @@ public class TabletMetadata {
     COMPACTED,
     USER_COMPACTION_REQUESTED,
     UNSPLITTABLE,
-    MERGEABILITY
+    MERGEABILITY;
+
+    public static Set<ByteSequence> resolveFamilies(Set<ColumnType> columns) {
+      final Set<Text> families = new HashSet<>();
+
+      for (ColumnType column : columns) {
+        switch (column) {
+          case CLONED:
+            families.add(ClonedColumnFamily.NAME);
+            break;
+          case DIR:
+          case FLUSH_ID:
+          case TIME:
+          case OPID:
+          case SELECTED:
+            families.add(ServerColumnFamily.NAME);
+            break;
+          case FILES:
+            families.add(DataFileColumnFamily.NAME);
+            break;
+          case AVAILABILITY:
+          case HOSTING_REQUESTED:
+          case PREV_ROW:
+          case MERGEABILITY:
+            families.add(TabletColumnFamily.NAME);
+            break;
+          case LAST:
+            families.add(LastLocationColumnFamily.NAME);
+            break;
+          case LOADED:
+            families.add(BulkFileColumnFamily.NAME);
+            break;
+          case LOCATION:
+            families.add(CurrentLocationColumnFamily.NAME);
+            families.add(FutureLocationColumnFamily.NAME);
+            break;
+          case LOGS:
+            families.add(LogColumnFamily.NAME);
+            break;
+          case SCANS:
+            families.add(ScanFileColumnFamily.NAME);
+            break;
+          case SUSPEND:
+            families.add(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily());
+            break;
+          case ECOMP:
+            families.add(ExternalCompactionColumnFamily.NAME);
+            break;
+          case MERGED:
+            families.add(MergedColumnFamily.NAME);
+            break;
+          case COMPACTED:
+            families.add(CompactedColumnFamily.NAME);
+            break;
+          case USER_COMPACTION_REQUESTED:
+            families.add(UserCompactionRequestedColumnFamily.NAME);
+            break;
+          case UNSPLITTABLE:
+            families.add(SplitColumnFamily.NAME);
+            break;
+          default:
+            throw new IllegalArgumentException("Unknown col type " + column);
+        }
+      }
+
+      return families.stream().map(family -> new ArrayByteSequence(family.copyBytes()))
+          .collect(toUnmodifiableSet());
+    }
   }
 
   public static class Location {
