@@ -221,7 +221,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   @Test
   public void createTablesWithSameNameInDifferentNamespace() throws Exception {
     TableOperations tableOps = accumuloClient.tableOperations();
-    String[] names = getUniqueNames(2);
 
     accumuloClient.namespaceOperations().create("test1");
     accumuloClient.namespaceOperations().create("test2");
