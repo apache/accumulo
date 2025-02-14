@@ -31,7 +31,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -80,7 +79,7 @@ public class ZooCache {
 
   private final ZooSession zk;
 
-  private final AtomicBoolean closed = new AtomicBoolean(false);
+  private volatile boolean closed = false;
 
   private final AtomicLong updateCount = new AtomicLong();
 
@@ -350,7 +349,7 @@ public class ZooCache {
    * @return children list, or null if node has no children or does not exist
    */
   public List<String> getChildren(final String zPath) {
-    Preconditions.checkState(!closed.get(), "Operation not allowed: ZooCache is already closed.");
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
     ensureWatched(zPath);
     ZooRunnable<List<String>> zr = new ZooRunnable<>() {
 
@@ -410,7 +409,7 @@ public class ZooCache {
    * @return path data, or null if non-existent
    */
   public byte[] get(final String zPath, final ZcStat status) {
-    Preconditions.checkState(!closed.get(), "Operation not allowed: ZooCache is already closed.");
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
     ensureWatched(zPath);
     ZooRunnable<byte[]> zr = new ZooRunnable<>() {
 
@@ -475,7 +474,7 @@ public class ZooCache {
    * @param cachedStat cached statistic, that is or will be cached
    */
   protected void copyStats(ZcStat userStat, ZcStat cachedStat) {
-    Preconditions.checkState(!closed.get(), "Operation not allowed: ZooCache is already closed.");
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
     if (userStat != null && cachedStat != null) {
       userStat.set(cachedStat);
     }
@@ -485,8 +484,7 @@ public class ZooCache {
    * Clears this cache.
    */
   protected void clear() {
-    if (closed.get()) {
-      log.trace("clear() called on closed ZooCache {}. Returning.", cacheId);
+    if (closed) {
       return;
     }
     nodeCache.clear();
@@ -495,12 +493,11 @@ public class ZooCache {
   }
 
   public void close() {
-    if (!closed.get()) {
-      clear();
-      closed.set(true);
-    } else {
-      log.trace("close() called on already closed ZooCache {}", cacheId);
+    if (closed) {
+      return;
     }
+    clear();
+    closed = true;
   }
 
   /**
@@ -508,7 +505,7 @@ public class ZooCache {
    * count is the same, then it means cache did not change.
    */
   public long getUpdateCount() {
-    Preconditions.checkState(!closed.get(), "Operation not allowed: ZooCache is already closed.");
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
     return updateCount.get();
   }
 
@@ -542,7 +539,7 @@ public class ZooCache {
    * Removes all paths in the cache match the predicate.
    */
   public void clear(Predicate<String> pathPredicate) {
-    Preconditions.checkState(!closed.get(), "Operation not allowed: ZooCache is already closed.");
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
     Predicate<String> pathPredicateWrapper = path -> {
       boolean testResult = pathPredicate.test(path);
       if (testResult) {
