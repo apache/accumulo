@@ -318,7 +318,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     public Options fetch(ColumnType... colsToFetch) {
       Preconditions.checkArgument(colsToFetch.length > 0);
 
-      Map<Boolean,Set<ColumnType>> groups = Set.of(colsToFetch).stream()
+      var columns = Set.of(colsToFetch);
+      fetchedCols.addAll(columns);
+      Map<Boolean,Set<ColumnType>> groups = columns.stream()
           .collect(Collectors.partitioningBy(FETCH_QUALIFIERS::contains, Collectors.toSet()));
       qualifiers.addAll(ColumnType.resolveQualifiers(groups.get(true)));
       families.addAll(ColumnType.resolveFamiliesAsText(groups.get(false)));
