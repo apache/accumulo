@@ -65,20 +65,20 @@ public class AdminUtil<T> {
     private final FateId fateId;
     private final FateInstanceType instanceType;
     private final TStatus status;
-    private final Fate.FateOperation txName;
+    private final Fate.FateOperation fateOp;
     private final List<String> hlocks;
     private final List<String> wlocks;
     private final String top;
     private final long timeCreated;
 
     private TransactionStatus(FateId fateId, FateInstanceType instanceType, TStatus status,
-        Fate.FateOperation txName, List<String> hlocks, List<String> wlocks, String top,
+        Fate.FateOperation fateOp, List<String> hlocks, List<String> wlocks, String top,
         Long timeCreated) {
 
       this.fateId = fateId;
       this.instanceType = instanceType;
       this.status = status;
-      this.txName = txName;
+      this.fateOp = fateOp;
       this.hlocks = Collections.unmodifiableList(hlocks);
       this.wlocks = Collections.unmodifiableList(wlocks);
       this.top = top;
@@ -105,8 +105,8 @@ public class AdminUtil<T> {
     /**
      * @return The name of the transaction running.
      */
-    public Fate.FateOperation getTxName() {
-      return txName;
+    public Fate.FateOperation getFateOp() {
+      return fateOp;
     }
 
     /**
@@ -354,8 +354,8 @@ public class AdminUtil<T> {
 
           ReadOnlyFateTxStore<T> txStore = store.read(fateId);
           // tx name will not be set if the tx is not seeded with work (it is NEW)
-          Fate.FateOperation txName = txStore.getTransactionInfo(Fate.TxInfo.TX_NAME) == null ? null
-              : ((Fate.FateOperation) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME));
+          Fate.FateOperation fateOp = txStore.getTransactionInfo(Fate.TxInfo.FATE_OP) == null ? null
+              : ((Fate.FateOperation) txStore.getTransactionInfo(Fate.TxInfo.FATE_OP));
 
           List<String> hlocks = heldLocks.remove(fateId);
 
@@ -381,7 +381,7 @@ public class AdminUtil<T> {
 
           if (includeByStatus(status, statusFilter) && includeByFateId(fateId, fateIdFilter)
               && includeByInstanceType(fateId.getType(), typesFilter)) {
-            statuses.add(new TransactionStatus(fateId, type, status, txName, hlocks, wlocks, top,
+            statuses.add(new TransactionStatus(fateId, type, status, fateOp, hlocks, wlocks, top,
                 timeCreated));
           }
         });
@@ -418,7 +418,7 @@ public class AdminUtil<T> {
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
       fmt.format(
           "%-15s fateId: %s  status: %-18s locked: %-15s locking: %-15s op: %-15s created: %s%n",
-          txStatus.getTxName(), txStatus.getFateId(), txStatus.getStatus(), txStatus.getHeldLocks(),
+          txStatus.getFateOp(), txStatus.getFateId(), txStatus.getStatus(), txStatus.getHeldLocks(),
           txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted());
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
