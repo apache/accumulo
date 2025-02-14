@@ -20,8 +20,10 @@ package org.apache.accumulo.manager.tableOps.clone;
 
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -35,6 +37,18 @@ class CloneZookeeper extends ManagerRepo {
   public CloneZookeeper(CloneInfo cloneInfo, ClientContext context)
       throws NamespaceNotFoundException {
     this.cloneInfo = cloneInfo;
+    if (this.cloneInfo.getNamespaceId() == null) {
+      // Prior to 2.1.4 the namespaceId was calculated in this
+      // step and set on the cloneInfo object here. If for some
+      // reason we are processing a pre-2.1.3 CloneTable operation,
+      // then we need to continue to set this here as it will be
+      // null in the deserialized CloneInfo object.
+      //
+      // TODO: Remove this check in 3.1 as Fate operations
+      // need to be cleaned up before a major upgrade.
+      this.cloneInfo.setNamespaceId(Namespaces.getNamespaceId(context,
+          TableNameUtil.qualify(this.cloneInfo.getTableName()).getFirst()));
+    }
   }
 
   @Override

@@ -57,9 +57,9 @@ class FinishCloneTable extends ManagerRepo {
       environment.getTableManager().transitionTableState(cloneInfo.getTableId(), TableState.ONLINE,
           expectedCurrStates);
     }
+    Utils.unreserveTable(environment, cloneInfo.getTableId(), tid, true);
     Utils.unreserveNamespace(environment, cloneInfo.getNamespaceId(), tid, false);
     Utils.unreserveTable(environment, cloneInfo.getSrcTableId(), tid, false);
-    Utils.unreserveTable(environment, cloneInfo.getTableId(), tid, true);
 
     environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.getTableName(),
         cloneInfo.getSrcTableId());

@@ -42,8 +42,10 @@ import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.DiskUsage;
@@ -354,13 +356,46 @@ public class CloneTestIT extends AccumuloClusterHarness {
     }
   }
 
+  private void baseCloneNamespace(AccumuloClient client, String src, String dest) throws Exception {
+    writeData(src, client).close();
+    // Don't force a flush on the table, let's make sure the
+    // clone operation does this
+    client.tableOperations().clone(src, dest, CloneConfiguration.empty());
+    checkData(dest, client);
+  }
+
+  @Test
+  public void testCloneSameNamespace() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      client.namespaceOperations().create("old");
+      client.tableOperations().create("old." + tableName);
+      assertThrows(TableExistsException.class,
+          () -> baseCloneNamespace(client, "old." + tableName, "old." + tableName));
+    }
+  }
+
   @Test
   public void testCloneIntoDiffNamespace() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
+      client.namespaceOperations().create("old");
+      client.tableOperations().create("old." + tableName);
       client.namespaceOperations().create("new");
-      client.tableOperations().clone(tableName, "new." + tableName, CloneConfiguration.empty());
+      baseCloneNamespace(client, "old." + tableName, "new." + tableName);
+    }
+  }
+
+  @Test
+  public void testCloneIntoDiffNamespaceTableExists() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      client.namespaceOperations().create("old");
+      client.tableOperations().create("old." + tableName);
+      client.namespaceOperations().create("new");
+      client.tableOperations().create("new." + tableName);
+      assertThrows(TableExistsException.class,
+          () -> baseCloneNamespace(client, "old." + tableName, "new." + tableName));
     }
   }
 
@@ -368,9 +403,10 @@ public class CloneTestIT extends AccumuloClusterHarness {
   public void testCloneIntoDiffNamespaceDoesntExist() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
-      assertThrows(AccumuloException.class, () -> client.tableOperations().clone(tableName,
-          "missing." + tableName, CloneConfiguration.empty()));
+      client.namespaceOperations().create("old");
+      client.tableOperations().create("old." + tableName);
+      assertThrows(AccumuloException.class,
+          () -> baseCloneNamespace(client, "old." + tableName, "missing." + tableName));
     }
   }
 
@@ -378,9 +414,42 @@ public class CloneTestIT extends AccumuloClusterHarness {
   public void testCloneIntoAccumuloNamespace() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
-      assertThrows(AccumuloException.class, () -> client.tableOperations().clone(tableName,
-          "accumulo." + tableName, CloneConfiguration.empty()));
+      client.namespaceOperations().create("old");
+      client.tableOperations().create("old." + tableName);
+      assertThrows(AccumuloException.class,
+          () -> baseCloneNamespace(client, "old." + tableName, "accumulo." + tableName));
+    }
+  }
+
+  @Test
+  public void testCloneNamespaceIncorrectPermissions() throws Exception {
+    final String tableName = getUniqueNames(1)[0];
+    final String newUserName = "NEW_USER";
+    final String srcNs = "src";
+    final String srcTableName = srcNs + "." + tableName;
+    final String destNs = "dst";
+    final String dstTableName = destNs + "." + tableName;
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.namespaceOperations().create(srcNs);
+      client.tableOperations().create(srcTableName);
+      client.namespaceOperations().create(destNs);
+      client.securityOperations().createLocalUser(newUserName, new PasswordToken(newUserName));
+      // User needs WRITE or ALTER_TABLE on the src table to flush it as part of the clone operation
+      client.securityOperations().grantTablePermission(newUserName, srcTableName,
+          TablePermission.ALTER_TABLE);
+      client.securityOperations().grantNamespacePermission(newUserName, destNs,
+          NamespacePermission.READ);
+      client.securityOperations().grantNamespacePermission(newUserName, destNs,
+          NamespacePermission.CREATE_TABLE);
+    }
+
+    try (AccumuloClient client =
+        Accumulo.newClient().to(getCluster().getInstanceName(), getCluster().getZooKeepers())
+            .as(newUserName, newUserName).build()) {
+      // READ permission is needed on the src table, not the dst namespace
+      assertThrows(AccumuloSecurityException.class, () -> client.tableOperations()
+          .clone(srcTableName, dstTableName, CloneConfiguration.empty()));
     }
   }
 

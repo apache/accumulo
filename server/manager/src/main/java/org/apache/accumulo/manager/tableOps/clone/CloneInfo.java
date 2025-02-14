@@ -32,7 +32,8 @@ class CloneInfo implements Serializable {
   private final TableId srcTableId;
   private final String tableName;
   private TableId tableId;
-  private final NamespaceId namespaceId;
+  // TODO: Make final in 3.1
+  private NamespaceId namespaceId;
   private final NamespaceId srcNamespaceId;
   private final Map<String,String> propertiesToSet;
   private final Set<String> propertiesToExclude;
@@ -71,6 +72,10 @@ class CloneInfo implements Serializable {
 
   public NamespaceId getNamespaceId() {
     return namespaceId;
+  }
+
+  public void setNamespaceId(NamespaceId nid) {
+    this.namespaceId = nid;
   }
 
   public NamespaceId getSrcNamespaceId() {
