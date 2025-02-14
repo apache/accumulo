@@ -287,19 +287,22 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         NamespaceId srcNamespaceId;
-        NamespaceId namespaceId;
         try {
           srcNamespaceId = manager.getContext().getNamespaceId(srcTableId);
+        } catch (TableNotFoundException e) {
+          // could happen if the table was deleted while processing this request
+          throw new ThriftTableOperationException(srcTableId.canonical(), null, tableOp,
+              TableOperationExceptionType.NOTFOUND, "");
+        }
+
+        NamespaceId namespaceId;
+        try {
           namespaceId = Namespaces.getNamespaceId(manager.getContext(),
               TableNameUtil.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
-          // shouldn't happen, but possible once cloning between namespaces is supported
+          // dest namespace does not exist yet, needs to be created
           throw new ThriftTableOperationException(null, tableName, tableOp,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
-        } catch (TableNotFoundException e) {
-          // shouldn't happen, but possible once cloning between namespaces is supported
-          throw new ThriftTableOperationException(srcTableId.canonical(), null, tableOp,
-              TableOperationExceptionType.NOTFOUND, "");
         }
 
         final boolean canCloneTable;

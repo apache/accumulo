@@ -50,26 +50,23 @@ class FinishCloneTable extends ManagerRepo {
     // that are not used... tablet will create directories as needed
 
     final EnumSet<TableState> expectedCurrStates = EnumSet.of(TableState.NEW);
-    if (cloneInfo.keepOffline) {
-      environment.getTableManager().transitionTableState(cloneInfo.tableId, TableState.OFFLINE,
+    if (cloneInfo.isKeepOffline()) {
+      environment.getTableManager().transitionTableState(cloneInfo.getTableId(), TableState.OFFLINE,
           expectedCurrStates);
     } else {
-      environment.getTableManager().transitionTableState(cloneInfo.tableId, TableState.ONLINE,
+      environment.getTableManager().transitionTableState(cloneInfo.getTableId(), TableState.ONLINE,
           expectedCurrStates);
     }
+    Utils.unreserveNamespace(environment, cloneInfo.getNamespaceId(), tid, false);
+    Utils.unreserveTable(environment, cloneInfo.getSrcTableId(), tid, false);
+    Utils.unreserveTable(environment, cloneInfo.getTableId(), tid, true);
 
-    Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false);
-    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) {
-      Utils.unreserveNamespace(environment, cloneInfo.namespaceId, tid, false);
-    }
-    Utils.unreserveTable(environment, cloneInfo.srcTableId, tid, false);
-    Utils.unreserveTable(environment, cloneInfo.tableId, tid, true);
+    environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.getTableName(),
+        cloneInfo.getSrcTableId());
 
-    environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.tableName,
-        cloneInfo.srcTableId);
-
-    LoggerFactory.getLogger(FinishCloneTable.class).debug("Cloned table " + cloneInfo.srcTableId
-        + " " + cloneInfo.tableId + " " + cloneInfo.tableName);
+    LoggerFactory.getLogger(FinishCloneTable.class)
+        .debug("Cloned table " + cloneInfo.getSrcTableId() + " " + cloneInfo.getTableId() + " "
+            + cloneInfo.getTableName());
 
     return null;
   }

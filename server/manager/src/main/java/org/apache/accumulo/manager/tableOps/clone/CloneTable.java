@@ -37,22 +37,15 @@ public class CloneTable extends ManagerRepo {
   public CloneTable(String user, NamespaceId srcNamespaceId, TableId srcTableId,
       NamespaceId namespaceId, String tableName, Map<String,String> propertiesToSet,
       Set<String> propertiesToExclude, boolean keepOffline) {
-    cloneInfo = new CloneInfo();
-    cloneInfo.user = user;
-    cloneInfo.srcTableId = srcTableId;
-    cloneInfo.tableName = tableName;
-    cloneInfo.propertiesToExclude = propertiesToExclude;
-    cloneInfo.propertiesToSet = propertiesToSet;
-    cloneInfo.srcNamespaceId = srcNamespaceId;
-    cloneInfo.namespaceId = namespaceId;
-    cloneInfo.keepOffline = keepOffline;
+    cloneInfo = new CloneInfo(srcNamespaceId, srcTableId, namespaceId, tableName, propertiesToSet,
+        propertiesToExclude, keepOffline, user);
   }
 
   @Override
   public long isReady(long tid, Manager environment) throws Exception {
-    long val = Utils.reserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false, true,
+    long val = Utils.reserveNamespace(environment, cloneInfo.getNamespaceId(), tid, false, true,
         TableOperation.CLONE);
-    val += Utils.reserveTable(environment, cloneInfo.srcTableId, tid, false, true,
+    val += Utils.reserveTable(environment, cloneInfo.getSrcTableId(), tid, false, true,
         TableOperation.CLONE);
     return val;
   }
@@ -62,9 +55,8 @@ public class CloneTable extends ManagerRepo {
 
     Utils.getIdLock().lock();
     try {
-      cloneInfo.tableId =
-          Utils.getNextId(cloneInfo.tableName, environment.getContext(), TableId::of);
-
+      cloneInfo.setTableId(
+          Utils.getNextId(cloneInfo.getTableName(), environment.getContext(), TableId::of));
       return new ClonePermissions(cloneInfo);
     } finally {
       Utils.getIdLock().unlock();
@@ -73,8 +65,8 @@ public class CloneTable extends ManagerRepo {
 
   @Override
   public void undo(long tid, Manager environment) {
-    Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false);
-    Utils.unreserveTable(environment, cloneInfo.srcTableId, tid, false);
+    Utils.unreserveNamespace(environment, cloneInfo.getNamespaceId(), tid, false);
+    Utils.unreserveTable(environment, cloneInfo.getSrcTableId(), tid, false);
   }
 
 }
