@@ -97,7 +97,8 @@ public class TabletMetadataCheckIterator implements SortedKeyValueIterator<Key,V
 
     var colsToRead = check.columnsToRead();
 
-    source.seek(new Range(tabletRow), colsToRead.getFamilies(), true);
+    source.seek(new Range(tabletRow), colsToRead.getFamilies(),
+        !colsToRead.getFamilies().isEmpty());
 
     if (source.hasTop()) {
       var tabletMetadata = TabletMetadata.convertRow(new IteratorAdapter(source),
